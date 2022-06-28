@@ -64,7 +64,7 @@
         "build": {
             "sub_component": [
                 "//foundation/distributeddatamgr/appdatamgr/preference/interfaces/inner_api:native_preference",
-                "//foundation/distributeddatamgr/appdatamgr/preference/frameworks/js/napi:preference",
+                "//foundation/distributeddatamgr/appdatamgr/preference/frameworks/js/napi:preferences",
                 "//foundation/distributeddatamgr/appdatamgr/preference/frameworks/js/napi:storage",
                 "//foundation/distributeddatamgr/appdatamgr/preference/frameworks/js/napi:storage_napi"
             ],

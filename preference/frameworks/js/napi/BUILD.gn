@@ -80,7 +80,7 @@ ohos_shared_library("storage_napi") {
   relative_install_dir = "module"
 }
 
-ohos_shared_library("preference") {
+ohos_shared_library("preferences") {
   include_dirs = [
     "include",
     "${relational_store_js_common_path}/include",
