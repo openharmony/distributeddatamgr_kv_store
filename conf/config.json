@@ -1,0 +1,80 @@
+{
+  "processLabel": "distributeddata",
+  "metaData": "service_meta",
+  "version": "000.000.001",
+  "features": ["kvdb", "rdb", "object", "backup", "data_sync"],
+  "components": [
+    {
+      "description": "3rd party adapter",
+      "lib": "libconfigdemo.z.so",
+      "constructor": "",
+      "destructor": "",
+      "params": {
+        "key": "value",
+        "count": 1
+      }
+    },
+    {
+      "lib": "libconfigdemo2.z.so"
+    }
+  ],
+  "bundleChecker": {
+    "checkers": [
+      "SystemChecker",
+      "BundleChecker",
+      "MediaLibraryChecker",
+      "PackageChecker",
+      "ExternalChecker"
+    ],
+    "trusts": [
+      {
+        "bundleName": "bundle_manager_service",
+        "appId": "bundle_manager_service",
+        "checker": "SystemChecker"
+      },
+      {
+        "bundleName": "com.ohos.medialibrary.medialibrarydata",
+        "appId": "com.ohos.medialibrary.medialibrarydata",
+        "checker": "MediaLibraryChecker"
+      }
+    ]
+  },
+  "networks": {
+    "chains": [
+      "loadBalance",
+      "authentication",
+      "traffic-control",
+      "router",
+      "transport",
+      "fault-inject"
+    ],
+    "routers": [
+      "OHOSRouter"
+    ],
+    "transports": [
+      "softbus"
+    ],
+    "protocols": [
+      {
+        "name": "OHOS softbus",
+        "address": "ohos.distributeddata",
+        "transport": "softbus"
+      }
+    ]
+  },
+  "directory": {
+    "strategy": [
+      {
+        "version": 0,
+        "pattern": "/data/{security}/0/mdds/{userId}/default/{bundleName}",
+        "metaPath": "/data/misc_de/0/mdds/Meta",
+        "autoCreate": true
+      },
+      {
+        "version": 50331651,
+        "pattern": "/data/{type}/{area}/{userId}/database/{bundleName}/{hapName}/{store}",
+        "metaPath": "/data/service/el1/public/database/distributeddata/meta"
+      }
+    ]
+  }
+}
