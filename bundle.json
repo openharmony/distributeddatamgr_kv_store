@@ -36,7 +36,7 @@
     "dirs": {},
     "scripts": {},
     "component": {
-        "name": "kv_store",
+        "name": "distributeddatamgr",
         "subsystem": "distributeddatamgr",
         "syscap": [
             "SystemCapability.DistributedDataManager.KVStore.Core",
@@ -89,16 +89,7 @@
             ]
         },
         "build": {
-            "sub_component": [
-                "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:build_module",
-                "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/service:build_module",
-                "//foundation/distributeddatamgr/kv_store/conf:build_module", 
-                "//foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store" 
-            ],
+            "sub_component": [],
             "inner_kits": [
                 {
                     "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
@@ -123,13 +114,7 @@
                     }
                 }
             ],
-            "test": [
-                "//foundation/distributeddatamgr/kv_store:build_native_test",
-                "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/test:distributeddatamgr_fuzztest",
-                "//foundation/distributeddatamgr/kv_store:fuzztest",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/test:fuzztest",
-                "//foundation/distributeddatamgr/kv_store:distributedtest"
-            ]
+            "test": []
         }
     }
 }
