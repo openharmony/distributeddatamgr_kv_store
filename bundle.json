@@ -36,7 +36,7 @@
     "dirs": {},
     "scripts": {},
     "component": {
-        "name": "distributeddatamgr",
+        "name": "kv_store",
         "subsystem": "distributeddatamgr",
         "syscap": [
             "SystemCapability.DistributedDataManager.KVStore.Core",
