@@ -37,6 +37,7 @@ config("distributeddatafwk_config") {
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
     "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
+    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
   ]
 }
 
@@ -92,6 +93,7 @@ ohos_shared_library("distributeddata_inner") {
 
   kvdb_sources = [
     "../../../frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
@@ -114,8 +116,7 @@ ohos_shared_library("distributeddata_inner") {
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:distributeddb",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter/utils:distributeddata_utils_static",
-
-    "//utils/native/base:utils",
+    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]
   external_deps = [
     "c_utils:utils",

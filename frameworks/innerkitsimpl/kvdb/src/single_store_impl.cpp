@@ -15,6 +15,7 @@
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
 #include "auto_sync_timer.h"
+#include "backup_manager.h"
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
@@ -31,6 +32,9 @@ SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
     syncObserver_ = std::make_shared<SyncObserver>();
+    if (options.backup) {
+        BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
+    }
 }
 
 StoreId SingleStoreImpl::GetStoreId() const
@@ -579,6 +583,42 @@ int32_t SingleStoreImpl::Close(bool isForce)
     std::unique_lock<decltype(rwMutex_)> lock(rwMutex_);
     dbStore_ = nullptr;
     return ref_;
+}
+
+Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto status = BackupManager::GetInstance().Backup(file, baseDir, storeId_, dbStore_);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x storeId:%{public}s, backup name:%{public}s ",
+            status, storeId_.c_str(), file.c_str());
+    }
+    return status;
+}
+
+Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    auto status = BackupManager::GetInstance().Restore(file, baseDir, storeId_, dbStore_);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x storeId:%{public}s, backup name:%{public}s ",
+            status, storeId_.c_str(), file.c_str());
+    }
+    return status;
+}
+
+Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
+    std::map<std::string, DistributedKv::Status> &results)
+{
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    for (auto &file : files) {
+        results.emplace(file, DEVICE_NOT_FOUND);
+    }
+    auto status = BackupManager::GetInstance().DeleteBackup(results, baseDir, storeId_);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+    }
+    return status;
 }
 
 std::function<void(ObserverBridge *)> SingleStoreImpl::BridgeReleaser()

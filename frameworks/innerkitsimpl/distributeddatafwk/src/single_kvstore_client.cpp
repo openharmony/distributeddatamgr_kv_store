@@ -520,4 +520,28 @@ Status SingleKvStoreClient::UnsubscribeWithQuery(const std::vector<std::string> 
     syncCallbackClient_->AddSyncCallback(syncObserver_, sequenceId);
     return kvStoreProxy_->UnSubscribe(deviceIds, query.ToString(), sequenceId);
 }
+
+Status SingleKvStoreClient::Backup(const std::string &file, const std::string &baseDir)
+{
+    (void) file;
+    (void) baseDir;
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    return SUCCESS;
+}
+Status SingleKvStoreClient::Restore(const std::string &file, const std::string &baseDir)
+{
+    (void) file;
+    (void) baseDir;
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    return SUCCESS;
+}
+Status SingleKvStoreClient::DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
+    std::map<std::string, DistributedKv::Status> &status)
+{
+    (void) files;
+    (void) baseDir;
+    (void) status;
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
+    return SUCCESS;
+}
 } // namespace OHOS::DistributedKv

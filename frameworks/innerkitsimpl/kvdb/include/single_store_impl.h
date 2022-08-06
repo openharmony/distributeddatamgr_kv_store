@@ -59,8 +59,11 @@ public:
     Status RemoveDeviceData(const std::string &device) override;
     int32_t Close(bool isForce = false);
     int32_t AddRef();
-
-    // IPC interface
+    Status Backup(const std::string &file, const std::string &baseDir) override;
+    Status Restore(const std::string &file, const std::string &baseDir) override;
+    Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
+        std::map<std::string, DistributedKv::Status> &status) override;
+   // IPC interface
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay) override;
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
         std::shared_ptr<SyncCallback> syncCallback) override;

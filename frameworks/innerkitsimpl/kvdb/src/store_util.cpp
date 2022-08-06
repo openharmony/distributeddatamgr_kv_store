@@ -14,6 +14,7 @@
  */
 #define LOG_TAG "StoreUtil"
 #include "store_util.h"
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include "log_print.h"
@@ -156,6 +157,87 @@ bool StoreUtil::InitPath(const std::string &path)
     umask(DEFAULT_UMASK);
     if (mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0 && errno != EEXIST) {
         ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool StoreUtil::CreateFile(const std::string &name)
+{
+    umask(DEFAULT_UMASK);
+    int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP));
+    if (fp < 0) {
+        ZLOGE("fopen error:%{public}d, path:%{public}s", errno, name.c_str());
+        return false;
+    }
+    close(fp);
+    return true;
+}
+
+std::vector<std::string> StoreUtil::GetSubPath(const std::string &path)
+{
+    std::vector<std::string> subPaths;
+    DIR *dirp = opendir(path.c_str());
+    if (dirp == nullptr) {
+        ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        return subPaths;
+    }
+    struct dirent *dp;
+    while ((dp = readdir(dirp)) != nullptr) {
+        if (dp->d_type == DT_DIR) {
+            subPaths.push_back(dp->d_name);
+        }
+    }
+    (void)closedir(dirp);
+    return subPaths;
+}
+
+std::vector<StoreUtil::FileInfo> StoreUtil::GetFiles(const std::string &path)
+{
+    std::vector<FileInfo> fileInfos;
+    DIR *dirp = opendir(path.c_str());
+    if (dirp == nullptr) {
+        ZLOGE("opendir error:%{public}d, path:%{public}s", errno, path.c_str());
+        return fileInfos;
+    }
+    struct dirent *dp;
+    while ((dp = readdir(dirp)) != nullptr) {
+        if (dp->d_type == DT_REG) {
+            struct stat fileStat;
+            auto fullName = path + "/" + dp->d_name;
+            stat(fullName.c_str(), &fileStat);
+            FileInfo fileInfo = { "", 0, 0 };
+            fileInfo.name = dp->d_name;
+            fileInfo.modifyTime = fileStat.st_mtim.tv_sec;
+            fileInfo.size = fileStat.st_size;
+            fileInfos.push_back(fileInfo);
+        }
+    }
+    closedir(dirp);
+    return fileInfos;
+}
+
+bool StoreUtil::Rename(const std::string &oldName, const std::string &newName)
+{
+    if (oldName.empty() || newName.empty()) {
+        return false;
+    }
+    if (!Remove(newName)) {
+        return false;
+    }
+    if (rename(oldName.c_str(), newName.c_str()) != 0) {
+        ZLOGE("rename error:%{public}d, file:%{public}s->%{public}s", errno, oldName.c_str(), newName.c_str());
+        return false;
+    }
+    return true;
+}
+
+bool StoreUtil::IsFileExist(const std::string &name)
+{
+    if (name.empty()) {
+        return false;
+    }
+    if (access(name.c_str(), F_OK) != 0) {
         return false;
     }
     return true;
