@@ -298,7 +298,7 @@ ohos_source_set("src_file") {
     "hitrace_native:hitrace_meter",
     "hiviewdfx_hilog_native:libhilog",
   ]
-  part_name = "distributeddatamgr"
+  part_name = "datamgr_service"
 }
 
 template("distributeddb_unittest") {

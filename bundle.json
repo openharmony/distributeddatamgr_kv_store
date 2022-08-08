@@ -43,7 +43,8 @@
             "SystemCapability.DistributedDataManager.KVStore.Lite",
             "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
         ],
-        "features": [],
+        "features": [
+            "kv_store_feature_mini"],
         "adapted_system_type": [
             "mini",
             "small",

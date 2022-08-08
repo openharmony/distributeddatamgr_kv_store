@@ -13,7 +13,12 @@
 import("//build/ohos.gni")
 
 group("build_module"){
-  if(is_standard_system) {
+  if(kv_store_feature_mini) {
+    deps = [
+      "//foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store:kv_store"
+    ]
+  }
+  else{
     deps = [
       "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:build_module",
       "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
@@ -24,14 +29,9 @@ group("build_module"){
       "//foundation/distributeddatamgr/kv_store/conf:build_module" 
     ]
   }
-  else{
-    deps = [
-      "//foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store:kv_store"
-    ]
-  }
 }
 group("build_native_test") {
-  if(is_standard_system) {
+  if(!kv_store_feature_mini) {
     testonly = true
     deps = [
       "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
@@ -42,21 +42,10 @@ group("build_native_test") {
 
 ###############################################################################
 
-group("fuzztest") {
-  if(is_standard_system) {
+group("distributeddatamgr_fuzztest") {
   testonly = true
-    deps = [
-      "test/fuzztest/autolaunch_fuzzer:fuzztest",
-      "test/fuzztest/kvstore_fuzzer:fuzztest",
-      "test/fuzztest/kvstoredisksize_fuzzer:fuzztest",
-    ]
-  }
+  deps = [
+    "foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddbtest:distributeddatamgr_fuzztest"
+  ]
 }
 
-group("distributedtest") {
-  if(is_standard_system) {
-    testonly = true
-    deps = [ "test/distributedtest/single_kvstore_client:distributedtest" ]
-  }
-}
-###############################################################################
