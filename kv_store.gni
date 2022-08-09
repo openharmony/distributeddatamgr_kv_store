@@ -12,7 +12,7 @@
 # limitations under the License.
 
 declare_args() {
-  kv_store_feature_mini = true
+  kv_store_build_lite = true
   distributeddatamgr_power = true
   if (!defined(global_parts_info.power_manager_native_powermgr_client) ||
       !defined(global_parts_info.battery_manager_native_batterysrv_client)) {
@@ -26,3 +26,9 @@ declare_args() {
     os_account_part_is_enabled = false
   }
 }
+
+kv_store_base_path = "//foundation/distributeddatamgr/kv_store"
+
+kv_store_native_path = "${kv_store_base_path}/frameworks/native"
+
+kv_store_api_path = "${kv_store_base_path}/interfaces/inner_api"
