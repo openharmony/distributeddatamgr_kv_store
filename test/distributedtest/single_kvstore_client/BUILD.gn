@@ -13,7 +13,7 @@
 
 import("//build/test.gni")
 
-module_output_path = "distributeddatamgr_kv_store/distributeddatafwk"
+module_output_path = "kv_store/distributeddatafwk"
 
 ###############################################################################
 config("module_private_config") {

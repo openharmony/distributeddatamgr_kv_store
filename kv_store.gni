@@ -13,7 +13,6 @@
 
 declare_args() {
   kv_store_build_lite = true
-  enable_ohos_utils_native_lite_kv_store_use_posix_kv_api = true
   kv_store_power = true
   if (!defined(global_parts_info.power_manager_native_powermgr_client) ||
       !defined(global_parts_info.battery_manager_native_batterysrv_client)) {
