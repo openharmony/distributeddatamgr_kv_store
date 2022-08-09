@@ -13,10 +13,10 @@
 
 declare_args() {
   kv_store_build_lite = true
-  distributeddatamgr_power = true
+  kv_store_power = true
   if (!defined(global_parts_info.power_manager_native_powermgr_client) ||
       !defined(global_parts_info.battery_manager_native_batterysrv_client)) {
-    distributeddatamgr_power = false
+    kv_store_power = false
   }
 
   if (!defined(global_parts_info) ||
