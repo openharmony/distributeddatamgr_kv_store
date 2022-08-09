@@ -34,20 +34,24 @@ group("build_module"){
 
 ###############################################################################
 group("distributeddatamgr_fuzztest") {
-  testonly = true
-  deps = [
-    "foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddbtest:distributeddatamgr_fuzztest"
-  ]
+  if(!kv_store_build_lite){
+    testonly = true
+    deps = [
+      "foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddbtest:distributeddatamgr_fuzztest"
+    ]
+  }
 }
 ###############################################################################
 
 group("distributedtest") {
-  testonly = true
-  deps = [
-    "foundation/distributeddatamgr/kv_store:distributedtest"
-  ]
-  deps += [
-    "test/distributedtest/single_kvstore_client:distributedtest"
-  ]
+  if(!kv_store_build_lite){
+    testonly = true
+    deps = [
+      "foundation/distributeddatamgr/kv_store:distributedtest"
+    ]
+    deps += [
+      "test/distributedtest/single_kvstore_client:distributedtest"
+    ]
+  }
 }
 ###############################################################################

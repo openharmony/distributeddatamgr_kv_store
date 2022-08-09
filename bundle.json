@@ -44,8 +44,7 @@
             "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
         ],
         "features": [
-            "kv_store_build_lite",
-            "kv_store_enable_ohos_utils_native_lite_kv_store_use_posix_kv_api"
+            "kv_store_build_lite"
         ],
         "adapted_system_type": [
             "mini",
