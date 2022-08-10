@@ -25,3 +25,9 @@ declare_args() {
     os_account_part_is_enabled = false
   }
 }
+
+kv_store_base_path = "//foundation/distributeddatamgr/kv_store"
+
+kv_store_native_path = "${kv_store_base_path}/frameworks/native"
+
+kv_store_api_path = "${kv_store_base_path}/interfaces/inner_api"
