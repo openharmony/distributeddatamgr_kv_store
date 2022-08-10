@@ -14,12 +14,16 @@
 import("//build/lite/config/component/lite_component.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
+declare_args() {
+  enable_ohos_utils_native_lite_kv_store_use_posix_kv_api = true
+}
+
 if (ohos_kernel_type == "liteos_m") {
   static_library("utils_kv_store") {
     sources = [
       "${kv_store_native_path}/kv_store/src/kvstore_common/kvstore_common.c",
     ]
-    if (kv_store_enable_ohos_utils_native_lite_use_posix_kv_api) {
+    if (enable_ohos_utils_native_lite_kv_store_use_posix_kv_api) {
       sources += [
         "${kv_store_native_path}/kv_store/src/kvstore_impl_posix/kv_store.c",
       ]

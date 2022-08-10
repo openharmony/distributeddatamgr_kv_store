@@ -290,5 +290,5 @@ ohos_shared_library("distributeddb") {
   ]
 
   subsystem_name = "distributeddatamgr"
-  part_name = "distributeddatamgr"
+  part_name = "kv_store"
 }

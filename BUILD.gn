@@ -11,47 +11,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("kv_store.gni")
-
-group("build_module"){
-  if(kv_store_build_lite) {
-    deps = [
-      "//foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store:kv_store"
-    ]
-  }
-  else{
-    deps = [
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:build_module",
-      "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
-      "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
-      "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app:build_module",
-      "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework:build_module",
-      "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/service:build_module",
-      "//foundation/distributeddatamgr/kv_store/conf:build_module" 
-    ]
-  }
-}
-
-###############################################################################
-group("distributeddatamgr_fuzztest") {
-  if(!kv_store_build_lite){
-    testonly = true
-    deps = [
-      "foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddbtest:distributeddatamgr_fuzztest"
-    ]
-  }
-}
-###############################################################################
 
 group("distributedtest") {
-  if(!kv_store_build_lite){
-    testonly = true
-    deps = [
-      "foundation/distributeddatamgr/kv_store:distributedtest"
-    ]
-    deps += [
-      "test/distributedtest/single_kvstore_client:distributedtest"
-    ]
-  }
+  testonly = true
+  deps = []
+  deps += [ "test/distributedtest/single_kvstore_client:distributedtest" ]
 }
+
 ###############################################################################
