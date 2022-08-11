@@ -17,7 +17,7 @@ import("//build/test.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("QueryFuzzTest") {
-  module_out_path = "kv_store/distributeddb"
+  module_out_path = "distributeddatamgr/distributeddb"
 
   include_dirs = [
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/test/unittest/common/common",
