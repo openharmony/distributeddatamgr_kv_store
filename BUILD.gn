@@ -17,5 +17,13 @@ group("distributedtest") {
   deps = []
   deps += [ "test/distributedtest/single_kvstore_client:distributedtest" ]
 }
+###############################################################################
 
+group("build_native_test") {
+  testonly = true
+  deps = [
+    "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
+    "frameworks/innerkitsimpl/kvdb/distributeddb/test:unittest",
+  ]
+}
 ###############################################################################

@@ -121,7 +121,8 @@
             ],
             "test": [
                 "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/test:distributeddatamgr_fuzztest",
-                "//foundation/distributeddatamgr/kv_store:distributedtest"
+                "//foundation/distributeddatamgr/kv_store:distributedtest",
+                "//foundation/distributeddatamgr/kv_store:build_native_test"
             ]
         }
     }
