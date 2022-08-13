@@ -17,6 +17,7 @@ group("distributedtest") {
   deps = []
   deps += [ "test/distributedtest/single_kvstore_client:distributedtest" ]
 }
+
 ###############################################################################
 
 group("build_native_test") {
