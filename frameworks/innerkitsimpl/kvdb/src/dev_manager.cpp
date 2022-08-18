@@ -84,8 +84,10 @@ int32_t DevManager::Init()
 void DevManager::RegisterDevCallback()
 {
     int32_t errNo = Init();
-    if (errNo != DM_OK) {
-        ZLOGE("register device failed, try again");
+    if (errNo == DM_OK) {
+        return;
+    }
+    ZLOGE("register device failed, try again");
     }
     std::thread th = std::thread([this]() {
         constexpr int RETRY_TIMES = 300;
@@ -96,7 +98,7 @@ void DevManager::RegisterDevCallback()
             if (errNo == DM_OK) {
                 break;
             }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         ZLOGI("reg device exit now: %{public}d times, errNo: %{public}d", i, errNo);
     });
