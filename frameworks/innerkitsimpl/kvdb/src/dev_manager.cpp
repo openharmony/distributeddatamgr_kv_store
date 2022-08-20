@@ -88,7 +88,6 @@ void DevManager::RegisterDevCallback()
         return;
     }
     ZLOGE("register device failed, try again");
-    }
     std::thread th = std::thread([this]() {
         constexpr int RETRY_TIMES = 300;
         int i = 0;

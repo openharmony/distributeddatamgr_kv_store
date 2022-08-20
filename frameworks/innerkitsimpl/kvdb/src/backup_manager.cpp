@@ -403,7 +403,7 @@ void BackupManager::ClearResidueFile(std::map<std::string, ResidueInfo> residueI
                 break;
             case ROLLBACK_KEY:
                 RollBackData(keyFullName, (info.second.tmpKeySize == 0));
-                break;    
+                break;
             case ROLLBACK:
                 RollBackData(backupFullName, (info.second.tmpBackupSize == 0));
                 RollBackData(keyFullName, (info.second.tmpKeySize == 0));
