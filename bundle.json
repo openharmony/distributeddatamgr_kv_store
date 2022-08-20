@@ -90,9 +90,6 @@
                 "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:build_module",
                 "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
                 "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework:build_module",
-                "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/service:build_module",
                 "//foundation/distributeddatamgr/kv_store/conf:build_module" 
             ],
             "inner_kits": [
