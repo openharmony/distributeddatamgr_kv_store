@@ -32,7 +32,7 @@ if (ohos_kernel_type == "liteos_m") {
           [ "${kv_store_native_path}/kv_store/src/kvstore_impl_hal/kv_store.c" ]
     }
     include_dirs = [
-      "//utils/native/lite/include",
+      "//commonlibrary/utils_lite/include",
       "${kv_store_native_path}/kv_store/src/kvstore_common",
       "${kv_store_api_path}/kv_store/include",
     ]
@@ -46,7 +46,7 @@ if (ohos_kernel_type == "liteos_m") {
       "${kv_store_native_path}/kv_store/src/kvstore_impl_posix/kv_store.c",
     ]
     include_dirs = [
-      "//utils/native/lite/include",
+      "//commonlibrary/utils_lite/include",
       "${kv_store_native_path}/kv_store/src/kvstore_common",
       "//third_party/bounds_checking_function/include",
       "${kv_store_api_path}/kv_store/include",
