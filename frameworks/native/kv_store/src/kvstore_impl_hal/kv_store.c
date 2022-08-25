@@ -168,5 +168,6 @@ int ClearKVCache(void)
 
 int UtilsSetEnv(const char* path)
 {
+    (void)path;
     return EC_SUCCESS;
 }
