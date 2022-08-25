@@ -56,7 +56,6 @@ Status KvStoreDataServiceProxy::GetSingleKvStore(const Options &options, const A
     optionsIpc.backup = options.backup;
     optionsIpc.autoSync = options.autoSync;
     optionsIpc.securityLevel = options.securityLevel;
-    optionsIpc.syncPolicy = options.syncPolicy;
     optionsIpc.kvStoreType = options.kvStoreType;
     optionsIpc.syncable = options.syncable;
     std::string schemaString = options.schema;
@@ -511,7 +510,6 @@ int32_t KvStoreDataServiceStub::GetSingleKvStoreOnRemote(MessageParcel &data, Me
     options.backup = optionsIpc.backup;
     options.autoSync = optionsIpc.autoSync;
     options.securityLevel = optionsIpc.securityLevel;
-    options.syncPolicy = optionsIpc.syncPolicy;
     options.kvStoreType = optionsIpc.kvStoreType;
     options.syncable = optionsIpc.syncable;
     options.schema = data.ReadString();

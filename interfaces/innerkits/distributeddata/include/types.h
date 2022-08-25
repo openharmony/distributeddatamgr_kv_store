@@ -191,13 +191,6 @@ struct Entry : public virtual Parcelable {
     API_EXPORT virtual ~Entry() {}
 };
 
-enum SyncPolicy : int32_t {
-    LOW,
-    MEDIUM,
-    HIGH,
-    HIGHTEST,
-};
-
 enum SyncMode : int32_t {
     PULL,
     PUSH,
@@ -266,7 +259,6 @@ struct Options {
     bool rebuild = false;
     int32_t securityLevel = NO_LABEL;
     int32_t area = EL1;
-    SyncPolicy syncPolicy = SyncPolicy::HIGH;
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
     std::string schema = "";
     std::string hapName = "";
