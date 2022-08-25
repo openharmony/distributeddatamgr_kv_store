@@ -365,7 +365,6 @@ bool ITypesUtil::Marshalling(const Options &input, MessageParcel &data)
     target->syncable = input.syncable;
     target->securityLevel = input.securityLevel;
     target->area = input.area;
-    target->syncPolicy = input.syncPolicy;
     target->kvStoreType = input.kvStoreType;
     return data.WriteRawData(buffer.get(), sizeof(input));
 }
@@ -393,7 +392,6 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
     output.autoSync = source->autoSync;
     output.securityLevel = source->securityLevel;
     output.area = source->area;
-    output.syncPolicy = source->syncPolicy;
     output.kvStoreType = source->kvStoreType;
     output.syncable = source->syncable;
     return true;

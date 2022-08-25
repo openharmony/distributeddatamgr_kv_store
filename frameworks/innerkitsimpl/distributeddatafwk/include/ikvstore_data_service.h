@@ -39,7 +39,6 @@ struct OptionsIpc {
     bool backup;
     bool autoSync;
     int securityLevel;
-    SyncPolicy syncPolicy;
     KvStoreType kvStoreType;
     bool syncable; // let bms delete first
     bool dataOwnership; // true indicates the ownership of distributed data is DEVICE, otherwise, ACCOUNT
