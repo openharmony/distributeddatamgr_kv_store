@@ -20,7 +20,7 @@ config("module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
-    "//utils/native/base/include",
+    "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
@@ -46,6 +46,7 @@ ohos_distributedtest("DistributedTest") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog_native:libhilog",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
@@ -57,7 +58,6 @@ ohos_distributedtest("DistributedTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/:distributeddb",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
     "//third_party/googletest:gtest",
-    "//utils/native/base:utils",
   ]
 }
 
@@ -69,6 +69,7 @@ ohos_distributedtest("DistributedTestAgent") {
   configs = [ ":module_private_config" ]
 
   external_deps = [
+    "c_utils:utils",
     "hilog_native:libhilog",
     "ipc:ipc_core",
     "safwk:system_ability_fwk",
@@ -80,7 +81,6 @@ ohos_distributedtest("DistributedTestAgent") {
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/:distributeddb",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
     "//third_party/googletest:gtest",
-    "//utils/native/base:utils",
   ]
 }
 
