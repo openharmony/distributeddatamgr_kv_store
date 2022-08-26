@@ -35,6 +35,9 @@ const char * const DataQuery::AND = "^AND";
 const char * const DataQuery::OR = "^OR";
 const char * const DataQuery::ORDER_BY_ASC = "^ASC";
 const char * const DataQuery::ORDER_BY_DESC = "^DESC";
+const char * const DataQuery::ORDER_BY_WRITE_TIME = "^OrderByWriteTime";
+const char * const DataQuery::IS_ASC = "^IS_ASC";
+const char * const DataQuery::IS_DESC = "^IS_DESC";
 const char * const DataQuery::LIMIT = "^LIMIT";
 const char * const DataQuery::SPACE = " ";
 const char * const DataQuery::SPECIAL = "^";
@@ -522,6 +525,15 @@ DataQuery& DataQuery::OrderByDesc(const std::string &field)
         str_.append(myField);
         query_->OrderBy(field, false);
     }
+    return *this;
+}
+
+DataQuery& DataQuery::OrderByWriteTime(const bool isAsc){
+    str_.append(SPACE);
+    str_.append(ORDER_BY_WRITE_TIME);
+    str_.append(SPACE);
+    str_.append(isAsc?IS_ASC:IS_DESC);
+    query_->OrderByWriteTime(isAsc);
     return *this;
 }
 

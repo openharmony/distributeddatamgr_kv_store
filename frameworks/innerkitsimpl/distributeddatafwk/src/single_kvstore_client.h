@@ -48,6 +48,8 @@ public:
 
     Status RemoveDeviceData(const std::string &device) override;
 
+    Status RemoveDeviceData() override;
+
     Status Delete(const Key &key) override;
 
     Status Put(const Key &key, const Value &value) override;
