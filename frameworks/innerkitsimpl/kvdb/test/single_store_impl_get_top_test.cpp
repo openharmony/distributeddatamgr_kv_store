@@ -78,7 +78,6 @@ void SingleStoreImplGetTopTest::SetUp(void)
 void SingleStoreImplGetTopTest::TearDown(void)
 {}
 
-
 /**
 * @tc.name: GetEntries
 * @tc.desc: get entries order by write time Asc
@@ -111,7 +110,6 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
         ASSERT_TRUE(input[i].value == output[i].value);
     }
 }
-
 
 /**
 * @tc.name: GetEntries
@@ -148,7 +146,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
 
 /**
 * @tc.name: GetEntries
-* @tc.desc: get entries order by write time Desc
+* @tc.desc: get entries order by write time no prefix
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author:
@@ -175,8 +173,6 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
     ASSERT_EQ(status, NOT_SUPPORT);
     ASSERT_EQ(output.size(), 0);
 }
-
-
 
 /**
 * @tc.name: GetResultSet
@@ -215,7 +211,6 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
         ASSERT_TRUE(input[i].value == entry.value);
     }
 }
-
 
 /**
 * @tc.name: GetResultSet
@@ -257,11 +252,9 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
     }
 }
 
-
-
 /**
 * @tc.name: GetResultSet
-* @tc.desc: get result set order by write time Desc
+* @tc.desc: get result set order by write time no prefix
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author:
