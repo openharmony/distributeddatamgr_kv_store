@@ -198,11 +198,6 @@ Status SingleKvStoreClient::RemoveDeviceData(const std::string &device)
     return kvStoreProxy_->RemoveDeviceData(device);
 }
 
-Status SingleKvStoreClient::RemoveDeviceData()
-{
-    return Status::NOT_SUPPORT;
-}
-
 Status SingleKvStoreClient::Delete(const Key &key)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));

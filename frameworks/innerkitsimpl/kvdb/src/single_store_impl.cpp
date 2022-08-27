@@ -425,27 +425,19 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
         return ALREADY_CLOSED;
     }
 
+    if(device.empty()){
+        auto dbStatus = dbStore_->RemoveDeviceData();
+        auto status = StoreUtil::ConvertStatus(dbStatus);
+        if (status != SUCCESS) {
+            ZLOGE("status:0x%{public}x device:all others", status);
+        }
+        return status;
+    }
+
     auto dbStatus = dbStore_->RemoveDeviceData(DevManager::GetInstance().ToUUID(device));
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x device:%{public}s", status, StoreUtil::Anonymous(device).c_str());
-    }
-    return status;
-}
-
-Status SingleStoreImpl::RemoveDeviceData()
-{
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
-    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
-    if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
-        return ALREADY_CLOSED;
-    }
-
-    auto dbStatus = dbStore_->RemoveDeviceData();
-    auto status = StoreUtil::ConvertStatus(dbStatus);
-    if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x", status);
     }
     return status;
 }

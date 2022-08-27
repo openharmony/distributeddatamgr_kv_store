@@ -57,7 +57,6 @@ public:
     Status GetCount(const DataQuery &query, int &count) const override;
     Status GetSecurityLevel(SecurityLevel &secLevel) const override;
     Status RemoveDeviceData(const std::string &device) override;
-    Status RemoveDeviceData() override;
     int32_t Close(bool isForce = false);
     int32_t AddRef();
     Status Backup(const std::string &file, const std::string &baseDir) override;

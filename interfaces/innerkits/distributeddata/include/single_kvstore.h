@@ -89,17 +89,14 @@ public:
     //     Status of this CloseResultSet operation.
     virtual Status GetCount(const DataQuery &query, int &count) const = 0;
 
-    // Remove the device data synced from remote.
+    // Remove the device data synced from remote,
+    // Remove all the other devices data synced from remote if device is empty
     // Parameters:
     //     device: device id.
     // Return:
     //     Status of this remove operation.
     virtual Status RemoveDeviceData(const std::string &device) = 0;
 
-    // Remove all other device data synced from remote.
-    // Return:
-    //     Status of this remove operation.
-    virtual Status RemoveDeviceData() = 0;
 
     virtual Status GetSecurityLevel(SecurityLevel &secLevel) const = 0;
 
