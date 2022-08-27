@@ -471,13 +471,13 @@ private:
     // order by desc
     static const char * const ORDER_BY_DESC;
 
-    //order by write time
+    // order by write time
     static const char * const ORDER_BY_WRITE_TIME;
 
-    //order by write time asc
+    // order by write time asc
     static const char * const IS_ASC;
 
-    //order by write time desc
+    // order by write time desc
     static const char * const IS_DESC;
 
     // limit

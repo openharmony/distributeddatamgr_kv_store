@@ -95,7 +95,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -128,7 +128,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -161,7 +161,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     singleKvStorePtr->Put("test_key_1", "{\"name\":1}");
@@ -191,7 +191,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -232,7 +232,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     DataQuery query;
@@ -272,7 +272,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
         auto status =singleKvStorePtr->Put(
-            entry.key,entry.value);
+            entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
     singleKvStorePtr->Put("test_key_1", "{\"name\":1}");

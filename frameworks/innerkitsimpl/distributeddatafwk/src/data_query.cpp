@@ -528,7 +528,8 @@ DataQuery& DataQuery::OrderByDesc(const std::string &field)
     return *this;
 }
 
-DataQuery& DataQuery::OrderByWriteTime(const bool isAsc){
+DataQuery& DataQuery::OrderByWriteTime (const bool isAsc)
+{
     str_.append(SPACE);
     str_.append(ORDER_BY_WRITE_TIME);
     str_.append(SPACE);
