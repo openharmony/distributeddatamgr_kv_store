@@ -72,6 +72,12 @@ Query &Query::OrderBy(const std::string &field, bool isAsc)
     return *this;
 }
 
+Query &Query::OrderByWriteTime(bool isAsc)
+{
+    queryExpression_.SetSortType(isAsc);
+    return *this;
+}
+
 Query &Query::Limit(int number, int offset)
 {
     queryExpression_.Limit(number, offset);

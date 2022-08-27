@@ -1884,4 +1884,20 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
     g_deviceC->GetAllSyncData(g_tableName, targetData);
     ASSERT_EQ(targetData.size(), 0u);
 }
+
+/**
+* @tc.name: OrderbyWriteTimeSync001
+* @tc.desc: sync query with order by writeTime
+* @tc.type: FUNC
+* @tc.require: AR000H5VLO
+* @tc.author: zhuwentao
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level0)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    Query query = Query::Select(g_tableName).OrderByWriteTime(true);;
+    EXPECT_EQ(g_rdbDelegatePtr->Sync({DEVICE_B}, DistributedDB::SYNC_MODE_PUSH_ONLY, query, nullptr, false),
+        NOT_SUPPORT);
+}
 #endif

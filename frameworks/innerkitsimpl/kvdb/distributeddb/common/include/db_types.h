@@ -152,5 +152,11 @@ enum DistributedTableMode : int {
     COLLABORATION = 0, // Save all devices data in user table
     SPLIT_BY_DEVICE // Save device data in each table split by device
 };
+
+enum class SortType {
+    NONE = 0,
+    TIMESTAMP_ASC,
+    TIMESTAMP_DESC
+};
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_H

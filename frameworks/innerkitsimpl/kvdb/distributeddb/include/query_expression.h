@@ -73,6 +73,11 @@ struct QueryObjNode {
     }
 };
 
+enum class WriteTimeSort : int32_t {
+    TIMESTAMP_ASC = 1,
+    TIMESTAMP_DESC
+};
+
 class QueryExpression final {
 public:
     DB_SYMBOL QueryExpression();
@@ -133,6 +138,9 @@ public:
     void SetErrFlag(bool flag);
     bool GetErrFlag();
 
+    int GetSortType() const;
+    void SetSortType(bool isAsc);
+
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
@@ -144,6 +152,7 @@ private:
     std::string tableName_;
     bool isTableNameSpecified_;
     std::set<Key> keys_;
+    int sortType_ = 0;
 };
 
 // specialize for double
