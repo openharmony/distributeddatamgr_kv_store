@@ -35,7 +35,7 @@ public:
     void TearDown();
 
     static std::shared_ptr<SingleKvStore> singleKvStorePtr; // declare kvstore instance.
-    static Status status_;
+    static Status;
     static int MAX_VALUE_SIZE;
 };
 
@@ -48,7 +48,7 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
                                                "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
 std::shared_ptr<SingleKvStore> SingleStoreImplGetTopTest::singleKvStorePtr = nullptr;
-Status SingleStoreImplGetTopTest::status_ = Status::ERROR;
+Status SingleStoreImplGetTopTest::status = Status::ERROR;
 int SingleStoreImplGetTopTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
 void SingleStoreImplGetTopTest::SetUpTestCase(void)
@@ -62,7 +62,7 @@ void SingleStoreImplGetTopTest::SetUpTestCase(void)
     StoreId storeId = { "test_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     // [create and] open and initialize kvstore instance.
-    status_ = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
+    status = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
 }
 
 void SingleStoreImplGetTopTest::TearDownTestCase(void)
@@ -89,7 +89,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
 {
     ASSERT_NE(singleKvStorePtr, nullptr);
     std::vector<Entry> input;
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
@@ -122,7 +122,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
 {
     ASSERT_NE(singleKvStorePtr, nullptr);
     std::vector<Entry> input;
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
@@ -155,7 +155,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
 {
     ASSERT_NE(singleKvStorePtr, nullptr);
     std::vector<Entry> input;
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
@@ -185,7 +185,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
 {
     ASSERT_NE(singleKvStorePtr, nullptr);
     std::vector<Entry> input;
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
@@ -225,7 +225,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
@@ -265,7 +265,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
-    for (int i = 10; i < 30; ++i) {
+    for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");

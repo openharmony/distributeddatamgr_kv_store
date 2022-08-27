@@ -368,7 +368,7 @@ public:
     //     isAsc: isAsc.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &OrderByWriteTime(const bool isAsc);
+    API_EXPORT DataQuery &OrderByWriteTime(bool isAsc);
 
     // Limit result size.
     // Parameters:
