@@ -425,7 +425,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
         return ALREADY_CLOSED;
     }
 
-    if(device.empty()){
+    if (device.empty()) {
         auto dbStatus = dbStore_->RemoveDeviceData();
         auto status = StoreUtil::ConvertStatus(dbStatus);
         if (status != SUCCESS) {
