@@ -425,6 +425,15 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
         return ALREADY_CLOSED;
     }
 
+    if (device.empty()) {
+        auto dbStatus = dbStore_->RemoveDeviceData();
+        auto status = StoreUtil::ConvertStatus(dbStatus);
+        if (status != SUCCESS) {
+            ZLOGE("status:0x%{public}x device:all others", status);
+        }
+        return status;
+    }
+
     auto dbStatus = dbStore_->RemoveDeviceData(DevManager::GetInstance().ToUUID(device));
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
