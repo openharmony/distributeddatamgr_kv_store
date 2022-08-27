@@ -35,7 +35,7 @@ public:
     void TearDown();
 
     static std::shared_ptr<SingleKvStore> singleKvStorePtr; // declare kvstore instance.
-    static Status;
+    static Status initStatus;
     static int MAX_VALUE_SIZE;
 };
 
@@ -48,7 +48,7 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
                                                "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
 std::shared_ptr<SingleKvStore> SingleStoreImplGetTopTest::singleKvStorePtr = nullptr;
-Status SingleStoreImplGetTopTest::status = Status::ERROR;
+Status SingleStoreImplGetTopTest::initStatus = Status::ERROR;
 int SingleStoreImplGetTopTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
 void SingleStoreImplGetTopTest::SetUpTestCase(void)
@@ -62,7 +62,7 @@ void SingleStoreImplGetTopTest::SetUpTestCase(void)
     StoreId storeId = { "test_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     // [create and] open and initialize kvstore instance.
-    status = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
+    initStatus = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
 }
 
 void SingleStoreImplGetTopTest::TearDownTestCase(void)
