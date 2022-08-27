@@ -40,6 +40,8 @@ struct RdbSyncerParam {
     int32_t level_ = 0;
     int32_t type_ = RDB_DEVICE_COLLABORATION;
     bool isAutoSync_ = false;
+    bool isEncrypt_ = false;
+    std::vector<uint8_t> password_;
 };
 
 enum SyncMode {

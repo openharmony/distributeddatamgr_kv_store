@@ -208,8 +208,16 @@ bool ITypesUtil::Marshalling(const DistributedRdb::RdbSyncerParam &param, Messag
         ZLOGE("RdbStoreParam write type failed");
         return false;
     }
+    if (!parcel.WriteUInt8Vector(param.password_)) {
+        ZLOGE("RdbStoreParam write password failed");
+        return false;
+    }
     if (!parcel.WriteBool(param.isAutoSync_)) {
         ZLOGE("RdbStoreParam write auto sync failed");
+        return false;
+    }
+    if (!parcel.WriteBool(param.isEncrypt_)) {
+        ZLOGE("RdbStoreParam write encrypt sync failed");
         return false;
     }
     return true;
@@ -241,8 +249,16 @@ bool ITypesUtil::Unmarshalling(DistributedRdb::RdbSyncerParam &param, MessagePar
         ZLOGE("RdbStoreParam read type failed");
         return false;
     }
+    if (!parcel.ReadUInt8Vector(&(param.password_))) {
+        ZLOGE("RdbStoreParam read password failed");
+        return false;
+    }
     if (!parcel.ReadBool(param.isAutoSync_)) {
         ZLOGE("RdbStoreParam read auto sync failed");
+        return false;
+    }
+    if (!parcel.ReadBool(param.isEncrypt_)) {
+        ZLOGE("RdbStoreParam read encrypt sync failed");
         return false;
     }
     return true;
