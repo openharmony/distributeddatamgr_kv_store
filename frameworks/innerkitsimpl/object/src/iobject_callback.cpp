@@ -55,6 +55,11 @@ ObjectRetrieveCallbackProxy::ObjectRetrieveCallbackProxy(const sptr<IRemoteObjec
 {
 }
 
+ObjectChangeCallbackProxy::ObjectChangeCallbackProxy(const sptr<IRemoteObject> &impl)
+    : IRemoteProxy<IObjectChangeCallback>(impl)
+{
+}
+
 int ObjectSaveCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
 {
@@ -134,6 +139,40 @@ int ObjectRetrieveCallbackStub::OnRemoteRequest(
 }
 
 void ObjectRetrieveCallbackProxy::Completed(const std::map<std::string, std::vector<uint8_t>> &results)
+{
+    MessageParcel data;
+    MessageParcel reply;
+    if (!ITypesUtil::Marshal(data, results)) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
+    MessageOption mo { MessageOption::TF_SYNC };
+    int error = Remote()->SendRequest(COMPLETED, data, reply, mo);
+    if (error != 0) {
+        ZLOGW("SendRequest failed, error %d", error);
+    }
+}
+
+int ObjectChangeCallbackStub::OnRemoteRequest(
+    uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
+{
+    ZLOGI("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
+    switch (code) {
+        case COMPLETED: {
+            std::map<std::string, std::vector<uint8_t>> results;
+            if (!ITypesUtil::Unmarshal(data, results)) {
+                ZLOGE("write descriptor failed");
+                return -1;
+            }
+            Completed(results);
+            return 0;
+        }
+        default:
+            return IPCObjectStub::OnRemoteRequest(code, data, reply, option);
+    }
+}
+
+void ObjectChangeCallbackProxy::Completed(const std::map<std::string, std::vector<uint8_t>> &results)
 {
     MessageParcel data;
     MessageParcel reply;

@@ -87,6 +87,27 @@ public:
 private:
     static inline BrokerDelegator<ObjectRetrieveCallbackProxy> delegator_;
 };
+
+class IObjectChangeCallback : public IRemoteBroker {
+public:
+    DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedObject.IObjectChangeCallback");
+    virtual void Completed(const std::map<std::string, std::vector<uint8_t>> &results) = 0;
+};
+
+class ObjectChangeCallbackStub : public IRemoteStub<IObjectChangeCallback> {
+public:
+    int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
+};
+
+class ObjectChangeCallbackProxy : public IRemoteProxy<IObjectChangeCallback> {
+public:
+    explicit ObjectChangeCallbackProxy(const sptr<IRemoteObject> &impl);
+    ~ObjectChangeCallbackProxy() = default;
+    void Completed(const std::map<std::string, std::vector<uint8_t>> &results) override;
+
+private:
+    static inline BrokerDelegator<ObjectChangeCallbackProxy> delegator_;
+};
 } // namespace DistributedKv
 } // namespace OHOS
 

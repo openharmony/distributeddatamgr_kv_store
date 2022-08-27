@@ -96,4 +96,28 @@ int32_t ObjectServiceProxy::ObjectStoreRetrieve(
     }
     return static_cast<Status>(reply.ReadInt32());
 }
+
+int32_t ObjectServiceProxy::RegisterDataObserver(const std::string &bundleName,
+                                                 const std::string &sessionId, sptr<IObjectChangeCallback> callback)
+{
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(ObjectServiceProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return Status::IPC_ERROR;
+    }
+    
+    if (!ITypesUtil::Marshal(data, bundleName, sessionId, callback->AsObject().GetRefPtr())) {
+        ZLOGE("Marshalling failed, bundleName = %{public}s", bundleName.c_str());
+        return Status::IPC_ERROR;
+    }
+    
+    MessageParcel reply;
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(OBJECTSTORE_REGISTER_OBSERVER, data, reply, mo);
+    if (error != 0) {
+        ZLOGE("SendRequest returned %d", error);
+        return Status::IPC_ERROR;
+    }
+    return static_cast<Status>(reply.ReadInt32());
+}
 } // namespace OHOS::DistributedObject

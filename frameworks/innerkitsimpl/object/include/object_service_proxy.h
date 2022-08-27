@@ -33,6 +33,8 @@ public:
         const std::string &bundleName, const std::string &sessionId, sptr<IObjectRetrieveCallback> callback) override;
     int32_t ObjectStoreRevokeSave(const std::string &bundleName, const std::string &sessionId,
         sptr<IObjectRevokeSaveCallback> callback) override;
+    int32_t RegisterDataObserver(const std::string &bundleName, const std::string &sessionId,
+        sptr<IObjectChangeCallback> callback) override;
 
 private:
     static inline BrokerDelegator<ObjectServiceProxy> delegator_;
