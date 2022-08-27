@@ -109,7 +109,9 @@ namespace {
     {
         VersionFileBlock block;
         block.version = version;
+    #ifdef SQLITE_HAS_CODEC
         RAND_bytes(block.tag, sizeof(block.tag));
+    #endif
         int errCode = memset_s(block.reserved, sizeof(block.reserved), 0, sizeof(block.reserved));
         if (errCode != EOK) {
             return -E_SECUREC_ERROR;
@@ -171,8 +173,11 @@ namespace {
         if (errCode != E_OK) {
             goto END;
         }
-
+#ifdef OS_TYPE_MAC
+        fseeko(versionFile, 0LL, SEEK_SET);
+#else
         fseeko64(versionFile, 0LL, SEEK_SET);
+#endif
         operateSize = fwrite(&block, 1, sizeof(VersionFileBlock), versionFile);
         if (operateSize != sizeof(VersionFileBlock)) {
             LOGE("write the file error:%d", errno);

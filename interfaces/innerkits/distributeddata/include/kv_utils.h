@@ -85,7 +85,7 @@ private:
         [DataShare::OR] = &KvUtils::Or,
         [DataShare::IS_NULL] = &KvUtils::IsNull,
         [DataShare::IS_NOT_NULL] = &KvUtils::IsNotNull,
-        [DataShare::IN] = &KvUtils::In,
+        [DataShare::SQL_IN] = &KvUtils::In,
         [DataShare::NOT_IN] = &KvUtils::NotIn,
         [DataShare::LIKE] = &KvUtils::Like,
         [DataShare::UNLIKE] = &KvUtils::Unlike,

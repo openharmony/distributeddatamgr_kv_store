@@ -21,6 +21,10 @@
 #include <list>
 
 namespace DistributedDB {
+#if (defined(OS_TYPE_WINDOWS)) || (defined(OS_TYPE_MAC))
+constexpr int EKEYREVOKED = 128;  // FOR_WIN32
+#endif
+
 namespace OS {
 enum FileType {
     FILE = 0,
