@@ -41,6 +41,7 @@ struct QueryObjInfo {
     bool hasPrefixKey_ = false;
     std::string tableName_;
     bool isRelationalQuery_ = false;
+    SortType sortType_ = SortType::NONE;
 };
 
 enum SymbolType : uint32_t {
@@ -146,6 +147,7 @@ private:
     bool hasPrefixKey_;
     bool isNeedOrderbyKey_;  // The tag field is used for prefix query filtering key sorting
     bool isRelationalQuery_;
+    SortType sortType_ = SortType::NONE;
 };
 }
 #endif

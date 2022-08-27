@@ -946,3 +946,28 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync006, TestSize.
     EXPECT_EQ(item.value, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end()));
     EXPECT_EQ(g_deviceB->GetData(KEY_1, item), -E_NOT_FOUND);
 }
+
+/**
+ * @tc.name: subscribeSync007
+ * @tc.desc: test subscribe query with order by write time
+ * @tc.type: FUNC
+ * @tc.require: AR000H5VLO
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. InitSchemaDb
+    */
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    std::vector<std::string> devices = {"DEVICE_B"};
+
+    /**
+     * @tc.steps: step2. deviceA subscribe query with order by write time
+     * * @tc.expected: step2. interface return not support
+    */
+    Query query = Query::Select().EqualTo("$.field_name1", 1).OrderByWriteTime(false);
+    EXPECT_TRUE(g_schemaKvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query, true) == NOT_SUPPORT);
+    EXPECT_TRUE(g_schemaKvDelegatePtr->UnSubscribeRemoteQuery(devices, nullptr, query, true) == NOT_SUPPORT);
+}

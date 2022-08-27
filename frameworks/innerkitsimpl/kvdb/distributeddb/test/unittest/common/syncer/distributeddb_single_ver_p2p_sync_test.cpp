@@ -2449,3 +2449,22 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DatabaseOfflineCallback001, TestSize
     StoreStatusNotifier nullCallback;
     g_mgr.SetStoreStatusNotifier(nullCallback);
 }
+
+/**
+  * @tc.name: OrderbyWriteTimeSync001
+  * @tc.desc: sync query with order by writeTime
+  * @tc.type: FUNC
+  * @tc.require: AR000H5VLO
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. deviceA subscribe query with order by write time
+     * * @tc.expected: step1. interface return not support
+    */
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    Query query = Query::Select().PrefixKey({'k'}).OrderByWriteTime(true);
+    EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, nullptr, query, true), NOT_SUPPORT);
+}

@@ -215,6 +215,9 @@ public:
     DB_API virtual DBStatus UnSubscribeRemoteQuery(const std::vector<std::string> &devices,
         const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete,
         const Query &query, bool wait) = 0;
+
+    // Remove all other device data synced from other remote devices.
+    DB_API virtual DBStatus RemoveDeviceData() = 0;
 };
 } // namespace DistributedDB
 

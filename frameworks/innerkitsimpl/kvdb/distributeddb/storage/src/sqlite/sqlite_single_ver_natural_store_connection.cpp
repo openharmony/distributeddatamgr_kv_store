@@ -206,6 +206,11 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         return errCode;
     }
     QueryObject queryObj(query);
+    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey");
+        return -E_NOT_SUPPORT;
+    }
+
     // In readOnly mode, forbidden all schema related query
     if (CheckWritePermission() == E_OK) {
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
@@ -657,6 +662,10 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
     if (CheckWritePermission() == E_OK) {
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
+    }
+    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+        LOGE("[GetResultSet][query] timestamp sort only support prefixKey");
+        return -E_NOT_SUPPORT;
     }
     bool isMemDb = naturalStore->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     resultSet = new (std::nothrow) SQLiteSingleVerResultSet(naturalStore, queryObj,

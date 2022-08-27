@@ -275,4 +275,15 @@ bool QueryExpression::GetErrFlag()
 {
     return errFlag_;
 }
+
+int QueryExpression::GetSortType() const
+{
+    return sortType_;
+}
+
+void QueryExpression::SetSortType(bool isAsc)
+{
+    WriteTimeSort sortType = isAsc ? WriteTimeSort::TIMESTAMP_ASC : WriteTimeSort::TIMESTAMP_DESC;
+    sortType_ = static_cast<int>(sortType);
+}
 } // namespace DistributedDB

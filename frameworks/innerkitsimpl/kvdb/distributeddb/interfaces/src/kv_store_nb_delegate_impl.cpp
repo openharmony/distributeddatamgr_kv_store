@@ -495,6 +495,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     }
 
     QuerySyncObject querySyncObj(query);
+    if (querySyncObj.GetSortType() != SortType::NONE) {
+        LOGE("not support order by timestamp");
+        return NOT_SUPPORT;
+    }
     PragmaSync pragmaData(devices, mode, querySyncObj, std::bind(&KvStoreNbDelegateImpl::OnSyncComplete,
         this, std::placeholders::_1, onComplete), wait);
     int errCode = conn_->Pragma(PRAGMA_SYNC_DEVICES, &pragmaData);
@@ -885,6 +889,10 @@ DBStatus KvStoreNbDelegateImpl::SubscribeRemoteQuery(const std::vector<std::stri
     }
 
     QuerySyncObject querySyncObj(query);
+    if (querySyncObj.GetSortType() != SortType::NONE) {
+        LOGE("not support order by timestamp");
+        return NOT_SUPPORT;
+    }
     PragmaSync pragmaData(devices, SyncModeType::SUBSCRIBE_QUERY, querySyncObj,
         std::bind(&KvStoreNbDelegateImpl::OnSyncComplete, this, std::placeholders::_1, onComplete), wait);
     int errCode = conn_->Pragma(PRAGMA_SUBSCRIBE_QUERY, &pragmaData);
@@ -905,6 +913,10 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
     }
 
     QuerySyncObject querySyncObj(query);
+    if (querySyncObj.GetSortType() != SortType::NONE) {
+        LOGE("not support order by timestamp");
+        return NOT_SUPPORT;
+    }
     PragmaSync pragmaData(devices, SyncModeType::UNSUBSCRIBE_QUERY, querySyncObj,
         std::bind(&KvStoreNbDelegateImpl::OnSyncComplete, this, std::placeholders::_1, onComplete), wait);
     int errCode = conn_->Pragma(PRAGMA_SUBSCRIBE_QUERY, &pragmaData);
@@ -912,6 +924,11 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
         LOGE("[KvStoreNbDelegate] Unsubscribe remote data with query failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+    return OK;
+}
+
+DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
+{
     return OK;
 }
 } // namespace DistributedDB

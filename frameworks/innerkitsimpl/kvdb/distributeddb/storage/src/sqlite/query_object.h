@@ -17,6 +17,7 @@
 
 #include <string>
 
+#include "db_types.h"
 #include "query.h"
 #include "relational_schema_object.h"
 #include "schema_object.h"
@@ -68,6 +69,16 @@ public:
         return hasInKeys_;
     }
 
+    void SetSortType(SortType sortType)
+    {
+        sortType_ = sortType;
+    }
+
+    SortType GetSortType() const
+    {
+        return sortType_;
+    }
+
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
 #endif
@@ -107,6 +118,7 @@ private:
     bool hasPrefixKey_;
     bool hasInKeys_;
     int orderByCounts_;
+    SortType sortType_ = SortType::NONE;
 };
 }
 #endif
