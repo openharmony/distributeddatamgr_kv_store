@@ -2003,4 +2003,451 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeysAndOther002, TestSize.L
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("InKeysAndOther001"), OK);
 }
+
+/**
+  * @tc.name: WriteTimeSort001
+  * @tc.desc: For prefixKey query with orderBy writeTime asc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort001", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        expectedKeys.push_back(tmpKey);
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().PrefixKey(key).OrderByWriteTime(true), resultSet),
+        OK);
+    ASSERT_NE(resultSet, nullptr);
+    ASSERT_EQ(resultSet->GetCount(), dataSize);
+    for (int i = 0; i < dataSize; i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet);
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet2 = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().PrefixKey(key).OrderByWriteTime(true).Limit(dataSize / 2, 0), resultSet2), OK);
+    ASSERT_NE(resultSet2, nullptr);
+    ASSERT_EQ(resultSet2->GetCount(), dataSize / 2);
+    for (int i = 0; i < dataSize / 2; i++) {
+        resultSet2->MoveToPosition(i);
+        Entry entry;
+        resultSet2->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+}
+
+/**
+  * @tc.name: WriteTimeSort002
+  * @tc.desc: For prefixKey query with orderBy writeTime asc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort002", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        expectedKeys.push_back(tmpKey);
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns entries
+     *  all data are equals the preset data
+     */
+    std::vector<Entry> entries;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().PrefixKey(key).OrderByWriteTime(true), entries),
+        OK);
+    ASSERT_EQ(entries.size(), static_cast<long unsigned int>(dataSize));
+    for (int i = 0; i < dataSize; i++) {
+        EXPECT_EQ(expectedKeys[i], entries[i].key);
+        EXPECT_EQ(entries[i].value, VALUE_1);
+    }
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns entries
+     *  all data are equals the preset data
+     */
+    std::vector<Entry> entries2;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().PrefixKey(key).OrderByWriteTime(true).Limit(dataSize / 2, 0), entries2), OK);
+    ASSERT_EQ(entries2.size(), static_cast<long unsigned int>(dataSize / 2));
+    for (int i = 0; i < dataSize / 2; i++) {
+        EXPECT_EQ(expectedKeys[i], entries2[i].key);
+        EXPECT_EQ(entries2[i].value, VALUE_1);
+    }
+}
+
+/**
+  * @tc.name: WriteTimeSort003
+  * @tc.desc: For prefixKey query with orderBy writeTime desc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort003", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        expectedKeys.push_back(tmpKey);
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().PrefixKey(key).OrderByWriteTime(false), resultSet),
+        OK);
+    ASSERT_NE(resultSet, nullptr);
+    ASSERT_EQ(resultSet->GetCount(), dataSize);
+    for (int i = 0; i < dataSize; i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[dataSize - i - 1], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet);
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet2 = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().PrefixKey(key).OrderByWriteTime(false).Limit(dataSize / 2, 0), resultSet2), OK);
+    ASSERT_NE(resultSet2, nullptr);
+    ASSERT_EQ(resultSet2->GetCount(), dataSize / 2);
+    for (int i = 0; i < dataSize / 2; i++) {
+        resultSet2->MoveToPosition(i);
+        Entry entry;
+        resultSet2->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[dataSize - i - 1], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+}
+
+/**
+  * @tc.name: WriteTimeSort004
+  * @tc.desc: For prefixKey query with orderBy writeTime asc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort004", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        expectedKeys.push_back(tmpKey);
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns entries
+     *  all data are equals the preset data
+     */
+    std::vector<Entry> entries;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().PrefixKey(key).OrderByWriteTime(false), entries),
+        OK);
+    ASSERT_EQ(entries.size(), static_cast<long unsigned int>(dataSize));
+    for (int i = 0; i < dataSize; i++) {
+        EXPECT_EQ(expectedKeys[dataSize - i - 1], entries[i].key);
+        EXPECT_EQ(entries[i].value, VALUE_1);
+    }
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns entries
+     *  all data are equals the preset data
+     */
+    std::vector<Entry> entries2;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().PrefixKey(key).OrderByWriteTime(false).Limit(dataSize / 2, 0), entries2), OK);
+    ASSERT_EQ(entries2.size(), static_cast<long unsigned int>(dataSize / 2));
+    for (int i = 0; i < dataSize / 2; i++) {
+        EXPECT_EQ(expectedKeys[dataSize - i - 1], entries2[i].key);
+        EXPECT_EQ(entries2[i].value, VALUE_1);
+    }
+}
+
+/**
+  * @tc.name: WriteTimeSort005
+  * @tc.desc: For inkeys query with orderBy writeTime asc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort005", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        if (rand() % 2) {
+            expectedKeys.push_back(tmpKey);
+        }
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    std::set<Key> keys(expectedKeys.begin(), expectedKeys.end());
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().InKeys(keys).OrderByWriteTime(true), resultSet),
+        OK);
+    ASSERT_NE(resultSet, nullptr);
+    ASSERT_EQ(resultSet->GetCount(), static_cast<int>(keys.size()));
+    for (uint32_t i = 0; i < keys.size(); i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet);
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet2 = nullptr;
+    long unsigned int limitNum = 40;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().InKeys(keys).OrderByWriteTime(true).Limit(limitNum, 0), resultSet2), OK);
+    ASSERT_NE(resultSet2, nullptr);
+    int expectedSize = (keys.size() >= limitNum) ? limitNum : keys.size();
+    ASSERT_EQ(resultSet2->GetCount(), static_cast<int>(expectedSize));
+    for (int i = 0; i < expectedSize; i++) {
+        resultSet2->MoveToPosition(i);
+        Entry entry;
+        resultSet2->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+}
+
+/**
+  * @tc.name: WriteTimeSort006
+  * @tc.desc: For inkeys query with orderBy writeTime desc
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort006", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. put some data
+     * @tc.expected: step2. Returns OK
+     */
+    Key key = {'x'};
+    Key key2 = {'y'};
+    const int dataSize = 100; // 100 data for test
+    std::vector<Key> expectedKeys;
+    std::vector<uint8_t> keySuffix;
+    for (uint8_t i = 0; i < dataSize; i++) {
+        keySuffix.push_back(rand () % 100);
+    }
+    for (uint8_t i = 0; i < dataSize; i++) {
+        Key tmpKey = {key[0], keySuffix[i], i};
+        ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(tmpKey, VALUE_1), OK);
+        if (rand() % 2) {
+            expectedKeys.push_back(tmpKey);
+        }
+    }
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key2, VALUE_1), OK);
+    /**
+     * @tc.steps: step2. Call GetEntries With prefix Query
+     * @tc.expected: step2. Returns KvStoreResultSet, the count is dataSize,
+     *  all data are equals the preset data
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    std::set<Key> keys(expectedKeys.begin(), expectedKeys.end());
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(Query::Select().InKeys(keys).OrderByWriteTime(false), resultSet),
+        OK);
+    ASSERT_NE(resultSet, nullptr);
+    ASSERT_EQ(resultSet->GetCount(), static_cast<int>(keys.size()));
+    for (uint32_t i = 0; i < keys.size(); i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[keys.size() - i - 1], entry.key);
+        EXPECT_EQ(entry.value, VALUE_1);
+    }
+    g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet);
+    /**
+     * @tc.steps: step3. Call GetEntries With prefix Query limit
+     * @tc.expected: step3. Returns entries
+     *  all data are equals the preset data
+     */
+
+    std::vector<Entry> entries2;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(
+        Query::Select().InKeys(keys).OrderByWriteTime(false).Limit(keys.size() / 2, 0), entries2), OK);
+    ASSERT_EQ(entries2.size(), static_cast<long unsigned int>(expectedKeys.size() / 2));
+    for (uint32_t i = 0; i < keys.size() / 2; i++) {
+        EXPECT_EQ(expectedKeys[keys.size() - i - 1], entries2[i].key);
+        EXPECT_EQ(entries2[i].value, VALUE_1);
+    }
+}
+
+/**
+  * @tc.name: WriteTimeSort007
+  * @tc.desc: For unsupport query when getEntries
+  * @tc.type: FUNC
+  * @tc.require: SR000H5U55
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. Create a database And Preset Data
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore("WriteTimeSort006", option, g_kvNbDelegateCallbackForQuery);
+    ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
+    EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
+    /**
+     * @tc.steps: step2. Call GetEntries With unsupport Query
+     * @tc.expected: step2. Returns NOT_SUPPORT
+     */
+    Query query = Query::Select().BeginGroup().LessThan("$.field_name1", 5).OrderByWriteTime(false);
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(query, resultSet), NOT_SUPPORT);
+    std::vector<Entry> entries2;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(query, entries2), NOT_SUPPORT);
+}
 #endif // OMIT_JSON

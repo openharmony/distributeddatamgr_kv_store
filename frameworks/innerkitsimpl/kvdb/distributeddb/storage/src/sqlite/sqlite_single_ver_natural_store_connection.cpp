@@ -29,7 +29,7 @@
 
 namespace DistributedDB {
 namespace {
-    enum {
+    enum class LocalOperType {
         LOCAL_OPR_NONE = 0,
         LOCAL_OPR_DEL = 1,
         LOCAL_OPR_PUT = 2
@@ -206,6 +206,11 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         return errCode;
     }
     QueryObject queryObj(query);
+    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey");
+        return -E_NOT_SUPPORT;
+    }
+
     // In readOnly mode, forbidden all schema related query
     if (CheckWritePermission() == E_OK) {
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
@@ -657,6 +662,10 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
     if (CheckWritePermission() == E_OK) {
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
+    }
+    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+        LOGE("[GetResultSet][query] timestamp sort only support prefixKey");
+        return -E_NOT_SUPPORT;
     }
     bool isMemDb = naturalStore->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     resultSet = new (std::nothrow) SQLiteSingleVerResultSet(naturalStore, queryObj,
@@ -1610,7 +1619,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishInner(SingleVerNaturalStoreC
     const SingleVerRecord &syncRecord, bool updateTimestamp, int &innerErrCode)
 {
     int errCode = E_OK;
-    int localOperation = LOCAL_OPR_NONE;
+    int localOperation = static_cast<int>(LocalOperType::LOCAL_OPR_NONE);
     SingleVerRecord localRecord;
 
     innerErrCode = -E_LOCAL_DEFEAT;
@@ -1618,20 +1627,20 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishInner(SingleVerNaturalStoreC
         if ((syncRecord.flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
             if (updateTimestamp || localRecord.timestamp <= syncRecord.writeTimestamp) { // sync win
                 innerErrCode = -E_LOCAL_DELETED;
-                localOperation = LOCAL_OPR_DEL;
+                localOperation = static_cast<int>(LocalOperType::LOCAL_OPR_DEL);
             }
         } else if (updateTimestamp || localRecord.timestamp <= syncRecord.writeTimestamp) { // sync win
             innerErrCode = -E_LOCAL_COVERED;
-            localOperation = LOCAL_OPR_PUT;
+            localOperation = static_cast<int>(LocalOperType::LOCAL_OPR_PUT);
         }
     } else { // no conflict entry in local
         innerErrCode = E_OK;
         if ((syncRecord.flag & DataItem::DELETE_FLAG) != DataItem::DELETE_FLAG) {
-            localOperation = LOCAL_OPR_PUT;
+            localOperation = static_cast<int>(LocalOperType::LOCAL_OPR_PUT);
         }
     }
 
-    if (localOperation != LOCAL_OPR_NONE) {
+    if (localOperation != static_cast<int>(LocalOperType::LOCAL_OPR_NONE)) {
         errCode = UnpublishOper(committedData, syncRecord, updateTimestamp, localOperation);
     }
 
@@ -1647,7 +1656,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishOper(SingleVerNaturalStoreCo
     }
 
     int errCode = E_OK;
-    if (operType == LOCAL_OPR_PUT) {
+    if (operType == static_cast<int>(LocalOperType::LOCAL_OPR_PUT)) {
         SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
         if (naturalStore == nullptr) {
             return -E_INVALID_DB;
@@ -1661,7 +1670,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishOper(SingleVerNaturalStoreCo
         Timestamp time = updateTimestamp ? naturalStore->GetCurrentTimestamp() : syncRecord.writeTimestamp;
         errCode = writeHandle_->PutKvData(SingleVerDataType::LOCAL_TYPE, syncRecord.key, syncRecord.value, time,
             committedData);
-    } else if (operType == LOCAL_OPR_DEL) {
+    } else if (operType == static_cast<int>(LocalOperType::LOCAL_OPR_DEL)) {
         Timestamp localTimestamp = 0;
         Value value;
         errCode = writeHandle_->DeleteLocalKvData(syncRecord.key, committedData, value, localTimestamp);

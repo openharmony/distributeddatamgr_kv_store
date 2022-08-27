@@ -15,7 +15,7 @@
 
 #ifndef SQLITE_SINGLE_VER_NATURAL_STORE_CONNECTION_H
 #define SQLITE_SINGLE_VER_NATURAL_STORE_CONNECTION_H
-
+#include <atomic>
 #include "sync_able_kvdb_connection.h"
 #include "sqlite_single_ver_storage_executor.h"
 #include "db_types.h"

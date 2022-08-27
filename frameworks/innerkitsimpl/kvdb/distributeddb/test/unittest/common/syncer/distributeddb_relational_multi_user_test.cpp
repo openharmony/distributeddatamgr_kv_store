@@ -284,6 +284,30 @@ namespace {
         CloseStore();
     }
 
+    int g_currentStatus = 0;
+    const AutoLaunchNotifier g_nofifier = [](const std::string &userId,
+        const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
+            LOGE("notifier status = %d", status);
+            g_currentStatus = static_cast<int>(status);
+        };
+
+    const AutoLaunchRequestCallback g_callback = [](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_identifier != identifier) {
+            LOGE("g_identifier(%s) != identifier(%s)", g_identifier, identifier);
+            return false;
+        }
+        param.path    = g_testDir + "/test2.db";
+        param.appId   = APP_ID;
+        param.storeId = STORE_ID;
+        CipherPassword passwd;
+        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
+            0, nullptr};
+        param.notifier = g_nofifier;
+        param.option.syncDualTupleMode = true;
+        return true;
+    };
+
+
     void TestSyncWithUserChange(bool wait, bool isRemoteQuery)
     {
         /**
@@ -624,27 +648,11 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
      */
     RuntimeConfig::SetSyncActivationCheckCallback(g_syncActivationCheckCallback1);
 
-    const AutoLaunchRequestCallback callback = [](const std::string &identifier, AutoLaunchParam &param) {
-        if (g_identifier != identifier) {
-            LOGE("g_identifier(%s) != identifier(%s)", g_identifier, identifier);
-            return false;
-        }
-        param.path    = g_testDir + "/test2.db";
-        param.appId   = APP_ID;
-        param.storeId = STORE_ID;
-        CipherPassword passwd;
-        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
-        0, nullptr};
-        param.notifier = nullptr;
-        param.option.syncDualTupleMode = true;
-        return true;
-    };
-
     /**
      * @tc.steps: step3. SetAutoLaunchRequestCallback
      * @tc.expected: step3. success.
      */
-    g_mgr1.SetAutoLaunchRequestCallback(callback);
+    g_mgr1.SetAutoLaunchRequestCallback(g_callback);
 
     /**
      * @tc.steps: step4. RunCommunicatorLackCallback
@@ -689,6 +697,8 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
     CheckDataInRealDevice();
     std::this_thread::sleep_for(std::chrono::seconds(70)); // the store will close after 60 sec aotumatically
     g_mgr1.SetAutoLaunchRequestCallback(nullptr);
+    EXPECT_EQ(g_currentStatus, AutoLaunchStatus::WRITE_CLOSED);
+    g_currentStatus = 0;
     CloseStore();
 }
 
@@ -841,4 +851,40 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
 HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser009, TestSize.Level0)
 {
     TestSyncWithUserChange(false, true);
+}
+
+/**
+ * @tc.name: multi user 010
+ * @tc.desc: test check sync active twice when open store
+ * @tc.type: FUNC
+ * @tc.require: AR000GK58G
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count, only first call return not active
+     */
+    RuntimeConfig::SetSyncActivationCheckCallback([&callCount] (const std::string &userId, const std::string &appId,
+        const std::string &storeId) -> bool {
+        callCount++;
+        return callCount != 1;
+    });
+    /**
+     * @tc.steps: step2. openstore1 in dual tuple sync mode
+     * @tc.expected: step2. it should be activity finally
+     */
+    OpenStore1(true);
+    /**
+     * @tc.steps: step3. prepare environment
+     */
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    /**
+     * @tc.steps: step4. call sync to DEVICES_B
+     * @tc.expected: step4. should return OK, not NOT_ACTIVE
+     */
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, nullptr, true), OK);
+    CloseStore();
 }

@@ -326,7 +326,7 @@ void VirtualRelationalVerSyncDBInterface::EraseSyncData(const std::string &table
 int VirtualRelationalVerSyncDBInterface::CreateDistributedDeviceTable(const std::string &device,
     const RelationalSyncStrategy &syncStrategy)
 {
-    return E_OK;
+    return permitCreateDistributedTable_ ? E_OK : -E_NOT_SUPPORT;
 }
 
 int VirtualRelationalVerSyncDBInterface::RegisterSchemaChangedCallback(const std::function<void()> &onSchemaChanged)
@@ -355,6 +355,11 @@ int VirtualRelationalVerSyncDBInterface::ExecuteQuery(const PreparedStmt &prepSt
 const RelationalDBProperties &VirtualRelationalVerSyncDBInterface::GetRelationalDbProperties() const
 {
     return rdbProperties_;
+}
+
+void VirtualRelationalVerSyncDBInterface::SetPermitCreateDistributedTable(bool permitCreateDistributedTable)
+{
+    permitCreateDistributedTable_ = permitCreateDistributedTable;
 }
 
 void ObjectData::PutDataValue(const std::string &fieldName, const DataValue &value)

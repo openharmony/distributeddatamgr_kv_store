@@ -76,6 +76,7 @@ QueryObject::QueryObject(const Query &query)
     tableName_ = queryExpressions.GetTableName();
     isTableNameSpecified_ = queryExpressions.IsTableNameSpecified();
     keys_ = queryExpressions.GetKeys();
+    sortType_ = static_cast<SortType>(queryExpressions.GetSortType());
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -122,7 +123,7 @@ SqliteQueryHelper QueryObject::GetQueryHelper(int &errCode)
         return SqliteQueryHelper(QueryObjInfo{});
     }
     QueryObjInfo info {schema_, queryObjNodes_, prefixKey_, suggestIndex_, keys_,
-        orderByCounts_, isValid_, hasOrderBy_, hasLimit_, hasPrefixKey_, tableName_, isTableNameSpecified_};
+        orderByCounts_, isValid_, hasOrderBy_, hasLimit_, hasPrefixKey_, tableName_, isTableNameSpecified_, sortType_};
     return SqliteQueryHelper {info}; // compiler RVO by default, and RVO is generally required after C++17
 }
 

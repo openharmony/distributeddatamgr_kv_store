@@ -52,7 +52,7 @@ private:
     bool isEncrypted_;
     CipherType cipherType_;
     CipherPassword passwd_;
-    int iterTimes_;
+    uint32_t iterTimes_;
 };
 }
 #endif

@@ -432,8 +432,7 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }
 
-int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, const bool &isMemDb,
-    uint32_t iterTimes)
+int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool isMemDb, uint32_t iterTimes)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
@@ -1352,13 +1351,11 @@ int SQLiteUtils::CreateRelationalMetaTable(sqlite3 *db)
         "CREATE TABLE IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "metadata(" \
         "key    BLOB PRIMARY KEY NOT NULL," \
         "value  BLOB);";
-
     int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
     if (errCode != E_OK) {
-        LOGE("[SQLite] execute create table sql failed");
-        return errCode;
+        LOGE("[SQLite] execute create table sql failed, err=%d", errCode);
     }
-    return E_OK;
+    return errCode;
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)

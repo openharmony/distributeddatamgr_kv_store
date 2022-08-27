@@ -56,6 +56,7 @@ public:
         OP_INVALID_ARGS,
         OP_USER_CHANGED,
         OP_DENIED_SQL,
+        OP_NOTADB_OR_CORRUPTED,
     };
 
     using UserCallback = std::function<void(std::map<std::string, int>)>;

@@ -100,7 +100,9 @@ void SyncAbleKvDB::EnableAutoSync(bool enable)
 
 void SyncAbleKvDB::WakeUpSyncer()
 {
-    StartSyncer();
+    if (!started_) {
+        StartSyncer();
+    }
 }
 
 // Stop a sync action in progress.
@@ -149,9 +151,13 @@ void SyncAbleKvDB::ReSetSyncModuleActive()
 // Start syncer
 int SyncAbleKvDB::StartSyncer(bool isCheckSyncActive, bool isNeedActive)
 {
-    std::unique_lock<std::mutex> lock(syncerOperateLock_);
-    int errCode = StartSyncerWithNoLock(isCheckSyncActive, isNeedActive);
-    closed_ = false;
+    int errCode = E_OK;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        errCode = StartSyncerWithNoLock(isCheckSyncActive, isNeedActive);
+        closed_ = false;
+    }
+    UserChangeHandle();
     return errCode;
 }
 

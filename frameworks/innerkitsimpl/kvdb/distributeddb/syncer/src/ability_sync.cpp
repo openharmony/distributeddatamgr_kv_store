@@ -1181,6 +1181,7 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     AbilitySyncAckPacket ackPacket;
     int errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true);
     if (errCode != E_OK) {
+        context->SetTaskErrCode(errCode);
         return errCode;
     }
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);

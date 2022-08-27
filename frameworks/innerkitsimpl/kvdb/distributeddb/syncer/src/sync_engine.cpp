@@ -49,7 +49,6 @@ SyncEngine::SyncEngine()
       communicator_(nullptr),
       deviceManager_(nullptr),
       metadata_(nullptr),
-      timeChangedListener_(nullptr),
       execTaskCount_(0),
       isSyncRetry_(false),
       communicatorProxy_(nullptr),
@@ -102,12 +101,6 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, std::shared_ptr<Metada
         subManager_ = std::make_shared<SubscribeManager>();
     }
     metadata_ = metadata;
-    errCode = InitTimeChangedListener();
-    if (errCode != E_OK) {
-        syncInterface_ = nullptr;
-        StopAutoSubscribeTimer();
-        return errCode;
-    }
     isActive_ = true;
     LOGI("[SyncEngine] Engine init ok");
     return E_OK;
@@ -281,8 +274,7 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         return errCode;
     }
     std::vector<uint8_t> label = syncInterface->GetIdentifier();
-    bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
-        false);
+    bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
     if (isSyncDualTupleMode) {
         std::vector<uint8_t> dualTuplelabel = syncInterface->GetDualTupleIdentifier();
         LOGI("[SyncEngine] dual tuple mode, original identifier=%.6s, target identifier=%.6s", VEC_TO_STR(label),
@@ -961,36 +953,6 @@ void SyncEngine::StopAutoSubscribeTimer()
 {
 }
 
-int SyncEngine::InitTimeChangedListener()
-{
-    int errCode = E_OK;
-    timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
-        [this](void *changedOffset) {
-            if (changedOffset == nullptr) {
-                return;
-            }
-            TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
-                static_cast<TimeOffset>(TimeHelper::TO_100_NS);
-            TimeOffset orgOffset = this->metadata_->GetLocalTimeOffset() - changedTimeOffset;
-            Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-            Timestamp maxItemTime = 0;
-            this->syncInterface_->GetMaxTimestamp(maxItemTime);
-            if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
-                orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
-                    currentSysTime + TimeHelper::MS_TO_100_NS;
-            }
-            if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
-                orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
-            }
-            this->metadata_->SaveLocalTimeOffset(orgOffset);
-        }, errCode);
-    if (timeChangedListener_ == nullptr) {
-        LOGE("[SyncEngine] Init RegisterTimeChangedLister failed");
-        return errCode;
-    }
-    return E_OK;
-}
-
 int SyncEngine::SubscribeLimitCheck(const std::vector<std::string> &devices, QuerySyncObject &query) const
 {
     return subManager_->LocalSubscribeLimitCheck(devices, query);
@@ -999,10 +961,6 @@ int SyncEngine::SubscribeLimitCheck(const std::vector<std::string> &devices, Que
 
 void SyncEngine::ClearInnerResource()
 {
-    if (timeChangedListener_ != nullptr) {
-        timeChangedListener_->Drop(true);
-        timeChangedListener_ = nullptr;
-    }
     if (syncInterface_ != nullptr) {
         syncInterface_->DecRefCount();
         syncInterface_ = nullptr;
@@ -1140,5 +1098,29 @@ int SyncEngine::GetLocalDeviceId(std::string &deviceId)
     int errCode = communicator->GetLocalIdentity(deviceId);
     RefObject::DecObjRef(communicator);
     return errCode;
+}
+
+void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
+{
+    ISyncTaskContext *abortContext = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(contextMapLock_);
+        for (auto &entry : syncTaskContextMap_) {
+            auto context = entry.second;
+            if (context->IsKilled()) {
+                continue;
+            }
+            RefObject::IncObjRef(context);
+            if (context->GetSyncId() == syncId) {
+                abortContext = context;
+                RefObject::IncObjRef(abortContext);
+            }
+            RefObject::DecObjRef(context);
+        }
+    }
+    if (abortContext != nullptr) {
+        abortContext->AbortMachineIfNeed(static_cast<uint32_t>(syncId));
+        RefObject::DecObjRef(abortContext);
+    }
 }
 } // namespace DistributedDB

@@ -58,6 +58,9 @@ public:
     // Force stop the state machine
     void Abort() override;
 
+    // Force stop current task with sessionId
+    void InnerErrorAbort(uint32_t sessionId) override;
+
     // start a timer to ResetWatchDog when sync data one (key,value) size bigger than mtu
     bool StartFeedDogForSync(uint32_t time, SyncDirectionFlag flag) override;
 

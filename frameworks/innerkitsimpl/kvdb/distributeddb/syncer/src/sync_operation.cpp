@@ -310,6 +310,7 @@ const std::map<int, DBStatus> &SyncOperation::DBStatusTransMap()
         { static_cast<int>(OP_INVALID_ARGS),                  INVALID_ARGS },
         { static_cast<int>(OP_USER_CHANGED),                  USER_CHANGED },
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
+        { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
     };
     return transMap;
 }

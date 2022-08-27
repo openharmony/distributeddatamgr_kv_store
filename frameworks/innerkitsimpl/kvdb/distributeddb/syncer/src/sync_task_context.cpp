@@ -775,4 +775,27 @@ uint8_t SyncTaskContext::GetPermissionCheckFlag(bool isAutoSync, int syncMode)
     }
     return flag;
 }
+
+void SyncTaskContext::AbortMachineIfNeed(uint32_t syncId)
+{
+    uint32_t sessionId = 0u;
+    {
+        RefObject::AutoLock autoLock(this);
+        if (syncId_ != syncId) {
+            return;
+        }
+        sessionId = requestSessionId_;
+    }
+    stateMachine_->InnerErrorAbort(sessionId);
+}
+
+SyncOperation *SyncTaskContext::GetAndIncSyncOperation() const
+{
+    std::lock_guard<std::mutex> lock(operationLock_);
+    if (syncOperation_ == nullptr) {
+        return nullptr;
+    }
+    RefObject::IncObjRef(syncOperation_);
+    return syncOperation_;
+}
 } // namespace DistributedDB

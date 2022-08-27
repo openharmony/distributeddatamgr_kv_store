@@ -17,11 +17,13 @@
 
 #include "ability_sync.h"
 #include "distributeddb_tools_unit_test.h"
+#include "single_ver_relational_sync_task_context.h"
 #include "single_ver_kv_sync_task_context.h"
 #include "sync_types.h"
 #include "version.h"
 #include "virtual_communicator_aggregator.h"
 #include "virtual_single_ver_sync_db_Interface.h"
+#include "virtual_relational_ver_sync_db_interface.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -553,4 +555,47 @@ HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest001, TestSize.Level0)
     msg1.SetCopiedObject(packet1);
     EXPECT_EQ(async.AckRecv(&msg1, context), -E_VERSION_NOT_SUPPORT);
     RefObject::KillAndDecObjRef(context);
+}
+
+/**
+ * @tc.name: AckReceiveTest002
+ * @tc.desc: Verify Ability RDB AckReceive callback.
+ * @tc.type: FUNC
+ * @tc.require: AR000DR9K4
+ * @tc.author: xushaohua
+ */
+HWTEST_F(DistributedDBAbilitySyncTest, AckReceiveTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create a AbilitySync
+     */
+    AbilitySync async;
+    VirtualRelationalVerSyncDBInterface *interface = new(std::nothrow) VirtualRelationalVerSyncDBInterface();
+    ASSERT_NE(interface, nullptr);
+    async.Initialize(g_communicatorB, interface, g_meta, DEVICE_A);
+    interface->SetPermitCreateDistributedTable(false);
+
+    /**
+     * @tc.steps: step2. call AckRecv, set inMsg nullptr or set context nullptr
+     * @tc.expected: step2. AckRecv return -E_INVALID_ARGS
+     */
+    auto *context = new (std::nothrow) SingleVerRelationalSyncTaskContext();
+    const std::string RDB_SCHEMA = "{\"TABLE_MODE\":\"SPLIT_BY_DEVICE\","
+        "\"SCHEMA_TYPE\":\"RELATIVE\","
+        "\"SCHEMA_VERSION\":\"2.1\"}";
+    ASSERT_TRUE(context != nullptr);
+    Message msg1(ABILITY_SYNC_MESSAGE);
+    msg1.SetMessageType(TYPE_RESPONSE);
+    AbilitySyncAckPacket packet;
+    packet.SetProtocolVersion(ABILITY_SYNC_VERSION_V1);
+    packet.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
+    packet.SetAckCode(E_OK);
+    packet.SetSchema(RDB_SCHEMA);
+    packet.SetSchemaType(static_cast<uint32_t>(SchemaType::RELATIVE));
+    msg1.SetCopiedObject(packet);
+    EXPECT_EQ(async.AckRecv(&msg1, context), -E_NOT_SUPPORT);
+    EXPECT_EQ(context->GetTaskErrCode(), -E_NOT_SUPPORT);
+
+    RefObject::KillAndDecObjRef(context);
+    delete interface;
 }

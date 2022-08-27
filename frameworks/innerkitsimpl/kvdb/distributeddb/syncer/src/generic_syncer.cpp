@@ -47,7 +47,8 @@ GenericSyncer::GenericSyncer()
       queuedManualSyncLimit_(DBConstant::QUEUED_SYNC_LIMIT_DEFAULT),
       manualSyncEnable_(true),
       closing_(false),
-      engineFinalize_(false)
+      engineFinalize_(false),
+      timeChangedListener_(nullptr)
 {
 }
 
@@ -66,6 +67,10 @@ GenericSyncer::~GenericSyncer()
             LOGW("syncer finalize before engine finalize!");
         }
         syncEngine_ = nullptr;
+    }
+    if (timeChangedListener_ != nullptr) {
+        timeChangedListener_->Drop(true);
+        timeChangedListener_ = nullptr;
     }
     timeHelper_ = nullptr;
     metadata_ = nullptr;
@@ -99,7 +104,11 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         // As timeHelper_ will be used in GetTimestamp, it should not be clear even if engine init failed.
         // It will be clear in destructor.
         int errCodeTimeHelper = InitTimeHelper(syncInterface);
-        if (errCodeMetadata != E_OK || errCodeTimeHelper != E_OK) {
+
+        // As timeChangedListener_ will record time change, it should not be clear even if engine init failed.
+        // It will be clear in destructor.
+        int errCodeTimeChangedListener = InitTimeChangedListener();
+        if (errCodeMetadata != E_OK || errCodeTimeHelper != E_OK || errCodeTimeChangedListener != E_OK) {
             return -E_INTERNAL_ERROR;
         }
         int errCode = CheckSyncActive(syncInterface, isNeedActive);
@@ -136,9 +145,11 @@ int GenericSyncer::Close(bool isClosedOperation)
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (!initialized_) {
+            if (isClosedOperation) {
+                timeHelper_ = nullptr;
+                metadata_ = nullptr;
+            }
             LOGW("[Syncer] Syncer[%s] don't need to close, because it has no been init", label_.c_str());
-            timeHelper_ = nullptr;
-            metadata_ = nullptr;
             return -E_NOT_INIT;
         }
         initialized_ = false;
@@ -155,8 +166,10 @@ int GenericSyncer::Close(bool isClosedOperation)
         std::lock_guard<std::mutex> lock(syncerLock_);
         closing_ = false;
     }
-    timeHelper_ = nullptr;
-    metadata_ = nullptr;
+    if (isClosedOperation) {
+        timeHelper_ = nullptr;
+        metadata_ = nullptr;
+    }
     return E_OK;
 }
 
@@ -285,6 +298,9 @@ int GenericSyncer::StopSync(uint64_t connectionId)
     }
     for (auto syncId : syncIdList) {
         RemoveSyncOperation(syncId);
+        if (syncEngine_ != nullptr) {
+            syncEngine_->AbortMachineIfNeed(syncId);
+        }
     }
     if (syncEngine_ != nullptr) {
         syncEngine_->NotifyConnectionClosed(connectionId);
@@ -349,6 +365,7 @@ int GenericSyncer::InitMetaData(ISyncInterface *syncInterface)
         LOGE("[Syncer] metadata Initializeate failed! err %d.", errCode);
         metadata_ = nullptr;
     }
+    syncInterface_ = syncInterface;
     return errCode;
 }
 
@@ -385,7 +402,6 @@ int GenericSyncer::InitSyncEngine(ISyncInterface *syncInterface)
         std::bind(&GenericSyncer::QueryAutoSync, this, std::placeholders::_1);
     errCode = syncEngine_->Initialize(syncInterface, metadata_, onlineFunc, offlineFunc, queryAutoSyncFunc);
     if (errCode == E_OK) {
-        syncInterface_ = syncInterface;
         syncInterface->IncRefCount();
         label_ = syncEngine_->GetLabel();
         return E_OK;
@@ -843,5 +859,38 @@ int GenericSyncer::RemoteQuery(const std::string &device, const RemoteCondition 
     int errCode = syncEngine->RemoteQuery(device, condition, timeout, connectionId, result);
     RefObject::DecObjRef(syncEngine);
     return errCode;
+}
+
+int GenericSyncer::InitTimeChangedListener()
+{
+    int errCode = E_OK;
+    if (timeChangedListener_ != nullptr) {
+        return errCode;
+    }
+    timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
+        [this](void *changedOffset) {
+            if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
+                return;
+            }
+            TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
+                static_cast<TimeOffset>(TimeHelper::TO_100_NS);
+            TimeOffset orgOffset = this->metadata_->GetLocalTimeOffset() - changedTimeOffset;
+            Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
+            Timestamp maxItemTime = 0;
+            this->syncInterface_->GetMaxTimestamp(maxItemTime);
+            if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
+                orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
+                    currentSysTime + TimeHelper::MS_TO_100_NS;
+            }
+            if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
+                orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
+            }
+            this->metadata_->SaveLocalTimeOffset(orgOffset);
+        }, errCode);
+    if (timeChangedListener_ == nullptr) {
+        LOGE("[GenericSyncer] Init RegisterTimeChangedLister failed");
+        return errCode;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

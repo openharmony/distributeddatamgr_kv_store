@@ -145,7 +145,8 @@ SqliteQueryHelper::SqliteQueryHelper(const QueryObjInfo &info)
       isOrderByAppeared_(false),
       hasPrefixKey_(info.hasPrefixKey_),
       isNeedOrderbyKey_(false),
-      isRelationalQuery_(info.isRelationalQuery_)
+      isRelationalQuery_(info.isRelationalQuery_),
+      sortType_(info.sortType_)
 {}
 
 SymbolType SqliteQueryHelper::GetSymbolType(const QueryObjType &queryObjType)
@@ -295,6 +296,9 @@ int SqliteQueryHelper::GetQuerySql(std::string &sql, bool onlyRowid)
     sql = AssembleSqlForSuggestIndex(querySqlForUse, FILTER_NATIVE_DATA_SQL);
     sql = !hasPrefixKey_ ? sql : (sql + " AND (key>=? AND key<=?) ");
     sql = keys_.empty() ? sql : (sql + " AND " + MapKeysInToSql(keys_.size()));
+    if (sortType_ != SortType::NONE) {
+        sql += (sortType_ == SortType::TIMESTAMP_ASC) ? "ORDER BY timestamp asc " : "ORDER BY timestamp desc ";
+    }
     if (transformed_) {
         LOGD("This query object has been parsed.");
         sql += querySql_;

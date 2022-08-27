@@ -14,8 +14,12 @@
  */
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#ifdef RUN_AS_ROOT
+#include <sys/time.h>
+#endif
 #include <thread>
 
+#include "db_common.h"
 #include "distributeddb_tools_unit_test.h"
 #include "generic_single_ver_kv_entry.h"
 #include "message.h"
@@ -48,6 +52,16 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTask
     (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
 }
+
+#ifdef RUN_AS_ROOT
+void ChangeTime(int sec)
+{
+    timeval time;
+    gettimeofday(&time, nullptr);
+    time.tv_sec += sec;
+    settimeofday(&time, nullptr);
+}
+#endif
 }
 
 class DistributedDBMockSyncModuleTest : public testing::Test {
@@ -863,3 +877,53 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
     parcel = Parcel(srcData.data(), srcData.size());
     EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcel), 0);
 }
+
+/**
+ * @tc.name: SyncTaskContextCheck001
+ * @tc.desc: test context check task can be skipped in push mode.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Level1)
+{
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
+    syncTaskContext.SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FINISHED_ALL);
+    syncTaskContext.CallSetSyncMode(static_cast<int>(SyncModeType::PUSH));
+    EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
+}
+
+#ifdef RUN_AS_ROOT
+/**
+ * @tc.name: TimeChangeListenerTest001
+ * @tc.desc: Test RegisterTimeChangedLister.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Level1)
+{
+    SingleVerKVSyncer syncer;
+    VirtualSingleVerSyncDBInterface syncDBInterface;
+    KvDBProperties dbProperties;
+    dbProperties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    syncDBInterface.SetDbProperties(dbProperties);
+    EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s wait for time tick
+    const std::string LOCAL_TIME_OFFSET_KEY = "localTimeOffset";
+    std::vector<uint8_t> key;
+    DBCommon::StringToVector(LOCAL_TIME_OFFSET_KEY, key);
+    std::vector<uint8_t> beforeOffset;
+    EXPECT_EQ(syncDBInterface.GetMetaData(key, beforeOffset), E_OK);
+    ChangeTime(2); // increase 2s
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s wait for time tick
+    std::vector<uint8_t> afterOffset;
+    EXPECT_EQ(syncDBInterface.GetMetaData(key, afterOffset), E_OK);
+    EXPECT_NE(beforeOffset, afterOffset);
+    ChangeTime(-2); // decrease 2s
+}
+#endif

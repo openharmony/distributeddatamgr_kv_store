@@ -17,6 +17,7 @@
 #define MULTI_VER_NATURAL_STORE_TRANSFER_DATA_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstddef>
 #include "db_types.h"
 #include "macro_utils.h"
 

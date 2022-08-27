@@ -17,6 +17,7 @@
 #define MULTI_VER_KV_ENTRY_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstdint>
 #include <vector>
 
 #include "multi_ver_value_object.h"

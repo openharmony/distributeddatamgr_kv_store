@@ -96,6 +96,8 @@ public:
     int GetSendQueryWaterMark(const std::string &queryId, const DeviceID &deviceId, bool isAutoLift,
         uint64_t &outValue);
 
+    void InnerErrorAbort(uint32_t sessionId) override;
+
 protected:
     // Step the SingleVerSyncStateMachine
     void SyncStep() override;
@@ -207,8 +209,6 @@ private:
     void JumpStatusAfterAbilitySync(int mode);
 
     void ControlAckRecvErrCodeHandle(int errCode);
-
-    void InnerErrorAbort(uint32_t sessionId);
 
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncStateMachine);
 

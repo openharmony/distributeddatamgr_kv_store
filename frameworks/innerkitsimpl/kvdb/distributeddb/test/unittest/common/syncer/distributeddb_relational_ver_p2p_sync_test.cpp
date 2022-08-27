@@ -36,6 +36,7 @@ namespace {
     const std::string DEVICE_A = "real_device";
     const std::string DEVICE_B = "deviceB";
     const std::string DEVICE_C = "deviceC";
+    const std::string DEVICE_D = "deviceD";
     const std::string g_tableName = "TEST_TABLE";
 
 #ifndef OMIT_ENCRYPT
@@ -68,6 +69,7 @@ namespace {
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     RelationalVirtualDevice *g_deviceB = nullptr;
     RelationalVirtualDevice *g_deviceC = nullptr;
+    KvVirtualDevice *g_deviceD = nullptr;
     std::vector<FieldInfo> g_fieldInfoList;
     RelationalStoreObserverUnitTest *g_observer = nullptr;
     std::string GetDeviceTableName(const std::string &tableName)
@@ -689,11 +691,17 @@ void DistributedDBRelationalVerP2PSyncTest::SetUp(void)
     ASSERT_TRUE(g_deviceB != nullptr);
     g_deviceC = new (std::nothrow) RelationalVirtualDevice(DEVICE_C);
     ASSERT_TRUE(g_deviceC != nullptr);
+    g_deviceD = new (std::nothrow) KvVirtualDevice(DEVICE_D);
+    ASSERT_TRUE(g_deviceD != nullptr);
     auto *syncInterfaceB = new (std::nothrow) VirtualRelationalVerSyncDBInterface();
     auto *syncInterfaceC = new (std::nothrow) VirtualRelationalVerSyncDBInterface();
+    auto *syncInterfaceD = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_TRUE(syncInterfaceC != nullptr);
+    ASSERT_TRUE(syncInterfaceD != nullptr);
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
     ASSERT_EQ(g_deviceC->Initialize(g_communicatorAggregator, syncInterfaceC), E_OK);
+    ASSERT_EQ(g_deviceD->Initialize(g_communicatorAggregator, syncInterfaceD), E_OK);
 
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
         const std::string &deviceId, uint8_t flag) -> bool {
@@ -719,6 +727,10 @@ void DistributedDBRelationalVerP2PSyncTest::TearDown(void)
     if (g_deviceC != nullptr) {
         delete g_deviceC;
         g_deviceC = nullptr;
+    }
+    if (g_deviceD != nullptr) {
+        delete g_deviceD;
+        g_deviceD = nullptr;
     }
     if (g_observer != nullptr) {
         delete g_observer;
@@ -1695,6 +1707,26 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery009, TestSize.Level1)
 }
 
 /**
+* @tc.name: remote query 010
+* @tc.desc: Test rdb remote query with kv db
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM " + g_tableName;
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_D, condition, DBConstant::MIN_TIMEOUT, result), NOT_SUPPORT);
+
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
@@ -1883,5 +1915,21 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
     targetData.clear();
     g_deviceC->GetAllSyncData(g_tableName, targetData);
     ASSERT_EQ(targetData.size(), 0u);
+}
+
+/**
+* @tc.name: OrderbyWriteTimeSync001
+* @tc.desc: sync query with order by writeTime
+* @tc.type: FUNC
+* @tc.require: AR000H5VLO
+* @tc.author: zhuwentao
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Level0)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    Query query = Query::Select(g_tableName).OrderByWriteTime(true);;
+    EXPECT_EQ(g_rdbDelegatePtr->Sync({DEVICE_B}, DistributedDB::SYNC_MODE_PUSH_ONLY, query, nullptr, false),
+        NOT_SUPPORT);
 }
 #endif

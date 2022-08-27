@@ -192,7 +192,7 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
 RelationalStoreConnection *RelationalStoreInstance::GetDatabaseConnection(const RelationalDBProperties &properties,
     int &errCode)
 {
-    std::string identifier = properties.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+    std::string identifier = properties.GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     LOGD("Begin to get [%s] database connection.", STR_MASK(DBCommon::TransferStringToHex(identifier)));
     RelationalStoreInstance *manager = RelationalStoreInstance::GetInstance();
     if (manager == nullptr) {

@@ -117,6 +117,7 @@ public:
 
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
+    void SetPermitCreateDistributedTable(bool permitCreateDistributedTable);
 private:
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::map<std::string, std::map<std::string, VirtualRowData>> syncData_;
@@ -127,6 +128,7 @@ private:
     KvDBProperties properties_;
     RelationalDBProperties rdbProperties_;
     SecurityOption secOption_;
+    bool permitCreateDistributedTable_ = true;
 };
 }
 #endif

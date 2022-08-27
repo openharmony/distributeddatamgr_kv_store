@@ -209,6 +209,7 @@ public:
 
     void Dump(int fd) override;
 
+    void AbortMachineIfNeed(uint32_t syncId) override;
 protected:
     const static int KILL_WAIT_SECONDS = INT32_MAX;
 
@@ -231,6 +232,8 @@ protected:
     virtual void SaveLastPushTaskExecStatus(int finalStatus);
 
     int RunPermissionCheck(uint8_t flag) const;
+
+    SyncOperation *GetAndIncSyncOperation() const;
 
     static uint8_t GetPermissionCheckFlag(bool isAutoSync, int syncMode);
 

@@ -127,6 +127,8 @@ public:
     void GetDeviceData(const std::string &deviceName, const Key &key, Value &value);
 
     void SetIdentifier(std::vector<uint8_t> &identifier);
+
+    void SetDbProperties(KvDBProperties &kvDBProperties);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize, std::vector<VirtualDataItem>& dataItems,
         ContinueToken& continueStmtToken) const;

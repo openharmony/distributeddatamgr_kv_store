@@ -160,7 +160,7 @@ private:
     mutable std::mutex timeTickMonitorLock_;
     std::unique_ptr<TimeTickMonitor> timeTickMonitor_;
 
-    mutable std::shared_mutex permissionCheckCallbackMutex_{};
+    mutable std::shared_mutex permissionCheckCallbackMutex_ {};
     PermissionCheckCallback permissionCheckCallback_;
     PermissionCheckCallbackV2 permissionCheckCallbackV2_;
     PermissionCheckCallbackV3 permissionCheckCallbackV3_;
@@ -173,10 +173,10 @@ private:
     mutable std::mutex lockStatusLock_; // Mutex for lockStatusObserver_.
     LockStatusObserver *lockStatusObserver_;
 
-    mutable std::shared_mutex databaseStatusCallbackMutex_{};
+    mutable std::shared_mutex databaseStatusCallbackMutex_ {};
     StoreStatusNotifier databaseStatusNotifyCallback_;
 
-    mutable std::shared_mutex syncActivationCheckCallbackMutex_{};
+    mutable std::shared_mutex syncActivationCheckCallbackMutex_ {};
     SyncActivationCheckCallback syncActivationCheckCallback_;
     SyncActivationCheckCallbackV2 syncActivationCheckCallbackV2_;
 

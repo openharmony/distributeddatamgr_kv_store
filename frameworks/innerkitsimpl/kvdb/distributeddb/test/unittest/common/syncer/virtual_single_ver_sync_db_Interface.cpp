@@ -436,4 +436,9 @@ void VirtualSingleVerSyncDBInterface::GetDeviceData(const std::string &deviceNam
     std::lock_guard<std::mutex> autoLock(deviceDataLock_);
     value = deviceData_[deviceName][key];
 }
+
+void VirtualSingleVerSyncDBInterface::SetDbProperties(KvDBProperties &kvDBProperties)
+{
+    properties_ = kvDBProperties;
+}
 }  // namespace DistributedDB

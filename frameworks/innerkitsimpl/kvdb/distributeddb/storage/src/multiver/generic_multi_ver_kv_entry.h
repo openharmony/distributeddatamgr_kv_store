@@ -17,6 +17,7 @@
 #define GENERIC_MULTI_VER_KVENTRY_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstdint>
 #include <vector>
 
 #include "macro_utils.h"

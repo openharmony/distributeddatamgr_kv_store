@@ -59,6 +59,11 @@ public:
     {
         SyncTaskContext::SetTaskExecStatus(status);
     }
+
+    void SetLastFullSyncTaskStatus(SyncOperation::Status lastFullSyncTaskStatus)
+    {
+        lastFullSyncTaskStatus_ = static_cast<int>(lastFullSyncTaskStatus);
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SINGLE_VER_STATE_MACHINE_H

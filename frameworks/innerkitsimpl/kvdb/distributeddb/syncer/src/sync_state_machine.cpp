@@ -396,4 +396,10 @@ void SyncStateMachine::DoFeedDogForSync(SyncDirectionFlag flag)
     }
     watchDogController_[flag].feedDogCnt++;
 }
+
+void SyncStateMachine::InnerErrorAbort(uint32_t sessionId)
+{
+    // do nothing
+    (void) sessionId;
+}
 } // namespace DistributedDB

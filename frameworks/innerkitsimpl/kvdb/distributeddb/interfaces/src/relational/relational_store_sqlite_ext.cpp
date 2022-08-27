@@ -357,6 +357,8 @@ int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
 int ClearTheLogAfterDropTable(void *db, int actionCode, const char *tblName,
     const char *useLessParam, const char *schemaName, const char *triggerName)
 {
+    (void)useLessParam;
+    (void)triggerName;
     if (actionCode != SQLITE_DROP_TABLE) {
         return SQLITE_OK;
     }

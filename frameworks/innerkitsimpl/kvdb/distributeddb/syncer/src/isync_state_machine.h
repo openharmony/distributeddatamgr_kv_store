@@ -45,6 +45,9 @@ public:
     // Force stop the state machine
     virtual void Abort() = 0;
 
+    // Force stop current task with sessionId
+    virtual void InnerErrorAbort(uint32_t sessionId) = 0;
+
     // Called by CommErrHandler, Sub class should realize this function to abort sync when handle err
     virtual void CommErrAbort(uint32_t sessionId = 0) = 0;
 

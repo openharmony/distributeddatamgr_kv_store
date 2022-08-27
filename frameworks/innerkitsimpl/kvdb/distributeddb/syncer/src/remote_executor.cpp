@@ -43,7 +43,12 @@ namespace {
 }
 
 RemoteExecutor::RemoteExecutor()
-    : workingThreadsCount_(0), lastSessionId_(0), lastTaskId_(0), closed_(false)
+    : workingThreadsCount_(0),
+      syncInterface_(nullptr),
+      communicator_(nullptr),
+      lastSessionId_(0),
+      lastTaskId_(0),
+      closed_(false)
 {
 }
 
@@ -206,7 +211,7 @@ int RemoteExecutor::ReceiveRemoteExecutorRequest(const std::string &targetDev, M
 void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *inMsg)
 {
     if (closed_) {
-        LOGW("[RemoteExecutor][ParseOneRequestMessage] closed!");
+        LOGW("[RemoteExecutor][ParseOneRequestMessage] closed");
         return;
     }
     int errCode = CheckPermissions(device);
@@ -251,7 +256,7 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
     if (syncInterface->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
         LOGE("[RemoteExecutor][ParseOneRequestMessage] storage is not relation.");
         syncInterface->DecRefCount();
-        return -E_INVALID_ARGS;
+        return -E_NOT_SUPPORT;
     }
     RelationalDBSyncInterface *storage = static_cast<RelationalDBSyncInterface *>(syncInterface);
 
@@ -350,7 +355,7 @@ bool RemoteExecutor::CheckTaskExeStatus(const std::string &device)
         int currentExeCount = static_cast<int>(deviceWorkingSet_[device].size());
         int currentQueueCount = static_cast<int>(entry.second.size());
         if ((currentQueueCount + currentExeCount) < static_cast<int>(MAX_SEARCH_TASK_PER_DEVICE)) {
-            // all task in this queue can execute, no need caculate as waiting task count
+            // all task in this queue can execute, no need calculate as waiting task count
             continue;
         }
         totalCount += static_cast<uint32_t>(currentQueueCount + currentExeCount -

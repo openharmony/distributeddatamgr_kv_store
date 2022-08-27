@@ -1147,8 +1147,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck001, TestSiz
     int sendRequestCount = 0;
     devices.push_back(g_deviceB->GetDeviceId());
 
-    Key key{'1'};
-    Value value{'1'};
+    Key key {'1'};
+    Value value {'1'};
     Query query = Query::Select().PrefixKey(key);
     PrePareForQuerySyncMergeTest(true, devices, key, value, sendRequestCount);
 
@@ -1186,8 +1186,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck002, TestSiz
     int sendRequestCount = 0;
     devices.push_back(g_deviceB->GetDeviceId());
 
-    Key key{'1'};
-    Value value{'1'};
+    Key key {'1'};
+    Value value {'1'};
     Query query = Query::Select().PrefixKey(key);
     PrePareForQuerySyncMergeTest(true, devices, key, value, sendRequestCount);
 
@@ -1240,8 +1240,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck003, TestSiz
     int sendRequestCount = 0;
     devices.push_back(g_deviceB->GetDeviceId());
 
-    Key key{'1'};
-    Value value{'1'};
+    Key key {'1'};
+    Value value {'1'};
     PrePareForQuerySyncMergeTest(true, devices, key, value, sendRequestCount);
 
     /**
@@ -1286,8 +1286,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck004, TestSiz
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
 
-    Key key{'1'};
-    Value value{'1'};
+    Key key {'1'};
+    Value value {'1'};
     int sendRequestCount = 0;
     PrePareForQuerySyncMergeTest(false, devices, key, value, sendRequestCount);
 

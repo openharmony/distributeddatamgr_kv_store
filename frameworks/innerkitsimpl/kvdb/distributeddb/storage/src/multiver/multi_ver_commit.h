@@ -17,6 +17,7 @@
 #define MULTI_VER_COMMIT_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstddef>
 #include "ikvdb_commit.h"
 
 #include "multi_ver_def.h"

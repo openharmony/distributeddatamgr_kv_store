@@ -17,14 +17,15 @@
 #define KV_STORE_DELEGATE_IMPL_H
 
 #ifndef OMIT_MULTI_VER
-#include <string>
 #include <functional>
 #include <map>
+#include <mutex>
+#include <string>
 
-#include "store_types.h"
 #include "ikvdb_connection.h"
 #include "ikvdb_factory.h"
 #include "kv_store_delegate.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 class KvStoreDelegateImpl final : public KvStoreDelegate {
