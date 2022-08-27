@@ -2348,7 +2348,6 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
         Entry entry;
         resultSet2->GetEntry(entry);
         EXPECT_EQ(expectedKeys[i], entry.key);
-        EXPECT_EQ(entry.value, VALUE_1);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
 }

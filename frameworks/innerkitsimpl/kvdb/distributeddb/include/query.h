@@ -89,7 +89,6 @@ public:
 
     DB_API Query &OrderBy(const std::string &field, bool isAsc = true);
 
-    // only prefix query support orderByWriteTime
     DB_API Query &OrderByWriteTime(bool isAsc = true);
 
     DB_API Query &Limit(int number, int offset = 0);
