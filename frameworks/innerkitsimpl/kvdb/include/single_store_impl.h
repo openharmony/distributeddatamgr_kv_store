@@ -27,7 +27,7 @@
 #include "sync_observer.h"
 
 namespace OHOS::DistributedKv {
-class SingleStoreImpl :  public SingleKvStore, public DevManager::Observer {
+class SingleStoreImpl : public SingleKvStore, public DevManager::Observer {
 public:
     using Observer = KvStoreObserver;
     using SyncCallback = KvStoreSyncCallback;
