@@ -16,15 +16,18 @@
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H
 #include <functional>
 #include <shared_mutex>
+
 #include "concurrent_map.h"
 #include "convertor.h"
+#include "dev_manager.h"
 #include "kv_store_nb_delegate.h"
 #include "kvdb_service.h"
 #include "observer_bridge.h"
 #include "single_kvstore.h"
 #include "sync_observer.h"
+
 namespace OHOS::DistributedKv {
-class SingleStoreImpl : public SingleKvStore {
+class SingleStoreImpl :  public SingleKvStore, public DevManager::Observer {
 public:
     using Observer = KvStoreObserver;
     using SyncCallback = KvStoreSyncCallback;
@@ -36,8 +39,9 @@ public:
     using DBQuery = DistributedDB::Query;
     using SyncInfo = KVDBService::SyncInfo;
     using Convert = std::function<Key(const DBKey &key, std::string &deviceId)>;
+    using TimePoint = std::chrono::system_clock::time_point;
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
-    ~SingleStoreImpl() = default;
+    ~SingleStoreImpl();
     StoreId GetStoreId() const override;
     Status Put(const Key &key, const Value &value) override;
     Status PutBatch(const std::vector<Entry> &entries) override;
@@ -57,13 +61,18 @@ public:
     Status GetCount(const DataQuery &query, int &count) const override;
     Status GetSecurityLevel(SecurityLevel &secLevel) const override;
     Status RemoveDeviceData(const std::string &device) override;
-    int32_t Close(bool isForce = false);
-    int32_t AddRef();
     Status Backup(const std::string &file, const std::string &baseDir) override;
     Status Restore(const std::string &file, const std::string &baseDir) override;
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
-   // IPC interface
+    void Online(const std::string &device) override;
+    void Offline(const std::string &device) override;
+
+    // normal function
+    int32_t Close(bool isForce = false);
+    int32_t AddRef();
+
+    // IPC interface
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay) override;
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
         std::shared_ptr<SyncCallback> syncCallback) override;
@@ -90,12 +99,14 @@ private:
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
 
+    bool autoSync_ = false;
+    int32_t ref_ = 1;
+    uint32_t interval_ = 0;
+    TimePoint expiration_;
+    mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;
     std::string appId_;
     std::string storeId_;
-    bool autoSync_ = false;
-    int32_t ref_ = 1;
-    mutable std::shared_mutex rwMutex_;
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;

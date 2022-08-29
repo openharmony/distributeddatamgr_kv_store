@@ -15,9 +15,10 @@
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
 #include <thread>
-#include "log_print.h"
+#include "device_manager.h"
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
+#include "log_print.h"
 #include "store_util.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
@@ -172,17 +173,17 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (uuid.empty() || udid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
-    ZLOGI("[LocalDevice] id:%{public}s, name:%{public}s, type:%{public}d",
-          StoreUtil::Anonymous(uuid).c_str(), info.deviceName, info.deviceTypeId);
-    localInfo_ = { std::move(uuid), std::move(udid), std::move(networkId),
-                   std::string(info.deviceName), std::string(info.deviceName) };
+    ZLOGI("[LocalDevice] id:%{public}s, name:%{public}s, type:%{public}d", StoreUtil::Anonymous(uuid).c_str(),
+        info.deviceName, info.deviceTypeId);
+    localInfo_ = { std::move(uuid), std::move(udid), std::move(networkId), std::string(info.deviceName),
+        std::string(info.deviceName) };
     return localInfo_;
 }
 
 std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 {
     std::vector<DetailInfo> devices;
-    std::vector<DmDeviceInfo> dmDeviceInfos {};
+    std::vector<DmDeviceInfo> dmDeviceInfos{};
     auto &deviceManager = DeviceManager::GetInstance();
     int32_t ret = deviceManager.GetTrustedDeviceList(PKG_NAME, "", dmDeviceInfos);
     if (ret != DM_OK) {
@@ -197,7 +198,7 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
         deviceManager.GetUuidByNetworkId(PKG_NAME, networkId, uuid);
         deviceManager.GetUdidByNetworkId(PKG_NAME, networkId, udid);
         DetailInfo deviceInfo = { std::move(uuid), std::move(udid), std::move(networkId),
-                                  std::string(dmDeviceInfo.deviceName), std::to_string(dmDeviceInfo.deviceTypeId) };
+            std::string(dmDeviceInfo.deviceName), std::to_string(dmDeviceInfo.deviceTypeId) };
         devices.push_back(std::move(deviceInfo));
     }
     return devices;
@@ -205,7 +206,10 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 
 void DevManager::Online(const std::string &networkId)
 {
-    // do nothing
+    observers_.ForEach([&networkId](const auto &key, auto &value) {
+        value->Online(networkId);
+        return false;
+    });
 }
 
 void DevManager::Offline(const std::string &networkId)
@@ -215,10 +219,25 @@ void DevManager::Offline(const std::string &networkId)
         deviceInfos_.Delete(networkId);
         deviceInfos_.Delete(deviceInfo.uuid);
     }
+
+    observers_.ForEach([&networkId](const auto &key, auto &value) {
+        value->Offline(networkId);
+        return false;
+    });
 }
 
 void DevManager::OnChanged(const std::string &networkId)
 {
     // do nothing
+}
+
+void DevManager::Register(DevManager::Observer *observer)
+{
+    observers_.Insert(observer, observer);
+}
+
+void DevManager::Unregister(DevManager::Observer *observer)
+{
+    observers_.Erase(observer);
 }
 } // namespace OHOS::DistributedKv

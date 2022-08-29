@@ -131,6 +131,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->options.baseDir = kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
+        ctxt->options.policies = { { .type = TERM_OF_SYNC_VALIDITY, .value = uint32_t(5 * 60) } };
         ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area, ctxt->options.baseDir.c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
         Status status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
