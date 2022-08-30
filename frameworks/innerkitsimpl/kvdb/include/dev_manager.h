@@ -18,7 +18,6 @@
 #include "concurrent_map.h"
 #include "types.h"
 #include "lru_bucket.h"
-#include "kvstore_sync_callback.h"
 namespace OHOS::DistributedKv {
 class DevManager {
 public:
@@ -45,14 +44,21 @@ public:
 
     void Register(Observer *observer);
     void Unregister(Observer *observer);
+
+
+private:
+    friend class DMStateCallback;
+    friend class DmDeathCallback;
+    DevManager(const std::string &pkgName);
+    ~DevManager() = default;
     void Online(const std::string &networkId);
     void Offline(const std::string &networkId);
     void OnChanged(const std::string &networkId);
+    void OnReady(const std::string &networkId);
     void RegisterDevCallback();
-private:
-    DevManager();
-    ~DevManager() = default;
+
     int32_t Init();
+    const std::string PKG_NAME;
     const DetailInfo invalidDetail_ {};
     DetailInfo localInfo_ {};
     mutable std::mutex mutex_ {};

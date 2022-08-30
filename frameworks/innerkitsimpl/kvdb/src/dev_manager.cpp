@@ -15,6 +15,7 @@
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
 #include <thread>
+#include <unistd.h>
 #include "device_manager.h"
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
@@ -25,46 +26,55 @@ using namespace OHOS::DistributedHardware;
 constexpr int32_t DM_OK = 0;
 constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
-constexpr const char *PKG_NAME = "ohos.distributeddata";
-class KvDeviceStateCallback : public DeviceStateCallback {
+constexpr const char *PKG_NAME_EX = "_distributed_data";
+class DMStateCallback : public DeviceStateCallback {
 public:
+    DMStateCallback(DevManager &devManager) : devManager_(devManager){};
     void OnDeviceOnline(const DmDeviceInfo &deviceInfo) override;
     void OnDeviceOffline(const DmDeviceInfo &deviceInfo) override;
     void OnDeviceChanged(const DmDeviceInfo &deviceInfo) override;
     void OnDeviceReady(const DmDeviceInfo &deviceInfo) override;
+
+private:
+    DevManager &devManager_;
 };
 
-void KvDeviceStateCallback::OnDeviceOnline(const DmDeviceInfo &deviceInfo)
+void DMStateCallback::OnDeviceOnline(const DmDeviceInfo &deviceInfo)
 {
-    DevManager::GetInstance().Online(deviceInfo.networkId);
+    devManager_.Online(deviceInfo.networkId);
 }
 
-void KvDeviceStateCallback::OnDeviceOffline(const DmDeviceInfo &deviceInfo)
+void DMStateCallback::OnDeviceOffline(const DmDeviceInfo &deviceInfo)
 {
-    DevManager::GetInstance().Offline(deviceInfo.networkId);
+    devManager_.Offline(deviceInfo.networkId);
 }
 
-void KvDeviceStateCallback::OnDeviceChanged(const DmDeviceInfo &deviceInfo)
+void DMStateCallback::OnDeviceChanged(const DmDeviceInfo &deviceInfo)
 {
-    DevManager::GetInstance().OnChanged(deviceInfo.networkId);
+    devManager_.OnChanged(deviceInfo.networkId);
 }
 
-void KvDeviceStateCallback::OnDeviceReady(const DmDeviceInfo &deviceInfo)
+void DMStateCallback::OnDeviceReady(const DmDeviceInfo &deviceInfo)
 {
+    devManager_.OnReady(deviceInfo.networkId);
 }
 
 class DmDeathCallback : public DmInitCallback {
 public:
+    DmDeathCallback(DevManager &devManager) : devManager_(devManager){};
     void OnRemoteDied() override;
+
+private:
+    DevManager &devManager_;
 };
 
 void DmDeathCallback::OnRemoteDied()
 {
     ZLOGI("dm device manager died, init it again");
-    DevManager::GetInstance().RegisterDevCallback();
+    devManager_.RegisterDevCallback();
 }
 
-DevManager::DevManager()
+DevManager::DevManager(const std::string &pkgName) : PKG_NAME(pkgName + PKG_NAME_EX)
 {
     RegisterDevCallback();
 }
@@ -72,8 +82,8 @@ DevManager::DevManager()
 int32_t DevManager::Init()
 {
     auto &deviceManager = DeviceManager::GetInstance();
-    auto deviceInitCallback = std::make_shared<DmDeathCallback>();
-    auto deviceCallback = std::make_shared<KvDeviceStateCallback>();
+    auto deviceInitCallback = std::make_shared<DmDeathCallback>(*this);
+    auto deviceCallback = std::make_shared<DMStateCallback>(*this);
     int32_t errNo = deviceManager.InitDeviceManager(PKG_NAME, deviceInitCallback);
     if (errNo != DM_OK) {
         return errNo;
@@ -107,7 +117,7 @@ void DevManager::RegisterDevCallback()
 
 DevManager &DevManager::GetInstance()
 {
-    static DevManager instance;
+    static DevManager instance(std::to_string(getpid()));
     return instance;
 }
 
@@ -206,6 +216,7 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 
 void DevManager::Online(const std::string &networkId)
 {
+    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
     observers_.ForEach([&networkId](const auto &key, auto &value) {
         value->Online(networkId);
         return false;
@@ -219,7 +230,7 @@ void DevManager::Offline(const std::string &networkId)
         deviceInfos_.Delete(networkId);
         deviceInfos_.Delete(deviceInfo.uuid);
     }
-
+    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
     observers_.ForEach([&networkId](const auto &key, auto &value) {
         value->Offline(networkId);
         return false;
@@ -229,6 +240,13 @@ void DevManager::Offline(const std::string &networkId)
 void DevManager::OnChanged(const std::string &networkId)
 {
     // do nothing
+    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
+}
+
+void DevManager::OnReady(const std::string &networkId)
+{
+    // do nothing
+    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
 }
 
 void DevManager::Register(DevManager::Observer *observer)
