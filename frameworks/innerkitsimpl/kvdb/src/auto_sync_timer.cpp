@@ -41,9 +41,9 @@ void AutoSyncTimer::StartTimer()
     }
 }
 
-void AutoSyncTimer::DoAutoSync(const std::string &appId, const std::set<StoreId> &storeIds)
+void AutoSyncTimer::DoAutoSync(const std::string &appId, std::set<StoreId> storeIds)
 {
-    AddSyncStores(appId, storeIds);
+    AddSyncStores(appId, std::move(storeIds));
     StartTimer();
 }
 

@@ -24,7 +24,7 @@ public:
     static constexpr uint32_t FORCE_SYNC_INTERVAL = 200;
     static constexpr uint32_t AUTO_SYNC_INTERVAL = 50;
     static AutoSyncTimer &GetInstance();
-    void DoAutoSync(const std::string &appId, const std::set<StoreId> &storeIds);
+    void DoAutoSync(const std::string &appId, std::set<StoreId> storeIds);
 
 private:
     static constexpr size_t TIME_TASK_NUM = 5;
