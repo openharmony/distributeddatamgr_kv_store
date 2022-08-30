@@ -45,7 +45,6 @@ public:
     void Register(Observer *observer);
     void Unregister(Observer *observer);
 
-
 private:
     friend class DMStateCallback;
     friend class DmDeathCallback;
