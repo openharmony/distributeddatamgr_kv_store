@@ -794,7 +794,6 @@ void SingleStoreImpl::Online(const std::string &device)
 
     ZLOGI("device:%{public}s online app:%{public}s store:%{public}s Sync!", StoreUtil::Anonymous(device).c_str(),
         appId_.c_str(), storeId_.c_str());
-//    AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
     SyncInfo syncInfo;
     syncInfo.devices = { device };
     DoSync(syncInfo, nullptr);
