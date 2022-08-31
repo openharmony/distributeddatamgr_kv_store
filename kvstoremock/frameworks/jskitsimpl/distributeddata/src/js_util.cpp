@@ -32,6 +32,16 @@ struct PredicatesProxy {
     std::shared_ptr<DataShareAbsPredicates> predicates_;
 };
 
+uint64_t htonll(uint64_t val) 
+{
+    return (((uint64_t) htonl(val)) << 32) + htonl(val >> 32);
+}
+
+uint64_t ntohll(uint64_t val) 
+{
+    return (((uint64_t) ntohl(val)) << 32) + ntohl(val >> 32);
+}
+
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
 {
     out = in;
@@ -183,17 +193,17 @@ JSUtil::KvStoreVariant JSUtil::Blob2VariantValue(const DistributedKv::Blob& blob
     std::vector<uint8_t> real(data.begin() + 1, data.end());
     ZLOGD("Blob::type %{public}d size=%{public}d", static_cast<int>(data[0]), static_cast<int>(real.size()));
     if (data[0] == JSUtil::INTEGER) {
-        uint32_t tmp4int = *reinterpret_cast<uint32_t*>(&(real[0]));
+        uint32_t tmp4int = ntohl(*reinterpret_cast<uint32_t*>(&(real[0])));
         return JSUtil::KvStoreVariant(*reinterpret_cast<int32_t*>(&tmp4int));
     } else if (data[0] == JSUtil::FLOAT) {
-        uint32_t tmp4flt = *reinterpret_cast<uint32_t*>(&(real[0]));
+        uint32_t tmp4flt = ntohl(*reinterpret_cast<uint32_t*>(&(real[0])));
         return JSUtil::KvStoreVariant(*reinterpret_cast<float*>((void*)(&tmp4flt)));
     } else if (data[0] == JSUtil::BYTE_ARRAY) {
         return JSUtil::KvStoreVariant(std::vector<uint8_t>(real.begin(), real.end()));
     } else if (data[0] == JSUtil::BOOLEAN) {
         return JSUtil::KvStoreVariant(static_cast<bool>(real[0]));
     } else if (data[0] == JSUtil::DOUBLE) {
-        uint64_t tmp4dbl = *reinterpret_cast<uint64_t*>(&(real[0]));
+        uint64_t tmp4dbl = ntohll(*reinterpret_cast<uint64_t*>(&(real[0])));
         return JSUtil::KvStoreVariant(*reinterpret_cast<double*>((void*)(&tmp4dbl)));
     } else {
         // for schema-db, if (data[0] == JSUtil::STRING), no beginning byte!
@@ -223,15 +233,15 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
         int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = *reinterpret_cast<uint32_t*>(&tmp4int);
-        tmp = reinterpret_cast<uint8_t*>(&tmp32);
+        htonl(*reinterpret_cast<uint32_t*>(&tmp4int));
+        tmp = reinterpret_cast<uint8_t*>(&tmp4int);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
         float tmp4flt = *fltValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = *reinterpret_cast<uint32_t*>(&tmp4flt);
+        uint32_t tmp32 = htonl(*reinterpret_cast<uint32_t*>(&tmp4flt));
         tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::FLOAT);
         data.insert(data.end(), tmp, tmp + sizeof(float) / sizeof(uint8_t));
@@ -239,7 +249,7 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto dblValue = std::get_if<double>(&value);
     if (dblValue != nullptr) {
         double tmp4dbl = *dblValue; // copy value, and make it available in stack space.
-        uint64_t tmp64 = *reinterpret_cast<uint64_t*>(&tmp4dbl);
+        uint64_t tmp64 = htonll(*reinterpret_cast<uint64_t*>(&tmp4dbl));
         tmp = reinterpret_cast<uint8_t*>(&tmp64);
         data.push_back(JSUtil::DOUBLE);
         data.insert(data.end(), tmp, tmp + sizeof(double) / sizeof(uint8_t));
