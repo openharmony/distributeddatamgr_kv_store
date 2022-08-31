@@ -28,19 +28,22 @@ namespace OHOS::DistributedData {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
 constexpr mode_t MODE = 0755;
+constexpr int32_t BIT_MOVE = 32;
 struct PredicatesProxy {
     std::shared_ptr<DataShareAbsPredicates> predicates_;
 };
 
-uint64_t htonll(uint64_t val) 
+#ifdef _WIN32
+uint64_t htonll(uint64_t val)
 {
-    return (((uint64_t) htonl(val)) << 32) + htonl(val >> 32);
+    return (((uint64_t) htonl(val)) << BIT_MOVE) + htonl(val >> BIT_MOVE);
 }
 
-uint64_t ntohll(uint64_t val) 
+uint64_t ntohll(uint64_t val)
 {
-    return (((uint64_t) ntohl(val)) << 32) + ntohl(val >> 32);
+    return (((uint64_t) ntohl(val)) << BIT_MOVE) + ntohl(val >> BIT_MOVE);
 }
+#endif
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
 {
