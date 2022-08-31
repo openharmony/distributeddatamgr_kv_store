@@ -38,7 +38,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
     return napi_ok;
 }
 
-napi_status SetValue(napi_env env, napi_value in, napi_value& out)
+napi_status JSUtil::SetValue(napi_env env, napi_value in, napi_value& out)
 {
     out = in;
     return napi_ok;
@@ -223,15 +223,15 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
         int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        htonl(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp4int);
+        uint32_t tmp32 = *reinterpret_cast<uint32_t*>(&tmp4int);
+        tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
         float tmp4flt = *fltValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = htonl(*reinterpret_cast<uint32_t*>(&tmp4flt));
+        uint32_t tmp32 = *reinterpret_cast<uint32_t*>(&tmp4flt);
         tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::FLOAT);
         data.insert(data.end(), tmp, tmp + sizeof(float) / sizeof(uint8_t));
@@ -239,7 +239,7 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto dblValue = std::get_if<double>(&value);
     if (dblValue != nullptr) {
         double tmp4dbl = *dblValue; // copy value, and make it available in stack space.
-        uint64_t tmp64 = htonl(*reinterpret_cast<uint64_t*>(&tmp4dbl));
+        uint64_t tmp64 = *reinterpret_cast<uint64_t*>(&tmp4dbl);
         tmp = reinterpret_cast<uint8_t*>(&tmp64);
         data.push_back(JSUtil::DOUBLE);
         data.insert(data.end(), tmp, tmp + sizeof(double) / sizeof(uint8_t));

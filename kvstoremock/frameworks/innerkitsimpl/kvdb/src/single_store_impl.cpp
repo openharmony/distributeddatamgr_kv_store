@@ -182,12 +182,12 @@ Status SingleStoreImpl::Rollback()
 
 Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer)
 {
-    return SUCCESS;
+    return ERROR;
 }
 
 Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer)
 {
-    return SUCCESS;
+    return ERROR;
 }
 
 Status SingleStoreImpl::Get(const Key &key, Value &value)
@@ -360,18 +360,18 @@ int32_t SingleStoreImpl::Close(bool isForce)
 
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
-    return SUCCESS;
+    return ERROR;
 }
 
 Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
 {
-    return SUCCESS;
+    return ERROR;
 }
 
 Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
     std::map<std::string, DistributedKv::Status> &results)
 {
-    return SUCCESS;
+    return ERROR;
 }
 
 Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const
@@ -419,44 +419,44 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 }
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
                              std::shared_ptr<SyncCallback> syncCallback)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::UnRegisterSyncCallback()
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::SetCapabilityRange(const std::vector<std::string> &local,
                                            const std::vector<std::string> &remote) const
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    return SUCCESS;
+    return ERROR;
 }
 Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    return SUCCESS;
+    return ERROR;
 }
 } // namespace OHOS::DistributedKv
