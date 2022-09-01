@@ -43,17 +43,19 @@ SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &
             continue;
         }
         auto exist = std::get_if<uint32_t>(&policy.value);
-        if (exist == nullptr) {
+        if (exist == nullptr && *exist <= 0) {
             break;
         }
-        interval_ = std::get<uint32_t>(policy.value);
+        interval_ = *exist;
         DevManager::GetInstance().Register(this);
     }
 }
 
 SingleStoreImpl::~SingleStoreImpl()
 {
-    DevManager::GetInstance().Unregister(this);
+    if (interval_ > 0) {
+        DevManager::GetInstance().Unregister(this);
+    }
 }
 
 StoreId SingleStoreImpl::GetStoreId() const
