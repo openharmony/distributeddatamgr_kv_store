@@ -255,6 +255,10 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         return -E_INVALID_DB;
     }
     QueryObject queryObj(query);
+    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+        LOGE("[GetCount] get count query invalid");
+        return -E_NOT_SUPPORT;
+    }
     // In readOnly mode, forbidden all schema related query
     if (CheckWritePermission() == E_OK) {
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
