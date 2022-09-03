@@ -182,12 +182,12 @@ Status SingleStoreImpl::Rollback()
 
 Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 
 Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<Observer> observer)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 
 Status SingleStoreImpl::Get(const Key &key, Value &value)
@@ -360,18 +360,18 @@ int32_t SingleStoreImpl::Close(bool isForce)
 
 Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseDir)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 
 Status SingleStoreImpl::Restore(const std::string &file, const std::string &baseDir)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 
 Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
     std::map<std::string, DistributedKv::Status> &results)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 
 Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const
@@ -419,44 +419,44 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 }
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
                              std::shared_ptr<SyncCallback> syncCallback)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::UnRegisterSyncCallback()
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::SetCapabilityRange(const std::vector<std::string> &local,
                                            const std::vector<std::string> &remote) const
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    return SUCCESS;
+    return SERVER_UNAVAILABLE;
 }
 } // namespace OHOS::DistributedKv
