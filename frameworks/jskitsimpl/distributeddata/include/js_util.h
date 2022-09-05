@@ -116,24 +116,24 @@ public:
     static napi_status SetValue(napi_env env, const std::vector<double>& in, napi_value& out);
 
     /* napi_value <-> ChangeNotification */
-    static napi_status GetValue(napi_env env, napi_value in, ChangeNotification& out);
-    static napi_status SetValue(napi_env env, const ChangeNotification& in, napi_value& out);
+    static napi_status GetValue(napi_env env, napi_value in, ChangeNotification& out, bool hasSchema);
+    static napi_status SetValue(napi_env env, const ChangeNotification& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> Options */
     static napi_status GetValue(napi_env env, napi_value in, Options& out);
     static napi_status SetValue(napi_env env, const Options& in, napi_value& out);
 
     /* napi_value <-> Entry */
-    static napi_status GetValue(napi_env env, napi_value in, Entry& out);
-    static napi_status SetValue(napi_env env, const Entry& in, napi_value& out);
+    static napi_status GetValue(napi_env env, napi_value in, Entry& out, bool hasSchema);
+    static napi_status SetValue(napi_env env, const Entry& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> Options */
-    static napi_status GetValue(napi_env env, napi_value in, std::list<Entry>& out);
-    static napi_status SetValue(napi_env env, const std::list<Entry>& in, napi_value& out);
+    static napi_status GetValue(napi_env env, napi_value in, std::list<Entry>& out, bool hasSchema);
+    static napi_status SetValue(napi_env env, const std::list<Entry>& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> std::vector<Entry> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<Entry>& out);
-    static napi_status SetValue(napi_env env, const std::vector<Entry>& in, napi_value& out);
+    static napi_status GetValue(napi_env env, napi_value in, std::vector<Entry>& out, bool hasSchema);
+    static napi_status SetValue(napi_env env, const std::vector<Entry>& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> std::vector<StoreId> */
     static napi_status GetValue(napi_env env, napi_value in, std::vector<StoreId>& out);
