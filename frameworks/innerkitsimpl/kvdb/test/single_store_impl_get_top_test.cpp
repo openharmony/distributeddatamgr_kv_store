@@ -82,8 +82,8 @@ void SingleStoreImplGetTopTest::TearDown(void)
 * @tc.name: GetEntries
 * @tc.desc: get entries order by write time Asc
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Level0)
 {
@@ -115,8 +115,8 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
 * @tc.name: GetEntries
 * @tc.desc: get entries order by write time Desc
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Level0)
 {
@@ -148,8 +148,8 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
 * @tc.name: GetEntries
 * @tc.desc: get entries order by write time no prefix
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
@@ -178,8 +178,8 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
 * @tc.name: GetResultSet
 * @tc.desc: get result set order by write time Asc
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Level0)
 {
@@ -216,8 +216,8 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
 * @tc.name: GetResultSet
 * @tc.desc: get result set order by write time Desc
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.Level0)
 {
@@ -256,8 +256,8 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
 * @tc.name: GetResultSet
 * @tc.desc: get result set order by write time no prefix
 * @tc.type: FUNC
-* @tc.require:
-* @tc.author:
+* @tc.require:I5OM83
+* @tc.author:ht
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
