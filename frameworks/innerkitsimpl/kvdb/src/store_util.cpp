@@ -153,10 +153,10 @@ Status StoreUtil::ConvertStatus(DBStatus status)
 }
 bool StoreUtil::InitPath(const std::string &path)
 {
+    umask(DEFAULT_UMASK);
     if (access(path.c_str(), F_OK) == 0) {
         return true;
     }
-    umask(DEFAULT_UMASK);
     if (mkdir(path.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0 && errno != EEXIST) {
         ZLOGE("mkdir error:%{public}d, path:%{public}s", errno, path.c_str());
         return false;
@@ -166,10 +166,10 @@ bool StoreUtil::InitPath(const std::string &path)
 
 bool StoreUtil::CreateFile(const std::string &name)
 {
+    umask(DEFAULT_UMASK);
     if (access(name.c_str(), F_OK) == 0) {
         return true;
     }
-    umask(DEFAULT_UMASK);
     int fp = open(name.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP));
     if (fp < 0) {
         ZLOGE("fopen error:%{public}d, path:%{public}s", errno, name.c_str());
