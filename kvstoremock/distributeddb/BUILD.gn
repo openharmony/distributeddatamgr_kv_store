@@ -13,7 +13,7 @@
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 kv_store_distributeddb_path =
-    "../.././frameworks/innerkitsimpl/kvdb/distributeddb/"
+    "../.././frameworks/innerkitsimpl/libs/distributeddb/"
 distrdb_Dir = [
   "${kv_store_distributeddb_path}include",
   "${kv_store_distributeddb_path}interfaces/include",
