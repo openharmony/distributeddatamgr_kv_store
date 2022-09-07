@@ -115,7 +115,7 @@ ohos_shared_library("distributeddata_inner") {
   deps = [
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter/utils:distributeddata_utils_static",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]
   external_deps = [

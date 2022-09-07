@@ -84,10 +84,10 @@ ohos_shared_library("distributeddata_inner_mock") {
 
     #"//foundation/distributeddatamgr/distributeddatamgr/services/distributeddataservice/adapter/include/communicator",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/distributeddb/distributeddataservice/adapter/autils",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/include/relational",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
 
@@ -128,10 +128,10 @@ ohos_shared_library("distributeddata_inner_mock") {
   } else if (use_platforn_mac) {
     defines = [ "IS_MAC" ]
     include_dirs += [
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/include",
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/include/relational",
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/src",
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     ]
     deps +=
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]

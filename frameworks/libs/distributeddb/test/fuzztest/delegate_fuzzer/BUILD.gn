@@ -20,26 +20,26 @@ ohos_fuzztest("DelegateFuzzTest") {
   module_out_path = "kv_store/distributeddb"
 
   include_dirs = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/fuzztest/common",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/unittest/common/common",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/unittest/common/syncer",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/unittest/common/storage",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/interfaces/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/storage/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/storage/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/storage/src/sqlite",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/storage/src/multiver",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/communicator/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/communicator/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/syncer/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/syncer/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/multiver",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/src",
     "//commonlibrary/c_utils/base/include",
     "//third_party/sqlite/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/include/relational",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
     "//third_party/jsoncpp/include/json",
     "//third_party/skia/third_party/externals/spirv-headers/tools/buildHeaders/jsoncpp/dist/json",
     "//third_party/skia/third_party/externals/swiftshader/third_party/SPIRV-Headers/tools/buildHeaders/jsoncpp/dist/json",
@@ -54,14 +54,14 @@ ohos_fuzztest("DelegateFuzzTest") {
     "-fno-omit-frame-pointer",
   ]
 
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/fuzztest/delegate_fuzzer"
+  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/delegate_fuzzer"
 
   sources = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/src/db_common.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/src/log_print.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/common/src/platform_specific.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/platform_specific.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "delegate_fuzzer.cpp",
   ]
 
@@ -82,7 +82,7 @@ ohos_fuzztest("DelegateFuzzTest") {
   ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/libs/distributeddb:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]
