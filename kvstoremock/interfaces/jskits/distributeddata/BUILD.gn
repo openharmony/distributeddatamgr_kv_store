@@ -44,7 +44,7 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
       "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
       "//commonlibrary/c_utils/base/include",
-      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     ]
     cflags_cc = [ "-std=c++17" ]
     sources = [
