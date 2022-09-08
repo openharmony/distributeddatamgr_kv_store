@@ -125,7 +125,6 @@ napi_value JsKVStore::Put(napi_env env, napi_callback_info info)
         CHECK_ARGS_RETURN_VOID(ctxt, argc == 2, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
-        JSUtil::KvStoreVariant vv;
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[1], i.e. invalid value!");
     });
