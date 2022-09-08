@@ -29,6 +29,7 @@ using namespace testing;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 using namespace std;
+using ::testing::Matcher;
 
 namespace {
     string g_testDir;
