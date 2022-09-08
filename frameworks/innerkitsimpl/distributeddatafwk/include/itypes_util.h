@@ -71,6 +71,9 @@ public:
     static bool Marshalling(const sptr<IRemoteObject> &input, MessageParcel &data);
     static bool Unmarshalling(sptr<IRemoteObject> &output, MessageParcel &data);
 
+    static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
+    static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
 

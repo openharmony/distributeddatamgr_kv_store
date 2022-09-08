@@ -371,6 +371,11 @@ bool ITypesUtil::Marshalling(const Options &input, MessageParcel &data)
         return false;
     }
 
+    if (!Marshalling(input.policies, data)) {
+        ZLOGE("write policies failed");
+        return false;
+    }
+
     std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(sizeof(input));
     Options *target = reinterpret_cast<Options *>(buffer.get());
     target->createIfMissing = input.createIfMissing;
@@ -396,6 +401,10 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
         ZLOGE("read hapName failed");
         return false;
     }
+    if (!Unmarshalling(output.policies, data)) {
+        ZLOGE("read policies failed");
+        return false;
+    }
 
     const Options *source = reinterpret_cast<const Options *>(data.ReadRawData(sizeof(output)));
     if (source == nullptr) {
@@ -410,6 +419,70 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
     output.area = source->area;
     output.kvStoreType = source->kvStoreType;
     output.syncable = source->syncable;
+    return true;
+}
+
+    bool ITypesUtil::Marshalling(const SyncPolicy &input, MessageParcel &data)
+    {
+        if (!data.WriteUint32(input.type)) {
+            ZLOGE("write policy type failed");
+            return false;
+        }
+        if (!data.WriteUint32(input.value.index())) {
+            ZLOGE("write policy index failed");
+            return false;
+        }
+        if (const uint32_t *pval = std::get_if<uint32_t>(&input.value)) {
+            if(!data.WriteUint32(*pval)) {
+                ZLOGE("write policy valueuint failed");
+                return false;
+            }
+        }
+        if (const bool *pval = std::get_if<bool>(&input.value)) {
+            if(!data.WriteBool(*pval)) {
+                ZLOGE("write policy valuebool failed");
+                return false;
+            }
+        }
+        ZLOGE("zjj input policy index:%{public}d", input.value.index());
+        return true;
+    }
+
+bool ITypesUtil::Unmarshalling(SyncPolicy &output, MessageParcel &data)
+{
+    if (!data.ReadUint32(output.type)) {
+        ZLOGE("read policy type failed");
+        return false;
+    }
+    uint32_t index = 0;
+    if (!data.ReadUint32(index)) {
+        ZLOGE("read policy index failed");
+        return false;
+    }
+    switch (index) {
+        case 0:
+            break;
+        case 1: {
+            uint32_t valueUint = 0;
+            if (!data.ReadUint32(valueUint)) {
+                ZLOGE("read policy valueuint failed");
+                return false;
+            }
+            output.value.emplace<1>(valueUint);
+            break;
+        }
+        case 2: {
+            bool valueBool = 0;
+            if (!data.ReadBool(valueBool)) {
+                ZLOGE("read policy valuebool failed");
+                return false;
+            }
+            output.value.emplace<2>(valueBool);
+            break;
+        }
+        default:
+            break;
+    }
     return true;
 }
 

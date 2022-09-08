@@ -252,6 +252,7 @@ enum class DeviceFilterStrategy {
 
 enum PolicyType : uint32_t {
     TERM_OF_SYNC_VALIDITY,
+    IMMEDIATE_SYNC_ON_ONLINE,
     POLICY_BUTT
 };
 
