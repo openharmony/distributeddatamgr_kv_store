@@ -61,6 +61,21 @@ bool ITypesUtil::Unmarshalling(uint64_t &output, MessageParcel &data)
     return data.ReadUint64(output);
 }
 
+bool ITypesUtil::Marshalling(IRemoteObject* input, MessageParcel &data)
+{
+   return Marshalling(sptr<IRemoteObject>(input), data);
+}
+
+bool ITypesUtil::Marshalling(const std::monostate &input, MessageParcel &data)
+{
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(std::monostate &output, MessageParcel &data)
+{
+    return true;
+}
+
 bool ITypesUtil::Marshalling(const std::string &input, MessageParcel &data)
 {
     return data.WriteString(input);
@@ -401,6 +416,7 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
         ZLOGE("read hapName failed");
         return false;
     }
+
     if (!Unmarshalling(output.policies, data)) {
         ZLOGE("read policies failed");
         return false;
@@ -422,31 +438,18 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
     return true;
 }
 
-    bool ITypesUtil::Marshalling(const SyncPolicy &input, MessageParcel &data)
-    {
-        if (!data.WriteUint32(input.type)) {
-            ZLOGE("write policy type failed");
-            return false;
-        }
-        if (!data.WriteUint32(input.value.index())) {
-            ZLOGE("write policy index failed");
-            return false;
-        }
-        if (const uint32_t *pval = std::get_if<uint32_t>(&input.value)) {
-            if(!data.WriteUint32(*pval)) {
-                ZLOGE("write policy valueuint failed");
-                return false;
-            }
-        }
-        if (const bool *pval = std::get_if<bool>(&input.value)) {
-            if(!data.WriteBool(*pval)) {
-                ZLOGE("write policy valuebool failed");
-                return false;
-            }
-        }
-        ZLOGE("zjj input policy index:%{public}d", input.value.index());
-        return true;
+bool ITypesUtil::Marshalling(const SyncPolicy &input, MessageParcel &data)
+{
+    if (!data.WriteUint32(input.type)) {
+        ZLOGE("write policy type failed");
+        return false;
     }
+    if (!Marshalling(input.value, data)) {
+        ZLOGE("write policy value failed");
+        return false;
+    }
+    return true;
+}
 
 bool ITypesUtil::Unmarshalling(SyncPolicy &output, MessageParcel &data)
 {
@@ -454,34 +457,9 @@ bool ITypesUtil::Unmarshalling(SyncPolicy &output, MessageParcel &data)
         ZLOGE("read policy type failed");
         return false;
     }
-    uint32_t index = 0;
-    if (!data.ReadUint32(index)) {
-        ZLOGE("read policy index failed");
+    if (!Unmarshalling(output.value, data)) {
+        ZLOGE("read policy value failed");
         return false;
-    }
-    switch (index) {
-        case 0:
-            break;
-        case 1: {
-            uint32_t valueUint = 0;
-            if (!data.ReadUint32(valueUint)) {
-                ZLOGE("read policy valueuint failed");
-                return false;
-            }
-            output.value.emplace<1>(valueUint);
-            break;
-        }
-        case 2: {
-            bool valueBool = 0;
-            if (!data.ReadBool(valueBool)) {
-                ZLOGE("read policy valuebool failed");
-                return false;
-            }
-            output.value.emplace<2>(valueBool);
-            break;
-        }
-        default:
-            break;
     }
     return true;
 }

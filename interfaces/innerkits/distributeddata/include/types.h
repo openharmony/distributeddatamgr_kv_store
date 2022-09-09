@@ -258,7 +258,7 @@ enum PolicyType : uint32_t {
 
 struct SyncPolicy {
     uint32_t type;
-    std::variant<std::monostate, uint32_t, bool> value;
+    std::variant<std::monostate, uint32_t> value;
 };
 
 struct Options {
