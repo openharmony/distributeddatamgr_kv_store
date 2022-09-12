@@ -252,12 +252,13 @@ enum class DeviceFilterStrategy {
 
 enum PolicyType : uint32_t {
     TERM_OF_SYNC_VALIDITY,
+    IMMEDIATE_SYNC_ON_ONLINE,
     POLICY_BUTT
 };
 
 struct SyncPolicy {
     uint32_t type;
-    std::variant<std::monostate, uint32_t, bool> value;
+    std::variant<std::monostate, uint32_t> value;
 };
 
 struct Options {
