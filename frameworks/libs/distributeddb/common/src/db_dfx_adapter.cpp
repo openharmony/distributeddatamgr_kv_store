@@ -36,7 +36,8 @@ namespace {
 #ifdef USE_DFX_ABILITY
 constexpr uint64_t HITRACE_LABEL = HITRACE_TAG_DISTRIBUTEDDATA;
 #endif
-constexpr const char *DUMP_PARAM = "dump-distributeddb";
+constexpr const char *DUMP_PARAM = "--database";
+constexpr const char *DUMP_PARAM_ABBR = "-d";
 }
 
 const std::string DBDfxAdapter::EVENT_CODE = "ERROR_CODE";
@@ -52,10 +53,15 @@ void DBDfxAdapter::Dump(int fd, const std::vector<std::u16string> &args)
     if (!args.empty()) {
         const std::u16string u16DumpParam =
             std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_PARAM);
+        const std::u16string u16DumpParamAbbr =
+            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_PARAM_ABBR);
+        auto findAbbr = std::any_of(args.begin(), args.end(), [&u16DumpParamAbbr](const std::u16string &arg) {
+            return arg == u16DumpParamAbbr;
+        });
         auto find = std::any_of(args.begin(), args.end(), [&u16DumpParam](const std::u16string &arg) {
             return arg == u16DumpParam;
         });
-        if (!find) {
+        if (!find && !findAbbr) {
             return;
         }
     }
