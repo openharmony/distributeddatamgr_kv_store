@@ -38,6 +38,7 @@ config("distributeddatafwk_config") {
     "${datashare_innerapi_path}/provider/include",
     "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
+    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
   ]
 }
 
@@ -120,9 +121,6 @@ ohos_shared_library("distributeddata_inner") {
   ]
   external_deps = [
     "c_utils:utils",
-    "dataclassification:data_transit_mgr",
-    "dsoftbus:softbus_client",
-    "hitrace_native:libhitrace",
     "hiviewdfx_hilog_native:libhilog",
     "ipc:ipc_core",
     "samgr:samgr_proxy",
