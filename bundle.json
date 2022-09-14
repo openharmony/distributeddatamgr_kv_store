@@ -1,127 +1,127 @@
 {
-    "name": "@openharmony/distributeddatamgr_kv_store",
-    "version": "1.0.0",
-    "license": "Apache License 2.0",
-    "description": "",
-    "domain": "os",
-    "language": "",
-    "publishAs": "code-segment",
-    "private": false,
-    "tags": [
-        "foundation"
-    ],
-    "keywords": [
-        "distributeddatamgr",
-        "kv_store"
-    ],
-    "envs": [],
-    "author": {
-        "name": "",
-        "email": "",
-        "url": ""
-    },
-    "contributors": [
-        {
-            "name": "",
-            "email": "",
-            "url": ""
-        }
-    ],
-    "segment": {
-        "destPath": [ 
-            "foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store",
-            "foundation/distributeddatamgr/kv_store"
-        ]
-    },
-    "dirs": {},
-    "scripts": {},
-    "component": {
-        "name": "kv_store",
-        "subsystem": "distributeddatamgr",
-        "syscap": [
-            "SystemCapability.DistributedDataManager.KVStore.Core",
-            "SystemCapability.DistributedDataManager.KVStore.Lite",
-            "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
-        ],
-        "features": [],
-        "adapted_system_type": [
-            "standard"
-        ],
-        "rom": "",
-        "ram": "",
-        "hisysevent_config": [],
-        "deps": {
-            "thrid_party": [ 
-                "uv_static",
-                "sqlite",
-                "libz",
-                "jsoncpp",
-                "libcrypto_shared"
-            ],
-            "kernel_special": {},
-            "board_special": {},
-            "components": [
-                "libuv",
-                "common_event_service",
-                "bundle_framework",
-                "safwk",
-                "zlib",
-                "init",
-                "os_account",
-                "common",
-                "samgr",
-                "dataclassification",
-                "dsoftbus",
-                "jsoncpp",
-                "hitrace_native",
-                "access_token",
-                "huks",
-                "ability_base",
-                "ability_runtime",
-                "hiviewdfx_hilog_native",
-                "hisysevent_native",
-                "device_auth",
-                "ipc",
-                "napi"
-            ]
-        },
-        "build": {
-            "sub_component": [
-                "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:build_module",
-                "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module"
-            ],
-            "inner_kits": [
-                {
-                    "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
-                    "header": {
-                        "header_files": [
-                            "blob.h",
-                            "change_notification.h",
-                            "distributed_kv_data_manager.h",
-                            "kvstore.h",
-                            "kvstore_death_recipient.h",
-                            "kvstore_observer.h",
-                            "kvstore_result_set.h",
-                            "kvstore_sync_callback.h",
-                            "single_kvstore.h",
-                            "types.h",
-                            "visibility.h",
-                            "data_query.h",
-                            "device_status_change_listener.h",
-                            "store_errno.h"
-                        ],
-                        "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
-                    }
-                }
-            ],
-            "test": [
-                "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test:distributeddatamgr_fuzztest",
-                "//foundation/distributeddatamgr/kv_store:distributedtest",
-                "//foundation/distributeddatamgr/kv_store:build_native_test",
-                "//foundation/distributeddatamgr/kv_store/test/unittest/src:unittest"
-            ]
-        }
+  "name": "@openharmony/distributeddatamgr_kv_store",
+  "version": "1.0.0",
+  "license": "Apache License 2.0",
+  "description": "",
+  "domain": "os",
+  "language": "",
+  "publishAs": "code-segment",
+  "private": false,
+  "tags": [
+    "foundation"
+  ],
+  "keywords": [
+    "distributeddatamgr",
+    "kv_store"
+  ],
+  "envs": [],
+  "author": {
+    "name": "",
+    "email": "",
+    "url": ""
+  },
+  "contributors": [
+    {
+      "name": "",
+      "email": "",
+      "url": ""
     }
+  ],
+  "segment": {
+    "destPath": [
+      "foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store",
+      "foundation/distributeddatamgr/kv_store"
+    ]
+  },
+  "dirs": {},
+  "scripts": {},
+  "component": {
+    "name": "kv_store",
+    "subsystem": "distributeddatamgr",
+    "syscap": [
+      "SystemCapability.DistributedDataManager.KVStore.Core",
+      "SystemCapability.DistributedDataManager.KVStore.Lite",
+      "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
+    ],
+    "features": [],
+    "adapted_system_type": [
+      "standard"
+    ],
+    "rom": "",
+    "ram": "",
+    "hisysevent_config": [],
+    "deps": {
+      "thrid_party": [
+        "uv_static",
+        "sqlite",
+        "libz",
+        "jsoncpp",
+        "libcrypto_shared"
+      ],
+      "kernel_special": {},
+      "board_special": {},
+      "components": [
+        "libuv",
+        "common_event_service",
+        "bundle_framework",
+        "safwk",
+        "zlib",
+        "init",
+        "os_account",
+        "common",
+        "samgr",
+        "dataclassification",
+        "dsoftbus",
+        "jsoncpp",
+        "hitrace_native",
+        "access_token",
+        "huks",
+        "ability_base",
+        "ability_runtime",
+        "hiviewdfx_hilog_native",
+        "hisysevent_native",
+        "device_auth",
+        "ipc",
+        "napi"
+      ]
+    },
+    "build": {
+      "sub_component": [
+        "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module"
+      ],
+      "inner_kits": [
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
+          "header": {
+            "header_files": [
+              "blob.h",
+              "change_notification.h",
+              "distributed_kv_data_manager.h",
+              "kvstore.h",
+              "kvstore_death_recipient.h",
+              "kvstore_observer.h",
+              "kvstore_result_set.h",
+              "kvstore_sync_callback.h",
+              "single_kvstore.h",
+              "types.h",
+              "visibility.h",
+              "data_query.h",
+              "device_status_change_listener.h",
+              "store_errno.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
+          }
+        }
+      ],
+      "test": [
+        "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test:distributeddatamgr_fuzztest",
+        "//foundation/distributeddatamgr/kv_store:distributedtest",
+        "//foundation/distributeddatamgr/kv_store:build_native_test",
+        "//foundation/distributeddatamgr/kv_store/test/unittest/src:unittest"
+      ]
+    }
+  }
 }
