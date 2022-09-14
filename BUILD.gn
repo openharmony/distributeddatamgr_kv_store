@@ -15,10 +15,9 @@ import("//build/ohos.gni")
 group("distributedtest") {
   testonly = true
   deps = []
-  deps += [
-    "test/distributedtest/single_kvstore_client:distributedtest",
-  ]
+  deps += [ "test/distributedtest/single_kvstore_client:distributedtest" ]
 }
+
 ###############################################################################
 
 group("build_native_test") {
@@ -28,11 +27,10 @@ group("build_native_test") {
     "frameworks/libs/distributeddb/test:unittest",
   ]
 }
+
 ###############################################################################
 group("unittest") {
   testonly = true
   deps = []
-  deps += [
-    "test/unittest/src:unittest",
-  ]
+  deps += [ "test/unittest/src:unittest" ]
 }
