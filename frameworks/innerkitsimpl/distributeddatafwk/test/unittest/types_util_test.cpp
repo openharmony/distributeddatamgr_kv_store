@@ -17,8 +17,10 @@
 #include <cstdint>
 #include <vector>
 #include <variant>
-#include "iremote_object.h"
 #include "iremote_broker.h"
+#include "iremote_object.h"
+#include "iremote_proxy.h"
+#include "iremote_stub.h"
 #include "itypes_util.h"
 #include "types.h"
 
