@@ -32,7 +32,7 @@ class TypesUtilTest : public testing::Test {
 public:
     class ITestRemoteObject : public IRemoteBroker {
     public:
-        DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.ITestRemoteObject");
+        DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ITestRemoteObject");
     };
     class TestRemoteObjectStub : public IRemoteStub<ITestRemoteObject> {
     public:
