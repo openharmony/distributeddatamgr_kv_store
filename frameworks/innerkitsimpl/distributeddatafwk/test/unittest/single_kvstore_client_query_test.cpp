@@ -432,8 +432,9 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC001, TestSize.Leve
     ZLOGD("TestSingleKvStoreQueryC001 start");
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
-                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE,
-                        .baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest"};
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId1" };
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
@@ -504,8 +505,9 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC002, TestSize.Leve
 
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
-                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE,
-                        .baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest" };
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId2" };
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
