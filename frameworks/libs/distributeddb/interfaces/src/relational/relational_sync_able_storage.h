@@ -149,6 +149,11 @@ private:
     RelationalObserverAction dataChangeDeviceCallback_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
+
+    // cache securityOption
+    mutable std::mutex securityOptionMutex_;
+    mutable SecurityOption securityOption_;
+    mutable bool isCachedOption_;
 };
 }  // namespace DistributedDB
 #endif

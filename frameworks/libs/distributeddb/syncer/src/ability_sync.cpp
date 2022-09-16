@@ -549,11 +549,8 @@ int AbilitySync::HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvP
 
 void AbilitySync::GetPacketSecOption(SecurityOption &option) const
 {
-    int errCode = -E_NOT_SUPPORT;
-    if (IsSingleKvVer()) {
-        errCode =
-            (static_cast<SingleVerKvDBSyncInterface *>(storageInterface_))->GetSecurityOption(option);
-    }
+    int errCode =
+        (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
     if (errCode == -E_NOT_SUPPORT) {
         LOGE("[AbilitySync][SyncStart] GetSecOpt not surpport sec classification");
         option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;

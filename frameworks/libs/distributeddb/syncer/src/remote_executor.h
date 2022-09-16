@@ -72,6 +72,12 @@ public:
     void NotifyConnectionClosed(uint64_t connectionId);
 
 private:
+    struct SendMessage {
+        uint32_t sessionId;
+        uint32_t sequenceId;
+        bool isLast;
+        SecurityOption option;
+    };
 
     void ReceiveMessageInner(const std::string &targetDev, Message *inMsg);
 
@@ -99,8 +105,7 @@ private:
     int RequestStart(uint32_t sessionId);
 
     void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
-    int ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
-        const std::string &device);
+    int ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage, const std::string &device);
     int ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,
         const std::string &device);
 
@@ -117,13 +122,17 @@ private:
 
     int FillRequestPacket(RemoteExecutorRequestPacket *packet, uint32_t sessionId, std::string &target);
 
-    bool IsPackgetValid(uint32_t sessionId);
+    bool IsPacketValid(uint32_t sessionId);
     void ReceiveDataWithValidSession(const std::string &targetDev, uint32_t sessionId, uint32_t sequenceId,
-        const RemoteExecutorAckPacket *packget);
+        const RemoteExecutorAckPacket *packet);
 
     void RemoveTaskByDevice(const std::string &device, std::vector<uint32_t> &removeList);
     void RemoveAllTask(int errCode);
     void RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList);
+
+    int GetPacketSize(const std::string device, size_t &packetSize);
+    bool CheckRemoteSecurityOption(const std::string device, const SecurityOption &remoteOption,
+        const SecurityOption &localOption);
 
     ICommunicator *GetAndIncCommunicator() const;
     ISyncInterface *GetAndIncSyncInterface() const;
