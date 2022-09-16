@@ -337,6 +337,11 @@ napi_value JsSingleKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
         // required 1 arguments :: <deviceId>
         CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
+        if(ctxt->deviceId.empty()){
+            ZLOGE("deviceId is empty");
+            ctxt->status = napi_generic_failure;
+            return;
+        }
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid deviceId!");
     };
     ctxt->GetCbInfo(env, info, input);
