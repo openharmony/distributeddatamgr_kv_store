@@ -137,7 +137,7 @@ private:
     void CommitAndReleaseNotifyData(SingleVerNaturalStoreCommitNotifyData *&committedData,
         bool isNeedCommit, int eventType);
 
-    int StartTransactionInner();
+    int StartTransactionInner(TransactType transType = TransactType::DEFERRED);
 
     int CommitInner();
 
@@ -188,8 +188,8 @@ private:
     int SaveEntryNormally(DataItem &dataItem);
     int SaveEntryInCacheMode(DataItem &dataItem, uint64_t recordVersion);
 
-    int StartTransactionInCacheMode();
-    int StartTransactionNormally();
+    int StartTransactionInCacheMode(TransactType transType = TransactType::DEFERRED);
+    int StartTransactionNormally(TransactType transType = TransactType::DEFERRED);
 
     bool IsCacheDBMode() const;
     bool IsExtendedCacheDBMode() const;

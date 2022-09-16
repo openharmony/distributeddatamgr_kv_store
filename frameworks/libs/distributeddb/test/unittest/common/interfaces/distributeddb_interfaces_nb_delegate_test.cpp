@@ -2017,3 +2017,47 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OpenStorePathCheckTest001, TestS
     mgr2.CloseKvStore(delegate2);
     mgr2.DeleteKvStore(STORE_ID_1);
 }
+
+namespace {
+std::string GetRealFileUrl(const std::string &dbPath, const std::string &appId, const std::string &userId,
+    const std::string &storeId)
+{
+    std::string hashIdentifier = DBCommon::TransferHashString(
+        DBCommon::GenerateIdentifierId(storeId, appId, userId));
+    return dbPath + "/" + DBCommon::TransferStringToHex(hashIdentifier) + "/single_ver/main/gen_natural_store.db";
+}
+}
+
+/**
+  * @tc.name: BusyTest001
+  * @tc.desc: Test put kv data while another thread holds the transaction for one second
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    std::string dbPath = GetRealFileUrl(g_config.dataDir, APP_ID, USER_ID, STORE_ID_1);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
+    RelationalTestUtils::ExecSql(db, "BEGIN IMMEDIATE;");
+
+    std::thread th([db]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        RelationalTestUtils::ExecSql(db, "COMMIT");
+    });
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+
+    th.join();
+    sqlite3_close_v2(db);
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
