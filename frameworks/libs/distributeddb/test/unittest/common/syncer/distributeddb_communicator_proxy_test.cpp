@@ -30,6 +30,7 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 using namespace std;
 using ::testing::Matcher;
+using ::testing::DoAll;
 
 namespace {
     string g_testDir;
