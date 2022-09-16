@@ -14,12 +14,41 @@
  */
 
 import app from '@system.app'
-import inputMethod from '@ohos.inputmethod'
+import distributedData from '@ohos.data.distributedData'
 import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
 
+const TEST_BUNDLE_NAME = 'com.example.myapplication';
+const TEST_STORE_ID = 'storeId';
+var kvManager = null;
+var kvStore = null;
+
 describe("KvStoreTest", function () {
-    beforeAll(function () {
-        console.info('beforeAll called')
+    const config = {
+        bundleName: TEST_BUNDLE_NAME,
+        userInfo: {
+            userId: '0',
+            userType: distributedData.UserType.SAME_USER_ID
+        }
+    }
+
+    const options = {
+        createIfMissing: true,
+        encrypt: false,
+        backup: false,
+        autoSync: true,
+        kvStoreType: distributedData.KVStoreType.SINGLE_VERSION,
+        schema: '',
+        securityLevel: distributedData.SecurityLevel.S2,
+    }
+
+
+    beforeAll(async function (done) {
+        console.info('beforeAll');
+        await distributedData.createKVManager(config, function (err, manager) {
+            kvManager = manager;
+            done();
+        });
+        console.info('beforeAll end');
     })
 
     afterAll(function () {
@@ -30,8 +59,16 @@ describe("KvStoreTest", function () {
         console.info('beforeEach called')
     })
 
-    afterEach(function () {
-        console.info('afterEach called')
+    afterEach(async function (done) {
+        console.info('afterEach');
+        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore, async function () {
+            console.info('afterEach closeKVStore success');
+            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function () {
+                console.info('afterEach deleteKVStore success');
+                done();
+            });
+        });
+        kvStore = null;
     })
 
     /*
@@ -40,8 +77,18 @@ describe("KvStoreTest", function () {
      * @tc.type: FUNC
      * @tc.require: issueNumber.
      */
-    it("appInfoTest001", 0, function () {
-        let a=0
-        expect(a==0).assertEqual(true)
+    it("KvStoreInfoTest001", 0, async function (done) {
+        console.info('testKVManagerGetKVStore101');
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
+                console.info('testKVManagerGetKVStore101 getKVStore success');
+                kvStore = store;
+                done();
+            });
+        } catch (e) {
+            console.info('testKVManagerGetKVStore101 getKVStore e ' + e);
+            expect(null).assertFail();
+            done();
+        }
     })
 })
