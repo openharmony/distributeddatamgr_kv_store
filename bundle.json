@@ -29,7 +29,6 @@
   ],
   "segment": {
     "destPath": [
-      "foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store",
       "foundation/distributeddatamgr/kv_store"
     ]
   },

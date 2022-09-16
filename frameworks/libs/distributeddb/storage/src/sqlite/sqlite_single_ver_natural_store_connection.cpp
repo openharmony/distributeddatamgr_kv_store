@@ -866,11 +866,10 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
     int errCode = E_OK;
     if (writeHandle_ == nullptr) {
         isAuto = true;
-        errCode = StartTransactionInner();
+        errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
             DBDfxAdapter::FinishTraceSQL();
             return errCode;
-            DBDfxAdapter::FinishTraceSQL();
         }
     }
 
@@ -909,7 +908,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
 
     if (writeHandle_ == nullptr) {
         isAuto = true;
-        errCode = StartTransactionInner();
+        errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
             DBDfxAdapter::FinishTraceSQL();
             return errCode;
@@ -1269,16 +1268,16 @@ void SQLiteSingleVerNaturalStoreConnection::CommitAndReleaseNotifyData(
     ReleaseCommitData(committedData);
 }
 
-int SQLiteSingleVerNaturalStoreConnection::StartTransactionInner()
+int SQLiteSingleVerNaturalStoreConnection::StartTransactionInner(TransactType transType)
 {
     if (IsExtendedCacheDBMode()) {
-        return StartTransactionInCacheMode();
+        return StartTransactionInCacheMode(transType);
     } else {
-        return StartTransactionNormally();
+        return StartTransactionNormally(transType);
     }
 }
 
-int SQLiteSingleVerNaturalStoreConnection::StartTransactionInCacheMode()
+int SQLiteSingleVerNaturalStoreConnection::StartTransactionInCacheMode(TransactType transType)
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
@@ -1290,7 +1289,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionInCacheMode()
         ReleaseExecutor(handle);
         return -E_LOG_OVER_LIMITS;
     }
-    errCode = handle->StartTransaction(TransactType::DEFERRED);
+    errCode = handle->StartTransaction(transType);
     if (errCode != E_OK) {
         ReleaseExecutor(handle);
         return errCode;
@@ -1301,7 +1300,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionInCacheMode()
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally()
+int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType transType)
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
@@ -1330,7 +1329,7 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally()
             return -E_OUT_OF_MEMORY;
         }
     }
-    errCode = handle->StartTransaction(TransactType::DEFERRED);
+    errCode = handle->StartTransaction(transType);
     if (errCode != E_OK) {
         ReleaseExecutor(handle);
         ReleaseCommitData(committedData_);
@@ -1452,7 +1451,7 @@ int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const Key &key, bool del
             return -E_NOT_SUPPORT;
         }
         std::lock_guard<std::mutex> lock(transactionMutex_);
-        errCode = StartTransactionInner();
+        errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1567,7 +1566,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
 
     std::lock_guard<std::mutex> lock(transactionMutex_);
 
-    errCode = StartTransactionInner();
+    errCode = StartTransactionInner(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         return errCode;
     }
