@@ -33,6 +33,7 @@ public:
     int StartTransaction();
     int Commit();
     void SetSaveDataDelayTime(uint64_t milliDelayTime);
+    void DelayGetSyncData(uint64_t milliDelayTime);
 
     int Subscribe(QuerySyncObject query, bool wait, int id);
     int UnSubscribe(QuerySyncObject query, bool wait, int id);

@@ -218,6 +218,7 @@ int VirtualSingleVerSyncDBInterface::GetSyncDataNext(std::vector<SingleVerKvEntr
 int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize,
     std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const
 {
+    std::this_thread::sleep_for(std::chrono::milliseconds(getDataDelayTime_));
     for (const auto &data : dbData_) {
         if (data.isLocal) {
             if (data.writeTimestamp >= begin && data.writeTimestamp < end) {
@@ -318,6 +319,7 @@ int VirtualSingleVerSyncDBInterface::GetSyncData(QueryObject &query, const SyncT
     const DataSizeSpecInfo &dataSizeInfo, ContinueToken &continueStmtToken,
     std::vector<SingleVerKvEntry *> &entries) const
 {
+    std::this_thread::sleep_for(std::chrono::milliseconds(getDataDelayTime_));
     const auto &startKey = query.GetPrefixKey();
     Key endKey = startKey;
     endKey.resize(DBConstant::MAX_KEY_SIZE, UCHAR_MAX);
@@ -440,5 +442,10 @@ void VirtualSingleVerSyncDBInterface::GetDeviceData(const std::string &deviceNam
 void VirtualSingleVerSyncDBInterface::SetDbProperties(KvDBProperties &kvDBProperties)
 {
     properties_ = kvDBProperties;
+}
+
+void VirtualSingleVerSyncDBInterface::DelayGetSyncData(uint32_t milliDelayTime)
+{
+    getDataDelayTime_ = milliDelayTime;
 }
 }  // namespace DistributedDB

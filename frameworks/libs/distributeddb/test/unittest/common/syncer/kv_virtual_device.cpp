@@ -69,11 +69,16 @@ int KvVirtualDevice::Commit()
     return syncInterface->Commit();
 }
 
-
 void KvVirtualDevice::SetSaveDataDelayTime(uint64_t milliDelayTime)
 {
     VirtualSingleVerSyncDBInterface *syncInterface = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
     syncInterface->SetSaveDataDelayTime(milliDelayTime);
+}
+
+void KvVirtualDevice::DelayGetSyncData(uint64_t milliDelayTime)
+{
+    VirtualSingleVerSyncDBInterface *syncInterface = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncInterface->DelayGetSyncData(milliDelayTime);
 }
 
 int KvVirtualDevice::Subscribe(QuerySyncObject query, bool wait, int id)

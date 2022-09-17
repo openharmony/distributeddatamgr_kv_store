@@ -40,6 +40,8 @@ namespace {
     const int SLEEP_MILLISECONDS = 500;
     const int TEN_SECONDS = 10;
     const int THREE_HUNDRED = 300;
+    const int WAIT_30_SECONDS = 30000;
+    const int WAIT_40_SECONDS = 40000;
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
@@ -1311,4 +1313,63 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, QuerySyncMergeCheck004, TestSiz
     ASSERT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
     EXPECT_EQ(sendRequestCount, 0);
+}
+
+/**
+  * @tc.name: GetDataNotify001
+  * @tc.desc: Test GetDataNotify function, delay < 30s should sync ok, > 36 should timeout
+  * @tc.type: FUNC
+  * @tc.require: AR000D4876
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Level3)
+{
+    ASSERT_NE(g_kvDelegatePtr, nullptr);
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    const std::string DEVICE_A = "real_device";
+    /**
+     * @tc.steps: step1. deviceB set get data delay 40s
+     */
+    g_deviceB->DelayGetSyncData(WAIT_40_SECONDS);
+
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return OK. onComplete should be called, deviceB sync TIME_OUT.
+     */
+    std::map<std::string, DBStatus> result;
+    std::map<std::string, int> virtualRes;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, true);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], TIME_OUT);
+    std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
+    Query query = Query::Select();
+    g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, query, [&virtualRes](std::map<std::string, int> resMap) {
+        virtualRes = std::move(resMap);
+    }, true);
+    EXPECT_EQ(virtualRes.size(), devices.size());
+    EXPECT_EQ(virtualRes[DEVICE_A], static_cast<int>(SyncOperation::OP_TIMEOUT));
+    std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
+
+    /**
+     * @tc.steps: step3. deviceB set get data delay 30s
+     */
+    g_deviceB->DelayGetSyncData(WAIT_30_SECONDS);
+    /**
+     * @tc.steps: step4. deviceA call sync and wait
+     * @tc.expected: step4. sync should return OK. onComplete should be called, deviceB sync OK.
+     */
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, true);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], OK);
+    std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
+    g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, query, [&virtualRes](std::map<std::string, int> resMap) {
+        virtualRes = std::move(resMap);
+    }, true);
+    EXPECT_EQ(virtualRes.size(), devices.size());
+    EXPECT_EQ(virtualRes[DEVICE_A], static_cast<int>(SyncOperation::OP_FINISHED_ALL));
+    g_deviceB->DelayGetSyncData(0);
 }
