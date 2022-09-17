@@ -1,0 +1,88 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//build/ohos/ace/ace.gni")
+import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+base_output_path = get_label_info(":distributed_data_js", "target_out_dir")
+distributed_data_js_obj_path = base_output_path + "/distributed_data.o"
+gen_js_obj("distributed_data_js") {
+  input = "distributed_data.js"
+  output = distributed_data_js_obj_path
+}
+
+group("build_module") {
+  deps = []
+  if (use_platform_win || use_platforn_mac) {
+    deps += [ ":distributeddata" ]
+  }
+}
+if (use_platform_win || use_platforn_mac) {
+  ohos_shared_library("distributeddata") {
+    include_dirs = [
+      "//third_party/json/single_include",
+      "//third_party/libuv/include",
+      "//third_party/node/src",
+      "//foundation/distributeddatamgr/kv_store/frameworks/common",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
+      "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/base",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
+      "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
+      "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
+      "//commonlibrary/c_utils/base/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+    ]
+    cflags_cc = [ "-std=c++17" ]
+    sources = [
+      "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+      "../../../frameworks/jskitsimpl/distributeddata/src/js_util.cpp",
+      "../../../interfaces/mock/log_print.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/entry_point.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_const_properties.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_device_kv_store.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_field_node.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_kv_manager.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_kv_store.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_kv_store_resultset.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_observer.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_query.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_schema.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/js_single_kv_store.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/napi_queue.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/src/uv_queue.cpp",
+    ]
+
+    deps = [
+      "//foundation/arkui/napi:ace_napi",
+      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/innerkits/distributeddata:distributeddata_inner_mock",
+      "//third_party/libuv:uv",
+    ]
+
+    if (use_platform_win) {
+      defines = [ "IS_WINDOWS" ]
+      deps += [
+        "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
+      ]
+    } else if (use_platforn_mac) {
+      deps +=
+          [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
+    }
+    subsystem_name = "distributeddatamgr"
+    relative_install_dir = "module/data"
+    part_name = "kv_store"
+  }
+}

@@ -265,12 +265,13 @@ napi_value JsKVStoreResultSet::GetEntry(napi_env env, napi_callback_info info) /
 
     DistributedKv::Entry entry;
     auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
+    bool isSchema = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->isSchema_;
     auto status = resultSet->GetEntry(entry);
     if (status != Status::SUCCESS) {
         return nullptr;
     }
 
-    ctxt->status = JSUtil::SetValue(env, entry, ctxt->output);
+    ctxt->status = JSUtil::SetValue(env, entry, ctxt->output, isSchema);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "GetEntry failed!");
     return ctxt->output;
 }
@@ -278,5 +279,10 @@ napi_value JsKVStoreResultSet::GetEntry(napi_env env, napi_callback_info info) /
 std::shared_ptr<ResultSetBridge> JsKVStoreResultSet::Create()
 {
     return KvUtils::ToResultSetBridge(resultSet_);
+}
+
+void JsKVStoreResultSet::SetSchema(bool isSchema)
+{
+    isSchema_ = isSchema;
 }
 } // namespace OHOS::DistributedData

@@ -143,6 +143,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
         CHECK_STATUS_RETURN_VOID(ctxt, "GetSingleKvStore() failed!");
         ctxt->kvStore->SetNative(kvStore);
+        ctxt->kvStore->SetSchemaInfo(!ctxt->options.schema.empty());
         ctxt->kvStore->SetContextParam(kvm->param_);
         ctxt->kvStore->SetUvQueue(kvm->uvQueue_);
     };

@@ -1,0 +1,141 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//build/ohos/ace/ace.gni")
+import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+group("build_module") {
+  deps = []
+  if (use_platform_win || use_platforn_mac) {
+    deps += [ ":distributeddata_inner" ]
+  }
+}
+
+config("distributeddatafwk_config") {
+  visibility = [ ":*" ]
+
+  cflags = [ "-Wno-multichar" ]
+
+  include_dirs = [
+    "include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/common",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
+    "//utils/system/safwk/native/include",
+    "//commonlibrary/c_utils/base/include",
+    "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
+    "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
+    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
+    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
+  ]
+}
+
+config("distributeddatafwk_public_config") {
+  visibility = [ "//foundation/distributeddatamgr/kv_store:*" ]
+
+  include_dirs = [
+    "include",
+    ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
+    ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
+    ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "//commonlibrary/c_utils/base/include",
+  ]
+}
+
+ohos_shared_library("distributeddata_inner_mock") {
+  include_dirs = [
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/base",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/innerkitsimpl/kvdb/include",
+    "//foundation/distributeddatamgr/kvstoremock/frameworks/innerkitsimpl/kvdb/include",
+    "include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/common",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
+    "//utils/system/safwk/native/include",
+    "${datashare_innerapi_path}/common/include",
+    "${datashare_innerapi_path}/provider/include",
+    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
+    "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
+
+    #"//foundation/distributeddatamgr/distributeddatamgr/services/distributeddataservice/adapter/include/communicator",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/distributeddb/distributeddataservice/adapter/autils",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
+  ]
+
+  cflags_cc = [ "-std=c++17" ]
+  ldflags = [ "-v" ]
+  sources = [
+    "../../../distributeddb/distributeddataservice/adapter/autils/constant.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/security_manager.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/single_store_impl.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/store_factory.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/store_manager.cpp",
+    "../../../frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
+    "../../../interfaces/mock/base/parcel.cpp",
+    "../../../interfaces/mock/base/refbase.cpp",
+    "../../../interfaces/mock/log_print.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/data_query.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/store_result_set.cpp",
+  ]
+  deps = [
+    "//foundation/arkui/napi:ace_napi",
+    "//foundation/distributeddatamgr/kv_store/kvstoremock/distributeddb:distributeddb_mock",
+    "//third_party/jsoncpp:jsoncpp_static",
+    "//third_party/libuv:uv",
+    "//third_party/sqlite:sqlite_sdk",
+  ]
+
+  if (use_platform_win) {
+    defines = [ "IS_WINDOWS" ]
+    deps += [
+      "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
+    ]
+  } else if (use_platforn_mac) {
+    defines = [ "IS_MAC" ]
+    include_dirs += [
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+      "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
+    ]
+    deps +=
+        [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
+  }
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}

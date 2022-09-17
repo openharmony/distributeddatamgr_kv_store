@@ -16,3 +16,7 @@ kv_store_base_path = "//foundation/distributeddatamgr/kv_store"
 kv_store_native_path = "${kv_store_base_path}/frameworks/native"
 
 kv_store_api_path = "${kv_store_base_path}/interfaces/inner_api"
+
+use_platform_win = "${current_os}_${current_cpu}" == "mingw_x86_64"
+use_platforn_mac = "${current_os}_${current_cpu}" == "mac_x64" ||
+                   "${current_os}_${current_cpu}" == "mac_arm64"

@@ -28,8 +28,7 @@
         }
     ],
     "segment": {
-        "destPath": [ 
-            "foundation/distributeddatamgr/kv_store/interfaces/inner_api/kv_store",
+        "destPath": [
             "foundation/distributeddatamgr/kv_store"
         ]
     },
@@ -87,9 +86,10 @@
         },
         "build": {
             "sub_component": [
-                "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb:build_module",
+                "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:build_module",
                 "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
-                "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module"
+                "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
+                "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module"
             ],
             "inner_kits": [
                 {
@@ -116,7 +116,7 @@
                 }
             ],
             "test": [
-                "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/distributeddb/test:distributeddatamgr_fuzztest",
+                "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test:distributeddatamgr_fuzztest",
                 "//foundation/distributeddatamgr/kv_store:distributedtest",
                 "//foundation/distributeddatamgr/kv_store:build_native_test"
             ]

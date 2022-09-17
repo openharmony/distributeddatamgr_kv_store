@@ -103,10 +103,11 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
             ZLOGE("kvStore is nullptr");
             return;
         }
+        bool isSchemaStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
         Status status = kvStore->Get(key, value);
         CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->result() failed!");
         ZLOGD("kvStore->Get return %{public}d", status);
-        ctxt->value = JSUtil::Blob2VariantValue(value);
+        ctxt->value = isSchemaStore ? value.ToString() : JSUtil::Blob2VariantValue(value);
         ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
         CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Get() failed!");
     };
@@ -234,7 +235,8 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
         CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->GetEntries() failed!");
     };
     auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = JSUtil::SetValue(env, ctxt->entries, result);
+        auto isSchemaStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
+        ctxt->status = JSUtil::SetValue(env, ctxt->entries, result, isSchemaStore);
         CHECK_STATUS_RETURN_VOID(ctxt, "output failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
@@ -397,6 +399,11 @@ napi_value JsDeviceKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
         // required 1 arguments :: <deviceId>
         CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
+        if(ctxt->deviceId.empty()){
+            ZLOGE("deviceId is empty");
+            ctxt->status = napi_generic_failure;
+            return;
+        }
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid deviceId!");
     };
     ctxt->GetCbInfo(env, info, input);

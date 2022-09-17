@@ -255,7 +255,7 @@ Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &st
 Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer)
 {
     MessageParcel reply;
-    int32_t status = IPC_SEND(TRANS_SUB, reply, appId, storeId, observer->AsObject().GetRefPtr());
+    int32_t status = IPC_SEND(TRANS_SUB, reply, appId, storeId, observer->AsObject());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, observer:0x%{public}x", status,
             appId.appId.c_str(), storeId.storeId.c_str(), StoreUtil::Anonymous(observer.GetRefPtr()));

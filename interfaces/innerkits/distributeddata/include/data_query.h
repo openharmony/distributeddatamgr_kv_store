@@ -363,6 +363,13 @@ public:
     //     This Query.
     API_EXPORT DataQuery &OrderByDesc(const std::string &field);
 
+    // Order by write time.
+    // Parameters:
+    //     isAsc: isAsc.
+    // Return:
+    //     This Query.
+    API_EXPORT DataQuery &OrderByWriteTime(bool isAsc);
+
     // Limit result size.
     // Parameters:
     //     number: the number of results.
@@ -463,6 +470,15 @@ private:
 
     // order by desc
     static const char * const ORDER_BY_DESC;
+
+    // order by write time
+    static const char * const ORDER_BY_WRITE_TIME;
+
+    // order by write time asc
+    static const char * const IS_ASC;
+
+    // order by write time desc
+    static const char * const IS_DESC;
 
     // limit
     static const char * const LIMIT;

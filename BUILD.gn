@@ -24,7 +24,7 @@ group("build_native_test") {
   testonly = true
   deps = [
     "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
-    "frameworks/innerkitsimpl/kvdb/distributeddb/test:unittest",
+    "frameworks/libs/distributeddb/test:unittest",
   ]
 }
 ###############################################################################

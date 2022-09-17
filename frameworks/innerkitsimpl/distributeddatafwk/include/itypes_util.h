@@ -38,6 +38,9 @@ public:
     static bool Marshalling(uint64_t input, MessageParcel &data);
     static bool Unmarshalling(uint64_t &output, MessageParcel &data);
 
+    static bool Marshalling(const std::monostate &input, MessageParcel &data);
+    static bool Unmarshalling(std::monostate &output, MessageParcel &data);
+
     static bool Marshalling(const std::string &input, MessageParcel &data);
     static bool Unmarshalling(std::string &output, MessageParcel &data);
 
@@ -71,8 +74,35 @@ public:
     static bool Marshalling(const sptr<IRemoteObject> &input, MessageParcel &data);
     static bool Unmarshalling(sptr<IRemoteObject> &output, MessageParcel &data);
 
+    static bool Marshalling(IRemoteObject* input, MessageParcel &data);
+
+    static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
+    static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
+
+    template<typename ..._Types>
+    static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)
+    {
+        uint32_t index = static_cast<uint32_t>(input.index());
+        if (!data.WriteUint32(index)) {
+            return false;
+        }
+
+        return WriteVariant<decltype(input), _Types...>(0, input, data);
+    }
+
+    template<typename ..._Types>
+    static bool Unmarshalling(std::variant<_Types...> &output, MessageParcel &data)
+    {
+        uint32_t index = data.ReadUint32();
+        if (index >= sizeof ...(_Types)) {
+            return false;
+        }
+
+        return ReadVariant<decltype(output), _Types...>(0, index, output, data);
+    }
 
     template<class T>
     static bool Marshalling(const std::vector<T> &val, MessageParcel &parcel);
@@ -99,6 +129,42 @@ public:
     static Status UnmarshalFromBuffer(MessageParcel &data, int size, T &output);
     template<typename T>
     static Status UnmarshalFromBuffer(MessageParcel &data, int size, std::vector<T> &output);
+
+private:
+    static bool Marshalling(bool input, MessageParcel &data) = delete;
+    static bool Unmarshalling(bool &output, MessageParcel &data) = delete;
+    template<typename _OutTp>
+    static bool ReadVariant(uint32_t step, uint32_t index, const _OutTp &output, MessageParcel &data)
+    {
+        return false;
+    }
+
+    template<typename _OutTp, typename _First, typename ..._Rest>
+    static bool ReadVariant(uint32_t step, uint32_t index, const _OutTp &output, MessageParcel &data)
+    {
+        if (step == index) {
+            _First value{};
+            auto success = ITypesUtil::Unmarshalling(value, data);
+            output = value;
+            return success;
+        }
+        return ReadVariant<_OutTp, _Rest...>(step + 1, index, output, data);
+    }
+
+    template<typename _InTp>
+    static bool WriteVariant(uint32_t step, const _InTp &input, MessageParcel &data)
+    {
+        return false;
+    }
+
+    template<typename _InTp, typename _First, typename ..._Rest>
+    static bool WriteVariant(uint32_t step, const _InTp &input, MessageParcel &data)
+    {
+        if (step == input.index()) {
+            return ITypesUtil::Marshalling(std::get<_First>(input), data);
+        }
+        return WriteVariant<_InTp, _Rest...>(step + 1, input, data);
+    }
 };
 
 template<class T>
