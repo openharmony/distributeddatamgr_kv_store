@@ -15,9 +15,9 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H
 #include <string>
+#include "concurrent_map.h"
 #include "types.h"
 #include "lru_bucket.h"
-#include "device_manager.h"
 namespace OHOS::DistributedKv {
 class DevManager {
 public:
@@ -34,18 +34,35 @@ public:
     std::string ToNetworkId(const std::string &uuid) const;
     const DetailInfo &GetLocalDevice();
     std::vector<DetailInfo> GetRemoteDevices() const;
+    class Observer {
+    public:
+        Observer() = default;
+        virtual ~Observer() {}
+        virtual void Online(const std::string &networkId) = 0;
+        virtual void Offline(const std::string &networkId) = 0;
+    };
+
+    void Register(Observer *observer);
+    void Unregister(Observer *observer);
+
+private:
+    friend class DMStateCallback;
+    friend class DmDeathCallback;
+    DevManager(const std::string &pkgName);
+    ~DevManager() = default;
     void Online(const std::string &networkId);
     void Offline(const std::string &networkId);
     void OnChanged(const std::string &networkId);
+    void OnReady(const std::string &networkId);
     void RegisterDevCallback();
-private:
-    DevManager();
-    ~DevManager() = default;
+
     int32_t Init();
+    const std::string PKG_NAME;
     const DetailInfo invalidDetail_ {};
-    mutable std::mutex mutex_ {};
     DetailInfo localInfo_ {};
+    mutable std::mutex mutex_ {};
     mutable LRUBucket<std::string, DetailInfo> deviceInfos_ {64};
+    ConcurrentMap<Observer *, Observer *> observers_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H

@@ -40,6 +40,7 @@ public:
     virtual ~JsKVStore();
 
     void SetNative(std::shared_ptr<DistributedKv::SingleKvStore>& kvStore);
+    void SetSchemaInfo(bool isSchemaStore);
     void SetUvQueue(std::shared_ptr<UvQueue> uvQueue);
     std::shared_ptr<DistributedKv::SingleKvStore>& GetNative();
     void SetContextParam(std::shared_ptr<ContextParam> param);
@@ -61,12 +62,18 @@ public:
     static napi_value Restore(napi_env env, napi_callback_info info);
     static napi_value DeleteBackup(napi_env env, napi_callback_info info);
 
+protected:
+    bool IsSchemaStore() const;
 private:
     class DataObserver : public DistributedKv::KvStoreObserver, public JSObserver {
     public:
-        DataObserver(std::shared_ptr<UvQueue> uvQueue, napi_value callback) : JSObserver(uvQueue, callback) {};
+        DataObserver(std::shared_ptr<UvQueue> uvQueue, napi_value callback, bool schema)
+            : JSObserver(uvQueue, callback), isSchema_(schema){};
         virtual ~DataObserver() = default;
         void OnChange(const DistributedKv::ChangeNotification& notification) override;
+
+    private:
+        bool isSchema_ = false;
     };
 
     class SyncObserver : public DistributedKv::KvStoreSyncCallback, public JSObserver {
@@ -94,6 +101,7 @@ private:
     std::shared_ptr<DistributedKv::SingleKvStore> kvStore_ = nullptr;
     std::string storeId_;
     std::shared_ptr<ContextParam> param_ = nullptr;
+    bool isSchemaStore_ = false;
 
     using Exec = std::function<void(napi_env, size_t, napi_value*, std::shared_ptr<ContextBase>)>;
     static std::map<std::string, Exec> onEventHandlers_;

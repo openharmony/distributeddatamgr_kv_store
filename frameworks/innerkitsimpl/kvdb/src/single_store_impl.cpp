@@ -25,8 +25,10 @@
 #include "store_util.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
+using namespace std::chrono;
 SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options,
-    const Convertor &cvt) : convertor_(cvt), dbStore_(std::move(dbStore))
+    const Convertor &cvt)
+    : convertor_(cvt), dbStore_(std::move(dbStore))
 {
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
@@ -34,6 +36,25 @@ SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &
     syncObserver_ = std::make_shared<SyncObserver>();
     if (options.backup) {
         BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
+    }
+
+    for (auto &policy : options.policies) {
+        if (policy.type != TERM_OF_SYNC_VALIDITY) {
+            continue;
+        }
+        auto exist = std::get_if<uint32_t>(&policy.value);
+        if (exist == nullptr && *exist <= 0) {
+            break;
+        }
+        interval_ = *exist;
+        DevManager::GetInstance().Register(this);
+    }
+}
+
+SingleStoreImpl::~SingleStoreImpl()
+{
+    if (interval_ > 0) {
+        DevManager::GetInstance().Unregister(this);
     }
 }
 
@@ -425,6 +446,15 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
         return ALREADY_CLOSED;
     }
 
+    if (device.empty()) {
+        auto dbStatus = dbStore_->RemoveDeviceData();
+        auto status = StoreUtil::ConvertStatus(dbStatus);
+        if (status != SUCCESS) {
+            ZLOGE("status:0x%{public}x device:all others", status);
+        }
+        return status;
+    }
+
     auto dbStatus = dbStore_->RemoveDeviceData(DevManager::GetInstance().ToUUID(device));
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -590,8 +620,7 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto status = BackupManager::GetInstance().Backup(file, baseDir, storeId_, dbStore_);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s, backup name:%{public}s ",
-            status, storeId_.c_str(), file.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status, storeId_.c_str(), file.c_str());
     }
     return status;
 }
@@ -601,8 +630,7 @@ Status SingleStoreImpl::Restore(const std::string &file, const std::string &base
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto status = BackupManager::GetInstance().Restore(file, baseDir, appId_, storeId_, dbStore_);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s, backup name:%{public}s ",
-            status, storeId_.c_str(), file.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status, storeId_.c_str(), file.c_str());
     }
     return status;
 }
@@ -757,5 +785,23 @@ void SingleStoreImpl::DoAutoSync()
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
+    expiration_ = system_clock::now() + seconds(interval_);
+}
+
+void SingleStoreImpl::Online(const std::string &device)
+{
+    if (!autoSync_ || system_clock::now() >= expiration_) {
+        return;
+    }
+
+    ZLOGI("device:%{public}s online app:%{public}s store:%{public}s Sync!", StoreUtil::Anonymous(device).c_str(),
+        appId_.c_str(), storeId_.c_str());
+    SyncInfo syncInfo;
+    syncInfo.devices = { device };
+    DoSync(syncInfo, nullptr);
+}
+
+void SingleStoreImpl::Offline(const std::string &device)
+{
 }
 } // namespace OHOS::DistributedKv

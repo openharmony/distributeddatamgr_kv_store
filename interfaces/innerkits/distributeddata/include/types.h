@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <variant>
 #include "store_errno.h"
 #include "blob.h"
 #include "visibility.h"
@@ -249,6 +250,17 @@ enum class DeviceFilterStrategy {
     NO_FILTER = 1,
 };
 
+enum PolicyType : uint32_t {
+    TERM_OF_SYNC_VALIDITY,
+    IMMEDIATE_SYNC_ON_ONLINE,
+    POLICY_BUTT
+};
+
+struct SyncPolicy {
+    uint32_t type;
+    std::variant<std::monostate, uint32_t> value;
+};
+
 struct Options {
     bool createIfMissing = true;
     bool encrypt = false;
@@ -260,6 +272,8 @@ struct Options {
     int32_t securityLevel = NO_LABEL;
     int32_t area = EL1;
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
+
+    std::vector<SyncPolicy> policies;
     std::string schema = "";
     std::string hapName = "";
     std::string baseDir = "";

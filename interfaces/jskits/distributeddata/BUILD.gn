@@ -23,7 +23,10 @@ gen_js_obj("distributed_data_js") {
 }
 
 group("build_module") {
-  deps = [ ":distributeddata" ]
+  deps = []
+  if (is_standard_system) {
+    deps += [ ":distributeddata" ]
+  }
 }
 
 ohos_copy("distributeddatamgr_declaration") {

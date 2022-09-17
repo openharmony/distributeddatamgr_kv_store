@@ -61,6 +61,21 @@ bool ITypesUtil::Unmarshalling(uint64_t &output, MessageParcel &data)
     return data.ReadUint64(output);
 }
 
+bool ITypesUtil::Marshalling(IRemoteObject* input, MessageParcel &data)
+{
+   return Marshalling(sptr<IRemoteObject>(input), data);
+}
+
+bool ITypesUtil::Marshalling(const std::monostate &input, MessageParcel &data)
+{
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(std::monostate &output, MessageParcel &data)
+{
+    return true;
+}
+
 bool ITypesUtil::Marshalling(const std::string &input, MessageParcel &data)
 {
     return data.WriteString(input);
@@ -208,8 +223,16 @@ bool ITypesUtil::Marshalling(const DistributedRdb::RdbSyncerParam &param, Messag
         ZLOGE("RdbStoreParam write type failed");
         return false;
     }
+    if (!parcel.WriteUInt8Vector(param.password_)) {
+        ZLOGE("RdbStoreParam write password failed");
+        return false;
+    }
     if (!parcel.WriteBool(param.isAutoSync_)) {
         ZLOGE("RdbStoreParam write auto sync failed");
+        return false;
+    }
+    if (!parcel.WriteBool(param.isEncrypt_)) {
+        ZLOGE("RdbStoreParam write encrypt sync failed");
         return false;
     }
     return true;
@@ -241,8 +264,16 @@ bool ITypesUtil::Unmarshalling(DistributedRdb::RdbSyncerParam &param, MessagePar
         ZLOGE("RdbStoreParam read type failed");
         return false;
     }
+    if (!parcel.ReadUInt8Vector(&(param.password_))) {
+        ZLOGE("RdbStoreParam read password failed");
+        return false;
+    }
     if (!parcel.ReadBool(param.isAutoSync_)) {
         ZLOGE("RdbStoreParam read auto sync failed");
+        return false;
+    }
+    if (!parcel.ReadBool(param.isEncrypt_)) {
+        ZLOGE("RdbStoreParam read encrypt sync failed");
         return false;
     }
     return true;
@@ -355,6 +386,11 @@ bool ITypesUtil::Marshalling(const Options &input, MessageParcel &data)
         return false;
     }
 
+    if (!Marshalling(input.policies, data)) {
+        ZLOGE("write policies failed");
+        return false;
+    }
+
     std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(sizeof(input));
     Options *target = reinterpret_cast<Options *>(buffer.get());
     target->createIfMissing = input.createIfMissing;
@@ -381,6 +417,11 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
         return false;
     }
 
+    if (!Unmarshalling(output.policies, data)) {
+        ZLOGE("read policies failed");
+        return false;
+    }
+
     const Options *source = reinterpret_cast<const Options *>(data.ReadRawData(sizeof(output)));
     if (source == nullptr) {
         return false;
@@ -394,6 +435,32 @@ bool ITypesUtil::Unmarshalling(Options &output, MessageParcel &data)
     output.area = source->area;
     output.kvStoreType = source->kvStoreType;
     output.syncable = source->syncable;
+    return true;
+}
+
+bool ITypesUtil::Marshalling(const SyncPolicy &input, MessageParcel &data)
+{
+    if (!data.WriteUint32(input.type)) {
+        ZLOGE("write policy type failed");
+        return false;
+    }
+    if (!Marshalling(input.value, data)) {
+        ZLOGE("write policy value failed");
+        return false;
+    }
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(SyncPolicy &output, MessageParcel &data)
+{
+    if (!data.ReadUint32(output.type)) {
+        ZLOGE("read policy type failed");
+        return false;
+    }
+    if (!Unmarshalling(output.value, data)) {
+        ZLOGE("read policy value failed");
+        return false;
+    }
     return true;
 }
 
