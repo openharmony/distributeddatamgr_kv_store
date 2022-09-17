@@ -582,4 +582,14 @@ bool SingleVerSyncTaskContext::IsCurrentSyncTaskCanBeSkippedInner(const SyncOper
     }
     return false;
 }
+
+void SingleVerSyncTaskContext::StartFeedDogForGetData(uint32_t sessionId)
+{
+    stateMachine_->StartFeedDogForGetData(sessionId);
+}
+
+void SingleVerSyncTaskContext::StopFeedDogForGetData()
+{
+    stateMachine_->StopFeedDogForGetData();
+}
 } // namespace DistributedDB

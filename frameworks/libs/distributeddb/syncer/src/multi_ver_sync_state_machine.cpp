@@ -303,7 +303,7 @@ int MultiVerSyncStateMachine::PrepareNextSyncTask()
     return StartSyncInner();
 }
 
-void MultiVerSyncStateMachine::SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
+void MultiVerSyncStateMachine::SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
     (void)sessionId;
     (void)sequenceId;

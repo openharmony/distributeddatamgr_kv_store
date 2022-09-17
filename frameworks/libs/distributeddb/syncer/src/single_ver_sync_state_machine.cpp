@@ -288,7 +288,7 @@ int SingleVerSyncStateMachine::PrepareNextSyncTask()
     return E_OK;
 }
 
-void SingleVerSyncStateMachine::SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
+void SingleVerSyncStateMachine::SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
     dataSync_->SendSaveDataNotifyPacket(context_,
         std::min(context_->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT), sessionId, sequenceId, inMsgId);
