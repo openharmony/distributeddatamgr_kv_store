@@ -37,8 +37,10 @@ namespace {
     const std::string CREATE_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS version_data(key BLOB, value BLOB, oper_flag INTEGER, version INTEGER, " \
         "timestamp INTEGER, ori_timestamp INTEGER, hash_key BLOB, " \
-        "PRIMARY key(hash_key, version));" \
-        "CREATE INDEX IF NOT EXISTS version_index ON version_data (version);" \
+        "PRIMARY key(hash_key, version));";
+    const std::string CREATE_TABLE_VERSION_INDEX_SQL =
+        "CREATE INDEX IF NOT EXISTS version_index ON version_data (version);";
+    const std::string CREATE_TABLE_FLAG_INDEX_SQL =
         "CREATE INDEX IF NOT EXISTS flag_index ON version_data (oper_flag);";
 
     const std::size_t MAX_READ_CONNECT_NUM = 16;
@@ -95,6 +97,8 @@ int SQLiteMultiVerDataStorage::Open(const Property &property)
         DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     std::vector<std::string> tableVect;
     tableVect.push_back(CREATE_TABLE_SQL);
+    tableVect.push_back(CREATE_TABLE_VERSION_INDEX_SQL);
+    tableVect.push_back(CREATE_TABLE_FLAG_INDEX_SQL);
 
     OpenDbProperties option = {uri_, property.isNeedCreate, false, tableVect, property.cipherType, property.passwd};
     sqlite3 *db = nullptr;

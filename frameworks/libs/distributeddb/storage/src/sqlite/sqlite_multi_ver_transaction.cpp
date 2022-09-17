@@ -37,9 +37,13 @@ namespace DistributedDB {
 const std::string SQLiteMultiVerTransaction::CREATE_TABLE_SQL =
     "CREATE TABLE IF NOT EXISTS version_data(key BLOB, value BLOB, oper_flag INTEGER, version INTEGER, " \
     "timestamp INTEGER, ori_timestamp INTEGER, hash_key BLOB, " \
-    "PRIMARY key(hash_key, version));" \
-    "CREATE INDEX IF NOT EXISTS version_index ON version_data (version);" \
-    "CREATE INDEX IF NOT EXISTS flag_index ON version_data (oper_flag);";
+    "PRIMARY key(hash_key, version));";
+
+    const std::string SQLiteMultiVerTransaction::CREATE_TABLE_VERSION_INDEX_SQL =
+        "CREATE INDEX IF NOT EXISTS version_index ON version_data (version);";
+
+    const std::string SQLiteMultiVerTransaction::CREATE_TABLE_FLAG_INDEX_SQL =
+        "CREATE INDEX IF NOT EXISTS flag_index ON version_data (oper_flag);";
 
 const std::string SQLiteMultiVerTransaction::SELECT_ONE_SQL =
     "SELECT oper_flag, key, value FROM version_data WHERE hash_key=? AND (timestamp>? OR (timestamp=? AND rowid>=?)) " \
@@ -138,6 +142,8 @@ int SQLiteMultiVerTransaction::Initialize(const std::string &uri,
 {
     std::vector<std::string> tableVect;
     tableVect.push_back(CREATE_TABLE_SQL);
+    tableVect.push_back(CREATE_TABLE_VERSION_INDEX_SQL);
+    tableVect.push_back(CREATE_TABLE_FLAG_INDEX_SQL);
     OpenDbProperties option = {uri, true, false, tableVect, type, passwd};
     int errCode = SQLiteUtils::OpenDatabase(option, db_);
     if (errCode != E_OK) {

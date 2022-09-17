@@ -395,4 +395,12 @@ bool DBCommon::IsSameCipher(CipherType srcType, CipherType inputType)
     }
     return false;
 }
+
+bool DBCommon::CheckIsAlnumAndUnderscore(const std::string &text)
+{
+    auto iter = std::find_if_not(text.begin(), text.end(), [](char c) {
+            return (std::isalnum(c) || c == '_');
+        });
+    return iter == text.end();
+}
 } // namespace DistributedDB

@@ -67,6 +67,8 @@ public:
         const std::string &nextPattern);
 
     static bool IsSameCipher(CipherType srcType, CipherType inputType);
+
+    static bool CheckIsAlnumAndUnderscore(const std::string &text);
 };
 
 // Define short macro substitute for original long expression for convenience of using

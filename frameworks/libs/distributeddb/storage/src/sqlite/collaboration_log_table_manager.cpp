@@ -111,10 +111,11 @@ std::string CollaborationLogTableManager::GetPrimaryKeySql(const TableInfo &tabl
     return "PRIMARY KEY(hash_key)";
 }
 
-std::string CollaborationLogTableManager::GetIndexSql(const TableInfo &table)
+void CollaborationLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
 {
-    return SqliteLogTableManager::GetIndexSql(table) +
-        "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "datakey_index ON " + GetLogTableName(table) +
-        "(data_key);";
+    SqliteLogTableManager::GetIndexSql(table, schema);
+    std::string dataKeyIndex = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "datakey_index ON " +
+        GetLogTableName(table) + "(data_key);";
+    schema.emplace_back(dataKeyIndex);
 }
 }

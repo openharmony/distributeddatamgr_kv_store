@@ -34,7 +34,7 @@ public:
     int CreateRelationalLogTable(sqlite3 *db, const TableInfo &table);
 
 protected:
-    virtual std::string GetIndexSql(const TableInfo &table);
+    virtual void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema);
     std::string GetLogTableName(const TableInfo &table) const;
 
 private:

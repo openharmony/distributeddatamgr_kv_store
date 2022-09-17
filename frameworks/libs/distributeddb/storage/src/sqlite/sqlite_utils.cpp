@@ -419,17 +419,27 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
     if (db == nullptr) {
         return -E_INVALID_DB;
     }
-    char *errMsg = nullptr;
-    int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
-    if (errCode != SQLITE_OK) {
-        LOGE("[SQLiteUtils][ExecuteSQL] failed(%d), sys(%d)", errCode, errno);
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("[SQLiteUtils][ExecuteSQL] prepare statement failed(%d), sys(%d)", errCode, errno);
+        return errCode;
     }
 
-    if (errMsg != nullptr) {
-        sqlite3_free(errMsg);
-        errMsg = nullptr;
-    }
-    return SQLiteUtils::MapSQLiteErrno(errCode);
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            LOGE("[SQLiteUtils][ExecuteSQL] execute statement failed(%d), sys(%d)", errCode, errno);
+            break;
+        }
+    } while (true);
+
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 
 int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool isMemDb, uint32_t iterTimes)
@@ -742,16 +752,6 @@ int AnalysisSchemaIndex(sqlite3 *db, const std::string &tableName, TableInfo &ta
     return E_OK;
 }
 
-namespace {
-bool CheckFieldName(const std::string &fieldName)
-{
-    auto iter = std::find_if_not(fieldName.begin(), fieldName.end(), [](char c) {
-            return (std::isalnum(c) || c == '_');
-        });
-    return iter == fieldName.end();
-}
-}
-
 int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 {
     FieldInfo field;
@@ -759,7 +759,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 
     std::string tmpString;
     (void) SQLiteUtils::GetColumnTextValue(statement, 1, tmpString);  // 1 means column name index
-    if (!CheckFieldName(tmpString)) {
+    if (!DBCommon::CheckIsAlnumAndUnderscore(tmpString)) {
         LOGE("[AnalysisSchema] unsupported field name.");
         return -E_NOT_SUPPORT;
     }
@@ -822,6 +822,11 @@ int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, Table
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
+    }
+
+    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
+        LOGE("[AnalysisSchema] unsupported table name.");
+        return -E_NOT_SUPPORT;
     }
 
     int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table);
@@ -1409,13 +1414,13 @@ int SQLiteUtils::CloneIndexes(sqlite3 *db, const std::string &oriTableName, cons
         return errCode;
     }
 
-    sql.clear();
+    std::vector<std::string> indexes;
     while (true) {
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::string indexSql;
             (void)GetColumnTextValue(stmt, 0, indexSql);
-            sql += indexSql;
+            indexes.emplace_back(indexSql);
             continue;
         }
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
@@ -1428,9 +1433,12 @@ int SQLiteUtils::CloneIndexes(sqlite3 *db, const std::string &oriTableName, cons
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
-    if (errCode != E_OK) {
-        LOGE("[SQLite] execute create table sql failed");
+
+    for (const auto &it : indexes) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, it);
+        if (errCode != E_OK) {
+            LOGE("[SQLite] execute clone index sql failed");
+        }
     }
     return errCode;
 }
