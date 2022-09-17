@@ -33,6 +33,7 @@ public:
         const std::string &bundleName, const std::string &sessionId, sptr<IObjectRevokeSaveCallback> callback) = 0;
     virtual int32_t RegisterDataObserver(
         const std::string &bundleName, const std::string &sessionId, sptr<IObjectChangeCallback> callback) = 0;
+    virtual int32_t UnregisterDataChangeObserver(const std::string &bundleName, const std::string &sessionId) = 0;
 };
 } // namespace OHOS::DistributedObject
 #endif
