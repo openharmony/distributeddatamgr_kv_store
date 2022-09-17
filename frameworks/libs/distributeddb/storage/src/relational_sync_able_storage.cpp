@@ -515,7 +515,7 @@ int RelationalSyncAbleStorage::GetSecurityOption(SecurityOption &option) const
         option = securityOption_;
         return E_OK;
     }
-    std::string dbPath = storageEngine_->GetProperties().GetStringProp(DBProperties::IDENTIFIER_DIR, "");
+    std::string dbPath = storageEngine_->GetProperties().GetStringProp(DBProperties::DATA_DIR, "");
     int errCode = RuntimeContext::GetInstance()->GetSecurityOption(dbPath, securityOption_);
     if (errCode == E_OK) {
         option = securityOption_;

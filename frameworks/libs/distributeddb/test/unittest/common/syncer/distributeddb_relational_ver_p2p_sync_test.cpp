@@ -22,6 +22,7 @@
 #include "isyncer.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
+#include "process_system_api_adapter_impl.h"
 #include "relational_schema_object.h"
 #include "relational_store_manager.h"
 #include "relational_virtual_device.h"
@@ -1899,5 +1900,74 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSiz
     Query query = Query::Select(g_tableName).OrderByWriteTime(true);;
     EXPECT_EQ(g_rdbDelegatePtr->Sync({DEVICE_B}, DistributedDB::SYNC_MODE_PUSH_ONLY, query, nullptr, false),
         NOT_SUPPORT);
+}
+
+/**
+* @tc.name: RDBSecurityOptionCheck001
+* @tc.desc: Test sync with security option.
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck001, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkCheckDeviceSecurityAbility([](const std::string &devId, const SecurityOption &option) {
+        return true;
+    });
+    adapter->ForkGetSecurityOption([](const std::string &filePath, SecurityOption &option) {
+        if (filePath.empty()) {
+            option = { SecurityLabel::NOT_SET, SecurityFlag::ECE };
+        } else {
+            option = { SecurityLabel::S2, SecurityFlag::ECE };
+        }
+        return OK;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    BlockSync(SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
+
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+}
+
+/**
+* @tc.name: RDBSecurityOptionCheck002
+* @tc.desc: Test remote query with security option.
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestSize.Level1)
+{
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkCheckDeviceSecurityAbility([](const std::string &devId, const SecurityOption &option) {
+        return true;
+    });
+    adapter->ForkGetSecurityOption([](const std::string &filePath, SecurityOption &option) {
+        if (filePath.empty()) {
+            LOGD("return s0");
+            option = { SecurityLabel::NOT_SET, SecurityFlag::ECE };
+        } else {
+            LOGD("return s2");
+            option = { SecurityLabel::S2, SecurityFlag::ECE };
+        }
+        return OK;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM " + g_tableName;
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), OK);
+
+    EXPECT_NE(result, nullptr);
+
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
 }
 #endif

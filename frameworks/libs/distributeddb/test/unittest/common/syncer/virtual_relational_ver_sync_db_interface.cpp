@@ -14,8 +14,9 @@
  */
 #ifdef RELATIONAL_STORE
 #include "db_common.h"
-#include "virtual_relational_ver_sync_db_interface.h"
 #include "generic_single_ver_kv_entry.h"
+#include "runtime_context.h"
+#include "virtual_relational_ver_sync_db_interface.h"
 #include "virtual_single_ver_sync_db_Interface.h"
 
 namespace DistributedDB {
@@ -369,6 +370,11 @@ int ObjectData::GetDataValue(const std::string &fieldName, DataValue &value) con
     }
     value = fieldData[fieldName];
     return E_OK;
+}
+
+int VirtualRelationalVerSyncDBInterface::GetSecurityOption(SecurityOption &option) const
+{
+    return RuntimeContext::GetInstance()->GetSecurityOption("", option);
 }
 }
 #endif

@@ -337,8 +337,9 @@ int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Messa
         }
         if (!CheckRemoteSecurityOption(targetDev, remoteOption, localOption)) {
             errCode =  -E_SECURITY_OPTION_CHECK_ERROR;
+        } else {
+            errCode = E_OK;
         }
-        errCode = E_OK;
     } while (false);
     if (errCode != E_OK) {
         DoFinished(sessionId, errCode);
