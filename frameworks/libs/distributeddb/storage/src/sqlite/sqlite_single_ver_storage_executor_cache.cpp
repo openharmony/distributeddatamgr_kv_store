@@ -162,9 +162,9 @@ int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) c
 
     std::string sql;
     if (executorState_ == ExecutorState::MAIN_ATTACH_CACHE) {
-        sql = REMOVE_DEV_DATA_SQL;
+        sql = dataItem.value.empty() ? REMOVE_ALL_DEV_DATA_SQL : REMOVE_DEV_DATA_SQL;
     } else if (executorState_ == ExecutorState::CACHE_ATTACH_MAIN)  {
-        sql = REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE;
+        sql = dataItem.value.empty() ? REMOVE_ALL_DEV_DATA_SQL_FROM_CACHEHANDLE: REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE;
     } else {
         return -E_INVALID_ARGS;
     }
@@ -176,10 +176,12 @@ int SQLiteSingleVerStorageExecutor::MigrateRmDevData(const DataItem &dataItem) c
         return CheckCorruptedStatus(errCode);
     }
 
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, dataItem.value, true);
-    if (errCode != E_OK) {
-        LOGE("[singerVerExecutor][MiRmData] Bind dev for sync data failed:%d", errCode);
-        goto END;
+    if (!dataItem.value.empty()) {
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, dataItem.value, true);
+        if (errCode != E_OK) {
+            LOGE("[singerVerExecutor][MiRmData] Bind dev for sync data failed:%d", errCode);
+            goto END;
+        }
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);

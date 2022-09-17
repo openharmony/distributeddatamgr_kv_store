@@ -451,7 +451,9 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
         LOGE("%s", INVALID_CONNECTION.c_str());
         return DB_ERROR;
     }
-
+    if (device.empty() || device.length() > DBConstant::MAX_DEV_LENGTH) {
+        return INVALID_ARGS;
+    }
     int errCode = conn_->Pragma(PRAGMA_RM_DEVICE_DATA,
         const_cast<void *>(static_cast<const void *>(&device)));
     if (errCode != E_OK) {
@@ -929,6 +931,17 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
 
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
 {
-    return OK;
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION.c_str());
+        return DB_ERROR;
+    }
+
+    std::string device; // Empty device for remove all device data
+    int errCode = conn_->Pragma(PRAGMA_RM_DEVICE_DATA,
+        const_cast<void *>(static_cast<const void *>(&device)));
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] Remove device data failed:%d", errCode);
+    }
+    return TransferDBErrno(errCode);
 }
 } // namespace DistributedDB

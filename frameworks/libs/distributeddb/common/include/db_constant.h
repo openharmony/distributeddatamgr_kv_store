@@ -109,6 +109,11 @@ public:
 
     static const std::string SYSTEM_TABLE_PREFIX;
 
+    // Prefix Key in meta db
+    static const std::string DEVICEID_PREFIX_KEY;
+    static const std::string QUERY_SYNC_PREFIX_KEY;
+    static const std::string DELETE_SYNC_PREFIX_KEY;
+
     static constexpr uint32_t AUTO_SYNC_TIMEOUT = 5000; // 5s
     static constexpr uint32_t MANUAL_SYNC_TIMEOUT = 5000; // 5s
 

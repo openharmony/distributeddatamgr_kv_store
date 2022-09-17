@@ -1386,29 +1386,74 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
     return errCode;
 }
 
-int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &deviceName,
-    std::vector<Entry> &entries) const
+int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre,
+    std::vector<std::string> &deviceId) const
 {
     sqlite3_stmt *statement = nullptr;
-    std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
-        SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES_BY_DEV);
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    const std::string &sqlStr = (attachMetaMode_ ? SELECT_ATTACH_META_KEYS_BY_PREFIX : SELECT_META_KEYS_BY_PREFIX);
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sqlStr, statement);
     if (errCode != E_OK) {
-        LOGE("Get all entries statement failed:%d", errCode);
+        LOGE("[SingleVerExe][GetAllKey] Get statement failed:%d", errCode);
         return errCode;
     }
 
-    // When removing device data in cache mode, key is "remove", value is deviceID's hash string.
-    // Therefore, no need to transfer hash string when migrating.
-    std::string devName = isSyncMigrating_ ? deviceName : DBCommon::TransferHashString(deviceName);
-    std::vector<uint8_t> devVect(devName.begin(), devName.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
+    Key keyPrefix;
+    DBCommon::StringToVector(keyPre + '%', keyPrefix);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyPrefix);
     if (errCode != E_OK) {
-        LOGE("Failed to bind the synced device for all entries:%d", errCode);
-    } else {
-        errCode = GetAllEntries(statement, entries);
+        LOGE("[SingleVerExe][GetAllKey] Bind statement failed:%d", errCode);
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return errCode;
     }
 
+    std::vector<Key> keys;
+    errCode = GetAllKeys(statement, keys);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    for (const auto &it : keys) {
+        if (it.size() > keyPre.size()) {
+            deviceId.push_back(std::string(it.begin() + keyPre.size(), it.end()));
+        } else {
+            LOGW("[SingleVerExe][GetAllKey] Get invalid key, size=%zu", it.size());
+        }
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &deviceName,
+    std::vector<Entry> &entries) const
+{
+    int errCode = E_OK;
+    sqlite3_stmt *statement = nullptr;
+    if (deviceName.empty()) {
+        std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
+        SELECT_ALL_SYNC_ENTRIES_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES);
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            LOGE("Get all entries statement failed:%d", errCode);
+            return errCode;
+        }
+    } else {
+        std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
+            SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES_BY_DEV);
+        int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            LOGE("Get all entries statement failed:%d", errCode);
+            return errCode;
+        }
+
+        // When removing device data in cache mode, key is "remove", value is deviceID's hash string.
+        // Therefore, no need to transfer hash string when migrating.
+        std::string devName = isSyncMigrating_ ? deviceName : DBCommon::TransferHashString(deviceName);
+        std::vector<uint8_t> devVect(devName.begin(), devName.end());
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
+        if (errCode != E_OK) {
+            LOGE("Failed to bind the synced device for all entries:%d", errCode);
+            goto END;
+        }
+    }
+
+    errCode = GetAllEntries(statement, entries);
+END:
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
@@ -1719,20 +1764,27 @@ END:
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName)
 {
-    // Transfer the device name.
-    std::string devName = DBCommon::TransferHashString(deviceName);
+    int errCode = E_OK;
     sqlite3_stmt *statement = nullptr;
-    std::vector<uint8_t> devVect(devName.begin(), devName.end());
+    if (deviceName.empty()) {
+        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_ALL_DEV_DATA_SQL, statement);
+        if (errCode != E_OK) {
+            goto ERROR;
+        }
+    } else {
+        // Transfer the device name.
+        std::string devName = DBCommon::TransferHashString(deviceName);
+        std::vector<uint8_t> devVect(devName.begin(), devName.end());
+        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
+        if (errCode != E_OK) {
+            goto ERROR;
+        }
 
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
-    if (errCode != E_OK) {
-        goto ERROR;
-    }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // only one arg.
-    if (errCode != E_OK) {
-        LOGE("Failed to bind the removed device:%d", errCode);
-        goto ERROR;
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // only one arg.
+        if (errCode != E_OK) {
+            LOGE("Failed to bind the removed device:%d", errCode);
+            goto ERROR;
+        }
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
@@ -2164,5 +2216,24 @@ uint64_t SQLiteSingleVerStorageExecutor::GetLogFileSize() const
         return 0;
     }
     return fileSize;
+}
+
+int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::vector<std::string> &deviceList)
+{
+    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, deviceList);
+    if (errCode != E_OK) {
+        LOGE("Get meta data key failed. err=%d", errCode);
+        return errCode;
+    }
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, deviceList);
+    if (errCode != E_OK) {
+        LOGE("Get meta data key failed. err=%d", errCode);
+        return errCode;
+    }
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, deviceList);
+    if (errCode != E_OK) {
+        LOGE("Get meta data key failed. err=%d", errCode);
+    }
+    return errCode;
 }
 } // namespace DistributedDB

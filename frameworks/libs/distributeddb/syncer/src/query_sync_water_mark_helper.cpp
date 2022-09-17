@@ -29,9 +29,6 @@ namespace {
     // WaterMark Version
     constexpr uint32_t QUERY_WATERMARK_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_6_0;
     constexpr uint32_t DELETE_WATERMARK_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_3_0;
-    // Prefix Key in db
-    const std::string QUERY_SYNC_PREFIX_KEY = "querySync";
-    const std::string DELETE_SYNC_PREFIX_KEY = "deleteSync";
 }
 
 QuerySyncWaterMarkHelper::QuerySyncWaterMarkHelper()
@@ -297,7 +294,7 @@ void QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &deviceId
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
     if (deviceIdToHashQuerySyncIdMap_[deviceId].count(queryId) == 0) {
         // do not modify this
-        hashQuerySyncId = QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId) + queryId;
+        hashQuerySyncId = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId) + queryId;
         deviceIdToHashQuerySyncIdMap_[deviceId][queryId] = hashQuerySyncId;
     } else {
         hashQuerySyncId = deviceIdToHashQuerySyncIdMap_[deviceId][queryId];
@@ -409,7 +406,7 @@ void QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceI
 {
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     if (deviceIdToHashDeleteSyncIdMap_.count(deviceId) == 0) {
-        hashDeleteSyncId = DELETE_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        hashDeleteSyncId = DBConstant::DELETE_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
         deviceIdToHashDeleteSyncIdMap_.insert(std::pair<DeviceID, DeviceID>(deviceId, hashDeleteSyncId));
     } else {
         hashDeleteSyncId = deviceIdToHashDeleteSyncIdMap_[deviceId];
@@ -459,12 +456,12 @@ uint64_t QuerySyncWaterMarkHelper::CalculateDeleteWaterMarkSize()
 
 std::string QuerySyncWaterMarkHelper::GetQuerySyncPrefixKey()
 {
-    return QUERY_SYNC_PREFIX_KEY;
+    return DBConstant::QUERY_SYNC_PREFIX_KEY;
 }
 
 std::string QuerySyncWaterMarkHelper::GetDeleteSyncPrefixKey()
 {
-    return DELETE_SYNC_PREFIX_KEY;
+    return DBConstant::DELETE_SYNC_PREFIX_KEY;
 }
 
 int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Key> &querySyncIds)
@@ -518,7 +515,7 @@ int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, 
     // lock prevent other thread modify queryWaterMark at this moment
     {
         std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
-        std::string prefixKeyStr = QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
         if (!tableName.empty()) {
             std::string hashTableName = DBCommon::TransferHashString(tableName);
             std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
