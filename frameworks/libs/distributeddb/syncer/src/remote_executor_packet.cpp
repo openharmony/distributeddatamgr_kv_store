@@ -155,6 +155,17 @@ int RemoteExecutorRequestPacket::DeSerialization(Parcel &parcel)
     return E_OK;
 }
 
+RemoteExecutorRequestPacket* RemoteExecutorRequestPacket::Create()
+{
+    return new (std::nothrow) RemoteExecutorRequestPacket();
+}
+
+void RemoteExecutorRequestPacket::Release(RemoteExecutorRequestPacket *&packet)
+{
+    delete packet;
+    packet = nullptr;
+}
+
 RemoteExecutorAckPacket::RemoteExecutorAckPacket()
 {
 }

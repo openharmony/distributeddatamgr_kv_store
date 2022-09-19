@@ -55,6 +55,10 @@ public:
 
     int DeSerialization(Parcel &parcel) override;
 
+    static RemoteExecutorRequestPacket* Create();
+
+    static void Release(RemoteExecutorRequestPacket *&packet);
+
     static const uint32_t REQUEST_PACKET_VERSION_V1 = SOFTWARE_VERSION_RELEASE_6_0;
     static const uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1;
     static const uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V2;

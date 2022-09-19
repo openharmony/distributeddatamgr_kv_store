@@ -143,12 +143,12 @@ void RemoteExecutor::Close()
 {
     closed_ = true;
     LOGD("[RemoteExecutor][Close] close enter");
+    RemoveAllTask(-E_BUSY);
+    ClearInnerSource();
     {
         std::unique_lock<std::mutex> lock(msgQueueLock_);
         clearCV_.wait(lock, [this] { return workingThreadsCount_ == 0; });
     }
-    RemoveAllTask(-E_BUSY);
-    ClearInnerSource();
     LOGD("[RemoteExecutor][Close] close exist");
 }
 
@@ -301,7 +301,7 @@ int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Messa
     int ackCode = packget->GetAckCode();
     uint32_t sessionId = inMsg->GetSessionId();
     uint32_t sequenceId = inMsg->GetSequenceId();
-    if (!IsPackgetValid(sessionId)) {
+    if (!IsPacketValid(sessionId)) {
         LOGD("[RemoteExecutor][ReceiveRemoteExecutorAck] receive unknown ack");
         return -E_INVALID_ARGS;
     }
@@ -760,7 +760,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
 void RemoteExecutor::ReceiveMessageInner(const std::string &targetDev, Message *inMsg)
 {
     int errCode = E_OK;
-    if (inMsg->IsFeedbackError() && IsPackgetValid(inMsg->GetSessionId())) {
+    if (inMsg->IsFeedbackError() && IsPacketValid(inMsg->GetSessionId())) {
         DoFinished(inMsg->GetSessionId(), -inMsg->GetErrorNo());
         delete inMsg;
         inMsg = nullptr;
@@ -783,7 +783,7 @@ void RemoteExecutor::ReceiveMessageInner(const std::string &targetDev, Message *
     }
 }
 
-bool RemoteExecutor::IsPackgetValid(uint32_t sessionId)
+bool RemoteExecutor::IsPacketValid(uint32_t sessionId)
 {
     std::lock_guard<std::mutex> autoLock(taskLock_);
     return taskMap_.find(sessionId) != taskMap_.end() && taskMap_[sessionId].status == Status::WORKING;

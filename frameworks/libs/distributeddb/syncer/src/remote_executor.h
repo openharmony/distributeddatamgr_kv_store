@@ -71,6 +71,11 @@ public:
 
     void NotifyConnectionClosed(uint64_t connectionId);
 
+protected:
+    virtual void ParseOneRequestMessage(const std::string &device, Message *inMsg);
+
+    virtual bool IsPacketValid(uint32_t sessionId);
+
 private:
 
     void ReceiveMessageInner(const std::string &targetDev, Message *inMsg);
@@ -78,8 +83,6 @@ private:
     int ReceiveRemoteExecutorRequest(const std::string &targetDev, Message *inMsg);
 
     int ReceiveRemoteExecutorAck(const std::string &targetDev, Message *inMsg);
-
-    void ParseOneRequestMessage(const std::string &device, Message *inMsg);
 
     int CheckPermissions(const std::string &device);
 
@@ -117,9 +120,8 @@ private:
 
     int FillRequestPacket(RemoteExecutorRequestPacket *packet, uint32_t sessionId, std::string &target);
 
-    bool IsPackgetValid(uint32_t sessionId);
     void ReceiveDataWithValidSession(const std::string &targetDev, uint32_t sessionId, uint32_t sequenceId,
-        const RemoteExecutorAckPacket *packget);
+        const RemoteExecutorAckPacket *packet);
 
     void RemoveTaskByDevice(const std::string &device, std::vector<uint32_t> &removeList);
     void RemoveAllTask(int errCode);
