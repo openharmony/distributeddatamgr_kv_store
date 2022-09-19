@@ -142,7 +142,7 @@ protected:
 
     void DoFeedDogForSync(SyncDirectionFlag flag);
 
-    void DoGetDataNotify(uint32_t sessionId);
+    void DoGetAndSendDataNotify(uint32_t sessionId);
 
     void StopFeedDogForGetDataInner(TimerId timerId);
 
@@ -158,9 +158,8 @@ protected:
     uint32_t currentSyncProctolVersion_;
 
     // For save data notify
-    static const int SAVE_DATA_NOTIFY_INTERVAL = 2000; // 2s for save data notify
-    static const int GET_DATA_NOTIFY_INTERVAL = 2000; // 2s for get data notify
-    static const int MAX_SAVE_DATA_NOTIFY_COUNT = 15; // only notify 15 times
+    static const int DATA_NOTIFY_INTERVAL = 2000; // 2s for save/get data notify
+    static const int MAX_DATA_NOTIFY_COUNT = 15; // only notify 15 times
     static const int SYNC_DIRECTION_NUM = 2; // send receive
     std::mutex saveDataNotifyLock_;
     TimerId saveDataNotifyTimerId_;
