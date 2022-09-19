@@ -30,7 +30,9 @@ SyncStateMachine::SyncStateMachine()
       watchDogStarted_(false),
       currentSyncProctolVersion_(SINGLE_VER_SYNC_PROCTOL_V3),
       saveDataNotifyTimerId_(0),
-      saveDataNotifyCount_(0)
+      saveDataNotifyCount_(0),
+      getDataNotifyTimerId_(0),
+      getDataNotifyCount_(0)
 {
 }
 

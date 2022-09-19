@@ -73,8 +73,8 @@ struct KvStoreConfig {
 
 enum PragmaCmd {
     AUTO_SYNC = 1,
-    SYNC_DEVICES = 2,
-    RM_DEVICE_DATA = 3, // remove the device data synced from remote by device name
+    SYNC_DEVICES = 2, // this cmd will be removed in the future, don't use it
+    RM_DEVICE_DATA = 3, // this cmd will be removed in the future, don't use it
     PERFORMANCE_ANALYSIS_GET_REPORT,
     PERFORMANCE_ANALYSIS_OPEN,
     PERFORMANCE_ANALYSIS_CLOSE,
