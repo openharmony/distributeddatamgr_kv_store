@@ -24,6 +24,7 @@
 #include "icommunicator.h"
 #include "isync_interface.h"
 #include "message.h"
+#include "relational_db_sync_interface.h"
 #include "relational_result_set_impl.h"
 #include "remote_executor_packet.h"
 #include "runtime_context.h"
@@ -133,6 +134,8 @@ private:
     int GetPacketSize(const std::string &device, size_t &packetSize);
     bool CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
         const SecurityOption &localOption);
+    int ResponseRemoteQueryRequest(RelationalDBSyncInterface *storage, const PreparedStmt &stmt,
+        const std::string &device, uint32_t sessionId);
 
     ICommunicator *GetAndIncCommunicator() const;
     ISyncInterface *GetAndIncSyncInterface() const;

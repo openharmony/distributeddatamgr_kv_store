@@ -741,12 +741,12 @@ namespace {
         GenerateSecurityData(labelList, flagList);
 
         // loop local
-        while(!SelectSecurityEnd(localFlagIndex, flagList)) {
+        while (!SelectSecurityEnd(localFlagIndex, flagList)) {
             SecurityOption localOption = SelectSecurityOption(localLabelIndex, localFlagIndex, labelList, flagList);
             // loop remote
             int remoteLabelIndex = 0;
             int remoteFlagIndex = 0;
-            while(!SelectSecurityEnd(remoteFlagIndex, flagList)) {
+            while (!SelectSecurityEnd(remoteFlagIndex, flagList)) {
                 SecurityOption remoteOption = SelectSecurityOption(remoteLabelIndex, remoteFlagIndex,
                     labelList, flagList);
                 /**

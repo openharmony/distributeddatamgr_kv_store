@@ -19,7 +19,6 @@
 #include "db_common.h"
 #include "hash.h"
 #include "prepared_stmt.h"
-#include "relational_db_sync_interface.h"
 #include "semaphore_utils.h"
 #include "sync_generic_interface.h"
 #include "sync_types.h"
@@ -262,39 +261,7 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
         return -E_INVALID_ARGS;
     }
 
-    int errCode = E_OK;
-    size_t packetSize = 0u;
-    errCode = GetPacketSize(device, packetSize);
-    if (errCode != E_OK) {
-        storage->DecRefCount();
-        return errCode;
-    }
-    ContinueToken token = nullptr;
-    uint32_t sequenceId = 1u;
-    SecurityOption option;
-    errCode = storage->GetSecurityOption(option);
-    if (errCode == -E_NOT_SUPPORT) {
-        errCode = E_OK;
-    }
-    if (errCode != E_OK) {
-        LOGD("GetSecurityOption errCode:%d", errCode);
-        storage->DecRefCount();
-        return errCode;
-    }
-    do {
-        RelationalRowDataSet dataSet;
-        errCode = storage->ExecuteQuery(requestPacket->GetPreparedStmt(), packetSize, dataSet, token);
-        if (errCode != E_OK) {
-            LOGE("[RemoteExecutor] call ExecuteQuery failed: %d", errCode);
-            break;
-        }
-        SendMessage sendMessage = { inMsg->GetSessionId(), sequenceId, token == nullptr, option };
-        errCode = ResponseData(std::move(dataSet), sendMessage, device);
-        if (errCode != E_OK) {
-            break;
-        }
-        sequenceId++;
-    } while (token != nullptr);
+    int errCode = ResponseRemoteQueryRequest(storage, requestPacket->GetPreparedStmt(), device, inMsg->GetSessionId());
     storage->DecRefCount();
     return errCode;
 }
@@ -952,5 +919,41 @@ bool RemoteExecutor::CheckRemoteSecurityOption(const std::string &device, const 
             localOption.securityLabel, localOption.securityFlag);
     }
     return res;
+}
+
+int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storage, const PreparedStmt &stmt,
+    const std::string &device, uint32_t sessionId)
+{
+    size_t packetSize = 0u;
+    int errCode = GetPacketSize(device, packetSize);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    SecurityOption option;
+    errCode = storage->GetSecurityOption(option);
+    if (errCode == -E_NOT_SUPPORT) {
+        errCode = E_OK;
+    }
+    if (errCode != E_OK) {
+        LOGD("GetSecurityOption errCode:%d", errCode);
+        return errCode;
+    }
+    ContinueToken token = nullptr;
+    uint32_t sequenceId = 1u;
+    do {
+        RelationalRowDataSet dataSet;
+        errCode = storage->ExecuteQuery(stmt, packetSize, dataSet, token);
+        if (errCode != E_OK) {
+            LOGE("[RemoteExecutor] call ExecuteQuery failed: %d", errCode);
+            break;
+        }
+        SendMessage sendMessage = { sessionId, sequenceId, token == nullptr, option };
+        errCode = ResponseData(std::move(dataSet), sendMessage, device);
+        if (errCode != E_OK) {
+            break;
+        }
+        sequenceId++;
+    } while (token != nullptr); 
+    return E_OK;
 }
 }
