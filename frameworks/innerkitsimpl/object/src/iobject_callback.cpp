@@ -29,6 +29,10 @@ void ObjectSaveCallbackProxy::Completed(const std::map<std::string, int32_t> &re
 {
     MessageParcel data;
     MessageParcel reply;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
     if (!ITypesUtil::Marshal(data, results)) {
         ZLOGE("Marshalling failed");
         return;
@@ -64,6 +68,12 @@ int ObjectSaveCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
 {
     ZLOGI("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
+    auto localDescriptor = GetDescriptor();
+    auto remoteDescriptor = data.ReadInterfaceToken();
+    if (remoteDescriptor != localDescriptor) {
+        ZLOGE("interface token is not equal");
+        return -1;
+    }
     switch (code) {
         case COMPLETED: {
             std::map<std::string, int32_t> results;
@@ -85,6 +95,10 @@ void ObjectRevokeSaveCallbackProxy::Completed(int32_t status)
 {
     MessageParcel data;
     MessageParcel reply;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
     if (!ITypesUtil::Marshal(data, status)) {
         ZLOGE("write descriptor failed");
         return;
@@ -100,6 +114,12 @@ int ObjectRevokeSaveCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
 {
     ZLOGI("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
+    auto localDescriptor = GetDescriptor();
+    auto remoteDescriptor = data.ReadInterfaceToken();
+    if (remoteDescriptor != localDescriptor) {
+        ZLOGE("interface token is not equal");
+        return -1;
+    }
     switch (code) {
         case COMPLETED: {
             int32_t status;
@@ -121,6 +141,12 @@ int ObjectRetrieveCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
 {
     ZLOGI("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
+    auto localDescriptor = GetDescriptor();
+    auto remoteDescriptor = data.ReadInterfaceToken();
+    if (remoteDescriptor != localDescriptor) {
+        ZLOGE("interface token is not equal");
+        return -1;
+    }
     switch (code) {
         case COMPLETED: {
             std::map<std::string, std::vector<uint8_t>> results;
@@ -142,6 +168,10 @@ void ObjectRetrieveCallbackProxy::Completed(const std::map<std::string, std::vec
 {
     MessageParcel data;
     MessageParcel reply;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
     if (!ITypesUtil::Marshal(data, results)) {
         ZLOGE("write descriptor failed");
         return;
@@ -157,6 +187,12 @@ int ObjectChangeCallbackStub::OnRemoteRequest(
     uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option)
 {
     ZLOGI("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
+    auto localDescriptor = GetDescriptor();
+    auto remoteDescriptor = data.ReadInterfaceToken();
+    if (remoteDescriptor != localDescriptor) {
+        ZLOGE("interface token is not equal");
+        return -1;
+    }
     switch (code) {
         case COMPLETED: {
             std::map<std::string, std::vector<uint8_t>> results;
@@ -176,6 +212,10 @@ void ObjectChangeCallbackProxy::Completed(const std::map<std::string, std::vecto
 {
     MessageParcel data;
     MessageParcel reply;
+    if (!data.WriteInterfaceToken(GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return;
+    }
     if (!ITypesUtil::Marshal(data, results)) {
         ZLOGE("write descriptor failed");
         return;
