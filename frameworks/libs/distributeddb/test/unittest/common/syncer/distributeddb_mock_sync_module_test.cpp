@@ -928,6 +928,21 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 }
 
 /**
+* @tc.name: mock remote query 002
+* @tc.desc: Test RemoteExecutor response failed when closing
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
+{
+    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    executor->CallResponseFailed(0, 0, 0, "DEVICE");
+    RefObject::KillAndDecObjRef(executor);
+}
+
+/**
  * @tc.name: SyncTaskContextCheck001
  * @tc.desc: test context check task can be skipped in push mode.
  * @tc.type: FUNC

@@ -24,6 +24,11 @@ public:
     MOCK_METHOD2(ParseOneRequestMessage, void(const std::string &, Message *));
 
     MOCK_METHOD1(IsPacketValid, bool(uint32_t));
+
+    void CallResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device)
+    {
+        RemoteExecutor::ResponseFailed(errCode, sessionId, sequenceId, device);
+    }
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_META_DATA_H

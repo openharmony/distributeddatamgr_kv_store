@@ -76,6 +76,8 @@ protected:
 
     virtual bool IsPacketValid(uint32_t sessionId);
 
+    void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
+
 private:
 
     void ReceiveMessageInner(const std::string &targetDev, Message *inMsg);
@@ -101,7 +103,6 @@ private:
 
     int RequestStart(uint32_t sessionId);
 
-    void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
     int ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
         const std::string &device);
     int ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,

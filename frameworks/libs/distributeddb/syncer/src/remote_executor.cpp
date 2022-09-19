@@ -540,10 +540,7 @@ void RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t se
     }
     packet->SetAckCode(errCode);
     packet->SetLastAck();
-    errCode = ResponseStart(packet, sessionId, sequenceId, device);
-    if (errCode != E_OK) {
-        delete packet;
-    }
+    (void) ResponseStart(packet, sessionId, sequenceId, device);
 }
 
 int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
