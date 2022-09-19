@@ -2054,16 +2054,4 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestS
 {
     TestWithSecurityCheck(true);
 }
-
-/**
-* @tc.name: RDBSecurityOptionCompatibility001
-* @tc.desc: Test sync with security option.
-* @tc.type: FUNC
-* @tc.require: AR000GK58N
-* @tc.author: zhangqiquan
-*/
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCompatibility001, TestSize.Level3)
-{
-    TestWithSecurityCheck(false);
-}
 #endif

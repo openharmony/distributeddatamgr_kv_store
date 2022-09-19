@@ -130,8 +130,8 @@ private:
     void RemoveAllTask(int errCode);
     void RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList);
 
-    int GetPacketSize(const std::string device, size_t &packetSize);
-    bool CheckRemoteSecurityOption(const std::string device, const SecurityOption &remoteOption,
+    int GetPacketSize(const std::string &device, size_t &packetSize);
+    bool CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
         const SecurityOption &localOption);
 
     ICommunicator *GetAndIncCommunicator() const;

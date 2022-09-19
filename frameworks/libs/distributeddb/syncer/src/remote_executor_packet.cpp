@@ -249,7 +249,7 @@ int RemoteExecutorAckPacket::DeSerialization(Parcel &parcel)
     (void) parcel.ReadUInt32(flag_);
     parcel.EightByteAlign();
     (void) rowDataSet_.DeSerialize(parcel);
-    if (flag_ & ACK_FLAG_SECURITY_OPTION != 0) {
+    if ((flag_ & ACK_FLAG_SECURITY_OPTION) != 0) {
         (void) parcel.ReadInt(secLabel_);
         (void) parcel.ReadInt(secFlag_);
     }

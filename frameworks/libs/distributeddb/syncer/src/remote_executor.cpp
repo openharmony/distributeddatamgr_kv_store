@@ -318,9 +318,6 @@ int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Messa
             break;
         }
         SecurityOption remoteOption = packet->GetSecurityOption();
-        int checkCode = E_OK;
-        int storageStatusCode = E_OK;
-        // todo check option here
         auto storage = GetAndIncSyncInterface();
         if (storage == nullptr) {
             errCode = -E_BUSY;
@@ -926,7 +923,7 @@ void RemoteExecutor::RemoveTaskByConnection(uint64_t connectionId, std::vector<u
     }
 }
 
-int RemoteExecutor::GetPacketSize(const std::string device, size_t &packetSize)
+int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize)
 {
     auto *communicator = GetAndIncCommunicator();
     if (communicator == nullptr) {
@@ -939,7 +936,7 @@ int RemoteExecutor::GetPacketSize(const std::string device, size_t &packetSize)
     return E_OK;
 }
 
-bool RemoteExecutor::CheckRemoteSecurityOption(const std::string device, const SecurityOption &remoteOption,
+bool RemoteExecutor::CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
     const SecurityOption &localOption)
 {
     if (remoteOption.securityLabel == SecurityLabel::NOT_SET || localOption.securityLabel == SecurityLabel::NOT_SET) {
