@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "db_common.h"
 #include "generic_single_ver_kv_entry.h"
+#include "relational_remote_query_continue_token.h"
 #include "runtime_context.h"
 #include "virtual_relational_ver_sync_db_interface.h"
 #include "virtual_single_ver_sync_db_Interface.h"
@@ -375,6 +376,14 @@ int ObjectData::GetDataValue(const std::string &fieldName, DataValue &value) con
 int VirtualRelationalVerSyncDBInterface::GetSecurityOption(SecurityOption &option) const
 {
     return RuntimeContext::GetInstance()->GetSecurityOption("", option);
+}
+
+void VirtualRelationalVerSyncDBInterface::ReleaseRemoteQueryContinueToken(ContinueToken &token) const
+{
+    auto remoteToken = static_cast<RelationalRemoteQueryContinueToken *>(token);
+    delete remoteToken;
+    remoteToken = nullptr;
+    token = nullptr;
 }
 }
 #endif

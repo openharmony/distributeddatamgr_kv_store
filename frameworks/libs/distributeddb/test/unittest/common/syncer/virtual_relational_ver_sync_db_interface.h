@@ -118,6 +118,8 @@ public:
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
     int GetSecurityOption(SecurityOption &option) const override;
+
+    void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 private:
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::map<std::string, std::map<std::string, VirtualRowData>> syncData_;

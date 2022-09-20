@@ -766,5 +766,13 @@ const RelationalDBProperties &RelationalSyncAbleStorage::GetRelationalDbProperti
 {
     return storageEngine_->GetProperties();
 }
+
+void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &token) const
+{
+    auto remoteToken = static_cast<RelationalRemoteQueryContinueToken *>(token);
+    delete remoteToken;
+    remoteToken = nullptr;
+    token = nullptr;
+}
 }
 #endif

@@ -930,7 +930,10 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
             break;
         }
         sequenceId++;
-    } while (token != nullptr); 
+    } while (token != nullptr);
+    if (token != nullptr) {
+        storage->ReleaseRemoteQueryContinueToken(token);
+    }
     return E_OK;
 }
 

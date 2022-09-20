@@ -126,6 +126,7 @@ public:
 
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
+    void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
