@@ -57,6 +57,11 @@ namespace {
     const std::string JSON_EXTRACT_BY_PATH_TEST_CREATED = "SELECT json_extract_by_path('{\"field\":0}', '$.field', 0);";
     const std::string DEFAULT_ATTACH_CIPHER = "PRAGMA cipher_default_attach_cipher=";
     const std::string DEFAULT_ATTACH_KDF_ITER = "PRAGMA cipher_default_attach_kdf_iter=5000";
+    const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1;";
+    const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256;";
+    const std::string SHA256_ALGO_REKEY_SQL = "PRAGMA codec_rekey_hmac_algo=SHA256;";
+    const std::string SHA1_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA1;";
+    const std::string SHA256_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA256;";
     const std::string EXPORT_BACKUP_SQL = "SELECT export_database('backup');";
     const std::string CIPHER_CONFIG_SQL = "PRAGMA codec_cipher=";
     const std::string KDF_ITER_CONFIG_SQL = "PRAGMA codec_kdf_iter=";
@@ -141,7 +146,6 @@ int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&db
     if (setWal) {
         sqls.push_back(WAL_MODE_SQL);
     }
-
     std::string fileUrl = DBConstant::SQLITE_URL_PRE + properties.uri;
     int errCode = sqlite3_open_v2(fileUrl.c_str(), &dbTemp, flag, nullptr);
     if (errCode != SQLITE_OK) {
@@ -150,7 +154,7 @@ int SQLiteUtils::CreateDataBase(const OpenDbProperties &properties, sqlite3 *&db
         goto END;
     }
 
-    errCode = SetDataBaseProperty(dbTemp, properties, sqls);
+    errCode = SetDataBaseProperty(dbTemp, properties, setWal, sqls);
     if (errCode != SQLITE_OK) {
         LOGE("[SQLite] SetDataBaseProperty failed: %d", errCode);
         goto END;
@@ -442,33 +446,28 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
     return errCode;
 }
 
-int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool isMemDb, uint32_t iterTimes)
+int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal, uint32_t iterTimes)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
     }
 
-    // in memory mode no need cipher
-    if (isMemDb) {
-        return E_OK;
-    }
-
     if (passwd.GetSize() != 0) {
-#ifndef OMIT_ENCRYPT
-        int errCode = sqlite3_key(db, static_cast<const void *>(passwd.GetData()), static_cast<int>(passwd.GetSize()));
-        if (errCode != SQLITE_OK) {
-            LOGE("[SQLiteUtils][Setkey] config key failed:(%d)", errCode);
-            return SQLiteUtils::MapSQLiteErrno(errCode);
-        }
-
-        errCode = SQLiteUtils::SetCipherSettings(db, type, iterTimes);
+        int errCode = SetKeyInner(db, type, passwd, iterTimes);
         if (errCode != E_OK) {
-            LOGE("[SQLiteUtils][Setkey] set cipher settings failed:%d", errCode);
+            LOGE("[SQLiteUtils][Setkey] set keyInner failed:%d", errCode);
             return errCode;
         }
-#else
-        return -E_NOT_SUPPORT;
-#endif
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][Setkey] set sha algo failed:%d", errCode);
+            return errCode;
+        }
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][Setkey] set rekey sha algo failed:%d", errCode);
+            return errCode;
+        }
     }
 
     // verify key
@@ -481,7 +480,11 @@ int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &pass
         if (errCode == -E_BUSY) {
             return errCode;
         }
-        return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+        errCode = UpdateCipherShaAlgo(db, setWal, type, passwd, iterTimes);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][Setkey] upgrade cipher sha algo failed:%d", errCode);
+            return errCode;
+        }
     }
     return E_OK;
 }
@@ -518,6 +521,34 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
 }
 
 int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
+    const std::string &attachDbAbsPath, const std::string &attachAsName)
+{
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_ATTACH_SQL);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][AttachNewDatabase] set attach sha256 algo failed:%d", errCode);
+        return errCode;
+    }
+    errCode = AttachNewDatabaseInner(db, type, password, attachDbAbsPath, attachAsName);
+    if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_ATTACH_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][AttachNewDatabase] set attach sha1 algo failed:%d", errCode);
+            return errCode;
+        }
+        errCode = AttachNewDatabaseInner(db, type, password, attachDbAbsPath, attachAsName);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][AttachNewDatabase] attach db failed:%d", errCode);
+            return errCode;
+        }
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_ATTACH_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][AttachNewDatabase] set attach sha256 algo failed:%d", errCode);
+        }
+    }
+    return errCode;
+}
+
+int SQLiteUtils::AttachNewDatabaseInner(sqlite3 *db, CipherType type, const CipherPassword &password,
     const std::string &attachDbAbsPath, const std::string &attachAsName)
 {
     // example: "ATTACH '../new.db' AS backup KEY XXXX;"
@@ -927,12 +958,14 @@ int SQLiteUtils::GetVersion(const OpenDbProperties &properties, int &version)
         LOGE("Open database failed: %d, sys:%d", errCode, errno);
         goto END;
     }
-
-    errCode = SQLiteUtils::SetKey(dbTemp, properties.cipherType, properties.passwd, properties.isMemDb,
-        properties.iterTimes);
-    if (errCode != E_OK) {
-        LOGE("Set key failed: %d", errCode);
-        goto END;
+    // in memory mode no need cipher
+    if (!properties.isMemDb) {
+        errCode = SQLiteUtils::SetKey(dbTemp, properties.cipherType, properties.passwd, false,
+            properties.iterTimes);
+        if (errCode != E_OK) {
+            LOGE("Set key failed: %d", errCode);
+            goto END;
+        }
     }
 
     errCode = GetVersion(dbTemp, version);
@@ -1991,7 +2024,7 @@ int SQLiteUtils::ExplainPlan(sqlite3 *db, const std::string &execSql, bool isQue
     return errCode;
 }
 
-int SQLiteUtils::SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties,
+int SQLiteUtils::SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
     const std::vector<std::string> &sqls)
 {
     // Set the default busy handler to retry automatically before returning SQLITE_BUSY.
@@ -1999,12 +2032,13 @@ int SQLiteUtils::SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &proper
     if (errCode != E_OK) {
         return errCode;
     }
-
-    errCode = SQLiteUtils::SetKey(db, properties.cipherType, properties.passwd, properties.isMemDb,
-        properties.iterTimes);
-    if (errCode != E_OK) {
-        LOGD("SQLiteUtils::SetKey fail!!![%d]", errCode);
-        return errCode;
+    if (!properties.isMemDb) {
+        errCode = SQLiteUtils::SetKey(db, properties.cipherType, properties.passwd, setWal,
+            properties.iterTimes);
+        if (errCode != E_OK) {
+            LOGD("SQLiteUtils::SetKey fail!!![%d]", errCode);
+            return errCode;
+        }
     }
 
     for (const auto &sql : sqls) {
@@ -2191,5 +2225,67 @@ void SQLiteUtils::GetSelectCols(sqlite3_stmt *stmt, std::vector<std::string> &co
         const char *name = sqlite3_column_name(stmt, i);
         colNames.emplace_back(name == nullptr ? std::string() : std::string(name));
     }
+}
+
+int SQLiteUtils::SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes)
+{
+#ifndef OMIT_ENCRYPT
+    int errCode = sqlite3_key(db, static_cast<const void *>(passwd.GetData()), static_cast<int>(passwd.GetSize()));
+    if (errCode != SQLITE_OK) {
+        LOGE("[SQLiteUtils][SetKeyInner] config key failed:(%d)", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+
+    errCode = SQLiteUtils::SetCipherSettings(db, type, iterTimes);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteUtils][SetKeyInner] set cipher settings failed:%d", errCode);
+    }
+    return errCode;
+#else
+    return -E_NOT_SUPPORT;
+#endif
+}
+
+int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd, uint32_t iterTimes)
+{
+    if (passwd.GetSize() != 0) {
+        int errCode = SetKeyInner(db, type, passwd, iterTimes);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        // set sha1 algo for old version
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set sha algo failed:%d", errCode);
+            return errCode;
+        }
+        // try to get user version
+        errCode = SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] verify version failed:%d", errCode);
+            if (errno == EKEYREVOKED) {
+                return -E_EKEYREVOKED;
+            }
+            if (errCode == -E_BUSY) {
+                return errCode;
+            }
+            return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+        }
+        // try to update sha algo by rekey operation
+        errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set rekey sha algo failed:%d", errCode);
+            return errCode;
+        }
+        if (setWal) {
+            errCode = SQLiteUtils::ExecuteRawSQL(db, WAL_MODE_SQL);
+            if (errCode != E_OK) {
+                LOGE("[SQLite][UpdateCipherShaAlgo] execute wal sql failed: %d", errCode);
+                return errCode;
+            }
+        }
+        return Rekey(db, passwd);
+    }
+    return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
 }
 } // namespace DistributedDB

@@ -56,6 +56,9 @@ namespace {
     const char DEFAULT_CHAR = 'D';
     const std::string DEFAULT_TEXT = "This is a text";
     const std::vector<uint8_t> DEFAULT_BLOB(ONE_HUNDERED, DEFAULT_CHAR);
+    const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1";
+    const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256";
+    const std::string SHA256_ALGO_REKEY_SQL = "PRAGMA codec_rekey_hmac_algo=SHA256";
 
     RelationalStoreManager g_mgr(APP_ID, USER_ID);
     std::string g_testDir;
@@ -96,7 +99,7 @@ namespace {
         ASSERT_TRUE(g_rdbDelegatePtr != nullptr);
     }
 
-    int GetDB(sqlite3 *&db)
+    int GetDB(sqlite3 *&db, bool isSha256Algo = true)
     {
         int flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
         const auto &dbPath = g_dbDir;
@@ -109,6 +112,12 @@ namespace {
             "PRAGMA key='" + (g_isAfterRekey ? REKEY_KEY : CORRECT_KEY) + "';"
             "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";";
         EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+        if (isSha256Algo) {
+            EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+        } else {
+            EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL), E_OK);
+        }
+        EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL), E_OK);
 #endif
         EXPECT_EQ(SQLiteUtils::RegisterCalcHash(db), E_OK);
         EXPECT_EQ(SQLiteUtils::RegisterGetSysTime(db), E_OK);
@@ -2182,5 +2191,55 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck001, TestS
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestSize.Level1)
 {
     TestWithSecurityCheck(true);
+}
+
+/**
+* @tc.name: EncryptedAlgoUpgrade001
+  * @tc.desc: Test upgrade encrypted db can sync normally
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Level0)
+{
+    if (g_rdbDelegatePtr != nullptr) {
+        LOGD("CloseStore Start");
+        ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
+        g_rdbDelegatePtr = nullptr;
+    }
+    EXPECT_EQ(OS::RemoveFile(g_dbDir), E_OK);
+    /**
+     * @tc.steps: step1. open old db use sha1 algo and insert some data
+     * @tc.expected: step1. interface return ok
+     */
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db, false), SQLITE_OK);
+    const std::string user_version_sql = "PRAGMA user_version=101;";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, user_version_sql), E_OK);
+    sqlite3_close(db);
+
+    /**
+     * @tc.steps: step2. open db by OpenStore
+     * @tc.expected: step2. interface return ok
+     */
+    OpenStore();
+    /**
+     * @tc.steps: step3. sync with push
+     * @tc.expected: step3. interface return ok
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
+    CheckVirtualData(dataMap);
+    dataMap.clear();
+
+    /**
+     * @tc.steps: step4. sync with pull
+     * @tc.expected: step4. interface return ok
+     */
+
+    Query query = Query::Select(g_tableName);
+    g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PULL_ONLY, query, true);
+    CheckVirtualData(dataMap);
 }
 #endif

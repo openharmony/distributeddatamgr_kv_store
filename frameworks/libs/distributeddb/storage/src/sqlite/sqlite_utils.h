@@ -101,7 +101,7 @@ public:
 
     static int ExecuteRawSQL(sqlite3 *db, const std::string &sql);
 
-    static int SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool isMemDb,
+    static int SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal,
         uint32_t iterTimes = DBConstant::DEFAULT_ITER_TIMES);
 
     static int GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vector<uint8_t> &value);
@@ -156,6 +156,9 @@ public:
     static int AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
         const std::string &attachDbAbsPath, const std::string &attachAsName = "backup");
 
+    static int AttachNewDatabaseInner(sqlite3 *db, CipherType type, const CipherPassword &password,
+        const std::string &attachDbAbsPath, const std::string &attachAsName);
+
     static int CreateMetaDatabase(const std::string &metaDbPath);
 
     static int CheckIntegrity(sqlite3 *db, const std::string &sql);
@@ -200,6 +203,8 @@ public:
 
     static void GetSelectCols(sqlite3_stmt *stmt, std::vector<std::string> &colNames);
 
+    static int SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes);
+
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);
@@ -221,7 +226,7 @@ private:
 
     static void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
-    static int SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties,
+    static int SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
         const std::vector<std::string> &sqls);
 
     static int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func);
@@ -235,6 +240,9 @@ private:
     static void UpdateMetaDataWithinTrigger(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static void SqliteLogCallback(void *data, int err, const char *msg);
+
+    static int UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd,
+        uint32_t iterTimes);
 
     static std::mutex logMutex_;
     static std::string lastErrorMsg_;
