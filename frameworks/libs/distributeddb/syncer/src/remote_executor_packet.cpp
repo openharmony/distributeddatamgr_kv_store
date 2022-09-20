@@ -252,6 +252,8 @@ int RemoteExecutorAckPacket::DeSerialization(Parcel &parcel)
     if ((flag_ & ACK_FLAG_SECURITY_OPTION) != 0) {
         (void) parcel.ReadInt(secLabel_);
         (void) parcel.ReadInt(secFlag_);
+    } else {
+        secLabel_ = NOT_SURPPORT_SEC_CLASSIFICATION;
     }
     if (parcel.IsError()) {
         LOGE("[RemoteExecutorAckPacket] DeSerialization failed");

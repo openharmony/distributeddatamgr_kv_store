@@ -909,6 +909,7 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
     SecurityOption option;
     errCode = storage->GetSecurityOption(option);
     if (errCode == -E_NOT_SUPPORT) {
+        option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;
         errCode = E_OK;
     }
     if (errCode != E_OK) {
@@ -950,6 +951,9 @@ int RemoteExecutor::CheckSecurityOption(const std::string &device, const Securit
     int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return errCode;
+    }
+    if (remoteOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION || errCode == -E_NOT_SUPPORT) {
+        return E_OK;
     }
     if (!CheckRemoteSecurityOption(device, remoteOption, localOption)) {
         errCode = -E_SECURITY_OPTION_CHECK_ERROR;
