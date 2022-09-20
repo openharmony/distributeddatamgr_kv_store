@@ -272,39 +272,16 @@ int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Messa
     if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }
-    int ackCode = packet->GetAckCode();
+    int errCode = packet->GetAckCode();
     uint32_t sessionId = inMsg->GetSessionId();
     uint32_t sequenceId = inMsg->GetSequenceId();
     if (!IsPacketValid(sessionId)) {
         LOGD("[RemoteExecutor][ReceiveRemoteExecutorAck] receive unknown ack");
         return -E_INVALID_ARGS;
     }
-    int errCode = ackCode;
-    do {
-        if (errCode != E_OK) {
-            break;
-        }
-        SecurityOption remoteOption = packet->GetSecurityOption();
-        auto storage = GetAndIncSyncInterface();
-        if (storage == nullptr) {
-            errCode = -E_BUSY;
-            break;
-        }
-        if (storage->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
-            errCode = -E_NOT_SUPPORT;
-            break;
-        }
-        SecurityOption localOption;
-        errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
-        if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
-            break;
-        }
-        if (!CheckRemoteSecurityOption(targetDev, remoteOption, localOption)) {
-            errCode =  -E_SECURITY_OPTION_CHECK_ERROR;
-        } else {
-            errCode = E_OK;
-        }
-    } while (false);
+    if (errCode == E_OK) {
+        errCode = CheckSecurityOption(targetDev, packet->GetSecurityOption());
+    }
     if (errCode != E_OK) {
         DoFinished(sessionId, errCode);
     } else {
@@ -955,5 +932,27 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
         sequenceId++;
     } while (token != nullptr); 
     return E_OK;
+}
+
+int RemoteExecutor::CheckSecurityOption(const std::string &device, const SecurityOption &remoteOption)
+{
+    auto storage = GetAndIncSyncInterface();
+    if (storage == nullptr) {
+        return -E_BUSY;
+    }
+    if (storage->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
+        return -E_NOT_SUPPORT;
+    }
+    SecurityOption localOption;
+    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return errCode;
+    }
+    if (!CheckRemoteSecurityOption(device, remoteOption, localOption)) {
+        errCode = -E_SECURITY_OPTION_CHECK_ERROR;
+    } else {
+        errCode = E_OK;
+    }
+    return errCode;
 }
 }
