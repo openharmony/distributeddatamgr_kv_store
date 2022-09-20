@@ -13,22 +13,25 @@
  * limitations under the License.
  */
 
-import app from '@system.app'
-import distributedData from '@ohos.data.distributedData'
 import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
+import factory from '@ohos.data.distributedData';
+import abilityFeatureAbility from '@ohos.ability.featureAbility';
 
+var context = abilityFeatureAbility.getContext();
 const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
 var kvManager = null;
 var kvStore = null;
+var kvStoreNew = null;
 
-describe("KvStoreTest", function () {
+describe('kvStoreTest', function () {
     const config = {
         bundleName: TEST_BUNDLE_NAME,
         userInfo: {
             userId: '0',
-            userType: distributedData.UserType.SAME_USER_ID
-        }
+            userType: factory.UserType.SAME_USER_ID
+        },
+        context: context
     }
 
     const options = {
@@ -36,59 +39,73 @@ describe("KvStoreTest", function () {
         encrypt: false,
         backup: false,
         autoSync: true,
-        kvStoreType: distributedData.KVStoreType.SINGLE_VERSION,
+        kvStoreType: factory.KVStoreType.SINGLE_VERSION,
         schema: '',
-        securityLevel: distributedData.SecurityLevel.S2,
+        securityLevel: factory.SecurityLevel.S2,
     }
-
 
     beforeAll(async function (done) {
         console.info('beforeAll');
-        await distributedData.createKVManager(config, function (err, manager) {
+        await factory.createKVManager(config).then((manager) => {
             kvManager = manager;
-            done();
+            console.info('beforeAll createKVManager success');
+            kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
+                console.info("beforeAll getKVStore success");
+                kvStoreNew = store;
+            }).catch((err) => {
+                console.info("beforeAll getKVStore err: " + JSON.stringify(err));
+            });
+        }).catch((err) => {
+            console.info('beforeAll createKVManager err ' + err);
         });
         console.info('beforeAll end');
+        done();
     })
 
-    afterAll(function () {
-        console.info('afterAll called')
+    afterAll(async function (done) {
+        console.info('afterAll');
+        done();
     })
 
-    beforeEach(function () {
-        console.info('beforeEach called')
+    beforeEach(async function (done) {
+        console.info('beforeEach');
+        done();
     })
 
     afterEach(async function (done) {
         console.info('afterEach');
-        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore, async function () {
+        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore).then(async () => {
             console.info('afterEach closeKVStore success');
-            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function () {
+            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
                 console.info('afterEach deleteKVStore success');
-                done();
+            }).catch((err) => {
+                console.info('afterEach deleteKVStore err ' + err);
             });
+        }).catch((err) => {
+            console.info('afterEach closeKVStore err ' + err);
         });
         kvStore = null;
+        done();
     })
 
     /*
-     * @tc.name:appInfoTest001
+     * @tc.name:getKvStoreTest_storeID_kvStore
      * @tc.desc:verify app info is not null
      * @tc.type: FUNC
      * @tc.require: issueNumber.
      */
-    it("KvStoreInfoTest001", 0, async function (done) {
-        console.info('testKVManagerGetKVStore101');
+    it('getKvStoreTest_storeID_kvStore', 0, async function (done) {
+        console.info('getKvStoreTest_storeID_kvStore');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
-                console.info('testKVManagerGetKVStore101 getKVStore success');
-                kvStore = store;
-                done();
+            await kvManager.getKVStore(TEST_STORE_ID).then((store) => {
+                console.info('getKvStoreTest_storeID_kvStore getKVStore success');
+                expect(null).assertFail();
+            }).catch((err) => {
+                console.info('getKvStoreTest_storeID_kvStore getKVStore err ' + err);
             });
         } catch (e) {
-            console.info('testKVManagerGetKVStore101 getKVStore e ' + e);
-            expect(null).assertFail();
-            done();
+            console.info('getKvStoreTest_storeID_kvStore getKVStore e ' + e);
         }
+        done();
     })
 })
