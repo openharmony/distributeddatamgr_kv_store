@@ -39,9 +39,9 @@ public:
     DistributedDBToolsTest() {}
     ~DistributedDBToolsTest() {}
 
-    static void TestDirInit(std::string &);
+    static void TestDirInit(std::string &dir);
     // remove the test db files in the test directory of dir.
-    static int RemoveTestDbFiles(const std::string &);
+    static int RemoveTestDbFiles(const std::string &dir);
     static int GetCurrentDir(std::string& dir);
     static void GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize = 0);
 };
