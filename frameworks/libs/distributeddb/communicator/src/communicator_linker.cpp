@@ -274,6 +274,16 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
     targetDistinctValue_[inTarget] = inDistinctValue;
     // The process of remote target must have undergone a quit and restart, the remote sequenceId will start from zero.
     topRecvLabelSeq_.erase(inTarget);
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, inTarget]() {
+        LOGD("ReTrigger label exchange because remote process restarted!");
+        this->TriggerLabelExchangeEvent(inTarget);
+        RefObject::DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        LOGD("ReTrigger label exchange failed! errCode = %d", errCode);
+        RefObject::DecObjRef(this);
+    }
 }
 
 int CommunicatorLinker::TriggerLabelExchangeEvent(const std::string &toTarget)
