@@ -1825,6 +1825,26 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery009, TestSize.Level1)
 }
 
 /**
+* @tc.name: remote query 010
+* @tc.desc: Test rdb remote query with 
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_deviceB, nullptr);
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "This is error sql";
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_deviceB->RemoteQuery(DEVICE_A, condition, DBConstant::MIN_TIMEOUT, result), DB_ERROR);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
