@@ -935,7 +935,7 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
     if (token != nullptr) {
         storage->ReleaseRemoteQueryContinueToken(token);
     }
-    return E_OK;
+    return errCode;
 }
 
 int RemoteExecutor::CheckSecurityOption(const std::string &device, const SecurityOption &remoteOption)
