@@ -253,14 +253,14 @@ void TestSyncWithUserChange(bool wait)
     CipherPassword passwd;
     bool startSync = false;
     std::condition_variable cv;
-    thread subThread([&]() {
+    thread subThread([&startSync, &cv]() {
         std::mutex notifyLock;
         std::unique_lock<std::mutex> lck(notifyLock);
         cv.wait(lck, [&startSync]() { return startSync; });
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
     subThread.detach();
-    g_communicatorAggregator->RegOnDispatch([&](const std::string&, Message *inMsg) {
+    g_communicatorAggregator->RegOnDispatch([&startSync, &cv](const std::string&, Message *inMsg) {
         if (!startSync) {
             startSync = true;
             cv.notify_all();
@@ -635,7 +635,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser006, TestSize.Level0)
      * @tc.steps: step4. call NotifyUserChanged and close db concurrently
      * @tc.expected: step4. return OK
      */
-    thread subThread([&]() {
+    thread subThread([]() {
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
     subThread.detach();
@@ -672,7 +672,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser007, TestSize.Level0)
      * @tc.expected: step2. return OK
      */
     CipherPassword passwd;
-    thread subThread([&]() {
+    thread subThread([]() {
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
     subThread.detach();

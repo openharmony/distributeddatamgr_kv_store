@@ -30,7 +30,6 @@
 #include <io.h>
 #include <windows.h>
 #endif
-#include <time.h>
 
 #include "securec.h"
 #include "db_errno.h"
@@ -200,6 +199,22 @@ int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
     return E_OK;
 }
 
+static void InitFileType(const _finddata_t &file, FileAttr& fileAttr)
+{
+    switch (file.attrib) {
+        case _A_NORMAL:
+        case _A_ARCH:
+            fileAttr.fileType = FILE;
+            return;
+        case _A_SUBDIR:
+            fileAttr.fileType = PATH;
+            return;
+        default:
+            fileAttr.fileType = OTHER;
+            return;
+    }
+}
+
 static int GetFilePathAttr(const std::string &topPath, const std::string &relativePath,
     std::list<FileAttr> &files, bool isNeedAllPath)
 {
@@ -217,17 +232,7 @@ static int GetFilePathAttr(const std::string &topPath, const std::string &relati
 
     FileAttr fileAttr;
     do {
-        switch (file.attrib) {
-            case _A_NORMAL:
-            case _A_ARCH:
-                fileAttr.fileType = FILE;
-                break;
-            case _A_SUBDIR:
-                fileAttr.fileType = PATH;
-                break;
-            default:
-                fileAttr.fileType = OTHER;
-        }
+        InitFileType(file, fileAttr);
 
         if (strlen(file.name) == 0 || strcmp(file.name, ".") == 0 ||
             strcmp(file.name, "..") == 0) {
@@ -470,14 +475,14 @@ namespace {
 int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
 {
     struct timespec rawTime;
-    clockid_t clock_id = CLOCK_REALTIME;
+    clockid_t clockId = CLOCK_REALTIME;
 #ifdef OS_TYPE_WINDOWS
-    clock_id = CLOCK_BOOTTIME;
+    clockId = CLOCK_BOOTTIME;
 #endif
 #ifdef OS_TYPE_MAC
-    clock_id = CLOCK_UPTIME_RAW;
+    clockId = CLOCK_UPTIME_RAW;
 #endif
-    int errCode = clock_gettime(clock_id, &rawTime);
+    int errCode = clock_gettime(clockId, &rawTime);
     if (errCode < 0) {
         LOGE("[GetMonoTime] Fail.");
         return -E_SYSTEM_API_FAIL;

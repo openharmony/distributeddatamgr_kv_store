@@ -222,7 +222,7 @@ int DistributedDBToolsUnitTest::GetCurrentDir(std::string &dir)
     }
     LOGD("DIR = %s", buffer);
     dir = buffer;
-    if (std::string::npos == dir.rfind("/") && std::string::npos == dir.rfind("\\")) {
+    if (dir.rfind("/") == std::string::npos && dir.rfind("\\") == std::string::npos) {
         LOGE("current patch format err");
         return -E_INVALID_PATH;
     }
@@ -233,7 +233,7 @@ int DistributedDBToolsUnitTest::GetCurrentDir(std::string &dir)
     return E_OK;
 }
 
-void DistributedDBToolsUnitTest::TestDirInit(std::string& dir)
+void DistributedDBToolsUnitTest::TestDirInit(std::string &dir)
 {
     if (GetCurrentDir(dir) != E_OK) {
         dir = "/";
@@ -252,7 +252,7 @@ void DistributedDBToolsUnitTest::TestDirInit(std::string& dir)
     }
 }
 
-int DistributedDBToolsUnitTest::RemoveTestDbFiles(const std::string& dir)
+int DistributedDBToolsUnitTest::RemoveTestDbFiles(const std::string &dir)
 {
     bool isExisted = OS::CheckPathExistence(dir);
     if (!isExisted) {
