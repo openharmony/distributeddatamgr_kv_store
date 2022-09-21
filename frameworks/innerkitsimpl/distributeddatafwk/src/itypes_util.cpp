@@ -63,7 +63,7 @@ bool ITypesUtil::Unmarshalling(uint64_t &output, MessageParcel &data)
 
 bool ITypesUtil::Marshalling(IRemoteObject* input, MessageParcel &data)
 {
-   return Marshalling(sptr<IRemoteObject>(input), data);
+    return Marshalling(sptr<IRemoteObject>(input), data);
 }
 
 bool ITypesUtil::Marshalling(const std::monostate &input, MessageParcel &data)

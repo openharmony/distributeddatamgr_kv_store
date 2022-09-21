@@ -31,9 +31,9 @@ class DistributedTestHelper : public OHOS::DistributeSystemTest::DistributeTest 
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
-    virtual void SetUp() override;
-    virtual void TearDown() override;
-    virtual void TestBody() override;
+    void SetUp() override;
+    void TearDown() override;
+    void TestBody() override;
 
     OHOS::DistributedKv::Status GetRemote(const OHOS::DistributedKv::Key &key,
         OHOS::DistributedKv::Value &value);
