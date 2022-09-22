@@ -44,7 +44,7 @@ Status KvStoreDataServiceProxy::GetSingleKvStore(const Options &options, const A
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!data.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("SetMaxCapacity failed.");
         return Status::IPC_ERROR;
     }

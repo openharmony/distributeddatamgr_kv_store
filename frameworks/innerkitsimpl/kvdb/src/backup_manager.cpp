@@ -39,13 +39,13 @@ BackupManager &BackupManager::GetInstance()
 
 BackupManager::BackupManager()
 {
-    pool_ = KvStoreThreadPool::GetPool(POOL_SIZE, true);
+    pool_ = std::make_shared<TaskScheduler>(POOL_SIZE);
 }
 
 BackupManager::~BackupManager()
 {
     if (pool_ != nullptr) {
-        pool_->Stop();
+        pool_->Clean();
         pool_ = nullptr;
     }
 }
@@ -56,7 +56,8 @@ void BackupManager::Init(const std::string &baseDir)
         ZLOGE("Backup Init, pool is null");
         return;
     }
-    KvStoreTask task([this, baseDir]() {
+
+    TaskScheduler::Task task = [this, baseDir]() {
         auto topPath = baseDir + BACKUP_TOP_PATH;
         auto keyPath = baseDir + KEY_PATH;
         auto storeIds = StoreUtil::GetSubPath(topPath);
@@ -72,8 +73,8 @@ void BackupManager::Init(const std::string &baseDir)
                 ClearResidueFile(ResidueInfo, baseDir, storeId);
             }
         }
-    });
-    pool_->AddTask(std::move(task));
+    };
+    pool_->At(TaskScheduler::System::now(),std::move(task));
 }
 
 void BackupManager::Prepare(const std::string &path, const std::string &storeId)
