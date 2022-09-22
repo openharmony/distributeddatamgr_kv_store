@@ -54,7 +54,7 @@ int DistributedDBToolsTest::GetCurrentDir(std::string &dir)
     return E_OK;
 }
 
-void DistributedDBToolsTest::TestDirInit(std::string& dir)
+void DistributedDBToolsTest::TestDirInit(std::string &dir)
 {
     if (GetCurrentDir(dir) != E_OK) {
         dir = "/";
@@ -73,7 +73,7 @@ void DistributedDBToolsTest::TestDirInit(std::string& dir)
     }
 }
 
-int DistributedDBToolsTest::RemoveTestDbFiles(const std::string& dir)
+int DistributedDBToolsTest::RemoveTestDbFiles(const std::string &dir)
 {
     bool isExisted = OS::CheckPathExistence(dir);
     if (!isExisted) {
