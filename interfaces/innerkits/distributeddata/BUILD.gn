@@ -27,6 +27,7 @@ config("distributeddatafwk_config") {
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
     "../../../frameworks/common",
+    "../../../frameworks/common/autils/include",
     "../../../frameworks/innerkitsimpl/rdb/include",
     "../../../frameworks/innerkitsimpl/rdb/src",
     "../../../frameworks/innerkitsimpl/object/include",
