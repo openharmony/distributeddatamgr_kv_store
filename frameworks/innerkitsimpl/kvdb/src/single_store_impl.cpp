@@ -19,7 +19,6 @@
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
-#include "kvstore_utils.h"
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
