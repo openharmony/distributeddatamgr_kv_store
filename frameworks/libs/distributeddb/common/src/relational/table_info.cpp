@@ -217,7 +217,7 @@ void TableInfo::SetCreateTableSql(const std::string &sql)
     for (auto &c : sql_) {
         c = static_cast<char>(std::toupper(c));
     }
-    if (DBCommon::HasConstraint(DBCommon::TrimSpace(sql_), "AUTOINCREMENT", " ", " ,")) {
+    if (DBCommon::HasConstraint(DBCommon::TrimSpace(sql_), "AUTOINCREMENT", " ", " ,)")) {
         autoInc_ = true;
     }
 }
