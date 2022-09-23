@@ -28,11 +28,11 @@ AutoSyncTimer &AutoSyncTimer::GetInstance()
 void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (forceSyncTask_ == SchedulerTask()) {
+    if (forceSyncTask_ == TaskScheduler::Iterator()) {
         auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
         forceSyncTask_ = scheduler_.At(expiredTime, ProcessTask());
     }
-    if (delaySyncTask_ == SchedulerTask()) {
+    if (delaySyncTask_ == TaskScheduler::Iterator()) {
         auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
         delaySyncTask_ = scheduler_.At(expiredTime, ProcessTask());
     } else {

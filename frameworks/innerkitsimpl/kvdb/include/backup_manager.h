@@ -14,15 +14,14 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_BACKUP_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_BACKUP_MANAGER_H
-#include <string>
 #include <map>
+#include <string>
 #include <vector>
-#include "store_errno.h"
 #include "kv_store_nb_delegate.h"
-#include "kv_store_task.h"
-#include "kv_store_thread_pool.h"
 #include "security_manager.h"
+#include "store_errno.h"
 #include "store_util.h"
+#include "task_scheduler.h"
 namespace OHOS::DistributedKv {
 class BackupManager {
 public:
@@ -77,7 +76,7 @@ private:
 
     static constexpr int MAX_BACKUP_NUM = 5;
     static constexpr int POOL_SIZE = 1;
-    std::shared_ptr<DistributedKv::KvStoreThreadPool> pool_;
+    std::shared_ptr<TaskScheduler> pool_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_BACKUP_MANAGER_H

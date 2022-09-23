@@ -127,6 +127,9 @@ enum SubscribeType : uint32_t {
 struct Entry : public virtual Parcelable {
     Key key;
     Value value;
+
+    static constexpr size_t MAX_KEY_LENGTH = 1024;
+    static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
     bool WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const
     {

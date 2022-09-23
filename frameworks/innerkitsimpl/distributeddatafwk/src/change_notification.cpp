@@ -16,7 +16,7 @@
 #define LOG_TAG "ChangeNotification"
 
 #include "change_notification.h"
-#include "constant.h"
+
 #include "log_print.h"
 
 namespace OHOS {
@@ -57,9 +57,6 @@ bool ChangeNotification::IsClear() const
 
 bool ChangeNotification::Marshalling(Parcel &parcel) const
 {
-    if (!parcel.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
-        return false;
-    }
     int32_t lenInsert = static_cast<int32_t>(insertEntries_.size());
     if (!parcel.WriteInt32(lenInsert)) {
         return false;
