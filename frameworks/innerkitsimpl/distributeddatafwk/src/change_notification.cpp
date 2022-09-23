@@ -16,7 +16,7 @@
 #define LOG_TAG "ChangeNotification"
 
 #include "change_notification.h"
-#include "constant.h"
+
 #include "log_print.h"
 
 namespace OHOS {

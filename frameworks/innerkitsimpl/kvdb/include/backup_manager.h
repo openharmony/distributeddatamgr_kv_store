@@ -18,8 +18,6 @@
 #include <string>
 #include <vector>
 #include "kv_store_nb_delegate.h"
-#include "kv_store_task.h"
-#include "kv_store_thread_pool.h"
 #include "security_manager.h"
 #include "store_errno.h"
 #include "store_util.h"

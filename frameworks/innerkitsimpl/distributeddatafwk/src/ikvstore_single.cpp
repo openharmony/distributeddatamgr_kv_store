@@ -18,7 +18,6 @@
 #include "ikvstore_single.h"
 #include <cinttypes>
 #include <ipc_skeleton.h>
-#include "constant.h"
 #include "log_print.h"
 
 namespace OHOS::DistributedKv {

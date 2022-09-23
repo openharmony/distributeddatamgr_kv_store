@@ -17,7 +17,6 @@
 
 #include "itypes_util.h"
 #include "iremote_object.h"
-#include "constant.h"
 #include "log_print.h"
 
 namespace OHOS::DistributedKv {

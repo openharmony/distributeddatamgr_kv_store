@@ -17,7 +17,6 @@
 
 #include "ikvstore_resultset.h"
 #include <ipc_skeleton.h>
-#include "constant.h"
 #include "message_parcel.h"
 #include "log_print.h"
 #include "itypes_util.h"

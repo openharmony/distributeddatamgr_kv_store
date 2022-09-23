@@ -17,7 +17,6 @@
 
 #include "ikvstore_data_service.h"
 #include <ipc_skeleton.h>
-#include "constant.h"
 #include "irdb_service.h"
 #include "rdb_service_proxy.h"
 #include "itypes_util.h"
@@ -415,7 +414,7 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetKVdbService()
 
 int32_t KvStoreDataServiceStub::GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
     std::vector<std::string> storeIdList;
     Status statusTmp;
     GetAllKvStoreId(appId, [&](Status status, std::vector<StoreId> &storeIds) {
@@ -501,8 +500,8 @@ int32_t KvStoreDataServiceStub::GetSingleKvStoreOnRemote(MessageParcel &data, Me
         return 0;
     }
     OptionsIpc optionsIpc = *optionIpcPtr;
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
+    StoreId storeId = { data.ReadString() };
     Options options;
     options.createIfMissing = optionsIpc.createIfMissing;
     options.encrypt = optionsIpc.encrypt;
@@ -529,8 +528,8 @@ int32_t KvStoreDataServiceStub::GetSingleKvStoreOnRemote(MessageParcel &data, Me
 
 int32_t KvStoreDataServiceStub::CloseKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
+    StoreId storeId = { data.ReadString() };
     Status status = CloseKvStore(appId, storeId);
     if (!reply.WriteInt32(static_cast<int>(status))) {
         return -1;
@@ -540,7 +539,7 @@ int32_t KvStoreDataServiceStub::CloseKvStoreOnRemote(MessageParcel &data, Messag
 
 int32_t KvStoreDataServiceStub::CloseAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
     Status status = CloseAllKvStore(appId);
     if (!reply.WriteInt32(static_cast<int>(status))) {
         return -1;
@@ -550,8 +549,8 @@ int32_t KvStoreDataServiceStub::CloseAllKvStoreOnRemote(MessageParcel &data, Mes
 
 int32_t KvStoreDataServiceStub::DeleteKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
+    StoreId storeId = { data.ReadString() };
     Status status = DeleteKvStore(appId, storeId);
     if (!reply.WriteInt32(static_cast<int>(status))) {
         return -1;
@@ -561,7 +560,7 @@ int32_t KvStoreDataServiceStub::DeleteKvStoreOnRemote(MessageParcel &data, Messa
 
 int32_t KvStoreDataServiceStub::DeleteAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
     Status status = DeleteAllKvStore(appId);
     if (!reply.WriteInt32(static_cast<int>(status))) {
         return -1;
@@ -571,7 +570,7 @@ int32_t KvStoreDataServiceStub::DeleteAllKvStoreOnRemote(MessageParcel &data, Me
 
 int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
     sptr<IRemoteObject> kvStoreClientDeathObserverProxy = data.ReadRemoteObject();
     if (kvStoreClientDeathObserverProxy == nullptr) {
         return -1;

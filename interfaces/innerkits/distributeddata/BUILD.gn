@@ -27,7 +27,6 @@ config("distributeddatafwk_config") {
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
     "../../../frameworks/common",
-    "../../../frameworks/common/autils/include",
     "../../../frameworks/innerkitsimpl/rdb/include",
     "../../../frameworks/innerkitsimpl/rdb/src",
     "../../../frameworks/innerkitsimpl/object/include",
@@ -114,7 +113,6 @@ ohos_shared_library("distributeddata_inner") {
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/common/autils:kv_store_autils_static",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]

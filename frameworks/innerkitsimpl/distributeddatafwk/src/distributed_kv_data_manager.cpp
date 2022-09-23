@@ -15,7 +15,6 @@
 #define LOG_TAG "DistributedKvDataManager"
 #include "distributed_kv_data_manager.h"
 
-#include "constant.h"
 #include "dds_trace.h"
 #include "device_status_change_listener_client.h"
 #include "ikvstore_data_service.h"

@@ -21,7 +21,7 @@
 #include <cinttypes>
 #include <ipc_skeleton.h>
 
-#include "constant.h"
+
 #include "itypes_util.h"
 #include "log_print.h"
 #include "message_parcel.h"
