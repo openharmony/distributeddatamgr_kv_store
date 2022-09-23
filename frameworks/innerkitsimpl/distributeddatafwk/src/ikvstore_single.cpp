@@ -1008,68 +1008,6 @@ int SingleKvStoreStub::GetTotalEntriesSize(std::vector<Entry> entries)
 int SingleKvStoreStub::GetEntriesOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     return -1;
-    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
-        ZLOGW("set reply MessageParcel capacity failed");
-        return -1;
-    }
-    sptr<Key> keyPrefix = data.ReadParcelable<Key>();
-    if (keyPrefix == nullptr) {
-        ZLOGW("keyPrefix is null");
-        if (!reply.WriteInt32(static_cast<int>(Status::INVALID_ARGUMENT))) {
-            return -1;
-        }
-        return 0;
-    }
-    std::vector<Entry> entries;
-    Status status = GetEntries(*keyPrefix, entries);
-    if (status != Status::SUCCESS) {
-        if (!reply.WriteInt32(static_cast<int>(status))) {
-            return -1;
-        }
-        return 0;
-    }
-
-    int bufferSize = GetTotalEntriesSize(entries);
-    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
-        return WriteEntriesParcelable(reply, status, entries, bufferSize);
-    }
-    ZLOGI("getting large entry set");
-    if (bufferSize > static_cast<int64_t>(reply.GetRawDataCapacity())) {
-        ZLOGW("bufferSize %d larger than message parcel limit", bufferSize);
-        if (!reply.WriteInt32(static_cast<int>(Status::ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-    std::unique_ptr<uint8_t, void(*)(uint8_t *)> buffer(
-            new uint8_t[bufferSize], [](uint8_t *ptr) { delete[] ptr; });
-    if (buffer == nullptr) {
-        ZLOGW("buffer is null");
-        if (!reply.WriteInt32(static_cast<int>(Status::ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-
-    if (!reply.WriteInt32(static_cast<int>(status)) ||
-        !reply.WriteInt32(entries.size()) ||
-        !reply.WriteInt32(bufferSize)) {
-        ZLOGW("write entry size failed.");
-    }
-    int bufferLeftSize = bufferSize;
-    uint8_t *cursor = buffer.get();
-    for (const auto &item : entries) {
-        if (!item.key.WriteToBuffer(cursor, bufferLeftSize) ||
-            !item.value.WriteToBuffer(cursor, bufferLeftSize)) {
-            ZLOGW("write wo buffer failed.");
-            return -1;
-        }
-    }
-    if (!reply.WriteRawData(buffer.get(), bufferSize)) {
-        ZLOGW("write rawData failed");
-        return -1;
-    }
-    return 0;
 }
 int SingleKvStoreStub::GetEntriesWithQueryOnRemote(MessageParcel &data, MessageParcel &reply)
 {
