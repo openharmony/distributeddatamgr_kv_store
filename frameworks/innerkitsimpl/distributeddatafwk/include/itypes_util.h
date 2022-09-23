@@ -230,6 +230,9 @@ bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
     if (!input.WriteToBuffer(cursor, leftSize)) {
         return false;
     }
+    if (!data.WriteInt32(size)) {
+        return false;
+    }
     return data.WriteRawData(buffer.get(), size);
 }
 
