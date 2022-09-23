@@ -68,6 +68,7 @@ ohos_shared_library("distributeddata_inner") {
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_data_service.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_observer.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_resultset.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_single.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_sync_callback.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/itypes_util.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
