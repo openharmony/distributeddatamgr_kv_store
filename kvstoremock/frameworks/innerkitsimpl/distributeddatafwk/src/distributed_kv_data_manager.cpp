@@ -15,7 +15,6 @@
 #define LOG_TAG "DistributedKvDataManager"
 #include "distributed_kv_data_manager.h"
 
-#include "constant.h"
 #include "log_print.h"
 #include "store_manager.h"
 

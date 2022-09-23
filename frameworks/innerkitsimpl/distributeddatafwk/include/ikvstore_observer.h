@@ -28,6 +28,9 @@ class IKvStoreObserver : public IRemoteBroker {
 public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreObserver");
     virtual void OnChange(const ChangeNotification &changeNotification) = 0;
+protected:
+    static constexpr int64_t SWITCH_RAW_DATA_SIZE = 700 * 1024;
+    static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
 
 class KvStoreObserverStub : public IRemoteStub<IKvStoreObserver> {

@@ -16,13 +16,15 @@
 #define LOG_TAG "KvStoreObserverProxy"
 
 #include "ikvstore_observer.h"
+
 #include <chrono>
 #include <cinttypes>
 #include <ipc_skeleton.h>
-#include "constant.h"
+
+
+#include "itypes_util.h"
 #include "log_print.h"
 #include "message_parcel.h"
-
 namespace OHOS {
 namespace DistributedKv {
 using namespace std::chrono;
@@ -32,7 +34,8 @@ enum {
 };
 
 KvStoreObserverProxy::KvStoreObserverProxy(const sptr<IRemoteObject> &impl) : IRemoteProxy<IKvStoreObserver>(impl)
-{}
+{
+}
 
 int64_t GetBufferSize(const std::vector<Entry> &entries)
 {
@@ -43,47 +46,6 @@ int64_t GetBufferSize(const std::vector<Entry> &entries)
     return bufferSize;
 }
 
-bool WriteEntryToParcelByBuf(MessageParcel &data, const int64_t &bufferSize, const std::vector<Entry> &list)
-{
-    std::unique_ptr<uint8_t, void(*)(uint8_t *)> buffer(new uint8_t[bufferSize], [](uint8_t *ptr) { delete[] ptr; });
-    if (buffer == nullptr) {
-        ZLOGE("buffer is null");
-        return false;
-    }
-    int bufLeftSize = bufferSize;
-    uint8_t *cursor = buffer.get();
-    for (const auto &item : list) {
-        if (!item.key.WriteToBuffer(cursor, bufLeftSize) ||
-            !item.value.WriteToBuffer(cursor, bufLeftSize)) {
-            ZLOGE("write item to buff failed");
-            return false;
-        }
-    }
-    if (!data.WriteRawData(buffer.get(), bufferSize)) {
-        ZLOGE("bigDataOnchange write RawData from buff failed");
-        return false;
-    }
-    return true;
-}
-
-bool WriteListToParcelByBuf(MessageParcel &data, const int64_t &bufferSize, const std::vector<Entry> &list)
-{
-    if (!data.WriteInt32(list.size()) ||
-        !data.WriteInt32(bufferSize)) {
-        ZLOGE("write entriesLen or bufferSize fails");
-        return false;
-    }
-    if (bufferSize == 0) {
-        return true;
-    }
-
-    if (!WriteEntryToParcelByBuf(data, bufferSize, list)) {
-        ZLOGE("bigDataOnchange write RawData to parcel failed");
-        return false;
-    }
-    return true;
-}
-
 void KvStoreObserverProxy::OnChange(const ChangeNotification &changeNotification)
 {
     MessageParcel data;
@@ -92,80 +54,39 @@ void KvStoreObserverProxy::OnChange(const ChangeNotification &changeNotification
         ZLOGE("write descriptor failed");
         return;
     }
-    int64_t insertBufferSize = GetBufferSize(changeNotification.GetInsertEntries());
-    int64_t updateBufferSize = GetBufferSize(changeNotification.GetUpdateEntries());
-    int64_t deleteBufferSize = GetBufferSize(changeNotification.GetDeleteEntries());
-    int64_t totalBufferSize = insertBufferSize + updateBufferSize + deleteBufferSize + sizeof(bool);
-    if (!data.WriteInt32(totalBufferSize)) {
+    int64_t insertSize = ITypesUtil::GetTotalSize(changeNotification.GetInsertEntries());
+    int64_t updateSize = ITypesUtil::GetTotalSize(changeNotification.GetUpdateEntries());
+    int64_t deleteSize = ITypesUtil::GetTotalSize(changeNotification.GetDeleteEntries());
+    int64_t totalSize = insertSize + updateSize + deleteSize + sizeof(uint32_t);
+    if (insertSize < 0 || updateSize < 0 || deleteSize < 0 || !data.WriteInt32(totalSize)) {
         ZLOGE("Write ChangeNotification buffer size to parcel failed.");
         return;
     }
-    ZLOGD("I(%" PRId64") U(%" PRId64") D(%" PRId64") T(%" PRId64")",
-          insertBufferSize, updateBufferSize, deleteBufferSize, totalBufferSize);
-    if (totalBufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
-        if (!data.WriteParcelable(&changeNotification)) {
+    ZLOGD("I(%" PRId64 ") U(%" PRId64 ") D(%" PRId64 ") T(%" PRId64 ")", insertSize, updateSize, deleteSize, totalSize);
+    if (totalSize < SWITCH_RAW_DATA_SIZE) {
+        if (!ITypesUtil::Marshal(data, changeNotification)) {
             ZLOGW("Write ChangeNotification to parcel failed.");
             return;
         }
     } else {
-        if (!WriteListToParcelByBuf(data, insertBufferSize, changeNotification.GetInsertEntries()) ||
-            !WriteListToParcelByBuf(data, updateBufferSize, changeNotification.GetUpdateEntries()) ||
-            !WriteListToParcelByBuf(data, deleteBufferSize, changeNotification.GetDeleteEntries()) ||
-            !data.WriteString(changeNotification.GetDeviceId()) ||
-            !data.WriteBool(changeNotification.IsClear())) {
+        if (!ITypesUtil::Marshal(data, changeNotification.GetDeviceId(), uint32_t(changeNotification.IsClear())) ||
+            !ITypesUtil::MarshalToBuffer(changeNotification.GetInsertEntries(), insertSize, data) ||
+            !ITypesUtil::MarshalToBuffer(changeNotification.GetUpdateEntries(), updateSize, data) ||
+            !ITypesUtil::MarshalToBuffer(changeNotification.GetDeleteEntries(), deleteSize, data)) {
             ZLOGE("WriteChangeList to Parcel by buffer failed");
             return;
         }
     }
 
-    MessageOption mo { MessageOption::TF_WAIT_TIME };
+    MessageOption mo{ MessageOption::TF_WAIT_TIME };
     int error = Remote()->SendRequest(ONCHANGE, data, reply, mo);
     if (error != 0) {
         ZLOGE("SendRequest failed, error %d", error);
     }
 }
 
-bool ReadFromBuff(MessageParcel &data, const int &len, const int &bufferSize, std::vector<Entry> &entries)
-{
-    const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(bufferSize));
-    if (buffer == nullptr) {
-        ZLOGE("new buffer failed");
-        return false;
-    }
-    int bufferLeftSize = bufferSize;
-    const uint8_t *cursor = buffer;
-    Entry entry;
-    for (int i = 0; i < len; i++) {
-        if (!entry.key.ReadFromBuffer(cursor, bufferLeftSize) ||
-            !entry.value.ReadFromBuffer(cursor, bufferLeftSize)) {
-            ZLOGE("read key and value from buff failed");
-            return false;
-        }
-        entries.push_back(std::move(entry));
-    }
-    return true;
-}
-
-bool ReadListFromBuf(MessageParcel &data, std::vector<Entry> &entries)
-{
-    int len = data.ReadInt32();
-    if (len < 0) {
-        ZLOGE("read onChangeLen failed len %d", len);
-        return false;
-    }
-    int bufferSize = data.ReadInt32();
-    if (bufferSize == 0) {
-        return true;
-    }
-    if (!ReadFromBuff(data, len, bufferSize, entries)) {
-        ZLOGE("bigDataOnchange read buff from parcel filed");
-        return false;
-    }
-    return true;
-}
-
-int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
-                                             MessageParcel &reply, MessageOption &option)
+int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply,
+    MessageOption &option)
 {
     ZLOGD("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
     std::u16string descriptor = KvStoreObserverStub::GetDescriptor();
@@ -177,40 +98,29 @@ int32_t KvStoreObserverStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
     switch (code) {
         case ONCHANGE: {
             const int errorResult = -1;
-            int totalBuffSize = data.ReadInt32();
-            if (totalBuffSize < Constant::SWITCH_RAW_DATA_SIZE) {
-                sptr<ChangeNotification> changeNotification = data.ReadParcelable<ChangeNotification>();
-                if (changeNotification == nullptr) {
+            int totalSize = data.ReadInt32();
+            if (totalSize < SWITCH_RAW_DATA_SIZE) {
+                ChangeNotification notification({}, {}, {}, "", false);
+                if (!ITypesUtil::Unmarshal(data, notification)) {
                     ZLOGE("changeNotification is nullptr");
                     return errorResult;
                 }
-                OnChange(*changeNotification);
+                OnChange(notification);
             } else {
-                std::vector<Entry> insertEntries;
-                bool result = ReadListFromBuf(data, insertEntries);
-                if (!result) {
-                    ZLOGE("read insertList from buff filed");
+                std::string deviceId;
+                uint32_t clear = 0;
+                std::vector<Entry> inserts;
+                std::vector<Entry> updates;
+                std::vector<Entry> deletes;
+                if (!ITypesUtil::Unmarshal(data, deviceId, clear) ||
+                    !ITypesUtil::UnmarshalFromBuffer(data, inserts) ||
+                    !ITypesUtil::UnmarshalFromBuffer(data, updates) ||
+                    !ITypesUtil::UnmarshalFromBuffer(data, deletes)) {
+                    ZLOGE("WriteChangeList to Parcel by buffer failed");
                     return errorResult;
                 }
-
-                std::vector<Entry> updateEntries;
-                result = ReadListFromBuf(data, updateEntries);
-                if (!result) {
-                    ZLOGE("read updateList from buff filed");
-                    return errorResult;
-                }
-
-                std::vector<Entry> deleteEntries;
-                result = ReadListFromBuf(data, deleteEntries);
-                if (!result) {
-                    ZLOGE("read deleteList from buff filed");
-                    return errorResult;
-                }
-
-                std::string deviceId = data.ReadString();
-                bool isClear = data.ReadBool();
-                ChangeNotification change(std::move(insertEntries), std::move(updateEntries), std::move(deleteEntries),
-                    deviceId, isClear);
+                ChangeNotification change(std::move(inserts), std::move(updates), std::move(deletes), deviceId,
+                    clear != 0);
                 OnChange(change);
             }
             return 0;

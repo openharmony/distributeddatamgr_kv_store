@@ -45,6 +45,9 @@ public:
     static bool IsFileExist(const std::string &name);
     static bool Remove(const std::string &path);
     static void Flush();
+    static uint64_t GenSequenceId();
+private:
+    static std::atomic<uint64_t> sequenceId_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H

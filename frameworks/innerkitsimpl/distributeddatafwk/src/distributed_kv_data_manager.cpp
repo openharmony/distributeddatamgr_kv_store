@@ -15,15 +15,12 @@
 #define LOG_TAG "DistributedKvDataManager"
 #include "distributed_kv_data_manager.h"
 
-#include "communication_provider.h"
-#include "constant.h"
 #include "dds_trace.h"
 #include "device_status_change_listener_client.h"
 #include "ikvstore_data_service.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
 #include "refbase.h"
-#include "single_kvstore_client.h"
 #include "store_manager.h"
 
 namespace OHOS {
@@ -39,11 +36,10 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
                                                   std::shared_ptr<SingleKvStore> &singleKvStore)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
-        TraceSwitch::BYTRACE_ON | TraceSwitch::API_PERFORMANCE_TRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
+        TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     singleKvStore = nullptr;
-    std::string storeIdTmp = Constant::TrimCopy<std::string>(storeId.storeId);
-    if (storeIdTmp.size() == 0 || storeIdTmp.size() > Constant::MAX_STORE_ID_LENGTH) {
+    if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
@@ -71,8 +67,8 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
-    std::string storeIdTmp = Constant::TrimCopy<std::string>(storeId.storeId);
-    if (storeIdTmp.size() == 0 || storeIdTmp.size() > Constant::MAX_STORE_ID_LENGTH) {
+    KvStoreServiceDeathNotifier::SetAppId(appId);
+    if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
@@ -111,8 +107,7 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
-    std::string storeIdTmp = Constant::TrimCopy<std::string>(storeId.storeId);
-    if (storeIdTmp.size() == 0 || storeIdTmp.size() > Constant::MAX_STORE_ID_LENGTH) {
+    if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
