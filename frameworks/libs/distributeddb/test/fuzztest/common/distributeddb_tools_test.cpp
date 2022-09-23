@@ -43,7 +43,7 @@ int DistributedDBToolsTest::GetCurrentDir(std::string &dir)
     }
     LOGD("DIR = %s", buffer);
     dir = buffer;
-    if (std::string::npos == dir.rfind("/") && std::string::npos == dir.rfind("\\")) {
+    if (dir.rfind("/") == std::string::npos && dir.rfind("\\") == std::string::npos) {
         LOGE("current patch format err");
         return -E_INVALID_PATH;
     }

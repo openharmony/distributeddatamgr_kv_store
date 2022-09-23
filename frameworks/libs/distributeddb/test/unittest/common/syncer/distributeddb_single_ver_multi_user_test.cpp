@@ -744,7 +744,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
      * @tc.expected: step6. return OK
      */
     CipherPassword passwd;
-    thread subThread([&]() {
+    thread subThread([]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
