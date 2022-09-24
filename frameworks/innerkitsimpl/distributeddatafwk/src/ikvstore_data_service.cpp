@@ -412,6 +412,30 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetKVdbService()
     return remoteObject;
 }
 
+sptr<IRemoteObject> KvStoreDataServiceProxy::GetDataShareService()
+{
+    ZLOGI("enter");
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return nullptr;
+    }
+
+    MessageParcel reply;
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(GET_DATA_SHARE_SERVICE, data, reply, mo);
+    if (error != 0) {
+        ZLOGE("SendRequest returned %{public}d", error);
+        return nullptr;
+    }
+    auto remoteObject = reply.ReadRemoteObject();
+    if (remoteObject == nullptr) {
+        ZLOGE("remote object is nullptr");
+        return nullptr;
+    }
+    return remoteObject;
+}
+
 int32_t KvStoreDataServiceStub::GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     AppId appId = { data.ReadString() };
@@ -608,6 +632,12 @@ int32_t KvStoreDataServiceStub::GetKVdbServiceOnRemote(MessageParcel &data, Mess
 int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     reply.WriteRemoteObject(GetObjectService());
+    return 0;
+}
+
+int32_t KvStoreDataServiceStub::GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply)
+{
+    reply.WriteRemoteObject(GetDataShareService());
     return 0;
 }
 
