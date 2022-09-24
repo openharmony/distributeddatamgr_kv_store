@@ -15,6 +15,7 @@
 
 #include <dirent.h>
 #include <unistd.h>
+#include "constant.h"
 
 namespace OHOS {
 namespace DistributedKv {
