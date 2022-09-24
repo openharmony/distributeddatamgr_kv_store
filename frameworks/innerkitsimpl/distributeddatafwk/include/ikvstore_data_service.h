@@ -96,6 +96,9 @@ public:
     virtual sptr<IRemoteObject> GetRdbService() = 0;
     virtual sptr<IRemoteObject> GetKVdbService() = 0;
     virtual sptr<IRemoteObject> GetObjectService() = 0;
+
+protected:
+    static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
 
 class KvStoreDataServiceStub : public IRemoteStub<IKvStoreDataService> {

@@ -18,7 +18,6 @@
 #include "ikvstore_single.h"
 #include <cinttypes>
 #include <ipc_skeleton.h>
-#include "constant.h"
 #include "log_print.h"
 
 namespace OHOS::DistributedKv {
@@ -35,7 +34,7 @@ Status SingleKvStoreProxy::Put(const Key &key, const Value &value)
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!data.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set max capacity fail.");
         return Status::IPC_ERROR;
     }
@@ -46,7 +45,7 @@ Status SingleKvStoreProxy::Put(const Key &key, const Value &value)
         return Status::IPC_ERROR;
     }
     MessageOption mo { MessageOption::TF_SYNC };
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         if (!data.WriteParcelable(&key) || !data.WriteParcelable(&value)) {
             ZLOGW("write parcelable failed.");
             return Status::IPC_ERROR;
@@ -110,7 +109,7 @@ Status SingleKvStoreProxy::Get(const Key &key, Value &value)
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set max capacity fail.");
         return Status::IPC_ERROR;
     }
@@ -135,7 +134,7 @@ Status SingleKvStoreProxy::Get(const Key &key, Value &value)
         ZLOGW("bufferSize < 0(%d)", bufferSize);
         return Status::ERROR;
     }
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         sptr<Value> valueTmp = reply.ReadParcelable<Value>();
         if (valueTmp != nullptr) {
             value = *valueTmp;
@@ -216,7 +215,7 @@ Status SingleKvStoreProxy::GetEntries(const Key &prefixKey, std::vector<Entry> &
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY) || !data.WriteParcelable(&prefixKey)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY) || !data.WriteParcelable(&prefixKey)) {
         ZLOGW("set max capacity or write parcel failed.");
         return Status::IPC_ERROR;
     }
@@ -235,7 +234,7 @@ Status SingleKvStoreProxy::GetEntries(const Key &prefixKey, std::vector<Entry> &
 
     int replyEntryCount = reply.ReadInt32();
     int bufferSize = reply.ReadInt32();
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         for (int i = 0; i < replyEntryCount; i++) {
             sptr<Entry> entry = reply.ReadParcelable<Entry>();
             if (entry == nullptr) {
@@ -278,7 +277,7 @@ Status SingleKvStoreProxy::GetEntriesWithQuery(const std::string &query, std::ve
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set max capacity failed.");
         return Status::IPC_ERROR;
     }
@@ -301,7 +300,7 @@ Status SingleKvStoreProxy::GetEntriesWithQuery(const std::string &query, std::ve
 
     int replyEntryCount = reply.ReadInt32();
     int bufferSize = reply.ReadInt32();
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         for (int i = 0; i < replyEntryCount; i++) {
             sptr<Entry> entry = reply.ReadParcelable<Entry>();
             if (entry == nullptr) {
@@ -415,7 +414,7 @@ Status SingleKvStoreProxy::GetCountWithQuery(const std::string &query, int &resu
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY) ||
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY) ||
         !data.WriteString(query)) {
         ZLOGW("set max capacity or write parcel failed.");
         return Status::IPC_ERROR;
@@ -592,108 +591,12 @@ Status SingleKvStoreProxy::UnRegisterSyncCallback()
 Status SingleKvStoreProxy::PutBatch(const std::vector<Entry> &entries)
 {
     ZLOGI("PutBatch begin");
-    MessageParcel data, reply;
-    if (!data.WriteInterfaceToken(SingleKvStoreProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
-        ZLOGW("set capacity failed.");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(entries.size())) {
-        ZLOGW("write entries size failed.");
-        return Status::IPC_ERROR;
-    }
-
-    int64_t bufferSize = 0;
-    for (const auto &item : entries) {
-        if (item.key.Size() > Constant::MAX_KEY_LENGTH || item.value.Size() > Constant::MAX_VALUE_LENGTH) {
-            return Status::INVALID_ARGUMENT;
-        }
-        bufferSize += item.key.RawSize() + item.value.RawSize();
-    }
-    if (!data.WriteInt32(bufferSize)) {
-        ZLOGW("write buffer size failed.");
-        return Status::IPC_ERROR;
-    }
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
-        for (const auto &item : entries) {
-            if (!data.WriteParcelable(&item)) {
-                ZLOGW("write parcel failed.");
-                return Status::IPC_ERROR;
-            }
-        }
-        MessageOption mo { MessageOption::TF_SYNC };
-        if (Remote()->SendRequest(PUTBATCH, data, reply, mo) != 0) {
-            return Status::IPC_ERROR;
-        }
-        return static_cast<Status>(reply.ReadInt32());
-    }
-    ZLOGI("putting large data.");
-    if (bufferSize > static_cast<int64_t>(reply.GetRawDataCapacity())) {
-        ZLOGW("batch size larger than Messageparcel limit.(%" PRId64")", bufferSize);
-        return Status::INVALID_ARGUMENT;
-    }
-    std::unique_ptr<uint8_t, void(*)(uint8_t *)> buffer(new uint8_t[bufferSize], [](uint8_t *ptr) { delete[] ptr; });
-    if (buffer == nullptr) {
-        ZLOGW("buffer is null");
-        return Status::ERROR;
-    }
-    int bufferLeftSize = bufferSize;
-    uint8_t *cursor = buffer.get();
-    for (const auto &item : entries) {
-        if (!item.key.WriteToBuffer(cursor, bufferLeftSize) ||
-            !item.value.WriteToBuffer(cursor, bufferLeftSize)) {
-            ZLOGW("write to buffer failed.");
-            return Status::ERROR;
-        }
-    }
-    if (!data.WriteRawData(buffer.get(), bufferSize)) {
-        ZLOGW("write rawData failed");
-        return Status::ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(PUTBATCH, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
+    return Status::NOT_SUPPORT;
 }
 
 Status SingleKvStoreProxy::DeleteBatch(const std::vector<Key> &keys)
 {
-    MessageParcel data, reply;
-    if (!data.WriteInterfaceToken(SingleKvStoreProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
-        ZLOGW("set capacity failed.");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(keys.size())) {
-        ZLOGW("write keys size failed.");
-        return Status::IPC_ERROR;
-    }
-    for (const auto &item : keys) {
-        if (keys.size() > Constant::MAX_KEY_LENGTH) {
-            ZLOGW("Delete key size larger than key size limit");
-            return Status::INVALID_ARGUMENT;
-        }
-        if (!data.WriteParcelable(&item)) {
-            ZLOGW("write parcel failed.");
-            return Status::IPC_ERROR;
-        }
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(DELETEBATCH, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
+    return Status::NOT_SUPPORT;
 }
 
 Status SingleKvStoreProxy::StartTransaction()
@@ -751,7 +654,7 @@ Status SingleKvStoreProxy::Control(KvControlCmd cmd, const KvParam &inputParam, 
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set max capacity fail.");
         return Status::IPC_ERROR;
     }
@@ -777,7 +680,7 @@ Status SingleKvStoreProxy::Control(KvControlCmd cmd, const KvParam &inputParam, 
     }
 
     int bufferSize = reply.ReadInt32();
-    if (bufferSize > 0 && bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize > 0 && bufferSize < SWITCH_RAW_DATA_SIZE) {
         output = reply.ReadParcelable<KvParam>();
     }
 
@@ -923,7 +826,7 @@ int SingleKvStoreStub::PutOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     const int bufferSize = data.ReadInt32();
     ZLOGD("bufferSize %d", bufferSize);
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         sptr<Key> key = data.ReadParcelable<Key>();
         sptr<Value> value = data.ReadParcelable<Value>();
         if (key == nullptr || value == nullptr) {
@@ -990,7 +893,7 @@ int SingleKvStoreStub::DeleteOnRemote(MessageParcel &data, MessageParcel &reply)
 }
 int SingleKvStoreStub::GetOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set reply MessageParcel capacity failed");
         return -1;
     }
@@ -1005,7 +908,7 @@ int SingleKvStoreStub::GetOnRemote(MessageParcel &data, MessageParcel &reply)
     Value value;
     Status status = Get(*key, value);
     int bufferSize = value.RawSize();
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         if (!reply.WriteInt32(static_cast<int>(status)) ||
             !reply.WriteInt32(bufferSize) ||
             !reply.WriteParcelable(&value)) {
@@ -1104,72 +1007,11 @@ int SingleKvStoreStub::GetTotalEntriesSize(std::vector<Entry> entries)
 }
 int SingleKvStoreStub::GetEntriesOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
-        ZLOGW("set reply MessageParcel capacity failed");
-        return -1;
-    }
-    sptr<Key> keyPrefix = data.ReadParcelable<Key>();
-    if (keyPrefix == nullptr) {
-        ZLOGW("keyPrefix is null");
-        if (!reply.WriteInt32(static_cast<int>(Status::INVALID_ARGUMENT))) {
-            return -1;
-        }
-        return 0;
-    }
-    std::vector<Entry> entries;
-    Status status = GetEntries(*keyPrefix, entries);
-    if (status != Status::SUCCESS) {
-        if (!reply.WriteInt32(static_cast<int>(status))) {
-            return -1;
-        }
-        return 0;
-    }
-
-    int bufferSize = GetTotalEntriesSize(entries);
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
-        return WriteEntriesParcelable(reply, status, entries, bufferSize);
-    }
-    ZLOGI("getting large entry set");
-    if (bufferSize > static_cast<int64_t>(reply.GetRawDataCapacity())) {
-        ZLOGW("bufferSize %d larger than message parcel limit", bufferSize);
-        if (!reply.WriteInt32(static_cast<int>(Status::ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-    std::unique_ptr<uint8_t, void(*)(uint8_t *)> buffer(
-            new uint8_t[bufferSize], [](uint8_t *ptr) { delete[] ptr; });
-    if (buffer == nullptr) {
-        ZLOGW("buffer is null");
-        if (!reply.WriteInt32(static_cast<int>(Status::ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-
-    if (!reply.WriteInt32(static_cast<int>(status)) ||
-        !reply.WriteInt32(entries.size()) ||
-        !reply.WriteInt32(bufferSize)) {
-        ZLOGW("write entry size failed.");
-    }
-    int bufferLeftSize = bufferSize;
-    uint8_t *cursor = buffer.get();
-    for (const auto &item : entries) {
-        if (!item.key.WriteToBuffer(cursor, bufferLeftSize) ||
-            !item.value.WriteToBuffer(cursor, bufferLeftSize)) {
-            ZLOGW("write wo buffer failed.");
-            return -1;
-        }
-    }
-    if (!reply.WriteRawData(buffer.get(), bufferSize)) {
-        ZLOGW("write rawData failed");
-        return -1;
-    }
-    return 0;
+    return -1;
 }
 int SingleKvStoreStub::GetEntriesWithQueryOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    if (!reply.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!reply.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set reply MessageParcel capacity failed");
         return -1;
     }
@@ -1184,7 +1026,7 @@ int SingleKvStoreStub::GetEntriesWithQueryOnRemote(MessageParcel &data, MessageP
     }
 
     int bufferSize = GetTotalEntriesSize(entries);
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         return WriteEntriesParcelable(reply, status, entries, bufferSize);
     }
     ZLOGI("getting large entry set");
@@ -1308,7 +1150,7 @@ int SingleKvStoreStub::GetResultSetWithQueryOnRemote(MessageParcel &data, Messag
 }
 int SingleKvStoreStub::PutBatchOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+    if (!data.SetMaxCapacity(MAX_IPC_CAPACITY)) {
         ZLOGW("set batch size failed.");
         return -1;
     }
@@ -1322,7 +1164,7 @@ int SingleKvStoreStub::PutBatchOnRemote(MessageParcel &data, MessageParcel &repl
         return 0;
     }
     const int bufferSize = data.ReadInt32();
-    if (bufferSize < Constant::SWITCH_RAW_DATA_SIZE) {
+    if (bufferSize < SWITCH_RAW_DATA_SIZE) {
         std::vector<Entry> entries;
         for (int i = 0; i < len; i++) {
             sptr<Entry> entry = data.ReadParcelable<Entry>();
@@ -1425,7 +1267,7 @@ int SingleKvStoreStub::ControlOnRemote(MessageParcel &data, MessageParcel &reply
         ZLOGW("write control failed.");
         return -1;
     }
-    if ((output != nullptr) && (output->RawSize() < Constant::SWITCH_RAW_DATA_SIZE)) {
+    if ((output != nullptr) && (output->RawSize() < SWITCH_RAW_DATA_SIZE)) {
         if (!reply.WriteInt32(output->RawSize())) {
             ZLOGW("write bufferSize failed.");
             return -1;

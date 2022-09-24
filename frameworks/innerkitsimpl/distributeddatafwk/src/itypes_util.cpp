@@ -17,7 +17,6 @@
 
 #include "itypes_util.h"
 #include "iremote_object.h"
-#include "autils/constant.h"
 #include "log_print.h"
 
 namespace OHOS::DistributedKv {
@@ -479,7 +478,7 @@ int64_t ITypesUtil::GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;
     for (const auto &item : entries) {
-        if (item.key.Size() > Constant::MAX_KEY_LENGTH || item.value.Size() > Constant::MAX_VALUE_LENGTH) {
+        if (item.key.Size() > Entry::MAX_KEY_LENGTH || item.value.Size() > Entry::MAX_VALUE_LENGTH) {
             return -bufferSize;
         }
         bufferSize += item.key.RawSize() + item.value.RawSize();
@@ -491,7 +490,7 @@ int64_t ITypesUtil::GetTotalSize(const std::vector<Key> &entries)
 {
     int64_t bufferSize = 1;
     for (const auto &item : entries) {
-        if (item.Size() > Constant::MAX_KEY_LENGTH) {
+        if (item.Size() > Entry::MAX_KEY_LENGTH) {
             return -bufferSize;
         }
         bufferSize += item.RawSize();

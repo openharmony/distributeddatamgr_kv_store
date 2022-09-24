@@ -19,6 +19,9 @@
 #ifndef API_EXPORT
 #define API_EXPORT __attribute__((visibility ("default")))
 #endif
+#ifndef API_LOCAL
+#define API_LOCAL __attribute__((visibility ("hidden")))
+#endif
 #ifndef KVSTORE_API
 #define KVSTORE_API API_EXPORT
 #endif
