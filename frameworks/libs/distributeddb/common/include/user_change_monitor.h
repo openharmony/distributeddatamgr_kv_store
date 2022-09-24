@@ -17,9 +17,10 @@
 #define USER_CHANGE_MONITOR_H
 
 #include <shared_mutex>
-#include "platform_specific.h"
+
 #include "macro_utils.h"
 #include "notification_chain.h"
+#include "platform_specific.h"
 #include "runtime_context.h"
 
 namespace DistributedDB {

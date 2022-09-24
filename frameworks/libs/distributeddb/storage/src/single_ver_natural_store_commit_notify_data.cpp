@@ -139,7 +139,7 @@ const std::list<Entry> SingleVerNaturalStoreCommitNotifyData::FilterEntriesByKey
     const std::list<Entry> &entries, const Key &filterKey, int &errCode)
 {
     errCode = E_OK;
-    if (filterKey.size() == 0) {
+    if (filterKey.empty()) {
         return entries;
     }
     std::list<Entry> filterEntries;

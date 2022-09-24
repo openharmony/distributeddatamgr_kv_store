@@ -16,8 +16,8 @@
 #ifndef PERFORMANCE_ANALYSIS_H
 #define PERFORMANCE_ANALYSIS_H
 
-#include <vector>
 #include <fstream>
+#include <vector>
 
 #include "db_types.h"
 

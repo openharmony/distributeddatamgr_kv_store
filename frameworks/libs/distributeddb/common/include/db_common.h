@@ -18,9 +18,10 @@
 
 #include <list>
 #include <string>
+
 #include "db_types.h"
-#include "store_types.h"
 #include "kvdb_properties.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 class DBCommon final {

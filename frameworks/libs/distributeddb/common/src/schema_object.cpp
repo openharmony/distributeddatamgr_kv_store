@@ -14,10 +14,10 @@
  */
 
 #include "schema_object.h"
-#include "schema_utils.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "schema_constant.h"
+#include "schema_utils.h"
 
 namespace DistributedDB {
 namespace {
@@ -27,6 +27,7 @@ const std::string FLATBUFFER_EXTRACT_FUNC_NAME = "flatbuffer_extract_by_path";
 // For Json-Schema, display its original content before parse. For FlatBuffer-Schema, only display its parsed content.
 void DisplaySchemaLineByLine(SchemaType inType, const std::string &inSchema)
 {
+#ifdef TRACE_SCHEMA_INFO
     constexpr uint32_t lengthPerLine = 400; // 400 char per line
     constexpr uint32_t usualMaxLine = 25; // For normal schema, 25 line for 10k length is quite enough
     LOGD("[Schema][Display] IS %s, LENGTH=%zu.", SchemaUtils::SchemaTypeString(inType).c_str(), inSchema.size());
@@ -39,6 +40,7 @@ void DisplaySchemaLineByLine(SchemaType inType, const std::string &inSchema)
         std::string lineStr = inSchema.substr(line * lengthPerLine, lengthPerLine);
         LOGD("%s", lineStr.c_str());
     }
+#endif
 }
 }
 
@@ -356,7 +358,7 @@ int SchemaObject::ExtractValue(ValueSource sourceType, RawString inPath, const R
         return -E_INVALID_ARGS;
     }
     if (inValue.second <= schemaSkipSize_) {
-        LOGE("[Schema][Extract] Value length=%u invalid, skipsize=%u.", inValue.second, schemaSkipSize_);
+        LOGE("[Schema][Extract] Value length=%" PRIu32 " invalid, skip:%" PRIu32, inValue.second, schemaSkipSize_);
         return -E_FLATBUFFER_VERIFY_FAIL;
     }
 
@@ -383,7 +385,7 @@ int SchemaObject::ExtractValue(ValueSource sourceType, RawString inPath, const R
     // Currently do not try no sizePrefix, future may depend on sourceType
     int errCode = flatbufferSchema_.ExtractFlatBufferValue(inPath, rawValue, outExtract, false);
     if (errCode != E_OK) {
-        LOGE("[Schema][Extract] Fail, path=%s, srcType=%d.", inPath, static_cast<int>(sourceType));
+        LOGE("[Schema][Extract] Fail, srcType=%d.", static_cast<int>(sourceType));
     }
     delete tempCache; // delete nullptr is safe
     tempCache = nullptr;
@@ -410,11 +412,7 @@ int SchemaObject::ParseJsonSchema(const JsonObject &inJsonObject)
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = ParseCheckSchemaSkipSize(inJsonObject);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return ParseCheckSchemaSkipSize(inJsonObject);
 }
 
 namespace {
@@ -542,7 +540,7 @@ int SchemaObject::ParseCheckSchemaDefine(const JsonObject& inJsonObject)
         std::map<FieldPath, FieldType> subPathType;
         int errCode = inJsonObject.GetSubFieldPathAndType(nestPathCurDepth, subPathType);
         if (errCode != E_OK) { // Unlikely
-            LOGE("[Schema][ParseDefine] Internal Error: GetSubFieldPathAndType Fail, Depth=%u.", depth);
+            LOGE("[Schema][ParseDefine] Internal Error: GetSubFieldPathAndType Fail, Depth=%" PRIu32, depth);
             return -E_INTERNAL_ERROR;
         }
         fieldNameCount += subPathType.size();
@@ -551,8 +549,7 @@ int SchemaObject::ParseCheckSchemaDefine(const JsonObject& inJsonObject)
             SchemaAttribute attribute;
             errCode = CheckSchemaDefineItemDecideAttribute(inJsonObject, subField.first, subField.second, attribute);
             if (errCode != E_OK) {
-                LOGE("[Schema][ParseDefine] CheckSchemaDefineItemDecideAttribute Fail, Path=%s.",
-                    SchemaUtils::FieldPathString(subField.first).c_str());
+                LOGE("[Schema][ParseDefine] CheckSchemaDefineItemDecideAttribute Fail.");
                 return -E_SCHEMA_PARSE_FAIL;
             }
             // If everything ok, insert this schema item into schema define
@@ -561,8 +558,7 @@ int SchemaObject::ParseCheckSchemaDefine(const JsonObject& inJsonObject)
             // Deal with the nestpath and check depth limitation
             if (subField.second == FieldType::INTERNAL_FIELD_OBJECT) {
                 if (depth == SchemaConstant::SCHEMA_FEILD_PATH_DEPTH_MAX - 1) { // Minus 1 to be the boundary
-                    LOGE("[Schema][ParseDefine] Path=%s is INTERNAL_FIELD_OBJECT but reach schema depth limitation.",
-                        SchemaUtils::FieldPathString(subField.first).c_str());
+                    LOGE("[Schema][ParseDefine] node is INTERNAL_FIELD_OBJECT but reach schema depth limitation.");
                     return -E_SCHEMA_PARSE_FAIL;
                 }
                 nestPathCurDepth.insert(subField.first);
@@ -575,7 +571,7 @@ int SchemaObject::ParseCheckSchemaDefine(const JsonObject& inJsonObject)
     }
     if (fieldNameCount > SchemaConstant::SCHEMA_FEILD_NAME_COUNT_MAX) {
         // Check Field Count Here
-        LOGE("[Schema][ParseDefine] FieldName count=%u exceed the limitation.", fieldNameCount);
+        LOGE("[Schema][ParseDefine] FieldName count=%" PRIu32 " exceed the limitation.", fieldNameCount);
         return -E_SCHEMA_PARSE_FAIL;
     }
     return E_OK;
@@ -590,7 +586,7 @@ int SchemaObject::CheckSchemaDefineItemDecideAttribute(const JsonObject& inJsonO
     }
     int errCode = SchemaUtils::CheckFieldName(inPath.back());
     if (errCode != E_OK) {
-        LOGE("[Schema][CheckItemDecideAttr] Invalid fieldName=%s, errCode=%d.", inPath.back().c_str(), errCode);
+        LOGE("[Schema][CheckItemDecideAttr] Invalid fieldName, errCode=%d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
     }
     if (inType == FieldType::LEAF_FIELD_STRING) {
@@ -693,15 +689,15 @@ int SchemaObject::ParseCheckEachIndexFromStringArray(const std::vector<std::stri
         FieldPath eachPath;
         int errCode = SchemaUtils::ParseAndCheckFieldPath(eachPathStr, eachPath);
         if (errCode != E_OK) {
-            LOGE("[Schema][ParseEachIndex] IndexPath=%s Invalid.", eachPathStr.c_str());
+            LOGE("[Schema][ParseEachIndex] IndexPath Invalid.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         if (eachPath.size() == 0 || eachPath.size() > SchemaConstant::SCHEMA_FEILD_PATH_DEPTH_MAX) {
-            LOGE("[Schema][ParseEachIndex] Root not indexable or path=%s depth exceed limit.", eachPathStr.c_str());
+            LOGE("[Schema][ParseEachIndex] Root not indexable or path depth exceed limit.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         if (indexPathSet.count(eachPath) != 0) {
-            LOGE("[Schema][ParseEachIndex] IndexPath=%s Duplicated.", eachPathStr.c_str());
+            LOGE("[Schema][ParseEachIndex] IndexPath Duplicated.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         indexPathVec.push_back(eachPath);
@@ -713,7 +709,7 @@ int SchemaObject::ParseCheckEachIndexFromStringArray(const std::vector<std::stri
     // Check indexDefine duplication, Use Sort-Column(the first fieldPath in index) as the indexName.
     const IndexName &indexName = indexPathVec.front();
     if (schemaIndexes_.count(indexName) != 0) {
-        LOGE("[Schema][ParseEachIndex] IndexName=%s Already Defined.", SchemaUtils::FieldPathString(indexName).c_str());
+        LOGE("[Schema][ParseEachIndex] IndexName Already Defined.");
         return -E_SCHEMA_PARSE_FAIL;
     }
     // Create new indexInfo entry, then check indexable for each indexFieldPath against schemaDefine
@@ -727,15 +723,15 @@ int SchemaObject::CheckFieldPathIndexableThenSave(const std::vector<FieldPath> &
         uint32_t depth = eachPath.size() - 1; // minus 1 to change depth count from zero
         std::string eachPathStr = SchemaUtils::FieldPathString(eachPath);
         if (schemaDefine_.count(depth) == 0) {
-            LOGE("[Schema][CheckIndexable] No schema define of this depth, path=%s.", eachPathStr.c_str());
+            LOGE("[Schema][CheckIndexable] No schema define of this depth.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         if (schemaDefine_[depth].count(eachPath) == 0) {
-            LOGE("[Schema][CheckIndexable] No such path in schema define, path=%s.", eachPathStr.c_str());
+            LOGE("[Schema][CheckIndexable] No such path in schema define.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         if (!schemaDefine_[depth][eachPath].isIndexable) {
-            LOGE("[Schema][CheckIndexable] Path=%s is not indexable.", eachPathStr.c_str());
+            LOGE("[Schema][CheckIndexable] Path is not indexable.");
             return -E_SCHEMA_PARSE_FAIL;
         }
         // Save this indexField to indexInfo
@@ -827,15 +823,13 @@ int SchemaObject::CompareSchemaDefineByDepth(const SchemaDefine &oldDefine, cons
     // Looking for incompatible : new define should at least contain all field the old define hold
     for (auto &entry : oldDefine) {
         if (newDefine.count(entry.first) == 0) {
-            LOGE("[Schema][CompareDefineDepth] fieldpath=%s not found in new schema.",
-                SchemaUtils::FieldPathString(entry.first).c_str());
+            LOGE("[Schema][CompareDefineDepth] fieldpath not found in new schema.");
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
         // SchemaAttribute require to be equal exactly
         int errCode = CompareSchemaAttribute(entry.second, newDefine.at(entry.first));
         if (errCode != -E_SCHEMA_EQUAL_EXACTLY) {
-            LOGE("[Schema][CompareDefineDepth] Attribute mismatch at fieldpath=%s.",
-                SchemaUtils::FieldPathString(entry.first).c_str());
+            LOGE("[Schema][CompareDefineDepth] Attribute mismatch at fieldpath.");
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -845,9 +839,8 @@ int SchemaObject::CompareSchemaDefineByDepth(const SchemaDefine &oldDefine, cons
             continue;
         }
         if (!IsExtraFieldConformToCompatibility(entry.second)) {
-            LOGE("[Schema][CompareDefineDepth] ExtraField=%s, {notnull=%d, default=%d}, not conform compatibility.",
-                SchemaUtils::FieldPathString(entry.first).c_str(), entry.second.hasNotNullConstraint,
-                entry.second.hasDefaultValue);
+            LOGE("[Schema][CompareDefineDepth] ExtraField, {notnull=%d, default=%d}, not conform compatibility.",
+                entry.second.hasNotNullConstraint, entry.second.hasDefaultValue);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -966,12 +959,12 @@ int SchemaObject::CompareSchemaIndexes(const SchemaObject &newSchema, IndexDiffe
     // Find the increase and change index
     for (const auto &entry : newSchema.schemaIndexes_) {
         if (schemaIndexes_.count(entry.first) == 0) {
-            LOGD("[Schema][CompareIndex] Increase indexName=%s.", SchemaUtils::FieldPathString(entry.first).c_str());
+            LOGD("[Schema][CompareIndex] Increase indexName.");
             indexDiffer.increase[entry.first] = entry.second;
         } else {
             // Both schema have same IndexName, Check whether indexInfo differs
             if (!IsIndexInfoExactlyEqual(entry.second, schemaIndexes_.at(entry.first))) {
-                LOGD("[Schema][CompareIndex] Change indexName=%s.", SchemaUtils::FieldPathString(entry.first).c_str());
+                LOGD("[Schema][CompareIndex] Change indexName.");
                 indexDiffer.change[entry.first] = entry.second;
             }
         }
@@ -979,7 +972,7 @@ int SchemaObject::CompareSchemaIndexes(const SchemaObject &newSchema, IndexDiffe
     // Find the decrease index
     for (const auto &entry : schemaIndexes_) {
         if (newSchema.schemaIndexes_.count(entry.first) == 0) {
-            LOGD("[Schema][CompareIndex] Decrease indexName=%s.", SchemaUtils::FieldPathString(entry.first).c_str());
+            LOGD("[Schema][CompareIndex] Decrease indexName.");
             indexDiffer.decrease.insert(entry.first);
         }
     }
@@ -1098,7 +1091,7 @@ int SchemaObject::CheckValue(const ValueObject &inValue, std::set<FieldPath> &la
         std::map<FieldPath, FieldType> subPathType;
         int errCode = inValue.GetSubFieldPathAndType(nestPathCurDepth, subPathType); // Value field of current depth
         if (errCode != E_OK && errCode != -E_INVALID_PATH) { // E_INVALID_PATH for path not exist
-            LOGE("[Schema][CheckValue] GetSubFieldPathAndType Fail=%d, Depth=%u.", errCode, depth);
+            LOGE("[Schema][CheckValue] GetSubFieldPathAndType Fail=%d, Depth=%" PRIu32, errCode, depth);
             return -E_VALUE_MISMATCH_FEILD_TYPE;
         }
         nestPathCurDepth.clear(); // Clear it for collecting new nestPath
@@ -1119,8 +1112,8 @@ int SchemaObject::CheckValue(const ValueObject &inValue, std::set<FieldPath> &la
             }
             errCode = CheckValueBySchemaItem(schemaItem, subPathType, lackingPaths);
             if (errCode != -E_VALUE_MATCH) {
-                LOGE("[Schema][CheckValue] Path=%s, schema{NotNull=%d,Default=%d,Type=%s}, Value{Type=%s}, errCode=%d.",
-                    SchemaUtils::FieldPathString(schemaItem.first).c_str(), schemaItem.second.hasNotNullConstraint,
+                LOGE("[Schema][CheckValue] Schema{NotNull=%d,Default=%d,Type=%s}, Value{Type=%s}, errCode=%d.",
+                    schemaItem.second.hasNotNullConstraint,
                     schemaItem.second.hasDefaultValue, SchemaUtils::FieldTypeString(schemaItem.second.type).c_str(),
                     ValueFieldType(subPathType, schemaItem.first).c_str(), errCode);
                 return errCode;
@@ -1144,8 +1137,7 @@ int SchemaObject::AmendValueIfNeed(ValueObject &inValue, const std::set<FieldPat
         // The lacking intermediate field will be automatically insert for this lackingPath
         int errCode = inValue.InsertField(eachLackingPath, lackingPathAttr.type, lackingPathAttr.defaultValue);
         if (errCode != E_OK) { // Unlikely
-            LOGE("[Schema][AmendValue] InsertField fail, errCode=%d, Path=%s, Type=%s.", errCode,
-                SchemaUtils::FieldPathString(eachLackingPath).c_str(),
+            LOGE("[Schema][AmendValue] InsertField fail, errCode=%d, Type=%s.", errCode,
                 SchemaUtils::FieldTypeString(lackingPathAttr.type).c_str());
             return -E_INTERNAL_ERROR;
         }

@@ -17,8 +17,8 @@
 #define RUNTIME_CONTEXT_H
 
 #include <cstdint>
-#include <string>
 #include <functional>
+#include <string>
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"

@@ -16,8 +16,8 @@
 #ifndef ENDIAN_CONVERT_H
 #define ENDIAN_CONVERT_H
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace DistributedDB {
 inline bool IsBigEndian()

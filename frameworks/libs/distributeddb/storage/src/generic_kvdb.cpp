@@ -95,15 +95,14 @@ void GenericKvDB::ReleaseDBConnection(GenericKvDBConnection *connection)
         SetConnectionFlag(false);
     }
 
-    connectMutex_.lock();
     if (connection != nullptr) {
-        connection->SetSafeDeleted();
-        DelConnection(connection);
-        DecreaseConnectionCounter();
-        connectMutex_.unlock();
+        {
+            std::lock_guard<std::mutex> lock(connectMutex_);
+            connection->SetSafeDeleted();
+            DelConnection(connection);
+            DecreaseConnectionCounter();
+        }
         DecObjRef(this);
-    } else {
-        connectMutex_.unlock();
     }
 }
 

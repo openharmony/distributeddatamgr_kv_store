@@ -77,7 +77,6 @@ NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListerner(con
 
 int UserChangeMonitor::PrepareNotifierChain()
 {
-    int errCode = E_OK;
     std::unique_lock<std::shared_mutex> lockGuard(userChangeMonitorLock_);
     if (userNotifier_ != nullptr) {
         return E_OK;
@@ -86,7 +85,7 @@ int UserChangeMonitor::PrepareNotifierChain()
     if (userNotifier_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
-    errCode = userNotifier_->RegisterEventType(USER_ACTIVE_EVENT);
+    int errCode = userNotifier_->RegisterEventType(USER_ACTIVE_EVENT);
     if (errCode != E_OK) {
         goto ERROR_HANDLE;
     }

@@ -17,10 +17,10 @@
 #include <climits>
 
 #include "db_errno.h"
-#include "macro_utils.h"
-#include "time_helper.h"
 #include "log_print.h"
+#include "macro_utils.h"
 #include "platform_specific.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 const std::string PerformanceAnalysis::STATISTICAL_DATA_FILE_NAME_HEADER = "/data/log/statistic";
@@ -192,9 +192,11 @@ void PerformanceAnalysis::OutStatistics()
 {
     std::string addrStatistics = STATISTICAL_DATA_FILE_NAME_HEADER + fileID_ + CSV_FILE_EXTENSION;
     outFile.open(addrStatistics, std::ios_base::app);
+    if (!outFile.is_open()) {
+        return;
+    }
     // This part filters the zeros data
-    outFile << "stepNum" << "," << "maxTime(us)" << "," << "minTime(us)" << "," << "averageTime(us)"
-        << "," << "count" << "," << "\n";
+    outFile << "stepNum, maxTime(us), minTime(us), averageTime(us), count,\n";
     for (size_t i = 0; i < stepTimeRecordInfo_.size(); i++) { // output to performance file
         if (stepTimeRecordInfo_[i].max != 0) {
             outFile << i << "," << stepTimeRecordInfo_[i].max<< "," << stepTimeRecordInfo_[i].min

@@ -14,10 +14,12 @@
  */
 
 #include "schema_utils.h"
-#include <map>
-#include <cmath>
-#include <cfloat>
+
 #include <cctype>
+#include <cfloat>
+#include <cmath>
+#include <map>
+
 #include "db_errno.h"
 #include "log_print.h"
 #include "schema_constant.h"

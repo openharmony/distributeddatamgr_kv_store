@@ -16,6 +16,7 @@
 #ifndef SCHEMA_CONSTANT_H
 #define SCHEMA_CONSTANT_H
 
+#include <cstdint>
 #include <string>
 
 // This header is supposed to be included only in source files. Do not include it in any header files.

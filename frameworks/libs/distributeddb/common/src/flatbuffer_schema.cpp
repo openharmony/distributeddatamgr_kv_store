@@ -14,12 +14,14 @@
  */
 
 #include "schema_object.h"
-#include <cmath>
+
 #include <algorithm>
-#include "schema_constant.h"
-#include "schema_utils.h"
+#include <cmath>
+
 #include "db_errno.h"
 #include "log_print.h"
+#include "schema_constant.h"
+#include "schema_utils.h"
 
 namespace DistributedDB {
 namespace {
@@ -169,11 +171,7 @@ int SchemaObject::FlatBufferSchema::ParseFlatBufferSchema(const std::string &inD
         return errCode;
     }
 
-    errCode = ParseCheckIndexes(indexCollect);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return ParseCheckIndexes(indexCollect);
 }
 
 int SchemaObject::FlatBufferSchema::CompareFlatBufferDefine(const FlatBufferSchema &other) const
@@ -196,7 +194,7 @@ int SchemaObject::FlatBufferSchema::CompareFlatBufferDefine(const FlatBufferSche
     std::string selfRootName = SchemaUtils::StripNameSpace(selfRootTableName->str());
     std::string otherRootName = SchemaUtils::StripNameSpace(otherRootTableName->str());
     if (selfRootName != otherRootName) {
-        LOGE("[FBSchema][Compare] RootName differ, self=%s, other=%s.", selfRootName.c_str(), otherRootName.c_str());
+        LOGE("[FBSchema][Compare] RootName dif.");
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // We don't have to compare rootTableAttribute or index here, they are done by SchemaObject
@@ -212,12 +210,12 @@ int CheckSizePrefixRawValue(const RawValue &inValue)
         return -E_INVALID_ARGS;
     }
     if (inValue.second <= SIZE_PREFIX_SIZE) {
-        LOGE("[FBSchema][CheckSizePreValue] ValueSize=%u too short.", inValue.second);
+        LOGW("[FBSchema][CheckSizePreValue] ValueSize too short:%" PRIu32, inValue.second);
         return -E_INVALID_ARGS;
     }
     auto realSize = flatbuffers::ReadScalar<flatbuffers::uoffset_t>(inValue.first);
     if (realSize != inValue.second - SIZE_PREFIX_SIZE) {
-        LOGE("[FBSchema][CheckSizePreValue] RealSize=%u mismatch valueSize=(%u-4).", realSize, inValue.second);
+        LOGE("[FBSchema][CheckSizePreValue] RealSize=%" PRIu32 " mismatch %" PRIu32, realSize, inValue.second);
         return -E_INVALID_ARGS;
     }
     return E_OK;
@@ -439,7 +437,7 @@ int SchemaObject::FlatBufferSchema::ExtractFlatBufferValue(RawString inPath, con
     // Currently we don't support nest-path
     auto fieldInfo = GetFieldInfoFromSchemaByPath(*schema, pathStr);
     if (fieldInfo == nullptr) {
-        LOGE("[FBSchema][Extract] FieldInfo of path=%s not found.", pathStr);
+        LOGW("[FBSchema][Extract] FieldInfo of path not found.");
         return -E_INTERNAL_ERROR;
     }
     // Begin extract, we have to minimal verify if we don't trust value from database
@@ -532,19 +530,18 @@ int SchemaObject::FlatBufferSchema::ParseCheckRootTableDefine(const reflection::
         CHECK_NULL_UNLIKELY_RETURN_ERROR(name);
         int errCode = SchemaUtils::CheckFieldName(name->str());
         if (errCode != E_OK) {
-            LOGE("[FBSchema][ParseRootDefine] Invalid fieldName=%s, errCode=%d.", name->c_str(), errCode);
+            LOGE("[FBSchema][ParseRootDefine] Invalid fieldName, errCode=%d.", errCode);
             return -E_SCHEMA_PARSE_FAIL;
         }
         FieldPath path{name->str()};
         if (owner_.schemaDefine_[ROOT_DEFINE_DEPTH].count(path) != 0) { // Unlikely
-            LOGE("[FBSchema][ParseRootDefine] FieldPath=%s already exist at root.", name->c_str());
+            LOGE("[FBSchema][ParseRootDefine] FieldPath already exist at root.");
             return -E_SCHEMA_PARSE_FAIL;
         }
 
         errCode = ParseCheckFieldInfo(schema, *eachField, path, indexCollect);
         if (errCode != E_OK) {
-            LOGE("[FBSchema][ParseRootDefine] ParseFieldInfo errCode=%d, FieldPath=%s.", errCode,
-                SchemaUtils::FieldPathString(path).c_str());
+            LOGE("[FBSchema][ParseRootDefine] ParseFieldInfo errCode=%d", errCode);
             return errCode;
         }
     }
@@ -555,7 +552,7 @@ int SchemaObject::FlatBufferSchema::ParseCheckRootTableDefine(const reflection::
         }
     }
     if (fieldPathCount > SchemaConstant::SCHEMA_FEILD_NAME_COUNT_MAX) {
-        LOGE("[FBSchema][ParseRootDefine] FieldPath count=%u exceed the limitation.", fieldPathCount);
+        LOGE("[FBSchema][ParseRootDefine] FieldPath count=%" PRIu32 " exceed the limitation.", fieldPathCount);
         return -E_SCHEMA_PARSE_FAIL;
     }
     return E_OK;
@@ -691,7 +688,7 @@ int SchemaObject::FlatBufferSchema::ParseCheckStructDefine(const reflection::Sch
         CHECK_NULL_UNLIKELY_RETURN_ERROR(eachName);
         int errCode = SchemaUtils::CheckFieldName(eachName->str());
         if (errCode != E_OK) {
-            LOGE("[FBSchema][ParseStruct] Invalid fieldName=%s, errCode=%d.", eachName->c_str(), errCode);
+            LOGE("[FBSchema][ParseStruct] Invalid fieldName, errCode=%d.", errCode);
             return -E_SCHEMA_PARSE_FAIL;
         }
         FieldPath eachPath = path;
@@ -699,8 +696,7 @@ int SchemaObject::FlatBufferSchema::ParseCheckStructDefine(const reflection::Sch
         RawIndexInfos notUsed;
         errCode = ParseCheckFieldInfo(schema, *eachField, eachPath, notUsed);
         if (errCode != E_OK) {
-            LOGE("[FBSchema][ParseStruct] ParseFieldInfo errCode=%d, FieldPath=%s.", errCode,
-                SchemaUtils::FieldPathString(eachPath).c_str());
+            LOGE("[FBSchema][ParseStruct] ParseFieldInfo errCode=%d.", errCode);
             return errCode;
         }
     }
@@ -723,7 +719,7 @@ int SchemaObject::FlatBufferSchema::ParseCheckIndexes(const RawIndexInfos &index
         if (IsNotCompositeIndex(rawIndexStr)) {
             int errCode = owner_.ParseCheckEachIndexFromStringArray(indexStrArray);
             if (errCode != E_OK) {
-                LOGE("[FBSchema][ParseIndex] Create single-index=%s fail, errCode=%d.", entry.first.c_str(), errCode);
+                LOGE("[FBSchema][ParseIndex] Create single-index fail:%d.", errCode);
                 return errCode;
             }
             description_ += ("INDEX=" + entry.first + ";");
@@ -744,8 +740,7 @@ int SchemaObject::FlatBufferSchema::ParseCheckIndexes(const RawIndexInfos &index
         }
         int errCode = owner_.ParseCheckEachIndexFromStringArray(indexStrArray);
         if (errCode != E_OK) {
-            LOGE("[FBSchema][ParseIndex] Create composite-index=%s, rawStr=%s fail, errCode=%d.", entry.first.c_str(),
-                rawIndexStr.c_str(), errCode);
+            LOGE("[FBSchema][ParseIndex] Create composite-index fail:%d.", errCode);
             return errCode;
         }
         description_ += ("INDEX=" + entry.first + ";");
@@ -768,12 +763,12 @@ int CompareFieldCount(bool isRoot, uint32_t selfCount, uint32_t otherCount)
 {
     if (isRoot) {
         if (otherCount < selfCount) {
-            LOGE("[FBSchema][CompareRoot] RootFieldSize: other=%u less than self=%u.", otherCount, selfCount);
+            LOGW("[FBSchema][CompareRoot] RootFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     } else {
         if (selfCount != otherCount) {
-            LOGE("[FBSchema][CompareRoot] StructFieldSize: self=%u differ with other=%u.", selfCount, otherCount);
+            LOGW("[FBSchema][CompareRoot] StructFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -785,26 +780,23 @@ int CompareFieldInfoBesideType(const reflection::Field &selfField, const reflect
 {
     // Compare offset
     if (selfField.offset() != otherField.offset()) {
-        LOGE("[FBSchema][CompareField] Offset differ: self=%u, other=%u.", selfField.offset(), otherField.offset());
+        LOGW("[FBSchema][CompareField] Offset diff");
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // Compare default value
     if (selfField.default_integer() != otherField.default_integer()) {
-        LOGE("[FBSchema][CompareField] DefaultInteger differ: self=%lld, other=%lld.",
-            static_cast<long long>(selfField.default_integer()), static_cast<long long>(otherField.default_integer()));
+        LOGE("[FBSchema][CompareField] DefaultInteger diff");
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // QUEER: for the same default_real value in fbs, flatbuffer will generate different value in binary ???
     if (!IsDoubleNearlyEqual(selfField.default_real(), otherField.default_real())) {
-        LOGE("[FBSchema][CompareField] DefaultReal differ: self=%f, other=%f.", selfField.default_real(),
-            otherField.default_real());
+        LOGE("[FBSchema][CompareField] DefaultReal diff");
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // Ignore deprecated, Compare required
     if (IsRequiredSupportType(theType)) {
         if (selfField.required() != otherField.required()) {
-            LOGE("[FBSchema][CompareField] Require differ: self=%d, other=%d.", selfField.required(),
-                otherField.required());
+            LOGE("[FBSchema][CompareField] Require diff");
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -821,7 +813,7 @@ int CompareFieldInfo(const reflection::Field &selfField, const reflection::Field
     auto selfBaseType = selfType->base_type();
     auto otherBaseType = otherType->base_type();
     if (selfBaseType != otherBaseType) {
-        LOGE("[FBSchema][CompareField] BaseType differ: self=%s, other=%s.", reflection::EnumNameBaseType(selfBaseType),
+        LOGE("[FBSchema][CompareField] BaseType diff:%s vs %s.", reflection::EnumNameBaseType(selfBaseType),
             reflection::EnumNameBaseType(otherBaseType));
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
@@ -829,7 +821,7 @@ int CompareFieldInfo(const reflection::Field &selfField, const reflection::Field
         auto selfElementType = selfType->element();
         auto otherElementType = otherType->element();
         if (selfElementType != otherElementType) {
-            LOGE("[FBSchema][CompareField] ElementType differ: self=%u, other=%u.", selfElementType, otherElementType);
+            LOGE("[FBSchema][CompareField] ElementType diff:%" PRu32 " vs %" PRu32, selfElementType, otherElementType);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -858,7 +850,7 @@ int CompareExtraField(const PairConstPointer<reflection::Object> &bothObject)
             continue;
         }
         if (eachOtherField->required()) {
-            LOGE("[FBSchema][CompareDefine] Extra field=%s should not be required.", otherName->c_str());
+            LOGE("[FBSchema][CompareDefine] Extra field should not be required.");
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -886,13 +878,13 @@ int SchemaObject::FlatBufferSchema::CompareTableOrStructDefine(const PairConstPo
         CHECK_NULL_UNLIKELY_RETURN_ERROR(selfName);
         auto correspondOtherField = otherFields->LookupByKey(selfName->c_str());
         if (correspondOtherField == nullptr) {
-            LOGE("[FBSchema][CompareDefine] SelfField=%s not found in other.", selfName->c_str());
+            LOGE("[FBSchema][CompareDefine] SelfField not found in other.");
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
         bool isStruct = false;
         errCode = CompareFieldInfo(*eachSelfField, *correspondOtherField, isStruct);
         if (IsNotEqualNotCompatible(errCode)) {
-            LOGE("[FBSchema][CompareDefine] Compare info of field=%s fail, errCode=%d.", selfName->c_str(), errCode);
+            LOGE("[FBSchema][CompareDefine] Compare info of field fail, errCode=%d.", errCode);
             return errCode;
         }
         if (isStruct) {
@@ -941,8 +933,7 @@ int SchemaObject::FlatBufferSchema::CompareStruct(const PairConstPointer<reflect
     std::string selfName = SchemaUtils::StripNameSpace(selfStructName->str());
     std::string otherName = SchemaUtils::StripNameSpace(otherStructName->str());
     if (selfName != otherName) {
-        LOGE("[FBSchema][CompareStruct] The field is not of same struct type, self=%s, other=%s.",
-            selfName.c_str(), otherName.c_str());
+        LOGE("[FBSchema][CompareStruct] The field is not of same struct type");
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     if (compared.count(selfName) != 0) { // This struct-type had already been compared, no need to do recurse again

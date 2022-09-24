@@ -15,8 +15,8 @@
 #ifndef SCHEMA_NEGOTIATE_H
 #define SCHEMA_NEGOTIATE_H
 
-#include "schema_object.h"
 #include "relational_schema_object.h"
+#include "schema_object.h"
 
 namespace DistributedDB {
 struct SyncOpinion {
