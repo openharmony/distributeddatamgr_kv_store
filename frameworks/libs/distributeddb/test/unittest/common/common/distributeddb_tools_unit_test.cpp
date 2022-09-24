@@ -925,15 +925,18 @@ int RelationalTestUtils::ExecSql(sqlite3 *db, const std::string &sql,
         }
     }
 
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = E_OK;
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            break;
+        }
         if (resultCallback && resultCallback(stmt) != E_OK) { // continue step stmt while callback return E_OK
             goto END;
         }
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    }
+    } while (true);
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
