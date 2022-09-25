@@ -74,7 +74,7 @@ void BackupManager::Init(const std::string &baseDir)
             }
         }
     };
-    pool_->At(TaskScheduler::System::now(),std::move(task));
+    pool_->At(TaskScheduler::System::now(), std::move(task));
 }
 
 void BackupManager::Prepare(const std::string &path, const std::string &storeId)
