@@ -497,4 +497,223 @@ int64_t ITypesUtil::GetTotalSize(const std::vector<Key> &entries)
     }
     return bufferSize - 1;
 }
+bool ITypesUtil::Unmarshalling(DataSharePredicates &predicates, MessageParcel &data)
+{
+    ZLOGD("Unmarshalling DataSharePredicates Start");
+    std::list<OperationItem> operations {};
+    std::string whereClause = "";
+    std::vector<std::string> whereArgs;
+    std::string order = "";
+    int64_t mode = INVALID_MODE;
+    size_t size = static_cast<size_t>(parcel.ReadInt32());
+    if (static_cast<int32_t>(size) < 0) {
+        ZLOGE("predicate read listSize failed");
+        return false;
+    }
+    if ((size > parcel.GetReadableBytes()) || (operations.max_size() < size)) {
+        ZLOGE("Read operations failed, size : %{public}zu", size);
+        return false;
+    }
+    operations.clear();
+    for (size_t i = 0; i < size; i++) {
+        OperationItem listitem {};
+        if (!Unmarshalling(parcel, listitem)) {
+            ZLOGE("operations read OperationItem failed");
+            return false;
+        }
+        operations.push_back(listitem);
+    }
+    if (!parcel.ReadString(whereClause)) {
+        ZLOGE("predicate read whereClause failed");
+        return false;
+    }
+    if (!parcel.ReadStringVector(&whereArgs)) {
+        ZLOGE("predicate read whereArgs failed");
+        return false;
+    }
+    if (!parcel.ReadString(order)) {
+        ZLOGE("predicate read order failed");
+        return false;
+    }
+    if (!parcel.ReadInt64(mode)) {
+        ZLOGE("predicate read mode failed");
+        return false;
+    }
+    DataSharePredicates tmpPredicates(operations);
+    tmpPredicates.SetWhereClause(whereClause);
+    tmpPredicates.SetWhereArgs(whereArgs);
+    tmpPredicates.SetOrder(order);
+    tmpPredicates.SetSettingMode(static_cast<SettingMode>(mode));
+    predicates = tmpPredicates;
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParcel &data)
+{
+    int len = parcel.ReadInt32();
+    if (len < 0) {
+        ZLOGE("valuesBucket read mapSize failed");
+        return false;
+    }
+    size_t size = static_cast<size_t>(len);
+    if ((size > parcel.GetReadableBytes()) || (valuesBucket.valuesMap.max_size() < size)) {
+        ZLOGE("Read valuesMap failed, size : %{public}zu", size);
+        return false;
+    }
+    valuesBucket.valuesMap.clear();
+    for (size_t i = 0; i < size; i++) {
+        std::string key = parcel.ReadString();
+        DataShareValueObject value {};
+        if (!Unmarshalling(parcel, value)) {
+            ZLOGE("valuesBucket read value failed");
+            return false;
+        }
+        valuesBucket.valuesMap.insert(std::make_pair(key, value));
+    }
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(OperationItem &operationItem, MessageParcel &data)
+{
+    operationItem.operation = static_cast<OperationType>(parcel.ReadInt64());
+    if (operationItem.operation < OperationType::INVALID_OPERATION) {
+        ZLOGE("operationItem read operation failed");
+        return false;
+    }
+    if (!Unmarshalling(parcel, operationItem.singleParams)) {
+        ZLOGE("Unmarshalling singleParams failed");
+        return false;
+    }
+    if (!Unmarshalling(parcel, operationItem.multiParams)) {
+        ZLOGE("Unmarshalling multiParams failed");
+        return false;
+    }
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(DataSharePredicatesObject &predicatesObject, MessageParcel &data)
+{
+    int16_t type = parcel.ReadInt16();
+    if (type < (int16_t)DataSharePredicatesObjectType::TYPE_NULL) {
+        ZLOGE("predicatesObject read type failed");
+        return false;
+    }
+    predicatesObject.type = static_cast<DataSharePredicatesObjectType>(type);
+    switch (predicatesObject.type) {
+        case DataSharePredicatesObjectType::TYPE_INT: {
+            predicatesObject.value = parcel.ReadInt32();
+            break;
+        }
+        case DataSharePredicatesObjectType::TYPE_LONG: {
+            predicatesObject.value = parcel.ReadInt64();
+            break;
+        }
+        case DataSharePredicatesObjectType::TYPE_DOUBLE: {
+            predicatesObject.value = parcel.ReadDouble();
+            break;
+        }
+        case DataSharePredicatesObjectType::TYPE_STRING: {
+            predicatesObject.value = parcel.ReadString();
+            break;
+        }
+        case DataSharePredicatesObjectType::TYPE_BOOL: {
+            predicatesObject.value = parcel.ReadBool();
+            break;
+        }
+        default:
+            break;
+    }
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, MessageParcel &data)
+{
+    int16_t type = parcel.ReadInt16();
+    if (type < (int16_t)DataSharePredicatesObjectsType::TYPE_NULL) {
+        ZLOGE("predicatesObject read type failed");
+        return false;
+    }
+    predicatesObject.type = static_cast<DataSharePredicatesObjectsType>(type);
+    switch (predicatesObject.type) {
+        case DataSharePredicatesObjectsType::TYPE_INT_VECTOR: {
+            std::vector<int> intval {};
+            if (!parcel.ReadInt32Vector(&intval)) {
+                ZLOGE("predicatesObject ReadInt32Vector value failed");
+                return false;
+            }
+            predicatesObject.value = intval;
+            break;
+        }
+        case DataSharePredicatesObjectsType::TYPE_LONG_VECTOR: {
+            std::vector<int64_t> int64val {};
+            if (!parcel.ReadInt64Vector(&int64val)) {
+                ZLOGE("predicatesObject ReadInt64Vector value failed");
+                return false;
+            }
+            predicatesObject.value = int64val;
+            break;
+        }
+        case DataSharePredicatesObjectsType::TYPE_DOUBLE_VECTOR: {
+            std::vector<double> doubleval {};
+            if (!parcel.ReadDoubleVector(&doubleval)) {
+                ZLOGE("predicatesObject ReadDoubleVector value failed");
+                return false;
+            }
+            predicatesObject.value = doubleval;
+            break;
+        }
+        case DataSharePredicatesObjectsType::TYPE_STRING_VECTOR: {
+            std::vector<std::string> stringval {};
+            if (!parcel.ReadStringVector(&stringval)) {
+                ZLOGE("predicatesObject ReadDoubReadStringVectorleVector value failed");
+                return false;
+            }
+            predicatesObject.value = stringval;
+            break;
+        }
+        default:
+            break;
+    }
+    return true;
+}
+
+bool ITypesUtil::Unmarshalling(DataShareValueObject &valueObject, MessageParcel &data)
+{
+    int16_t type = parcel.ReadInt16();
+    if (type < (int16_t)DataShareValueObjectType::TYPE_NULL) {
+        ZLOGE("valueObject read type failed");
+        return false;
+    }
+    valueObject.type = static_cast<DataShareValueObjectType>(type);
+    switch (valueObject.type) {
+        case DataShareValueObjectType::TYPE_INT: {
+            valueObject.value = parcel.ReadInt64();
+            break;
+        }
+        case DataShareValueObjectType::TYPE_DOUBLE: {
+            valueObject.value = parcel.ReadDouble();
+            break;
+        }
+        case DataShareValueObjectType::TYPE_STRING: {
+            valueObject.value = parcel.ReadString();
+            break;
+        }
+        case DataShareValueObjectType::TYPE_BLOB: {
+            std::vector<uint8_t> val;
+            if (!parcel.ReadUInt8Vector(&val)) {
+                ZLOGE("valueObject ReadUInt8Vector value failed");
+                return false;
+            }
+            valueObject.value = val;
+            break;
+        }
+        case DataShareValueObjectType::TYPE_BOOL: {
+            valueObject.value = parcel.ReadBool();
+            break;
+        }
+        default:
+            break;
+    }
+    return true;
+}
 } // namespace OHOS::DistributedKv

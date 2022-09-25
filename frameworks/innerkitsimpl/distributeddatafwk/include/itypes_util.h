@@ -19,6 +19,8 @@
 #include <memory>
 
 #include "change_notification.h"
+#include "datashare_predicates.h"
+#include "datashare_values_bucket.h"
 #include "message_parcel.h"
 #include "rdb_types.h"
 #include "types.h"
@@ -81,6 +83,14 @@ public:
 
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
+
+    static bool Unmarshalling(DataSharePredicates &predicates, MessageParcel &data);
+    static bool Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParcel &data);
+    static bool Unmarshalling(OperationItem &operationItem, MessageParcel &data);
+    static bool Unmarshalling(DataSharePredicatesObject &predicatesObject, MessageParcel &data);
+    static bool Unmarshalling(DataSharePredicatesObjects &predicatesObject, MessageParcel &data);
+    static bool Unmarshalling(DataShareValueObject &valueObject, MessageParcel &data);
+
 
     template<typename ..._Types>
     static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)
