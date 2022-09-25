@@ -81,15 +81,15 @@ public:
     static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
     static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
+    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
+
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
-
-    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &data);
-    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &data);
-    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &data);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &data);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &data);
-    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &data);
 
     template<typename ..._Types>
     static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)
