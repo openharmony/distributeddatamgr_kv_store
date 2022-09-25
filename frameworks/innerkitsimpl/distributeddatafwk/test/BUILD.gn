@@ -27,6 +27,7 @@ config("module_private_config") {
 
     # for ipc_core interfaces.
     "//commonlibrary/c_utils/base/include",
+    "//foundation/distributeddatamgr/data_share/frameworks/native/common/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
 }
