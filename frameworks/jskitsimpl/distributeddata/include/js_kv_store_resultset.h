@@ -26,6 +26,7 @@ public:
     virtual ~JsKVStoreResultSet() = default;
 
     void SetNative(std::shared_ptr<DistributedKv::KvStoreResultSet>& resultSet);
+    void SetSchema(bool isSchema);
     std::shared_ptr<DistributedKv::KvStoreResultSet>& GetNative();
 
     static napi_value Constructor(napi_env env);
@@ -49,6 +50,7 @@ private:
     static napi_value GetEntry(napi_env env, napi_callback_info info);
 
     std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet_ = nullptr;
+    bool isSchema_ = false;
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_KV_STORE_RESELTSET_H
