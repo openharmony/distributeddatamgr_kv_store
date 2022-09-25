@@ -84,13 +84,12 @@ public:
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
 
-    static bool Unmarshalling(DataSharePredicates &predicates, MessageParcel &data);
-    static bool Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParcel &data);
-    static bool Unmarshalling(OperationItem &operationItem, MessageParcel &data);
-    static bool Unmarshalling(DataSharePredicatesObject &predicatesObject, MessageParcel &data);
-    static bool Unmarshalling(DataSharePredicatesObjects &predicatesObject, MessageParcel &data);
-    static bool Unmarshalling(DataShareValueObject &valueObject, MessageParcel &data);
-
+    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &data);
+    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &data);
+    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &data);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &data);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &data);
+    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &data);
 
     template<typename ..._Types>
     static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)

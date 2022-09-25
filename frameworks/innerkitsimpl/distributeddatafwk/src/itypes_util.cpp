@@ -497,10 +497,11 @@ int64_t ITypesUtil::GetTotalSize(const std::vector<Key> &entries)
     }
     return bufferSize - 1;
 }
-bool ITypesUtil::Unmarshalling(DataSharePredicates &predicates, MessageParcel &data)
+
+bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &data)
 {
     ZLOGD("Unmarshalling DataSharePredicates Start");
-    std::list<OperationItem> operations {};
+    std::list<DataShare::OperationItem> operations {};
     std::string whereClause = "";
     std::vector<std::string> whereArgs;
     std::string order = "";
@@ -516,7 +517,7 @@ bool ITypesUtil::Unmarshalling(DataSharePredicates &predicates, MessageParcel &d
     }
     operations.clear();
     for (size_t i = 0; i < size; i++) {
-        OperationItem listitem {};
+        DataShare::OperationItem listitem {};
         if (!Unmarshalling(parcel, listitem)) {
             ZLOGE("operations read OperationItem failed");
             return false;
@@ -539,16 +540,16 @@ bool ITypesUtil::Unmarshalling(DataSharePredicates &predicates, MessageParcel &d
         ZLOGE("predicate read mode failed");
         return false;
     }
-    DataSharePredicates tmpPredicates(operations);
+    DataShare::DataSharePredicates tmpPredicates(operations);
     tmpPredicates.SetWhereClause(whereClause);
     tmpPredicates.SetWhereArgs(whereArgs);
     tmpPredicates.SetOrder(order);
-    tmpPredicates.SetSettingMode(static_cast<SettingMode>(mode));
+    tmpPredicates.SetSettingMode(static_cast<DataShare::SettingMode>(mode));
     predicates = tmpPredicates;
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParcel &data)
+bool ITypesUtil::Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &data)
 {
     int len = parcel.ReadInt32();
     if (len < 0) {
@@ -563,7 +564,7 @@ bool ITypesUtil::Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParce
     valuesBucket.valuesMap.clear();
     for (size_t i = 0; i < size; i++) {
         std::string key = parcel.ReadString();
-        DataShareValueObject value {};
+        DataShare::DataShareValueObject value {};
         if (!Unmarshalling(parcel, value)) {
             ZLOGE("valuesBucket read value failed");
             return false;
@@ -573,10 +574,10 @@ bool ITypesUtil::Unmarshalling(DataShareValuesBucket &valuesBucket, MessageParce
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(OperationItem &operationItem, MessageParcel &data)
+bool ITypesUtil::Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &data)
 {
-    operationItem.operation = static_cast<OperationType>(parcel.ReadInt64());
-    if (operationItem.operation < OperationType::INVALID_OPERATION) {
+    operationItem.operation = static_cast<DataShare::OperationType>(parcel.ReadInt64());
+    if (operationItem.operation < DataShare::OperationType::INVALID_OPERATION) {
         ZLOGE("operationItem read operation failed");
         return false;
     }
@@ -591,32 +592,32 @@ bool ITypesUtil::Unmarshalling(OperationItem &operationItem, MessageParcel &data
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(DataSharePredicatesObject &predicatesObject, MessageParcel &data)
+bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &data)
 {
     int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataSharePredicatesObjectType::TYPE_NULL) {
+    if (type < (int16_t)DataShare::DataSharePredicatesObjectType::TYPE_NULL) {
         ZLOGE("predicatesObject read type failed");
         return false;
     }
-    predicatesObject.type = static_cast<DataSharePredicatesObjectType>(type);
+    predicatesObject.type = static_cast<DataShare::DataSharePredicatesObjectType>(type);
     switch (predicatesObject.type) {
-        case DataSharePredicatesObjectType::TYPE_INT: {
+        case DataShare::DataSharePredicatesObjectType::TYPE_INT: {
             predicatesObject.value = parcel.ReadInt32();
             break;
         }
-        case DataSharePredicatesObjectType::TYPE_LONG: {
+        case DataShare::DataSharePredicatesObjectType::TYPE_LONG: {
             predicatesObject.value = parcel.ReadInt64();
             break;
         }
-        case DataSharePredicatesObjectType::TYPE_DOUBLE: {
+        case DataShare::DataSharePredicatesObjectType::TYPE_DOUBLE: {
             predicatesObject.value = parcel.ReadDouble();
             break;
         }
-        case DataSharePredicatesObjectType::TYPE_STRING: {
+        case DataShare::DataSharePredicatesObjectType::TYPE_STRING: {
             predicatesObject.value = parcel.ReadString();
             break;
         }
-        case DataSharePredicatesObjectType::TYPE_BOOL: {
+        case DataShare::DataSharePredicatesObjectType::TYPE_BOOL: {
             predicatesObject.value = parcel.ReadBool();
             break;
         }
@@ -626,16 +627,16 @@ bool ITypesUtil::Unmarshalling(DataSharePredicatesObject &predicatesObject, Mess
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, MessageParcel &data)
+bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &data)
 {
     int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataSharePredicatesObjectsType::TYPE_NULL) {
+    if (type < (int16_t)DataShare::DataSharePredicatesObjectsType::TYPE_NULL) {
         ZLOGE("predicatesObject read type failed");
         return false;
     }
-    predicatesObject.type = static_cast<DataSharePredicatesObjectsType>(type);
+    predicatesObject.type = static_cast<DataShare::DataSharePredicatesObjectsType>(type);
     switch (predicatesObject.type) {
-        case DataSharePredicatesObjectsType::TYPE_INT_VECTOR: {
+        case DataShare::DataSharePredicatesObjectsType::TYPE_INT_VECTOR: {
             std::vector<int> intval {};
             if (!parcel.ReadInt32Vector(&intval)) {
                 ZLOGE("predicatesObject ReadInt32Vector value failed");
@@ -644,7 +645,7 @@ bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, Mes
             predicatesObject.value = intval;
             break;
         }
-        case DataSharePredicatesObjectsType::TYPE_LONG_VECTOR: {
+        case DataShare::DataSharePredicatesObjectsType::TYPE_LONG_VECTOR: {
             std::vector<int64_t> int64val {};
             if (!parcel.ReadInt64Vector(&int64val)) {
                 ZLOGE("predicatesObject ReadInt64Vector value failed");
@@ -653,7 +654,7 @@ bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, Mes
             predicatesObject.value = int64val;
             break;
         }
-        case DataSharePredicatesObjectsType::TYPE_DOUBLE_VECTOR: {
+        case DataShare::DataSharePredicatesObjectsType::TYPE_DOUBLE_VECTOR: {
             std::vector<double> doubleval {};
             if (!parcel.ReadDoubleVector(&doubleval)) {
                 ZLOGE("predicatesObject ReadDoubleVector value failed");
@@ -662,7 +663,7 @@ bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, Mes
             predicatesObject.value = doubleval;
             break;
         }
-        case DataSharePredicatesObjectsType::TYPE_STRING_VECTOR: {
+        case DataShare::DataSharePredicatesObjectsType::TYPE_STRING_VECTOR: {
             std::vector<std::string> stringval {};
             if (!parcel.ReadStringVector(&stringval)) {
                 ZLOGE("predicatesObject ReadDoubReadStringVectorleVector value failed");
@@ -677,28 +678,28 @@ bool ITypesUtil::Unmarshalling(DataSharePredicatesObjects &predicatesObject, Mes
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(DataShareValueObject &valueObject, MessageParcel &data)
+bool ITypesUtil::Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &data)
 {
     int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataShareValueObjectType::TYPE_NULL) {
+    if (type < (int16_t)DataShare::DataShareValueObjectType::TYPE_NULL) {
         ZLOGE("valueObject read type failed");
         return false;
     }
-    valueObject.type = static_cast<DataShareValueObjectType>(type);
+    valueObject.type = static_cast<DataShare::DataShareValueObjectType>(type);
     switch (valueObject.type) {
-        case DataShareValueObjectType::TYPE_INT: {
+        case DataShare::DataShareValueObjectType::TYPE_INT: {
             valueObject.value = parcel.ReadInt64();
             break;
         }
-        case DataShareValueObjectType::TYPE_DOUBLE: {
+        case DataShare::DataShareValueObjectType::TYPE_DOUBLE: {
             valueObject.value = parcel.ReadDouble();
             break;
         }
-        case DataShareValueObjectType::TYPE_STRING: {
+        case DataShare::DataShareValueObjectType::TYPE_STRING: {
             valueObject.value = parcel.ReadString();
             break;
         }
-        case DataShareValueObjectType::TYPE_BLOB: {
+        case DataShare::DataShareValueObjectType::TYPE_BLOB: {
             std::vector<uint8_t> val;
             if (!parcel.ReadUInt8Vector(&val)) {
                 ZLOGE("valueObject ReadUInt8Vector value failed");
@@ -707,7 +708,7 @@ bool ITypesUtil::Unmarshalling(DataShareValueObject &valueObject, MessageParcel 
             valueObject.value = val;
             break;
         }
-        case DataShareValueObjectType::TYPE_BOOL: {
+        case DataShare::DataShareValueObjectType::TYPE_BOOL: {
             valueObject.value = parcel.ReadBool();
             break;
         }
