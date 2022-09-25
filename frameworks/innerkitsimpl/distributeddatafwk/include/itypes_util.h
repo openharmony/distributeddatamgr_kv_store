@@ -25,7 +25,8 @@
 #include "rdb_types.h"
 #include "types.h"
 
-namespace OHOS::DistributedKv {
+namespace OHOS {
+namespace DistributedKv {
 class ITypesUtil final {
 public:
     static bool Marshal(MessageParcel &data);
@@ -373,5 +374,6 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
     }
     return true;
 }
-} // namespace OHOS::DistributedKv
+} // namespace DistributedKv
+} // namespace OHOS
 #endif

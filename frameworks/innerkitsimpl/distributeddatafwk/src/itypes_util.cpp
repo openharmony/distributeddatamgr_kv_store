@@ -19,7 +19,8 @@
 #include "iremote_object.h"
 #include "log_print.h"
 
-namespace OHOS::DistributedKv {
+namespace OHOS {
+namespace DistributedKv {
 bool ITypesUtil::Marshal(MessageParcel &data)
 {
     return true;
@@ -717,4 +718,5 @@ int64_t ITypesUtil::GetTotalSize(const std::vector<Key> &entries)
     }
     return bufferSize - 1;
 }
-} // namespace OHOS::DistributedKv
+} // namespace DistributedKv
+} // namespace OHOS
