@@ -421,9 +421,8 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<uint8_t>& in, napi_
         return napi_invalid_arg;
     }
 #else
-    if (memcpy(data, in.data(), in.size()) != EOK) {
-        ZLOGE("memcpy_s not EOK");
-        return napi_invalid_arg;
+    for (size_t i = 0; i < value.size(); i++) {
+        *(static_cast<uint8_t *>(native) + i) = value[i];
     }
 #endif
     status = napi_create_typedarray(env, napi_uint8_array, in.size(), buffer, 0, &out);
@@ -514,9 +513,8 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<int32_t>& in, napi_
         return napi_invalid_arg;
     }
 #else
-    if (memcpy(data, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
-        return napi_invalid_arg;
+    for (size_t i = 0; i < value.size(); i++) {
+        *(static_cast<int32_t *>(native) + i) = value[i];
     }
 #endif
     status = napi_create_typedarray(env, napi_int32_array, in.size(), buffer, 0, &out);
@@ -559,9 +557,8 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<uint32_t>& in, napi
         return napi_invalid_arg;
     }
 #else
-    if (memcpy(data, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
-        return napi_invalid_arg;
+    for (size_t i = 0; i < value.size(); i++) {
+        *(static_cast<uint32_t *>(native) + i) = value[i];
     }
 #endif
     status = napi_create_typedarray(env, napi_uint32_array, in.size(), buffer, 0, &out);
@@ -604,9 +601,8 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<int64_t>& in, napi_
         return napi_invalid_arg;
     }
 #else
-    if (memcpy(data, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
-        return napi_invalid_arg;
+    for (size_t i = 0; i < value.size(); i++) {
+        *(static_cast<int64_t *>(native) + i) = value[i];
     }
 #endif
     status = napi_create_typedarray(env, napi_bigint64_array, in.size(), buffer, 0, &out);
