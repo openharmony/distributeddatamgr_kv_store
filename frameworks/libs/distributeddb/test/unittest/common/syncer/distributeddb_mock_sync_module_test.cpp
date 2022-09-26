@@ -56,6 +56,14 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTask
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
 }
 
+void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTaskContext,
+    MockCommunicator &communicator, VirtualSingleVerSyncDBInterface *dbSyncInterface)
+{
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
+    (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
+}
+
 #ifdef RUN_AS_ROOT
 void ChangeTime(int sec)
 {
@@ -366,6 +374,39 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, GetRequestSessionId()).WillOnce(Return(1u));
     syncTaskContext.ClearAllSyncTask();
     EXPECT_EQ(syncTaskContext.IsCommNormal(), false);
+}
+
+/**
+ * @tc.name: StateMachineCheck013
+ * @tc.desc: test kill syncTaskContext.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    auto *syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    auto *dbSyncInterface = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncTaskContext, nullptr);
+    EXPECT_NE(dbSyncInterface, nullptr);
+    if (dbSyncInterface == nullptr) {
+        RefObject::KillAndDecObjRef(syncTaskContext);
+        return;
+    }
+    MockCommunicator communicator;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    EXPECT_CALL(*syncTaskContext, Clear()).WillOnce(Return());
+    syncTaskContext->RegForkGetDeviceIdFunc([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+    });
+    int token = 1;
+    int *tokenPtr = &token;
+    syncTaskContext->SetContinueToken(tokenPtr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+    delete dbSyncInterface;
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
+    tokenPtr = nullptr;
 }
 
 /**

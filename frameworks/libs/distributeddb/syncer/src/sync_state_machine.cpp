@@ -108,18 +108,21 @@ void SyncStateMachine::Abort()
 {
     RefObject::IncObjRef(syncContext_);
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
-        {
-            std::lock_guard<std::mutex> lock(this->stateMachineLock_);
-            this->AbortInner();
-            StopWatchDog();
-            currentState_ = 0;
-        }
+        this->AbortImmediately();
         RefObject::DecObjRef(this->syncContext_);
     });
     if (errCode != E_OK) {
         LOGE("[SyncStateMachine][Abort] Abort failed, errCode %d", errCode);
         RefObject::DecObjRef(syncContext_);
     }
+}
+
+void SyncStateMachine::AbortImmediately()
+{
+    std::lock_guard<std::mutex> lock(stateMachineLock_);
+    AbortInner();
+    StopWatchDog();
+    currentState_ = 0;
 }
 
 int SyncStateMachine::SwitchMachineState(uint8_t event)

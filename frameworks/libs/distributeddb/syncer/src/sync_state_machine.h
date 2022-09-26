@@ -58,6 +58,9 @@ public:
     // Force stop the state machine
     void Abort() override;
 
+    // Force stop the state machine now
+    void AbortImmediately() override;
+
     // Force stop current task with sessionId
     void InnerErrorAbort(uint32_t sessionId) override;
 
