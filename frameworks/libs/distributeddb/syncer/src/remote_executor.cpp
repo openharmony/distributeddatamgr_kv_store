@@ -883,11 +883,10 @@ int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize)
 bool RemoteExecutor::CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
     const SecurityOption &localOption)
 {
-    if (remoteOption.securityLabel == SecurityLabel::NOT_SET || localOption.securityLabel == SecurityLabel::NOT_SET) {
-        return true;
-    }
     bool res = false;
-    if (remoteOption.securityLabel == localOption.securityLabel) {
+    if (remoteOption.securityLabel == localOption.securityLabel ||
+        (remoteOption.securityLabel == SecurityLabel::NOT_SET ||
+        localOption.securityLabel == SecurityLabel::NOT_SET)) {
         res = RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(device, remoteOption);
     }
     if (!res) {

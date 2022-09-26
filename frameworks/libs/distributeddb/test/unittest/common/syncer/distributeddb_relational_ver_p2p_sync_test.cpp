@@ -685,8 +685,13 @@ namespace {
     {
         std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
         adapter->ForkCheckDeviceSecurityAbility(
-            [&localOption, &checkDeviceResult](const std::string &devId, const SecurityOption &option) {
-            EXPECT_TRUE(localOption == option);
+            [&localOption, &remoteOption, checkDeviceResult, remoteQuery](const std::string &devId,
+                const SecurityOption &option) {
+            if (remoteQuery) {
+                EXPECT_TRUE(remoteOption == option);
+            } else {
+                EXPECT_TRUE(localOption == option);
+            }
             return checkDeviceResult;
         });
         adapter->ForkGetSecurityOption(
@@ -753,8 +758,8 @@ namespace {
                  * @tc.steps: step3. call sync
                  * @tc.expected: step3. sync result is based on security option
                  */
-                SyncWithSecurityCheck(localOption, remoteOption, false, true);
-                SyncWithSecurityCheck(localOption, remoteOption, false, false);
+                SyncWithSecurityCheck(localOption, remoteOption, remoteQuery, true);
+                SyncWithSecurityCheck(localOption, remoteOption, remoteQuery, false);
             }
         }
     }
