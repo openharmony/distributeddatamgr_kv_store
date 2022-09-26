@@ -217,10 +217,13 @@ bool ITypesUtil::Unmarshalling(std::vector<T> &val, MessageParcel &parcel)
 template<typename T>
 bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
 {
-    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
-    if (!data.WriteBool(buffer != nullptr)) {
+    if (!data.WriteInt32(size)) {
         return false;
     }
+    if (size == 0) {
+        return true;
+    }
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
     if (buffer == nullptr) {
         return false;
     }
@@ -230,34 +233,33 @@ bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
     if (!input.WriteToBuffer(cursor, leftSize)) {
         return false;
     }
-    if (!data.WriteInt32(size)) {
-        return false;
-    }
     return data.WriteRawData(buffer.get(), size);
 }
 
 template<typename T>
 bool ITypesUtil::MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data)
 {
-    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
-    if (!data.WriteBool(buffer != nullptr)) {
-        return false;
-    }
-    if (buffer == nullptr) {
-        return false;
-    }
-    uint8_t *cursor = buffer.get();
-    for (const auto &entry : input) {
-        if (!entry.WriteToBuffer(cursor, size)) {
-            return false;
-        }
-    }
     if (!data.WriteInt32(size)) {
         return false;
     }
-
+    if (size == 0) {
+        return true;
+    }
     if (!data.WriteInt32(input.size())) {
         return false;
+    }
+
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
+    if (buffer == nullptr) {
+        return false;
+    }
+
+    uint8_t *cursor = buffer.get();
+    int32_t left = size;
+    for (const auto &entry : input) {
+        if (!entry.WriteToBuffer(cursor, left)) {
+            return false;
+        }
     }
     return data.WriteRawData(buffer.get(), size);
 }
@@ -265,10 +267,10 @@ bool ITypesUtil::MarshalToBuffer(const std::vector<T> &input, int size, MessageP
 template<typename T>
 bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, T &output)
 {
-    if (!data.ReadBool()) {
-        return false;
-    }
     int32_t size = data.ReadInt32();
+    if (size == 0) {
+        return true;
+    }
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
     if (buffer == nullptr) {
         return false;
@@ -279,10 +281,11 @@ bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, T &output)
 template<typename T>
 bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output)
 {
-    if (!data.ReadBool()) {
-        return false;
+    int size = data.ReadInt32();
+    if (size == 0) {
+        return true;
     }
-    int32_t size = data.ReadInt32();
+
     int count = data.ReadInt32();
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
     if (count < 0 || buffer == nullptr) {
