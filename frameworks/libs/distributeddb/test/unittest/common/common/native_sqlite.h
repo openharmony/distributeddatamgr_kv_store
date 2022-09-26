@@ -12,18 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <string>
+#include <functional>
 
-#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_VISIBILITY_H
-#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_VISIBILITY_H
+#include "db_errno.h"
+#include "log_print.h"
+#include "sqlite_import.h"
 
-#ifndef API_EXPORT
-#define API_EXPORT __attribute__((visibility ("default")))
-#endif
-#ifndef API_LOCAL
-#define API_LOCAL __attribute__((visibility ("hidden")))
-#endif
-#ifndef KVSTORE_API
-#define KVSTORE_API API_EXPORT
-#endif
-
-#endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_VISIBILITY_H
+namespace DistributedDB {
+// For call sqlite native interfaces
+class NativeSqlite {
+public:
+    static sqlite3 *CreateDataBase(const std::string &dbUri);
+    static int ExecSql(sqlite3 *db, const std::string &sql);
+private:
+    NativeSqlite();
+    ~NativeSqlite();
+};
+}

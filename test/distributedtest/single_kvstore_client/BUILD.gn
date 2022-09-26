@@ -29,7 +29,7 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/app_distributeddata/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app/include",
-    "//test/developertest/aw/distributed",
+    "//test/testfwk/developer_test/aw/distributed",
   ]
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }

@@ -194,6 +194,25 @@ ohos_unittest("BlobTest") {
   external_deps = [ "c_utils:utils" ]
 }
 
+ohos_unittest("TypesUtilTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/types_util_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "//third_party/googletest:gtest_main",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -209,5 +228,6 @@ group("unittest") {
     ":LocalSubscribeStoreTest",
     ":SingleKvStoreClientQueryTest",
     ":SingleKvStoreClientTest",
+    ":TypesUtilTest",
   ]
 }

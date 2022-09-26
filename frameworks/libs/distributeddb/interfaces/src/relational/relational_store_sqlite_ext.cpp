@@ -127,8 +127,8 @@ public:
     static void Initialize(Timestamp maxTimestamp)
     {
         std::lock_guard<std::mutex> lock(lastLocalTimeLock_);
-        if (lastSystemTimeUs_ < maxTimestamp) {
-            lastSystemTimeUs_ = maxTimestamp;
+        if (lastLocalTime_ < maxTimestamp) {
+            lastLocalTime_ = maxTimestamp;
         }
     }
 
