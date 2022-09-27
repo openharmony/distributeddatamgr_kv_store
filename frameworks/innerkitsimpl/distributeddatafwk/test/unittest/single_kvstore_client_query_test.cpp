@@ -51,22 +51,24 @@ std::shared_ptr<SingleKvStore> SingleKvStoreClientQueryTest::singleKvStorePtr = 
 Status SingleKvStoreClientQueryTest::statusGetKvStore = Status::ERROR;
 
 void SingleKvStoreClientQueryTest::SetUpTestCase(void)
-{}
-
-void SingleKvStoreClientQueryTest::TearDownTestCase(void)
-{}
-
-void SingleKvStoreClientQueryTest::SetUp(void)
 {
     std::string baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
-void SingleKvStoreClientQueryTest::TearDown(void)
+void SingleKvStoreClientQueryTest::TearDownTestCase(void)
 {
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/key");
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/kvdb");
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest");
+}
+
+void SingleKvStoreClientQueryTest::SetUp(void)
+{
+}
+
+void SingleKvStoreClientQueryTest::TearDown(void)
+{
 }
 
 /**
