@@ -33,7 +33,7 @@ group("unittest") {
   testonly = true
   deps = []
   deps += [
+    "frameworks/innerkitsimpl/kvdb/test:unittest",
     "test/unittest/src:unittest",
-    "frameworks/innerkitsimpl/kvdb/test:unittest"
   ]
 }
