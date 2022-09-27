@@ -16,37 +16,40 @@
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <vector>
+#include <variant>
+#include "iremote_broker.h"
 #include "iremote_object.h"
+#include "iremote_proxy.h"
+#include "iremote_stub.h"
 #include "itypes_util.h"
 #include "types.h"
 
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS;
+using var_t = std::variant<std::monostate, uint32_t, std::string, int32_t, uint64_t>;
 class TypesUtilTest : public testing::Test {
 public:
-    class TestRemoteObject : public IRemoteObject {
+    class ITestRemoteObject : public IRemoteBroker {
     public:
-        int32_t GetObjectRefCount() override
-        {
-            return 0;
-        }
-        int SendRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override
-        {
-            return 0;
-        }
-        bool AddDeathRecipient(const sptr<DeathRecipient> &recipient) override
-        {
-            return false;
-        }
-        bool RemoveDeathRecipient(const sptr<DeathRecipient> &recipient) override
-        {
-            return false;
-        }
-        int Dump(int fd, const vector<std::u16string> &args) override
-        {
-            return 0;
-        }
+        DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.ITestRemoteObject");
+    };
+    class TestRemoteObjectStub : public IRemoteStub<ITestRemoteObject> {
+    public:
+    };
+    class TestRemoteObjectProxy : public IRemoteProxy<ITestRemoteObject> {
+    public:
+        explicit TestRemoteObjectProxy(const sptr<IRemoteObject> &impl)
+            : IRemoteProxy<ITestRemoteObject>(impl)
+        {}
+        ~TestRemoteObjectProxy() = default;
+    private:
+        static inline BrokerDelegator<TestRemoteObjectProxy> delegator_;
+    };
+    class TestRemoteObjectClient : public TestRemoteObjectStub {
+    public:
+        TestRemoteObjectClient() {}
+        virtual ~TestRemoteObjectClient() {}
     };
     static void SetUpTestCase(void) {};
     static void TearDownTestCase(void) {};
@@ -124,9 +127,9 @@ HWTEST_F(TypesUtilTest, Multiple, TestSize.Level1)
     input5.key = "my test";
     input5.value = "test value";
     DeviceInfo input6 = {.deviceId = "mock deviceId", .deviceName = "mock phone", .deviceType = "0"};
-    sptr<IRemoteObject> input7 = new TestRemoteObject();
+    sptr<ITestRemoteObject> input7 = new TestRemoteObjectClient();
     MessageParcel parcel;
-    ASSERT_TRUE(ITypesUtil::Marshal(parcel, input1, input2, input3, input4, input5, input6, input7));
+    ASSERT_TRUE(ITypesUtil::Marshal(parcel, input1, input2, input3, input4, input5, input6, input7->AsObject()));
     uint32_t output1 = 0;
     int32_t output2 = 0;
     std::string output3 = "";
@@ -144,5 +147,52 @@ HWTEST_F(TypesUtilTest, Multiple, TestSize.Level1)
     ASSERT_EQ(output6.deviceId, input6.deviceId);
     ASSERT_EQ(output6.deviceName, input6.deviceName);
     ASSERT_EQ(output6.deviceType, input6.deviceType);
-    ASSERT_EQ(output7, input7);
+    ASSERT_EQ(output7, input7->AsObject());
 }
+
+HWTEST_F(TypesUtilTest, Variant, TestSize.Level0)
+{
+    MessageParcel parcelNull;
+    var_t valueNullIn;
+    ASSERT_TRUE(ITypesUtil::Marshal(parcelNull, valueNullIn));
+    var_t valueNullOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcelNull, valueNullOut));
+    ASSERT_EQ(valueNullOut.index(), 0);
+
+    MessageParcel parcelUint;
+    var_t valueUintIn;
+    valueUintIn.emplace<1>(100);
+    ASSERT_TRUE(ITypesUtil::Marshal(parcelUint, valueUintIn));
+    var_t valueUintOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcelUint, valueUintOut));
+    ASSERT_EQ(valueUintOut.index(), 1);
+    ASSERT_EQ(std::get<uint32_t>(valueUintOut), 100);
+
+    MessageParcel parcelString;
+    var_t valueStringIn;
+    valueStringIn.emplace<2>("valueString");
+    ASSERT_TRUE(ITypesUtil::Marshal(parcelString, valueStringIn));
+    var_t valueStringOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcelString, valueStringOut));
+    ASSERT_EQ(valueStringOut.index(), 2);
+    ASSERT_EQ(std::get<std::string>(valueStringOut), "valueString");
+
+    MessageParcel parcelInt;
+    var_t valueIntIn;
+    valueIntIn.emplace<3>(101);
+    ASSERT_TRUE(ITypesUtil::Marshal(parcelInt, valueIntIn));
+    var_t valueIntOut;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcelInt, valueIntOut));
+    ASSERT_EQ(valueIntOut.index(), 3);
+    ASSERT_EQ(std::get<int32_t>(valueIntOut), 101);
+
+    MessageParcel parcelUint64;
+    var_t valueUint64In;
+    valueUint64In.emplace<4>(110);
+    ASSERT_TRUE(ITypesUtil::Marshal(parcelUint64, valueUint64In));
+    var_t valueUint64Out;
+    ASSERT_TRUE(ITypesUtil::Unmarshal(parcelUint64, valueUint64Out));
+    ASSERT_EQ(valueUint64Out.index(), 4);
+    ASSERT_EQ(std::get<uint64_t>(valueUint64Out), 110);
+}
+

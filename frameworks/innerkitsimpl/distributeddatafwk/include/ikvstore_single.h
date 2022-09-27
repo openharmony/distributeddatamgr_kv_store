@@ -96,6 +96,10 @@ public:
                              uint64_t sequenceId) = 0;
     virtual Status UnSubscribe(const std::vector<std::string> &deviceIds, const std::string &query,
                                uint64_t sequenceId) = 0;
+
+protected:
+    static constexpr int64_t SWITCH_RAW_DATA_SIZE = 700 * 1024;
+    static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
 
 class SingleKvStoreStub : public IRemoteStub<ISingleKvStore> {

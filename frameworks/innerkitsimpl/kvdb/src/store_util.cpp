@@ -28,6 +28,7 @@ constexpr int32_t END_SIZE = 3;
 constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
 constexpr const char *REPLACE_CHAIN = "***";
 constexpr const char *DEFAULT_ANONYMOUS = "******";
+std::atomic<uint64_t> StoreUtil::sequenceId_ = 0;
 StoreUtil::DBSecurity StoreUtil::GetDBSecurity(int32_t secLevel)
 {
     if (secLevel < SecurityLevel::NO_LABEL || secLevel > SecurityLevel::S4) {
@@ -263,5 +264,14 @@ bool StoreUtil::Remove(const std::string &path)
 void StoreUtil::Flush()
 {
     sync();
+}
+
+uint64_t StoreUtil::GenSequenceId()
+{
+    uint64_t seqId = ++sequenceId_;
+    if (seqId == std::numeric_limits<uint64_t>::max()) {
+        return ++sequenceId_;
+    }
+    return seqId;
 }
 } // namespace OHOS::DistributedKv

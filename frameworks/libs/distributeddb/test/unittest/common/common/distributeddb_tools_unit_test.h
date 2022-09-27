@@ -117,10 +117,10 @@ public:
         return true;
     }
     // init the test directory of dir.
-    static void TestDirInit(std::string&);
+    static void TestDirInit(std::string &dir);
 
     // remove the test db files in the test directory of dir.
-    static int RemoveTestDbFiles(const std::string&);
+    static int RemoveTestDbFiles(const std::string &dir);
 
     // callback function for get a KvStoreDelegate pointer.
     static void KvStoreDelegateCallback(DistributedDB::DBStatus, DistributedDB::KvStoreDelegate*,
