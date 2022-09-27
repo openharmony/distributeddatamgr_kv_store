@@ -140,7 +140,7 @@ int DistributedTestAgent::Get(const std::string &msg, std::string &ret) const
         HiLog::Error(LABEL, "agent ERROR.");
         return Status::INVALID_ARGUMENT;
     }
-    size_t index = msg.find(",");
+    auto index = msg.find(",");
     std::string skey = msg.substr(index+1);
     Key key(skey);
     Value value;
