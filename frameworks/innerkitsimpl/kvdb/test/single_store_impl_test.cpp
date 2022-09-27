@@ -12,12 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gtest/gtest.h>
-
+#include "sys/stat.h"
 #include <condition_variable>
+#include <gtest/gtest.h>
 #include <vector>
 
 #include "dev_manager.h"
+#include "distributed_kv_data_manager.h"
 #include "store_manager.h"
 #include "types.h"
 using namespace testing::ext;
@@ -64,38 +65,47 @@ public:
     void SetUp();
     void TearDown();
 
-protected:
-    std::shared_ptr<SingleKvStore> kvStore_;
+  std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest,KvStoreType type);
+  std::shared_ptr<SingleKvStore> kvStore_;
 };
 
-void SingleStoreImplTest::SetUpTestCase(void)
-{
+void SingleStoreImplTest::SetUpTestCase(void) {
+  std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+  mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
-void SingleStoreImplTest::TearDownTestCase(void)
-{
+void SingleStoreImplTest::TearDownTestCase(void) {
+  std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+  StoreManager::GetInstance().Delete({"SingleStoreImplTest"}, {"SingleKVStore"}, baseDir);
+
+  (void)remove("/data/service/el1/public/database/SingleStoreImplTest/key");
+  (void)remove("/data/service/el1/public/database/SingleStoreImplTest/kvdb");
+  (void)remove("/data/service/el1/public/database/SingleStoreImplTest");
 }
 
-void SingleStoreImplTest::SetUp(void)
-{
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.securityLevel = S1;
-    AppId appId = { "LocalSingleKVStore" };
-    StoreId storeId = { "LocalSingleKVStore" };
-    std::string path = "";
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, path);
-    kvStore_ = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
-    ASSERT_EQ(status, SUCCESS);
+void SingleStoreImplTest::SetUp(void) {
+  kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION);
+  ASSERT_NE(kvStore_, nullptr);
 }
 
-void SingleStoreImplTest::TearDown(void)
-{
-    AppId appId = { "LocalSingleKVStore" };
-    StoreId storeId = { "LocalSingleKVStore" };
-    std::string path = "";
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, path);
-    ASSERT_EQ(status, SUCCESS);
+void SingleStoreImplTest::TearDown(void) {}
+
+std::shared_ptr<SingleKvStore>
+SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type) {
+  Options options;
+  options.kvStoreType = type;
+  options.securityLevel = S1;
+  options.area = EL1;
+  options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+  SyncPolicy policy;
+  policy.type = PolicyType::IMMEDIATE_SYNC_ON_ONLINE;
+  policy.value.emplace<1>(100);
+  options.policies.emplace_back(policy);
+
+  AppId appId = {"SingleStoreImplTest"};
+  StoreId storeId = {storeIdTest};
+  Status status =StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
+  return StoreManager::GetInstance().GetKVStore(appId, storeId, options,status);
 }
 
 /**
@@ -109,7 +119,7 @@ HWTEST_F(SingleStoreImplTest, GetStoreId, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     auto storeId = kvStore_->GetStoreId();
-    ASSERT_EQ(storeId.storeId, "LocalSingleKVStore");
+    ASSERT_EQ(storeId.storeId, "SingleKVStore");
 }
 
 /**
@@ -588,52 +598,56 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
 }
 
 /**
-* @tc.name: RemoveDeviceData
-* @tc.desc: remove local device data
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
-HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
-{
-    ASSERT_NE(kvStore_, nullptr);
-    std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
-    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
-    for (int i = 0; i < 10; ++i) {
-        Entry entry;
-        entry.key = std::to_string(i).append("_k");
-        entry.value = std::to_string(i).append("_v");
-        dictionary[entry.key] = entry.value;
-        input.push_back(entry);
-    }
-    auto status = kvStore_->PutBatch(input);
-    ASSERT_EQ(status, SUCCESS);
-    int count = 0;
-    status = kvStore_->GetCount({}, count);
-    ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(count, 10);
-    status = kvStore_->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().uuid);
-    ASSERT_EQ(status, SUCCESS);
-    status = kvStore_->GetCount({}, count);
-    ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(count, 0);
+ * @tc.name: RemoveDeviceData
+ * @tc.desc: remove local device data
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0) {
+  auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION);
+  ASSERT_NE(store, nullptr);
+  std::vector<Entry> input;
+  auto cmp = [](const Key &entry, const Key &sentry) {
+    return entry.Data() < sentry.Data();
+  };
+  std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+  for (int i = 0; i < 10; ++i) {
+    Entry entry;
+    entry.key = std::to_string(i).append("_k");
+    entry.value = std::to_string(i).append("_v");
+    dictionary[entry.key] = entry.value;
+    input.push_back(entry);
+  }
+  auto status = store->PutBatch(input);
+  ASSERT_EQ(status, SUCCESS);
+  int count = 0;
+  status = store->GetCount({}, count);
+  ASSERT_EQ(status, SUCCESS);
+  ASSERT_EQ(count, 10);
+  status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
+  ASSERT_EQ(status, SUCCESS);
+  status = store->GetCount({}, count);
+  ASSERT_EQ(status, SUCCESS);
+  ASSERT_EQ(count, 10);
+  std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+  status = StoreManager::GetInstance().Delete({"SingleStoreImplTest"},{"DeviceKVStore"}, baseDir);
+  ASSERT_EQ(status, SUCCESS);
 }
 
 /**
-* @tc.name: RemoveDeviceData
-* @tc.desc: remove local device data
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
-HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
-{
-    ASSERT_NE(kvStore_, nullptr);
-    SecurityLevel securityLevel = NO_LABEL;
-    auto status = kvStore_->GetSecurityLevel(securityLevel);
-    ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(securityLevel, S1);
+ * @tc.name: GetSecurityLevel
+ * @tc.desc: get security level
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
+HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0) {
+  ASSERT_NE(kvStore_, nullptr);
+  SecurityLevel securityLevel = NO_LABEL;
+  auto status = kvStore_->GetSecurityLevel(securityLevel);
+  ASSERT_EQ(status, SUCCESS);
+  ASSERT_EQ(securityLevel, S1);
 }
 
 /**

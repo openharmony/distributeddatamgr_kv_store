@@ -89,23 +89,30 @@ describe('kvStoreTest', function () {
     })
 
     /*
-     * @tc.name:getKvStoreTest_storeID_kvStore
+     * @tc.name:KVJsTestDemo
      * @tc.desc:verify app info is not null
      * @tc.type: FUNC
      * @tc.require: issueNumber.
      */
-    it('getKvStoreTest_storeID_kvStore', 0, async function (done) {
-        console.info('getKvStoreTest_storeID_kvStore');
-        try {
-            await kvManager.getKVStore(TEST_STORE_ID).then((store) => {
-                console.info('getKvStoreTest_storeID_kvStore getKVStore success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.info('getKvStoreTest_storeID_kvStore getKVStore err ' + err);
-            });
-        } catch (e) {
-            console.info('getKvStoreTest_storeID_kvStore getKVStore e ' + e);
+    it('KVJsTestDemo', 0, async function (done) {
+        console.info('KVJsTestDemo');
+        const optionsInfo = {
+            createIfMissing: true,
+            encrypt: false,
+            backup: false,
+            autoSync: true,
+            kvStoreType: factory.KVStoreType.SINGLE_VERSION,
+            schema: '',
+            securityLevel: factory.SecurityLevel.NO_LEVEL,
         }
+        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+            console.info('KVJsTestDemo getKVStore success');
+            kvStore = store;
+            expect(store != null).assertTrue();
+        }).catch((err) => {
+            console.info('KVJsTestDemo getKVStore err ' + err);
+            expect(null).assertFail();
+        });
         done();
     })
 })
