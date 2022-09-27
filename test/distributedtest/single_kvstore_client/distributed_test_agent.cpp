@@ -140,7 +140,7 @@ int DistributedTestAgent::Get(const std::string &msg, std::string &ret) const
         HiLog::Error(LABEL, "agent ERROR.");
         return Status::INVALID_ARGUMENT;
     }
-    int index = msg.find(",");
+    size_t index = msg.find(",");
     std::string skey = msg.substr(index+1);
     Key key(skey);
     Value value;
@@ -159,7 +159,7 @@ int DistributedTestAgent::Put(const std::string &args) const
         HiLog::Error(LABEL, "agent ERROR.");
         return Status::INVALID_ARGUMENT;
     }
-    int index = args.find(",");
+    size_t index = args.find(",");
     std::string skey = args.substr(0, index);
     std::string sval = args.substr(index + 1);
     Key key(skey);
@@ -220,7 +220,7 @@ int DistributedTestAgent::Sync(const std::string &args) const
 
 int DistributedTestAgent::ProcessMsg(const std::string &msg, std::string &ret)
 {
-    int index = msg.find(",");
+    size_t index = msg.find(",");
     std::string argsMsg = msg.substr(0, index);
     std::map<std::string, MsgFunc>::iterator it = msgFunMap_.find(argsMsg);
     if (it != msgFunMap_.end()) {
