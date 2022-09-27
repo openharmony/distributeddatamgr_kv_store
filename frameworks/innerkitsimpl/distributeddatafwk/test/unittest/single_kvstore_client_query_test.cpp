@@ -64,12 +64,10 @@ void SingleKvStoreClientQueryTest::TearDownTestCase(void)
 }
 
 void SingleKvStoreClientQueryTest::SetUp(void)
-{
-}
+{}
 
 void SingleKvStoreClientQueryTest::TearDown(void)
-{
-}
+{}
 
 /**
 * @tc.name: TestQueryC001
