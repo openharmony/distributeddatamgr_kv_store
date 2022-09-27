@@ -329,6 +329,10 @@ int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
         return -E_ERROR;
     }
     while ((errCode = StepWithRetry(checkTableStmt)) != SQLITE_DONE) {
+        if (errCode != SQLITE_ROW) {
+            ResetStatement(checkTableStmt);
+            return -E_ERROR;
+        }
         std::string logTablename;
         GetColumnTestValue(checkTableStmt, 0, logTablename);
         if (logTablename.empty()) {
