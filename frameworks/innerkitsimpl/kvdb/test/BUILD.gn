@@ -37,9 +37,7 @@ config("module_private_config") {
 ohos_unittest("SingleStoreImpl") {
   module_out_path = module_output_path
 
-  sources = [
-    "single_store_impl_test.cpp",
-  ]
+  sources = [ "single_store_impl_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
@@ -63,8 +61,6 @@ ohos_unittest("SingleStoreImpl") {
 group("unittest") {
   testonly = true
 
-  deps = [
-    ":SingleStoreImpl",
-  ]
+  deps = [ ":SingleStoreImpl" ]
 }
 ###############################################################################
