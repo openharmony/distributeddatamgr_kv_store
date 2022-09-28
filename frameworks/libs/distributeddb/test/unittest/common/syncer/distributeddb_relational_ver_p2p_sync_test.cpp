@@ -2041,6 +2041,37 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
 }
 
 /**
+* @tc.name: SecurityOptionCheck001
+* @tc.desc: Test sync failed when getSecurityOption return error
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize.Level1)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkGetSecurityOption(
+        [](const std::string &filePath, SecurityOption &option) {
+        (void)filePath;
+        (void)option;
+        return DB_ERROR;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, { g_deviceB, g_deviceC });
+
+    /**
+     * @tc.steps: step2. sync with deviceB
+     */
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, SECURITY_OPTION_CHECK_ERROR, { DEVICE_B });
+}
+
+/**
 * @tc.name: OrderbyWriteTimeSync001
 * @tc.desc: sync query with order by writeTime
 * @tc.type: FUNC
