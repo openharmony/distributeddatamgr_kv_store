@@ -2049,10 +2049,12 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
 */
 HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize.Level1)
 {
-    DBStatus status = OK;
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
 
+    /**
+     * @tc.steps: step1. make getSecurityOption return -1
+     */
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     adapter->ForkGetSecurityOption(
         [](const std::string &filePath, SecurityOption &option) {
@@ -2063,12 +2065,50 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize
     RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
 
     std::map<std::string, DataValue> dataMap;
-    PrepareEnvironment(dataMap, { g_deviceB, g_deviceC });
+    PrepareEnvironment(dataMap, { g_deviceB });
 
     /**
      * @tc.steps: step2. sync with deviceB
      */
     BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, SECURITY_OPTION_CHECK_ERROR, { DEVICE_B });
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+}
+
+/**
+* @tc.name: SecurityOptionCheck002
+* @tc.desc: Test remote query failed when getSecurityOption return error
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. make getSecurityOption return -1
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkGetSecurityOption(
+        [](const std::string &filePath, SecurityOption &option) {
+        (void)filePath;
+        (void)option;
+        return DB_ERROR;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    /**
+     * @tc.steps: step2. remote query with deviceB
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_deviceB, nullptr);
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM " + g_tableName + " WHERE 1=0";
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_deviceB->RemoteQuery(DEVICE_A, condition, DBConstant::MIN_TIMEOUT, result),
+        SECURITY_OPTION_CHECK_ERROR);
+    EXPECT_EQ(result, nullptr);
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
 }
 
 /**
