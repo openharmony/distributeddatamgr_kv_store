@@ -280,7 +280,13 @@ int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Messa
         return -E_INVALID_ARGS;
     }
     if (errCode == E_OK) {
-        errCode = CheckSecurityOption(targetDev, packet->GetSecurityOption());
+        auto storage = GetAndIncSyncInterface();
+        auto communicator = GetAndIncCommunicator();
+        errCode = CheckSecurityOption(storage, communicator, packet->GetSecurityOption());
+        if (storage != nullptr) {
+            storage->DecRefCount();
+        }
+        RefObject::DecObjRef(communicator);
     }
     if (errCode != E_OK) {
         DoFinished(sessionId, errCode);
@@ -937,15 +943,17 @@ int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storag
     return errCode;
 }
 
-int RemoteExecutor::CheckSecurityOption(const std::string &device, const SecurityOption &remoteOption)
+int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *communicator,
+    const SecurityOption &remoteOption)
 {
-    auto storage = GetAndIncSyncInterface();
-    if (storage == nullptr) {
+    if (storage == nullptr || communicator == nullptr) {
         return -E_BUSY;
     }
     if (storage->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
         return -E_NOT_SUPPORT;
     }
+    std::string device;
+    communicator->GetLocalIdentity(device);
     SecurityOption localOption;
     int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {

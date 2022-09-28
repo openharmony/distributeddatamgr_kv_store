@@ -132,7 +132,7 @@ private:
     void RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList);
 
     int GetPacketSize(const std::string &device, size_t &packetSize);
-    int CheckSecurityOption(const std::string &device, const SecurityOption &remoteOption);
+    int CheckSecurityOption(ISyncInterface *storage, ICommunicator *communicator, const SecurityOption &remoteOption);
     bool CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
         const SecurityOption &localOption);
     int ResponseRemoteQueryRequest(RelationalDBSyncInterface *storage, const PreparedStmt &stmt,

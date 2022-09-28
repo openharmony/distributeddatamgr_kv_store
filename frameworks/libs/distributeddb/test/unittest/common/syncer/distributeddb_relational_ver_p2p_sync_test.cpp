@@ -689,6 +689,7 @@ namespace {
                 const SecurityOption &option) {
             if (remoteQuery) {
                 EXPECT_TRUE(remoteOption == option);
+                EXPECT_EQ(devId, DEVICE_A);
             } else {
                 EXPECT_TRUE(localOption == option);
             }
