@@ -49,6 +49,9 @@ public:
     int32_t RemoteQuery(const RdbSyncerParam& param, const std::string& device, const std::string& sql,
                         const std::vector<std::string>& selectionArgs, sptr<IRemoteObject>& resultSet) override;
 
+    int32_t CreateRDBTable(
+        const RdbSyncerParam &param, const std::string &writePermission, const std::string &readPermission) override;
+    int32_t DestroyRDBTable(const RdbSyncerParam &param) override;
     ObserverMap ExportObservers();
 
     void ImportObservers(ObserverMap& observers);

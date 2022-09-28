@@ -412,6 +412,12 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetKVdbService()
     return remoteObject;
 }
 
+sptr<IRemoteObject> KvStoreDataServiceProxy::GetDataShareService()
+{
+    ZLOGE("Null implementation.");
+    return nullptr;
+}
+
 int32_t KvStoreDataServiceStub::GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     AppId appId = { data.ReadString() };
@@ -608,6 +614,12 @@ int32_t KvStoreDataServiceStub::GetKVdbServiceOnRemote(MessageParcel &data, Mess
 int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     reply.WriteRemoteObject(GetObjectService());
+    return 0;
+}
+
+int32_t KvStoreDataServiceStub::GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply)
+{
+    reply.WriteRemoteObject(GetDataShareService());
     return 0;
 }
 

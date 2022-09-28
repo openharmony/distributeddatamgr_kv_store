@@ -40,6 +40,10 @@ public:
 
     virtual int32_t RemoteQuery(const RdbSyncerParam& param, const std::string& device, const std::string& sql,
                                 const std::vector<std::string>& selectionArgs, sptr<IRemoteObject>& resultSet) = 0;
+    virtual int32_t CreateRDBTable(
+        const RdbSyncerParam &param, const std::string &writePermission, const std::string &readPermission) = 0;
+
+    virtual int32_t DestroyRDBTable(const RdbSyncerParam &param) = 0;
 };
 } // namespace OHOS::DistributedRdb
 #endif
