@@ -15,8 +15,8 @@
 
 #ifndef SINGLE_VER_DATA_MESSAGE_SCHEDULE_H
 #define SINGLE_VER_DATA_MESSAGE_SCHEDULE_H
-#include <memory>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <queue>
 

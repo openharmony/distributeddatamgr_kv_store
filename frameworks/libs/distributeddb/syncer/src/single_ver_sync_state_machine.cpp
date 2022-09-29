@@ -412,7 +412,7 @@ Event SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow()
     }
     int errCode = dataSync_->SyncStart(SyncModeType::RESPONSE_PULL, context_);
     if (errCode != E_OK) {
-        LOGW("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
+        LOGE("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
         return RESPONSE_TASK_FINISHED_EVENT;
     }
     return Event::WAIT_ACK_EVENT;

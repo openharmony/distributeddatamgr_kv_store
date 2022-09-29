@@ -38,7 +38,7 @@ public:
     void Stop();
 
     // Register a user changed lister, it will be callback when user changed.
-    NotificationChain::Listener *RegisterUserChangedListerner(const UserChangedAction &action, EventType event,
+    NotificationChain::Listener *RegisterUserChangedListener(const UserChangedAction &action, EventType event,
         int &errCode);
 
     // Notify USER_CHANGE_EVENT.

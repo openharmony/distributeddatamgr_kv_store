@@ -59,7 +59,7 @@ void UserChangeMonitor::Stop()
     isStarted_ = false;
 }
 
-NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListerner(const UserChangedAction &action,
+NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListener(const UserChangedAction &action,
     EventType event, int &errCode)
 {
     std::shared_lock<std::shared_mutex> lockGuard(userChangeMonitorLock_);
@@ -71,7 +71,7 @@ NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListerner(con
         errCode = -E_NOT_INIT;
         return nullptr;
     }
-    LOGI("[UserChangeMonitor] RegisterUserChangedListerner event=%d", event);
+    LOGI("[UserChangeMonitor] RegisterUserChangedListener event=%d", event);
     return userNotifier_->RegisterListener(event, action, nullptr, errCode);
 }
 

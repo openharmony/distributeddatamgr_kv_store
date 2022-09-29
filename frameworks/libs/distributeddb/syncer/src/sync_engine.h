@@ -29,7 +29,6 @@
 #include "task_pool.h"
 
 namespace DistributedDB {
-constexpr uint16_t NEW_SEND_TASK = 1;
 
 class SyncEngine : public ISyncEngine {
 public:

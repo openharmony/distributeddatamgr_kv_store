@@ -14,9 +14,10 @@
  */
 #ifndef SINGLE_VER_DATA_SYNC_UTIL_H
 #define SINGLE_VER_DATA_SYNC_UTIL_H
+
+#include "message.h"
 #include "single_ver_data_packet.h"
 #include "single_ver_sync_task_context.h"
-#include "message.h"
 namespace DistributedDB {
 class SingleVerDataSyncUtils {
 public:

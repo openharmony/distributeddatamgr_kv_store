@@ -17,8 +17,8 @@
 #define COMMIT_HISTORY_SYNC_H
 
 #ifndef OMIT_MULTI_VER
-#include <vector>
 #include <map>
+#include <vector>
 
 #include "icommunicator.h"
 #include "multi_ver_kvdb_sync_interface.h"

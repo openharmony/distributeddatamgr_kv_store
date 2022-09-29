@@ -221,7 +221,7 @@ void NotificationChain::ListenerChain::ClearListeners()
 
     for (auto listener : tmpSet) {
         // Drop the ref 1 which increased in 'BackupListenerSet()',
-        // the origal 1 will be dropped when user call listener->Drop();
+        // the original 1 will be dropped when user call listener->Drop();
         listener->KillAndDecObjRef(listener);
         listener = nullptr;
     }

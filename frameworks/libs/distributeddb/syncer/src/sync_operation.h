@@ -17,10 +17,10 @@
 #define SYNC_OPERATION_H
 
 #include <functional>
-#include <string>
-#include <vector>
 #include <map>
 #include <mutex>
+#include <string>
+#include <vector>
 
 #include "ikvdb_sync_interface.h"
 #include "notification_chain.h"

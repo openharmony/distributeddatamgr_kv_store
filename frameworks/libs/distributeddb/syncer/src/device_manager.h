@@ -16,8 +16,8 @@
 #ifndef DEVICE_MANAGER_H
 #define DEVICE_MANAGER_H
 
-#include <set>
 #include <mutex>
+#include <set>
 
 #include "icommunicator.h"
 

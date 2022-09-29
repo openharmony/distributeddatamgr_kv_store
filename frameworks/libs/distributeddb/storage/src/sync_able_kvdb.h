@@ -126,7 +126,7 @@ private:
     NotificationChain *notifyChain_;
 
     mutable std::mutex syncerOperateLock_;
-    NotificationChain::Listener *userChangeListerner_;
+    NotificationChain::Listener *userChangeListener_;
 
     static const EventType REMOTE_PUSH_FINISHED;
 };
