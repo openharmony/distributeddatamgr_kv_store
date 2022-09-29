@@ -33,6 +33,36 @@ KvStoreDataServiceProxy::KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl
     ZLOGI("init data service proxy.");
 }
 
+sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::string &name)
+{
+    ZLOGI("%s", name.c_str());
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return nullptr;
+    }
+
+    if (!ITypesUtil::Marshal(data, name)) {
+        ZLOGE("write descriptor failed");
+        return nullptr;
+    }
+
+    MessageParcel reply;
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(GET_FEATURE_INTERFACE, data, reply, mo);
+    if (error != 0) {
+        ZLOGE("SendRequest returned %{public}d", error);
+        return nullptr;
+    }
+
+    sptr<IRemoteObject> remoteObject;
+    if (!ITypesUtil::Unmarshal(reply, remoteObject)) {
+        ZLOGE("remote object is nullptr");
+        return nullptr;
+    }
+    return remoteObject;
+}
+
 Status KvStoreDataServiceProxy::GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
                                                  std::function<void(sptr<ISingleKvStore>)> callback)
 {
@@ -88,31 +118,6 @@ Status KvStoreDataServiceProxy::GetSingleKvStore(const Options &options, const A
 void KvStoreDataServiceProxy::GetAllKvStoreId(const AppId &appId,
                                               std::function<void(Status, std::vector<StoreId> &)> callback)
 {
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return;
-    }
-    if (!data.WriteString(appId.appId)) {
-        ZLOGW("failed to write parcel.");
-        return;
-    }
-    std::vector<StoreId> storeIds;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GETALLKVSTOREID, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        callback(Status::IPC_ERROR, storeIds);
-        return;
-    }
-    std::vector<std::string> stores;
-    reply.ReadStringVector(&stores);
-    for (const auto &id: stores) {
-        storeIds.push_back({id});
-    }
-    Status status = static_cast<Status>(reply.ReadInt32());
-    callback(status, storeIds);
 }
 
 Status KvStoreDataServiceProxy::CloseKvStore(const AppId &appId, const StoreId &storeId)
@@ -388,57 +393,19 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetObjectService()
     return remoteObject;
 }
 
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetKVdbService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_KVDB_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
 sptr<IRemoteObject> KvStoreDataServiceProxy::GetDataShareService()
 {
     ZLOGE("Null implementation.");
     return nullptr;
 }
 
-int32_t KvStoreDataServiceStub::GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply)
+int32_t KvStoreDataServiceStub::NoSupport(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { data.ReadString() };
-    std::vector<std::string> storeIdList;
-    Status statusTmp;
-    GetAllKvStoreId(appId, [&](Status status, std::vector<StoreId> &storeIds) {
-        for (const auto &id : storeIds) {
-            storeIdList.push_back(id.storeId);
-        }
-        statusTmp = status;
-    });
-
-    if (!reply.WriteStringVector(storeIdList)) {
-        return -1;
-    }
-
-    if (!reply.WriteInt32(static_cast<int>(statusTmp))) {
-        return -1;
-    }
-    return 0;
+    (void)data;
+    (void)reply;
+    return NOT_SUPPORT;
 }
+
 int32_t KvStoreDataServiceStub::GetRemoteDevicesOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     std::vector<DeviceInfo> infos;
@@ -605,12 +572,6 @@ int32_t KvStoreDataServiceStub::GetRdbServiceOnRemote(MessageParcel &data, Messa
     return 0;
 }
 
-int32_t KvStoreDataServiceStub::GetKVdbServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetKVdbService());
-    return 0;
-}
-
 int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     reply.WriteRemoteObject(GetObjectService());
@@ -620,6 +581,19 @@ int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, Me
 int32_t KvStoreDataServiceStub::GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply)
 {
     reply.WriteRemoteObject(GetDataShareService());
+    return 0;
+}
+
+int32_t KvStoreDataServiceStub::GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply)
+{
+    std::string name;
+    if (!ITypesUtil::Unmarshal(data, name)) {
+        return -1;
+    }
+    auto remoteObject = GetFeatureInterface(name);
+    if (!ITypesUtil::Marshal(reply, remoteObject)) {
+        return -1;
+    }
     return 0;
 }
 

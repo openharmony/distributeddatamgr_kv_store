@@ -47,27 +47,27 @@ struct OptionsIpc {
 class IKvStoreDataService : public IRemoteBroker {
 public:
     enum {
-        GETALLKVSTOREID,
+        GET_FEATURE_INTERFACE,
+        REGISTERCLIENTDEATHOBSERVER,
         CLOSEKVSTORE,
         CLOSEALLKVSTORE,
         DELETEKVSTORE,
         DELETEALLKVSTORE,
-        REGISTERCLIENTDEATHOBSERVER,
         GETSINGLEKVSTORE,
         GETLOCALDEVICE,
         GETREMOTEDEVICES,
         STARTWATCHDEVICECHANGE,
         STOPWATCHDEVICECHANGE,
         GET_RDB_SERVICE,
-        GET_KVDB_SERVICE,
         GET_OBJECT_SERVICE,
+        GET_KVDB_SERVICE,
         GET_DATA_SHARE_SERVICE,
         SERVICE_CMD_LAST,
-        DATAUSAGESTART = 20,
-        DATAUSAGEEND = 40,
     };
 
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreDataService");
+
+    virtual sptr<IRemoteObject> GetFeatureInterface(const std::string &name) = 0;
 
     virtual Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
                               std::function<void(sptr<ISingleKvStore>)> callback) = 0;
@@ -95,7 +95,6 @@ public:
             DeviceFilterStrategy strategy) = 0;
     virtual Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer) = 0;
     virtual sptr<IRemoteObject> GetRdbService() = 0;
-    virtual sptr<IRemoteObject> GetKVdbService() = 0;
     virtual sptr<IRemoteObject> GetObjectService() = 0;
     virtual sptr<IRemoteObject> GetDataShareService() = 0;
 protected:
@@ -108,7 +107,7 @@ public:
                         MessageParcel &reply, MessageOption &option) override;
 
 private:
-    int32_t GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply);
+    int32_t NoSupport(MessageParcel &data, MessageParcel &reply);
     int32_t CloseKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t CloseAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t DeleteKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
@@ -120,27 +119,26 @@ private:
     int32_t StopWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetSingleKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetRdbServiceOnRemote(MessageParcel& data, MessageParcel& reply);
-    int32_t GetKVdbServiceOnRemote(MessageParcel& data, MessageParcel& reply);
     int32_t GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply);
-
+    int32_t GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply);
     using RequestHandler = int32_t(KvStoreDataServiceStub::*)(MessageParcel&, MessageParcel&);
     static constexpr RequestHandler HANDLERS[SERVICE_CMD_LAST] = {
-        [GETALLKVSTOREID] = &KvStoreDataServiceStub::GetAllKvStoreIdOnRemote,
+        [GET_FEATURE_INTERFACE] = &KvStoreDataServiceStub::GetFeatureInterfaceOnRemote,
+        [REGISTERCLIENTDEATHOBSERVER] = &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
         [CLOSEKVSTORE] = &KvStoreDataServiceStub::CloseKvStoreOnRemote,
         [CLOSEALLKVSTORE] = &KvStoreDataServiceStub::CloseAllKvStoreOnRemote,
         [DELETEKVSTORE] = &KvStoreDataServiceStub::DeleteKvStoreOnRemote,
         [DELETEALLKVSTORE] = &KvStoreDataServiceStub::DeleteAllKvStoreOnRemote,
-        [REGISTERCLIENTDEATHOBSERVER] = &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
         [GETSINGLEKVSTORE] = &KvStoreDataServiceStub::GetSingleKvStoreOnRemote,
         [GETLOCALDEVICE] = &KvStoreDataServiceStub::GetLocalDeviceOnRemote,
         [GETREMOTEDEVICES] = &KvStoreDataServiceStub::GetRemoteDevicesOnRemote,
         [STARTWATCHDEVICECHANGE] = &KvStoreDataServiceStub::StartWatchDeviceChangeOnRemote,
         [STOPWATCHDEVICECHANGE] = &KvStoreDataServiceStub::StopWatchDeviceChangeOnRemote,
         [GET_RDB_SERVICE] = &KvStoreDataServiceStub::GetRdbServiceOnRemote,
-        [GET_KVDB_SERVICE] = &KvStoreDataServiceStub::GetKVdbServiceOnRemote,
         [GET_OBJECT_SERVICE] = &KvStoreDataServiceStub::GetObjectServiceOnRemote,
         [GET_DATA_SHARE_SERVICE] = &KvStoreDataServiceStub::GetDataShareServiceOnRemote,
+        [GET_KVDB_SERVICE] = &KvStoreDataServiceStub::NoSupport,
     };
 };
 
@@ -173,9 +171,10 @@ public:
     virtual Status StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer, DeviceFilterStrategy strategy);
     virtual Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer);
     virtual sptr<IRemoteObject> GetRdbService();
-    virtual sptr<IRemoteObject> GetKVdbService();
     virtual sptr<IRemoteObject> GetObjectService();
     virtual sptr<IRemoteObject> GetDataShareService();
+    sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
+
 private:
     static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
 };

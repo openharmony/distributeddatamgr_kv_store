@@ -69,7 +69,7 @@ std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
         return nullptr;
     }
 
-    sptr<IRemoteObject> service = ability->GetKVdbService();
+    sptr<IRemoteObject> service = ability->GetFeatureInterface("kv_feature");
     if (service == nullptr) {
         return nullptr;
     }
