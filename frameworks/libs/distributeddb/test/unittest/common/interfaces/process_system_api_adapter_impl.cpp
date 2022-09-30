@@ -107,6 +107,9 @@ DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &fileP
 
 DBStatus ProcessSystemApiAdapterImpl::GetSecurityOption(const std::string &filePath, SecurityOption &option) const
 {
+    if (getSecurityOptionCallBack_) {
+        return getSecurityOptionCallBack_(filePath, option);
+    }
     std::map<const std::string, SecurityOption> temp = pathSecOptDic_; // For const interface only for test
     if (temp.find(filePath) == temp.end()) {
         LOGE("[ProcessSystemApiAdapterImpl]::[GetSecurityOption] path [%s] not set secOpt!", filePath.c_str());
@@ -123,6 +126,9 @@ bool ProcessSystemApiAdapterImpl::CheckDeviceSecurityAbility(const std::string &
     const SecurityOption &option) const
 {
     LOGI("CheckDeviceSecurityAbility!!");
+    if (checkDeviceCallBack_) {
+        return checkDeviceCallBack_(devId, option);
+    }
     if (createDb_) { // for close kvstore will close virtual communicator
         KvStoreConfig config;
         DistributedDBToolsUnitTest::TestDirInit(config.dataDir);
@@ -161,5 +167,17 @@ void ProcessSystemApiAdapterImpl::ResetAdapter()
     ResetSecOptDic();
     SetLockStatus(false);
     g_mgr.DeleteKvStore("CheckDeviceSecurityAbilityMeta");
+}
+
+void ProcessSystemApiAdapterImpl::ForkGetSecurityOption(
+    std::function<DBStatus (const std::string &, SecurityOption &)> callBack)
+{
+    getSecurityOptionCallBack_ = callBack;
+}
+
+void ProcessSystemApiAdapterImpl::ForkCheckDeviceSecurityAbility(
+    std::function<bool (const std::string &, const SecurityOption &)> callBack)
+{
+    checkDeviceCallBack_ = callBack;
 }
 };

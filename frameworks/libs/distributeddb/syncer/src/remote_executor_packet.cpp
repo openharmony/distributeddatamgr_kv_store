@@ -19,6 +19,7 @@ namespace DistributedDB {
 namespace {
     constexpr uint8_t REQUEST_FLAG_RESPONSE_ACK = 1u;
     constexpr uint8_t ACK_FLAG_LAST_ACK = 1u;
+    constexpr uint8_t ACK_FLAG_SECURITY_OPTION = 2u;
 }
 RemoteExecutorRequestPacket::RemoteExecutorRequestPacket()
 {
@@ -220,6 +221,8 @@ uint32_t RemoteExecutorAckPacket::CalculateLen() const
     len += Parcel::GetUInt32Len();  // flag
     len = Parcel::GetEightByteAlign(len);
     len += rowDataSet_.CalcLength();
+    len += Parcel::GetIntLen(); // secLabel
+    len += Parcel::GetIntLen(); // secFlag
     return len;
 }
 
@@ -230,6 +233,8 @@ int RemoteExecutorAckPacket::Serialization(Parcel &parcel) const
     (void) parcel.WriteUInt32(flag_);
     parcel.EightByteAlign();
     (void) rowDataSet_.Serialize(parcel);
+    (void) parcel.WriteInt(secLabel_);
+    (void) parcel.WriteInt(secFlag_);
     if (parcel.IsError()) {
         LOGE("[RemoteExecutorAckPacket] Serialization failed");
         return -E_INVALID_ARGS;
@@ -244,10 +249,29 @@ int RemoteExecutorAckPacket::DeSerialization(Parcel &parcel)
     (void) parcel.ReadUInt32(flag_);
     parcel.EightByteAlign();
     (void) rowDataSet_.DeSerialize(parcel);
+    if ((flag_ & ACK_FLAG_SECURITY_OPTION) != 0) {
+        (void) parcel.ReadInt(secLabel_);
+        (void) parcel.ReadInt(secFlag_);
+    } else {
+        secLabel_ = NOT_SURPPORT_SEC_CLASSIFICATION;
+    }
     if (parcel.IsError()) {
         LOGE("[RemoteExecutorAckPacket] DeSerialization failed");
         return -E_INVALID_ARGS;
     }
     return E_OK;
+}
+
+SecurityOption RemoteExecutorAckPacket::GetSecurityOption() const
+{
+    SecurityOption option = {secLabel_, secFlag_};
+    return option;
+}
+
+void RemoteExecutorAckPacket::SetSecurityOption(const SecurityOption &option)
+{
+    secLabel_ = option.securityLabel;
+    secFlag_ = option.securityFlag;
+    flag_ |= ACK_FLAG_SECURITY_OPTION;
 }
 }
