@@ -28,9 +28,7 @@
     }
   ],
   "segment": {
-    "destPath": [
-      "foundation/distributeddatamgr/kv_store"
-    ]
+    "destPath": "foundation/distributeddatamgr/kv_store"
   },
   "dirs": {},
   "scripts": {},
