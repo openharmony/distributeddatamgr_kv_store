@@ -345,60 +345,6 @@ Status KvStoreDataServiceProxy::StopWatchDeviceChange(sptr<IDeviceStatusChangeLi
     return static_cast<Status>(reply.ReadInt32());
 }
 
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetRdbService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_RDB_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetObjectService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_OBJECT_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetDataShareService()
-{
-    ZLOGE("Null implementation.");
-    return nullptr;
-}
-
 int32_t KvStoreDataServiceStub::NoSupport(MessageParcel &data, MessageParcel &reply)
 {
     (void)data;
@@ -563,24 +509,6 @@ int32_t KvStoreDataServiceStub::GetLocalDeviceOnRemote(MessageParcel &data, Mess
         !reply.WriteString(info.deviceName) || !reply.WriteString(info.deviceType)) {
         return -1;
     }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetRdbServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetRdbService());
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetObjectService());
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetDataShareService());
     return 0;
 }
 
