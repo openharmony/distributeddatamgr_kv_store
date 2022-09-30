@@ -16,6 +16,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "block_data.h"
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "store_manager.h"
@@ -27,37 +28,25 @@ class SingleStoreImplTest : public testing::Test {
 public:
     class TestObserver : public KvStoreObserver {
     public:
-        bool IsChanged()
+        TestObserver()
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock, [this]() { return isChanged_; });
-            bool current = isChanged_;
-            isChanged_ = false;
-            cv_.notify_one();
-            return current;
+            data_ = std::make_shared<OHOS::BlockData<bool>>(5, false);
         }
-
         void OnChange(const ChangeNotification &notification) override
         {
             insert_ = notification.GetInsertEntries();
             update_ = notification.GetUpdateEntries();
             delete_ = notification.GetDeleteEntries();
             deviceId_ = notification.GetDeviceId();
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                isChanged_ = true;
-                cv_.notify_one();
-            }
+            bool value = true;
+            data_->SetValue(value);
         }
         std::vector<Entry> insert_;
         std::vector<Entry> update_;
         std::vector<Entry> delete_;
         std::string deviceId_;
 
-    private:
-        std::mutex mutex_;
-        std::condition_variable cv_;
-        bool isChanged_ = false;
+        std::shared_ptr<OHOS::BlockData<bool>> data_;
     };
 
     static void SetUpTestCase(void);
@@ -272,19 +261,23 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
     status = kvStore_->Put({ "Put Test" }, { "Put Value" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    bool invalidValue = false;
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 1);
     ASSERT_EQ(observer->update_.size(), 0);
     ASSERT_EQ(observer->delete_.size(), 0);
     status = kvStore_->Put({ "Put Test" }, { "Put Value1" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 0);
     ASSERT_EQ(observer->update_.size(), 1);
     ASSERT_EQ(observer->delete_.size(), 0);
     status = kvStore_->Delete({ "Put Test" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 0);
     ASSERT_EQ(observer->update_.size(), 0);
     ASSERT_EQ(observer->delete_.size(), 1);
