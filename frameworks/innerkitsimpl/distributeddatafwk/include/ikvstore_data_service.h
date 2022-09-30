@@ -136,30 +136,30 @@ public:
     ~KvStoreDataServiceProxy() = default;
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
 
-    virtual Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
-                              std::function<void(sptr<ISingleKvStore>)> callback);
+    Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
+                              std::function<void(sptr<ISingleKvStore>)> callback) override;
 
     /* get all kv store names */
-    virtual void GetAllKvStoreId(const AppId &appId, std::function<void(Status, std::vector<StoreId> &)> callback);
+    void GetAllKvStoreId(const AppId &appId, std::function<void(Status, std::vector<StoreId> &)> callback) override;
 
     /* open kv store instance will not receive subscribe any more. */
-    virtual Status CloseKvStore(const AppId &appId, const StoreId &storeId);
+    Status CloseKvStore(const AppId &appId, const StoreId &storeId) override;
 
     /* close all kvstore. */
-    virtual Status CloseAllKvStore(const AppId &appId);
+    Status CloseAllKvStore(const AppId &appId) override;
 
     /* delete kv store */
-    virtual Status DeleteKvStore(const AppId &appId, const StoreId &id);
+    Status DeleteKvStore(const AppId &appId, const StoreId &id) override;
 
     /* delete kv store */
-    virtual Status DeleteAllKvStore(const AppId &appId);
+    Status DeleteAllKvStore(const AppId &appId) override;
 
-    virtual Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer);
+    Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
 
-    virtual Status GetLocalDevice(DeviceInfo &device);
-    virtual Status GetRemoteDevices(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy);
-    virtual Status StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer, DeviceFilterStrategy strategy);
-    virtual Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer);
+    Status GetLocalDevice(DeviceInfo &device) override;
+    Status GetRemoteDevices(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy) override;
+    Status StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer, DeviceFilterStrategy strategy) override;
+    Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer) override;
 
 private:
     static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
