@@ -19,7 +19,6 @@
 #include "db_common.h"
 #include "hash.h"
 #include "prepared_stmt.h"
-#include "relational_db_sync_interface.h"
 #include "semaphore_utils.h"
 #include "sync_generic_interface.h"
 #include "sync_types.h"
@@ -251,7 +250,7 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
     if (syncInterface->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
         LOGE("[RemoteExecutor][ParseOneRequestMessage] storage is not relation.");
         syncInterface->DecRefCount();
-        return -E_INVALID_ARGS;
+        return -E_NOT_SUPPORT;
     }
     RelationalDBSyncInterface *storage = static_cast<RelationalDBSyncInterface *>(syncInterface);
 
@@ -262,48 +261,37 @@ int RemoteExecutor::SendRemoteExecutorData(const std::string &device, const Mess
         return -E_INVALID_ARGS;
     }
 
-    auto *communicator = GetAndIncCommunicator();
-    if (communicator == nullptr) {
-        storage->DecRefCount();
-        RefObject::DecObjRef(communicator);
-        return -E_BUSY;
-    }
-
-    size_t packetSize = communicator->GetCommunicatorMtuSize(device) * 9 / 10; // get the 9/10 of the size
-    ContinueToken token = nullptr;
-    int errCode = E_OK;
-    uint32_t sequenceId = 1u;
-    do {
-        RelationalRowDataSet dataSet;
-        errCode = storage->ExecuteQuery(requestPacket->GetPreparedStmt(), packetSize, dataSet, token);
-        if (errCode != E_OK) {
-            LOGE("[RemoteExecutor] call ExecuteQuery failed: %d", errCode);
-            break;
-        }
-        errCode = ResponseData(std::move(dataSet), inMsg->GetSessionId(), sequenceId, token == nullptr, device);
-        sequenceId++;
-    } while (token != nullptr);
+    int errCode = ResponseRemoteQueryRequest(storage, requestPacket->GetPreparedStmt(), device, inMsg->GetSessionId());
     storage->DecRefCount();
     return errCode;
 }
 
 int RemoteExecutor::ReceiveRemoteExecutorAck(const std::string &targetDev, Message *inMsg)
 {
-    auto *packget = inMsg->GetObject<RemoteExecutorAckPacket>();
-    if (packget == nullptr) {
+    auto *packet = inMsg->GetObject<RemoteExecutorAckPacket>();
+    if (packet == nullptr) {
         return -E_INVALID_ARGS;
     }
-    int ackCode = packget->GetAckCode();
+    int errCode = packet->GetAckCode();
     uint32_t sessionId = inMsg->GetSessionId();
     uint32_t sequenceId = inMsg->GetSequenceId();
-    if (!IsPackgetValid(sessionId)) {
+    if (!IsPacketValid(sessionId)) {
         LOGD("[RemoteExecutor][ReceiveRemoteExecutorAck] receive unknown ack");
         return -E_INVALID_ARGS;
     }
-    if (ackCode != E_OK) {
-        DoFinished(sessionId, ackCode);
+    if (errCode == E_OK) {
+        auto storage = GetAndIncSyncInterface();
+        auto communicator = GetAndIncCommunicator();
+        errCode = CheckSecurityOption(storage, communicator, packet->GetSecurityOption());
+        if (storage != nullptr) {
+            storage->DecRefCount();
+        }
+        RefObject::DecObjRef(communicator);
+    }
+    if (errCode != E_OK) {
+        DoFinished(sessionId, errCode);
     } else {
-        ReceiveDataWithValidSession(targetDev, sessionId, sequenceId, packget);
+        ReceiveDataWithValidSession(targetDev, sessionId, sequenceId, packet);
     }
     return E_OK;
 }
@@ -350,7 +338,7 @@ bool RemoteExecutor::CheckTaskExeStatus(const std::string &device)
         int currentExeCount = static_cast<int>(deviceWorkingSet_[device].size());
         int currentQueueCount = static_cast<int>(entry.second.size());
         if ((currentQueueCount + currentExeCount) < static_cast<int>(MAX_SEARCH_TASK_PER_DEVICE)) {
-            // all task in this queue can execute, no need caculate as waiting task count
+            // all task in this queue can execute, no need calculate as waiting task count
             continue;
         }
         totalCount += static_cast<uint32_t>(currentQueueCount + currentExeCount -
@@ -538,7 +526,7 @@ void RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t se
     (void)ResponseStart(packet, sessionId, sequenceId, device);
 }
 
-int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
+int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage,
     const std::string &device)
 {
     RemoteExecutorAckPacket *packet = new (std::nothrow) RemoteExecutorAckPacket();
@@ -547,11 +535,12 @@ int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessio
         return -E_OUT_OF_MEMORY;
     }
     packet->SetAckCode(E_OK);
-    if (isLast) {
+    if (sendMessage.isLast) {
         packet->SetLastAck();
     }
+    packet->SetSecurityOption(sendMessage.option);
     packet->MoveInRowDataSet(std::move(dataSet));
-    return ResponseStart(packet, sessionId, sequenceId, device);
+    return ResponseStart(packet, sendMessage.sessionId, sendMessage.sequenceId, device);
 }
 
 int RemoteExecutor::ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,
@@ -752,7 +741,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
 void RemoteExecutor::ReceiveMessageInner(const std::string &targetDev, Message *inMsg)
 {
     int errCode = E_OK;
-    if (inMsg->IsFeedbackError() && IsPackgetValid(inMsg->GetSessionId())) {
+    if (inMsg->IsFeedbackError() && IsPacketValid(inMsg->GetSessionId())) {
         DoFinished(inMsg->GetSessionId(), -inMsg->GetErrorNo());
         delete inMsg;
         inMsg = nullptr;
@@ -775,14 +764,14 @@ void RemoteExecutor::ReceiveMessageInner(const std::string &targetDev, Message *
     }
 }
 
-bool RemoteExecutor::IsPackgetValid(uint32_t sessionId)
+bool RemoteExecutor::IsPacketValid(uint32_t sessionId)
 {
     std::lock_guard<std::mutex> autoLock(taskLock_);
     return taskMap_.find(sessionId) != taskMap_.end() && taskMap_[sessionId].status == Status::WORKING;
 }
 
 void RemoteExecutor::ReceiveDataWithValidSession(const std::string &targetDev, uint32_t sessionId, uint32_t sequenceId,
-    const RemoteExecutorAckPacket *packget)
+    const RemoteExecutorAckPacket *packet)
 {
     bool isReceiveFinished = false;
     {
@@ -794,10 +783,10 @@ void RemoteExecutor::ReceiveDataWithValidSession(const std::string &targetDev, u
         LOGD("[RemoteExecutor][ReceiveRemoteExecutorAck] taskId=%" PRIu32 " sequenceId=%" PRIu32,
             taskMap_[sessionId].taskId, sequenceId);
         taskMap_[sessionId].currentCount++;
-        if (packget->IsLastAck()) {
+        if (packet->IsLastAck()) {
             taskMap_[sessionId].targetCount = sequenceId;
         }
-        taskMap_[sessionId].result->Put(targetDev, sequenceId, packget->MoveOutRowDataSet());
+        taskMap_[sessionId].result->Put(targetDev, sequenceId, packet->MoveOutRowDataSet());
         if (taskMap_[sessionId].currentCount == taskMap_[sessionId].targetCount) {
             isReceiveFinished = true;
         }
@@ -879,5 +868,102 @@ void RemoteExecutor::RemoveTaskByConnection(uint64_t connectionId, std::vector<u
             removeList.push_back(entry.first);
         }
     }
+}
+
+int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize)
+{
+    auto *communicator = GetAndIncCommunicator();
+    if (communicator == nullptr) {
+        LOGD("communicator is nullptr");
+        return -E_BUSY;
+    }
+
+    packetSize = communicator->GetCommunicatorMtuSize(device) * 9 / 10; // get the 9/10 of the size
+    RefObject::DecObjRef(communicator);
+    return E_OK;
+}
+
+bool RemoteExecutor::CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
+    const SecurityOption &localOption)
+{
+    bool res = false;
+    if (remoteOption.securityLabel == localOption.securityLabel ||
+        (remoteOption.securityLabel == SecurityLabel::NOT_SET ||
+        localOption.securityLabel == SecurityLabel::NOT_SET)) {
+        res = RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(device, remoteOption);
+    }
+    if (!res) {
+        LOGE("[RemoteExecutor][CheckRemoteSecurityOption] check error remote:%d, %d local:%d, %d",
+            remoteOption.securityLabel, remoteOption.securityFlag,
+            localOption.securityLabel, localOption.securityFlag);
+    }
+    return res;
+}
+
+int RemoteExecutor::ResponseRemoteQueryRequest(RelationalDBSyncInterface *storage, const PreparedStmt &stmt,
+    const std::string &device, uint32_t sessionId)
+{
+    size_t packetSize = 0u;
+    int errCode = GetPacketSize(device, packetSize);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    SecurityOption option;
+    errCode = storage->GetSecurityOption(option);
+    if (errCode == -E_NOT_SUPPORT) {
+        option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;
+        errCode = E_OK;
+    }
+    if (errCode != E_OK) {
+        LOGD("GetSecurityOption errCode:%d", errCode);
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    ContinueToken token = nullptr;
+    uint32_t sequenceId = 1u;
+    do {
+        RelationalRowDataSet dataSet;
+        errCode = storage->ExecuteQuery(stmt, packetSize, dataSet, token);
+        if (errCode != E_OK) {
+            LOGE("[RemoteExecutor] call ExecuteQuery failed: %d", errCode);
+            break;
+        }
+        SendMessage sendMessage = { sessionId, sequenceId, token == nullptr, option };
+        errCode = ResponseData(std::move(dataSet), sendMessage, device);
+        if (errCode != E_OK) {
+            break;
+        }
+        sequenceId++;
+    } while (token != nullptr);
+    if (token != nullptr) {
+        storage->ReleaseRemoteQueryContinueToken(token);
+    }
+    return errCode;
+}
+
+int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *communicator,
+    const SecurityOption &remoteOption)
+{
+    if (storage == nullptr || communicator == nullptr) {
+        return -E_BUSY;
+    }
+    if (storage->GetInterfaceType() != ISyncInterface::SYNC_RELATION) {
+        return -E_NOT_SUPPORT;
+    }
+    std::string device;
+    communicator->GetLocalIdentity(device);
+    SecurityOption localOption;
+    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (remoteOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION || errCode == -E_NOT_SUPPORT) {
+        return E_OK;
+    }
+    if (!CheckRemoteSecurityOption(device, remoteOption, localOption)) {
+        errCode = -E_SECURITY_OPTION_CHECK_ERROR;
+    } else {
+        errCode = E_OK;
+    }
+    return errCode;
 }
 }

@@ -61,6 +61,7 @@ public:
         GET_RDB_SERVICE,
         GET_KVDB_SERVICE,
         GET_OBJECT_SERVICE,
+        GET_DATA_SHARE_SERVICE,
         SERVICE_CMD_LAST,
         DATAUSAGESTART = 20,
         DATAUSAGEEND = 40,
@@ -96,7 +97,7 @@ public:
     virtual sptr<IRemoteObject> GetRdbService() = 0;
     virtual sptr<IRemoteObject> GetKVdbService() = 0;
     virtual sptr<IRemoteObject> GetObjectService() = 0;
-
+    virtual sptr<IRemoteObject> GetDataShareService() = 0;
 protected:
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
@@ -121,6 +122,7 @@ private:
     int32_t GetRdbServiceOnRemote(MessageParcel& data, MessageParcel& reply);
     int32_t GetKVdbServiceOnRemote(MessageParcel& data, MessageParcel& reply);
     int32_t GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply);
+    int32_t GetDataShareServiceOnRemote(MessageParcel &data, MessageParcel &reply);
 
     using RequestHandler = int32_t(KvStoreDataServiceStub::*)(MessageParcel&, MessageParcel&);
     static constexpr RequestHandler HANDLERS[SERVICE_CMD_LAST] = {
@@ -138,6 +140,7 @@ private:
         [GET_RDB_SERVICE] = &KvStoreDataServiceStub::GetRdbServiceOnRemote,
         [GET_KVDB_SERVICE] = &KvStoreDataServiceStub::GetKVdbServiceOnRemote,
         [GET_OBJECT_SERVICE] = &KvStoreDataServiceStub::GetObjectServiceOnRemote,
+        [GET_DATA_SHARE_SERVICE] = &KvStoreDataServiceStub::GetDataShareServiceOnRemote,
     };
 };
 
@@ -172,6 +175,7 @@ public:
     virtual sptr<IRemoteObject> GetRdbService();
     virtual sptr<IRemoteObject> GetKVdbService();
     virtual sptr<IRemoteObject> GetObjectService();
+    virtual sptr<IRemoteObject> GetDataShareService();
 private:
     static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
 };

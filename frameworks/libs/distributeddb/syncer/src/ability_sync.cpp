@@ -498,7 +498,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
     SecurityOption option;
     int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
     LOGI("[AbilitySync][RequestRecv] local l:%d, f:%d, errCode:%d", option.securityLabel, option.securityFlag, errCode);
-    if (errCode == -E_NOT_SUPPORT || option.securityLabel == SecurityLabel::NOT_SET) {
+    if (errCode == -E_NOT_SUPPORT || (errCode == E_OK && option.securityLabel == SecurityLabel::NOT_SET)) {
         return true;
     }
     if (remoteSecLabel == FAILED_GET_SEC_CLASSIFICATION || errCode != E_OK) {
@@ -549,11 +549,8 @@ int AbilitySync::HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvP
 
 void AbilitySync::GetPacketSecOption(SecurityOption &option) const
 {
-    int errCode = -E_NOT_SUPPORT;
-    if (IsSingleKvVer()) {
-        errCode =
-            (static_cast<SingleVerKvDBSyncInterface *>(storageInterface_))->GetSecurityOption(option);
-    }
+    int errCode =
+        (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
     if (errCode == -E_NOT_SUPPORT) {
         LOGE("[AbilitySync][SyncStart] GetSecOpt not surpport sec classification");
         option.securityLabel = NOT_SURPPORT_SEC_CLASSIFICATION;
