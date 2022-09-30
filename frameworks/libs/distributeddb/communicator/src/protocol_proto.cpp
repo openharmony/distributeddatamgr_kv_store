@@ -208,14 +208,19 @@ SerialBuffer *ProtocolProto::BuildLabelExchange(uint64_t inDistinctValue, uint64
 {
     // Size of inLabels won't be too large.
     // The upper layer code(inside this communicator module) guarantee that size of each Label equals COMM_LABEL_LENGTH
-    uint32_t payloadLen = LABEL_VER_LEN + DISTINCT_VALUE_LEN + SEQUENCE_ID_LEN + COMM_LABEL_COUNT_LEN +
+    uint64_t payloadLen = LABEL_VER_LEN + DISTINCT_VALUE_LEN + SEQUENCE_ID_LEN + COMM_LABEL_COUNT_LEN +
         inLabels.size() * COMM_LABEL_LENGTH;
+    if (payloadLen > INT32_MAX) {
+        outErrorNo = -E_INVALID_ARGS;
+        return nullptr;
+    }
     SerialBuffer *buffer = new (std::nothrow) SerialBuffer();
     if (buffer == nullptr) {
         outErrorNo = -E_OUT_OF_MEMORY;
         return nullptr;
     }
-    int errCode = buffer->AllocBufferByPayloadLength(payloadLen, GetCommLayerFrameHeaderLength());
+    int errCode = buffer->AllocBufferByPayloadLength(static_cast<uint32_t>(payloadLen),
+        GetCommLayerFrameHeaderLength());
     if (errCode != E_OK) {
         LOGE("[Proto][BuildLabel] Alloc Fail, errCode=%d.", errCode);
         outErrorNo = errCode;

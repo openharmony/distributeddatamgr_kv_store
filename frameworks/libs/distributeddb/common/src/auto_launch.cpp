@@ -47,12 +47,11 @@ void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
         LOGI("[AutoLaunch] SetCommunicatorAggregator communicatorAggregator_ is not nullptr");
         errCode = communicatorAggregator_->RegOnConnectCallback(nullptr, nullptr);
         if (errCode != E_OK) {
-            LOGW("[AutoLaunch] communicatorAggregator_->RegOnConnectCallback(nullptr, nullptr), errCode:%d", errCode);
+            LOGW("[AutoLaunch] RegOnConnectCallback set nullptr failed, errCode:%d", errCode);
         }
         errCode = communicatorAggregator_->RegCommunicatorLackCallback(nullptr, nullptr);
         if (errCode != E_OK) {
-            LOGW("[AutoLaunch] communicatorAggregator_->RegCommunicatorLackCallback(nullptr, nullptr), errCode:%d",
-                errCode);
+            LOGW("[AutoLaunch] RegCommunicatorLackCallback set nullptr failed, errCode:%d", errCode);
         }
     }
     communicatorAggregator_ = aggregator;
@@ -63,13 +62,13 @@ void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
     errCode = aggregator->RegOnConnectCallback(std::bind(&AutoLaunch::OnlineCallBack, this,
         std::placeholders::_1, std::placeholders::_2), nullptr);
     if (errCode != E_OK) {
-        LOGW("[AutoLaunch] aggregator->RegOnConnectCallback errCode:%d", errCode);
+        LOGW("[AutoLaunch] RegOnConnectCallback errCode:%d", errCode);
     }
     errCode = aggregator->RegCommunicatorLackCallback(
         std::bind(&AutoLaunch::ReceiveUnknownIdentifierCallBack, this, std::placeholders::_1, std::placeholders::_2),
         nullptr);
     if (errCode != E_OK) {
-        LOGW("[AutoLaunch] aggregator->RegCommunicatorLackCallback errCode:%d", errCode);
+        LOGW("[AutoLaunch] RegCommunicatorLackCallback errCode:%d", errCode);
     }
 }
 
@@ -606,7 +605,7 @@ void AutoLaunch::GetConnInDoOpenMap(std::map<std::string, std::map<std::string, 
         for (auto &iter : items.second) {
             int errCode = RuntimeContext::GetInstance()->ScheduleTask([&sema, &iter, &items, this] {
                 int ret = OpenOneConnection(iter.second);
-                LOGI("[AutoLaunch] GetConnInDoOpenMap GetOneConnection errCode:%d\n", ret);
+                LOGI("[AutoLaunch] GetConnInDoOpenMap GetOneConnection errCode:%d", ret);
                 if (iter.second.conn == nullptr) {
                     sema.SendSemaphore();
                     LOGI("[AutoLaunch] GetConnInDoOpenMap in open thread finish SendSemaphore");
@@ -661,7 +660,7 @@ void AutoLaunch::ReceiveUnknownIdentifierCallBackTask(const std::string &identif
         autoLaunchItem = autoLaunchItemMap_[identifier][userId];
     }
     int errCode = OpenOneConnection(autoLaunchItem);
-    LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack GetOneConnection errCode:%d\n", errCode);
+    LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack GetOneConnection errCode:%d", errCode);
     if (autoLaunchItem.conn == nullptr) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         autoLaunchItemMap_[identifier][userId].state = AutoLaunchItemState::IDLE;

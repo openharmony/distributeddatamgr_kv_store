@@ -56,7 +56,7 @@ bool PreparedStmt::IsValid() const
     return opCode_ == ExecutorOperation::QUERY && !sql_.empty() && bindArgs_.size() <= DBConstant::MAX_SQL_ARGS_COUNT;
 }
 
-int PreparedStmt::CalcLength() const
+uint32_t PreparedStmt::CalcLength() const
 {
     uint32_t length = Parcel::GetIntLen() +         // current version
                       Parcel::GetIntLen() +         // opcode_
@@ -65,7 +65,7 @@ int PreparedStmt::CalcLength() const
     for (const auto &bindArg : bindArgs_) {
         length += Parcel::GetStringLen(bindArg);    // bindArgs_
     }
-    return static_cast<int>(Parcel::GetEightByteAlign(length));
+    return Parcel::GetEightByteAlign(length);
 }
 
 // Before call this func. You should check if the object is valid.

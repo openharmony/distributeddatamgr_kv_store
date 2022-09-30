@@ -26,6 +26,7 @@ public:
     // Product a ISyncer for the given type
     // type can be : IKvDBSyncInterface::SYNC_SVD
     //               IKvDBSyncInterface::SYNC_MVD
+    //               IKvDBSyncInterface::SYNC_RELATION
     static std::shared_ptr<ISyncer> GetSyncer(int type);
 };
 } // namespace DistributedDB

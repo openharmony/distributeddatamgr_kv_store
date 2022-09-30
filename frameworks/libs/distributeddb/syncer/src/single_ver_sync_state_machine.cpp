@@ -129,6 +129,12 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
     timeSync_ = std::make_unique<TimeSync>();
     dataSync_ = std::make_shared<SingleVerDataSync>();
     abilitySync_ = std::make_unique<AbilitySync>();
+    if ((timeSync_ == nullptr) || (dataSync_ == nullptr) || (abilitySync_ == nullptr)) {
+        timeSync_ = nullptr;
+        dataSync_ = nullptr;
+        abilitySync_ = nullptr;
+        return -E_OUT_OF_MEMORY;
+    }
 
     errCode = timeSync_->Initialize(communicator, metaData, syncInterface, context->GetDeviceId());
     if (errCode != E_OK) {

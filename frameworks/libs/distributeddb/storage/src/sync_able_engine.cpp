@@ -178,7 +178,7 @@ void SyncAbleEngine::UserChangeHandle()
     isNeedChange = (isNeedActive != isSyncNeedActive_) ? true : false;
     // non_active to active or active to non_active
     if (isNeedChange) {
-        StopSyncerWithNoLock(); // will drop userChangeListerner;
+        StopSyncerWithNoLock(); // will drop userChangeListener
         isSyncModuleActiveCheck_ = true;
         isSyncNeedActive_ = isNeedActive;
         StartSyncerWithNoLock(true, isNeedActive);

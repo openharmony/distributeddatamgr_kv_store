@@ -292,9 +292,6 @@ int ValueSliceSync::AckRecvCallback(const MultiVerSyncTaskContext *context, cons
     }
     LOGD("ValueSliceSync::AckRecvCallback PutValueSlice finished, src=%s{private}, errCode = %d",
         context->GetDeviceId().c_str(), errCode);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     return errCode;
 }
 

@@ -138,9 +138,6 @@ private:
     // called by destruction
     void Finalize();
 
-    // Transfer sync mode from interface to inner
-    void TransferQuerySyncMode();
-
     // The device list
     const std::vector<std::string> devices_;
 

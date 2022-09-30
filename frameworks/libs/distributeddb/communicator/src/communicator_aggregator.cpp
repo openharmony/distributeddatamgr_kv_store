@@ -14,17 +14,14 @@
  */
 
 #include "communicator_aggregator.h"
-#include <new>
-#include <sstream>
-#include <utility>
-#include <functional>
+
 #include "hash.h"
-#include "log_print.h"
-#include "db_common.h"
 #include "communicator.h"
-#include "endian_convert.h"
-#include "protocol_proto.h"
 #include "communicator_linker.h"
+#include "db_common.h"
+#include "endian_convert.h"
+#include "log_print.h"
+#include "protocol_proto.h"
 
 namespace DistributedDB {
 namespace {

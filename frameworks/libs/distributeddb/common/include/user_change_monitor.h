@@ -20,7 +20,6 @@
 
 #include "macro_utils.h"
 #include "notification_chain.h"
-#include "platform_specific.h"
 #include "runtime_context.h"
 
 namespace DistributedDB {

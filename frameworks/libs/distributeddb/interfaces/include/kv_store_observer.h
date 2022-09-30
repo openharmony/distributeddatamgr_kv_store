@@ -23,7 +23,7 @@ class KvStoreObserver {
 public:
     virtual ~KvStoreObserver() {}
 
-    // Databa change callback
+    // Data change callback
     virtual void OnChange(const KvStoreChangedData &data) = 0;
 };
 } // namespace DistributedDB

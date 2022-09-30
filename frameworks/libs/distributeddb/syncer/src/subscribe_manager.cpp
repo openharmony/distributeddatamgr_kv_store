@@ -77,7 +77,7 @@ int SubscribeManager::ActiveLocalSubscribeQuery(const std::string &device, const
     }
     if (unFinishedLocalAutoSubMap_.find(device) != unFinishedLocalAutoSubMap_.end() &&
         unFinishedLocalAutoSubMap_[device].find(queryId) != unFinishedLocalAutoSubMap_[device].end()) {
-            unFinishedLocalAutoSubMap_[device].erase(queryId);
+        unFinishedLocalAutoSubMap_[device].erase(queryId);
     }
     return errCode;
 }
@@ -147,12 +147,12 @@ void SubscribeManager::RemoveLocalSubscribeQuery(const std::string &device, cons
     RemoveSubscribeQuery(device, queryId, localSubscribeMap_, localSubscribeTotalMap_);
     if (unFinishedLocalAutoSubMap_.find(device) != unFinishedLocalAutoSubMap_.end() &&
         unFinishedLocalAutoSubMap_[device].find(queryId) != unFinishedLocalAutoSubMap_[device].end()) {
-            unFinishedLocalAutoSubMap_[device].erase(queryId);
-            LOGI("[SubscribeManager] dev=%s,queryId=%s delete from UnFinishedMap", STR_MASK(device), STR_MASK(queryId));
-            if (unFinishedLocalAutoSubMap_[device].size() == 0) {
-                LOGI("[SubscribeManager] dev=%s delete from unFinish map", STR_MASK(device));
-                unFinishedLocalAutoSubMap_.erase(device);
-            }
+        unFinishedLocalAutoSubMap_[device].erase(queryId);
+        LOGI("[SubscribeManager] dev=%s,queryId=%s delete from UnFinishedMap", STR_MASK(device), STR_MASK(queryId));
+        if (unFinishedLocalAutoSubMap_[device].size() == 0) {
+            LOGI("[SubscribeManager] dev=%s delete from unFinish map", STR_MASK(device));
+            unFinishedLocalAutoSubMap_.erase(device);
+        }
     }
 }
 

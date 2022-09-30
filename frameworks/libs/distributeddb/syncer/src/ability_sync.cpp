@@ -617,7 +617,6 @@ int AbilitySync::Serialization(uint8_t *buffer, uint32_t length, const Message *
         case TYPE_REQUEST:
             return RequestPacketSerialization(buffer, length, inMsg);
         case TYPE_RESPONSE:
-            return AckPacketSerialization(buffer, length, inMsg);
         case TYPE_NOTIFY:
             return AckPacketSerialization(buffer, length, inMsg);
         default:
@@ -635,7 +634,6 @@ int AbilitySync::DeSerialization(const uint8_t *buffer, uint32_t length, Message
         case TYPE_REQUEST:
             return RequestPacketDeSerialization(buffer, length, inMsg);
         case TYPE_RESPONSE:
-            return AckPacketDeSerialization(buffer, length, inMsg);
         case TYPE_NOTIFY:
             return AckPacketDeSerialization(buffer, length, inMsg);
         default:

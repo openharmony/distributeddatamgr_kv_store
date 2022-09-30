@@ -149,6 +149,9 @@ int RelationalRowDataSet::Insert(RelationalRowData *rowData)
     if (rowData == nullptr) {
         return -E_INVALID_ARGS;
     }
+    if ((serialLength_ + static_cast<size_t>(rowData->CalcLength())) > static_cast<size_t>(INT32_MAX)) {
+        return -E_INVALID_ARGS;
+    }
     data_.push_back(rowData);
     serialLength_ += rowData->CalcLength();
     return E_OK;
