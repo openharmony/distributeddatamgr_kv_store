@@ -21,7 +21,12 @@
 #include "kvdb_service.h"
 #include "kvstore_sync_callback_client.h"
 namespace OHOS::DistributedKv {
-class KVDBServiceClient : public IRemoteProxy<KVDBService> {
+class KVDBServiceProxy : public KVDBService, public IRemoteBroker {
+public:
+    using KVDBService::KVDBService;
+};
+
+class KVDBServiceClient : public IRemoteProxy<KVDBServiceProxy> {
 public:
     static std::shared_ptr<KVDBServiceClient> GetInstance();
     Status GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds) override;
