@@ -38,5 +38,25 @@ private:
     static napi_value SetSyncParam(napi_env env, napi_callback_info info);
     static napi_value GetSecurityLevel(napi_env env, napi_callback_info info);
 };
+
+class JsSingleKVStoreV9 : public JsKVStoreV9 {
+public:
+    explicit JsSingleKVStoreV9(const std::string& storeId);
+    ~JsSingleKVStoreV9() = default;
+
+    static napi_value Constructor(napi_env env);
+
+    static napi_value New(napi_env env, napi_callback_info info);
+private:
+    static napi_value Get(napi_env env, napi_callback_info info);
+    static napi_value GetEntries(napi_env env, napi_callback_info info);
+    static napi_value GetResultSet(napi_env env, napi_callback_info info);
+    static napi_value CloseResultSet(napi_env env, napi_callback_info info);
+    static napi_value GetResultSize(napi_env env, napi_callback_info info);
+    static napi_value RemoveDeviceData(napi_env env, napi_callback_info info);
+    static napi_value Sync(napi_env env, napi_callback_info info);
+    static napi_value SetSyncParam(napi_env env, napi_callback_info info);
+    static napi_value GetSecurityLevel(napi_env env, napi_callback_info info);
+};
 } // namespace OHOS::DistributedData
 #endif // OHOS_SINGLE_KV_STORE_H

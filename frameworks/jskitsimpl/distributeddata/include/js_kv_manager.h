@@ -61,5 +61,41 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
     std::shared_ptr<ContextParam> param_;
 };
+
+class JsKVManagerV9 {
+public:
+
+    JsKVManagerV9(const std::string &bundleName, napi_env env, ContextParam param);
+    ~JsKVManagerV9();
+
+    static napi_value CreateKVManagerV9(napi_env env, napi_callback_info info);
+
+    static napi_value Constructor(napi_env env);
+
+    static napi_value New(napi_env env, napi_callback_info info);
+
+private:
+    static napi_value GetKVStore(napi_env env, napi_callback_info info);
+    static napi_value CloseKVStore(napi_env env, napi_callback_info info);
+    static napi_value DeleteKVStore(napi_env env, napi_callback_info info);
+    static napi_value GetAllKVStoreId(napi_env env, napi_callback_info info);
+    static napi_value On(napi_env env, napi_callback_info info);
+    static napi_value Off(napi_env env, napi_callback_info info);
+
+private:
+    class DeathRecipient : public DistributedKv::KvStoreDeathRecipient, public JSObserver {
+    public:
+        DeathRecipient(std::shared_ptr<UvQueue> uvQueue, napi_value callback) : JSObserver(uvQueue, callback) {};
+        virtual ~DeathRecipient() = default;
+        void OnRemoteDied() override;
+    };
+
+    DistributedKv::DistributedKvDataManager kvDataManager_ {};
+    std::string bundleName_ {};
+    std::mutex deathMutex_ {};
+    std::list<std::shared_ptr<DeathRecipient>> deathRecipient_ {};
+    std::shared_ptr<UvQueue> uvQueue_;
+    std::shared_ptr<ContextParam> param_;
+};
 } // namespace OHOS::DistributedData
 #endif // OHOS_KV_MANAGER_H

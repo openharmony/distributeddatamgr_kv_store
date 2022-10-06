@@ -965,25 +965,27 @@ napi_status JSUtil::SetValue(napi_env env, const DistributedKv::ChangeNotificati
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options& options)
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
-    GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
-    GetNamedProperty(env, in, "encrypt", options.encrypt);
-    GetNamedProperty(env, in, "backup", options.backup);
-    GetNamedProperty(env, in, "autoSync", options.autoSync);
+
+    napi_status status = napi_invalid_arg;
+    status = GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
+    status = GetNamedProperty(env, in, "encrypt", options.encrypt);
+    status = GetNamedProperty(env, in, "backup", options.backup);
+    status = GetNamedProperty(env, in, "autoSync", options.autoSync);
 
     int32_t kvStoreType = 0;
-    GetNamedProperty(env, in, "kvStoreType", kvStoreType);
+    status = GetNamedProperty(env, in, "kvStoreType", kvStoreType);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    napi_status status = GetNamedProperty(env, in, "schema", jsSchema);
+    status = GetNamedProperty(env, in, "schema", jsSchema);
     if (status == napi_ok) {
         options.schema = jsSchema->Dump();
     }
 
     int32_t level = 0;
-    GetNamedProperty(env, in, "securityLevel", level);
+    status = GetNamedProperty(env, in, "securityLevel", level);
     options.securityLevel = level;
-    return napi_ok;
+    return status;
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value inner, JsSchema*& out)

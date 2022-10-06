@@ -26,7 +26,8 @@ using namespace OHOS::DistributedData;
 static napi_value Init(napi_env env, napi_value exports)
 {
     const napi_property_descriptor desc[] = {
-        DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager)
+        DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager),
+        DECLARE_NAPI_FUNCTION("createKVManagerV9", JsKVManagerV9::CreateKVManagerV9)
     };
     napi_status status = napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     ZLOGI("init createKVManager %{public}d", status);

@@ -24,6 +24,7 @@
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
 #include "datashare_abs_predicates.h"
+#include "js_error_utils.h"
 #include "datashare_values_bucket.h"
 
 namespace OHOS::DistributedData {
@@ -160,6 +161,9 @@ public:
     {
         bool hasProp = false;
         napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+        if (!hasProp) {
+            return napi_generic_failure;
+        }
         if ((status == napi_ok) && hasProp) {
             napi_value inner = nullptr;
             status = napi_get_named_property(env, in, prop.c_str(), &inner);
