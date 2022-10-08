@@ -27,23 +27,6 @@
 #include "idevice_status_change_listener.h"
 
 namespace OHOS::DistributedKv {
-/*
- * IPC-friendly Options struct without std::string schema field.
- * Passing a struct with an std::string field is a potential security exploit.
- *
- */
-struct OptionsIpc {
-    bool createIfMissing;
-    bool encrypt;
-    bool persistent;
-    bool backup;
-    bool autoSync;
-    int securityLevel;
-    KvStoreType kvStoreType;
-    bool syncable; // let bms delete first
-    bool dataOwnership; // true indicates the ownership of distributed data is DEVICE, otherwise, ACCOUNT
-};
-
 class IKvStoreDataService : public IRemoteBroker {
 public:
     enum {
@@ -65,24 +48,6 @@ public:
 
     virtual sptr<IRemoteObject> GetFeatureInterface(const std::string &name) = 0;
 
-    virtual Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
-                              std::function<void(sptr<ISingleKvStore>)> callback) = 0;
-
-    /* get all kv store names */
-    virtual void GetAllKvStoreId(const AppId &appId, std::function<void(Status, std::vector<StoreId> &)> callback) = 0;
-
-    /* open kv store instance will not receive subscribe any more. */
-    virtual Status CloseKvStore(const AppId &appId, const StoreId &id) = 0;
-
-    /* close all kvstore. */
-    virtual Status CloseAllKvStore(const AppId &appId) = 0;
-
-    /* delete kv store */
-    virtual Status DeleteKvStore(const AppId &appId, const StoreId &id) = 0;
-
-    /* delete kv store */
-    virtual Status DeleteAllKvStore(const AppId &appId) = 0;
-
     virtual Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) = 0;
 
     virtual Status GetLocalDevice(DeviceInfo &device) = 0;
@@ -103,26 +68,21 @@ public:
 private:
     int32_t NoSupport(MessageParcel &data, MessageParcel &reply);
     int32_t GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t CloseKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t CloseAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t DeleteKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t DeleteAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetLocalDeviceOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetRemoteDevicesOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t StartWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t StopWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t GetSingleKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
 
     using RequestHandler = int32_t(KvStoreDataServiceStub::*)(MessageParcel&, MessageParcel&);
     static constexpr RequestHandler HANDLERS[SERVICE_CMD_LAST] = {
         [GET_FEATURE_INTERFACE] = &KvStoreDataServiceStub::GetFeatureInterfaceOnRemote,
         [REGISTERCLIENTDEATHOBSERVER] = &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
-        [CLOSEKVSTORE] = &KvStoreDataServiceStub::CloseKvStoreOnRemote,
-        [CLOSEALLKVSTORE] = &KvStoreDataServiceStub::CloseAllKvStoreOnRemote,
-        [DELETEKVSTORE] = &KvStoreDataServiceStub::DeleteKvStoreOnRemote,
-        [DELETEALLKVSTORE] = &KvStoreDataServiceStub::DeleteAllKvStoreOnRemote,
-        [GETSINGLEKVSTORE] = &KvStoreDataServiceStub::GetSingleKvStoreOnRemote,
+        [CLOSEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
+        [CLOSEALLKVSTORE] = &KvStoreDataServiceStub::NoSupport,
+        [DELETEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
+        [DELETEALLKVSTORE] = &KvStoreDataServiceStub::NoSupport,
+        [GETSINGLEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
         [GETLOCALDEVICE] = &KvStoreDataServiceStub::GetLocalDeviceOnRemote,
         [GETREMOTEDEVICES] = &KvStoreDataServiceStub::GetRemoteDevicesOnRemote,
         [STARTWATCHDEVICECHANGE] = &KvStoreDataServiceStub::StartWatchDeviceChangeOnRemote,
@@ -135,24 +95,6 @@ public:
     explicit KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreDataServiceProxy() = default;
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
-
-    Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
-                              std::function<void(sptr<ISingleKvStore>)> callback) override;
-
-    /* get all kv store names */
-    void GetAllKvStoreId(const AppId &appId, std::function<void(Status, std::vector<StoreId> &)> callback) override;
-
-    /* open kv store instance will not receive subscribe any more. */
-    Status CloseKvStore(const AppId &appId, const StoreId &storeId) override;
-
-    /* close all kvstore. */
-    Status CloseAllKvStore(const AppId &appId) override;
-
-    /* delete kv store */
-    Status DeleteKvStore(const AppId &appId, const StoreId &id) override;
-
-    /* delete kv store */
-    Status DeleteAllKvStore(const AppId &appId) override;
 
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
 
