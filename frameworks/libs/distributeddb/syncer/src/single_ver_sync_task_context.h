@@ -140,6 +140,9 @@ public:
     virtual std::string GetDeleteSyncId() const = 0;
 
     void SetCommNormal(bool isCommNormal);
+
+    void StartFeedDogForGetData(uint32_t sessionId);
+    void StopFeedDogForGetData();
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;

@@ -25,8 +25,8 @@
 
 namespace DistributedDB {
 struct CompressInfo {
-    CompressAlgorithm compressAlgo;
-    uint32_t targetVersion;
+    CompressAlgorithm compressAlgo = CompressAlgorithm::ZLIB;
+    uint32_t targetVersion = 0;
 };
 
 class GenericSingleVerKvEntry : public SingleVerKvEntry {

@@ -118,11 +118,7 @@ int GenericSingleVerKvEntry::SerializeData(Parcel &parcel, uint32_t targetVersio
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = AdaptToVersion(OperType::SERIALIZE, targetVersion, parcel, len);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return errCode;
+    return AdaptToVersion(OperType::SERIALIZE, targetVersion, parcel, len);
 }
 
 int GenericSingleVerKvEntry::SerializeDatas(const std::vector<SingleVerKvEntry *> &kvEntries, Parcel &parcel,
@@ -194,30 +190,29 @@ int GenericSingleVerKvEntry::DeSerializeData(Parcel &parcel)
 
 int GenericSingleVerKvEntry::DeSerializeDatas(std::vector<SingleVerKvEntry *> &kvEntries, Parcel &parcel)
 {
-    uint64_t len = 0;
     uint32_t size = 0;
-    len += parcel.ReadUInt32(size);
+    uint64_t len = parcel.ReadUInt32(size);
     if (size > DBConstant::MAX_NORMAL_PACK_ITEM_SIZE) {
         len = 0;
-        goto END;
-    }
-    parcel.EightByteAlign();
-    len = BYTE_8_ALIGN(len);
-    for (uint32_t i = 0; i < size; i++) {
-        auto kvEntry = new (std::nothrow) GenericSingleVerKvEntry();
-        if (kvEntry == nullptr) {
-            LOGE("Create kvEntry failed.");
-            len = 0;
-            goto END;
+    } else {
+        parcel.EightByteAlign();
+        len = BYTE_8_ALIGN(len);
+        for (uint32_t i = 0; i < size; i++) {
+            auto kvEntry = new (std::nothrow) GenericSingleVerKvEntry();
+            if (kvEntry == nullptr) {
+                LOGE("Create kvEntry failed.");
+                len = 0;
+                break;
+            }
+            len += kvEntry->DeSerializeData(parcel);
+            kvEntries.push_back(kvEntry);
+            if (len > INT32_MAX || parcel.IsError()) {
+                len = 0;
+                break;
+            }
         }
-        len += kvEntry->DeSerializeData(parcel);
-        kvEntries.push_back(kvEntry);
-        if (len > INT32_MAX || parcel.IsError()) {
-            len = 0;
-            goto END;
-        }
     }
-END:
+
     if (len == 0) {
         for (auto &kvEntry : kvEntries) {
             delete kvEntry;
@@ -228,7 +223,7 @@ END:
 }
 
 int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVersion, Parcel &parcel,
-    uint64_t &datalen)
+    uint64_t &dataLen)
 {
     if (targetVersion < SOFTWARE_VERSION_EARLIEST || targetVersion > SOFTWARE_VERSION_CURRENT) {
         return -E_VERSION_NOT_SUPPORT;
@@ -239,7 +234,7 @@ int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVe
             errCode = SerializeDataByVersion(targetVersion, parcel);
             break;
         case OperType::DESERIALIZE:
-            errCode = DeSerializeByVersion(targetVersion, parcel, datalen);
+            errCode = DeSerializeByVersion(targetVersion, parcel, dataLen);
             break;
         default:
             LOGE("Unknown upgrade serialize oper!");
@@ -264,22 +259,10 @@ int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVe
 
 int GenericSingleVerKvEntry::SerializeDataByFirstVersion(Parcel &parcel) const
 {
-    int errCode = parcel.WriteVectorChar(dataItem_.key);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = parcel.WriteVectorChar(dataItem_.value);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = parcel.WriteUInt64(dataItem_.timestamp);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = parcel.WriteUInt64(dataItem_.flag);
-    if (errCode != E_OK) {
-        return errCode;
-    }
+    (void)parcel.WriteVectorChar(dataItem_.key);
+    (void)parcel.WriteVectorChar(dataItem_.value);
+    (void)parcel.WriteUInt64(dataItem_.timestamp);
+    (void)parcel.WriteUInt64(dataItem_.flag);
 
     return parcel.WriteString(dataItem_.origDev);
 }

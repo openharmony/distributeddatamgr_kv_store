@@ -25,7 +25,6 @@
 #include "evloop/include/ievent_loop.h"
 #include "icommunicator_aggregator.h"
 #include "lock_status_observer.h"
-#include "runtime_context.h"
 #include "task_pool.h"
 #include "time_tick_monitor.h"
 #include "user_change_monitor.h"
@@ -112,7 +111,7 @@ public:
     bool IsSyncerNeedActive(const DBProperties &properties) const override;
 
     // Register a user changed lister, it will be callback when user change.
-    NotificationChain::Listener *RegisterUserChangedListerner(const UserChangedAction &action,
+    NotificationChain::Listener *RegisterUserChangedListener(const UserChangedAction &action,
         EventType event) override;
     // Notify TIME_CHANGE_EVENT.
     int NotifyUserChanged() const override;

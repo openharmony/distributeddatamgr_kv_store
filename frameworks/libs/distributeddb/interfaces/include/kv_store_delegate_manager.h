@@ -21,14 +21,15 @@
 #include <mutex>
 #include <memory>
 
+
+#include "auto_launch_export.h"
+#include "iprocess_communicator.h"
+#include "iprocess_system_api_adapter.h"
 #ifndef OMIT_MULTI_VER
 #include "kv_store_delegate.h"
 #endif
 #include "kv_store_nb_delegate.h"
 #include "store_types.h"
-#include "iprocess_communicator.h"
-#include "iprocess_system_api_adapter.h"
-#include "auto_launch_export.h"
 
 namespace DistributedDB {
 class KvStoreDelegateManager final {

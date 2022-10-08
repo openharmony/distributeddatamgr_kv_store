@@ -149,7 +149,7 @@ int GenericSyncer::Close(bool isClosedOperation)
                 timeHelper_ = nullptr;
                 metadata_ = nullptr;
             }
-            LOGW("[Syncer] Syncer[%s] don't need to close, because it has no been init", label_.c_str());
+            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
             return -E_NOT_INIT;
         }
         initialized_ = false;
@@ -360,6 +360,10 @@ int GenericSyncer::InitMetaData(ISyncInterface *syncInterface)
     }
 
     metadata_ = std::make_shared<Metadata>();
+    if (metadata_ == nullptr) {
+        LOGE("[Syncer] metadata make shared failed");
+        return -E_OUT_OF_MEMORY;
+    }
     int errCode = metadata_->Initialize(syncInterface);
     if (errCode != E_OK) {
         LOGE("[Syncer] metadata Initializeate failed! err %d.", errCode);
@@ -376,6 +380,9 @@ int GenericSyncer::InitTimeHelper(ISyncInterface *syncInterface)
     }
 
     timeHelper_ = std::make_shared<TimeHelper>();
+    if (timeHelper_ == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
     int errCode = timeHelper_->Initialize(syncInterface, metadata_);
     if (errCode != E_OK) {
         LOGE("[Syncer] TimeHelper init failed! err:%d.", errCode);

@@ -30,7 +30,9 @@ SyncStateMachine::SyncStateMachine()
       watchDogStarted_(false),
       currentSyncProctolVersion_(SINGLE_VER_SYNC_PROCTOL_V3),
       saveDataNotifyTimerId_(0),
-      saveDataNotifyCount_(0)
+      saveDataNotifyCount_(0),
+      getDataNotifyTimerId_(0),
+      getDataNotifyCount_(0)
 {
 }
 
@@ -106,18 +108,21 @@ void SyncStateMachine::Abort()
 {
     RefObject::IncObjRef(syncContext_);
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
-        {
-            std::lock_guard<std::mutex> lock(this->stateMachineLock_);
-            this->AbortInner();
-            StopWatchDog();
-            currentState_ = 0;
-        }
+        this->AbortImmediately();
         RefObject::DecObjRef(this->syncContext_);
     });
     if (errCode != E_OK) {
         LOGE("[SyncStateMachine][Abort] Abort failed, errCode %d", errCode);
         RefObject::DecObjRef(syncContext_);
     }
+}
+
+void SyncStateMachine::AbortImmediately()
+{
+    std::lock_guard<std::mutex> lock(stateMachineLock_);
+    AbortInner();
+    StopWatchDog();
+    currentState_ = 0;
 }
 
 int SyncStateMachine::SwitchMachineState(uint8_t event)
@@ -227,7 +232,7 @@ bool SyncStateMachine::StartSaveDataNotify(uint32_t sessionId, uint32_t sequence
     // Incref to make sure context still alive before timer stopped.
     RefObject::IncObjRef(syncContext_);
     int errCode = RuntimeContext::GetInstance()->SetTimer(
-        SAVE_DATA_NOTIFY_INTERVAL,
+        DATA_NOTIFY_INTERVAL,
         [this, sessionId, sequenceId, inMsgId](TimerId timerId) {
             RefObject::IncObjRef(syncContext_);
             int ret = RuntimeContext::GetInstance()->ScheduleTask([this, sessionId, sequenceId, inMsgId]() {
@@ -273,7 +278,7 @@ bool SyncStateMachine::StartFeedDogForSync(uint32_t time, SyncDirectionFlag flag
         return false;
     }
 
-    uint8_t cnt = GetFeedDogTimeout(time / SAVE_DATA_NOTIFY_INTERVAL);
+    uint8_t cnt = GetFeedDogTimeout(time / DATA_NOTIFY_INTERVAL);
     LOGI("[SyncStateMachine][feedDog] start cnt:%d, flag:%d", cnt, flag);
 
     std::lock_guard<std::mutex> lockGuard(feedDogLock_[flag]);
@@ -295,7 +300,7 @@ bool SyncStateMachine::StartFeedDogForSync(uint32_t time, SyncDirectionFlag flag
     RefObject::IncObjRef(syncContext_);
     watchDogController_[flag].feedDogUpperLimit = cnt;
     int errCode = RuntimeContext::GetInstance()->SetTimer(
-        SAVE_DATA_NOTIFY_INTERVAL,
+        DATA_NOTIFY_INTERVAL,
         [this, flag](TimerId timerId) {
             RefObject::IncObjRef(syncContext_);
             int ret = RuntimeContext::GetInstance()->ScheduleTask([this, flag]() {
@@ -375,11 +380,11 @@ void SyncStateMachine::DoSaveDataNotify(uint32_t sessionId, uint32_t sequenceId,
         (void)ResetWatchDog();
     }
     std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
-    if (saveDataNotifyCount_ >= MAXT_SAVE_DATA_NOTIFY_COUNT) {
+    if (saveDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
         StopSaveDataNotifyNoLock();
         return;
     }
-    SendSaveDataNotifyPacket(sessionId, sequenceId, inMsgId);
+    SendNotifyPacket(sessionId, sequenceId, inMsgId);
     saveDataNotifyCount_++;
 }
 
@@ -401,5 +406,81 @@ void SyncStateMachine::InnerErrorAbort(uint32_t sessionId)
 {
     // do nothing
     (void) sessionId;
+}
+
+void SyncStateMachine::StartFeedDogForGetData(uint32_t sessionId)
+{
+    std::lock_guard<std::mutex> lockGuard(getDataNotifyLock_);
+    if (getDataNotifyTimerId_ > 0) {
+        getDataNotifyCount_ = 0;
+        LOGW("[SyncStateMachine][StartFeedDogForGetData] timer has been started!");
+    }
+
+    // Incref to make sure context still alive before timer stopped.
+    RefObject::IncObjRef(syncContext_);
+    int errCode = RuntimeContext::GetInstance()->SetTimer(
+        DATA_NOTIFY_INTERVAL,
+        [this, sessionId](TimerId timerId) {
+            RefObject::IncObjRef(syncContext_);
+            int ret = RuntimeContext::GetInstance()->ScheduleTask([this, sessionId, timerId]() {
+                DoGetAndSendDataNotify(sessionId);
+                int getDataNotifyCount = 0;
+                {
+                    std::lock_guard<std::mutex> autoLock(getDataNotifyLock_);
+                    getDataNotifyCount = getDataNotifyCount_;
+                }
+                if (getDataNotifyCount >= MAX_DATA_NOTIFY_COUNT) {
+                    StopFeedDogForGetDataInner(timerId);
+                }
+                RefObject::DecObjRef(syncContext_);
+            });
+            if (ret != E_OK) {
+                LOGE("[SyncStateMachine] [StartFeedDogForGetData] ScheduleTask failed errCode %d", ret);
+                RefObject::DecObjRef(syncContext_);
+            }
+            return ret;
+        },
+        [this]() { RefObject::DecObjRef(syncContext_); },
+        getDataNotifyTimerId_);
+    if (errCode != E_OK) {
+        LOGW("[SyncStateMachine][StartFeedDogForGetData] start timer failed err %d !", errCode);
+    }
+}
+
+void SyncStateMachine::StopFeedDogForGetData()
+{
+    TimerId timerId = 0;
+    {
+        std::lock_guard<std::mutex> lockGuard(getDataNotifyLock_);
+        timerId = getDataNotifyTimerId_;
+    }
+    if (timerId == 0) {
+        return;
+    }
+    StopFeedDogForGetDataInner(timerId);
+}
+
+void SyncStateMachine::DoGetAndSendDataNotify(uint32_t sessionId)
+{
+    (void)ResetWatchDog();
+    std::lock_guard<std::mutex> autoLock(getDataNotifyLock_);
+    if (getDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
+        return;
+    }
+    if (sessionId != 0) {
+        SendNotifyPacket(sessionId, 0, DATA_SYNC_MESSAGE);
+    }
+    getDataNotifyCount_++;
+}
+
+void SyncStateMachine::StopFeedDogForGetDataInner(TimerId timerId)
+{
+    std::lock_guard<std::mutex> lockGuard(getDataNotifyLock_);
+    if (getDataNotifyTimerId_ == 0 || getDataNotifyTimerId_ != timerId) {
+        return;
+    }
+    RuntimeContext::GetInstance()->RemoveTimer(timerId);
+    getDataNotifyTimerId_ = 0;
+    getDataNotifyCount_ = 0;
 }
 } // namespace DistributedDB

@@ -19,8 +19,8 @@
 #include "db_common.h"
 #include "db_dfx_adapter.h"
 #include "db_errno.h"
-#include "log_print.h"
 #include "isyncer.h"
+#include "log_print.h"
 #include "single_ver_sync_state_machine.h"
 #include "single_ver_sync_target.h"
 #include "sync_types.h"
@@ -581,5 +581,15 @@ bool SingleVerSyncTaskContext::IsCurrentSyncTaskCanBeSkippedInner(const SyncOper
         return true;
     }
     return false;
+}
+
+void SingleVerSyncTaskContext::StartFeedDogForGetData(uint32_t sessionId)
+{
+    stateMachine_->StartFeedDogForGetData(sessionId);
+}
+
+void SingleVerSyncTaskContext::StopFeedDogForGetData()
+{
+    stateMachine_->StopFeedDogForGetData();
 }
 } // namespace DistributedDB

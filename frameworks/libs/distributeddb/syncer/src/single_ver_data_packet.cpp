@@ -152,6 +152,9 @@ uint32_t DataRequestPacket::CalculateLen(uint32_t messageId) const
 {
     uint64_t totalLen = GenericSingleVerKvEntry::CalculateLens(
         IsCompressData() ? std::vector<SendDataItem> {} : data_, version_); // for data
+    if (totalLen == 0) {
+        return 0;
+    }
     totalLen += Parcel::GetUInt64Len(); // endWaterMark
     totalLen += Parcel::GetUInt64Len(); // localWaterMark
     totalLen += Parcel::GetUInt64Len(); // peerWaterMark

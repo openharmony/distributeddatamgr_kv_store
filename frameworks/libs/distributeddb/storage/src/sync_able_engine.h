@@ -84,7 +84,7 @@ private:
     ISyncInterface *store_;
 
     mutable std::mutex syncerOperateLock_;
-    NotificationChain::Listener *userChangeListerner_;
+    NotificationChain::Listener *userChangeListener_;
 };
 }  // namespace DistributedDB
 #endif // SYNC_ABLE_ENGINE_H

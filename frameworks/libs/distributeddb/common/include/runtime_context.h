@@ -122,7 +122,7 @@ public:
 
     virtual bool IsSyncerNeedActive(const DBProperties &properties) const = 0;
 
-    virtual NotificationChain::Listener *RegisterUserChangedListerner(const UserChangedAction &action,
+    virtual NotificationChain::Listener *RegisterUserChangedListener(const UserChangedAction &action,
         EventType event) = 0;
 
     virtual int NotifyUserChanged() const = 0;

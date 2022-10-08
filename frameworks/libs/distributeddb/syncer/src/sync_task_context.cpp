@@ -591,7 +591,9 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
 void SyncTaskContext::KillWait()
 {
     StopTimer();
-    stateMachine_->Abort();
+    UnlockObj();
+    stateMachine_->AbortImmediately();
+    LockObj();
     LOGW("[SyncTaskContext] Try to kill a context, now wait.");
     bool noDeadLock = WaitLockedUntil(
         safeKill_,

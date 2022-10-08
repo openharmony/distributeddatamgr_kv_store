@@ -129,6 +129,12 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
     timeSync_ = std::make_unique<TimeSync>();
     dataSync_ = std::make_shared<SingleVerDataSync>();
     abilitySync_ = std::make_unique<AbilitySync>();
+    if ((timeSync_ == nullptr) || (dataSync_ == nullptr) || (abilitySync_ == nullptr)) {
+        timeSync_ = nullptr;
+        dataSync_ = nullptr;
+        abilitySync_ = nullptr;
+        return -E_OUT_OF_MEMORY;
+    }
 
     errCode = timeSync_->Initialize(communicator, metaData, syncInterface, context->GetDeviceId());
     if (errCode != E_OK) {
@@ -282,7 +288,7 @@ int SingleVerSyncStateMachine::PrepareNextSyncTask()
     return E_OK;
 }
 
-void SingleVerSyncStateMachine::SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
+void SingleVerSyncStateMachine::SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
     dataSync_->SendSaveDataNotifyPacket(context_,
         std::min(context_->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT), sessionId, sequenceId, inMsgId);
@@ -412,7 +418,7 @@ Event SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow()
     }
     int errCode = dataSync_->SyncStart(SyncModeType::RESPONSE_PULL, context_);
     if (errCode != E_OK) {
-        LOGW("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
+        LOGE("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
         return RESPONSE_TASK_FINISHED_EVENT;
     }
     return Event::WAIT_ACK_EVENT;

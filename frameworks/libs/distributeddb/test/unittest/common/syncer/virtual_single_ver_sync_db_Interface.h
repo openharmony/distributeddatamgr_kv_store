@@ -129,6 +129,8 @@ public:
     void SetIdentifier(std::vector<uint8_t> &identifier);
 
     void SetDbProperties(KvDBProperties &kvDBProperties);
+
+    void DelayGetSyncData(uint32_t milliDelayTime);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize, std::vector<VirtualDataItem>& dataItems,
         ContinueToken& continueStmtToken) const;
@@ -150,6 +152,7 @@ private:
     std::mutex deviceDataLock_;
     std::map<std::string, std::map<Key, Value>> deviceData_;
     std::vector<uint8_t> identifier_;
+    uint64_t getDataDelayTime_ = 0;
 };
 }  // namespace DistributedDB
 

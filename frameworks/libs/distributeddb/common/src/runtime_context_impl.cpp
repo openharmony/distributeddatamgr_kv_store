@@ -642,7 +642,7 @@ bool RuntimeContextImpl::IsSyncerNeedActive(const DBProperties &properties) cons
     return true;
 }
 
-NotificationChain::Listener *RuntimeContextImpl::RegisterUserChangedListerner(const UserChangedAction &action,
+NotificationChain::Listener *RuntimeContextImpl::RegisterUserChangedListener(const UserChangedAction &action,
     EventType event)
 {
     int errCode;
@@ -656,7 +656,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterUserChangedListerner(co
             return nullptr;
         }
     }
-    NotificationChain::Listener *listener = userChangeMonitor_->RegisterUserChangedListerner(action, event, errCode);
+    NotificationChain::Listener *listener = userChangeMonitor_->RegisterUserChangedListener(action, event, errCode);
     if ((listener == nullptr) || (errCode != E_OK)) {
         LOGE("Register user status changed listener failed, err = %d", errCode);
         return nullptr;

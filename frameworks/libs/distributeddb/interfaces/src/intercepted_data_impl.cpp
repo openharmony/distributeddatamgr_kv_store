@@ -178,6 +178,9 @@ void InterceptedDataImpl::GetKvEntries()
 {
     for (size_t i = 0; i < dataItems_.size(); ++i) {
         const auto &kvEntry = dataItems_[i];
+        if (kvEntry == nullptr) {
+            continue;
+        }
         if ((kvEntry->GetFlag() & DataItem::DELETE_FLAG) == 0) { // For deleted data, do not modify.
             kvEntries_.push_back({ kvEntry->GetKey(), kvEntry->GetValue() });
             indexes_.push_back(i);

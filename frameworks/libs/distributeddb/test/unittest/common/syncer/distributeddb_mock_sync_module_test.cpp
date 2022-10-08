@@ -26,6 +26,7 @@
 #include "mock_auto_launch.h"
 #include "mock_communicator.h"
 #include "mock_meta_data.h"
+#include "mock_remote_executor.h"
 #include "mock_single_ver_data_sync.h"
 #include "mock_single_ver_state_machine.h"
 #include "mock_sync_engine.h"
@@ -45,12 +46,22 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
+const uint32_t MESSAGE_COUNT = 10u;
+const uint32_t EXECUTE_COUNT = 2u;
 void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTaskContext,
     MockCommunicator &communicator, VirtualSingleVerSyncDBInterface &dbSyncInterface)
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
+}
+
+void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTaskContext,
+    MockCommunicator &communicator, VirtualSingleVerSyncDBInterface *dbSyncInterface)
+{
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
+    (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
 }
 
 #ifdef RUN_AS_ROOT
@@ -62,6 +73,23 @@ void ChangeTime(int sec)
     settimeofday(&time, nullptr);
 }
 #endif
+
+int BuildRemoteQueryMsg(DistributedDB::Message *&message)
+{
+    auto packet = RemoteExecutorRequestPacket::Create();
+    if (packet == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    message = new (std::nothrow) DistributedDB::Message(static_cast<uint32_t>(MessageId::REMOTE_EXECUTE_MESSAGE));
+    if (message == nullptr) {
+        RemoteExecutorRequestPacket::Release(packet);
+        return -E_OUT_OF_MEMORY;
+    }
+    message->SetMessageType(TYPE_REQUEST);
+    packet->SetNeedResponse();
+    message->SetExternalObject(packet);
+    return E_OK;
+}
 }
 
 class DistributedDBMockSyncModuleTest : public testing::Test {
@@ -346,6 +374,39 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, GetRequestSessionId()).WillOnce(Return(1u));
     syncTaskContext.ClearAllSyncTask();
     EXPECT_EQ(syncTaskContext.IsCommNormal(), false);
+}
+
+/**
+ * @tc.name: StateMachineCheck013
+ * @tc.desc: test kill syncTaskContext.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    auto *syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    auto *dbSyncInterface = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncTaskContext, nullptr);
+    EXPECT_NE(dbSyncInterface, nullptr);
+    if (dbSyncInterface == nullptr) {
+        RefObject::KillAndDecObjRef(syncTaskContext);
+        return;
+    }
+    MockCommunicator communicator;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    EXPECT_CALL(*syncTaskContext, Clear()).WillOnce(Return());
+    syncTaskContext->RegForkGetDeviceIdFunc([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+    });
+    int token = 1;
+    int *tokenPtr = &token;
+    syncTaskContext->SetContinueToken(tokenPtr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+    delete dbSyncInterface;
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
+    tokenPtr = nullptr;
 }
 
 /**
@@ -876,6 +937,50 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
     EXPECT_EQ(GenericSingleVerKvEntry::SerializeDatas(kvEntries, parcel, SOFTWARE_VERSION_CURRENT), E_OK);
     parcel = Parcel(srcData.data(), srcData.size());
     EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcel), 0);
+}
+
+/**
+* @tc.name: mock remote query 001
+* @tc.desc: Test RemoteExecutor receive msg when closing
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
+{
+    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    uint32_t count = 0u;
+    EXPECT_CALL(*executor, ParseOneRequestMessage).WillRepeatedly(
+        [&count](const std::string &device, DistributedDB::Message *inMsg) {
+        std::this_thread::sleep_for(std::chrono::seconds(5)); // mock one msg execute 5 s
+        count++;
+    });
+    EXPECT_CALL(*executor, IsPacketValid).WillRepeatedly(Return(true));
+    for (uint32_t i = 0; i < MESSAGE_COUNT; i++) {
+        DistributedDB::Message *message = nullptr;
+        EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
+        executor->ReceiveMessage("DEVICE", message);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    executor->Close();
+    EXPECT_EQ(count, EXECUTE_COUNT);
+    RefObject::KillAndDecObjRef(executor);
+}
+
+/**
+* @tc.name: mock remote query 002
+* @tc.desc: Test RemoteExecutor response failed when closing
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
+{
+    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    executor->CallResponseFailed(0, 0, 0, "DEVICE");
+    RefObject::KillAndDecObjRef(executor);
 }
 
 /**

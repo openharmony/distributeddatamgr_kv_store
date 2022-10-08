@@ -38,7 +38,7 @@ public:
 
     bool IsValid() const;
 
-    int CalcLength() const;
+    uint32_t CalcLength() const;
     int Serialize(Parcel &parcel) const;
     int DeSerialize(Parcel &parcel);
 
