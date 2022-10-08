@@ -25,7 +25,6 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 #if defined OS_TYPE_WINDOWS
 #include <io.h>

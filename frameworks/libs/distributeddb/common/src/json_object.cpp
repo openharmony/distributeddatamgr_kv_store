@@ -118,7 +118,7 @@ int JsonObject::Parse(const std::string &inString)
     int errCode = E_OK;
     uint32_t nestDepth = CalculateNestDepth(inString, errCode);
     if (errCode != E_OK || nestDepth > maxNestDepth_) {
-        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth=%" PRIu32 " exceed max allowed:%" PRIu32, 
+        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth=%" PRIu32 " exceed max allowed:%" PRIu32,
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
@@ -175,7 +175,7 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
     int errCode = E_OK;
     uint32_t nestDepth = CalculateNestDepth(dataBegin, dataEnd, errCode);
     if (errCode != E_OK || nestDepth > maxNestDepth_) {
-        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth:%" PRIu32 " exceed max allowed:%" PRIu32, 
+        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth:%" PRIu32 " exceed max allowed:%" PRIu32,
             errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }

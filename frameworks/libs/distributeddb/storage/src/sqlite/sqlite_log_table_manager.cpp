@@ -37,16 +37,14 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
     const std::string tableName = GetLogTableName(table);
     std::string primaryKey = GetPrimaryKeySql(table);
 
-    std::string createTableSql =
-        "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
         "data_key    INT NOT NULL," \
         "device      BLOB," \
         "ori_device  BLOB," \
         "timestamp   INT  NOT NULL," \
         "wtimestamp  INT  NOT NULL," \
         "flag        INT  NOT NULL," \
-        "hash_key    BLOB NOT NULL," \
-        + primaryKey + ");";
+        "hash_key    BLOB NOT NULL," + primaryKey + ");";
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);
     GetIndexSql(table, logTableSchema);
