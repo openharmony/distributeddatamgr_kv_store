@@ -24,6 +24,15 @@
 namespace OHOS::DistributedObject {
 class ObjectService {
 public:
+    enum {
+        OBJECTSTORE_SAVE,
+        OBJECTSTORE_REVOKE_SAVE,
+        OBJECTSTORE_RETRIEVE,
+        OBJECTSTORE_REGISTER_OBSERVER,
+        OBJECTSTORE_UNREGISTER_OBSERVER,
+        OBJECTSTORE_SERVICE_CMD_MAX
+    };
+    DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedObject.IObjectService");
     virtual int32_t ObjectStoreSave(const std::string &bundleName, const std::string &sessionId,
         const std::string &deviceId, const std::map<std::string, std::vector<uint8_t>> &data,
         sptr<IObjectSaveCallback> callback) = 0;

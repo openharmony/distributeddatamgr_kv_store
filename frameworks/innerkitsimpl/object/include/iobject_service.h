@@ -23,16 +23,6 @@
 
 namespace OHOS::DistributedObject {
 class IObjectService : public ObjectService, public IRemoteBroker {
-public:
-    enum {
-        OBJECTSTORE_SAVE,
-        OBJECTSTORE_REVOKE_SAVE,
-        OBJECTSTORE_RETRIEVE,
-        OBJECTSTORE_REGISTER_OBSERVER,
-        OBJECTSTORE_UNREGISTER_OBSERVER,
-        OBJECTSTORE_SERVICE_CMD_MAX
-    };
-    DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedObject.IObjectService");
 };
 } // namespace OHOS::DistributedRdb
 #endif

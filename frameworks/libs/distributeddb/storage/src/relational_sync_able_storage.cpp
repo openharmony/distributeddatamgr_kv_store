@@ -43,7 +43,8 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 } while (0)
 
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(StorageEngine *engine)
-    : storageEngine_(static_cast<SQLiteSingleRelationalStorageEngine *>(engine))
+    : storageEngine_(static_cast<SQLiteSingleRelationalStorageEngine *>(engine)),
+      isCachedOption_(false)
 {}
 
 RelationalSyncAbleStorage::~RelationalSyncAbleStorage()
@@ -510,7 +511,18 @@ RelationalSchemaObject RelationalSyncAbleStorage::GetSchemaInfo() const
 
 int RelationalSyncAbleStorage::GetSecurityOption(SecurityOption &option) const
 {
-    return -E_NOT_SUPPORT;
+    std::lock_guard<std::mutex> autoLock(securityOptionMutex_);
+    if (isCachedOption_) {
+        option = securityOption_;
+        return E_OK;
+    }
+    std::string dbPath = storageEngine_->GetProperties().GetStringProp(DBProperties::DATA_DIR, "");
+    int errCode = RuntimeContext::GetInstance()->GetSecurityOption(dbPath, securityOption_);
+    if (errCode == E_OK) {
+        option = securityOption_;
+        isCachedOption_ = true;
+    }
+    return errCode;
 }
 
 void RelationalSyncAbleStorage::NotifyRemotePushFinished(const std::string &deviceId) const
@@ -753,6 +765,14 @@ int RelationalSyncAbleStorage::ExecuteQuery(const PreparedStmt &prepStmt, size_t
 const RelationalDBProperties &RelationalSyncAbleStorage::GetRelationalDbProperties() const
 {
     return storageEngine_->GetProperties();
+}
+
+void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &token) const
+{
+    auto remoteToken = static_cast<RelationalRemoteQueryContinueToken *>(token);
+    delete remoteToken;
+    remoteToken = nullptr;
+    token = nullptr;
 }
 }
 #endif

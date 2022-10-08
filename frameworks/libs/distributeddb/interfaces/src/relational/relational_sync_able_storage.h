@@ -126,6 +126,7 @@ public:
 
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
+    void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -149,6 +150,11 @@ private:
     RelationalObserverAction dataChangeDeviceCallback_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
+
+    // cache securityOption
+    mutable std::mutex securityOptionMutex_;
+    mutable SecurityOption securityOption_;
+    mutable bool isCachedOption_;
 };
 }  // namespace DistributedDB
 #endif

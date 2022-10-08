@@ -95,6 +95,10 @@ public:
 
     void SetLastAck();
 
+    SecurityOption GetSecurityOption() const;
+
+    void SetSecurityOption(const SecurityOption &option);
+
     uint32_t CalculateLen() const override;
 
     int Serialization(Parcel &parcel) const override;
@@ -108,6 +112,8 @@ private:
     int32_t ackCode_ = 0;
     uint32_t flag_ = 0u; // 0x01 mean last one
     mutable RelationalRowDataSet rowDataSet_;
+    int32_t secLabel_ = 0;
+    int32_t secFlag_ = 0;
 };
 }
 #endif

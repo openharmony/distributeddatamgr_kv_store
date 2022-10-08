@@ -72,7 +72,6 @@ Status DistributedKvDataManager::CloseKvStore(const AppId &appId, const StoreId 
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
-    KvStoreServiceDeathNotifier::SetAppId(appId);
 
     return StoreManager::GetInstance().CloseKVStore(appId, storeId);
 }

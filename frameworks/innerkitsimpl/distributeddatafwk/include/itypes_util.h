@@ -19,11 +19,14 @@
 #include <memory>
 
 #include "change_notification.h"
+#include "datashare_predicates.h"
+#include "datashare_values_bucket.h"
 #include "message_parcel.h"
 #include "rdb_types.h"
 #include "types.h"
 
-namespace OHOS::DistributedKv {
+namespace OHOS {
+namespace DistributedKv {
 class ITypesUtil final {
 public:
     static bool Marshal(MessageParcel &data);
@@ -78,6 +81,13 @@ public:
 
     static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
     static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+
+    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
 
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
@@ -367,5 +377,6 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
     }
     return true;
 }
-} // namespace OHOS::DistributedKv
+} // namespace DistributedKv
+} // namespace OHOS
 #endif

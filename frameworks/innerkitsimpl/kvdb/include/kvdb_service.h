@@ -23,7 +23,7 @@
 #include "single_kvstore.h"
 #include "types.h"
 namespace OHOS::DistributedKv {
-class KVDBService : public IRemoteBroker {
+class KVDBService {
 public:
     using SingleKVStore = SingleKvStore;
     struct SyncInfo {
@@ -33,7 +33,7 @@ public:
         std::vector<std::string> devices;
         std::string query;
     };
-    DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVDBService");
+    DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
     API_EXPORT KVDBService() = default;
 
