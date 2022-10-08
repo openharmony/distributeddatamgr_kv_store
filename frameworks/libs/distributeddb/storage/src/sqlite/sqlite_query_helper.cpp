@@ -962,64 +962,6 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySql(std::string &sql, bool hasS
     return errCode;
 }
 
-namespace {
-std::string GetRelationalSyncDataQueryHeader(const std::vector<std::string> &fieldNames)
-{
-    std::string sql = "SELECT b.data_key,"
-        "b.device,"
-        "b.ori_device,"
-        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
-        "b.wtimestamp,"
-        "b.flag,"
-        "b.hash_key,";
-    if (fieldNames.empty()) {  // For query check. If column count changed, can be discovered.
-        sql += "a.*";
-    } else {
-        for (const auto &fieldName : fieldNames) {  // For query data.
-            sql += "a." + fieldName + ",";
-        }
-        sql.pop_back();
-    }
-    return sql;
-}
-
-std::string GetRelationalLogTableQuerySql(const std::string &tableName)
-{
-    return "SELECT * FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE " +
-        "(timestamp >= ? AND timestamp < ?) AND (flag & 3 = 2)";
-}
-}
-
-int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithSubQuery(const std::vector<std::string> &fieldNames,
-    std::string &sql)
-{
-    if (!isValid_) {
-        return -E_INVALID_QUERY_FORMAT;
-    }
-
-    if (hasPrefixKey_) {
-        LOGE("For relational DB query, prefix key is not supported.");
-        return -E_NOT_SUPPORT;
-    }
-    sql = GetRelationalSyncDataQueryHeader(fieldNames);
-    sql += " FROM (";
-    sql += "SELECT rowid,* FROM " + tableName_ + " AS a WHERE (1 = 1) ";
-    {
-        querySql_.clear(); // clear local query sql format
-        int errCode = ToQuerySyncSql(true, true);
-        if (errCode != E_OK) {
-            LOGE("To query sql fail! errCode[%d]", errCode);
-            return errCode;
-        }
-        sql += querySql_;
-    }
-    sql += ") AS a INNER JOIN (";
-    sql += GetRelationalLogTableQuerySql(tableName_);
-    sql += ") AS b ON (a.rowid = b.data_key)";
-    sql += " ORDER BY naturalbase_rdb_aux_timestamp;";
-    return E_OK;
-}
-
 int SqliteQueryHelper::GetRelationalMissQueryStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
     const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement)
 {
@@ -1044,15 +986,13 @@ int SqliteQueryHelper::GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t b
     const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement)
 {
     bool hasSubQuery = false;
-    std::string sql;
-    int errCode = E_OK;
     if (hasLimit_ || hasOrderBy_) {
         hasSubQuery = true; // Need sub query.
-        errCode = GetRelationalSyncDataQuerySqlWithSubQuery(fieldNames, sql);
     } else {
         isNeedOrderbyKey_ = false; // Need order by timestamp.
-        errCode = GetRelationalSyncDataQuerySql(sql, hasSubQuery, fieldNames);
     }
+    std::string sql;
+    int errCode = GetRelationalSyncDataQuerySql(sql, hasSubQuery, fieldNames);
     if (errCode != E_OK) {
         LOGE("[Query] Get SQL fail!");
         return -E_INVALID_QUERY_FORMAT;
