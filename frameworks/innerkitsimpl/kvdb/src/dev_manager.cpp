@@ -243,7 +243,7 @@ void DevManager::OnChanged(const std::string &networkId)
 void DevManager::OnReady(const std::string &networkId)
 {
     ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-	observers_.ForEach([&networkId](const auto &key, auto &value) {
+    observers_.ForEach([&networkId](const auto &key, auto &value) {
         value->Online(networkId);
         return false;
     });
