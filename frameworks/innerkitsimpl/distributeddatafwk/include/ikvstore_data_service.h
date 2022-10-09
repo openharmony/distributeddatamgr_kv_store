@@ -24,7 +24,6 @@
 #include "iremote_stub.h"
 #include "message_parcel.h"
 #include "types.h"
-#include "idevice_status_change_listener.h"
 
 namespace OHOS::DistributedKv {
 /*
@@ -85,12 +84,6 @@ public:
 
     virtual Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) = 0;
 
-    virtual Status GetLocalDevice(DeviceInfo &device) = 0;
-    virtual Status GetRemoteDevices(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy) = 0;
-    virtual Status StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer,
-            DeviceFilterStrategy strategy) = 0;
-    virtual Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer) = 0;
-
 protected:
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;
 };
@@ -108,10 +101,6 @@ private:
     int32_t DeleteKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t DeleteAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t GetLocalDeviceOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t GetRemoteDevicesOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t StartWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply);
-    int32_t StopWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t GetSingleKvStoreOnRemote(MessageParcel &data, MessageParcel &reply);
 
     using RequestHandler = int32_t(KvStoreDataServiceStub::*)(MessageParcel&, MessageParcel&);
@@ -123,10 +112,10 @@ private:
         [DELETEKVSTORE] = &KvStoreDataServiceStub::DeleteKvStoreOnRemote,
         [DELETEALLKVSTORE] = &KvStoreDataServiceStub::DeleteAllKvStoreOnRemote,
         [GETSINGLEKVSTORE] = &KvStoreDataServiceStub::GetSingleKvStoreOnRemote,
-        [GETLOCALDEVICE] = &KvStoreDataServiceStub::GetLocalDeviceOnRemote,
-        [GETREMOTEDEVICES] = &KvStoreDataServiceStub::GetRemoteDevicesOnRemote,
-        [STARTWATCHDEVICECHANGE] = &KvStoreDataServiceStub::StartWatchDeviceChangeOnRemote,
-        [STOPWATCHDEVICECHANGE] = &KvStoreDataServiceStub::StopWatchDeviceChangeOnRemote,
+        [GETLOCALDEVICE] = &KvStoreDataServiceStub::NoSupport,
+        [GETREMOTEDEVICES] = &KvStoreDataServiceStub::NoSupport,
+        [STARTWATCHDEVICECHANGE] = &KvStoreDataServiceStub::NoSupport,
+        [STOPWATCHDEVICECHANGE] = &KvStoreDataServiceStub::NoSupport,
     };
 };
 
@@ -155,11 +144,6 @@ public:
     Status DeleteAllKvStore(const AppId &appId) override;
 
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
-
-    Status GetLocalDevice(DeviceInfo &device) override;
-    Status GetRemoteDevices(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy) override;
-    Status StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer, DeviceFilterStrategy strategy) override;
-    Status StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer) override;
 
 private:
     static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
