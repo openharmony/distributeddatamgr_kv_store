@@ -16,8 +16,6 @@
 #ifndef DISTRIBUTEDDB_ERRNO_H
 #define DISTRIBUTEDDB_ERRNO_H
 
-#include <errno.h>
-
 namespace DistributedDB {
 constexpr int E_OK = 0;
 constexpr int E_BASE = 1000; // different from the other errno.
