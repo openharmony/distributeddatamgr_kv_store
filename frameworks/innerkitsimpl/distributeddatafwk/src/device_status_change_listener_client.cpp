@@ -21,7 +21,7 @@ DeviceStatusChangeListenerClient::DeviceStatusChangeListenerClient(
     std::shared_ptr<DeviceStatusChangeListener> listener) : listener_(std::move(listener))
 {}
 
-void DeviceStatusChangeListenerClient::Online(const std::string &networkId)
+void DeviceStatusChangeListenerClient::Online(const std::string &device)
 {
     if (listener_ == nullptr) {
         return;
@@ -31,7 +31,7 @@ void DeviceStatusChangeListenerClient::Online(const std::string &networkId)
     listener_->OnDeviceChanged(info, DeviceChangeType::DEVICE_ONLINE);
 }
 
-void DeviceStatusChangeListenerClient::Offline(const std::string &networkId)
+void DeviceStatusChangeListenerClient::Offline(const std::string &device)
 {
     if (listener_ == nullptr) {
         return;
