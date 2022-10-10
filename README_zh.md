@@ -17,7 +17,6 @@
 │   ├── common            # 公共代码
 │   ├── innerkitsimpl     # 部件间接口代码实现
 │   ├── jskitsimpl        # JS API的实现
-│   │   └── napi          # napi代码实现
 │   ├── libs              # DB代码实现
 │   └── native            # 内部接口实现
 ├── interfaces            # 接口代码
