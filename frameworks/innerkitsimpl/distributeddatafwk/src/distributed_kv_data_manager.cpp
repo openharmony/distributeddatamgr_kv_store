@@ -16,6 +16,7 @@
 #include "distributed_kv_data_manager.h"
 
 #include "dds_trace.h"
+#include "dev_manager.h"
 #include "device_status_change_listener_client.h"
 #include "ikvstore_data_service.h"
 #include "kvstore_service_death_notifier.h"
@@ -167,72 +168,66 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
 
 Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
 {
-    sptr<IKvStoreDataService> kvDataServiceProxy = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    if (kvDataServiceProxy == nullptr) {
-        ZLOGE("proxy is nullptr.");
+    auto dvInfo = DevManager::GetInstance().GetLocalDevice();
+    if (dvInfo.networkId.empty()) {
+        ZLOGE("deviceId empty!");
         return Status::ERROR;
     }
-
-    return kvDataServiceProxy->GetLocalDevice(localDevice);
+    localDevice.deviceId = dvInfo.networkId;
+    localDevice.deviceName = dvInfo.deviceName;
+    localDevice.deviceType = dvInfo.deviceType;
+    return Status::SUCCESS;
 }
 
 Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy)
 {
-    sptr<IKvStoreDataService> kvDataServiceProxy = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    if (kvDataServiceProxy == nullptr) {
-        ZLOGE("proxy is nullptr.");
+    auto dvInfos = DevManager::GetInstance().GetRemoteDevices();
+    if (dvInfos.empty()) {
+        ZLOGD("no remote device!");
         return Status::ERROR;
     }
-
-    return kvDataServiceProxy->GetRemoteDevices(deviceInfoList, strategy);
+    for (const auto &info : dvInfos) {
+        if (info.networkId.empty()) {
+            ZLOGW("deviceId empty!");
+            continue;
+        }
+        DeviceInfo devInfo = { info.networkId, info.deviceName, info.deviceType };
+        deviceInfoList.emplace_back(devInfo);
+    }
+    ZLOGI("strategy is:%{public}d", strategy);
+    return Status::SUCCESS;
 }
 
-static std::map<DeviceStatusChangeListener *, sptr<IDeviceStatusChangeListener>> deviceObservers_;
+static std::map<DeviceStatusChangeListener *, DeviceStatusChangeListenerClient *> deviceObservers_;
 static std::mutex deviceObserversMapMutex_;
 Status DistributedKvDataManager::StartWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
 {
-    sptr<DeviceStatusChangeListenerClient> ipcObserver = new(std::nothrow) DeviceStatusChangeListenerClient(observer);
-    if (ipcObserver == nullptr) {
+    DeviceStatusChangeListenerClient *observerClient = new(std::nothrow) DeviceStatusChangeListenerClient(observer);
+    if (observerClient == nullptr) {
         ZLOGW("new DeviceStatusChangeListenerClient failed");
         return Status::ERROR;
     }
-    sptr<IKvStoreDataService> kvDataServiceProxy = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    if (kvDataServiceProxy == nullptr) {
-        ZLOGE("proxy is nullptr.");
-        return Status::ERROR;
+
+    DevManager::GetInstance().Register(observerClient);
+    {
+        std::lock_guard<std::mutex> lck(deviceObserversMapMutex_);
+        deviceObservers_.insert({ observer.get(), observerClient });
     }
-    Status status = kvDataServiceProxy->StartWatchDeviceChange(ipcObserver, observer->GetFilterStrategy());
-    if (status == Status::SUCCESS) {
-        {
-            std::lock_guard<std::mutex> lck(deviceObserversMapMutex_);
-            deviceObservers_.insert({observer.get(), ipcObserver});
-        }
-        return Status::SUCCESS;
-    }
-    ZLOGE("watch failed.");
-    return Status::ERROR;
+    return Status::SUCCESS;
 }
 
 Status DistributedKvDataManager::StopWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
 {
-    sptr<IKvStoreDataService> kvDataServiceProxy = KvStoreServiceDeathNotifier::GetDistributedKvDataService();
-    if (kvDataServiceProxy == nullptr) {
-        ZLOGE("proxy is nullptr.");
-        return Status::ERROR;
-    }
     std::lock_guard<std::mutex> lck(deviceObserversMapMutex_);
     auto it = deviceObservers_.find(observer.get());
     if (it == deviceObservers_.end()) {
         ZLOGW(" not start watch device change.");
         return Status::ERROR;
     }
-    Status status = kvDataServiceProxy->StopWatchDeviceChange(it->second);
-    if (status == Status::SUCCESS) {
-        deviceObservers_.erase(it->first);
-    } else {
-        ZLOGW("stop watch failed code=%d.", static_cast<int>(status));
-    }
-    return status;
+
+    DevManager::GetInstance().Unregister(it->second);
+    deviceObservers_.erase(it->first);
+    return Status::SUCCESS;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS
