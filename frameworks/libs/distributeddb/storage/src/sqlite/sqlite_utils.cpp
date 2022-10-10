@@ -453,6 +453,7 @@ int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &pass
     }
 
     if (passwd.GetSize() != 0) {
+#ifndef OMIT_ENCRYPT
         int errCode = SetKeyInner(db, type, passwd, iterTimes);
         if (errCode != E_OK) {
             LOGE("[SQLiteUtils][Setkey] set keyInner failed:%d", errCode);
@@ -468,6 +469,9 @@ int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &pass
             LOGE("[SQLiteUtils][Setkey] set rekey sha algo failed:%d", errCode);
             return errCode;
         }
+#else
+        return -E_NOT_SUPPORT;
+#endif
     }
 
     // verify key
@@ -480,13 +484,14 @@ int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &pass
         if (errCode == -E_BUSY) {
             return errCode;
         }
+#ifndef OMIT_ENCRYPT
         errCode = UpdateCipherShaAlgo(db, setWal, type, passwd, iterTimes);
         if (errCode != E_OK) {
             LOGE("[SQLiteUtils][Setkey] upgrade cipher sha algo failed:%d", errCode);
-            return errCode;
         }
+#endif
     }
-    return E_OK;
+    return errCode;
 }
 
 int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vector<uint8_t> &value)
@@ -523,12 +528,15 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
 int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
     const std::string &attachDbAbsPath, const std::string &attachAsName)
 {
+#ifndef OMIT_ENCRYPT
     int errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_ATTACH_SQL);
     if (errCode != E_OK) {
         LOGE("[SQLiteUtils][AttachNewDatabase] set attach sha256 algo failed:%d", errCode);
         return errCode;
     }
+#endif
     errCode = AttachNewDatabaseInner(db, type, password, attachDbAbsPath, attachAsName);
+#ifndef OMIT_ENCRYPT
     if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
         errCode = SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_ATTACH_SQL);
         if (errCode != E_OK) {
@@ -545,6 +553,7 @@ int SQLiteUtils::AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPas
             LOGE("[SQLiteUtils][AttachNewDatabase] set attach sha256 algo failed:%d", errCode);
         }
     }
+#endif
     return errCode;
 }
 
