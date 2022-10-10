@@ -18,9 +18,10 @@
 
 #include <list>
 #include <string>
+
 #include "db_types.h"
-#include "store_types.h"
 #include "kvdb_properties.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 class DBCommon final {
@@ -67,6 +68,8 @@ public:
         const std::string &nextPattern);
 
     static bool IsSameCipher(CipherType srcType, CipherType inputType);
+
+    static bool CheckIsAlnumAndUnderscore(const std::string &text);
 };
 
 // Define short macro substitute for original long expression for convenience of using

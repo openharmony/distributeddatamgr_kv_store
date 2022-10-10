@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,30 +12,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef MOCK_REMOTE_EXECUTOR_H
+#define MOCK_REMOTE_EXECUTOR_H
 
-#ifndef MULTI_VER_KV_ENTRY_H
-#define MULTI_VER_KV_ENTRY_H
-
-#ifndef OMIT_MULTI_VER
-#include <cstdint>
-#include <vector>
-
-#include "multi_ver_value_object.h"
+#include <gmock/gmock.h>
+#include "remote_executor.h"
 
 namespace DistributedDB {
-class MultiVerKvEntry {
+class MockRemoteExecutor : public RemoteExecutor {
 public:
-    virtual ~MultiVerKvEntry() {};
+    MOCK_METHOD2(ParseOneRequestMessage, void(const std::string &, Message *));
 
-    virtual int GetSerialData(std::vector<uint8_t> &data) const = 0;
+    MOCK_METHOD1(IsPacketValid, bool(uint32_t));
 
-    virtual int GetValueHash(std::vector<ValueSliceHash> &valueHashes) const = 0;
-
-    virtual void GetTimestamp(uint64_t &timestamp) const = 0;
-
-    virtual void SetTimestamp(uint64_t timestamp) = 0;
+    void CallResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device)
+    {
+        RemoteExecutor::ResponseFailed(errCode, sessionId, sequenceId, device);
+    }
 };
 } // namespace DistributedDB
-
-#endif // MULTI_VER_KV_ENTRY_H
-#endif
+#endif  // #define MOCK_META_DATA_H

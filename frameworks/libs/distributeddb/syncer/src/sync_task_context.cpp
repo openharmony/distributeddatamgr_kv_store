@@ -591,7 +591,9 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
 void SyncTaskContext::KillWait()
 {
     StopTimer();
-    stateMachine_->Abort();
+    UnlockObj();
+    stateMachine_->AbortImmediately();
+    LockObj();
     LOGW("[SyncTaskContext] Try to kill a context, now wait.");
     bool noDeadLock = WaitLockedUntil(
         safeKill_,
@@ -774,5 +776,28 @@ uint8_t SyncTaskContext::GetPermissionCheckFlag(bool isAutoSync, int syncMode)
         flag = flag | CHECK_FLAG_SPONSOR;
     }
     return flag;
+}
+
+void SyncTaskContext::AbortMachineIfNeed(uint32_t syncId)
+{
+    uint32_t sessionId = 0u;
+    {
+        RefObject::AutoLock autoLock(this);
+        if (syncId_ != syncId) {
+            return;
+        }
+        sessionId = requestSessionId_;
+    }
+    stateMachine_->InnerErrorAbort(sessionId);
+}
+
+SyncOperation *SyncTaskContext::GetAndIncSyncOperation() const
+{
+    std::lock_guard<std::mutex> lock(operationLock_);
+    if (syncOperation_ == nullptr) {
+        return nullptr;
+    }
+    RefObject::IncObjRef(syncOperation_);
+    return syncOperation_;
 }
 } // namespace DistributedDB

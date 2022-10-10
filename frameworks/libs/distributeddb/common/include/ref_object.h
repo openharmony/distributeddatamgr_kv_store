@@ -17,10 +17,11 @@
 #define KV_DB_REF_OBJECT_H
 
 #include <atomic>
-#include <string>
-#include <mutex>
-#include <functional>
 #include <condition_variable>
+#include <functional>
+#include <mutex>
+#include <string>
+
 #include "macro_utils.h"
 
 namespace DistributedDB {
@@ -36,7 +37,7 @@ public:
     private:
         DISABLE_COPY_ASSIGN_MOVE(AutoLock);
         const RefObject *refObj_;
-        bool IsLocked_;
+        bool isLocked_;
     };
 
     RefObject();

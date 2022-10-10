@@ -484,5 +484,64 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithDifferentPas
     EXPECT_EQ(g_mgr.CloseStore(delegate), DBStatus::OK);
     sqlite3_close(db);
 }
+
+/**
+ * @tc.name: RemoteQueryForEncryptedDb_001
+ * @tc.desc: Exec remote query on encrypted db.
+ * @tc.type: FUNC
+ * @tc.require: AR000H68LL
+ * @tc.author: lidongwei
+ */
+HWTEST_F(DistributedDBRelationalEncryptedDbTest, RemoteQueryForEncryptedDb_001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Create an encrypted db.
+     * @tc.expected: Succeed.
+     */
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    string sql =
+        "PRAGMA key='" + CORRECT_KEY + "';"
+        "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA journal_mode=WAL;"
+        "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
+    ExecSqlAndAssertOK(db, sql);
+
+    /**
+     * @tc.steps: step2. Open store and create distributed table.
+     * @tc.expected: Succeed, return OK.
+     */
+    RelationalStoreDelegate::Option option {
+        nullptr, false, true, CipherType::DEFAULT, g_correctPasswd, DEFAULT_ITER };
+    EXPECT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, option, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
+
+    /**
+     * @tc.steps: step3. Remote query.
+     * @tc.expected: Return not INVALID_PASSWD_OR_CORRUPTED_DB.
+     */
+    int invalidTime = 1000; // 1000 for test.
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_NE(g_delegate->RemoteQuery("deviceA", RemoteCondition {}, invalidTime, result),
+        DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB);
+
+    /**
+     * @tc.steps: step4. Rekey.
+     */
+    std::thread t1([db] {
+        std::string sql = "PARGMA rekey=" + REKEY_KEY;
+        EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
+    });
+    t1.join();
+
+    /**
+     * @tc.steps: step5. Remote query.
+     * @tc.expected: Return INVALID_PASSWD_OR_CORRUPTED_DB.
+     */
+    EXPECT_EQ(g_delegate->RemoteQuery("deviceA", RemoteCondition {}, invalidTime, result),
+        DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB);
+    sqlite3_close(db);
+}
 #endif  // RELATIONAL_STORE
 #endif  // OMIT_ENCRYPT

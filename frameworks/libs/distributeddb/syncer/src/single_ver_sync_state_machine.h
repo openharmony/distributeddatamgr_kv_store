@@ -96,6 +96,7 @@ public:
     int GetSendQueryWaterMark(const std::string &queryId, const DeviceID &deviceId, bool isAutoLift,
         uint64_t &outValue);
 
+    void InnerErrorAbort(uint32_t sessionId) override;
 protected:
     // Step the SingleVerSyncStateMachine
     void SyncStep() override;
@@ -121,7 +122,7 @@ protected:
     int PrepareNextSyncTask() override;
 
     // Called by StartSaveDataNotifyTimer, used to send a save data notify packet
-    void SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) override;
+    void SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) override;
 
     int TimeMarkSyncRecv(const Message *inMsg);
 
@@ -207,8 +208,6 @@ private:
     void JumpStatusAfterAbilitySync(int mode);
 
     void ControlAckRecvErrCodeHandle(int errCode);
-
-    void InnerErrorAbort(uint32_t sessionId);
 
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncStateMachine);
 

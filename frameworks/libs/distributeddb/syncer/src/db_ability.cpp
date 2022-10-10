@@ -66,11 +66,7 @@ int DbAbility::Serialize(Parcel &parcel, const DbAbility &curAbility)
         uint64_t value = static_cast<uint64_t>(abilityBuff[pos]) << innerBuffOffset;
         dstBuf[buffOffset] = dstBuf[buffOffset] | value;
     }
-    int errCode = parcel.WriteVector<uint64_t>(dstBuf);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return parcel.WriteVector<uint64_t>(dstBuf);
 }
 
 int DbAbility::DeSerialize(Parcel &parcel, DbAbility &curAbility)

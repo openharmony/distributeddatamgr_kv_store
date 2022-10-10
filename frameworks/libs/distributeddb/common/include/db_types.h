@@ -21,8 +21,8 @@
 #include <string>
 #include <vector>
 
-#include "types_export.h"
 #include "db_constant.h"
+#include "types_export.h"
 
 namespace DistributedDB {
 using Timestamp = uint64_t;

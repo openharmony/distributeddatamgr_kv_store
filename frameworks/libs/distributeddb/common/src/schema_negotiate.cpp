@@ -128,7 +128,7 @@ RelationalSyncOpinion SchemaNegotiate::MakeLocalSyncOpinion(const RelationalSche
     SchemaType localType = localSchema.GetSchemaType();
     SchemaType remoteType = ReadSchemaType(remoteSchemaType);
     if (remoteType == SchemaType::UNRECOGNIZED) {
-        LOGW("[RelationalSchema][opinion] Remote schema type %d is unrecognized.", remoteSchemaType);
+        LOGW("[RelationalSchema][opinion] Remote schema type %" PRIu8 " is unrecognized.", remoteSchemaType);
         return {};
     }
 

@@ -117,6 +117,8 @@ public:
 
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
+    void SetPermitCreateDistributedTable(bool permitCreateDistributedTable);
+
     int GetSecurityOption(SecurityOption &option) const override;
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
@@ -130,6 +132,7 @@ private:
     KvDBProperties properties_;
     RelationalDBProperties rdbProperties_;
     SecurityOption secOption_;
+    bool permitCreateDistributedTable_ = true;
 };
 }
 #endif

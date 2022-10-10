@@ -17,10 +17,10 @@
 #define SYNC_OPERATION_H
 
 #include <functional>
-#include <string>
-#include <vector>
 #include <map>
 #include <mutex>
+#include <string>
+#include <vector>
 
 #include "ikvdb_sync_interface.h"
 #include "notification_chain.h"
@@ -56,6 +56,7 @@ public:
         OP_INVALID_ARGS,
         OP_USER_CHANGED,
         OP_DENIED_SQL,
+        OP_NOTADB_OR_CORRUPTED,
     };
 
     using UserCallback = std::function<void(std::map<std::string, int>)>;
@@ -136,9 +137,6 @@ private:
 
     // called by destruction
     void Finalize();
-
-    // Transfer sync mode from interface to inner
-    void TransferQuerySyncMode();
 
     // The device list
     const std::vector<std::string> devices_;

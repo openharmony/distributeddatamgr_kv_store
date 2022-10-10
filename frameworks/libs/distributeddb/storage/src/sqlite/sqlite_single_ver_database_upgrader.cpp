@@ -52,10 +52,16 @@ namespace {
             "key    BLOB PRIMARY KEY  NOT NULL," \
             "value  BLOB);";
 
-    const std::string CREATE_SYNC_TABLE_INDEX_SQL =
-        "CREATE INDEX IF NOT EXISTS key_index ON sync_data (key, flag);" \
-        "CREATE INDEX IF NOT EXISTS time_index ON sync_data (timestamp);" \
-        "CREATE INDEX IF NOT EXISTS dev_index ON sync_data (device);" \
+    const std::string CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX =
+        "CREATE INDEX IF NOT EXISTS key_index ON sync_data (key, flag);";
+
+    const std::string CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX =
+        "CREATE INDEX IF NOT EXISTS time_index ON sync_data (timestamp);";
+
+    const std::string CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX =
+        "CREATE INDEX IF NOT EXISTS dev_index ON sync_data (device);";
+
+    const std::string CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX =
         "CREATE INDEX IF NOT EXISTS local_hashkey_index ON local_data (hash_key);";
 
     const std::string DROP_META_TABLE_SQL = "DROP TABLE IF EXISTS main.meta_data;";
@@ -151,14 +157,20 @@ void SQLiteSingleVerDatabaseUpgrader::SetUpgradeSqls(int version, std::vector<st
                 CREATE_LOCAL_TABLE_SQL,
                 CREATE_SINGLE_META_TABLE_SQL,
                 CREATE_SYNC_TABLE_SQL,
-                CREATE_SYNC_TABLE_INDEX_SQL
+                CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
             };
         } else {
             sqls = {
                 CREATE_LOCAL_TABLE_SQL,
                 CREATE_META_TABLE_SQL,
                 CREATE_SYNC_TABLE_SQL,
-                CREATE_SYNC_TABLE_INDEX_SQL
+                CREATE_SYNC_TABLE_INDEX_SQL_KEY_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_TIME_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_DEV_INDEX,
+                CREATE_SYNC_TABLE_INDEX_SQL_LOCAL_HASHKEY_INDEX
             };
         }
     } else {

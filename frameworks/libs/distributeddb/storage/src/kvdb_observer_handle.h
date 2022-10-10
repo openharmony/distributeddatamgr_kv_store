@@ -15,7 +15,7 @@
 
 #ifndef KV_DB_OBSERVER_HANDLE_H
 #define KV_DB_OBSERVER_HANDLE_H
-
+#include <cstdint>
 #include <list>
 
 #include "macro_utils.h"

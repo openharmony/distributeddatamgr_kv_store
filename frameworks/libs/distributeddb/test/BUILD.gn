@@ -276,6 +276,7 @@ ohos_source_set("src_file") {
     "unittest/common/syncer/virtual_communicator.cpp",
     "unittest/common/syncer/virtual_communicator_aggregator.cpp",
     "unittest/common/syncer/virtual_multi_ver_sync_db_interface.cpp",
+    "unittest/common/syncer/virtual_relational_ver_sync_db_interface.cpp",
     "unittest/common/syncer/virtual_single_ver_sync_db_Interface.cpp",
   ]
 

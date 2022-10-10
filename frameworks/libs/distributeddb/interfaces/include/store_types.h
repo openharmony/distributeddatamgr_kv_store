@@ -17,8 +17,8 @@
 #define KV_STORE_TYPE_H
 
 #include <functional>
-#include <string>
 #include <map>
+#include <string>
 
 #include "types_export.h"
 

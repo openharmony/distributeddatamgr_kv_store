@@ -58,6 +58,12 @@ public:
     // Force stop the state machine
     void Abort() override;
 
+    // Force stop the state machine now
+    void AbortImmediately() override;
+
+    // Force stop current task with sessionId
+    void InnerErrorAbort(uint32_t sessionId) override;
+
     // start a timer to ResetWatchDog when sync data one (key,value) size bigger than mtu
     bool StartFeedDogForSync(uint32_t time, SyncDirectionFlag flag) override;
 
@@ -65,6 +71,12 @@ public:
 
     // stop timer to ResetWatchDog when sync data one (key,value) size bigger than mtu
     void StopFeedDogForSync(SyncDirectionFlag flag) override;
+
+    // start a timer to ResetWatchDog when get data and send notify ack if need
+    void StartFeedDogForGetData(uint32_t sessionId) override;
+
+    // start a timer to ResetWatchDog when get data and stop send notify ack if need
+    void StopFeedDogForGetData() override;
 protected:
 
     // SyncOperation is timeout, step to timeout state
@@ -95,7 +107,7 @@ protected:
     virtual int PrepareNextSyncTask() = 0;
 
     // Called by StartSaveDataNotifyTimer, Sub class should realize this function to send a heartbeet packet
-    virtual void SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) = 0;
+    virtual void SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) = 0;
 
     // Used to parse state table to switch machine state, this function must be called in stateMachineLock
     int SwitchMachineState(uint8_t event);
@@ -133,6 +145,10 @@ protected:
 
     void DoFeedDogForSync(SyncDirectionFlag flag);
 
+    void DoGetAndSendDataNotify(uint32_t sessionId);
+
+    void StopFeedDogForGetDataInner(TimerId timerId);
+
     DISABLE_COPY_ASSIGN_MOVE(SyncStateMachine);
 
     ISyncTaskContext *syncContext_;
@@ -145,12 +161,16 @@ protected:
     uint32_t currentSyncProctolVersion_;
 
     // For save data notify
-    static const int SAVE_DATA_NOTIFY_INTERVAL = 2000; // 2s for save data notify
-    static const int MAXT_SAVE_DATA_NOTIFY_COUNT = 15; // only notify 15 times
+    static const int DATA_NOTIFY_INTERVAL = 2000; // 2s for save/get data notify
+    static const int MAX_DATA_NOTIFY_COUNT = 15; // only notify 15 times
     static const int SYNC_DIRECTION_NUM = 2; // send receive
     std::mutex saveDataNotifyLock_;
     TimerId saveDataNotifyTimerId_;
     uint8_t saveDataNotifyCount_;
+
+    std::mutex getDataNotifyLock_;
+    TimerId getDataNotifyTimerId_;
+    uint8_t getDataNotifyCount_;
 
     // used for one (key,value) bigger than mtu size, in this case, send packet need more longger time
     std::mutex feedDogLock_[SYNC_DIRECTION_NUM];

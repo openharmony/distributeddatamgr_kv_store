@@ -176,6 +176,8 @@ protected:
 
     int BuildSyncEngine();
 
+    int InitTimeChangedListener();
+
     static int SyncModuleInit();
 
     static int SyncResourceInit();
@@ -206,6 +208,8 @@ protected:
     std::string label_;
     bool engineFinalize_;
     std::condition_variable engineFinalizeCv_;
+
+    NotificationChain::Listener *timeChangedListener_;
 };
 } // namespace DistributedDB
 

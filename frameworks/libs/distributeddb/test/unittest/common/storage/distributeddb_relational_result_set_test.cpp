@@ -251,7 +251,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, EmptyResultSet, TestSize.Level1)
     ResultSet::ColumnType columnType;
     EXPECT_EQ(resultSet->GetColumnType(0, columnType), DBStatus::NOT_FOUND);       // the invalid position
     int columnIndex = -1;
-    EXPECT_EQ(resultSet->GetColumnIndex("", columnIndex), DBStatus::NONEXISTENT);  // the invalid column name
+    EXPECT_EQ(resultSet->GetColumnIndex("", columnIndex), DBStatus::NOT_FOUND);     // empty result set
     int64_t value = 0;
     EXPECT_EQ(resultSet->Get(0, value), DBStatus::NOT_FOUND);  // the invalid position
     std::map<std::string, VariantData> data;
@@ -315,6 +315,7 @@ HWTEST_F(DistributedDBRelationalResultSetTest, NormalResultSet, TestSize.Level1)
     EXPECT_EQ(colNames, expectCols);
 
     int columnIndex = -1;
+    EXPECT_EQ(resultSet->GetColumnIndex("", columnIndex), DBStatus::NONEXISTENT);  // the invalid column name
     EXPECT_EQ(resultSet->GetColumnIndex("column 1", columnIndex), DBStatus::OK);
     EXPECT_EQ(columnIndex, 0);
 

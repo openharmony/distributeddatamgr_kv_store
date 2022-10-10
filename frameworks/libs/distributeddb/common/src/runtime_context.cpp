@@ -14,9 +14,9 @@
  */
 #include <atomic>
 
+#include "log_print.h"
 #include "runtime_context_impl.h"
 #include "version.h"
-#include "log_print.h"
 
 namespace DistributedDB {
 RuntimeContext *RuntimeContext::GetInstance()

@@ -16,12 +16,12 @@
 #ifndef OMIT_MULTI_VER
 #include "value_slice_sync.h"
 
-#include "parcel.h"
-#include "log_print.h"
-#include "sync_types.h"
-#include "message_transform.h"
-#include "performance_analysis.h"
 #include "db_constant.h"
+#include "log_print.h"
+#include "message_transform.h"
+#include "parcel.h"
+#include "performance_analysis.h"
+#include "sync_types.h"
 
 namespace DistributedDB {
 const int ValueSliceSync::MAX_VALUE_NODE_SIZE = 100000;
@@ -292,9 +292,6 @@ int ValueSliceSync::AckRecvCallback(const MultiVerSyncTaskContext *context, cons
     }
     LOGD("ValueSliceSync::AckRecvCallback PutValueSlice finished, src=%s{private}, errCode = %d",
         context->GetDeviceId().c_str(), errCode);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     return errCode;
 }
 

@@ -289,7 +289,9 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_READ_DATA);
     }
+    context->StartFeedDogForGetData(context->GetResponseSessionId());
     int errCode = GetData(context, syncOutData.entries, packetSize);
+    context->StopFeedDogForGetData();
     if (performance != nullptr) {
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);
     }

@@ -145,4 +145,35 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable003, TestSize.L
     TableInfo table = AnalysisTable("t1", NO_PRIMARI_KEY_SQL);
     EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
 }
+
+/**
+ * @tc.name: AnalysisTable003
+ * @tc.desc: Analysis with table which has no primary key
+ * @tc.type: FUNC
+ * @tc.require: AR000H2PKN
+ * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable004, TestSize.Level1)
+{
+    TableInfo table = AnalysisTable("t1", "create table t1(a integer primary key autoincrement, b integer);");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), true);
+    table = AnalysisTable("t2", "create table t2(a integer primary key autoincrement , b integer);");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), true);
+    table = AnalysisTable("t3", "create table t3(a integer, b integer primary key autoincrement);");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), true);
+    table = AnalysisTable("t4", "create table t4(a integer, b integer primary key autoincrement );");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), true);
+
+    table = AnalysisTable("t5", "create table t5(a_autoincrement integer, b integer primary key);");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), false);
+
+    table = AnalysisTable("t6_autoincrement", "create table t6_autoincrement(a integer, b integer primary key);");
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    EXPECT_EQ(table.GetAutoIncrement(), false);
+}
 #endif // RELATIONAL_STORE

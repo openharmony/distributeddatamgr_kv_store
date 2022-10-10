@@ -16,15 +16,16 @@
 #ifndef SCHEMA_OBJECT_H
 #define SCHEMA_OBJECT_H
 
-#include <set>
 #include <map>
+#include <set>
+
 #ifndef OMIT_FLATBUFFER
 #include <flatbuffers/idl.h>
 #endif // OMIT_FLATBUFFER
 #include "db_types.h"
+#include "ischema.h"
 #include "macro_utils.h"
 #include "relational_schema_object.h"
-#include "ischema.h"
 #include "value_object.h"
 
 namespace DistributedDB {

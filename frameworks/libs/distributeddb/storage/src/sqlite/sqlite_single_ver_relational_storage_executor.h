@@ -79,6 +79,8 @@ public:
     int ExecuteQueryBySqlStmt(const std::string &sql, const std::vector<std::string> &bindArgs, int packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data);
 
+    int CheckEncryptedOrCorrupted() const;
+
 private:
     struct SaveSyncDataStmt {
         sqlite3_stmt *saveDataStmt = nullptr;

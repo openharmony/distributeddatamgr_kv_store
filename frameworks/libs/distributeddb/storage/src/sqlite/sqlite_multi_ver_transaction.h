@@ -165,6 +165,8 @@ private:
     int GetPrePutValues(const Version &versionInfo, Timestamp timestamp, std::vector<Value> &values) const;
 
     static const std::string CREATE_TABLE_SQL;
+    static const std::string CREATE_TABLE_VERSION_INDEX_SQL;
+    static const std::string CREATE_TABLE_FLAG_INDEX_SQL;
     static const std::string SELECT_ONE_SQL; // select the rowid
     static const std::string SELECT_BATCH_SQL; // select the rowid and the key
     static const std::string SELECT_HASH_ENTRY_SQL; // select the data according the hash key

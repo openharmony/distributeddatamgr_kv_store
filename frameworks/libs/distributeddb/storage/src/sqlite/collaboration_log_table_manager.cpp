@@ -30,8 +30,8 @@ std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &
         sql = "calc_hash('" + identity + "'||calc_hash(" + references + "rowid))";
     } else {
         if (table.GetIdentifyKey().size() == 1) {
-            sql = "calc_hash(" + references + table.GetIdentifyKey().at(0)  + ")";
-        }  else {
+            sql = "calc_hash(" + references + table.GetIdentifyKey().at(0) + ")";
+        } else {
             sql = "calc_hash(";
             for (const auto &it : table.GetIdentifyKey()) {
                 sql += "calc_hash(" + references + it + ")||";
@@ -92,6 +92,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
 
 std::string CollaborationLogTableManager::GetDeleteTrigger(const TableInfo &table, const std::string &identity)
 {
+    (void)identity;
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_DELETE BEFORE DELETE \n";
     deleteTrigger += "ON " + table.GetTableName() + "\n";
@@ -110,10 +111,11 @@ std::string CollaborationLogTableManager::GetPrimaryKeySql(const TableInfo &tabl
     return "PRIMARY KEY(hash_key)";
 }
 
-std::string CollaborationLogTableManager::GetIndexSql(const TableInfo &table)
+void CollaborationLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
 {
-    return SqliteLogTableManager::GetIndexSql(table) +
-        "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "datakey_index ON " + GetLogTableName(table) +
-        "(data_key);";
+    SqliteLogTableManager::GetIndexSql(table, schema);
+    std::string dataKeyIndex = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "datakey_index ON " +
+        GetLogTableName(table) + "(data_key);";
+    schema.emplace_back(dataKeyIndex);
 }
 }

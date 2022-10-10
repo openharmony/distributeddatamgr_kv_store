@@ -21,22 +21,22 @@ constexpr static int MAX_REF_COUNT = 1024;
 
 RefObject::AutoLock::AutoLock(const RefObject *obj, bool unlocked)
     : refObj_(obj),
-      IsLocked_(false)
+      isLocked_(false)
 {
     if (refObj_ != nullptr) {
         if (unlocked) {
             refObj_->LockObj();
         }
-        IsLocked_ = true;
+        isLocked_ = true;
     }
 }
 
 void RefObject::AutoLock::Lock()
 {
     if (refObj_ != nullptr) {
-        if (!IsLocked_) {
+        if (!isLocked_) {
             refObj_->LockObj();
-            IsLocked_ = true;
+            isLocked_ = true;
         } else {
             LOGE("RefObject-AutoLock: obj' acquires lock more than once.");
         }
@@ -46,9 +46,9 @@ void RefObject::AutoLock::Lock()
 void RefObject::AutoLock::Unlock()
 {
     if (refObj_ != nullptr) {
-        if (IsLocked_) {
+        if (isLocked_) {
             refObj_->UnlockObj();
-            IsLocked_ = false;
+            isLocked_ = false;
         } else {
             LOGE("RefObject-AutoLock: obj releases lock more than once.");
         }
@@ -58,9 +58,9 @@ void RefObject::AutoLock::Unlock()
 RefObject::AutoLock::~AutoLock()
 {
     if (refObj_ != nullptr) {
-        if (IsLocked_) {
+        if (isLocked_) {
             refObj_->UnlockObj();
-            IsLocked_ = false;
+            isLocked_ = false;
         }
         refObj_ = nullptr;
     }

@@ -14,6 +14,7 @@
  */
 #ifndef SQLITE_SINGLE_VER_NATURAL_STORE_H
 #define SQLITE_SINGLE_VER_NATURAL_STORE_H
+#include <atomic>
 #include <mutex>
 
 #include "sync_able_kvdb.h"

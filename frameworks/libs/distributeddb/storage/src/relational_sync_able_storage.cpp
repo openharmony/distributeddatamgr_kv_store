@@ -35,6 +35,7 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
     );
 }
 }
+
 #define CHECK_STORAGE_ENGINE do { \
     if (storageEngine_ == nullptr) { \
         return -E_INVALID_DB; \
@@ -698,8 +699,7 @@ int RelationalSyncAbleStorage::GetRemoteQueryData(const PreparedStmt &prepStmt, 
     if (IsCollaborationMode(storageEngine_) || !storageEngine_->GetSchemaRef().IsSchemaValid()) {
         return -E_NOT_SUPPORT;
     }
-    if (prepStmt.GetOpCode() != PreparedStmt::ExecutorOperation::QUERY || !prepStmt.IsValid() ||
-        packetSize < DBConstant::MIN_MTU_SIZE) {
+    if (prepStmt.GetOpCode() != PreparedStmt::ExecutorOperation::QUERY || !prepStmt.IsValid()) {
         LOGE("[ExecuteQuery] invalid args");
         return -E_INVALID_ARGS;
     }

@@ -2436,7 +2436,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Le
      * @tc.steps: step1. Create a database And Preset Data
      */
     KvStoreNbDelegate::Option option = {true, false, false};
-    g_mgr.GetKvStore("WriteTimeSort006", option, g_kvNbDelegateCallbackForQuery);
+    g_mgr.GetKvStore("WriteTimeSort007", option, g_kvNbDelegateCallbackForQuery);
     ASSERT_NE(g_kvNbDelegatePtrForQuery, nullptr);
     EXPECT_EQ(g_kvDelegateStatusForQuery, OK);
     /**
@@ -2448,5 +2448,12 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Le
     EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(query, resultSet), NOT_SUPPORT);
     std::vector<Entry> entries2;
     EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetEntries(query, entries2), NOT_SUPPORT);
+    int count = 0;
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetCount(query, count), NOT_SUPPORT);
+    Key key = {'x'};
+    ASSERT_EQ(g_kvNbDelegatePtrForQuery->Put(key, VALUE_1), OK);
+    Query query1 = Query::Select().PrefixKey(key).OrderByWriteTime(false);
+    EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetCount(query1, count), OK);
+    EXPECT_EQ(count, 1);
 }
 #endif // OMIT_JSON

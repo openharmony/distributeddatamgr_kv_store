@@ -72,7 +72,7 @@ protected:
     int PrepareNextSyncTask() override;
 
     // Called by StartSaveDataNotifyTimer, used to send a save data notify packet
-    void SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) override;
+    void SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId) override;
 
     bool IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyncObject &query) override;
 

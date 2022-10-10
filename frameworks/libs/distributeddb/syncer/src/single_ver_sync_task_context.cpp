@@ -19,8 +19,8 @@
 #include "db_common.h"
 #include "db_dfx_adapter.h"
 #include "db_errno.h"
-#include "log_print.h"
 #include "isyncer.h"
+#include "log_print.h"
 #include "single_ver_sync_state_machine.h"
 #include "single_ver_sync_target.h"
 #include "sync_types.h"
@@ -488,45 +488,10 @@ DEFINE_OBJECT_TAG_FACILITIES(SingleVerSyncTaskContext)
 
 bool SingleVerSyncTaskContext::IsCurrentSyncTaskCanBeSkipped() const
 {
-    if (mode_ == SyncModeType::PUSH) {
-        if (lastFullSyncTaskStatus_ != SyncOperation::OP_FINISHED_ALL) {
-            return false;
-        }
-    } else if (mode_ == SyncModeType::QUERY_PUSH) {
-        if (syncOperation_ == nullptr) {
-            return true;
-        }
-        auto it = lastQuerySyncTaskStatusMap_.find(syncOperation_->GetQueryId());
-        if (it == lastQuerySyncTaskStatusMap_.end()) {
-            // no last query_push and push
-            if (lastFullSyncTaskStatus_ != SyncOperation::OP_FINISHED_ALL) {
-                LOGD("no prev query push or successful prev push");
-                return false;
-            }
-        } else {
-            if (it->second != SyncOperation::OP_FINISHED_ALL) {
-                LOGD("last query push status = %d.", it->second);
-                return false;
-            }
-        }
-    } else {
-        return false;
-    }
-
-    Timestamp maxTimestampInDb;
-    syncInterface_->GetMaxTimestamp(maxTimestampInDb);
-    uint64_t localWaterMark = 0;
-    int errCode = GetCorrectedSendWaterMarkForCurrentTask(localWaterMark);
-    if (errCode != E_OK) {
-        LOGE("GetLocalWaterMark in state machine failed: %d", errCode);
-        return false;
-    }
-    if (localWaterMark > maxTimestampInDb) {
-        LOGI("skip current push task, deviceId_ = %s, localWaterMark = %" PRIu64 ", maxTimestampInDb = %" PRIu64,
-            STR_MASK(deviceId_), localWaterMark, maxTimestampInDb);
-        return true;
-    }
-    return false;
+    SyncOperation *operation = GetAndIncSyncOperation();
+    bool res = IsCurrentSyncTaskCanBeSkippedInner(operation);
+    RefObject::DecObjRef(operation);
+    return res;
 }
 
 void SingleVerSyncTaskContext::SaveLastPushTaskExecStatus(int finalStatus)
@@ -543,12 +508,13 @@ void SingleVerSyncTaskContext::SaveLastPushTaskExecStatus(int finalStatus)
     }
 }
 
-int SingleVerSyncTaskContext::GetCorrectedSendWaterMarkForCurrentTask(uint64_t &waterMark) const
+int SingleVerSyncTaskContext::GetCorrectedSendWaterMarkForCurrentTask(const SyncOperation *operation,
+    uint64_t &waterMark) const
 {
-    if (syncOperation_->IsQuerySync()) {
+    if (operation != nullptr && operation->IsQuerySync()) {
         LOGD("Is QuerySync");
         int errCode = static_cast<SingleVerSyncStateMachine *>(stateMachine_)->GetSendQueryWaterMark(
-            syncOperation_->GetQueryId(), deviceId_,
+            operation->GetQueryId(), deviceId_,
             lastFullSyncTaskStatus_ == SyncOperation::OP_FINISHED_ALL, waterMark);
         if (errCode != E_OK) {
             return errCode;
@@ -569,5 +535,61 @@ void SingleVerSyncTaskContext::ResetLastPushTaskStatus()
 void SingleVerSyncTaskContext::SetCommNormal(bool isCommNormal)
 {
     isCommNormal_ = isCommNormal;
+}
+
+bool SingleVerSyncTaskContext::IsCurrentSyncTaskCanBeSkippedInner(const SyncOperation *operation) const
+{
+    if (mode_ == SyncModeType::PUSH) {
+        if (lastFullSyncTaskStatus_ != SyncOperation::OP_FINISHED_ALL) {
+            return false;
+        }
+        if (operation == nullptr) {
+            return true;
+        }
+    } else if (mode_ == SyncModeType::QUERY_PUSH) {
+        if (operation == nullptr) {
+            return true;
+        }
+        auto it = lastQuerySyncTaskStatusMap_.find(operation->GetQueryId());
+        if (it == lastQuerySyncTaskStatusMap_.end()) {
+            // no last query_push and push
+            if (lastFullSyncTaskStatus_ != SyncOperation::OP_FINISHED_ALL) {
+                LOGD("no prev query push or successful prev push");
+                return false;
+            }
+        } else {
+            if (it->second != SyncOperation::OP_FINISHED_ALL) {
+                LOGD("last query push status = %d.", it->second);
+                return false;
+            }
+        }
+    } else {
+        return false;
+    }
+
+    Timestamp maxTimestampInDb;
+    syncInterface_->GetMaxTimestamp(maxTimestampInDb);
+    uint64_t localWaterMark = 0;
+    int errCode = GetCorrectedSendWaterMarkForCurrentTask(operation, localWaterMark);
+    if (errCode != E_OK) {
+        LOGE("GetLocalWaterMark in state machine failed: %d", errCode);
+        return false;
+    }
+    if (localWaterMark > maxTimestampInDb) {
+        LOGI("skip current push task, deviceId_ = %s, localWaterMark = %" PRIu64 ", maxTimestampInDb = %" PRIu64,
+            STR_MASK(deviceId_), localWaterMark, maxTimestampInDb);
+        return true;
+    }
+    return false;
+}
+
+void SingleVerSyncTaskContext::StartFeedDogForGetData(uint32_t sessionId)
+{
+    stateMachine_->StartFeedDogForGetData(sessionId);
+}
+
+void SingleVerSyncTaskContext::StopFeedDogForGetData()
+{
+    stateMachine_->StopFeedDogForGetData();
 }
 } // namespace DistributedDB

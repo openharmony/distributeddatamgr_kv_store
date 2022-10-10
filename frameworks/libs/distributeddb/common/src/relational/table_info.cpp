@@ -37,7 +37,7 @@ const std::string &FieldInfo::GetDataType() const
 }
 
 namespace {
-inline uint32_t AffinityParrernHex(const std::string &ss)
+inline uint32_t AffinityPatternHex(const std::string &ss)
 {
     uint32_t res = 0;
     for (const auto &c : ss) {
@@ -47,9 +47,9 @@ inline uint32_t AffinityParrernHex(const std::string &ss)
 }
 
 static uint32_t affinityTable[] = {
-    AffinityParrernHex("char"), AffinityParrernHex("clob"), AffinityParrernHex("text"),
-    AffinityParrernHex("blob"), AffinityParrernHex("real"), AffinityParrernHex("floa"),
-    AffinityParrernHex("doub"), AffinityParrernHex("int")
+    AffinityPatternHex("char"), AffinityPatternHex("clob"), AffinityPatternHex("text"),
+    AffinityPatternHex("blob"), AffinityPatternHex("real"), AffinityPatternHex("floa"),
+    AffinityPatternHex("doub"), AffinityPatternHex("int")
 };
 
 enum AffinityPattern : uint32_t {
@@ -95,7 +95,7 @@ static StorageType AffinityType(const std::string &dataType)
 void FieldInfo::SetDataType(const std::string &dataType)
 {
     dataType_ = dataType;
-    transform(dataType_.begin(), dataType_.end(), dataType_.begin(), ::tolower);
+    std::transform(dataType_.begin(), dataType_.end(), dataType_.begin(), ::tolower);
     storageType_ = AffinityType(dataType_);
 }
 
@@ -217,7 +217,7 @@ void TableInfo::SetCreateTableSql(const std::string &sql)
     for (auto &c : sql_) {
         c = static_cast<char>(std::toupper(c));
     }
-    if (DBCommon::HasConstraint(DBCommon::TrimSpace(sql_), "AUTOINCREMENT", " ", " ,")) {
+    if (DBCommon::HasConstraint(DBCommon::TrimSpace(sql_), "AUTOINCREMENT", " ", " ,)")) {
         autoInc_ = true;
     }
 }

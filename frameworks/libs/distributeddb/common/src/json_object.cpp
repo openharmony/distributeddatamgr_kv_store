@@ -14,9 +14,11 @@
  */
 
 #include "json_object.h"
+
+#include <algorithm>
 #include <cmath>
 #include <queue>
-#include <algorithm>
+
 #include "db_errno.h"
 #include "log_print.h"
 
@@ -116,8 +118,8 @@ int JsonObject::Parse(const std::string &inString)
     int errCode = E_OK;
     uint32_t nestDepth = CalculateNestDepth(inString, errCode);
     if (errCode != E_OK || nestDepth > maxNestDepth_) {
-        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth=%u exceed max allowed=%u.", errCode, nestDepth,
-            maxNestDepth_);
+        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth=%" PRIu32 " exceed max allowed:%" PRIu32,
+            errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
 #ifdef JSONCPP_USE_BUILDER
@@ -173,8 +175,8 @@ int JsonObject::Parse(const uint8_t *dataBegin, const uint8_t *dataEnd)
     int errCode = E_OK;
     uint32_t nestDepth = CalculateNestDepth(dataBegin, dataEnd, errCode);
     if (errCode != E_OK || nestDepth > maxNestDepth_) {
-        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth=%u exceed max allowed=%u.", errCode, nestDepth,
-            maxNestDepth_);
+        LOGE("[Json][Parse] Json calculate nest depth failed %d, depth:%" PRIu32 " exceed max allowed:%" PRIu32,
+            errCode, nestDepth, maxNestDepth_);
         return -E_JSON_PARSE_FAIL;
     }
 #ifdef JSONCPP_USE_BUILDER
@@ -436,7 +438,7 @@ int JsonObject::GetArrayContentOfStringOrStringArray(const FieldPath &inPath,
         }
         // If reach here, then something is not ok
         outContent.clear();
-        LOGE("[Json][GetArrayContent] Not string or array or GetStringArray fail=%d at index=%u.", errCode, index);
+        LOGE("[Json][GetArrayContent] Not string or array fail=%d at index:%" PRIu32, errCode, index);
         return -E_NOT_SUPPORT;
     }
     return E_OK;
@@ -451,10 +453,7 @@ bool InsertFieldCheckParameter(const FieldPath &inPath, FieldType inType, const 
         return false;
     }
     // Infinite double not support
-    if (inType == FieldType::LEAF_FIELD_DOUBLE && !std::isfinite(inValue.doubleValue)) {
-        return false;
-    }
-    return true;
+    return !(inType == FieldType::LEAF_FIELD_DOUBLE && !std::isfinite(inValue.doubleValue));
 }
 
 void LeafJsonNodeAppendValue(Json::Value &leafNode, FieldType inType, const FieldValue &inValue)

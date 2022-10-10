@@ -23,7 +23,7 @@ class StoreObserver {
 public:
     virtual ~StoreObserver() {}
 
-    // Databa change callback
+    // Data change callback
     virtual void OnChange(const StoreChangedData &data) = 0;
 };
 } // namespace DistributedDB

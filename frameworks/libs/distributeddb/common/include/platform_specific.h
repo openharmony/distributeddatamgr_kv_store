@@ -16,9 +16,9 @@
 #ifndef PLATFORM_SPECIFIC_H
 #define PLATFORM_SPECIFIC_H
 
-#include <string>
 #include <cstdint>
 #include <list>
+#include <string>
 
 namespace DistributedDB {
 #if (defined(OS_TYPE_WINDOWS)) || (defined(OS_TYPE_MAC))

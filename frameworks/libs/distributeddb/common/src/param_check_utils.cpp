@@ -15,9 +15,10 @@
 
 #include "param_check_utils.h"
 
+#include "db_common.h"
 #include "db_errno.h"
-#include "platform_specific.h"
 #include "log_print.h"
+#include "platform_specific.h"
 
 namespace DistributedDB {
 bool ParamCheckUtils::CheckDataDir(const std::string &dataDir, std::string &canonicalDir)
@@ -191,7 +192,7 @@ uint8_t ParamCheckUtils::GetValidCompressionRate(uint8_t compressionRate)
 {
     // Valid when between 1 and 100. When compressionRate is invalid, change it to default rate.
     if (compressionRate < 1 || compressionRate > DBConstant::DEFAULT_COMPTRESS_RATE) {
-        LOGD("Invalid compression rate:%u.", compressionRate);
+        LOGD("Invalid compression rate:%" PRIu8, compressionRate);
         compressionRate = DBConstant::DEFAULT_COMPTRESS_RATE;
     }
     return compressionRate;
@@ -199,10 +200,7 @@ uint8_t ParamCheckUtils::GetValidCompressionRate(uint8_t compressionRate)
 
 bool ParamCheckUtils::CheckRelationalTableName(const std::string &tableName)
 {
-    auto iter = std::find_if_not(tableName.begin(), tableName.end(), [](char c) {
-            return (std::isalnum(c) || c == '_');
-        });
-    if (iter != tableName.end()) {
+    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
         return false;
     }
     return tableName.compare(0, DBConstant::SYSTEM_TABLE_PREFIX.size(), DBConstant::SYSTEM_TABLE_PREFIX) != 0;

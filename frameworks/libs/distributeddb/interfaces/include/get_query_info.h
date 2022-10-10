@@ -27,4 +27,4 @@ public:
     }
 };
 }
-#endif
+#endif // DISTRIBUTEDDB_GET_QUERY_INFO_H

@@ -42,7 +42,12 @@ namespace {
 }
 
 RemoteExecutor::RemoteExecutor()
-    : workingThreadsCount_(0), lastSessionId_(0), lastTaskId_(0), closed_(false)
+    : workingThreadsCount_(0),
+      syncInterface_(nullptr),
+      communicator_(nullptr),
+      lastSessionId_(0),
+      lastTaskId_(0),
+      closed_(false)
 {
 }
 
@@ -137,12 +142,12 @@ void RemoteExecutor::Close()
 {
     closed_ = true;
     LOGD("[RemoteExecutor][Close] close enter");
+    RemoveAllTask(-E_BUSY);
+    ClearInnerSource();
     {
         std::unique_lock<std::mutex> lock(msgQueueLock_);
         clearCV_.wait(lock, [this] { return workingThreadsCount_ == 0; });
     }
-    RemoveAllTask(-E_BUSY);
-    ClearInnerSource();
     LOGD("[RemoteExecutor][Close] close exist");
 }
 
@@ -205,7 +210,7 @@ int RemoteExecutor::ReceiveRemoteExecutorRequest(const std::string &targetDev, M
 void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *inMsg)
 {
     if (closed_) {
-        LOGW("[RemoteExecutor][ParseOneRequestMessage] closed!");
+        LOGW("[RemoteExecutor][ParseOneRequestMessage] closed");
         return;
     }
     int errCode = CheckPermissions(device);

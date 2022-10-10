@@ -224,7 +224,7 @@ int SQLiteSingleVerStorageExecutor::AttachMainDbAndCacheDb(CipherType type, cons
     return errCode;
 }
 
-int SQLiteSingleVerStorageExecutor::GetMaxVersionIncacheDb(uint64_t &maxVersion) const
+int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion) const
 {
     sqlite3_stmt *statement = nullptr;
     std::string sql;
@@ -238,24 +238,18 @@ int SQLiteSingleVerStorageExecutor::GetMaxVersionIncacheDb(uint64_t &maxVersion)
 
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
-        LOGE("GetStatement fail when get max version in cache db! errCode = [%d]", errCode);
-        goto END;
+        LOGE("GetStatement fail when get max version in cache db");
+        return CheckCorruptedStatus(errCode);
     }
 
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            maxVersion = static_cast<uint64_t>(sqlite3_column_int64(statement, 0));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step failed:%d", errCode);
-            break;
-        }
-    } while (true);
-
-END:
+    errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        maxVersion = static_cast<uint64_t>(sqlite3_column_int64(statement, 0));
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        maxVersion = 0;
+        errCode = E_OK;
+    }
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }
@@ -274,7 +268,7 @@ int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, NotifyMi
     }
     // after solving conflict, the item should not be saved into mainDB
     if (notify.dataStatus.isDefeated) {
-        LOGD("Data status is defeated:%d", errCode);
+        LOGD("Data status is defeated");
         return errCode;
     }
     bool isUpdate = notify.dataStatus.preStatus != DataStatus::NOEXISTED;
@@ -476,7 +470,7 @@ int SQLiteSingleVerStorageExecutor::VacuumLocalData() const
 
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
-        LOGE("SQLite sync mode failed: %d", errCode);
+        LOGE("[SingleVerExe] vaccum local data failed: %d", errCode);
     }
 
     return CheckCorruptedStatus(errCode);

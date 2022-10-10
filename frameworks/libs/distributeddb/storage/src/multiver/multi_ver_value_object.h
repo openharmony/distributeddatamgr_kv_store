@@ -17,6 +17,7 @@
 #define MULTI_VER_VALUE_OBJECT_H
 
 #ifndef OMIT_MULTI_VER
+#include <cstdint>
 #include <vector>
 
 #include "db_types.h"

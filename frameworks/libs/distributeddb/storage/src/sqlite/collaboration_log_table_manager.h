@@ -30,7 +30,7 @@ private:
     bool IsCollaborationWithoutKey(const TableInfo &table);
 
     std::string GetPrimaryKeySql(const TableInfo &table) override;
-    std::string GetIndexSql(const TableInfo &table) override;
+    void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema) override;
 
     std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) override;
     std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) override;

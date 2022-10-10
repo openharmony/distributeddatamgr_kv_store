@@ -25,7 +25,7 @@ int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const Table
     for (const auto &sql : sqls) {
         int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
         if (errCode != E_OK) {
-            LOGE("[SQLite] execute create log trigger sql failed, errCode=%d", errCode);
+            LOGE("[LogTableManager] execute create log trigger sql failed, errCode=%d", errCode);
             return errCode;
         }
     }
@@ -35,27 +35,41 @@ int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const Table
 int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo &table)
 {
     const std::string tableName = GetLogTableName(table);
-    std::string primaryKey = GetPrimaryKeySql(table) + ");";
+    std::string primaryKey = GetPrimaryKeySql(table);
 
-    std::string sql =
-        "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
         "data_key    INT NOT NULL," \
         "device      BLOB," \
         "ori_device  BLOB," \
         "timestamp   INT  NOT NULL," \
         "wtimestamp  INT  NOT NULL," \
         "flag        INT  NOT NULL," \
-        "hash_key    BLOB NOT NULL," + primaryKey;
-    sql += GetIndexSql(table);
-    return SQLiteUtils::ExecuteRawSQL(db, sql);
+        "hash_key    BLOB NOT NULL," + primaryKey + ");";
+    std::vector<std::string> logTableSchema;
+    logTableSchema.emplace_back(createTableSql);
+    GetIndexSql(table, logTableSchema);
+
+    for (const auto &sql : logTableSchema) {
+        int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+        if (errCode != E_OK) {
+            LOGE("[LogTableManager] execute create log table schema failed, errCode=%d", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
 }
 
-std::string SqliteLogTableManager::GetIndexSql(const TableInfo &table)
+void SqliteLogTableManager::GetIndexSql(const TableInfo &table, std::vector<std::string> &schema)
 {
     const std::string tableName = GetLogTableName(table);
-    return "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "time_flag_index ON " + tableName +
-        "(timestamp, flag);" \
-        "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "hashkey_index ON " + tableName + "(hash_key);";
+
+    std::string indexTimestampFlag = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX +
+        "time_flag_index ON " + tableName + "(timestamp, flag);";
+    schema.emplace_back(indexTimestampFlag);
+
+    std::string indexHashkey = "CREATE INDEX IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX +
+        "hashkey_index ON " + tableName + "(hash_key);";
+    schema.emplace_back(indexHashkey);
 }
 
 std::string SqliteLogTableManager::GetLogTableName(const TableInfo &table) const

@@ -254,6 +254,7 @@ int DatabaseOper::ExecuteExport(const std::string &filePath, const CipherPasswor
     if (deviceId_.empty()) {
         return -E_NOT_INIT;
     }
+
     std::string currentDir;
     std::string backupDir;
     int errCode = CreateBackupDirForExport(property, currentDir, backupDir);
@@ -445,7 +446,7 @@ int DatabaseOper::UnpackAndCheckImportedFile(const std::string &srcFile, const I
         return errCode;
     }
     int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
-    if (fileInfo.dbType != static_cast<uint32_t>(dbType)) {
+    if (fileInfo.dbType != static_cast<uint32_t>(dbType) || fileInfo.deviceID != deviceId_) {
         DBCommon::RemoveAllFilesOfDirectory(info.unpackedDir);
         LOGE("Check db type [%u] vs [%u] or devicesId fail!", fileInfo.dbType, static_cast<uint32_t>(dbType));
         return -E_INVALID_FILE;

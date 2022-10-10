@@ -17,12 +17,12 @@
 
 #include <climits>
 
-#include "endian_convert.h"
-#include "securec.h"
-#include "macro_utils.h"
-#include "log_print.h"
-#include "db_errno.h"
 #include "db_constant.h"
+#include "db_errno.h"
+#include "endian_convert.h"
+#include "log_print.h"
+#include "macro_utils.h"
+#include "securec.h"
 
 namespace DistributedDB {
 Parcel::Parcel(uint8_t *inBuf, uint32_t len)
@@ -392,7 +392,7 @@ int Parcel::WriteBlob(const char *buffer, uint32_t bufLen)
     uint32_t leftLen = static_cast<uint32_t>(totalLen_ - parcelLen_);
     int errCode = memcpy_s(bufPtr_, leftLen, buffer, bufLen);
     if (errCode != EOK) {
-        LOGE("[WriteBlob] leftLen:%u, bufLen:%u", leftLen, bufLen);
+        LOGE("[WriteBlob] leftLen:%" PRIu32 ", bufLen:%" PRIu32, leftLen, bufLen);
         isError_ = true;
         return -E_SECUREC_ERROR;
     }

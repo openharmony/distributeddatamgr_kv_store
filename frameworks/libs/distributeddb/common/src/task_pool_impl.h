@@ -16,11 +16,12 @@
 #ifndef TASK_POOL_IMPL_H
 #define TASK_POOL_IMPL_H
 
-#include <thread>
-#include <mutex>
 #include <condition_variable>
 #include <map>
+#include <mutex>
 #include <string>
+#include <thread>
+
 #include "task_pool.h"
 #include "task_queue.h"
 

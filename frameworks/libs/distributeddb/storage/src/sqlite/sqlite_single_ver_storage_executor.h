@@ -206,7 +206,7 @@ public:
         std::vector<DataItem> &dataItems);
     int GetMinVersionCacheData(std::vector<DataItem> &dataItems, uint64_t &maxVerIncurCacheDb) const;
 
-    int GetMaxVersionIncacheDb(uint64_t &maxVersion) const;
+    int GetMaxVersionInCacheDb(uint64_t &maxVersion) const;
     int AttachMainDbAndCacheDb(CipherType type, const CipherPassword &passwd,
         const std::string &attachDbAbsPath, EngineState engineState);
 

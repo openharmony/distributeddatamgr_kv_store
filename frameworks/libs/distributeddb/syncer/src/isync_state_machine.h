@@ -45,6 +45,12 @@ public:
     // Force stop the state machine
     virtual void Abort() = 0;
 
+    // Force stop the state machine now
+    virtual void AbortImmediately() = 0;
+
+    // Force stop current task with sessionId
+    virtual void InnerErrorAbort(uint32_t sessionId) = 0;
+
     // Called by CommErrHandler, Sub class should realize this function to abort sync when handle err
     virtual void CommErrAbort(uint32_t sessionId = 0) = 0;
 
@@ -56,6 +62,12 @@ public:
 
     // check if need trigger query auto sync and get query from inMsg
     virtual bool IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyncObject &query) = 0;
+
+    // start a timer to ResetWatchDog when get data and send notify ack if need
+    virtual void StartFeedDogForGetData(uint32_t sessionId) = 0;
+
+    // start a timer to ResetWatchDog when get data
+    virtual void StopFeedDogForGetData() = 0;
 };
 } // namespace DistributedDB
 

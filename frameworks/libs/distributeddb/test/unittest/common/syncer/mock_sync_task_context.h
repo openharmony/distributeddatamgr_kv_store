@@ -59,6 +59,26 @@ public:
     {
         SyncTaskContext::SetTaskExecStatus(status);
     }
+
+    void SetLastFullSyncTaskStatus(SyncOperation::Status lastFullSyncTaskStatus)
+    {
+        lastFullSyncTaskStatus_ = static_cast<int>(lastFullSyncTaskStatus);
+    }
+
+    void RegForkGetDeviceIdFunc(const std::function<void ()> &forkGetDeviceIdFunc)
+    {
+        forkGetDeviceIdFunc_ = forkGetDeviceIdFunc;
+    }
+
+    std::string GetDeviceId() const override
+    {
+        if (forkGetDeviceIdFunc_) {
+            forkGetDeviceIdFunc_();
+        }
+        return SingleVerKvSyncTaskContext::GetDeviceId();
+    }
+private:
+    std::function<void ()> forkGetDeviceIdFunc_;
 };
 } // namespace DistributedDB
 #endif  // #define MOCK_SINGLE_VER_STATE_MACHINE_H

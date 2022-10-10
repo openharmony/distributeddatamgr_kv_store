@@ -198,6 +198,9 @@ DBStatus RelationalResultSetImpl::GetColumnIndex(const std::string &columnName, 
         }
     }
     std::shared_lock<std::shared_mutex> readLock(mutex_);
+    if (!IsValid(index_)) {
+        return NOT_FOUND;
+    }
     auto iter = colNames_.find(columnName);
     if (iter == colNames_.end()) {
         return NONEXISTENT;
@@ -209,6 +212,9 @@ DBStatus RelationalResultSetImpl::GetColumnIndex(const std::string &columnName, 
 DBStatus RelationalResultSetImpl::GetColumnName(int columnIndex, std::string &columnName) const
 {
     std::shared_lock<std::shared_mutex> readLock(mutex_);
+    if (!IsValid(index_)) {
+        return NOT_FOUND;
+    }
     const auto &colNames = dataSet_.GetColNames();
     if (columnIndex < 0 || columnIndex >= static_cast<int>(colNames.size())) {
         return NONEXISTENT;

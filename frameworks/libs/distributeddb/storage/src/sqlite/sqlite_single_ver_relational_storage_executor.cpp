@@ -1444,7 +1444,7 @@ int GetRowDatas(sqlite3_stmt *stmt, bool isMemDb, std::vector<std::string> &colN
             continue;
         }
 
-        totalLength += dataSz;
+        totalLength += static_cast<size_t>(dataSz);
         if (totalLength > static_cast<uint32_t>(DBConstant::MAX_REMOTEDATA_SIZE)) {  // the set has been full
             delete relaRowData;
             relaRowData = nullptr;
@@ -1484,6 +1484,19 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteQueryBySqlStmt(const std::s
         }
     }
     return GetRowDatas(stmt, isMemDb_, colNames, data);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CheckEncryptedOrCorrupted() const
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, "SELECT count(*) FROM sqlite_master;");
+    if (errCode != E_OK) {
+        LOGE("[SingVerRelaExec] CheckEncryptedOrCorrupted failed:%d", errCode);
+    }
+    return errCode;
 }
 } // namespace DistributedDB
 #endif

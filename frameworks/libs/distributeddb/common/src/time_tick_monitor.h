@@ -16,10 +16,11 @@
 #ifndef TIME_TICK_MONITOR_H
 #define TIME_TICK_MONITOR_H
 
-#include "runtime_context.h"
 #include "db_types.h"
-#include "platform_specific.h"
 #include "macro_utils.h"
+#include "runtime_context.h"
+#include "platform_specific.h"
+
 
 namespace DistributedDB {
 class TimeTickMonitor final {

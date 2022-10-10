@@ -101,7 +101,7 @@ public:
 
     static int ExecuteRawSQL(sqlite3 *db, const std::string &sql);
 
-    static int SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, const bool &isMemDb,
+    static int SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool isMemDb,
         uint32_t iterTimes = DBConstant::DEFAULT_ITER_TIMES);
 
     static int GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vector<uint8_t> &value);

@@ -14,14 +14,19 @@
  */
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#ifdef RUN_AS_ROOT
+#include <sys/time.h>
+#endif
 #include <thread>
 
+#include "db_common.h"
 #include "distributeddb_tools_unit_test.h"
 #include "generic_single_ver_kv_entry.h"
 #include "message.h"
 #include "mock_auto_launch.h"
 #include "mock_communicator.h"
 #include "mock_meta_data.h"
+#include "mock_remote_executor.h"
 #include "mock_single_ver_data_sync.h"
 #include "mock_single_ver_state_machine.h"
 #include "mock_sync_engine.h"
@@ -41,12 +46,49 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
+const uint32_t MESSAGE_COUNT = 10u;
+const uint32_t EXECUTE_COUNT = 2u;
 void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTaskContext,
     MockCommunicator &communicator, VirtualSingleVerSyncDBInterface &dbSyncInterface)
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
+}
+
+void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTaskContext,
+    MockCommunicator &communicator, VirtualSingleVerSyncDBInterface *dbSyncInterface)
+{
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
+    (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
+}
+
+#ifdef RUN_AS_ROOT
+void ChangeTime(int sec)
+{
+    timeval time;
+    gettimeofday(&time, nullptr);
+    time.tv_sec += sec;
+    settimeofday(&time, nullptr);
+}
+#endif
+
+int BuildRemoteQueryMsg(DistributedDB::Message *&message)
+{
+    auto packet = RemoteExecutorRequestPacket::Create();
+    if (packet == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    message = new (std::nothrow) DistributedDB::Message(static_cast<uint32_t>(MessageId::REMOTE_EXECUTE_MESSAGE));
+    if (message == nullptr) {
+        RemoteExecutorRequestPacket::Release(packet);
+        return -E_OUT_OF_MEMORY;
+    }
+    message->SetMessageType(TYPE_REQUEST);
+    packet->SetNeedResponse();
+    message->SetExternalObject(packet);
+    return E_OK;
 }
 }
 
@@ -332,6 +374,39 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, GetRequestSessionId()).WillOnce(Return(1u));
     syncTaskContext.ClearAllSyncTask();
     EXPECT_EQ(syncTaskContext.IsCommNormal(), false);
+}
+
+/**
+ * @tc.name: StateMachineCheck013
+ * @tc.desc: test kill syncTaskContext.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    auto *syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    auto *dbSyncInterface = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncTaskContext, nullptr);
+    EXPECT_NE(dbSyncInterface, nullptr);
+    if (dbSyncInterface == nullptr) {
+        RefObject::KillAndDecObjRef(syncTaskContext);
+        return;
+    }
+    MockCommunicator communicator;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    EXPECT_CALL(*syncTaskContext, Clear()).WillOnce(Return());
+    syncTaskContext->RegForkGetDeviceIdFunc([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+    });
+    int token = 1;
+    int *tokenPtr = &token;
+    syncTaskContext->SetContinueToken(tokenPtr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+    delete dbSyncInterface;
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
+    tokenPtr = nullptr;
 }
 
 /**
@@ -863,3 +938,97 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
     parcel = Parcel(srcData.data(), srcData.size());
     EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcel), 0);
 }
+
+/**
+* @tc.name: mock remote query 001
+* @tc.desc: Test RemoteExecutor receive msg when closing
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
+{
+    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    uint32_t count = 0u;
+    EXPECT_CALL(*executor, ParseOneRequestMessage).WillRepeatedly(
+        [&count](const std::string &device, DistributedDB::Message *inMsg) {
+        std::this_thread::sleep_for(std::chrono::seconds(5)); // mock one msg execute 5 s
+        count++;
+    });
+    EXPECT_CALL(*executor, IsPacketValid).WillRepeatedly(Return(true));
+    for (uint32_t i = 0; i < MESSAGE_COUNT; i++) {
+        DistributedDB::Message *message = nullptr;
+        EXPECT_EQ(BuildRemoteQueryMsg(message), E_OK);
+        executor->ReceiveMessage("DEVICE", message);
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    executor->Close();
+    EXPECT_EQ(count, EXECUTE_COUNT);
+    RefObject::KillAndDecObjRef(executor);
+}
+
+/**
+* @tc.name: mock remote query 002
+* @tc.desc: Test RemoteExecutor response failed when closing
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
+{
+    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    executor->CallResponseFailed(0, 0, 0, "DEVICE");
+    RefObject::KillAndDecObjRef(executor);
+}
+
+/**
+ * @tc.name: SyncTaskContextCheck001
+ * @tc.desc: test context check task can be skipped in push mode.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Level1)
+{
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
+    syncTaskContext.SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FINISHED_ALL);
+    syncTaskContext.CallSetSyncMode(static_cast<int>(SyncModeType::PUSH));
+    EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
+}
+
+#ifdef RUN_AS_ROOT
+/**
+ * @tc.name: TimeChangeListenerTest001
+ * @tc.desc: Test RegisterTimeChangedLister.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Level1)
+{
+    SingleVerKVSyncer syncer;
+    VirtualSingleVerSyncDBInterface syncDBInterface;
+    KvDBProperties dbProperties;
+    dbProperties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    syncDBInterface.SetDbProperties(dbProperties);
+    EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s wait for time tick
+    const std::string LOCAL_TIME_OFFSET_KEY = "localTimeOffset";
+    std::vector<uint8_t> key;
+    DBCommon::StringToVector(LOCAL_TIME_OFFSET_KEY, key);
+    std::vector<uint8_t> beforeOffset;
+    EXPECT_EQ(syncDBInterface.GetMetaData(key, beforeOffset), E_OK);
+    ChangeTime(2); // increase 2s
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s wait for time tick
+    std::vector<uint8_t> afterOffset;
+    EXPECT_EQ(syncDBInterface.GetMetaData(key, afterOffset), E_OK);
+    EXPECT_NE(beforeOffset, afterOffset);
+    ChangeTime(-2); // decrease 2s
+}
+#endif

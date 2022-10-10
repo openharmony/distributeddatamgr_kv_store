@@ -2136,15 +2136,18 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck009, TestSize.Level3)
     int count = 1;
     auto permissionCheckCallback = [&count] (const std::string &userId, const std::string &appId,
         const std::string &storeId, const std::string &deviceId, uint8_t flag) -> bool {
+            (void)userId;
+            (void)appId;
+            (void)storeId;
+            (void)deviceId;
             if (flag & CHECK_FLAG_SEND) {
                 bool result = count % 2;
                 LOGD("in RunPermissionCheck callback, check result:%d, flag:%d", result, flag);
                 count++;
                 return result;
-            } else {
-                LOGD("in RunPermissionCheck callback, check pass, flag:%d", flag);
-                return true;
             }
+            LOGD("in RunPermissionCheck callback, check pass, flag:%d", flag);
+            return true;
         };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
@@ -2449,6 +2452,64 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DatabaseOfflineCallback001, TestSize
     StoreStatusNotifier nullCallback;
     g_mgr.SetStoreStatusNotifier(nullCallback);
 }
+
+/**
+  * @tc.name: CloseSync001
+  * @tc.desc: Test 2 delegate close when sync
+  * @tc.type: FUNC
+  * @tc.require: AR000CCPOM
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync001, TestSize.Level3)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. make sure A sync start
+     */
+    bool sleep = false;
+    g_communicatorAggregator->RegOnDispatch([&sleep](const std::string &target, DistributedDB::Message *msg) {
+        if (!sleep) {
+            sleep = true;
+            std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s for waiting close db
+        }
+    });
+
+    KvStoreNbDelegate* kvDelegatePtrA = nullptr;
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore(STORE_ID, option, [&status, &kvDelegatePtrA](DBStatus s, KvStoreNbDelegate *delegate) {
+        status = s;
+        kvDelegatePtrA = delegate;
+    });
+    EXPECT_EQ(status, OK);
+    EXPECT_NE(kvDelegatePtrA, nullptr);
+
+    Key key = {'k'};
+    Value value = {'v'};
+    kvDelegatePtrA->Put(key, value);
+    std::map<std::string, DBStatus> result;
+    auto callback = [&result](const std::map<std::string, DBStatus>& statusMap) {
+        result = statusMap;
+    };
+    /**
+     * @tc.steps: step2. deviceA sync and then close
+     * @tc.expected: step2. sync should abort and data don't exist in B
+     */
+    std::thread closeThread([&kvDelegatePtrA]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for waiting sync start
+        EXPECT_EQ(g_mgr.CloseKvStore(kvDelegatePtrA), OK);
+    });
+    EXPECT_EQ(kvDelegatePtrA->Sync(devices, SYNC_MODE_PUSH_ONLY, callback, false), OK);
+    LOGD("Sync finish");
+    closeThread.join();
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s for waiting sync finish
+    EXPECT_EQ(result.size(), 0u);
+    VirtualDataItem actualValue;
+    EXPECT_EQ(g_deviceB->GetData(key, actualValue), -E_NOT_FOUND);
+}
+
 
 /**
   * @tc.name: OrderbyWriteTimeSync001

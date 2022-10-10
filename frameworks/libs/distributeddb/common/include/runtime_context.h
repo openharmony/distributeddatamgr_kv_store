@@ -17,8 +17,8 @@
 #define RUNTIME_CONTEXT_H
 
 #include <cstdint>
-#include <string>
 #include <functional>
+#include <string>
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"
@@ -122,7 +122,7 @@ public:
 
     virtual bool IsSyncerNeedActive(const DBProperties &properties) const = 0;
 
-    virtual NotificationChain::Listener *RegisterUserChangedListerner(const UserChangedAction &action,
+    virtual NotificationChain::Listener *RegisterUserChangedListener(const UserChangedAction &action,
         EventType event) = 0;
 
     virtual int NotifyUserChanged() const = 0;

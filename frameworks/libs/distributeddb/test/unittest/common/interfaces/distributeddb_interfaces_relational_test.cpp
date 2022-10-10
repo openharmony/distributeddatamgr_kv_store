@@ -73,6 +73,8 @@ namespace {
 
     const std::string INSERT_SYNC_DATA_SQL = "INSERT OR REPLACE INTO sync_data (key, timestamp, flag, hash_key) "
         "VALUES('KEY', 123456789, 1, 'HASH_KEY');";
+
+    const std::string INVALID_TABLE_FIELD_SQL = "create table if not exists t1 ('1 = 1; --' int primary key, b blob)";
 }
 
 class DistributedDBInterfacesRelationalTest : public testing::Test {
@@ -332,6 +334,9 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
     EXPECT_NE(delegate->CreateDistributedTable(DBConstant::SYSTEM_TABLE_PREFIX + "_tmp"), OK);
 
     EXPECT_EQ(delegate->CreateDistributedTable("Handle-J@^."), INVALID_ARGS);
+
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, INVALID_TABLE_FIELD_SQL), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1"), NOT_SUPPORT);
 
     /**
      * @tc.steps:step4. Close store

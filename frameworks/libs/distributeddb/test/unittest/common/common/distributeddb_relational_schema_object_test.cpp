@@ -213,6 +213,7 @@ namespace {
 
     const std::string TABLE_DEFINE_STR_NAME = R""("NAME": "FIRST",)"";
     const std::string TABLE_DEFINE_STR_NAME_INVALID = R"("NAME": 123,)";
+    const std::string TABLE_DEFINE_STR_NAME_INVALID_CHARACTER = R"("NAME": "t1; --",)";
     const std::string TABLE_DEFINE_STR_FIELDS = R""("DEFINE": {
             "field_name1": {
                 "COLUMN_ID":1,
@@ -229,6 +230,12 @@ namespace {
     const std::string TABLE_DEFINE_STR_FIELDS_EMPTY = R""("DEFINE": {},)"";
     const std::string TABLE_DEFINE_STR_FIELDS_NOTYPE = R""("DEFINE": {
             "field_name1": {
+                "COLUMN_ID":1,
+                "NOT_NULL": true,
+                "DEFAULT": "abcd"
+            }},)"";
+    const std::string TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER = R""("DEFINE": {
+            "1 = 1; --": {
                 "COLUMN_ID":1,
                 "NOT_NULL": true,
                 "DEFAULT": "abcd"
@@ -382,6 +389,16 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest003, 
     std::string invalidTableStr06 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
         TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID + "}";
     errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr05 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr07 = "{" + TABLE_DEFINE_STR_NAME_INVALID_CHARACTER + TABLE_DEFINE_STR_FIELDS +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr07 + "]"));
+    EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
+
+    std::string invalidTableStr08 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS_INVALID_CHARACTER +
+        TABLE_DEFINE_STR_KEY + "}";
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr08 + "]"));
     EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
     errCode = schemaObj.ParseFromSchemaString("");

@@ -16,8 +16,9 @@
 #ifndef TASK_POOL_H
 #define TASK_POOL_H
 
-#include <string>
 #include <functional>
+#include <string>
+
 #include "macro_utils.h"
 
 namespace DistributedDB {

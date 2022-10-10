@@ -298,7 +298,7 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(SQLiteSingleVerStorageE
     }
 
     uint64_t maxVersion = 0;
-    errCode = handle->GetMaxVersionIncacheDb(maxVersion);
+    errCode = handle->GetMaxVersionInCacheDb(maxVersion);
     if (errCode != E_OK || maxVersion < CACHE_RECORD_DEFAULT_VERSION) {
         maxVersion = CACHE_RECORD_DEFAULT_VERSION;
     }
@@ -430,7 +430,7 @@ int SQLiteSingleVerStorageEngine::InitExecuteMigrate(SQLiteSingleVerStorageExecu
         // Has been attach, maybe ever crashed, need update version
         executorState_ == ExecutorState::CACHE_ATTACH_MAIN) {
         uint64_t maxVersion = 0;
-        errCode = handle->GetMaxVersionIncacheDb(maxVersion);
+        errCode = handle->GetMaxVersionInCacheDb(maxVersion);
         if (errCode != E_OK || maxVersion < CACHE_RECORD_DEFAULT_VERSION) {
             maxVersion = CACHE_RECORD_DEFAULT_VERSION;
         }

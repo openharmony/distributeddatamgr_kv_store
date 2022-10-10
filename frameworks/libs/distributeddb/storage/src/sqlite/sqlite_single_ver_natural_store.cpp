@@ -39,7 +39,7 @@
 namespace DistributedDB {
 namespace {
     constexpr int WAIT_DELEGATE_CALLBACK_TIME = 100;
-    constexpr int DEVICE_ID_LEN = 32;
+
     const std::string CREATE_DB_TIME = "createDBTime";
 
     // Called when get multiple dev data.
@@ -1399,15 +1399,15 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     if (MyProp().GetBoolProp(KvDBProperties::MEMORY_MODE, false)) {
         return -E_NOT_SUPPORT;
     }
+
     // Exclusively write resources
     std::string localDev;
     int errCode = GetLocalIdentity(localDev);
-    if (errCode == -E_NOT_INIT) {
-        localDev.resize(DEVICE_ID_LEN);
-    } else if (errCode != E_OK) {
-        LOGE("Get local dev id err:%d!", errCode);
+    if (errCode != E_OK) {
+        LOGE("Get local dev id err:%d", errCode);
         localDev.resize(0);
     }
+
     // The write handle is applied to prevent writing data during the export process.
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -1426,6 +1426,7 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     operation->SetLocalDevId(localDev);
     LOGI("Begin export the kv store");
     errCode = operation->Export(filePath, passwd);
+
     ReleaseHandle(handle);
     return errCode;
 }
@@ -1441,12 +1442,11 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
     std::string localDev;
     int errCode = GetLocalIdentity(localDev);
-    if (errCode == -E_NOT_INIT) {
-        localDev.resize(DEVICE_ID_LEN);
-    } else if (errCode != E_OK) {
-        localDev.resize(0);
+    if (errCode != E_OK) {
         LOGE("Failed to GetLocalIdentity!");
+        localDev.resize(0);
     }
+
     // stop the syncer
     errCode = storageEngine_->TryToDisable(false, OperatePerm::IMPORT_MONOPOLIZE_PERM);
     if (errCode != E_OK) {

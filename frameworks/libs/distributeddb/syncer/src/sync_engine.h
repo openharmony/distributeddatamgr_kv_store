@@ -29,7 +29,6 @@
 #include "task_pool.h"
 
 namespace DistributedDB {
-constexpr uint16_t NEW_SEND_TASK = 1;
 
 class SyncEngine : public ISyncEngine {
 public:
@@ -119,6 +118,8 @@ public:
 
     void NotifyUserChange() override;
 
+    void AbortMachineIfNeed(uint32_t syncId) override;
+
 protected:
     // Create a context
     virtual ISyncTaskContext *CreateSyncTaskContext() = 0;
@@ -141,8 +142,6 @@ private:
     // Init DeviceManager set callback and remoteExecutor
     int InitInnerSource(const std::function<void(std::string)> &onRemoteDataChanged,
         const std::function<void(std::string)> &offlineChanged);
-
-    int InitTimeChangedListener();
 
     ISyncTaskContext *GetSyncTaskContext(const std::string &deviceId, int &errCode);
 
@@ -213,7 +212,6 @@ private:
     std::function<void(const std::string &)> offlineChanged_;
     std::shared_ptr<Metadata> metadata_;
     std::deque<Message *> msgQueue_;
-    NotificationChain::Listener *timeChangedListener_;
     uint32_t execTaskCount_;
     std::string label_;
     bool isSyncRetry_;

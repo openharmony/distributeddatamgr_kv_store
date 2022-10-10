@@ -773,3 +773,36 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser010, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_3_SECONDS));
     CloseStore();
 }
+
+/**
+ * @tc.name: MultiUser011
+ * @tc.desc: test check sync active twice when open store
+ * @tc.type: FUNC
+ * @tc.require: AR000E8S2T
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser011, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count, only first call return not active
+     */
+    g_mgr1.SetSyncActivationCheckCallback([&callCount] (const std::string &userId, const std::string &appId,
+        const std::string &storeId) -> bool {
+        callCount++;
+        return callCount != 1;
+    });
+    /**
+     * @tc.steps: step2. openstore1 in dual tuple sync mode
+     * @tc.expected: step2. it should be activity finally
+     */
+    OpenStore1(true);
+    /**
+     * @tc.steps: step3. call sync to DEVICES_B
+     * @tc.expected: step3. should return OK, not NOT_ACTIVE
+     */
+    std::map<std::string, DBStatus> result;
+    std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
+    EXPECT_EQ(g_tool.SyncTest(g_kvDelegatePtr1, devices, SYNC_MODE_PUSH_ONLY, result, true), OK);
+    CloseStore();
+}

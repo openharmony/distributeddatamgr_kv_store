@@ -498,7 +498,13 @@ int SQLiteRelationalStore::StartLifeCycleTimer(const DatabaseLifeCycleNotifier &
             std::lock_guard<std::mutex> lock(lifeCycleMutex_);
             if (lifeCycleNotifier_) {
                 // normal identifier mode
-                auto identifier = sqliteStorageEngine_->GetIdentifier();
+                std::string identifier;
+                if (sqliteStorageEngine_->GetProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
+                    identifier = sqliteStorageEngine_->GetProperties().GetStringProp(
+                        DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
+                } else {
+                    identifier = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
+                }
                 auto userId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, "");
                 lifeCycleNotifier_(identifier, userId);
             }
@@ -628,6 +634,19 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
         LOGW("only support split mode.");
         return -E_NOT_SUPPORT;
     }
+
+    // Check whether to be able to operate the db.
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CheckEncryptedOrCorrupted();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
     return syncAbleEngine_->RemoteQuery(device, condition, timeout, connectionId, result);
 }
 }

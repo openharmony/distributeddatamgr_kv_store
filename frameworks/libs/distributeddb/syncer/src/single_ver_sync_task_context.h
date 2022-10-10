@@ -140,6 +140,9 @@ public:
     virtual std::string GetDeleteSyncId() const = 0;
 
     void SetCommNormal(bool isCommNormal);
+
+    void StartFeedDogForGetData(uint32_t sessionId);
+    void StopFeedDogForGetData();
 protected:
     ~SingleVerSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
@@ -147,8 +150,13 @@ protected:
     // For querySync
     QuerySyncObject query_;
     bool isQuerySync_ = false;
+    
+    // for merge sync task
+    int lastFullSyncTaskStatus_ = SyncOperation::Status::OP_WAITING;
 private:
-    int GetCorrectedSendWaterMarkForCurrentTask(uint64_t &waterMark) const;
+    int GetCorrectedSendWaterMarkForCurrentTask(const SyncOperation *operation, uint64_t &waterMark) const;
+
+    bool IsCurrentSyncTaskCanBeSkippedInner(const SyncOperation *operation) const;
 
     constexpr static int64_t REDUNDACE_WATER_MARK = 1 * 1000LL * 1000LL * 10LL; // 1s
 
@@ -174,8 +182,6 @@ private:
     // For subscribe manager
     std::shared_ptr<SubscribeManager> subManager_;
 
-    // for merge sync task
-    int lastFullSyncTaskStatus_ = SyncOperation::Status::OP_WAITING;
     // <queryId, lastExcuStatus>
     std::unordered_map<std::string, int> lastQuerySyncTaskStatusMap_;
 };

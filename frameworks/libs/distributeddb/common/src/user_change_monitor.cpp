@@ -59,7 +59,7 @@ void UserChangeMonitor::Stop()
     isStarted_ = false;
 }
 
-NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListerner(const UserChangedAction &action,
+NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListener(const UserChangedAction &action,
     EventType event, int &errCode)
 {
     std::shared_lock<std::shared_mutex> lockGuard(userChangeMonitorLock_);
@@ -71,13 +71,12 @@ NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListerner(con
         errCode = -E_NOT_INIT;
         return nullptr;
     }
-    LOGI("[UserChangeMonitor] RegisterUserChangedListerner event=%d", event);
+    LOGI("[UserChangeMonitor] RegisterUserChangedListener event=%d", event);
     return userNotifier_->RegisterListener(event, action, nullptr, errCode);
 }
 
 int UserChangeMonitor::PrepareNotifierChain()
 {
-    int errCode = E_OK;
     std::unique_lock<std::shared_mutex> lockGuard(userChangeMonitorLock_);
     if (userNotifier_ != nullptr) {
         return E_OK;
@@ -86,7 +85,7 @@ int UserChangeMonitor::PrepareNotifierChain()
     if (userNotifier_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
-    errCode = userNotifier_->RegisterEventType(USER_ACTIVE_EVENT);
+    int errCode = userNotifier_->RegisterEventType(USER_ACTIVE_EVENT);
     if (errCode != E_OK) {
         goto ERROR_HANDLE;
     }

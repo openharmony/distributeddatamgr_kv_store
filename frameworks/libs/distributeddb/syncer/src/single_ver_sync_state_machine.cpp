@@ -129,6 +129,12 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
     timeSync_ = std::make_unique<TimeSync>();
     dataSync_ = std::make_shared<SingleVerDataSync>();
     abilitySync_ = std::make_unique<AbilitySync>();
+    if ((timeSync_ == nullptr) || (dataSync_ == nullptr) || (abilitySync_ == nullptr)) {
+        timeSync_ = nullptr;
+        dataSync_ = nullptr;
+        abilitySync_ = nullptr;
+        return -E_OUT_OF_MEMORY;
+    }
 
     errCode = timeSync_->Initialize(communicator, metaData, syncInterface, context->GetDeviceId());
     if (errCode != E_OK) {
@@ -282,7 +288,7 @@ int SingleVerSyncStateMachine::PrepareNextSyncTask()
     return E_OK;
 }
 
-void SingleVerSyncStateMachine::SendSaveDataNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
+void SingleVerSyncStateMachine::SendNotifyPacket(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
     dataSync_->SendSaveDataNotifyPacket(context_,
         std::min(context_->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT), sessionId, sequenceId, inMsgId);
@@ -412,7 +418,7 @@ Event SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow()
     }
     int errCode = dataSync_->SyncStart(SyncModeType::RESPONSE_PULL, context_);
     if (errCode != E_OK) {
-        LOGW("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
+        LOGE("[SingleVerSyncStateMachine][DoPassiveDataSyncWithSlidingWindow] response pull send failed[%d]", errCode);
         return RESPONSE_TASK_FINISHED_EVENT;
     }
     return Event::WAIT_ACK_EVENT;
@@ -598,6 +604,7 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
             int ackCode = packet->GetAckCode();
             if (ackCode != AbilitySync::CHECK_SUCCESS && ackCode != AbilitySync::LAST_NOTIFY) {
                 LOGE("[StateMachine][AbilitySyncRecv] ackCode check failed,ackCode=%d", ackCode);
+                context_->SetTaskErrCode(ackCode);
                 std::lock_guard<std::mutex> lock(stateMachineLock_);
                 SwitchStateAndStep(Event::INNER_ERR_EVENT);
                 return E_OK;
@@ -854,6 +861,7 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_NOT_REGISTER,                    SyncOperation::OP_NOT_SUPPORT },
         { -E_DENIED_SQL,                      SyncOperation::OP_DENIED_SQL },
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
+        { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
     };
     auto iter = statusMap.find(errCode);
     if (iter != statusMap.end()) {
@@ -1107,6 +1115,7 @@ void SingleVerSyncStateMachine::DataRecvErrCodeHandle(uint32_t sessionId, int er
             case -E_FEEDBACK_COMMUNICATOR_NOT_FOUND:
             case -E_FEEDBACK_UNKNOWN_MESSAGE:
             case -E_INTERCEPT_DATA_FAIL:
+            case -E_INVALID_PASSWD_OR_CORRUPTED_DB:
             case -E_INVALID_QUERY_FIELD:
             case -E_INVALID_QUERY_FORMAT:
             case -E_MAX_LIMITS:
@@ -1158,6 +1167,7 @@ void SingleVerSyncStateMachine::DataAckRecvErrCodeHandle(int errCode, bool handl
         case -E_FEEDBACK_COMMUNICATOR_NOT_FOUND:
         case -E_FEEDBACK_UNKNOWN_MESSAGE:
         case -E_INTERCEPT_DATA_FAIL:
+        case -E_INVALID_PASSWD_OR_CORRUPTED_DB:
         case -E_INVALID_QUERY_FIELD:
         case -E_INVALID_QUERY_FORMAT:
         case -E_MAX_LIMITS:

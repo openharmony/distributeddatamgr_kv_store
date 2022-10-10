@@ -16,18 +16,17 @@
 #ifndef RUNTIME_CONTEXT_IMPL_H
 #define RUNTIME_CONTEXT_IMPL_H
 
-#include <mutex>
 #include <map>
+#include <mutex>
 #include <shared_mutex>
 
-#include "runtime_context.h"
-#include "task_pool.h"
+#include "auto_launch.h"
 #include "evloop/include/ievent.h"
 #include "evloop/include/ievent_loop.h"
-#include "lock_status_observer.h"
-#include "time_tick_monitor.h"
 #include "icommunicator_aggregator.h"
-#include "auto_launch.h"
+#include "lock_status_observer.h"
+#include "task_pool.h"
+#include "time_tick_monitor.h"
 #include "user_change_monitor.h"
 
 namespace DistributedDB {
@@ -112,7 +111,7 @@ public:
     bool IsSyncerNeedActive(const DBProperties &properties) const override;
 
     // Register a user changed lister, it will be callback when user change.
-    NotificationChain::Listener *RegisterUserChangedListerner(const UserChangedAction &action,
+    NotificationChain::Listener *RegisterUserChangedListener(const UserChangedAction &action,
         EventType event) override;
     // Notify TIME_CHANGE_EVENT.
     int NotifyUserChanged() const override;
@@ -160,7 +159,7 @@ private:
     mutable std::mutex timeTickMonitorLock_;
     std::unique_ptr<TimeTickMonitor> timeTickMonitor_;
 
-    mutable std::shared_mutex permissionCheckCallbackMutex_{};
+    mutable std::shared_mutex permissionCheckCallbackMutex_ {};
     PermissionCheckCallback permissionCheckCallback_;
     PermissionCheckCallbackV2 permissionCheckCallbackV2_;
     PermissionCheckCallbackV3 permissionCheckCallbackV3_;
@@ -173,10 +172,10 @@ private:
     mutable std::mutex lockStatusLock_; // Mutex for lockStatusObserver_.
     LockStatusObserver *lockStatusObserver_;
 
-    mutable std::shared_mutex databaseStatusCallbackMutex_{};
+    mutable std::shared_mutex databaseStatusCallbackMutex_ {};
     StoreStatusNotifier databaseStatusNotifyCallback_;
 
-    mutable std::shared_mutex syncActivationCheckCallbackMutex_{};
+    mutable std::shared_mutex syncActivationCheckCallbackMutex_ {};
     SyncActivationCheckCallback syncActivationCheckCallback_;
     SyncActivationCheckCallbackV2 syncActivationCheckCallbackV2_;
 

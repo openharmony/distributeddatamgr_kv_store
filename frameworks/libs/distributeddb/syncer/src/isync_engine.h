@@ -89,6 +89,8 @@ public:
 
     virtual void NotifyUserChange() = 0;
 
+    virtual void AbortMachineIfNeed(uint32_t syncId) = 0;
+
 protected:
     virtual ~ISyncEngine() {};
 };
