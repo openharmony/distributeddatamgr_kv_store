@@ -1348,7 +1348,7 @@ HWTEST_F(DistributedDBStorageEncryptTest, EncryptTest025, TestSize.Level1)
       * @tc.expected: step6. Return SQLITE_OK.
       */
     Value valueGet;
-    GetValue(KEY_1, valueGet);
+    EXPECT_EQ(GetValue(KEY_1, valueGet), SQLITE_OK);
     EXPECT_EQ(valueGet, VALUE_1);
 
     /**

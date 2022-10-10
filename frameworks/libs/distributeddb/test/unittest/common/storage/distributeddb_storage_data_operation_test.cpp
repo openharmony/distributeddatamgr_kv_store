@@ -31,6 +31,16 @@ using namespace std;
 namespace {
     string g_testDir;
     SQLiteLocalKvDBConnection *g_connection = nullptr;
+    CipherPassword g_passwd;
+    CipherPassword g_passwd2;
+    std::vector<uint8_t> g_passwdVect = {'p', 's', 'd', '1'};
+    std::vector<uint8_t> g_passwdVect2 = {'p', 's', 'd', '2'};
+    const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256";
+    const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1";
+    const std::string USER_VERSION_SQL = "PRAGMA user_version;";
+    const std::string SET_USER_VERSION_SQL = "PRAGMA user_version=100;";
+    const std::string SHA1_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA1;";
+    const std::string SHA256_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA256;";
 }
 
 class DistributedDBStorageDataOperationTest : public testing::Test {
@@ -44,6 +54,8 @@ public:
 void DistributedDBStorageDataOperationTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
+    g_passwd.SetValue(g_passwdVect.data(), g_passwdVect.size());
+    g_passwd2.SetValue(g_passwdVect2.data(), g_passwdVect2.size());
 }
 
 void DistributedDBStorageDataOperationTest::TearDownTestCase(void)
@@ -639,4 +651,135 @@ HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock002, TestSize.L
     CheckSplitData(value2, 0ul, valueDic, savedValue);
     CheckRecoverData(savedValue, valueDic, value2);
     EXPECT_EQ(valueDic.size(), 0ul);
+}
+
+/**
+  * @tc.name: ShaAlgoEncryptTest001
+  * @tc.desc: Test sqlite sha algo
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest001, TestSize.Level1)
+{
+    sqlite3 *db = nullptr;
+    /**
+     * @tc.steps: step1. use sha256 to open db
+     * * @tc.expected: step1. interface return ok
+    */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/ShaAlgoEncryptTest001.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    /**
+     * @tc.steps: step2. close db
+     * * @tc.expected: step2. interface return ok
+    */
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step1. use sha1 to open db
+     * * @tc.expected: step1. interface return not ok
+    */
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), -E_INVALID_PASSWD_OR_CORRUPTED_DB);
+    sqlite3_close_v2(db);
+}
+
+/**
+  * @tc.name: ShaAlgoEncryptTest002
+  * @tc.desc: Test sqlite sha algo in attach mode
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest002, TestSize.Level1)
+{
+    sqlite3 *db = nullptr;
+    /**
+     * @tc.steps: step1. use sha256 to open db
+     * * @tc.expected: step1. interface return ok
+    */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/ShaAlgoEncryptTest002_attach.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    /**
+     * @tc.steps: step2. close db
+     * * @tc.expected: step2. interface return ok
+    */
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step3. open new db and attach old db
+     * * @tc.expected: step3. interface return ok
+    */
+    std::string fileUrl2 = g_testDir + "/ShaAlgoEncryptTest002.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl2.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd2, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_ATTACH_SQL), E_OK);
+    std::string attachName = "EncryptTest002";
+    EXPECT_EQ(SQLiteUtils::AttachNewDatabaseInner(db, CipherType::AES_256_GCM, g_passwd, fileUrl, attachName), E_OK);
+    /**
+     * @tc.steps: step4. close db
+     * * @tc.expected: step4. interface return ok
+    */
+    sqlite3_close_v2(db);
+}
+
+/**
+  * @tc.name: ShaAlgoEncryptTest003
+  * @tc.desc: Test sqlite sha algo in attach mode
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.Level1)
+{
+    sqlite3 *db = nullptr;
+    /**
+     * @tc.steps: step1. use sha256 to open db
+     * * @tc.expected: step1. interface return ok
+    */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/ShaAlgoEncryptTest003_attach.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    /**
+     * @tc.steps: step2. close db
+     * * @tc.expected: step2. interface return ok
+    */
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step3. open new db and attach old db
+     * * @tc.expected: step3. interface return ok
+    */
+    std::string fileUrl2 = g_testDir + "/ShaAlgoEncryptTest003.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl2.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd2, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    std::string attachName = "EncryptTest003";
+    EXPECT_EQ(SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd, fileUrl, attachName), E_OK);
+    /**
+     * @tc.steps: step4. close db
+     * * @tc.expected: step4. interface return ok
+    */
+    sqlite3_close_v2(db);
 }
