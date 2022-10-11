@@ -14,7 +14,7 @@
 ```
 //foundation/distributeddatamgr/kv_store
 ├── frameworks            # 框架层代码
-│   ├── common            # 公共代码
+│   ├── common            # 公共工具类
 │   ├── innerkitsimpl     # 部件间接口代码实现
 │   ├── jskitsimpl        # JS API的实现
 │   ├── libs              # DB代码实现
