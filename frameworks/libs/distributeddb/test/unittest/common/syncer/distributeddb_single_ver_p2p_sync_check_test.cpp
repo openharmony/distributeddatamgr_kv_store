@@ -42,6 +42,7 @@ namespace {
     const int THREE_HUNDRED = 300;
     const int WAIT_30_SECONDS = 30000;
     const int WAIT_40_SECONDS = 40000;
+    const int TIMEOUT_6_SECONDS = 6000;
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
@@ -1332,6 +1333,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Leve
      * @tc.steps: step1. deviceB set get data delay 40s
      */
     g_deviceB->DelayGetSyncData(WAIT_40_SECONDS);
+    g_communicatorAggregator->SetTimeout(DEVICE_A, TIMEOUT_6_SECONDS);
 
     /**
      * @tc.steps: step2. deviceA call sync and wait
