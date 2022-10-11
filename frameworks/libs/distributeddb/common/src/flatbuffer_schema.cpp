@@ -763,12 +763,12 @@ int CompareFieldCount(bool isRoot, uint32_t selfCount, uint32_t otherCount)
 {
     if (isRoot) {
         if (otherCount < selfCount) {
-            LOGW("[FBSchema][CompareRoot] RootFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
+            LOGW("[FBSchema][CompareRoot] RootFieldSize: %" PRIu32 " vs %" PRIu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     } else {
         if (selfCount != otherCount) {
-            LOGW("[FBSchema][CompareRoot] StructFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
+            LOGW("[FBSchema][CompareRoot] StructFieldSize: %" PRIu32 " vs %" PRIu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -821,7 +821,7 @@ int CompareFieldInfo(const reflection::Field &selfField, const reflection::Field
         auto selfElementType = selfType->element();
         auto otherElementType = otherType->element();
         if (selfElementType != otherElementType) {
-            LOGE("[FBSchema][CompareField] ElementType diff:%" PRu32 " vs %" PRu32, selfElementType, otherElementType);
+            LOGE("[FBSchema][CompareField] ElementType diff:%" PRIu32 " vs %" PRIu32, selfElementType, otherElementType);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }

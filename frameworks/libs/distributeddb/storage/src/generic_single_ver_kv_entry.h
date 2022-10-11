@@ -89,8 +89,8 @@ private:
         DESERIALIZE,
         CAL_LEN,
     };
-    int AdaptToVersion(OperType operType, uint32_t targetVersion, Parcel &parcel, uint64_t &datalen);
-    int AdaptToVersion(OperType operType, uint32_t targetVersion, uint64_t &datalen);
+    int AdaptToVersion(OperType operType, uint32_t targetVersion, Parcel &parcel, uint64_t &dataLen);
+    int AdaptToVersion(OperType operType, uint32_t targetVersion, uint64_t &dataLen);
 
     int SerializeDataByVersion(uint32_t targetVersion, Parcel &parcel) const;
     int SerializeDataByFirstVersion(Parcel &parcel) const;

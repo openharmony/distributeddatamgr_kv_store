@@ -2152,7 +2152,7 @@ int SQLiteSingleVerNaturalStore::CheckAndInitQueryCondition(QueryObject &query) 
     query.SetSchema(localSchema);
 
     int errCode = E_OK;
-    SQLiteSingleVerStorageExecutor *handle = GetHandle(false, errCode);
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
         return errCode;
     }

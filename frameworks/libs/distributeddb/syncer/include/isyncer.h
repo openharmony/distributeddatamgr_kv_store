@@ -18,8 +18,9 @@
 #define I_SYNCER_H
 
 #include <functional>
-#include <mutex>
 #include <map>
+#include <memory>
+#include <mutex>
 
 #include "distributeddb/result_set.h"
 #include "isync_interface.h"
