@@ -375,17 +375,18 @@ void SyncStateMachine::DecRefCountOfFeedDogTimer(SyncDirectionFlag flag)
 
 void SyncStateMachine::DoSaveDataNotify(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
+    // we send notify packet at first, because it will cost a lot of time to get machine lock
     {
-        std::lock_guard<std::mutex> lock(stateMachineLock_);
-        (void)ResetWatchDog();
+        std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
+        if (saveDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
+            StopSaveDataNotifyNoLock();
+            return;
+        }
+        SendNotifyPacket(sessionId, sequenceId, inMsgId);
+        saveDataNotifyCount_++;
     }
-    std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
-    if (saveDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
-        StopSaveDataNotifyNoLock();
-        return;
-    }
-    SendNotifyPacket(sessionId, sequenceId, inMsgId);
-    saveDataNotifyCount_++;
+    std::lock_guard<std::mutex> lock(stateMachineLock_);
+    (void)ResetWatchDog();
 }
 
 void SyncStateMachine::DoFeedDogForSync(SyncDirectionFlag flag)

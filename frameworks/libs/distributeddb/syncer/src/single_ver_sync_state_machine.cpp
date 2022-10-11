@@ -645,16 +645,16 @@ int SingleVerSyncStateMachine::HandleDataRequestRecv(const Message *inMsg)
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_DATA_REQUEST_RECV_TO_SEND_ACK);
     }
     DecRefCountOfFeedDogTimer(SyncDirectionFlag::RECEIVE);
+
+    // RequestRecv will save data, it may cost a long time.
+    // So we need to send save data notify to keep remote alive.
+    bool isNeedStop = StartSaveDataNotify(inMsg->GetSessionId(), inMsg->GetSequenceId(), inMsg->GetMessageId());
     {
         std::lock_guard<std::mutex> lockWatchDog(stateMachineLock_);
         if (IsNeedResetWatchdog(inMsg)) {
             (void)ResetWatchDog();
         }
     }
-
-    // RequestRecv will save data, it may cost a long time.
-    // So we need to send save data notify to keep remote alive.
-    bool isNeedStop = StartSaveDataNotify(inMsg->GetSessionId(), inMsg->GetSequenceId(), inMsg->GetMessageId());
     WaterMark pullEndWaterkark = 0;
     errCode = dataSync_->DataRequestRecv(context_, inMsg, pullEndWaterkark);
     if (performance != nullptr) {
