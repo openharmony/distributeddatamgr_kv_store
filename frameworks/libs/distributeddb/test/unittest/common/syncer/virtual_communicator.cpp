@@ -124,12 +124,17 @@ uint32_t VirtualCommunicator::GetCommunicatorMtuSize(const std::string &target) 
 
 uint32_t VirtualCommunicator::GetTimeout() const
 {
-    return 5 * 1000; // 5 * 1000ms
+    return timeout_;
 }
 
 uint32_t VirtualCommunicator::GetTimeout(const std::string &target) const
 {
     return GetTimeout();
+}
+
+void VirtualCommunicator::SetTimeout(uint32_t timeout)
+{
+    timeout_ = timeout;
 }
 
 int VirtualCommunicator::GetLocalIdentity(std::string &outTarget) const
