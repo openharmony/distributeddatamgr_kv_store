@@ -25,17 +25,43 @@
 
 namespace OHOS {
 namespace DistributedData {
+using Status = OHOS::DistributedKv::Status;
 
 struct JsErrorCode {
     int32_t jsCode;
     std::string message;
 };
-constexpr int32_t PARAM_ERROR = 401;
+constexpr int32_t PARAM_ERROR = Status::INVALID_ARGUMENT;
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
-void GenerateNapiError(napi_env env, int32_t status ,int32_t &errCode, std::string &errMessage);
+Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage);
 void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool isParamsCheck = true);
 napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
+
+#define CHECK_IF_RETURN(logMsg, isThrowError)                                                \
+    do {                                                                                     \
+        if (isThrowError) {                                                                  \
+            ZLOGE(logMsg);                                                                   \
+            return nullptr;                                                                  \
+        }                                                                                    \
+    } while (0)
+
+#define CHECK_IF_ASSERT(env, assertion, errorcode, message)                                  \
+    do {                                                                                     \
+        if (!(assertion)) {                                                                  \
+            ThrowNapiError(env, errorcode, message);                                         \
+            return nullptr;                                                                  \
+        }                                                                                    \
+    } while (0)
+
+#define CHECK_THROW_BUSINESS_ERR(ctxt, assertion, errorcode, message)                        \
+    do {                                                                                     \
+        if (!(assertion)) {                                                                  \
+            (ctxt)->isThrowError = true;                                                     \
+            ThrowNapiError((ctxt)->env, errorcode, message);                                 \
+            return;                                                                          \
+        }                                                                                    \
+    } while (0)
 
 } // namespace DistributedData
 }  // namespace OHOS

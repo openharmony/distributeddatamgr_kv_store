@@ -48,6 +48,9 @@ private:
     static napi_value IsBeforeFirst(napi_env env, napi_callback_info info);
     static napi_value IsAfterLast(napi_env env, napi_callback_info info);
     static napi_value GetEntry(napi_env env, napi_callback_info info);
+    static napi_value GetEntryV9(napi_env env, napi_callback_info info);
+    static napi_value MoveV9(napi_env env, napi_callback_info info);
+    static napi_value MoveToPositionV9(napi_env env, napi_callback_info info);
 
     std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet_ = nullptr;
     bool isSchema_ = false;

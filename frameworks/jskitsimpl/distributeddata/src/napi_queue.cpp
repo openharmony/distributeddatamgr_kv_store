@@ -126,7 +126,7 @@ void NapiQueue::GenerateOutput(ContextBase* ctxt)
     } else {
         napi_value message = nullptr;
         napi_value errorCode = nullptr;
-        if (ctxt->jsCode != 0) {
+        if (ctxt->jsCode != 0 && ctxt->jsCode != -1) {
             napi_create_string_utf8(ctxt->env, std::to_string(ctxt->jsCode).c_str(), NAPI_AUTO_LENGTH, &errorCode);
         }
         napi_create_string_utf8(ctxt->env, ctxt->error.c_str(), NAPI_AUTO_LENGTH, &message);

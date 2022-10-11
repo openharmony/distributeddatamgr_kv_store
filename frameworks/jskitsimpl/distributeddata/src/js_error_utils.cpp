@@ -16,27 +16,25 @@
 #include "js_error_utils.h"
 
 namespace OHOS::DistributedData {
-using Status = OHOS::DistributedKv::Status;
 using JsErrorCode = OHOS::DistributedData::JsErrorCode;
 
 static const std::map<int32_t, JsErrorCode> jsErrCodeMsgMap {
     {Status::INVALID_ARGUMENT,               {401, "Parameter error."}},
-    {Status::ILLEGAL_STATE,                  {15100001, "Inner error, message is illegal state."}},
-    {Status::ERROR,                          {15100001, "Inner error, message is common error."}},
-    {Status::SERVER_UNAVAILABLE,             {15100001, "Inner error, message is server unavailable."}},
-    {Status::DB_ERROR,                       {15100001, "Open existed database with changed options."}},
+    {Status::ILLEGAL_STATE,                  {-1, ""}},
+    {Status::ERROR,                          {-1, ""}},
+    {Status::SERVER_UNAVAILABLE,             {-1, ""}},
+    {Status::DB_ERROR,                       {-1, ""}},
+    {Status::OVER_MAX_SUBSCRIBE_LIMITS,      {15100001, "Over max subscribe limits."}},
     {Status::STORE_META_CHANGED,             {15100002, "Open existed database with changed options."}},
     {Status::CRYPT_ERROR,                    {15100003, "Database corrupted."}},
     {Status::NOT_FOUND,                      {15100004, "Not found."}},
     {Status::NOT_SUPPORT,                    {15100005, "Not support the operation."}},
     {Status::ALREADY_CLOSED,                 {15100006, "Database or result set already closed."}},
-    {Status::OVER_MAX_SUBSCRIBE_LIMITS,      {15100007, "Over max subscribe limits."}},
     {Status::STORE_ALREADY_SUBSCRIBE,        {0, ""}},
     {Status::STORE_NOT_OPEN,                 {0, ""}},
     {Status::STORE_NOT_SUBSCRIBE,            {0, ""}},
     {Status::SECURITY_LEVEL_ERROR,           {0, ""}},
 };
-
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 {
@@ -47,20 +45,25 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-void GenerateNapiError(napi_env env, int32_t status ,int32_t &errCode, std::string &errMessage)
+Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
 {
+    ZLOGE("V9error GenerateNapiError");
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
         auto napiError = errormsg.value();
         errCode = napiError.jsCode;
         errMessage = napiError.message;
     }
+    if (errCode == 0) {
+        return Status::SUCCESS;
+    }
+    return status;
 }
 
-void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool isParamsCheck)
+void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
 {
     ZLOGE("ThrowNapiError message: %{public}s", errMessage.c_str());
-    auto errormsg = GetJsErrorCode(errCode);
+    auto errormsg = GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errormsg.has_value()) {
         napiError = errormsg.value();
@@ -70,21 +73,5 @@ void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool 
         napiError.jsCode = 401;
     }
     napi_throw_error(env, std::to_string(napiError.jsCode).c_str(), napiError.message.c_str());
-}
-
-napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo)
-{
-    napi_value jsError = nullptr;
-    if (jsInfo.jsCode == 0) {
-        return nullptr;
-    }
-    NAPI_CALL(env, napi_create_object(env, &jsError));
-    napi_value errorCode = nullptr;
-    NAPI_CALL(env, napi_create_int32(env, jsInfo.jsCode, &errorCode));
-    napi_value errorMessage = nullptr;
-    NAPI_CALL(env, napi_create_string_utf8(env, jsInfo.message.c_str(), NAPI_AUTO_LENGTH, &errorMessage));
-    NAPI_CALL(env, napi_set_named_property(env, jsError, "code", errorCode));
-    NAPI_CALL(env, napi_set_named_property(env, jsError, "message", errorMessage));
-    return jsError;
 }
 }  // namespace OHOS::DistributedData

@@ -39,6 +39,7 @@ static napi_value Init(napi_env env, napi_value exports)
     ZLOGI("init Schema %{public}d", status);
 
     status = napi_set_named_property(env, exports, "Query", JsQuery::Constructor(env));
+    status = napi_set_named_property(env, exports, "QueryV9", JsQueryV9::Constructor(env));
     ZLOGI("init Query %{public}d", status);
 
     status = InitConstProperties(env, exports);

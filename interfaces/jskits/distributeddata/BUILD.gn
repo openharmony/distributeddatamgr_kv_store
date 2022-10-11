@@ -71,6 +71,8 @@ ohos_shared_library("distributeddata") {
     "../../../frameworks/jskitsimpl/distributeddata/src/js_kv_store_v9.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_kv_manager_v9.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_single_kv_store_v9.cpp",
+    "../../../frameworks/jskitsimpl/distributeddata/src/js_device_kv_store_v9.cpp",
+    "../../../frameworks/jskitsimpl/distributeddata/src/js_query_v9.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_error_utils.cpp",
   ]
 

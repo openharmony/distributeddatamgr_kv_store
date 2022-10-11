@@ -49,7 +49,10 @@ napi_value JsKVStoreResultSet::Constructor(napi_env env)
         DECLARE_NAPI_FUNCTION("isLast", JsKVStoreResultSet::IsLast),
         DECLARE_NAPI_FUNCTION("isBeforeFirst", JsKVStoreResultSet::IsBeforeFirst),
         DECLARE_NAPI_FUNCTION("isAfterLast", JsKVStoreResultSet::IsAfterLast),
-        DECLARE_NAPI_FUNCTION("getEntry", JsKVStoreResultSet::GetEntry)
+        DECLARE_NAPI_FUNCTION("getEntry", JsKVStoreResultSet::GetEntry),
+        DECLARE_NAPI_FUNCTION("getEntryV9", JsKVStoreResultSet::GetEntryV9),
+        DECLARE_NAPI_FUNCTION("moveV9", JsKVStoreResultSet::MoveV9),
+        DECLARE_NAPI_FUNCTION("moveToPositionV9", JsKVStoreResultSet::MoveToPositionV9),
     };
     size_t count = sizeof(properties) / sizeof(properties[0]);
     return JSUtil::DefineClass(env, "KVStoreResultSet", properties, count, JsKVStoreResultSet::New);
@@ -273,6 +276,69 @@ napi_value JsKVStoreResultSet::GetEntry(napi_env env, napi_callback_info info) /
 
     ctxt->status = JSUtil::SetValue(env, entry, ctxt->output, isSchema);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "GetEntry failed!");
+    return ctxt->output;
+}
+
+napi_value JsKVStoreResultSet::GetEntryV9(napi_env env, napi_callback_info info) /* Entry */
+{
+    ZLOGD("KVStoreResultSet::GetEntryV9()");
+    auto ctxt = std::make_shared<ContextBase>();
+    ctxt->GetCbInfoSync(env, info);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function GetEntryV9 parameter is incorrect.");
+
+    DistributedKv::Entry entry;
+    auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
+    bool isSchema = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->isSchema_;
+    auto status = resultSet->GetEntry(entry);
+    if (status != Status::SUCCESS) {
+        ThrowNapiError(env, status, "", false);
+        return nullptr;
+    }
+
+    ctxt->status = JSUtil::SetValue(env, entry, ctxt->output, isSchema);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "GetEntry failed!.");
+    return ctxt->output;
+}
+
+napi_value JsKVStoreResultSet::MoveV9(napi_env env, napi_callback_info info) /* boolean  */
+{
+    ZLOGD("KVStoreResultSet::Move()");
+    int offset = 0;
+    auto ctxt = std::make_shared<ContextBase>();
+    auto input = [env, ctxt, &offset](size_t argc, napi_value* argv) {
+        // required 1 arguments :: <offset>
+        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");   
+        ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&offset));
+    };
+    ctxt->GetCbInfoSync(env, info, input);
+    CHECK_IF_RETURN("MoveV9 exit", ctxt->isThrowError);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveV9 parameter is incorrect.");
+
+    auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
+    bool isMoved = resultSet->Move(offset);
+
+    napi_get_boolean(env, isMoved, &ctxt->output);
+    return ctxt->output;
+}
+
+napi_value JsKVStoreResultSet::MoveToPositionV9(napi_env env, napi_callback_info info) /* boolean  */
+{
+    int position = 0;
+    auto ctxt = std::make_shared<ContextBase>();
+    auto input = [env, ctxt, &position](size_t argc, napi_value* argv) {
+        // required 1 arguments :: <position>
+        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");  
+        ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&position));
+    };
+    ctxt->GetCbInfoSync(env, info, input);
+    CHECK_IF_RETURN("MoveToPositionV9 exit", ctxt->isThrowError);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveToPositionV9 parameter is incorrect.");
+    ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
+
+    auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
+    bool isMoved = resultSet->MoveToPosition(position);
+
+    napi_get_boolean(env, isMoved, &ctxt->output);
     return ctxt->output;
 }
 
