@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "db_constant.h"
+#include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_nb_delegate.h"
@@ -40,6 +41,16 @@ namespace {
     const std::string DEVICE_A = "real_device";
     const std::string DEVICE_B = "deviceB";
     const std::string DEVICE_C = "deviceC";
+    const std::string CREATE_SYNC_TABLE_SQL =
+    "CREATE TABLE IF NOT EXISTS sync_data(" \
+        "key         BLOB NOT NULL," \
+        "value       BLOB," \
+        "timestamp   INT  NOT NULL," \
+        "flag        INT  NOT NULL," \
+        "device      BLOB," \
+        "ori_device  BLOB," \
+        "hash_key    BLOB PRIMARY KEY NOT NULL," \
+        "w_timestamp INT);";
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
@@ -53,6 +64,65 @@ namespace {
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+
+    void PullSyncTest()
+    {
+        DBStatus status = OK;
+        std::vector<std::string> devices;
+        devices.push_back(g_deviceB->GetDeviceId());
+
+        Key key = {'1'};
+        Key key2 = {'2'};
+        Value value = {'1'};
+        g_deviceB->PutData(key, value, 0, 0);
+        g_deviceB->PutData(key2, value, 1, 0);
+
+        std::map<std::string, DBStatus> result;
+        status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+        ASSERT_TRUE(status == OK);
+
+        ASSERT_TRUE(result.size() == devices.size());
+        for (const auto &pair : result) {
+            LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+            EXPECT_TRUE(pair.second == OK);
+        }
+        Value value3;
+        EXPECT_EQ(g_kvDelegatePtr->Get(key, value3), OK);
+        EXPECT_EQ(value3, value);
+        EXPECT_EQ(g_kvDelegatePtr->Get(key2, value3), OK);
+        EXPECT_EQ(value3, value);
+    }
+
+    void CrudTest()
+    {
+        vector<Entry> entries;
+        int totalSize = 10;
+        for (int i = 0; i < totalSize; i++) {
+            Entry entry;
+            entry.key.push_back(i);
+            entry.value.push_back('2');
+            entries.push_back(entry);
+        }
+        EXPECT_TRUE(g_kvDelegatePtr->PutBatch(entries) == OK);
+        for (const auto &entry : entries) {
+            Value resultvalue;
+            EXPECT_TRUE(g_kvDelegatePtr->Get(entry.key, resultvalue) == OK);
+            EXPECT_TRUE(resultvalue == entry.value);
+        }
+        for (int i = 0; i < totalSize / 2; i++) {
+            g_kvDelegatePtr->Delete(entries[i].key);
+            Value resultvalue;
+            EXPECT_TRUE(g_kvDelegatePtr->Get(entries[i].key, resultvalue) == NOT_FOUND);
+        }
+        for (int i = totalSize / 2; i < totalSize; i++) {
+            Value value = entries[i].value;
+            value.push_back('x');
+            EXPECT_TRUE(g_kvDelegatePtr->Put(entries[i].key, value) == OK);
+            Value resultvalue;
+            EXPECT_TRUE(g_kvDelegatePtr->Get(entries[i].key, resultvalue) == OK);
+            EXPECT_TRUE(resultvalue == value);
+        }
+    }
 }
 
 class DistributedDBSingleVerP2PSyncTest : public testing::Test {
@@ -2528,4 +2598,78 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, OrderbyWriteTimeSync001, TestSize.Le
     devices.push_back(g_deviceB->GetDeviceId());
     Query query = Query::Select().PrefixKey({'k'}).OrderByWriteTime(true);
     EXPECT_EQ(g_kvDelegatePtr->Sync(devices, DistributedDB::SYNC_MODE_PUSH_ONLY, nullptr, query, true), NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: EncryptedAlgoUpgrade001
+  * @tc.desc: Test upgrade encrypted db can sync normally
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. clear db
+     * * @tc.expected: step1. interface return ok
+    */
+    if (g_kvDelegatePtr != nullptr) {
+        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+        g_kvDelegatePtr = nullptr;
+        DBStatus status = g_mgr.DeleteKvStore(STORE_ID);
+        LOGD("delete kv store status %d", status);
+        ASSERT_TRUE(status == OK);
+    }
+
+    CipherPassword passwd;
+    std::vector<uint8_t> passwdVect = {'p', 's', 'd', '1'};
+    passwd.SetValue(passwdVect.data(), passwdVect.size());
+    /**
+     * @tc.steps: step2. open old db by sql
+     * * @tc.expected: step2. interface return ok
+    */
+    std::string identifier = DBCommon::GenerateIdentifierId(STORE_ID, APP_ID, USER_ID);
+    std::string hashDir = DBCommon::TransferHashString(identifier);
+    std::string hexHashDir = DBCommon::TransferStringToHex(hashDir);
+    std::string dbPath = g_testDir + "/" + hexHashDir + "/single_ver";
+    ASSERT_TRUE(DBCommon::CreateDirectory(g_testDir + "/" + hexHashDir) == OK);
+    ASSERT_TRUE(DBCommon::CreateDirectory(dbPath) == OK);
+    std::vector<std::string> dbDir {DBConstant::MAINDB_DIR, DBConstant::METADB_DIR, DBConstant::CACHEDB_DIR};
+    for (const auto &item : dbDir) {
+        ASSERT_TRUE(DBCommon::CreateDirectory(dbPath + "/" + item) == OK);
+    }
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    sqlite3 *db;
+    std::string fileUrl = dbPath + "/" + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + ".db";
+    ASSERT_TRUE(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr) == SQLITE_OK);
+    SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, passwd, DBConstant::DEFAULT_ITER_TIMES);
+    /**
+     * @tc.steps: step3. create table and close
+     * * @tc.expected: step3. interface return ok
+    */
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, CREATE_SYNC_TABLE_SQL) == E_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+    LOGI("create old db success");
+    /**
+     * @tc.steps: step4. get kvstore
+     * * @tc.expected: step4. interface return ok
+    */
+    KvStoreNbDelegate::Option option;
+    option.isEncryptedDb = true;
+    option.cipher = CipherType::AES_256_GCM;
+    option.passwd = passwd;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step5. sync ok
+     * * @tc.expected: step5. interface return ok
+    */
+    PullSyncTest();
+    /**
+     * @tc.steps: step5. crud ok
+     * * @tc.expected: step5. interface return ok
+    */
+    CrudTest();
 }

@@ -151,6 +151,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInC
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -183,6 +185,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithoutPasswdInS
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -215,6 +219,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithPasswdInSpli
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -271,6 +277,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithInvalidParam
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -313,6 +321,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithCustomizedIt
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(CUSTOMIZED_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -369,6 +379,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(CUSTOMIZED_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
@@ -503,6 +515,8 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RemoteQueryForEncryptedDb_001, 
     string sql =
         "PRAGMA key='" + CORRECT_KEY + "';"
         "PRAGMA codec_kdf_iter=" + std::to_string(DEFAULT_ITER) + ";"
+        "PRAGMA codec_hmac_algo=SHA256;"
+        "PRAGMA codec_rekey_hmac_algo=SHA256;"
         "PRAGMA journal_mode=WAL;"
         "CREATE TABLE " + g_tableName + "(key INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, value INTEGER);";
     ExecSqlAndAssertOK(db, sql);
