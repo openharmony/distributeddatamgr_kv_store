@@ -207,10 +207,8 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
     }
 
     outMsg = ProtocolProto::ToMessage(buffer, errCode);
-    if (errCode != E_OK) {
-        delete buffer;
-        buffer = nullptr;
-    }
+    delete buffer;
+    buffer = nullptr;
     return errCode;
 }
 } // namespace DistributedDB

@@ -508,6 +508,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
         DecExecTaskCount();
         return -E_BUSY;
     }
+    RefObject::DecObjRef(executor);
     int msgSize = 0;
     if (!IsSkipCalculateLen(inMsg)) {
         msgSize = GetMsgSize(inMsg);
@@ -1039,6 +1040,7 @@ int SyncEngine::RemoteQuery(const std::string &device, const RemoteCondition &co
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return -E_BUSY; // db is closing just return
     }
     int errCode = executor->RemoteQuery(device, condition, timeout, connectionId, result);
@@ -1050,6 +1052,7 @@ void SyncEngine::NotifyConnectionClosed(uint64_t connectionId)
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return; // db is closing just return
     }
     executor->NotifyConnectionClosed(connectionId);
@@ -1060,6 +1063,7 @@ void SyncEngine::NotifyUserChange()
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return; // db is closing just return
     }
     executor->NotifyUserChange();
