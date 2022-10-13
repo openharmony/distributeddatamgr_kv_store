@@ -31,6 +31,7 @@ SyncStateMachine::SyncStateMachine()
       currentSyncProctolVersion_(SINGLE_VER_SYNC_PROCTOL_V3),
       saveDataNotifyTimerId_(0),
       saveDataNotifyCount_(0),
+      waitingResetLockBySaveData_(false),
       getDataNotifyTimerId_(0),
       getDataNotifyCount_(0)
 {
@@ -384,8 +385,16 @@ void SyncStateMachine::DoSaveDataNotify(uint32_t sessionId, uint32_t sequenceId,
         }
         SendNotifyPacket(sessionId, sequenceId, inMsgId);
         saveDataNotifyCount_++;
+        if (waitingResetLockBySaveData_) {
+            return;
+        }
+        waitingResetLockBySaveData_ = true;
     }
     std::lock_guard<std::mutex> lock(stateMachineLock_);
+    {
+        std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
+        waitingResetLockBySaveData_ = false;
+    }
     (void)ResetWatchDog();
 }
 

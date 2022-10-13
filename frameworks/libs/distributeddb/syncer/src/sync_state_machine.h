@@ -170,6 +170,7 @@ protected:
     std::mutex saveDataNotifyLock_;
     TimerId saveDataNotifyTimerId_;
     uint8_t saveDataNotifyCount_;
+    bool waitingResetLockBySaveData_;
 
     std::mutex getDataNotifyLock_;
     TimerId getDataNotifyTimerId_;
