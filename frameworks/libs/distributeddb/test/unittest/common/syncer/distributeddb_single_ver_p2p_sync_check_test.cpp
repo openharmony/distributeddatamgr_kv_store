@@ -40,7 +40,6 @@ namespace {
     const int SLEEP_MILLISECONDS = 500;
     const int TEN_SECONDS = 10;
     const int THREE_HUNDRED = 300;
-    const int WAIT_10_SECONDS = 10000;
     const int WAIT_30_SECONDS = 30000;
     const int WAIT_40_SECONDS = 40000;
     const int TIMEOUT_6_SECONDS = 6000;
@@ -1401,9 +1400,9 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
     EXPECT_EQ(result.size(), devices.size());
     EXPECT_EQ(result[DEVICE_B], OK);
     /**
-     * @tc.steps: step2. deviceB set get data delay 10s
+     * @tc.steps: step2. deviceB set get data delay 30s
      */
-    g_deviceB->DelayGetSyncData(WAIT_10_SECONDS);
+    g_deviceB->DelayGetSyncData(WAIT_30_SECONDS);
 
     /**
      * @tc.steps: step3. deviceB call sync and wait
@@ -1418,7 +1417,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
 
     /**
      * @tc.steps: step4. deviceA call sync and wait
-     * @tc.expected: step4. sync should return OK. because notify timer trigger (10s - 1s)/2s => 4times 
+     * @tc.expected: step4. sync should return OK. because notify timer trigger (30s - 1s)/2s => 15times 
      */
     std::this_thread::sleep_for(std::chrono::seconds(1));
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, true);

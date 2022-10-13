@@ -660,19 +660,24 @@ int SingleVerSyncStateMachine::HandleDataRequestRecv(const Message *inMsg)
     if (performance != nullptr) {
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_DATA_REQUEST_RECV_TO_SEND_ACK);
     }
-    if (isNeedStop) {
-        StopSaveDataNotify();
-    }
     // only higher than 102 version receive this errCode here.
     // while both RequestSessionId is not equal,but get this errCode;slwr would seem to handle first secquencid.
     // so while receive the same secquencid after abiitysync it wouldn't handle.
     if (errCode == -E_NEED_ABILITY_SYNC) {
+        if (isNeedStop) {
+            StopSaveDataNotify();
+        }
         return errCode;
     }
-    std::lock_guard<std::mutex> lock(stateMachineLock_);
-    DataRecvErrCodeHandle(inMsg->GetSessionId(), errCode);
-    if (pullEndWaterkark > 0) {
-        AddPullResponseTarget(inMsg, pullEndWaterkark);
+    {
+        std::lock_guard<std::mutex> lock(stateMachineLock_);
+        DataRecvErrCodeHandle(inMsg->GetSessionId(), errCode);
+        if (pullEndWaterkark > 0) {
+            AddPullResponseTarget(inMsg, pullEndWaterkark);
+        }
+    }
+    if (isNeedStop) {
+        StopSaveDataNotify();
     }
     return E_OK;
 }
