@@ -45,6 +45,50 @@ using namespace testing;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
+class TestKvDb {
+public:
+    ~TestKvDb()
+    {
+        LOGI("~TestKvDb");
+    }
+    void Initialize(ISyncInterface *syncInterface)
+    {
+        syncer_.Initialize(syncInterface, true);
+        syncer_.EnableAutoSync(true);
+    }
+    void LocalChange()
+    {
+        syncer_.LocalDataChanged(SQLITE_GENERAL_NS_PUT_EVENT);
+    }
+    void Close()
+    {
+        syncer_.Close(true);
+    }
+private:
+    SyncerProxy syncer_;
+};
+
+class TestInterface: public TestKvDb, public VirtualSingleVerSyncDBInterface {
+public:
+    TestInterface() {}
+    ~TestInterface()
+    {
+        TestKvDb::Close();
+    }
+    void Initialize()
+    {
+        TestKvDb::Initialize(this);
+    }
+    void TestLocalChange()
+    {
+        TestKvDb::LocalChange();
+    }
+    void TestSetIdentifier(std::vector<uint8_t> &identifier)
+    {
+        VirtualSingleVerSyncDBInterface::SetIdentifier(identifier);
+    }
+};
+
 namespace {
 const uint32_t MESSAGE_COUNT = 10u;
 const uint32_t EXECUTE_COUNT = 2u;
@@ -765,6 +809,40 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
+}
+
+/**
+ * @tc.name: SyncLifeTest003
+ * @tc.desc: Test syncer localdatachange when store is destructor
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
+{
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    TestInterface *syncDBInterface = new TestInterface();
+    const std::string DEVICE_B = "deviceB";
+    std::string userId = "userId_0";
+    std::string storeId = "storeId_0";
+    std::string appId = "appId_0";
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
+    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
+    syncDBInterface->TestSetIdentifier(identifierVec);
+    syncDBInterface->Initialize();
+    virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
+    std::thread WriteThread([&syncDBInterface] {
+        syncDBInterface->TestLocalChange();
+    });
+    std::thread deleteThread([&syncDBInterface] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        delete syncDBInterface;
+    });
+    deleteThread.join();
+    WriteThread.join();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
 /**
