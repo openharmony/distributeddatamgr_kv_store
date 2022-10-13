@@ -129,6 +129,10 @@ void NapiQueue::GenerateOutput(ContextBase* ctxt)
         if (ctxt->jsCode != 0 && ctxt->jsCode != -1) {
             napi_create_string_utf8(ctxt->env, std::to_string(ctxt->jsCode).c_str(), NAPI_AUTO_LENGTH, &errorCode);
         }
+        if (ctxt->jsCode == -1) {
+            std::string jscode = "";
+            napi_create_string_utf8(ctxt->env, jscode.c_str(), NAPI_AUTO_LENGTH, &errorCode);
+        }
         napi_create_string_utf8(ctxt->env, ctxt->error.c_str(), NAPI_AUTO_LENGTH, &message);
         napi_create_error(ctxt->env, errorCode, message, &result[RESULT_ERROR]);
         napi_get_undefined(ctxt->env, &result[RESULT_DATA]);

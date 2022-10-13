@@ -36,7 +36,7 @@ enum {
  */
 class JsKVStore {
 public:
-    explicit JsKVStore(const std::string& storeId);
+    explicit JsKVStore(const std::string& storeId, bool isV9);
     virtual ~JsKVStore();
 
     void SetNative(std::shared_ptr<DistributedKv::SingleKvStore>& kvStore);
@@ -64,6 +64,7 @@ public:
 
 protected:
     bool IsSchemaStore() const;
+    bool IsV9Func() const;
 private:
     class DataObserver : public DistributedKv::KvStoreObserver, public JSObserver {
     public:
@@ -102,90 +103,11 @@ private:
     std::string storeId_;
     std::shared_ptr<ContextParam> param_ = nullptr;
     bool isSchemaStore_ = false;
+    bool isV9Version_ = false;
 
     using Exec = std::function<void(napi_env, size_t, napi_value*, std::shared_ptr<ContextBase>)>;
     static std::map<std::string, Exec> onEventHandlers_;
     static std::map<std::string, Exec> offEventHandlers_;
-
-    std::list<std::shared_ptr<SyncObserver>> syncObservers_;
-    std::mutex listMutex_ {};
-    std::list<std::shared_ptr<DataObserver>> dataObserver_[SUBSCRIBE_COUNT];
-    std::shared_ptr<UvQueue> uvQueue_;
-};
-
-class JsKVStoreV9 {
-public:
-    explicit JsKVStoreV9(const std::string& storeId);
-    virtual ~JsKVStoreV9();
-
-    void SetNative(std::shared_ptr<DistributedKv::SingleKvStore>& kvStore);
-    void SetSchemaInfo(bool isSchemaStore);
-    void SetUvQueue(std::shared_ptr<UvQueue> uvQueue);
-    std::shared_ptr<DistributedKv::SingleKvStore>& GetNative();
-    void SetContextParam(std::shared_ptr<ContextParam> param);
-    static bool IsInstanceOf(napi_env env, napi_value obj, const std::string& storeId, napi_value constructor);
-
-    /* public static members */
-    static napi_value Put(napi_env env, napi_callback_info info);
-    static napi_value Delete(napi_env env, napi_callback_info info);
-    static napi_value OnEvent(napi_env env, napi_callback_info info);
-    static napi_value OffEvent(napi_env env, napi_callback_info info);
-    static napi_value PutBatch(napi_env env, napi_callback_info info);
-    static napi_value DeleteBatch(napi_env env, napi_callback_info info);
-    static napi_value StartTransaction(napi_env env, napi_callback_info info);
-    static napi_value Commit(napi_env env, napi_callback_info info);
-    static napi_value Rollback(napi_env env, napi_callback_info info);
-    static napi_value EnableSync(napi_env env, napi_callback_info info);
-    static napi_value SetSyncRange(napi_env env, napi_callback_info info);
-    static napi_value Backup(napi_env env, napi_callback_info info);
-    static napi_value Restore(napi_env env, napi_callback_info info);
-    static napi_value DeleteBackup(napi_env env, napi_callback_info info);
-
-protected:
-    bool IsSchemaStore() const;
-private:
-    class DataObserver : public DistributedKv::KvStoreObserver, public JSObserver {
-    public:
-        DataObserver(std::shared_ptr<UvQueue> uvQueue, napi_value callback, bool schema)
-            : JSObserver(uvQueue, callback), isSchema_(schema){};
-        virtual ~DataObserver() = default;
-        void OnChange(const DistributedKv::ChangeNotification& notification) override;
-
-    private:
-        bool isSchema_ = false;
-    };
-
-    class SyncObserver : public DistributedKv::KvStoreSyncCallback, public JSObserver {
-    public:
-        SyncObserver(std::shared_ptr<UvQueue> uvQueue, napi_value callback) : JSObserver(uvQueue, callback) {};
-        virtual ~SyncObserver() = default;
-        void SyncCompleted(const std::map<std::string, DistributedKv::Status>& results) override;
-    };
-
-    /* private static members */
-    static void OnDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt);
-    static void OffDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt);
-
-    static void OnSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt);
-    static void OffSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt);
-
-    /* private non-static members */
-    napi_status Subscribe(uint8_t type, std::shared_ptr<DataObserver> observer);
-    napi_status UnSubscribe(uint8_t type, std::shared_ptr<DataObserver> observer);
-
-    napi_status RegisterSyncCallback(std::shared_ptr<SyncObserver> sync);
-    napi_status UnRegisterSyncCallback();
-
-    /* private non-static members */
-    std::shared_ptr<DistributedKv::SingleKvStore> kvStore_ = nullptr;
-    std::string storeId_;
-    std::shared_ptr<ContextParam> param_ = nullptr;
-    bool isSchemaStore_ = false;
-
-    using Exec = std::function<void(napi_env, size_t, napi_value*, std::shared_ptr<ContextBase>)>;
-    static std::map<std::string, Exec> onEventHandlers_;
-    static std::map<std::string, Exec> offEventHandlers_;
-    static std::map<napi_valuetype, std::string> valueTypeToString_;
 
     std::list<std::shared_ptr<SyncObserver>> syncObservers_;
     std::mutex listMutex_ {};

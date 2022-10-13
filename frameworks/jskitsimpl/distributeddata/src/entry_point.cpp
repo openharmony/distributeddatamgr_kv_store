@@ -27,7 +27,7 @@ static napi_value Init(napi_env env, napi_value exports)
 {
     const napi_property_descriptor desc[] = {
         DECLARE_NAPI_FUNCTION("createKVManager", JsKVManager::CreateKVManager),
-        DECLARE_NAPI_FUNCTION("createKVManagerV9", JsKVManagerV9::CreateKVManagerV9)
+        DECLARE_NAPI_FUNCTION("createKVManagerV9", JsKVManager::CreateKVManagerV9)
     };
     napi_status status = napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     ZLOGI("init createKVManager %{public}d", status);
@@ -39,7 +39,7 @@ static napi_value Init(napi_env env, napi_value exports)
     ZLOGI("init Schema %{public}d", status);
 
     status = napi_set_named_property(env, exports, "Query", JsQuery::Constructor(env));
-    status = napi_set_named_property(env, exports, "QueryV9", JsQueryV9::Constructor(env));
+    status = napi_set_named_property(env, exports, "QueryV9", JsQuery::Constructor(env));
     ZLOGI("init Query %{public}d", status);
 
     status = InitConstProperties(env, exports);

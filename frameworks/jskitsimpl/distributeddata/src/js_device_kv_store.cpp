@@ -35,12 +35,12 @@ static std::string GetDeviceKey(const std::string& deviceId, const std::string& 
     return oss.str();
 }
 
-JsDeviceKVStore::JsDeviceKVStore(const std::string& storeId)
-    : JsKVStore(storeId)
+JsDeviceKVStore::JsDeviceKVStore(const std::string& storeId, bool isV9)
+    : JsKVStore(storeId, isV9)
 {
 }
 
-napi_value JsDeviceKVStore::Constructor(napi_env env)
+napi_value JsDeviceKVStore::Constructor(napi_env env, std::string version)
 {
     const napi_property_descriptor properties[] = {
         DECLARE_NAPI_FUNCTION("put", JsKVStore::Put),
@@ -485,7 +485,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
-    JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId);
+    JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId, false);
     NAPI_ASSERT(env, kvStore !=nullptr, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {

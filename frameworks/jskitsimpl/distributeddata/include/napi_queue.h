@@ -17,7 +17,7 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include "js_error_utils.h"
+// #include "js_error_utils.h"
 #include "log_print.h"
 #include "napi/native_api.h"
 #include "napi/native_common.h"
@@ -46,6 +46,7 @@ struct ContextBase {
     std::string error;
     int32_t jsCode = 0;
     bool isThrowError = false;
+    bool isV9Called = false;
 
     napi_value self = nullptr;
     void* native = nullptr;

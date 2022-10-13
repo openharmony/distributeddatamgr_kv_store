@@ -45,15 +45,19 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
+Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage, bool isV9version)
 {
     ZLOGE("V9error GenerateNapiError");
+    if (!isV9version) {
+        return status;
+    }
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
         auto napiError = errormsg.value();
         errCode = napiError.jsCode;
         errMessage = napiError.message;
     }
+    ZLOGE("GenerateNapiError errCode is %{public}d",errCode);
     if (errCode == 0) {
         return Status::SUCCESS;
     }
