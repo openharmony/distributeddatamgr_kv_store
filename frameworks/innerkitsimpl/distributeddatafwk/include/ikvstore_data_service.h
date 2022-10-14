@@ -19,7 +19,6 @@
 #include "iremote_broker.h"
 #include "ikvstore_client_death_observer.h"
 #include "ikvstore_observer.h"
-#include "ikvstore_single.h"
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
 #include "message_parcel.h"
