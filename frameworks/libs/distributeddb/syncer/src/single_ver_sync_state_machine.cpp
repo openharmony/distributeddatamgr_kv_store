@@ -1252,4 +1252,11 @@ void SingleVerSyncStateMachine::InnerErrorAbort(uint32_t sessionId)
         SyncStep();
     }
 }
+
+void SingleVerSyncStateMachine::NotifyClosing()
+{
+    if (timeSync_ != nullptr) {
+        timeSync_->Close();
+    }
+}
 } // namespace DistributedDB
