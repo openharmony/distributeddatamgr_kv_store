@@ -237,7 +237,7 @@ int MultiVerNaturalStoreCommitStorage::CancelVacuum()
     return commitStorageDBConnection_->RollBack();
 }
 
-int MultiVerNaturalStoreCommitStorage::FinishlVacuum()
+int MultiVerNaturalStoreCommitStorage::FinishVacuum()
 {
     if (commitStorageDBConnection_ == nullptr) {
         LOGE("commitStorage Connection not existed!");

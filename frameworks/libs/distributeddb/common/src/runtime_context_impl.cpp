@@ -538,11 +538,16 @@ int RuntimeContextImpl::GetSecurityOption(const std::string &filePath, SecurityO
 
 bool RuntimeContextImpl::CheckDeviceSecurityAbility(const std::string &devId, const SecurityOption &option) const
 {
-    std::lock_guard<std::recursive_mutex> autoLock(systemApiAdapterLock_);
-    if (systemApiAdapter_ == nullptr) {
-        return true;
+    std::shared_ptr<IProcessSystemApiAdapter> tempSystemApiAdapter = nullptr;
+    {
+        std::lock_guard<std::recursive_mutex> autoLock(systemApiAdapterLock_);
+        if (systemApiAdapter_ == nullptr) {
+            return true;
+        }
+        tempSystemApiAdapter = systemApiAdapter_;
     }
-    return systemApiAdapter_->CheckDeviceSecurityAbility(devId, option);
+    
+    return tempSystemApiAdapter->CheckDeviceSecurityAbility(devId, option);
 }
 
 int RuntimeContextImpl::SetProcessSystemApiAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter)

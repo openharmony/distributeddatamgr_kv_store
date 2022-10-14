@@ -327,7 +327,7 @@ int JsonObject::GetSubFieldPath(const FieldPath &inPath, std::set<FieldPath> &ou
     std::vector<std::string> subFields = valueNode.getMemberNames();
     for (const auto &eachSubField : subFields) {
         FieldPath eachSubPath = inPath;
-        eachSubPath.push_back(eachSubField);
+        eachSubPath.emplace_back(eachSubField);
         outSubPath.insert(eachSubPath);
     }
     return E_OK;

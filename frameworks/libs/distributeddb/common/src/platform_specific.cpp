@@ -308,6 +308,11 @@ int OpenFile(const std::string &fileName, FileHandle &handle)
 
 int CloseFile(FileHandle &handle)
 {
+    if (handle.handle == -1) {
+        LOGI("[CloseFile] file handle is invalid!");
+        return E_OK;
+    }
+
     if (close(handle.handle) != 0) {
         LOGE("close file failed, errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
@@ -328,12 +333,7 @@ int FileLock(const FileHandle &handle, bool isBlock)
 
 int FileUnlock(FileHandle &handle)
 {
-    if (handle.handle == -1) {
-        LOGI("[FileUnlock] file handle is invalid!");
-        return E_OK;
-    }
-
-    return CloseFile(handle);
+    return E_OK;;
 }
 #else
 namespace {
@@ -584,6 +584,10 @@ int OpenFile(const std::string &fileName, FileHandle &handle)
 
 int CloseFile(FileHandle &handle)
 {
+    if (handle.handle == -1) {
+        LOGI("[CloseFile] file handle is invalid!");
+        return E_OK;
+    }
     if (close(handle.handle) != 0) {
         LOGE("close file failed, errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
@@ -631,7 +635,7 @@ int FileUnlock(FileHandle &handle)
         LOGE("Unlock file failed. errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
     }
-    return CloseFile(handle);
+    return E_OK;
 }
 #endif
 } // namespace OS

@@ -263,7 +263,7 @@ private:
     };
 
     void PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet, const DataOperStatus &status,
-        const Key &hashKey, SingleVerNaturalStoreCommitNotifyData *committedData);
+        SingleVerNaturalStoreCommitNotifyData *committedData);
 
     static int BindSavedSyncData(sqlite3_stmt *statement, const DataItem &dataItem, const Key &hashKey,
         const SyncDataDevices &devices, bool isUpdate);

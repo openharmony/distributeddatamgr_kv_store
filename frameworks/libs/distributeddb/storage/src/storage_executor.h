@@ -23,7 +23,7 @@ enum EngineState {
     INVALID = -1, // default value, representative database is not generated
     CACHEDB,
     ATTACHING, // main db and cache db attach together
-    MIGRATING, // begine to Migrate data
+    MIGRATING, // began to Migrate data
     MAINDB,
     ENGINE_BUSY, // In order to change handle during the migration process, it is temporarily unavailable
 };

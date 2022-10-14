@@ -1725,11 +1725,7 @@ int SQLiteSingleVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = DBCommon::RemoveAllFilesOfDirectory(storeOnlyDir, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return errCode;
+    return DBCommon::RemoveAllFilesOfDirectory(storeOnlyDir, true);
 }
 
 int SQLiteSingleVerNaturalStore::GetKvDBSize(const KvDBProperties &properties, uint64_t &size) const

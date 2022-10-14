@@ -74,6 +74,8 @@ public:
 
     static PerformanceAnalysis *GetInstance(int stepNum = 20);
 
+    void Initialization();
+
     void TimeRecordStart();
 
     void TimeRecordEnd();
@@ -88,7 +90,7 @@ public:
 
     void ClosePerformanceAnalysis();
 
-    void SetFileNumber(const std::string &FileID);
+    void SetFileName(const std::string &fileName);
 
 private:
 
@@ -117,7 +119,7 @@ private:
     bool isOpen_;
     std::ofstream outFile;
     int fileNumber_;
-    std::string fileID_;
+    std::string fileName_;
 };
 }  // namespace DistributedDB
 #endif

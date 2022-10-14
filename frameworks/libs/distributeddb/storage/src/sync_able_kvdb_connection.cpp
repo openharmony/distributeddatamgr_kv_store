@@ -65,7 +65,7 @@ void SyncAbleKvDBConnection::InitPragmaFunc()
         {PRAGMA_PERFORMANCE_ANALYSIS_CLOSE, [](void *parameter, int &errCode) {
             PerformanceAnalysis::GetInstance()->ClosePerformanceAnalysis(); }},
         {PRAGMA_PERFORMANCE_ANALYSIS_SET_REPORTFILENAME,  [](void *parameter, int &errCode) {
-            PerformanceAnalysis::GetInstance()->SetFileNumber(*(static_cast<std::string *>(parameter))); }},
+            PerformanceAnalysis::GetInstance()->SetFileName(*(static_cast<std::string *>(parameter))); }},
         {PRAGMA_GET_QUEUED_SYNC_SIZE, [this](void *parameter, int &errCode) {
             errCode = GetQueuedSyncSize(static_cast<int *>(parameter)); }},
         {PRAGMA_SET_QUEUED_SYNC_LIMIT, [this](void *parameter, int &errCode) {

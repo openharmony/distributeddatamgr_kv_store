@@ -15,9 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_instance.h"
 
-#include <thread>
-#include <algorithm>
-
 #include "db_common.h"
 #include "db_errno.h"
 #include "sqlite_relational_store.h"

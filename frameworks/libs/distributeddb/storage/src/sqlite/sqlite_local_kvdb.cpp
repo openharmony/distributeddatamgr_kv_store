@@ -167,11 +167,6 @@ int SQLiteLocalKvDB::RunExportLogic(CipherType type, const CipherPassword &passw
     }
 
     errCode = SQLiteUtils::ExportDatabase(db, type, passwd, newDbName);
-    if (errCode != E_OK) {
-        goto END;
-    }
-
-END:
     (void)sqlite3_close_v2(db);
     db = nullptr;
     return errCode;
@@ -393,9 +388,8 @@ int SQLiteLocalKvDB::CheckVersionAndUpgradeIfNeed(const OpenDbProperties &openPr
     errCode = SQLiteUtils::SetUserVer(openProp, LOCAL_STORE_VERSION_CURRENT);
     if (errCode != E_OK) {
         LOGE("[SqlLocalDb][CheckUpgrade] SetUserVer fail, errCode=%d.", errCode);
-        return errCode;
     }
-    return E_OK;
+    return errCode;
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteLocalKvDB)

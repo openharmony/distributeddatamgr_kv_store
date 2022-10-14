@@ -1103,7 +1103,7 @@ END:
 }
 
 void SQLiteSingleVerStorageExecutor::PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet,
-    const DataOperStatus &status, const Key &hashKey, SingleVerNaturalStoreCommitNotifyData *committedData)
+    const DataOperStatus &status, SingleVerNaturalStoreCommitNotifyData *committedData)
 {
     if (committedData == nullptr) {
         return;
@@ -1363,7 +1363,7 @@ int SQLiteSingleVerStorageExecutor::SaveSyncDataItem(DataItem &dataItem, const D
     std::string origDev = GetOriginDevName(dataItem, notify.getData.origDev);
     errCode = SaveSyncDataToDatabase(dataItem, notify.hashKey, origDev, deviceInfo.deviceName, isUpdate);
     if (errCode == E_OK) {
-        PutIntoCommittedData(dataItem, notify.getData, notify.dataStatus, notify.hashKey, committedData);
+        PutIntoCommittedData(dataItem, notify.getData, notify.dataStatus, committedData);
         maxStamp = std::max(dataItem.timestamp, maxStamp);
     } else {
         LOGE("Save sync data to db failed:%d", errCode);

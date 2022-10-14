@@ -120,7 +120,7 @@ EngineState SQLiteStorageEngine::GetEngineState() const
 void SQLiteStorageEngine::SetEngineState(EngineState state)
 {
     LOGD("[SQLiteStorageEngine::SetEngineState] Engine State : [%d]", state);
-    engineState_ = state; // Current usage logically can guarante no concurrency
+    engineState_ = state; // Current usage logically can guarantee no concurrency
 }
 
 const OpenDbProperties &SQLiteStorageEngine::GetOpenOption() const
@@ -171,7 +171,7 @@ int SQLiteStorageEngine::CheckEngineOption(const KvDBProperties &kvDBProp) const
         securityOpt.securityFlag = kvDBProp.GetSecFlag();
     }
 
-    int conflictReslovePolicy = kvDBProp.GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, DEFAULT_LAST_WIN);
+    int conflictResolvePolicy = kvDBProp.GetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, DEFAULT_LAST_WIN);
     bool createDirByStoreIdOnly = kvDBProp.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false);
 
     if (kvDBProp.GetSchemaConstRef().IsSchemaValid() == option_.schema.empty()) {
@@ -194,7 +194,7 @@ int SQLiteStorageEngine::CheckEngineOption(const KvDBProperties &kvDBProp) const
     if (isMemDb == false &&
         option_.createDirByStoreIdOnly == createDirByStoreIdOnly &&
         option_.securityOpt == securityOpt &&
-        option_.conflictReslovePolicy == conflictReslovePolicy) {
+        option_.conflictReslovePolicy == conflictResolvePolicy) {
         return E_OK;
     }
     return -E_INVALID_ARGS;

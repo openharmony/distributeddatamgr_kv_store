@@ -773,7 +773,7 @@ int SQLiteSingleVerStorageExecutor::PutIntoConflictAndCommitForMigrateCache(Data
         return ResetForMigrateCacheData();
     }
 
-    PutIntoCommittedData(dataItem, notify.getData, notify.dataStatus, notify.hashKey, notify.committedData);
+    PutIntoCommittedData(dataItem, notify.getData, notify.dataStatus, notify.committedData);
     return ResetForMigrateCacheData();
 }
 

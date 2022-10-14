@@ -435,7 +435,6 @@ int AutoLaunch::DisableKvStoreAutoLaunch(const std::string &normalIdentifier, co
 void AutoLaunch::GetAutoLaunchSyncDevices(const std::string &identifier, std::vector<std::string> &devices) const
 {
     devices.clear();
-    devices.shrink_to_fit();
     std::lock_guard<std::mutex> autoLock(dataLock_);
     if (autoLaunchItemMap_.count(identifier) == 0) {
         LOGD("[AutoLaunch] GetSyncDevices identifier is not exist!");
@@ -444,6 +443,7 @@ void AutoLaunch::GetAutoLaunchSyncDevices(const std::string &identifier, std::ve
     for (const auto &device : onlineDevices_) {
         devices.push_back(device);
     }
+    devices.shrink_to_fit();
 }
 
 void AutoLaunch::CloseNotifier(const AutoLaunchItem &autoLaunchItem)

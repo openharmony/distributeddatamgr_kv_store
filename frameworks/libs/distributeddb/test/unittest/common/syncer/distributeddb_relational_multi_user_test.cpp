@@ -126,6 +126,7 @@ namespace {
             dev->SetLocalFieldInfo(fieldInfoList);
             dev->SetTableInfo(tableInfo);
         }
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
 
     void PrepareData(const std::string &tableName, const std::string &dbPath)
@@ -133,6 +134,7 @@ namespace {
         sqlite3 *db = nullptr;
         EXPECT_EQ(GetDB(db, dbPath), SQLITE_OK);
         EXPECT_EQ(InsertValue(db, tableName), SQLITE_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
 
     void OpenStore1(bool syncDualTupleMode = true)
@@ -394,6 +396,7 @@ namespace {
         }
         EXPECT_EQ(rowCount, 1);
         sqlite3_finalize(statement);
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     }
 }
 
@@ -823,6 +826,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
      */
     OpenStore1(true);
     OpenStore2(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
 
     /**
      * @tc.steps: step3. user1 call remote query

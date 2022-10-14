@@ -121,7 +121,9 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReLockFile, TestSize.Level1)
 
     // unlock
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
-    EXPECT_EQ(OS::FileUnlock(fd2), E_OK); // unlock success will close fd
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
+    EXPECT_EQ(OS::FileUnlock(fd2), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd2), E_OK);
 }
 
 /**
@@ -138,7 +140,9 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
     OS::FileHandle fd;
     EXPECT_EQ(OS::OpenFile(g_testDir + "/normalmode", fd), E_OK);
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
-    EXPECT_EQ(OS::FileUnlock(fd), E_OK);  // unlock success will close fd
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
+    EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
 
     EXPECT_EQ(OS::FileLock(fd, true), -E_SYSTEM_API_FAIL);
     EXPECT_EQ(OS::FileLock(fd, true), -E_SYSTEM_API_FAIL);
@@ -152,7 +156,9 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
     EXPECT_EQ(OS::FileLock(fd, false), E_OK);
 
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
 }
 
 /**
@@ -263,6 +269,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFileBlocked, TestSize.Level1)
         EXPECT_EQ(OS::FileLock(ChildFd, true), E_OK);
         createStepFlag(1);
         EXPECT_EQ(OS::FileUnlock(ChildFd), E_OK);
+        EXPECT_EQ(OS::CloseFile(ChildFd), E_OK);
         LOGI("child process finish!");
         exit(0);
     } else {
@@ -273,6 +280,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessLockFileBlocked, TestSize.Level1)
         }
         ASSERT_FALSE(waitForStep(1, 10));
         EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+        EXPECT_EQ(OS::CloseFile(fd), E_OK);
         ASSERT_TRUE(waitForStep(1, 10));
     }
 }
@@ -319,6 +327,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked, TestSize.Level1)
     // Prevent the child process from not being completed, the main process ends to clean up resources
     EXPECT_TRUE(waitForStep(2, 1000));
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
 }
 
 /**
@@ -365,6 +374,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessDeleteDBBlocked, TestSize.Level1)
     // Prevent the child process from not being completed, the main process ends to clean up resources
     EXPECT_TRUE(waitForStep(2, 1000));
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
 }
 
@@ -409,6 +419,7 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetDBBlocked001, TestSize.Level1)
     ASSERT_TRUE(waitForStep(1, 100));
 
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
+    EXPECT_EQ(OS::CloseFile(fd), E_OK);
 
     ASSERT_TRUE(waitForStep(2, 100));
 }

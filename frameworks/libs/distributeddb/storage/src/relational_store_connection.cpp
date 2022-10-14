@@ -15,7 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_connection.h"
 #include "db_errno.h"
-#include "sqlite_single_ver_relational_storage_executor.h"
 
 namespace DistributedDB {
 RelationalStoreConnection::RelationalStoreConnection() : isExclusive_(false)

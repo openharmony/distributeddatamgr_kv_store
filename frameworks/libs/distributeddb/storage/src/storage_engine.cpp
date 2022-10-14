@@ -329,7 +329,6 @@ void StorageEngine::SetNotifiedCallback(const std::function<void(int, KvDBCommit
 {
     std::unique_lock<std::shared_mutex> lock(notifyMutex_);
     commitNotifyFunc_ = callback;
-    return;
 }
 
 void StorageEngine::SetConnectionFlag(bool isExisted)

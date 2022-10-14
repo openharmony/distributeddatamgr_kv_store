@@ -39,7 +39,7 @@ public:
     IKvDBCommitStorage *CreateMultiVerCommitStorage(int &errCode) override;
 #endif
 private:
-    // Create the a local kv db
+    // Create a local kv db
     IKvDB *CreateLocalKvDB(int &errCode);
 
 #ifndef OMIT_MULTI_VER

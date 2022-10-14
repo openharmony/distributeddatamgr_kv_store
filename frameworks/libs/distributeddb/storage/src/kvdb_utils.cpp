@@ -28,7 +28,6 @@ void KvDBUtils::GetStoreDirectory(std::string &directory, const std::string &ide
         directory += "/";
     }
     directory += identifierName;
-    return;
 }
 
 int KvDBUtils::RemoveKvDB(const std::string &dirAll, const std::string &dirStoreOnly, const std::string &dbName)

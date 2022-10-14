@@ -114,11 +114,14 @@ uint32_t DataTransformer::CalDataValueLength(const DataValue &dataValue)
     uint32_t length = 0;
     switch (dataValue.GetType()) {
         case StorageType::STORAGE_TYPE_BLOB:
-        case StorageType::STORAGE_TYPE_TEXT:
-            (void)dataValue.GetBlobLength(length);
+        case StorageType::STORAGE_TYPE_TEXT: {
+            Blob blob;
+            (void)dataValue.GetBlob(blob);
+            length = blob.GetSize();
             length = Parcel::GetEightByteAlign(length);
             length += Parcel::GetUInt32Len(); // record data length
             break;
+        }
         default:
             break;
     }
