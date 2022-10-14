@@ -206,6 +206,8 @@ private:
 
     int GetLocalDeviceId(std::string &deviceId);
 
+    void WaitingExecTaskExist();
+
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
     std::function<void(const std::string &)> onRemoteDataChanged_;

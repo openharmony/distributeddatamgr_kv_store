@@ -63,6 +63,9 @@ public:
     // check if need trigger query auto sync and get query from inMsg
     virtual bool IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyncObject &query) = 0;
 
+    // Notify machine is closing, should release some lock
+    virtual void NotifyClosing() = 0;
+
     // start a timer to ResetWatchDog when get data and send notify ack if need
     virtual void StartFeedDogForGetData(uint32_t sessionId) = 0;
 

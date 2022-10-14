@@ -409,6 +409,11 @@ void SyncStateMachine::InnerErrorAbort(uint32_t sessionId)
     (void) sessionId;
 }
 
+void SyncStateMachine::NotifyClosing()
+{
+    // do nothing
+}
+
 void SyncStateMachine::StartFeedDogForGetData(uint32_t sessionId)
 {
     std::lock_guard<std::mutex> lockGuard(getDataNotifyLock_);
