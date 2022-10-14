@@ -421,6 +421,32 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck011, TestSize.Level1)
 }
 
 /**
+ * @tc.name: StateMachineCheck012
+ * @tc.desc: Verify Ability LastNotify AckReceive callback.
+ * @tc.type: FUNC
+ * @tc.require: AR000DR9K4
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    EXPECT_CALL(stateMachine, SwitchStateAndStep(_)).WillOnce(Return());
+    DistributedDB::Message msg(ABILITY_SYNC_MESSAGE);
+    msg.SetMessageType(TYPE_NOTIFY);
+    AbilitySyncAckPacket packet;
+    packet.SetProtocolVersion(ABILITY_SYNC_VERSION_V1);
+    packet.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
+    packet.SetAckCode(-E_BUSY);
+    msg.SetCopiedObject(packet);
+    EXPECT_EQ(stateMachine.ReceiveMessageCallback(&msg), E_OK);
+    EXPECT_EQ(syncTaskContext.GetTaskErrCode(), -E_BUSY);
+}
+
+/**
  * @tc.name: StateMachineCheck013
  * @tc.desc: test kill syncTaskContext.
  * @tc.type: FUNC
