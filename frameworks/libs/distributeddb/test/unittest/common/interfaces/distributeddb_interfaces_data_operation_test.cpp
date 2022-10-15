@@ -2075,6 +2075,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Le
         EXPECT_EQ(entry.value, VALUE_1);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort001"), OK);
 }
 
 /**
@@ -2138,6 +2140,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Le
         EXPECT_EQ(expectedKeys[i], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort002"), OK);
 }
 
 /**
@@ -2211,6 +2215,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Le
         EXPECT_EQ(entry.value, VALUE_1);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort003"), OK);
 }
 
 /**
@@ -2274,6 +2280,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Le
         EXPECT_EQ(expectedKeys[dataSize - i - 1], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort004"), OK);
 }
 
 /**
@@ -2350,6 +2358,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
         EXPECT_EQ(expectedKeys[i], entry.key);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort005"), OK);
 }
 
 /**
@@ -2421,6 +2431,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Le
         EXPECT_EQ(expectedKeys[keys.size() - i - 1], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort006"), OK);
 }
 
 /**
@@ -2455,5 +2467,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Le
     Query query1 = Query::Select().PrefixKey(key).OrderByWriteTime(false);
     EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetCount(query1, count), OK);
     EXPECT_EQ(count, 1);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort007"), OK);
 }
 #endif // OMIT_JSON
