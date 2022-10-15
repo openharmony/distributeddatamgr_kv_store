@@ -51,9 +51,9 @@ static __attribute__((constructor)) void RegisterModule()
         .nm_flags = 0,
         .nm_filename = nullptr,
         .nm_register_func = Init,
-        .nm_modname = "data.distributedData",
+        .nm_modname = "data.distributedKVStore",
         .nm_priv = ((void*)0),
         .reserved = { 0 } };
     napi_module_register(&module);
-    ZLOGI("module register data.distributedData");
+    ZLOGI("module register data.distributedKvstore");
 }

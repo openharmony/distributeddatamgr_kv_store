@@ -167,11 +167,12 @@ napi_value JsKVStoreResultSet::Move(napi_env env, napi_callback_info info) /* bo
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &offset](size_t argc, napi_value* argv) {
         // required 1 arguments :: <offset>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&offset));
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    CHECK_IF_RETURN_VOID("Move exit", ctxt->isThrowError);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveV9 parameter is incorrect.");
 
     auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
     bool isMoved = resultSet->Move(offset);
@@ -186,11 +187,12 @@ napi_value JsKVStoreResultSet::MoveToPosition(napi_env env, napi_callback_info i
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &position](size_t argc, napi_value* argv) {
         // required 1 arguments :: <position>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");  
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&position));
     };
     ctxt->GetCbInfoSync(env, info, input);
-    NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
+    CHECK_IF_RETURN_VOID("MoveToPosition exit", ctxt->isThrowError);
+    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveToPositionV9 parameter is incorrect.");
     ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
 
     auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;

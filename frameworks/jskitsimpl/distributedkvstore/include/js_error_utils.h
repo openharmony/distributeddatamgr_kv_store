@@ -20,8 +20,8 @@
 #include <optional>
 #include "store_errno.h"
 #include "js_native_api.h"
+#include "napi/native_common.h"
 #include "log_print.h"
-#include "napi_queue.h"
 
 namespace OHOS {
 namespace DistributedData {
@@ -34,15 +34,17 @@ struct JsErrorCode {
 constexpr int32_t PARAM_ERROR = Status::INVALID_ARGUMENT;
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
-Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage, bool isV9version);
+Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage);
 void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool isParamsCheck = true);
 napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
 
-#define CHECK_IF_RETURN(logMsg, isThrowError)                                                \
+#define CHECK_IF_RETURN_VOID(logMsg, isThrowError) CHECK_IF_RETURN(logMsg, isThrowError, nullptr)   \
+
+#define CHECK_IF_RETURN(logMsg, isThrowError, retVal)                                        \
     do {                                                                                     \
         if (isThrowError) {                                                                  \
             ZLOGE(logMsg);                                                                   \
-            return nullptr;                                                                  \
+            return retVal;                                                                   \
         }                                                                                    \
     } while (0)
 
@@ -60,24 +62,6 @@ napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
             (ctxt)->isThrowError = true;                                                     \
             ThrowNapiError((ctxt)->env, errorcode, message);                                 \
             return;                                                                          \
-        }                                                                                    \
-    } while (0)
-
-#define CHECK_ARGS_OR_THROW(ctxt, assertion, errorcode, message)                             \
-    do {                                                                                     \
-        if ((ctxt)->isV9Called) {                                                            \
-            CHECK_THROW_BUSINESS_ERR(ctxt, assertion, errorcode, message);                   \
-        } else {                                                                             \
-            CHECK_ARGS_RETURN_VOID(ctxt, assertion, message);                                \
-        }                                                                                    \
-    } while (0)
-
-#define CHECK_STATUS_OR_THROW(ctxt, assertion, errorcode, message)                           \
-    do {                                                                                     \
-        if ((ctxt)->isV9Called) {                                                            \
-            CHECK_THROW_BUSINESS_ERR(ctxt, assertion, errorcode, message);                   \
-        } else {                                                                             \
-            CHECK_STATUS_RETURN_VOID(ctxt, message);                                         \
         }                                                                                    \
     } while (0)
 

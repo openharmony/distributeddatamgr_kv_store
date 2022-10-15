@@ -48,8 +48,8 @@ static SubscribeType ToSubscribeType(uint8_t type)
     return static_cast<SubscribeType>(type + 1);
 }
 
-JsKVStore::JsKVStore(const std::string& storeId, bool isV9Version)
-    : storeId_(storeId), isV9Version_(isV9Version)
+JsKVStore::JsKVStore(const std::string& storeId)
+    : storeId_(storeId)
 {
 }
 
@@ -122,16 +122,13 @@ napi_value JsKVStore::Put(napi_env env, napi_callback_info info)
 
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <key> <value>
-        ctxt->isV9Called = reinterpret_cast<JsKVStore *>(ctxt->native)->IsV9Func();
-        ZLOGE("isV9Called is: %{public}d", ctxt->isV9Called);
-        CHECK_ARGS_OR_THROW(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        CHECK_ARGS_RETURN_VOID(ctxt, argc == 2, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        CHECK_STATUS_OR_THROW(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
+        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
-        CHECK_STATUS_OR_THROW(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter value is incorrect.");
+        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[1], i.e. invalid value!");
     });
-    CHECK_IF_RETURN("PutV9 exit", ctxt->isThrowError);
-    
+
     auto execute = [ctxt]() {
         DistributedKv::Key key(ctxt->key);
         bool isSchemaStore = reinterpret_cast<JsKVStore *>(ctxt->native)->IsSchemaStore();
@@ -140,11 +137,8 @@ napi_value JsKVStore::Put(napi_env env, napi_callback_info info)
                                                    : JSUtil::VariantValue2Blob(ctxt->value);
         Status status = kvStore->Put(key, value);
         ZLOGD("kvStore->Put return %{public}d", status);
-        ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error, ctxt->isV9Called) == Status::SUCCESS) ?
-            napi_ok : napi_generic_failure;
-        if (!ctxt->isV9Called) {
-            CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Put() failed!");
-        }
+        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
+        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Put() failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
 }
@@ -752,11 +746,6 @@ bool JsKVStore::IsSchemaStore() const
 void JsKVStore::SetSchemaInfo(bool isSchemaStore)
 {
     isSchemaStore_ = isSchemaStore;
-}
-
-bool JsKVStore::IsV9Func() const
-{
-    return isV9Version_;
 }
 
 void JsKVStore::DataObserver::OnChange(const ChangeNotification& notification)

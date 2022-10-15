@@ -45,12 +45,9 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage, bool isV9version)
+Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
 {
     ZLOGE("V9error GenerateNapiError");
-    if (!isV9version) {
-        return status;
-    }
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
         auto napiError = errormsg.value();

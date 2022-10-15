@@ -44,7 +44,9 @@ struct ContextBase {
     napi_value output = nullptr;
     napi_status status = napi_invalid_arg;
     std::string error;
-
+    int32_t jsCode = 0;
+    bool isThrowError = false;
+    
     napi_value self = nullptr;
     void* native = nullptr;
 

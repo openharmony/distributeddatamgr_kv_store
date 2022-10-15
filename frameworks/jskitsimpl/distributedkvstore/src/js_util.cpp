@@ -965,6 +965,7 @@ napi_status JSUtil::SetValue(napi_env env, const DistributedKv::ChangeNotificati
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options& options)
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
+    napi_status status = napi_invalid_arg;
     GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
     GetNamedProperty(env, in, "encrypt", options.encrypt);
     GetNamedProperty(env, in, "backup", options.backup);
@@ -975,15 +976,36 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    napi_status status = GetNamedProperty(env, in, "schema", jsSchema);
+    status = GetNamedProperty(env, in, "schema", jsSchema);
     if (status == napi_ok) {
         options.schema = jsSchema->Dump();
     }
 
-    int32_t level = 0;
-    GetNamedProperty(env, in, "securityLevel", level);
-    options.securityLevel = level;
-    return napi_ok;
+    std::string level = "";
+    status = GetNamedProperty(env, in, "securityLevel", level);
+    if (status == napi_ok) {
+        options.securityLevel = GetLevel(level);
+    }
+    return status;
+}
+
+int32_t JSUtil::GetLevel(std::string &level)
+{
+    int32_t realLevel = 0;
+    if (level == "s1") {
+        return static_cast<int32_t>(SecurityLevel::S1);
+    }
+    if (level == "s2") {
+        return static_cast<int32_t>(SecurityLevel::S2);
+    }
+    if (level == "s3") {
+        return static_cast<int32_t>(SecurityLevel::S3);
+    }
+    if (level == "s4") {
+        return static_cast<int32_t>(SecurityLevel::S4);
+    }
+    ZLOGE("no matching level");
+    return realLevel;
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value inner, JsSchema*& out)

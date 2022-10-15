@@ -26,12 +26,12 @@
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::DistributedData {
-JsSingleKVStore::JsSingleKVStore(const std::string& storeId, bool isV9)
-    : JsKVStore(storeId, isV9)
+JsSingleKVStore::JsSingleKVStore(const std::string& storeId)
+    : JsKVStore(storeId)
 {
 }
 
-napi_value JsSingleKVStore::Constructor(napi_env env, std::string version)
+napi_value JsSingleKVStore::Constructor(napi_env env)
 {
     const napi_property_descriptor properties[] = {
         DECLARE_NAPI_FUNCTION("put", JsKVStore::Put),
@@ -60,10 +60,7 @@ napi_value JsSingleKVStore::Constructor(napi_env env, std::string version)
         DECLARE_NAPI_FUNCTION("off", JsKVStore::OffEvent) /* same to JsDeviceKVStore */
     };
     size_t count = sizeof(properties) / sizeof(properties[0]);
-    auto kvmCb = (version == "SingleKVStore") ? JsSingleKVStore::New : JsSingleKVStore::NewV9;
-    ZLOGE("version is: %{public}s",version.c_str());
-    return JSUtil::DefineClass(env, version.c_str(), properties, count, kvmCb);
-    // return JSUtil::DefineClass(env, "SingleKVStore", properties, count, JsSingleKVStore::New);
+    return JSUtil::DefineClass(env, "SingleKVStore", properties, count, JsSingleKVStore::New);
 }
 
 /*
@@ -83,17 +80,13 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key>
-        // CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->isV9Called = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsV9Func();
-        CHECK_ARGS_OR_THROW(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
 
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        CHECK_STATUS_OR_THROW(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
-        // CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
+        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
     };
     ctxt->GetCbInfo(env, info, input);
     ZLOGD("key=%{public}.8s", ctxt->key.c_str());
-    CHECK_IF_RETURN("GetV9 exit", ctxt->isThrowError);
 
     auto execute = [ctxt]() {
         OHOS::DistributedKv::Key key(ctxt->key);
@@ -103,11 +96,8 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
         Status status = kvStore->Get(key, value);
         ZLOGD("kvStore->Get return %{public}d", status);
         ctxt->value = isSchemaStore ? value.ToString() : JSUtil::Blob2VariantValue(value);
-        ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error, ctxt->isV9Called) == Status::SUCCESS) ?
-            napi_ok : napi_generic_failure;
-        if (!ctxt->isV9Called) {
-            CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Get() failed!");
-        }
+        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
+        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Get() failed!");
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = JSUtil::SetValue(env, ctxt->value, result);
@@ -496,7 +486,7 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
-    JsSingleKVStore* kvStore = new (std::nothrow) JsSingleKVStore(storeId, false);
+    JsSingleKVStore* kvStore = new (std::nothrow) JsSingleKVStore(storeId);
     NAPI_ASSERT(env, kvStore !=nullptr, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
@@ -508,32 +498,4 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     NAPI_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr));
     return ctxt->self;
 }
-
-napi_value JsSingleKVStore::NewV9(napi_env env, napi_callback_info info)
-{
-    ZLOGE("Constructor single kv storeV9!");
-    std::string storeId;
-    auto ctxt = std::make_shared<ContextBase>();
-    auto input = [env, ctxt, &storeId](size_t argc, napi_value* argv) {
-        // required 2 arguments :: <storeId> <options>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
-        ctxt->status = JSUtil::GetValue(env, argv[0], storeId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
-    };
-    ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "no memory for kvStore");
-
-    JsSingleKVStore* kvStore = new (std::nothrow) JsSingleKVStore(storeId, true);
-    CHECK_IF_ASSERT(env, kvStore !=nullptr, PARAM_ERROR, "no memory for kvStore");
-
-    auto finalize = [](napi_env env, void* data, void* hint) {
-        ZLOGD("singleKVStore finalize.");
-        auto* kvStore = reinterpret_cast<JsSingleKVStore*>(data);
-        CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
-        delete kvStore;
-    };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr));
-    return ctxt->self;
-}
-
 } // namespace OHOS::DistributedData

@@ -12,15 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef OHOS_KV_STORE_H
-#define OHOS_KV_STORE_H
+#ifndef OHOS_SINGLE_KV_STORE_H
+#define OHOS_SINGLE_KV_STORE_H
 #include <mutex>
 #include <memory>
-#include "napi_queue.h"
+#include "js_kv_manager.h"
 #include "single_kvstore.h"
 #include "uv_queue.h"
 #include "js_observer.h"
-#include "js_kv_manager.h"
+#include "napi_queue.h"
 
 namespace OHOS::DistributedData {
 enum {
@@ -30,37 +30,45 @@ enum {
     SUBSCRIBE_LOCAL_REMOTE = 2, /* i.e. SubscribeType::SUBSCRIBE_TYPE_ALL--1   */
     SUBSCRIBE_COUNT = 3
 };
-/* [NOTES]
- *    OHOS::DistributedData::JsKVStore is NOT related to DistributedKv::KvStore!!!
- *    OHOS::DistributedData::JsKVStore is wrapped for DistributedKv::SingleKvStore...
- */
-class JsKVStore {
+
+class JsSingleKVStore {
 public:
-    explicit JsKVStore(const std::string& storeId);
-    virtual ~JsKVStore();
+    explicit JsSingleKVStore(const std::string& storeId);
+    virtual ~JsSingleKVStore();
+
+    static napi_value Constructor(napi_env env);
+
+    static napi_value New(napi_env env, napi_callback_info info);
 
     void SetNative(std::shared_ptr<DistributedKv::SingleKvStore>& kvStore);
     void SetSchemaInfo(bool isSchemaStore);
     void SetUvQueue(std::shared_ptr<UvQueue> uvQueue);
     std::shared_ptr<DistributedKv::SingleKvStore>& GetNative();
     void SetContextParam(std::shared_ptr<ContextParam> param);
-    static bool IsInstanceOf(napi_env env, napi_value obj, const std::string& storeId, napi_value constructor);
 
-    /* public static members */
     static napi_value Put(napi_env env, napi_callback_info info);
-    static napi_value Delete(napi_env env, napi_callback_info info);
-    static napi_value OnEvent(napi_env env, napi_callback_info info);
-    static napi_value OffEvent(napi_env env, napi_callback_info info);
     static napi_value PutBatch(napi_env env, napi_callback_info info);
+    static napi_value Delete(napi_env env, napi_callback_info info);
     static napi_value DeleteBatch(napi_env env, napi_callback_info info);
+    static napi_value Get(napi_env env, napi_callback_info info);
+    static napi_value GetEntries(napi_env env, napi_callback_info info);
+    static napi_value GetResultSet(napi_env env, napi_callback_info info);
+    static napi_value CloseResultSet(napi_env env, napi_callback_info info);
+    static napi_value GetResultSize(napi_env env, napi_callback_info info);
+    static napi_value RemoveDeviceData(napi_env env, napi_callback_info info);
+    static napi_value Sync(napi_env env, napi_callback_info info);
+    static napi_value SetSyncParam(napi_env env, napi_callback_info info);
+    static napi_value GetSecurityLevel(napi_env env, napi_callback_info info);
+    static napi_value Backup(napi_env env, napi_callback_info info);
+    static napi_value Restore(napi_env env, napi_callback_info info);
+    static napi_value DeleteBackup(napi_env env, napi_callback_info info);
     static napi_value StartTransaction(napi_env env, napi_callback_info info);
     static napi_value Commit(napi_env env, napi_callback_info info);
     static napi_value Rollback(napi_env env, napi_callback_info info);
     static napi_value EnableSync(napi_env env, napi_callback_info info);
     static napi_value SetSyncRange(napi_env env, napi_callback_info info);
-    static napi_value Backup(napi_env env, napi_callback_info info);
-    static napi_value Restore(napi_env env, napi_callback_info info);
-    static napi_value DeleteBackup(napi_env env, napi_callback_info info);
+    static napi_value OnEvent(napi_env env, napi_callback_info info);
+    static napi_value OffEvent(napi_env env, napi_callback_info info);
 
 protected:
     bool IsSchemaStore() const;
@@ -106,6 +114,7 @@ private:
     using Exec = std::function<void(napi_env, size_t, napi_value*, std::shared_ptr<ContextBase>)>;
     static std::map<std::string, Exec> onEventHandlers_;
     static std::map<std::string, Exec> offEventHandlers_;
+    static std::map<napi_valuetype, std::string> valueTypeToString_;
 
     std::list<std::shared_ptr<SyncObserver>> syncObservers_;
     std::mutex listMutex_ {};
