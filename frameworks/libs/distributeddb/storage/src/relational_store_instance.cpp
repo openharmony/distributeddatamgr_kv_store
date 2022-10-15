@@ -185,6 +185,12 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
         LOGE("Failed to check cipher args.");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
+
+    if (prop.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false) !=
+        existedProp.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
+            LOGE("Failed to check dual tuple sync mode for rdb");
+            return -E_MODE_MISMATCH;
+    }
     return E_OK;
 }
 }

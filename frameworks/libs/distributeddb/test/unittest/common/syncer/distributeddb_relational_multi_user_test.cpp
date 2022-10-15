@@ -888,3 +888,24 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
     EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, nullptr, true), OK);
     CloseStore();
 }
+
+/**
+ * @tc.name: multi user 011
+ * @tc.desc: test use different option to open store for rdb
+ * @tc.type: FUNC
+ * @tc.require: AR000GK58G
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser011, TestSize.Level1)
+{
+    for (int i = 0; i < 2; i++) {
+        bool syncDualTupleMode = i / 2;
+        OpenStore1(syncDualTupleMode);
+        RelationalStoreDelegate::Option option = { g_observer };
+        option.syncDualTupleMode = !syncDualTupleMode;
+        RelationalStoreDelegate *rdbDeletegatePtr = nullptr;
+        EXPECT_EQ(g_mgr1.OpenStore(g_storePath1, STORE_ID_1, option, rdbDeletegatePtr), MODE_MISMATCH);
+        EXPECT_EQ(rdbDeletegatePtr, nullptr);
+        CloseStore();
+    }
+}
