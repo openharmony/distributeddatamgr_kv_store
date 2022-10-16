@@ -202,6 +202,8 @@ public:
 
     static int SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes);
 
+    static int CheckFunctionExists(sqlite3 *db, const std::string functionName, bool &isExists);
+
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);

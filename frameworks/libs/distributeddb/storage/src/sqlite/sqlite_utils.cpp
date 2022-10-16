@@ -53,7 +53,7 @@ namespace {
     const std::string BEGIN_IMMEDIATE_SQL = "BEGIN IMMEDIATE TRANSACTION";
     const std::string COMMIT_SQL = "COMMIT TRANSACTION";
     const std::string ROLLBACK_SQL = "ROLLBACK TRANSACTION";
-    const std::string JSON_EXTRACT_BY_PATH_TEST_CREATED = "SELECT json_extract_by_path('{\"field\":0}', '$.field', 0);";
+    const std::string CHECK_FUNCTION_CREATED = "SELECT EXISTS(SELECT 1 FROM pragma_function_list WHERE name=?);";
     const std::string DEFAULT_ATTACH_CIPHER = "PRAGMA cipher_default_attach_cipher=";
     const std::string DEFAULT_ATTACH_KDF_ITER = "PRAGMA cipher_default_attach_kdf_iter=5000";
     const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1;";
@@ -1321,10 +1321,14 @@ int SQLiteUtils::RegisterJsonFunctions(sqlite3 *db)
         return MapSQLiteErrno(errCode);
     }
 #ifdef USING_DB_JSON_EXTRACT_AUTOMATICALLY
-    errCode = ExecuteRawSQL(db, JSON_EXTRACT_BY_PATH_TEST_CREATED);
-    if (errCode == E_OK) {
+    bool isExist = false;
+    errCode = CheckFunctionExists(db, "json_extract_by_path", isExist);
+    if (errCode != E_OK) {
+        LOGE("check json extract function failed. err=%d", errCode);
+        return errCode;
+    } else if (isExist == true) {
         LOGI("json_extract_by_path already created.");
-    } else {
+    } else if (isExist == false) {
         // Specify need 3 parameter in json_extract_by_path function
         errCode = sqlite3_create_function_v2(db, "json_extract_by_path", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
             nullptr, &JsonExtractByPath, nullptr, nullptr, nullptr);
@@ -2256,5 +2260,36 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
         return Rekey(db, passwd);
     }
     return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+}
+
+int SQLiteUtils::CheckFunctionExists(sqlite3 *db, const std::string functionName, bool &isExists)
+{
+    if (db == nullptr) {
+        return -1;
+    }
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, CHECK_FUNCTION_CREATED, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Get check function statement failed. err=%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, functionName);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Bind function name to statement failed. err=%d", errCode);
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Check function exists failed. err=%d", errCode); // should always return a row data
+        goto END;
+    }
+    errCode = E_OK;
+    isExists = (sqlite3_column_int(stmt, 0) == 1);
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 } // namespace DistributedDB
