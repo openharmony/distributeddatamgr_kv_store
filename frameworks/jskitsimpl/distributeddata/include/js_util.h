@@ -148,7 +148,7 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
     static napi_status GetValue(napi_env env, napi_value in, DataQuery &out);
 
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject &valueObject);
+    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &value);
     static napi_status GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
 
     static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);

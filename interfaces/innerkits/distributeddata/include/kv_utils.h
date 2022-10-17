@@ -68,8 +68,8 @@ private:
     KvUtils &operator=(KvUtils &&) = delete;
     KvUtils &operator=(const KvUtils &) = delete;
     ~KvUtils() = delete;
-    static Status ToEntryData(const std::map<std::string,
-        DataShare::DataShareValueObject> &valuesMap, const std::string field, Blob &blob);
+    static Status ToEntryData(const std::map<std::string, DataShare::DataShareValueObject::Type> &values,
+        const std::string &field, Blob &blob);
     static const std::string KEY;
     static const std::string VALUE;
     using QueryHandler = void (*)(const DataShare::OperationItem &, DataQuery &);

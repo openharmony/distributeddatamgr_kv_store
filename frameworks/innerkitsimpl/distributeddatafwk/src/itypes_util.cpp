@@ -31,6 +31,16 @@ bool ITypesUtil::Unmarshal(MessageParcel &data)
     return true;
 }
 
+bool ITypesUtil::Marshalling(int16_t input, MessageParcel &data)
+{
+    return data.WriteInt16(input);
+}
+
+bool ITypesUtil::Unmarshalling(int16_t &output, MessageParcel &data)
+{
+    return data.ReadInt16(output);
+}
+
 bool ITypesUtil::Marshalling(uint32_t input, MessageParcel &data)
 {
     return data.WriteUint32(input);
@@ -59,6 +69,36 @@ bool ITypesUtil::Marshalling(uint64_t input, MessageParcel &data)
 bool ITypesUtil::Unmarshalling(uint64_t &output, MessageParcel &data)
 {
     return data.ReadUint64(output);
+}
+
+bool ITypesUtil::Marshalling(int64_t input, MessageParcel &data)
+{
+    return data.WriteInt64(input);
+}
+
+bool ITypesUtil::Unmarshalling(int64_t &output, MessageParcel &data)
+{
+    return data.ReadInt64(output);
+}
+
+bool ITypesUtil::Marshalling(double input, MessageParcel &data)
+{
+    return data.WriteDouble(input);
+}
+
+bool ITypesUtil::Unmarshalling(double &output, MessageParcel &data)
+{
+    return data.ReadDouble(output);
+}
+
+bool ITypesUtil::Marshalling(bool input, MessageParcel &data)
+{
+    return data.WriteBool(input);
+}
+
+bool ITypesUtil::Unmarshalling(bool &output, MessageParcel &data)
+{
+    return data.ReadBool(output);
 }
 
 bool ITypesUtil::Marshalling(IRemoteObject* input, MessageParcel &data)
@@ -199,84 +239,14 @@ bool ITypesUtil::Unmarshalling(ChangeNotification &output, MessageParcel &parcel
 
 bool ITypesUtil::Marshalling(const DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel)
 {
-    if (!parcel.WriteString(param.bundleName_)) {
-        ZLOGE("RdbStoreParam write bundle name failed");
-        return false;
-    }
-    if (!parcel.WriteString(param.hapName_)) {
-        ZLOGE("RdbStoreParam write directory failed");
-        return false;
-    }
-    if (!parcel.WriteString(param.storeName_)) {
-        ZLOGE("RdbStoreParam write store name failed");
-        return false;
-    }
-    if (!parcel.WriteInt32(param.area_)) {
-        ZLOGE("RdbStoreParam write security level failed");
-        return false;
-    }
-    if (!parcel.WriteInt32(param.level_)) {
-        ZLOGE("RdbStoreParam write security level failed");
-        return false;
-    }
-    if (!parcel.WriteInt32(param.type_)) {
-        ZLOGE("RdbStoreParam write type failed");
-        return false;
-    }
-    if (!parcel.WriteUInt8Vector(param.password_)) {
-        ZLOGE("RdbStoreParam write password failed");
-        return false;
-    }
-    if (!parcel.WriteBool(param.isAutoSync_)) {
-        ZLOGE("RdbStoreParam write auto sync failed");
-        return false;
-    }
-    if (!parcel.WriteBool(param.isEncrypt_)) {
-        ZLOGE("RdbStoreParam write encrypt sync failed");
-        return false;
-    }
-    return true;
+    return ITypesUtil::Marshal(parcel, param.bundleName_, param.hapName_, param.storeName_, param.area_,
+        param.password_, param.isAutoSync_, param.isEncrypt_);
 }
 
 bool ITypesUtil::Unmarshalling(DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel)
 {
-    if (!parcel.ReadString(param.bundleName_)) {
-        ZLOGE("RdbStoreParam read bundle name failed");
-        return false;
-    }
-    if (!parcel.ReadString(param.hapName_)) {
-        ZLOGE("RdbStoreParam read directory failed");
-        return false;
-    }
-    if (!parcel.ReadString(param.storeName_)) {
-        ZLOGE("RdbStoreParam read store name failed");
-        return false;
-    }
-    if (!parcel.ReadInt32(param.area_)) {
-        ZLOGE("RdbStoreParam read security level failed");
-        return false;
-    }
-    if (!parcel.ReadInt32(param.level_)) {
-        ZLOGE("RdbStoreParam read security level failed");
-        return false;
-    }
-    if (!parcel.ReadInt32(param.type_)) {
-        ZLOGE("RdbStoreParam read type failed");
-        return false;
-    }
-    if (!parcel.ReadUInt8Vector(&(param.password_))) {
-        ZLOGE("RdbStoreParam read password failed");
-        return false;
-    }
-    if (!parcel.ReadBool(param.isAutoSync_)) {
-        ZLOGE("RdbStoreParam read auto sync failed");
-        return false;
-    }
-    if (!parcel.ReadBool(param.isEncrypt_)) {
-        ZLOGE("RdbStoreParam read encrypt sync failed");
-        return false;
-    }
-    return true;
+    return ITypesUtil::Unmarshal(parcel, param.bundleName_, param.hapName_, param.storeName_, param.area_,
+        param.password_, param.isAutoSync_, param.isEncrypt_);
 }
 
 bool ITypesUtil::Marshalling(const DistributedRdb::SyncOption &option, MessageParcel &parcel)
@@ -478,43 +448,13 @@ bool ITypesUtil::Unmarshalling(sptr<IRemoteObject> &output, MessageParcel &data)
 bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel)
 {
     ZLOGD("Unmarshalling DataSharePredicates Start");
-    std::list<DataShare::OperationItem> operations{};
+    std::vector<DataShare::OperationItem> operations{};
     std::string whereClause = "";
     std::vector<std::string> whereArgs;
     std::string order = "";
     int64_t mode = DataShare::INVALID_MODE;
-    size_t size = static_cast<size_t>(parcel.ReadInt32());
-    if (static_cast<int32_t>(size) < 0) {
-        ZLOGE("predicate read listSize failed");
-        return false;
-    }
-    if ((size > parcel.GetReadableBytes()) || (operations.max_size() < size)) {
-        ZLOGE("Read operations failed, size : %{public}zu", size);
-        return false;
-    }
-    operations.clear();
-    for (size_t i = 0; i < size; i++) {
-        DataShare::OperationItem listitem{};
-        if (!Unmarshalling(listitem, parcel)) {
-            ZLOGE("operations read OperationItem failed");
-            return false;
-        }
-        operations.push_back(listitem);
-    }
-    if (!parcel.ReadString(whereClause)) {
+    if (!ITypesUtil::Unmarshal(parcel, operations, whereClause, whereArgs, order, mode)){
         ZLOGE("predicate read whereClause failed");
-        return false;
-    }
-    if (!parcel.ReadStringVector(&whereArgs)) {
-        ZLOGE("predicate read whereArgs failed");
-        return false;
-    }
-    if (!parcel.ReadString(order)) {
-        ZLOGE("predicate read order failed");
-        return false;
-    }
-    if (!parcel.ReadInt64(mode)) {
-        ZLOGE("predicate read mode failed");
         return false;
     }
     DataShare::DataSharePredicates tmpPredicates(operations);
@@ -526,173 +466,10 @@ bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicates &predicates, Messa
     return true;
 }
 
-bool ITypesUtil::Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel)
-{
-    int len = parcel.ReadInt32();
-    if (len < 0) {
-        ZLOGE("valuesBucket read mapSize failed");
-        return false;
-    }
-    size_t size = static_cast<size_t>(len);
-    if ((size > parcel.GetReadableBytes()) || (valuesBucket.valuesMap.max_size() < size)) {
-        ZLOGE("Read valuesMap failed, size : %{public}zu", size);
-        return false;
-    }
-    valuesBucket.valuesMap.clear();
-    for (size_t i = 0; i < size; i++) {
-        std::string key = parcel.ReadString();
-        DataShare::DataShareValueObject value{};
-        if (!Unmarshalling(value, parcel)) {
-            ZLOGE("valuesBucket read value failed");
-            return false;
-        }
-        valuesBucket.valuesMap.insert(std::make_pair(key, value));
-    }
-    return true;
-}
-
 bool ITypesUtil::Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel)
 {
-    operationItem.operation = static_cast<DataShare::OperationType>(parcel.ReadInt64());
-    if (operationItem.operation <DataShare::OperationType::INVALID_OPERATION) {
-        ZLOGE("operationItem read operation failed");
-        return false;
-    }
-    if (!Unmarshalling(operationItem.singleParams, parcel)) {
-        ZLOGE("Unmarshalling singleParams failed");
-        return false;
-    }
-    if (!Unmarshalling(operationItem.multiParams, parcel)) {
-        ZLOGE("Unmarshalling multiParams failed");
-        return false;
-    }
-    return true;
-}
-
-bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel)
-{
-    int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataShare::DataSharePredicatesObjectType::TYPE_NULL) {
-        ZLOGE("predicatesObject read type failed");
-        return false;
-    }
-    predicatesObject.type = static_cast<DataShare::DataSharePredicatesObjectType>(type);
-    switch (predicatesObject.type) {
-        case DataShare::DataSharePredicatesObjectType::TYPE_INT: {
-            predicatesObject.value = parcel.ReadInt32();
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectType::TYPE_LONG: {
-            predicatesObject.value = parcel.ReadInt64();
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectType::TYPE_DOUBLE: {
-            predicatesObject.value = parcel.ReadDouble();
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectType::TYPE_STRING: {
-            predicatesObject.value = parcel.ReadString();
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectType::TYPE_BOOL: {
-            predicatesObject.value = parcel.ReadBool();
-            break;
-        }
-        default:
-            break;
-    }
-    return true;
-}
-
-bool ITypesUtil::Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel)
-{
-    int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataShare::DataSharePredicatesObjectsType::TYPE_NULL) {
-        ZLOGE("predicatesObject read type failed");
-        return false;
-    }
-    predicatesObject.type = static_cast<DataShare::DataSharePredicatesObjectsType>(type);
-    switch (predicatesObject.type) {
-        case DataShare::DataSharePredicatesObjectsType::TYPE_INT_VECTOR: {
-            std::vector<int> intval{};
-            if (!parcel.ReadInt32Vector(&intval)) {
-                ZLOGE("predicatesObject ReadInt32Vector value failed");
-                return false;
-            }
-            predicatesObject.value = intval;
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectsType::TYPE_LONG_VECTOR: {
-            std::vector<int64_t> int64val{};
-            if (!parcel.ReadInt64Vector(&int64val)) {
-                ZLOGE("predicatesObject ReadInt64Vector value failed");
-                return false;
-            }
-            predicatesObject.value = int64val;
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectsType::TYPE_DOUBLE_VECTOR: {
-            std::vector<double> doubleval{};
-            if (!parcel.ReadDoubleVector(&doubleval)) {
-                ZLOGE("predicatesObject ReadDoubleVector value failed");
-                return false;
-            }
-            predicatesObject.value = doubleval;
-            break;
-        }
-        case DataShare::DataSharePredicatesObjectsType::TYPE_STRING_VECTOR: {
-            std::vector<std::string> stringval{};
-            if (!parcel.ReadStringVector(&stringval)) {
-                ZLOGE("predicatesObject ReadDoubReadStringVectorleVector value failed");
-                return false;
-            }
-            predicatesObject.value = stringval;
-            break;
-        }
-        default:
-            break;
-    }
-    return true;
-}
-
-bool ITypesUtil::Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel)
-{
-    int16_t type = parcel.ReadInt16();
-    if (type < (int16_t)DataShare::DataShareValueObjectType::TYPE_NULL) {
-        ZLOGE("valueObject read type failed");
-        return false;
-    }
-    valueObject.type = static_cast<DataShare::DataShareValueObjectType>(type);
-    switch (valueObject.type) {
-        case DataShare::DataShareValueObjectType::TYPE_INT: {
-            valueObject.value = parcel.ReadInt64();
-            break;
-        }
-        case DataShare::DataShareValueObjectType::TYPE_DOUBLE: {
-            valueObject.value = parcel.ReadDouble();
-            break;
-        }
-        case DataShare::DataShareValueObjectType::TYPE_STRING: {
-            valueObject.value = parcel.ReadString();
-            break;
-        }
-        case DataShare::DataShareValueObjectType::TYPE_BLOB: {
-            std::vector<uint8_t> val;
-            if (!parcel.ReadUInt8Vector(&val)) {
-                ZLOGE("valueObject ReadUInt8Vector value failed");
-                return false;
-            }
-            valueObject.value = val;
-            break;
-        }
-        case DataShare::DataShareValueObjectType::TYPE_BOOL: {
-            valueObject.value = parcel.ReadBool();
-            break;
-        }
-        default:
-            break;
-    }
-    return true;
+    return ITypesUtil::Unmarshal(parcel, operationItem.operation, operationItem.singleParams,
+        operationItem.multiParams);
 }
 
 int64_t ITypesUtil::GetTotalSize(const std::vector<Entry> &entries)
