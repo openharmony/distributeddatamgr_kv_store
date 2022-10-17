@@ -40,6 +40,7 @@ namespace DistributedDB {
 namespace {
     constexpr int WAIT_DELEGATE_CALLBACK_TIME = 100;
 
+    constexpr int DEVICE_ID_LEN = 32;
     const std::string CREATE_DB_TIME = "createDBTime";
 
     // Called when get multiple dev data.
@@ -1403,7 +1404,9 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
     // Exclusively write resources
     std::string localDev;
     int errCode = GetLocalIdentity(localDev);
-    if (errCode != E_OK) {
+    if (errCode == -E_NOT_INIT) {
+        localDev.resize(DEVICE_ID_LEN);
+    } else if (errCode != E_OK) {
         LOGE("Get local dev id err:%d", errCode);
         localDev.resize(0);
     }
@@ -1442,7 +1445,9 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
     std::string localDev;
     int errCode = GetLocalIdentity(localDev);
-    if (errCode != E_OK) {
+    if (errCode == -E_NOT_INIT) {
+        localDev.resize(DEVICE_ID_LEN);
+    } else if (errCode != E_OK) {
         LOGE("Failed to GetLocalIdentity!");
         localDev.resize(0);
     }
