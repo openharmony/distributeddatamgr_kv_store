@@ -22,7 +22,7 @@
 #include "js_observer.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 enum {
     /* exported js SubscribeType  is (DistributedKv::SubscribeType-1) */
     SUBSCRIBE_LOCAL = 0,        /* i.e. SubscribeType::SUBSCRIBE_TYPE_LOCAL-1  */
@@ -121,5 +121,5 @@ private:
     std::list<std::shared_ptr<DataObserver>> dataObserver_[SUBSCRIBE_COUNT];
     std::shared_ptr<UvQueue> uvQueue_;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_SINGLE_KV_STORE_H

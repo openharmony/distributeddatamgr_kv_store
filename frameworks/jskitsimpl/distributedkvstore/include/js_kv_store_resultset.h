@@ -19,7 +19,7 @@
 #include "result_set_bridge.h"
 #include "kvstore_result_set.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JsKVStoreResultSet : public DataShare::ResultSetBridge::Creator {
 public:
     JsKVStoreResultSet() = default;
@@ -52,5 +52,5 @@ private:
     std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet_ = nullptr;
     bool isSchema_ = false;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_KV_STORE_RESELTSET_H

@@ -21,7 +21,7 @@
 
 using namespace OHOS::DistributedKv;
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 DataQuery& JsQuery::GetNative()
 {
     return query_;
@@ -691,4 +691,4 @@ napi_value JsQuery::GetSqlLike(napi_env env, napi_callback_info info)
     JSUtil::SetValue(env, query.ToString(), ctxt->output);
     return ctxt->output;
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

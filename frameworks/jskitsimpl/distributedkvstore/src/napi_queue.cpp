@@ -17,7 +17,7 @@
 
 using namespace OHOS::DistributedKv;
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 ContextBase::~ContextBase()
 {
     ZLOGD("no memory leak after callback or promise[resolved/rejected]");
@@ -153,4 +153,4 @@ void NapiQueue::GenerateOutput(ContextBase* ctxt)
     }
     ctxt->hold.reset(); // release ctxt.
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

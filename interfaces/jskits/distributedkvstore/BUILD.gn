@@ -57,9 +57,9 @@ ohos_shared_library("distributedkvstore") {
     "../../../frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
+    "../../../frameworks/jskitsimpl/distributedkvstore/src/js_error_utils.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_field_node.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_kv_manager.cpp",
-    #"../../../frameworks/jskitsimpl/distributedkvstore/src/js_kv_store.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_kv_store_resultset.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_observer.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_query.cpp",
@@ -68,7 +68,6 @@ ohos_shared_library("distributedkvstore") {
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/napi_queue.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
-    "../../../frameworks/jskitsimpl/distributedkvstore/src/js_error_utils.cpp",
   ]
 
   deps = [

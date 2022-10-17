@@ -28,7 +28,7 @@
 #include "js_error_utils.h"
 // #include "js_status_utils.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JSUtil final {
 public:
     enum {
@@ -197,5 +197,5 @@ private:
     
     static int32_t GetLevel(std::string &level);
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

@@ -24,7 +24,7 @@
 
 using namespace OHOS::DistributedKv;
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 static bool IsStoreTypeSupported(Options options)
 {
     return (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION)
@@ -409,4 +409,4 @@ void JsKVManager::DeathRecipient::OnRemoteDied()
 {
     AsyncCall();
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

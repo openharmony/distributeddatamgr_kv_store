@@ -15,7 +15,7 @@
 
 #include "js_observer.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 void JSObserver::Clear()
 {
     // Clear() run in js main thread, so it serial run with AsyncCall() lambda, so we can use no lock.
@@ -57,4 +57,4 @@ void JSObserver::AsyncCall(UvQueue::NapiArgsGenerator genArgs)
         return callback;
         }, genArgs);
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

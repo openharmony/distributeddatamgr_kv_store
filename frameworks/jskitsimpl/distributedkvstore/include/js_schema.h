@@ -20,7 +20,7 @@
 #include "js_field_node.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JsSchema {
 public:
     explicit JsSchema(napi_env env);
@@ -60,5 +60,5 @@ private:
     uint32_t mode = SCHEMA_MODE_SLOPPY;
     uint32_t skip = 0;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_SCHEMA_H

@@ -18,7 +18,7 @@
 #include "log_print.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 UvQueue::UvQueue(napi_env env)
     : env_(env)
 {
@@ -79,4 +79,4 @@ napi_env UvQueue::GetEnv()
 {
     return env_;
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

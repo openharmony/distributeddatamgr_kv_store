@@ -21,7 +21,7 @@
 #include "uv_queue.h"
 #include "js_observer.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 struct ContextParam {
     std::string baseDir = "";
     std::string hapName = "";
@@ -61,5 +61,5 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
     std::shared_ptr<ContextParam> param_;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_KV_MANAGER_H

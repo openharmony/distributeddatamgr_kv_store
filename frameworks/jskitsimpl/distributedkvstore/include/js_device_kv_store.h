@@ -18,7 +18,7 @@
 #include "js_single_kv_store.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JsDeviceKVStore : public JsSingleKVStore {
 public:
     explicit JsDeviceKVStore(const std::string& storeId);
@@ -35,6 +35,9 @@ private:
     static napi_value CloseResultSet(napi_env env, napi_callback_info info);
     static napi_value GetResultSize(napi_env env, napi_callback_info info);
     static napi_value RemoveDeviceData(napi_env env, napi_callback_info info);
+    static napi_value Sync(napi_env env, napi_callback_info info);
+    static napi_value OnEvent(napi_env env, napi_callback_info info);
+    static napi_value OffEvent(napi_env env, napi_callback_info info);
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_DEVICE_KV_STORE_H

@@ -15,8 +15,8 @@
 #define LOG_TAG "JS_ERROR_UTILS"
 #include "js_error_utils.h"
 
-namespace OHOS::DistributedData {
-using JsErrorCode = OHOS::DistributedData::JsErrorCode;
+namespace OHOS::DistributedKVStore {
+using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
 static const std::map<int32_t, JsErrorCode> jsErrCodeMsgMap {
     {Status::INVALID_ARGUMENT,               {401, "Parameter error."}},
@@ -75,4 +75,4 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
     }
     napi_throw_error(env, std::to_string(napiError.jsCode).c_str(), napiError.message.c_str());
 }
-}  // namespace OHOS::DistributedData
+}  // namespace OHOS::DistributedKVStore

@@ -20,7 +20,7 @@
 #include "napi/native_node_api.h"
 #include "uv.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class UvQueue final {
 public:
     using NapiArgsGenerator = std::function<void(napi_env env, int& argc, napi_value* argv)>;
@@ -39,5 +39,5 @@ private:
     napi_env env_ = nullptr;
     uv_loop_s* loop_ = nullptr;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_UV_QUEUE_H

@@ -20,8 +20,8 @@
 #include "napi/native_api.h"
 #include "napi/native_node_api.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 napi_status InitConstProperties(napi_env env, napi_value exports);
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 
 #endif // OHOS_JS_CONST_PROPERTIES_H

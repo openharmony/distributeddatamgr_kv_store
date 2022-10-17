@@ -17,7 +17,7 @@
 #define OHOS_JS_OBSERVER_H
 #include <memory>
 #include "uv_queue.h"
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JSObserver : public std::enable_shared_from_this<JSObserver> {
 public:
     JSObserver(std::shared_ptr <UvQueue> uvQueue, napi_value callback);
@@ -30,5 +30,5 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
     napi_ref callback_;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_OBSERVER_H

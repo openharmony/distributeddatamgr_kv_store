@@ -23,7 +23,7 @@
 #include "napi/native_common.h"
 #include "napi/native_node_api.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 constexpr size_t ARGC_MAX = 6;
 using NapiCbInfoParser = std::function<void(size_t argc, napi_value* argv)>;
 using NapiAsyncExecute = std::function<void(void)>;
@@ -114,5 +114,5 @@ private:
     };
     static void GenerateOutput(ContextBase* ctxt);
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_NAPI_QUEUE_H

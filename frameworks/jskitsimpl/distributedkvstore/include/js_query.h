@@ -19,7 +19,7 @@
 #include "data_query.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JsQuery {
 public:
     JsQuery() = default;
@@ -62,5 +62,5 @@ private:
 private:
     DistributedKv::DataQuery query_;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_QUERY_H

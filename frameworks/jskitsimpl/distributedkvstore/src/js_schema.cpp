@@ -24,7 +24,7 @@
 using namespace OHOS::DistributedKv;
 using json = nlohmann::json;
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 static std::string LABEL = "Schema";
 static std::string SCHEMA_VERSION = "SCHEMA_VERSION";
 static std::string SCHEMA_MODE = "SCHEMA_MODE";
@@ -239,4 +239,4 @@ std::string JsSchema::Dump()
     };
     return js.dump();
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

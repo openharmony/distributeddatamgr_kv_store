@@ -23,7 +23,7 @@
 
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 void JsKVStoreResultSet::SetNative(std::shared_ptr<KvStoreResultSet>& resultSet)
 {
     resultSet_ = resultSet;
@@ -287,4 +287,4 @@ void JsKVStoreResultSet::SetSchema(bool isSchema)
 {
     isSchema_ = isSchema;
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

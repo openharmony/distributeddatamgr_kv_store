@@ -21,7 +21,7 @@
 
 using namespace OHOS::DistributedKv;
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 static std::string FIELD_NAME = "FIELD_NAME";
 static std::string VALUE_TYPE = "VALUE_TYPE";
 static std::string DEFAULT_VALUE = "DEFAULT_VALUE";
@@ -277,4 +277,4 @@ std::string JsFieldNode::Dump()
     };
     return jsNode.dump();
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

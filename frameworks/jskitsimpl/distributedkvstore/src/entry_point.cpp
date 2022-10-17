@@ -21,7 +21,7 @@
 #include "js_util.h"
 #include "log_print.h"
 
-using namespace OHOS::DistributedData;
+using namespace OHOS::DistributedKVStore;
 
 static napi_value Init(napi_env env, napi_value exports)
 {

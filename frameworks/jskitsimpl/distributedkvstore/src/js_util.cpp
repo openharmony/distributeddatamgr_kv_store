@@ -27,7 +27,7 @@
 
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
 struct PredicatesProxy {
@@ -1197,4 +1197,4 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
     }
     return napi_ok;
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

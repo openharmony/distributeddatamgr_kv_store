@@ -20,7 +20,7 @@
 #include "types.h"
 
 using namespace OHOS::DistributedKv;
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 static napi_status SetNamedProperty(napi_env env, napi_value& obj, const std::string& name, int32_t value)
 {
     napi_value property = nullptr;
@@ -39,17 +39,6 @@ static napi_status SetNamedProperty(napi_env env, napi_value& obj, const std::st
     status = napi_set_named_property(env, obj, name.c_str(), property);
     CHECK_RETURN(status == napi_ok, "napi_set_named_property failed!", status);
     return status;
-}
-
-static napi_value ExportUserType(napi_env env)
-{
-    constexpr int32_t SAME_USER_ID = 0;
-
-    napi_value userType = nullptr;
-    napi_create_object(env, &userType);
-    SetNamedProperty(env, userType, "SAME_USER_ID", SAME_USER_ID);
-    napi_object_freeze(env, userType);
-    return userType;
 }
 
 static napi_value ExportConstants(napi_env env)
@@ -137,7 +126,6 @@ static napi_value ExportSecurityLevel(napi_env env)
 napi_status InitConstProperties(napi_env env, napi_value exports)
 {
     const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_PROPERTY("UserType", ExportUserType(env)),
         DECLARE_NAPI_PROPERTY("Constants", ExportConstants(env)),
         DECLARE_NAPI_PROPERTY("ValueType", ExportValueType(env)),
         DECLARE_NAPI_PROPERTY("SyncMode", ExportSyncMode(env)),
@@ -149,4 +137,4 @@ napi_status InitConstProperties(napi_env env, napi_value exports)
 
     return napi_define_properties(env, exports, count, properties);
 }
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore

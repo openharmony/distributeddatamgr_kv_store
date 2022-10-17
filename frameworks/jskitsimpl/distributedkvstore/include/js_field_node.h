@@ -19,7 +19,7 @@
 #include "js_util.h"
 #include "napi_queue.h"
 
-namespace OHOS::DistributedData {
+namespace OHOS::DistributedKVStore {
 class JsFieldNode {
 public:
     using json = nlohmann::json;
@@ -58,5 +58,5 @@ private:
     bool isWithDefaultValue = false;
     bool isNullable = false;
 };
-} // namespace OHOS::DistributedData
+} // namespace OHOS::DistributedKVStore
 #endif // OHOS_FIELD_NODE_H

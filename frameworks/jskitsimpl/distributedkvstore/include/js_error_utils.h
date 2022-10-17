@@ -24,7 +24,7 @@
 #include "log_print.h"
 
 namespace OHOS {
-namespace DistributedData {
+namespace DistributedKVStore {
 using Status = OHOS::DistributedKv::Status;
 
 struct JsErrorCode {
@@ -65,6 +65,6 @@ napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
         }                                                                                    \
     } while (0)
 
-} // namespace DistributedData
+} // namespace DistributedKVStore
 }  // namespace OHOS
 #endif  // OHOS_ERROR_UTILS_H
