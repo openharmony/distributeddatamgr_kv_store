@@ -25,19 +25,9 @@ static napi_status SetNamedProperty(napi_env env, napi_value& obj, const std::st
 {
     napi_value property = nullptr;
     napi_status status = napi_create_int32(env, value, &property);
-    CHECK_RETURN(status == napi_ok, "int32_t to napi_value failed!", status);
+    ASSERT(status == napi_ok, "int32_t to napi_value failed!", status);
     status = napi_set_named_property(env, obj, name.c_str(), property);
-    CHECK_RETURN(status == napi_ok, "napi_set_named_property failed!", status);
-    return status;
-}
-
-static napi_status SetNamedProperty(napi_env env, napi_value& obj, const std::string& name, std::string value)
-{
-    napi_value property = nullptr;
-    napi_status status = napi_create_string_utf8(env, value.c_str(), NAPI_AUTO_LENGTH, &property);
-    CHECK_RETURN(status == napi_ok, "string to napi_value failed!", status);
-    status = napi_set_named_property(env, obj, name.c_str(), property);
-    CHECK_RETURN(status == napi_ok, "napi_set_named_property failed!", status);
+    ASSERT(status == napi_ok, "napi_set_named_property failed!", status);
     return status;
 }
 
@@ -105,7 +95,6 @@ static napi_value ExportKVStoreType(napi_env env)
     napi_create_object(env, &kvStoreType);
     SetNamedProperty(env, kvStoreType, "DEVICE_COLLABORATION", (int32_t)KvStoreType::DEVICE_COLLABORATION);
     SetNamedProperty(env, kvStoreType, "SINGLE_VERSION", (int32_t)KvStoreType::SINGLE_VERSION);
-    SetNamedProperty(env, kvStoreType, "MULTI_VERSION", (int32_t)KvStoreType::MULTI_VERSION);
     napi_object_freeze(env, kvStoreType);
     return kvStoreType;
 }
@@ -115,10 +104,10 @@ static napi_value ExportSecurityLevel(napi_env env)
     napi_value securityLevel = nullptr;
     
     napi_create_object(env, &securityLevel);
-    SetNamedProperty(env, securityLevel, "S1", "s1");
-    SetNamedProperty(env, securityLevel, "S2", "s2");
-    SetNamedProperty(env, securityLevel, "S3", "s3");
-    SetNamedProperty(env, securityLevel, "S4", "s4");
+    SetNamedProperty(env, securityLevel, "S1", (int32_t)SecurityLevel::S1);
+    SetNamedProperty(env, securityLevel, "S2", (int32_t)SecurityLevel::S2);
+    SetNamedProperty(env, securityLevel, "S3", (int32_t)SecurityLevel::S3);
+    SetNamedProperty(env, securityLevel, "S4", (int32_t)SecurityLevel::S4);
     napi_object_freeze(env, securityLevel);
     return securityLevel;
 }

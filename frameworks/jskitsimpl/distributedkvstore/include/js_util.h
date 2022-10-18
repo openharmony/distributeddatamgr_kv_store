@@ -195,7 +195,6 @@ private:
         TUPLE_SIZE
     };
     
-    static int32_t GetLevel(std::string &level);
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

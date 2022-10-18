@@ -39,12 +39,12 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
     size_t argc = ARGC_MAX;
     napi_value argv[ARGC_MAX] = { nullptr };
     status = napi_get_cb_info(env, info, &argc, argv, &self, nullptr);
-    CHECK_STATUS_RETURN_VOID(this, "napi_get_cb_info failed!");
-    CHECK_ARGS_RETURN_VOID(this, argc <= ARGC_MAX, "too many arguments!");
-    CHECK_ARGS_RETURN_VOID(this, self != nullptr, "no JavaScript this argument!");
+    ASSERT_STATUS(this, "napi_get_cb_info failed!");
+    ASSERT_ARGS(this, argc <= ARGC_MAX, "too many arguments!");
+    ASSERT_ARGS(this, self != nullptr, "no JavaScript this argument!");
     napi_create_reference(env, self, 1, &selfRef);
     status = napi_unwrap(env, self, &native);
-    CHECK_STATUS_RETURN_VOID(this, "self unwrap failed!");
+    ASSERT_STATUS(this, "self unwrap failed!");
 
     if (!sync && (argc > 0)) {
         // get the last arguments :: <callback>
@@ -53,7 +53,7 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
         napi_status tyst = napi_typeof(env, argv[index], &type);
         if ((tyst == napi_ok) && (type == napi_function)) {
             status = napi_create_reference(env, argv[index], 1, &callbackRef);
-            CHECK_STATUS_RETURN_VOID(this, "ref callback failed!");
+            ASSERT_STATUS(this, "ref callback failed!");
             argc = index;
             ZLOGD("async callback, no promise");
         } else {
@@ -64,7 +64,7 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
     if (parse) {
         parse(argc, argv);
     } else {
-        CHECK_ARGS_RETURN_VOID(this, argc == 0, "required no arguments!");
+        ASSERT_ARGS(this, argc == 0, "required no arguments!");
     }
 }
 
@@ -88,7 +88,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     napi_create_async_work(
         ctxt->env, nullptr, resource,
         [](napi_env env, void* data) {
-            CHECK_RETURN_VOID(data != nullptr, "napi_async_execute_callback nullptr");
+            ASSERT_VOID(data != nullptr, "napi_async_execute_callback nullptr");
             auto ctxt = reinterpret_cast<ContextBase*>(data);
             ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", ctxt->status);
             if (ctxt->execute && ctxt->status == napi_ok) {
@@ -96,7 +96,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
             }
         },
         [](napi_env env, napi_status status, void* data) {
-            CHECK_RETURN_VOID(data != nullptr, "napi_async_complete_callback nullptr");
+            ASSERT_VOID(data != nullptr, "napi_async_complete_callback nullptr");
             auto ctxt = reinterpret_cast<ContextBase*>(data);
             ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, ctxt->status);
             if ((status != napi_ok) && (ctxt->status == napi_ok)) {

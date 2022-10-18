@@ -50,7 +50,6 @@ JsKVManager::~JsKVManager()
 
 napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 {
-    ZLOGE("CreateKVManager in");
     struct ContextInfo : public ContextBase {
         JsKVManager* kvManger = nullptr;
         napi_ref ref = nullptr;
@@ -58,24 +57,25 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <bundleName>
-        ZLOGE("run in CreateKVManager");
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         std::string bundleName;
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, PARAM_ERROR, "Missing bundleName parameter.");
-        CHECK_THROW_BUSINESS_ERR(ctxt, !bundleName.empty(), PARAM_ERROR, "The type of bundleName must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, PARAM_ERROR, "Missing bundleName parameter.");
+        ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), PARAM_ERROR, "The type of bundleName must be string.");
+        napi_value jsContext = nullptr;
+        ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, PARAM_ERROR, "Missing context parameter.");
         ctxt->ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&ctxt->kvManger),
                                        JsKVManager::Constructor(env));
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->kvManger != nullptr, PARAM_ERROR, "KVManager::New failed!");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->kvManger != nullptr, PARAM_ERROR, "KVManager::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
-    ZLOGE("run in check CreateKVManager");
-    CHECK_IF_RETURN_VOID("CreateKVManager New exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "CreateKVManager New exit");
     auto noExecute = NapiAsyncExecute();
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
         napi_delete_reference(env, ctxt->ref);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output KVManager failed");
+        ASSERT_STATUS(ctxt, "output KVManager failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), noExecute, output);
 }
@@ -90,15 +90,13 @@ struct GetKVStoreContext : public ContextBase {
     {
         auto input = [env, this](size_t argc, napi_value* argv) {
             // required 2 arguments :: <storeId> <options>
-            ZLOGE("w111111");
-            CHECK_THROW_BUSINESS_ERR(this, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
-            ZLOGE("wwwwwwwdd");
+            ASSERT_BUSINESS_ERR(this, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
             status = JSUtil::GetValue(env, argv[0], storeId);
-            CHECK_THROW_BUSINESS_ERR(this, ((status == napi_ok) && !storeId.empty()), PARAM_ERROR, "The type of storeId must be string.");
+            ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && !storeId.empty()), PARAM_ERROR, "The type of storeId must be string.");
             status = JSUtil::GetValue(env, argv[1], options);
-            CHECK_THROW_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The type of options is incorrect.");
-            CHECK_THROW_BUSINESS_ERR(this, IsStoreTypeSupported(options), PARAM_ERROR, "The type of kvStoreType is incorrect.");
-            ZLOGE("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
+            ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The type of options is incorrect.");
+            ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), PARAM_ERROR, "The type of kvStoreType is incorrect.");
+            ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
                 ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
                                          JsDeviceKVStore::Constructor(env));
@@ -120,21 +118,19 @@ struct GetKVStoreContext : public ContextBase {
  */
 napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
 {
-    ZLOGE("GetKVStore in");
     auto ctxt = std::make_shared<GetKVStoreContext>();
     ctxt->GetCbInfo(env, info);
-    ZLOGE("hshshssh");
-    CHECK_IF_RETURN_VOID("GetKVStore exit", ctxt->isThrowError);
-
+    ASSERT_NULL(!ctxt->isThrowError, "GetKVStore exit");
+    
     auto execute = [ctxt]() {
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
-        CHECK_ARGS_RETURN_VOID(ctxt, kvm != nullptr, "KVManager is null, failed!");
+        ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         AppId appId = { kvm->bundleName_ };
         StoreId storeId = { ctxt->storeId };
         ctxt->options.baseDir = kvm->param_->baseDir;
         ctxt->options.area = kvm->param_->area + 1;
         ctxt->options.hapName = kvm->param_->hapName;
-        ZLOGE("Options area:%{public}d dir:%{public}s", ctxt->options.area, ctxt->options.baseDir.c_str());
+        ZLOGD("Options area:%{public}d dir:%{public}s", ctxt->options.area, ctxt->options.baseDir.c_str());
         std::shared_ptr<DistributedKv::SingleKvStore> kvStore;
         Status status = kvm->kvDataManager_.GetSingleKvStore(ctxt->options, appId, storeId, kvStore);
         if (status == CRYPT_ERROR) {
@@ -145,7 +141,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
 
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
-        ctxt->kvStore->SetNative(kvStore);
+        ctxt->kvStore->SetKvStorePtr(kvStore);
         ctxt->kvStore->SetSchemaInfo(!ctxt->options.schema.empty());
         ctxt->kvStore->SetContextParam(kvm->param_);
         ctxt->kvStore->SetUvQueue(kvm->uvQueue_);
@@ -153,7 +149,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
         napi_delete_reference(env, ctxt->ref);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output KVManager failed");
+        ASSERT_STATUS(ctxt, "output KVManager failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -165,7 +161,6 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
  */
 napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
 {
-    ZLOGE("CloseKVStore in");
     struct ContextInfo : public ContextBase {
         std::string appId;
         std::string storeId;
@@ -174,15 +169,15 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 3 arguments :: <appId> <storeId> <kvStore>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), PARAM_ERROR, "The type of appId must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), PARAM_ERROR, "The type of appId must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
-        CHECK_THROW_BUSINESS_ERR(ctxt, argv[2] != nullptr, PARAM_ERROR, "The parameter kvStore is null.");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, argv[2] != nullptr, PARAM_ERROR, "The parameter kvStore is null.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("CloseKVStore exits", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "CloseKVStore exits");
 
     auto execute = [ctxt]() {
         AppId appId { ctxt->appId };
@@ -205,7 +200,6 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
  */
 napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
 {
-    ZLOGE("DeleteKVStore in");
     struct ContextInfo : public ContextBase {
         std::string appId;
         std::string storeId;
@@ -213,21 +207,21 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <appId> <storeId>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         size_t index = 0;
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->appId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), PARAM_ERROR, "The parameters of appId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), PARAM_ERROR, "The parameters of appId is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->storeId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, !ctxt->storeId.empty(), PARAM_ERROR, "The parameters of storeId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->storeId.empty(), PARAM_ERROR, "The parameters of storeId is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("DeleteKVStore exits", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "DeleteKVStore exits");
 
     auto execute = [ctxt]() {
         AppId appId { ctxt->appId };
         StoreId storeId { ctxt->storeId };
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
-        CHECK_ARGS_RETURN_VOID(ctxt, kvm != nullptr, "KVManager is null, failed!");
+        ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         std::string databaseDir = kvm->param_->baseDir;
         ZLOGD("DeleteKVStore databaseDir is: %{public}s", databaseDir.c_str());
         Status status = kvm->kvDataManager_.DeleteKvStore(appId, storeId, databaseDir);    
@@ -245,7 +239,6 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
  */
 napi_value JsKVManager::GetAllKVStoreId(napi_env env, napi_callback_info info)
 {
-    ZLOGE("GetAllKVStoreId in");
     struct ContextInfo : public ContextBase {
         std::string appId;
         std::vector<StoreId> storeIdList;
@@ -254,16 +247,16 @@ napi_value JsKVManager::GetAllKVStoreId(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextInfo>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <appId>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), PARAM_ERROR, "The parameters of appId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), PARAM_ERROR, "The parameters of appId is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("GetAllKVStoreId exits", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "GetAllKVStoreId exits");
 
     auto execute = [ctxt]() {
         auto kvm = reinterpret_cast<JsKVManager*>(ctxt->native);
-        CHECK_ARGS_RETURN_VOID(ctxt, kvm != nullptr, "KVManager is null, failed!");
+        ASSERT_ARGS(ctxt, kvm != nullptr, "KVManager is null, failed!");
         AppId appId { ctxt->appId };
         Status status = kvm->kvDataManager_.GetAllKvStoreId(appId, ctxt->storeIdList);
         ZLOGD("execute status:%{public}d", status);
@@ -282,19 +275,19 @@ napi_value JsKVManager::On(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <event> <callback>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("subscribe to event:%{public}s", event.c_str());
-        CHECK_THROW_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR, "The parameters of event is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR, "The parameters of event is incorrect.");
 
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[1], &valueType);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
             "The type of parameters deathCallback must be a function.");
  
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
-        CHECK_THROW_BUSINESS_ERR(ctxt, proxy != nullptr, PARAM_ERROR, "there is no native kv manager.");
+        ASSERT_BUSINESS_ERR(ctxt, proxy != nullptr, PARAM_ERROR, "there is no native kv manager.");
 
         std::lock_guard<std::mutex> lck(proxy->deathMutex_);
         for (auto& it : proxy->deathRecipient_) {
@@ -317,22 +310,21 @@ napi_value JsKVManager::On(napi_env env, napi_callback_info info)
 
 napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
 {
-    ZLOGD("KVManager::Off()");
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 or 2 arguments :: <event> [callback]
-        // CHECK_ARGS_RETURN_VOID(ctxt, (argc == 1) || (argc == 2), "invalid arguments!");
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc > 0, PARAM_ERROR, "The number of parameters is incorrect.");
+        // ASSERT_ARGS(ctxt, (argc == 1) || (argc == 2), "invalid arguments!");
+        ASSERT_BUSINESS_ERR(ctxt, argc > 0, PARAM_ERROR, "The number of parameters is incorrect.");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         // required 1 arguments :: <event>
         ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without": "with");
-        CHECK_THROW_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR, "The parameters of event is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR, "The parameters of event is incorrect.");
         // have 2 arguments :: have the [callback]
         if (argc == 2) {
             napi_valuetype valueType = napi_undefined;
             ctxt->status = napi_typeof(env, argv[1], &valueType);
-            CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
                 "The type of parameters deathCallback must be a function.");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
@@ -379,26 +371,26 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &bundleName, &param](size_t argc, napi_value* argv) {
         // required 1 arguments :: <bundleName>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, PARAM_ERROR, "Missing bundleName parameter.");
-        CHECK_THROW_BUSINESS_ERR(ctxt, !bundleName.empty(), PARAM_ERROR, "The type of bundleName must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, PARAM_ERROR, "Missing bundleName parameter.");
+        ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), PARAM_ERROR, "The type of bundleName must be string.");
 
         napi_value jsContext = nullptr;
         JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
         ctxt->status = JSUtil::GetValue(env, jsContext, param);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "get context parameter failed.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "get context parameter failed.");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("JsKVManager New exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "JsKVManager New exit");
 
     JsKVManager* kvManager = new (std::nothrow) JsKVManager(bundleName, env, param);
-    CHECK_IF_ASSERT(env, kvManager != nullptr, PARAM_ERROR, "no memory for kvManager.");
+    ASSERT_ERR(env, kvManager != nullptr, PARAM_ERROR, "no memory for kvManager.");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");
         auto* kvManager = reinterpret_cast<JsKVManager*>(data);
-        CHECK_RETURN_VOID(kvManager != nullptr, "finalize null!");
+        ASSERT_VOID(kvManager != nullptr, "finalize null!");
         delete kvManager;
     };
     NAPI_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr));

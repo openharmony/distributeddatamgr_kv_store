@@ -40,10 +40,10 @@ public:
 
     static napi_value New(napi_env env, napi_callback_info info);
 
-    void SetNative(std::shared_ptr<DistributedKv::SingleKvStore>& kvStore);
+    void SetKvStorePtr(std::shared_ptr<DistributedKv::SingleKvStore> kvStore);
     void SetSchemaInfo(bool isSchemaStore);
     void SetUvQueue(std::shared_ptr<UvQueue> uvQueue);
-    std::shared_ptr<DistributedKv::SingleKvStore>& GetNative();
+    std::shared_ptr<DistributedKv::SingleKvStore> GetKvStorePtr();
     void SetContextParam(std::shared_ptr<ContextParam> param);
 
     static napi_value Put(napi_env env, napi_callback_info info);

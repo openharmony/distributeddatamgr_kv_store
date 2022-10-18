@@ -47,14 +47,13 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 
 Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
 {
-    ZLOGE("V9error GenerateNapiError");
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
         auto napiError = errormsg.value();
         errCode = napiError.jsCode;
         errMessage = napiError.message;
     }
-    ZLOGE("GenerateNapiError errCode is %{public}d",errCode);
+    ZLOGD("GenerateNapiError errCode is %{public}d",errCode);
     if (errCode == 0) {
         return Status::SUCCESS;
     }
@@ -63,7 +62,7 @@ Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessag
 
 void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
 {
-    ZLOGE("ThrowNapiError message: %{public}s", errMessage.c_str());
+    ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
     auto errormsg = GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errormsg.has_value()) {

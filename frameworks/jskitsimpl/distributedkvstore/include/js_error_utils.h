@@ -38,17 +38,7 @@ Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessag
 void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool isParamsCheck = true);
 napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
 
-#define CHECK_IF_RETURN_VOID(logMsg, isThrowError) CHECK_IF_RETURN(logMsg, isThrowError, nullptr)   \
-
-#define CHECK_IF_RETURN(logMsg, isThrowError, retVal)                                        \
-    do {                                                                                     \
-        if (isThrowError) {                                                                  \
-            ZLOGE(logMsg);                                                                   \
-            return retVal;                                                                   \
-        }                                                                                    \
-    } while (0)
-
-#define CHECK_IF_ASSERT(env, assertion, errorcode, message)                                  \
+#define ASSERT_ERR(env, assertion, errorcode, message)                                       \
     do {                                                                                     \
         if (!(assertion)) {                                                                  \
             ThrowNapiError(env, errorcode, message);                                         \
@@ -56,7 +46,7 @@ napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
         }                                                                                    \
     } while (0)
 
-#define CHECK_THROW_BUSINESS_ERR(ctxt, assertion, errorcode, message)                        \
+#define ASSERT_BUSINESS_ERR(ctxt, assertion, errorcode, message)                             \
     do {                                                                                     \
         if (!(assertion)) {                                                                  \
             (ctxt)->isThrowError = true;                                                     \

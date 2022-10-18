@@ -24,12 +24,12 @@
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::DistributedKVStore {
-void JsKVStoreResultSet::SetNative(std::shared_ptr<KvStoreResultSet>& resultSet)
+void JsKVStoreResultSet::SetKvStoreResultSetPtr(std::shared_ptr<KvStoreResultSet> resultSet)
 {
     resultSet_ = resultSet;
 }
 
-std::shared_ptr<KvStoreResultSet>& JsKVStoreResultSet::GetNative()
+std::shared_ptr<KvStoreResultSet> JsKVStoreResultSet::GetKvStoreResultSetPtr()
 {
     return resultSet_;
 }
@@ -68,7 +68,7 @@ napi_value JsKVStoreResultSet::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvStoreResultSet finalize.");
         auto* resultSet = reinterpret_cast<JsKVStoreResultSet*>(data);
-        CHECK_RETURN_VOID(resultSet != nullptr, "finalize null!");
+        ASSERT_VOID(resultSet != nullptr, "finalize null!");
         delete resultSet;
     };
     NAPI_CALL(env, napi_wrap(env, ctxt->self, resultSet, finalize, nullptr, nullptr));
@@ -167,12 +167,12 @@ napi_value JsKVStoreResultSet::Move(napi_env env, napi_callback_info info) /* bo
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &offset](size_t argc, napi_value* argv) {
         // required 1 arguments :: <offset>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&offset));
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("Move exit", ctxt->isThrowError);
-    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveV9 parameter is incorrect.");
+    ASSERT_NULL(!ctxt->isThrowError, "Move exit");
+    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveV9 parameter is incorrect.");
 
     auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;
     bool isMoved = resultSet->Move(offset);
@@ -187,12 +187,12 @@ napi_value JsKVStoreResultSet::MoveToPosition(napi_env env, napi_callback_info i
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &position](size_t argc, napi_value* argv) {
         // required 1 arguments :: <position>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");  
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");  
         ctxt->status = napi_get_value_int32(env, argv[0], reinterpret_cast<int32_t*>(&position));
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("MoveToPosition exit", ctxt->isThrowError);
-    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveToPositionV9 parameter is incorrect.");
+    ASSERT_NULL(!ctxt->isThrowError, "MoveToPosition exit");
+    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function MoveToPositionV9 parameter is incorrect.");
     ZLOGD("KVStoreResultSet::MoveToPosition(%{public}d)", position);
 
     auto& resultSet = reinterpret_cast<JsKVStoreResultSet*>(ctxt->native)->resultSet_;

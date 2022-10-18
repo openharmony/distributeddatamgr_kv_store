@@ -80,10 +80,10 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &fieldName](size_t argc, napi_value* argv) {
         // required 1 arguments :: <fieldName>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        ASSERT_ARGS(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], fieldName);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid fieldName!");
-        CHECK_ARGS_RETURN_VOID(ctxt, !fieldName.empty(), "invalid arg[0], i.e. invalid fieldName!");
+        ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid fieldName!");
+        ASSERT_ARGS(ctxt, !fieldName.empty(), "invalid arg[0], i.e. invalid fieldName!");
     };
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
@@ -94,7 +94,7 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
         auto* field = reinterpret_cast<JsFieldNode*>(data);
-        CHECK_RETURN_VOID(field != nullptr, "finalize null!");
+        ASSERT_VOID(field != nullptr, "finalize null!");
         delete field;
     };
     NAPI_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr));
@@ -108,10 +108,10 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &child](size_t argc, napi_value* argv) {
         // required 1 arguments :: <child>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        ASSERT_ARGS(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&child), JsFieldNode::Constructor(env));
-        CHECK_STATUS_RETURN_VOID(ctxt, "napi_unwrap to FieldNode failed");
-        CHECK_ARGS_RETURN_VOID(ctxt, child != nullptr, "invalid arg[0], i.e. invalid FieldNode!");
+        ASSERT_STATUS(ctxt, "napi_unwrap to FieldNode failed");
+        ASSERT_ARGS(ctxt, child != nullptr, "invalid arg[0], i.e. invalid FieldNode!");
     };
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
@@ -142,7 +142,7 @@ napi_value JsFieldNode::GetDefaultValue(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetDefaultValue");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->defaultValue);
 }
 
@@ -153,9 +153,9 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
     JSUtil::KvStoreVariant vv;
     auto input = [env, ctxt, &vv](size_t argc, napi_value* argv) {
         // required 1 arguments :: <defaultValue>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        ASSERT_ARGS(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], vv);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
+        ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid defaultValue!");
     };
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
@@ -170,7 +170,7 @@ napi_value JsFieldNode::GetNullable(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetNullable");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->isNullable);
 }
 
@@ -181,9 +181,9 @@ napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
     bool isNullable = false;
     auto input = [env, ctxt, &isNullable](size_t argc, napi_value* argv) {
         // required 1 arguments :: <isNullable>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        ASSERT_ARGS(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], isNullable);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid isNullable!");
+        ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid isNullable!");
     };
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
@@ -198,7 +198,7 @@ napi_value JsFieldNode::GetValueType(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetValueType");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->valueType);
 }
 
@@ -209,10 +209,10 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
     uint32_t type = 0;
     auto input = [env, ctxt, &type](size_t argc, napi_value* argv) {
         // required 1 arguments :: <valueType>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
+        ASSERT_ARGS(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], type);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid valueType!");
-        CHECK_ARGS_RETURN_VOID(ctxt, (JSUtil::STRING <= type) && (type <= JSUtil::DOUBLE),
+        ASSERT_STATUS(ctxt, "invalid arg[0], i.e. invalid valueType!");
+        ASSERT_ARGS(ctxt, (JSUtil::STRING <= type) && (type <= JSUtil::DOUBLE),
             "invalid arg[0], i.e. invalid valueType!");
     };
     ctxt->GetCbInfoSync(env, info, input);

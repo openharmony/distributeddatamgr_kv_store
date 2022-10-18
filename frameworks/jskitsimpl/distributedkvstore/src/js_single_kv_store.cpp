@@ -59,12 +59,12 @@ JsSingleKVStore::JsSingleKVStore(const std::string& storeId)
 {
 }
 
-void JsSingleKVStore::SetNative(std::shared_ptr<SingleKvStore>& kvStore)
+void JsSingleKVStore::SetKvStorePtr(std::shared_ptr<SingleKvStore> kvStore)
 {
     kvStore_ = kvStore;
 }
 
-std::shared_ptr<SingleKvStore>& JsSingleKVStore::GetNative()
+std::shared_ptr<SingleKvStore> JsSingleKVStore::GetKvStorePtr()
 {
     return kvStore_;
 }
@@ -154,18 +154,16 @@ napi_value JsSingleKVStore::Constructor(napi_env env)
  */
 napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
 {
-    ZLOGE("JsSingleKVStore::Put()");
     struct PutContext : public ContextBase {
         std::string key;
         JSUtil::KvStoreVariant value;
     };
     auto ctxt = std::make_shared<PutContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
-        // required 2 arguments :: <key> <value>
-        // ZLOGE("put argc is: %{public}d",argc);     
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        // required 2 arguments :: <key> <value>    
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
         if (ctxt->status != napi_ok) {
             ctxt->isThrowError = true;
@@ -176,7 +174,7 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
             return;
         }
     });
-    CHECK_IF_RETURN_VOID("Put exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Put exit");
 
     auto execute = [ctxt]() {
         DistributedKv::Key key(ctxt->key);
@@ -185,7 +183,7 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
         DistributedKv::Value value = isSchemaStore ? DistributedKv::Blob(std::get<std::string>(ctxt->value))
                                                    : JSUtil::VariantValue2Blob(ctxt->value);        
         Status status = kvStore->Put(key, value);
-        ZLOGE("kvStore->Put return %{public}d", status);
+        ZLOGD("kvStore->Put return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
     };
@@ -201,7 +199,6 @@ napi_value JsSingleKVStore::Put(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
 {
-    ZLOGD("KVStore::Delete()");
     struct DeleteContext : public ContextBase {
         std::string key;
         std::vector<DistributedKv::Blob> keys;
@@ -210,20 +207,20 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key> || <predicates>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc == 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc == 1, PARAM_ERROR, "The number of parameter is incorrect.");
         ctxt->type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &(ctxt->type));
         if (ctxt->type == napi_string) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
             ZLOGD("kvStore->Delete %{public}.6s  status:%{public}d", ctxt->key.c_str(), ctxt->status);
-            CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
         } else if (ctxt->type == napi_object) {
             ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
             ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
-            CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters predicates is incorrect.");
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters predicates is incorrect.");
         }
     });
-    CHECK_IF_RETURN_VOID("Delete exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Delete exit");
 
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), [ctxt]() {
         Status status = Status::INVALID_ARGUMENT;
@@ -250,21 +247,20 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::OnEvent(napi_env env, napi_callback_info info)
 {
-    ZLOGD("in");
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <event> [...] <callback>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("subscribe to event:%{public}s", event.c_str());
         auto handle = onEventHandlers_.find(event);
-        CHECK_THROW_BUSINESS_ERR(ctxt, handle != onEventHandlers_.end(), PARAM_ERROR, "The type of parameters event is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, handle != onEventHandlers_.end(), PARAM_ERROR, "The type of parameters event is incorrect.");
         // shift 1 argument, for JsSingleKVStore::Exec.
         handle->second(env, argc - 1, &argv[1], ctxt);
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("OnEvent exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "OnEvent exit");
     if (ctxt->status != napi_ok) {
         ThrowNapiError(env, PARAM_ERROR, "");
     }
@@ -279,21 +275,20 @@ napi_value JsSingleKVStore::OnEvent(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::OffEvent(napi_env env, napi_callback_info info)
 {
-    ZLOGD("in");
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <event> [callback]
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc != 0, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc != 0, PARAM_ERROR, "The number of parameters is incorrect.");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         ZLOGI("unsubscribe to event:%{public}s", event.c_str());
         auto handle = offEventHandlers_.find(event);
-        CHECK_THROW_BUSINESS_ERR(ctxt, handle != offEventHandlers_.end(), PARAM_ERROR, "The type of parameters event is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, handle != offEventHandlers_.end(), PARAM_ERROR, "The type of parameters event is incorrect.");
         // shift 1 argument, for JsSingleKVStore::Exec.
         handle->second(env, argc - 1, &argv[1], ctxt);
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("OffEvent exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "OffEvent exit");
     if (ctxt->status != napi_ok) {
         ThrowNapiError(env, PARAM_ERROR, "");
     }
@@ -315,15 +310,16 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<PutBatchContext>();
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <entries>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         auto isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of entries is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of entries is incorrect.");
     });
-    CHECK_IF_RETURN_VOID("PutBatch exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "PutBatch exit");
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
+        ZLOGD("entries size is: %{public}d",ctxt->entries.size());
         Status status = kvStore->PutBatch(ctxt->entries);
         ZLOGD("kvStore->DeleteBatch return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -347,12 +343,12 @@ napi_value JsSingleKVStore::DeleteBatch(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteBatchContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keys>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of keys is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of keys is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("DeleteBatch exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "DeleteBatch exit");
     
     auto execute = [ctxt]() {
         std::vector<DistributedKv::Key> keys;
@@ -450,12 +446,12 @@ napi_value JsSingleKVStore::EnableSync(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<EnableSyncContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <enable>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
         ctxt->status = napi_get_value_bool(env, argv[0], &ctxt->enable);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters of enable is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters of enable is incorrect."); 
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("EnableSync exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "EnableSync exit");
     
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
@@ -483,14 +479,14 @@ napi_value JsSingleKVStore::SetSyncRange(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<SyncRangeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <localLabels> <remoteSupportLabels>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");  
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");  
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->localLabels);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter localLabels is string array."); 
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter localLabels is string array."); 
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->remoteSupportLabels);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter remoteSupportLabels is string array.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter remoteSupportLabels is string array.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("SetSyncRange exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "SetSyncRange exit");
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
@@ -517,12 +513,12 @@ napi_value JsSingleKVStore::Backup(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<BackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <file>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("Backup exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Backup exit");
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
@@ -549,12 +545,12 @@ napi_value JsSingleKVStore::Restore(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<RestoreContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <file>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("Restore exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Restore exit");
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
@@ -582,12 +578,12 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<DeleteBackupContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <files>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->files);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of parameter file is string.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("DeleteBackup exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "DeleteBackup exit");
     
     auto execute = [ctxt]() {
         auto jsKvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
@@ -599,7 +595,7 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = JSUtil::SetValue(env, ctxt->results, result);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output failed!");
+        ASSERT_STATUS(ctxt, "output failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -612,16 +608,16 @@ napi_value JsSingleKVStore::DeleteBackup(napi_env env, napi_callback_info info)
 void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 2 arguments :: <SubscribeType> <observer>
-    CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
 
     int32_t type = SUBSCRIBE_COUNT;
     ctxt->status = napi_get_value_int32(env, argv[0], &type);
-    CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "");
-    CHECK_THROW_BUSINESS_ERR(ctxt, ValidSubscribeType(type), PARAM_ERROR, "The type of parameter event is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "");
+    ASSERT_BUSINESS_ERR(ctxt, ValidSubscribeType(type), PARAM_ERROR, "The type of parameter event is incorrect.");
 
     napi_valuetype valueType = napi_undefined;
     ctxt->status = napi_typeof(env, argv[1], &valueType);
-    CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+    ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
         "The type of parameter Callback is incorrect.");
  
     ZLOGI("subscribe data change type %{public}d", type);
@@ -636,7 +632,7 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
 
     ctxt->status =
         proxy->Subscribe(type, std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
-    CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "Subscribe failed!");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "Subscribe failed!");
 }
 
 /*
@@ -649,12 +645,12 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
 void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: [callback]
-    CHECK_THROW_BUSINESS_ERR(ctxt, argc <= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc <= 1, PARAM_ERROR, "The number of parameters is incorrect.");
     // have 1 arguments :: have the callback
     if (argc == 1) {
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
             "The type of parameter Callback is incorrect.");
     }
 
@@ -686,7 +682,7 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
             break; // stop on fail.
         }
     }
-    CHECK_THROW_BUSINESS_ERR(ctxt, found || (argc == 0), PARAM_ERROR, "not Subscribed!");
+    ASSERT_BUSINESS_ERR(ctxt, found || (argc == 0), PARAM_ERROR, "not Subscribed!");
 }
 
 /*
@@ -697,15 +693,15 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
 void JsSingleKVStore::OnSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt)
 {
     // required 1 arguments :: <callback>
-    CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+    ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
     napi_valuetype valueType = napi_undefined;
     ctxt->status = napi_typeof(env, argv[0], &valueType);
-    CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+    ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
         "The type of parameter Callback is incorrect.");
 
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     ctxt->status = proxy->RegisterSyncCallback(std::make_shared<SyncObserver>(proxy->uvQueue_, argv[0]));
-    CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "RegisterSyncCallback failed!");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "RegisterSyncCallback failed!");
 }
 
 /*
@@ -721,7 +717,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     if (argc == 1) {
         napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), PARAM_ERROR,
             "The type of parameter Callback is incorrect."); 
         std::lock_guard<std::mutex> lck(proxy->listMutex_);
         auto it = proxy->syncObservers_.begin();
@@ -738,7 +734,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     if (argc == 0 || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
-    CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "UnRegisterSyncCallback failed!");
+    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "UnRegisterSyncCallback failed!");
 }
 
 /*
@@ -829,7 +825,6 @@ void JsSingleKVStore::SyncObserver::SyncCompleted(const std::map<std::string, Di
  */
 napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::Get()");
     struct GetContext : public ContextBase {
         std::string key;
         JSUtil::KvStoreVariant value;
@@ -837,18 +832,18 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("Get exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Get exit");
 
     ZLOGD("key=%{public}.8s", ctxt->key.c_str());
     auto execute = [env, ctxt]() {
         OHOS::DistributedKv::Key key(ctxt->key);
         OHOS::DistributedKv::Value value;
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         bool isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
         Status status = kvStore->Get(key, value);
         ZLOGD("kvStore->Get return %{public}d", status);
@@ -858,7 +853,7 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = JSUtil::SetValue(env, ctxt->value, result);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output failed");
+        ASSERT_STATUS(ctxt, "output failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -922,7 +917,6 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
  */
 napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::GetEntries()");
     struct GetEntriesContext : public ContextBase {
         VariantArgs va;
         std::vector<Entry> entries;
@@ -930,22 +924,22 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetEntriesContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keyPrefix/query>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, ctxt->va.errMsg);
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("GetEntries exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "GetEntries exit");
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         Status status = Status::INVALID_ARGUMENT;
         if (ctxt->va.type == ArgsType::KEYPREFIX) {
             OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
             status = kvStore->GetEntries(keyPrefix, ctxt->entries);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
         } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetNative();
+            auto query = ctxt->va.query->GetDataQuery();
             status = kvStore->GetEntries(query, ctxt->entries);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
         }
@@ -955,7 +949,7 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
     auto output = [env, ctxt](napi_value& result) {
         auto isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
         ctxt->status = JSUtil::SetValue(env, ctxt->entries, result, isSchemaStore);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output failed!");
+        ASSERT_STATUS(ctxt, "output failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -970,7 +964,6 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::GetResultSet()");
     struct GetResultSetContext : public ContextBase {
         VariantArgs va;
         JsKVStoreResultSet* resultSet = nullptr;
@@ -979,26 +972,26 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keyPrefix/query>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, ctxt->va.errMsg);
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, PARAM_ERROR, "KVStoreResultSet::New failed!");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, PARAM_ERROR, "KVStoreResultSet::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("GetResultSet exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
 
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         Status status = Status::INVALID_ARGUMENT;
         if (ctxt->va.type == ArgsType::KEYPREFIX) {
             OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
             status = kvStore->GetResultSet(keyPrefix, kvResultSet);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
         } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetNative();
+            auto query = ctxt->va.query->GetDataQuery();
             status = kvStore->GetResultSet(query, kvResultSet);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
         } else {
@@ -1008,12 +1001,12 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
 
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
-        ctxt->resultSet->SetNative(kvResultSet);
+        ctxt->resultSet->SetKvStoreResultSetPtr(kvResultSet);
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
         napi_delete_reference(env, ctxt->ref);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output kvResultSet failed");
+        ASSERT_STATUS(ctxt, "output kvResultSet failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -1025,27 +1018,27 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::CloseResultSet()");
     struct CloseResultSetContext : public ContextBase {
         JsKVStoreResultSet* resultSet = nullptr;
     };
     auto ctxt = std::make_shared<CloseResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <resultSet>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect."); 
         napi_valuetype type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &type);
-        CHECK_THROW_BUSINESS_ERR(ctxt, type == napi_object, PARAM_ERROR, "The type of parameters resultSet is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, type == napi_object, PARAM_ERROR, "The type of parameters resultSet is incorrect."); 
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, PARAM_ERROR, "The parameters resultSet is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, PARAM_ERROR, "The parameters resultSet is incorrect."); 
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("CloseResultSet exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "CloseResultSet exit");
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
-        Status status = kvStore->CloseResultSet(ctxt->resultSet->GetNative());
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        auto resultSet = ctxt->resultSet->GetKvStoreResultSetPtr();
+        Status status = kvStore->CloseResultSet(resultSet);
         ZLOGD("kvStore->CloseResultSet return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
@@ -1060,7 +1053,6 @@ napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info
  */
 napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::GetResultSize()");
     struct ResultSizeContext : public ContextBase {
         JsQuery* query = nullptr;
         int resultSize = 0;
@@ -1068,19 +1060,19 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ResultSizeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <query>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         napi_valuetype type = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &type);
-        CHECK_THROW_BUSINESS_ERR(ctxt, type == napi_object, PARAM_ERROR, "The type of parameters query is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, type == napi_object, PARAM_ERROR, "The type of parameters query is incorrect."); 
         ctxt->status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->query != nullptr, PARAM_ERROR, "The parameters query is incorrect."); 
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->query != nullptr, PARAM_ERROR, "The parameters query is incorrect."); 
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("CloseResultSet exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "GetResultSize exit");
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
-        auto query = ctxt->query->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
+        auto query = ctxt->query->GetDataQuery();
         Status status = kvStore->GetCount(query, ctxt->resultSize);
         ZLOGD("kvStore->GetCount() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -1088,7 +1080,7 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = JSUtil::SetValue(env, static_cast<int32_t>(ctxt->resultSize), result);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output resultSize failed!");
+        ASSERT_STATUS(ctxt, "output resultSize failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -1100,22 +1092,21 @@ napi_value JsSingleKVStore::GetResultSize(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::RemoveDeviceData(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::RemoveDeviceData()");
     struct RemoveDeviceContext : public ContextBase {
         std::string deviceId;
     };
     auto ctxt = std::make_shared<RemoveDeviceContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <deviceId>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (!ctxt->deviceId.empty()) && (ctxt->status == napi_ok), PARAM_ERROR, "The parameters deviceId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, (!ctxt->deviceId.empty()) && (ctxt->status == napi_ok), PARAM_ERROR, "The parameters deviceId is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("RemoveDeviceData exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "RemoveDeviceData exit");
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         Status status = kvStore->RemoveDeviceData(ctxt->deviceId);
         ZLOGD("kvStore->RemoveDeviceData return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -1140,14 +1131,14 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<SyncContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 3 arguments :: <deviceIdList> <mode> [allowedDelayMs]
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceIdList);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The deviceIdList parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The deviceIdList parameters is incorrect.");
         napi_typeof(env, argv[1], &ctxt->type);
         if (ctxt->type == napi_object) {
             ctxt->status = JSUtil::Unwrap(env,
                 argv[1], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
-            CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters mode is incorrect.");
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters mode is incorrect.");
             ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->mode);
         }
         if (ctxt->type == napi_number) {
@@ -1156,19 +1147,19 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
                 ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
             }
         }
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok), PARAM_ERROR,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok), PARAM_ERROR,
             "The number of parameters is incorrect.");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("Sync exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "Sync exit");
 
     ZLOGD("sync deviceIdList.size=%{public}d, mode:%{public}u, allowedDelayMs:%{public}u",
         (int)ctxt->deviceIdList.size(), ctxt->mode, ctxt->allowedDelayMs);
 
-    auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+    auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
     Status status = Status::INVALID_ARGUMENT;
     if (ctxt->type == napi_object) {
-        auto query = ctxt->query->GetNative();
+        auto query = ctxt->query->GetDataQuery();
         status = kvStore->Sync(ctxt->deviceIdList, static_cast<SyncMode>(ctxt->mode), query, nullptr);
     }
     if (ctxt->type == napi_number) {
@@ -1186,22 +1177,21 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::SetSyncParam(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::SetSyncParam()");
     struct SyncParamContext : public ContextBase {
         uint32_t allowedDelayMs;
     };
     auto ctxt = std::make_shared<SyncParamContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <allowedDelayMs>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->allowedDelayMs);
-        CHECK_THROW_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters allowedDelayMs is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters allowedDelayMs is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
-    CHECK_IF_RETURN_VOID("SetSyncParam exit", ctxt->isThrowError);
+    ASSERT_NULL(!ctxt->isThrowError, "SetSyncParam exit");
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         KvSyncParam syncParam { ctxt->allowedDelayMs };
         Status status = kvStore->SetSyncParam(syncParam);
         ZLOGD("kvStore->SetSyncParam return %{public}d", status);
@@ -1218,7 +1208,6 @@ napi_value JsSingleKVStore::SetSyncParam(napi_env env, napi_callback_info info)
  */
 napi_value JsSingleKVStore::GetSecurityLevel(napi_env env, napi_callback_info info)
 {
-    ZLOGD("SingleKVStore::GetSecurityLevel()");
     struct SecurityLevelContext : public ContextBase {
         SecurityLevel securityLevel;
     };
@@ -1226,7 +1215,7 @@ napi_value JsSingleKVStore::GetSecurityLevel(napi_env env, napi_callback_info in
     ctxt->GetCbInfo(env, info);
 
     auto execute = [ctxt]() {
-        auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
+        auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         Status status = kvStore->GetSecurityLevel(ctxt->securityLevel);
         ZLOGD("kvStore->GetSecurityLevel return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
@@ -1234,33 +1223,33 @@ napi_value JsSingleKVStore::GetSecurityLevel(napi_env env, napi_callback_info in
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = JSUtil::SetValue(env, static_cast<uint8_t>(ctxt->securityLevel), result);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output failed!");
+        ASSERT_STATUS(ctxt, "output failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
 
 napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
 {
-    ZLOGE("Constructor single kv store!");
+    ZLOGD("Constructor single kv store!");
     std::string storeId;
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &storeId](size_t argc, napi_value* argv) {
         // required 2 arguments :: <storeId> <options>
-        CHECK_THROW_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], storeId);
-        CHECK_THROW_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
-    CHECK_IF_RETURN_VOID("SingleKVStore exit", ctxt->isThrowError);
-    CHECK_IF_ASSERT(env, ctxt->status == napi_ok, PARAM_ERROR, "no memory for kvStore");
+    ASSERT_NULL(!ctxt->isThrowError, "SingleKVStore new exit");
+    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "no memory for kvStore");
 
     JsSingleKVStore* kvStore = new (std::nothrow) JsSingleKVStore(storeId);
-    CHECK_IF_ASSERT(env, kvStore != nullptr, PARAM_ERROR, "no memory for kvStore");
+    ASSERT_ERR(env, kvStore != nullptr, PARAM_ERROR, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("singleKVStore finalize.");
         auto* kvStore = reinterpret_cast<JsSingleKVStore*>(data);
-        CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
+        ASSERT_VOID(kvStore != nullptr, "finalize null!");
         delete kvStore;
     };
     NAPI_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr));

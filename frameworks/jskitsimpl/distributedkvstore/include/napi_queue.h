@@ -64,7 +64,7 @@ private:
 };
 
 /* check condition related to argc/argv, return and logging. */
-#define CHECK_ARGS_RETURN_VOID(ctxt, condition, message)               \
+#define ASSERT_ARGS(ctxt, condition, message)                          \
     do {                                                               \
         if (!(condition)) {                                            \
             (ctxt)->status = napi_invalid_arg;                         \
@@ -74,7 +74,7 @@ private:
         }                                                              \
     } while (0)
 
-#define CHECK_STATUS_RETURN_VOID(ctxt, message)                        \
+#define ASSERT_STATUS(ctxt, message)                                   \
     do {                                                               \
         if ((ctxt)->status != napi_ok) {                               \
             (ctxt)->error = std::string(message);                      \
@@ -84,21 +84,23 @@ private:
     } while (0)
 
 /* check condition, return and logging if condition not true. */
-#define CHECK_RETURN(condition, message, retVal)             \
-    do {                                                     \
-        if (!(condition)) {                                  \
-            ZLOGE("test (" #condition ") failed: " message); \
-            return retVal;                                   \
-        }                                                    \
+#define ASSERT(condition, message, retVal)                             \
+    do {                                                               \
+        if (!(condition)) {                                            \
+            ZLOGE("test (" #condition ") failed: " message);           \
+            return retVal;                                             \
+        }                                                              \
     } while (0)
 
-#define CHECK_RETURN_VOID(condition, message)                \
-    do {                                                     \
-        if (!(condition)) {                                  \
-            ZLOGE("test (" #condition ") failed: " message); \
-            return;                                          \
-        }                                                    \
+#define ASSERT_VOID(condition, message)                                \
+    do {                                                               \
+        if (!(condition)) {                                            \
+            ZLOGE("test (" #condition ") failed: " message);           \
+            return;                                                    \
+        }                                                              \
     } while (0)
+
+#define ASSERT_NULL(condition, message)      ASSERT(condition, message, nullptr)         \
 
 class NapiQueue {
 public:
