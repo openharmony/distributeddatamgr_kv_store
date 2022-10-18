@@ -15,7 +15,7 @@
 
 #ifndef DEV_DEVICE_STATUS_CHANGE_LISTENER_IMPL_H
 #define DEV_DEVICE_STATUS_CHANGE_LISTENER_IMPL_H
-
+#include <memory>
 #include "dev_manager.h"
 #include "device_status_change_listener.h"
 
