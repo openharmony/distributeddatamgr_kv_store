@@ -14,6 +14,7 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_BLOCK_DATA_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_BLOCK_DATA_H
+#include <condition_variable>
 #include <mutex>
 
 namespace OHOS {
