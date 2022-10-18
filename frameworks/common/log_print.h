@@ -35,6 +35,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 }
 } // end namespace DistributedData
 
+namespace DistributedKVStore {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001612, "ZDD" };
+}
+} // end namespace DistributedKVStore
+
 namespace AppDistributedKv {
 static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 {
