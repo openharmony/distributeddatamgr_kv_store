@@ -53,7 +53,6 @@ namespace {
     const std::string BEGIN_IMMEDIATE_SQL = "BEGIN IMMEDIATE TRANSACTION";
     const std::string COMMIT_SQL = "COMMIT TRANSACTION";
     const std::string ROLLBACK_SQL = "ROLLBACK TRANSACTION";
-    const std::string CHECK_FUNCTION_CREATED = "SELECT EXISTS(SELECT 1 FROM pragma_function_list WHERE name=?);";
     const std::string DEFAULT_ATTACH_CIPHER = "PRAGMA cipher_default_attach_cipher=";
     const std::string DEFAULT_ATTACH_KDF_ITER = "PRAGMA cipher_default_attach_kdf_iter=5000";
     const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1;";
@@ -71,6 +70,8 @@ namespace {
 
     const std::string DETACH_BACKUP_SQL = "DETACH 'backup'";
     const std::string UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
+    const std::string CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
+        "type='table' AND tbl_name=?);";
 
     bool g_configLog = false;
 
@@ -1212,9 +1213,16 @@ int SQLiteUtils::GetSchema(sqlite3 *db, std::string &strSchema)
         return -E_INVALID_DB;
     }
 
+    bool isExists = false;
+    int errCode = CheckTableExists(db, "meta_data", isExists);
+    if (errCode != E_OK || !isExists) {
+        LOGW("meta table may has not been created, err=%d, isExists=%d", errCode, isExists);
+        return errCode;
+    }
+
     sqlite3_stmt *statement = nullptr;
     std::string sql = "SELECT value FROM meta_data WHERE key=?;";
-    int errCode = GetStatement(db, sql, statement);
+    errCode = GetStatement(db, sql, statement);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1321,21 +1329,12 @@ int SQLiteUtils::RegisterJsonFunctions(sqlite3 *db)
         return MapSQLiteErrno(errCode);
     }
 #ifdef USING_DB_JSON_EXTRACT_AUTOMATICALLY
-    bool isExist = false;
-    errCode = CheckFunctionExists(db, "json_extract_by_path", isExist);
-    if (errCode != E_OK) {
-        LOGE("check json extract function failed. err=%d", errCode);
-        return errCode;
-    } else if (isExist == true) {
-        LOGI("json_extract_by_path already created.");
-    } else if (isExist == false) {
-        // Specify need 3 parameter in json_extract_by_path function
-        errCode = sqlite3_create_function_v2(db, "json_extract_by_path", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
-            nullptr, &JsonExtractByPath, nullptr, nullptr, nullptr);
-        if (errCode != SQLITE_OK) {
-            LOGE("sqlite3_create_function_v2 about json_extract_by_path returned %d", errCode);
-            return MapSQLiteErrno(errCode);
-        }
+    // Specify need 3 parameter in json_extract_by_path function
+    errCode = sqlite3_create_function_v2(db, "json_extract_by_path", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        nullptr, &JsonExtractByPath, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("sqlite3_create_function_v2 about json_extract_by_path returned %d", errCode);
+        return MapSQLiteErrno(errCode);
     }
 #endif
     return E_OK;
@@ -2262,32 +2261,32 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
     return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
 }
 
-int SQLiteUtils::CheckFunctionExists(sqlite3 *db, const std::string functionName, bool &isExists)
+int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated)
 {
     if (db == nullptr) {
         return -1;
     }
 
     sqlite3_stmt *stmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, CHECK_FUNCTION_CREATED, stmt);
+    int errCode = SQLiteUtils::GetStatement(db, CHECK_TABLE_CREATED, stmt);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
-        LOGE("Get check function statement failed. err=%d", errCode);
+        LOGW("Get check table statement failed. err=%d", errCode);
         return errCode;
     }
 
-    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, functionName);
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, tableName);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
-        LOGE("Bind function name to statement failed. err=%d", errCode);
+        LOGE("Bind table name to statement failed. err=%d", errCode);
         goto END;
     }
 
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        LOGE("Check function exists failed. err=%d", errCode); // should always return a row data
+        LOGE("Check table exists failed. err=%d", errCode); // should always return a row data
         goto END;
     }
     errCode = E_OK;
-    isExists = (sqlite3_column_int(stmt, 0) == 1);
+    isCreated = (sqlite3_column_int(stmt, 0) == 1);
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;
