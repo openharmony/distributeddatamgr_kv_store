@@ -15,7 +15,7 @@
 import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium'
 import ddm from '@ohos.data.distributedData';
 
-const TEST_BUNDLE_NAME = 'ohos.acts.kvStore';
+const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
 
 var kvManager = null;
