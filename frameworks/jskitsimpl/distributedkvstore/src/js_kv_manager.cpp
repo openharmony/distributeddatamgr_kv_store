@@ -174,7 +174,6 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), PARAM_ERROR, "The type of appId must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
-        ASSERT_BUSINESS_ERR(ctxt, argv[2] != nullptr, PARAM_ERROR, "The parameter kvStore is null.");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CloseKVStore exits");
