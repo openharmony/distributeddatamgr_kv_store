@@ -15,7 +15,7 @@ import("//build/test.gni")
 
 module_output_path = "kv_store/napi"
 
-ohos_js_unittest("GetKvStoreJsTest") {
+ohos_js_unittest("KvStoreJsTest") {
   module_out_path = module_output_path
 
   hap_profile = "./config.json"
@@ -25,5 +25,5 @@ ohos_js_unittest("GetKvStoreJsTest") {
 
 group("unittest") {
   testonly = true
-  deps = [ ":GetKvStoreJsTest" ]
+  deps = [ ":KvStoreJsTest" ]
 }
