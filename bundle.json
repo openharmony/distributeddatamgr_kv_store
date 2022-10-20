@@ -87,7 +87,8 @@
         "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
-        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module"
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module"
       ],
       "inner_kits": [
         {

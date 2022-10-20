@@ -25,9 +25,9 @@ public:
     JsKVStoreResultSet() = default;
     virtual ~JsKVStoreResultSet() = default;
 
-    void SetNative(std::shared_ptr<DistributedKv::KvStoreResultSet>& resultSet);
+    void SetKvStoreResultSetPtr(std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet);
     void SetSchema(bool isSchema);
-    std::shared_ptr<DistributedKv::KvStoreResultSet>& GetNative();
+    std::shared_ptr<DistributedKv::KvStoreResultSet> GetKvStoreResultSetPtr();
 
     static napi_value Constructor(napi_env env);
     static napi_value New(napi_env env, napi_callback_info info);
