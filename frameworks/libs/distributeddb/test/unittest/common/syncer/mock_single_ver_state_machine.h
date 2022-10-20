@@ -67,6 +67,11 @@ public:
         SingleVerSyncStateMachine::ResponsePullError(errCode, ignoreInnerErr);
     }
 
+    int32_t GetSaveDataNotifyRefCount()
+    {
+        return saveDataNotifyRefCount_;
+    }
+
     MOCK_METHOD1(SwitchStateAndStep, void(uint8_t));
 
     MOCK_METHOD0(PrepareNextSyncTask, int(void));

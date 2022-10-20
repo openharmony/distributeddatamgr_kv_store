@@ -32,7 +32,7 @@ SyncStateMachine::SyncStateMachine()
       saveDataNotifyTimerId_(0),
       saveDataNotifyCount_(0),
       waitingResetLockBySaveData_(false),
-      saveDataNotifyRefCount_(false),
+      saveDataNotifyRefCount_(0),
       getDataNotifyTimerId_(0),
       getDataNotifyCount_(0)
 {
@@ -261,10 +261,6 @@ bool SyncStateMachine::StartSaveDataNotify(uint32_t sessionId, uint32_t sequence
 void SyncStateMachine::StopSaveDataNotify()
 {
     std::lock_guard<std::mutex> lockGuard(saveDataNotifyLock_);
-    saveDataNotifyRefCount_--;
-    if (saveDataNotifyRefCount_ > 0) {
-        return;
-    }
     StopSaveDataNotifyNoLock();
 }
 
@@ -272,6 +268,10 @@ void SyncStateMachine::StopSaveDataNotifyNoLock()
 {
     if (saveDataNotifyTimerId_ == 0) {
         LOGI("[SyncStateMachine][SaveDataNotify] timer is not started!");
+        return;
+    }
+    saveDataNotifyRefCount_--;
+    if (saveDataNotifyRefCount_ > 0) {
         return;
     }
     RuntimeContext::GetInstance()->RemoveTimer(saveDataNotifyTimerId_);

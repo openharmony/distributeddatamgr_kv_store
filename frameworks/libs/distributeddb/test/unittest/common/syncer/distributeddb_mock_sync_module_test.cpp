@@ -480,6 +480,20 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
 }
 
 /**
+ * @tc.name: StateMachineCheck014
+ * @tc.desc: test machine stop save notify without start.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck014, TestSize.Level1)
+{
+    MockSingleVerStateMachine stateMachine;
+    stateMachine.CallStopSaveDataNotify();
+    EXPECT_EQ(stateMachine.GetSaveDataNotifyRefCount(), 0);
+}
+
+/**
  * @tc.name: DataSyncCheck001
  * @tc.desc: Test dataSync recv error ack.
  * @tc.type: FUNC
