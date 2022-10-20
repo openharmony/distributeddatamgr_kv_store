@@ -279,7 +279,9 @@ int VirtualRelationalVerSyncDBInterface::GetAllSyncData(const std::string &table
         return -E_NOT_FOUND;
     }
     for (const auto &entry : syncData_[tableName]) {
-        data.push_back(entry.second);
+        if (entry.second.logInfo.flag != DataItem::DELETE_FLAG) {
+            data.push_back(entry.second);
+        }
     }
     return E_OK;
 }

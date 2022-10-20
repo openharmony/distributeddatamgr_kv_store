@@ -1040,6 +1040,40 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync007, TestSize.Level1)
 }
 
 /**
+* @tc.name: Normal Sync 008
+* @tc.desc: Test encry db sync for delete table;
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhuwentao
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. open rdb store, create distribute table, insert data and sync to deviceB
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
+    CheckVirtualData(dataMap);
+    /**
+     * @tc.steps: step2.drop table operation and sync again
+     */
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db), SQLITE_OK);
+    std::string dropTableSql = "drop table TEST_TABLE;";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, dropTableSql), E_OK);
+    std::vector<RelationalVirtualDevice *> remoteDeviceVec = {g_deviceB};
+    PrepareBasicTable(g_tableName, g_fieldInfoList, remoteDeviceVec, true);
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
+    /**
+     * @tc.steps: step3.check data in deviceB
+     */
+    std::vector<VirtualRowData> targetData;
+    g_deviceB->GetAllSyncData(g_tableName, targetData);
+    ASSERT_EQ(targetData.size(), 0u);
+}
+
+/**
 * @tc.name: Normal Sync 006
 * @tc.desc: Test normal pull sync for add data.
 * @tc.type: FUNC
