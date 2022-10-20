@@ -628,9 +628,16 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, in
     syncTaskContextMap_.insert(std::pair<std::string, ISyncTaskContext *>(deviceId, context));
     // IncRef for SyncEngine to make sure SyncEngine is valid when context access
     RefObject::IncObjRef(this);
-    context->OnLastRef([this, deviceId]() {
+    auto storage = syncInterface_;
+    if (storage != nullptr) {
+        storage->IncRefCount();
+    }
+    context->OnLastRef([this, deviceId, storage]() {
         LOGD("[SyncEngine] SyncTaskContext for id %s finalized", STR_MASK(deviceId));
         RefObject::DecObjRef(this);
+        if (storage != nullptr) {
+            storage->DecRefCount();
+        }
     });
     context->RegOnSyncTask(std::bind(&SyncEngine::ExecSyncTask, this, context));
     return context;
