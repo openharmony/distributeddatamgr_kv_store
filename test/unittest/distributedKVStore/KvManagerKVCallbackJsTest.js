@@ -17,7 +17,7 @@ import factory from '@ohos.data.distributedKVStore'
 import abilityFeatureAbility from '@ohos.ability.featureAbility'
 
 var context = abilityFeatureAbility.getContext();
-const TEST_BUNDLE_NAME = 'ohos.acts.kvStore';
+const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
 const STORE_KEY = 'key_test_string';
 const STORE_VALUE = 'value-test-string';

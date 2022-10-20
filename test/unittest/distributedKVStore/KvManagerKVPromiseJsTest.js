@@ -19,7 +19,7 @@ import abilityFeatureAbility from '@ohos.ability.featureAbility';
 var context = abilityFeatureAbility.getContext();
 var contextApplication = context.getApplicationContext()
 
-const TEST_BUNDLE_NAME = 'ohos.acts.kvStore';
+const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
 var kvManager = null;
 var kvStore = null;
