@@ -206,6 +206,7 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
         syncParam.onFinalize =  [this]() { DecObjRef(this); };
         if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
             LOGE("not support order by timestamp");
+            DecObjRef(this);
             return -E_NOT_SUPPORT;
         }
         int errCode = store->Sync(syncParam, GetConnectionId());
