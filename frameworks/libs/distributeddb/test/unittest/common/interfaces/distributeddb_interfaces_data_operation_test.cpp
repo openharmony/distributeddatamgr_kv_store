@@ -2284,6 +2284,18 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Le
     EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort004"), OK);
 }
 
+namespace {
+void CheckResultSize(KvStoreResultSet *resultSet, const std::vector<Key> &expectedKeys, int expectedSize)
+{
+    for (int i = 0; i < expectedSize; i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+    }
+}
+}
+
 /**
   * @tc.name: WriteTimeSort005
   * @tc.desc: For inkeys query with orderBy writeTime asc
@@ -2351,12 +2363,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
     ASSERT_NE(resultSet2, nullptr);
     int expectedSize = (keys.size() >= limitNum) ? limitNum : keys.size();
     ASSERT_EQ(resultSet2->GetCount(), static_cast<int>(expectedSize));
-    for (int i = 0; i < expectedSize; i++) {
-        resultSet2->MoveToPosition(i);
-        Entry entry;
-        resultSet2->GetEntry(entry);
-        EXPECT_EQ(expectedKeys[i], entry.key);
-    }
+    CheckResultSize(resultSet2, expectedKeys, expectedSize);
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort005"), OK);
