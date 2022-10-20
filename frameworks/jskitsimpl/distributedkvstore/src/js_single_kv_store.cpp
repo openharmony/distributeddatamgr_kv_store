@@ -319,7 +319,6 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
-        ZLOGD("entries size is: %{public}d",ctxt->entries.size());
         Status status = kvStore->PutBatch(ctxt->entries);
         ZLOGD("kvStore->DeleteBatch return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
