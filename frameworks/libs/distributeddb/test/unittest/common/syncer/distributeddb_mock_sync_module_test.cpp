@@ -25,6 +25,7 @@
 #include "message.h"
 #include "mock_auto_launch.h"
 #include "mock_communicator.h"
+#include "mock_kv_sync_interface.h"
 #include "mock_meta_data.h"
 #include "mock_remote_executor.h"
 #include "mock_single_ver_data_sync.h"
@@ -919,9 +920,14 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MessageScheduleTest001, TestSize.Level
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
 {
     std::unique_ptr<MockSyncEngine> enginePtr = std::make_unique<MockSyncEngine>();
-    EXPECT_CALL(*enginePtr, CreateSyncTaskContext()).WillRepeatedly(Return(nullptr));
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext())
+        .WillRepeatedly(Return(new (std::nothrow) SingleVerKvSyncTaskContext()));
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
-    VirtualSingleVerSyncDBInterface syncDBInterface;
+    MockKvSyncInterface syncDBInterface;
+    EXPECT_CALL(syncDBInterface, IncRefCount()).WillOnce(Return());
+    EXPECT_CALL(syncDBInterface, DecRefCount()).WillRepeatedly(Return());
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface.SetIdentifier(identifier);
     std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
@@ -935,10 +941,13 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
         }
         for (int count = 0; count < 100; count++) { // loop 100 times
             auto *message = new(std::nothrow) DistributedDB::Message();
+            message->SetMessageId(LOCAL_DATA_CHANGED);
+            message->SetErrorNo(E_FEEDBACK_UNKNOWN_MESSAGE);
             communicator->CallbackOnMessage("src", message);
         }
     });
     std::thread thread2([&]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
         enginePtr->Close();
     });
     thread1.join();
