@@ -92,10 +92,12 @@ struct GetKVStoreContext : public ContextBase {
             // required 2 arguments :: <storeId> <options>
             ASSERT_BUSINESS_ERR(this, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
             status = JSUtil::GetValue(env, argv[0], storeId);
-            ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && !storeId.empty()), PARAM_ERROR, "The type of storeId must be string.");
+            ASSERT_BUSINESS_ERR(this, ((status == napi_ok) && !storeId.empty()), PARAM_ERROR,
+                "The type of storeId must be string.");
             status = JSUtil::GetValue(env, argv[1], options);
             ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The type of options is incorrect.");
-            ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), PARAM_ERROR, "The type of kvStoreType is incorrect.");
+            ASSERT_BUSINESS_ERR(this, IsStoreTypeSupported(options), PARAM_ERROR,
+                "The type of kvStoreType is incorrect.");
             ZLOGD("GetKVStore kvStoreType=%{public}d", options.kvStoreType);
             if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
                 ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&kvStore),
@@ -171,9 +173,11 @@ napi_value JsKVManager::CloseKVStore(napi_env env, napi_callback_info info)
         // required 3 arguments :: <appId> <storeId> <kvStore>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), PARAM_ERROR, "The type of appId must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->appId.empty(), PARAM_ERROR,
+            "The type of appId must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->storeId);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), PARAM_ERROR, "The type of storeId must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !ctxt->storeId.empty(), PARAM_ERROR,
+            "The type of storeId must be string.");
         ASSERT_BUSINESS_ERR(ctxt, argv[2] != nullptr, PARAM_ERROR, "The parameter kvStore is null.");
     };
     ctxt->GetCbInfo(env, info, input);
@@ -318,8 +322,9 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);
         // required 1 arguments :: <event>
-        ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without": "with");
-        ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR, "The parameters of event is incorrect.");
+        ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without" : "with");
+        ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", PARAM_ERROR,
+            "The parameters of event is incorrect.");
         // have 2 arguments :: have the [callback]
         if (argc == 2) {
             napi_valuetype valueType = napi_undefined;

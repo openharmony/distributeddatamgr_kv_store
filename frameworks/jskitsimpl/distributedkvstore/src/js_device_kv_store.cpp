@@ -142,7 +142,7 @@ struct VariantArgs {
     JsQuery* query;
     ArgsType type = ArgsType::UNKNOWN;
     DataQuery dataQuery;
-    std::string errMsg ="";
+    std::string errMsg = "";
 };
 
 static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)

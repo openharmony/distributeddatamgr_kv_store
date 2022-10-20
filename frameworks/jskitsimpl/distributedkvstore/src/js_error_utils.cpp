@@ -45,7 +45,7 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
+Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage)
 {
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
@@ -53,7 +53,7 @@ Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessag
         errCode = napiError.jsCode;
         errMessage = napiError.message;
     }
-    ZLOGD("GenerateNapiError errCode is %{public}d",errCode);
+    ZLOGD("GenerateNapiError errCode is %{public}d", errCode);
     if (errCode == 0) {
         return Status::SUCCESS;
     }
@@ -62,7 +62,8 @@ Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessag
 
 void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
 {
-    ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
+    ZLOGD("ThrowNapiError message: %{public}s", errMessag
+                                                    e.c_str());
     auto errormsg = GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errormsg.has_value()) {
@@ -70,7 +71,8 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
     }
     if (isParamsCheck) {
         napiError.message += errMessage;
-        napiError.jsCode = 401;
+        constexpr int32_t ERROR_CODE = 401;
+        napiError.jsCode = ERROR_CODE;
     }
     napi_throw_error(env, std::to_string(napiError.jsCode).c_str(), napiError.message.c_str());
 }
