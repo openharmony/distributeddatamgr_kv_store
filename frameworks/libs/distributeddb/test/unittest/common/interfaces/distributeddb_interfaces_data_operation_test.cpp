@@ -1729,7 +1729,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
     EXPECT_EQ(entriesRes[4].key, KEY_2);
 
     Query query1 = Query::Select().OrderBy("$.field_name1", false);
-    errCode = g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
+    (void) g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
     ASSERT_EQ(entriesRes.size(), 5ul);
     EXPECT_EQ(entriesRes[0].key, KEY_5);
     EXPECT_EQ(entriesRes[1].key, KEY_4);
@@ -1738,7 +1738,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
     EXPECT_EQ(entriesRes[4].key, KEY_1);
 
     Query query2 = Query::Select().PrefixKey({}).OrderBy("$.field_name1", false).OrderBy("$.field_name2", false);
-    errCode = g_kvNbDelegatePtrForQuery->GetEntries(query2, entriesRes);
+    (void) g_kvNbDelegatePtrForQuery->GetEntries(query2, entriesRes);
     ASSERT_EQ(entriesRes.size(), 5ul);
     EXPECT_EQ(entriesRes[0].key, KEY_5);
     EXPECT_EQ(entriesRes[1].key, KEY_4);
