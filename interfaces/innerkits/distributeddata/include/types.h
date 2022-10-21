@@ -256,6 +256,7 @@ enum class DeviceFilterStrategy {
 enum PolicyType : uint32_t {
     TERM_OF_SYNC_VALIDITY,
     IMMEDIATE_SYNC_ON_ONLINE,
+    IMMEDIATE_SYNC_ON_CHANGE,
     POLICY_BUTT
 };
 
@@ -276,7 +277,7 @@ struct Options {
     int32_t area = EL1;
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
 
-    std::vector<SyncPolicy> policies;
+    std::vector<SyncPolicy> policies{ { IMMEDIATE_SYNC_ON_CHANGE } };
     std::string schema = "";
     std::string hapName = "";
     std::string baseDir = "";
