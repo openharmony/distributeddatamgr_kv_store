@@ -206,6 +206,7 @@ protected:
     mutable std::mutex queuedManualSyncLock_;
     mutable std::mutex syncerLock_;
     std::string label_;
+    std::mutex engineMutex_;
     bool engineFinalize_;
     std::condition_variable engineFinalizeCv_;
 
