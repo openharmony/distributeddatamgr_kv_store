@@ -976,10 +976,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync004, TestSize.Level1)
 
     std::vector<VirtualRowData> dataList;
     EXPECT_EQ(g_deviceB->GetAllSyncData(g_tableName, dataList), E_OK);
-    EXPECT_EQ(static_cast<int>(dataList.size()), 1);
-    for (const auto &item : dataList) {
-        EXPECT_EQ(item.logInfo.flag, DataItem::DELETE_FLAG);
-    }
+    EXPECT_EQ(static_cast<int>(dataList.size()), 0);
 }
 
 /**

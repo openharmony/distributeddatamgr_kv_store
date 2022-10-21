@@ -63,6 +63,7 @@ namespace {
     std::string g_deleteViewSql = "drop view studentView;";
     std::string g_dropTableSql1 = "drop table student_2;";
     std::string g_dropTableSql2 = "drop table student_1;";
+    std::string g_dropIndex = "drop index in_id;";
     std::string g_dbFile;
     std::string g_tableName;
     int g_callbackTimes = 0;
@@ -820,7 +821,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.
 }
 
 /**
-  * @tc.name: ShaAlgoEncryptTest003
+  * @tc.name: ShaAlgoEncryptTest004
   * @tc.desc: Test unnormal sql
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS

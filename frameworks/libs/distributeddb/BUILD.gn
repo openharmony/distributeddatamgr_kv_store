@@ -47,6 +47,7 @@ config("distrdb_config") {
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "USE_DFX_ABILITY",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
   ]
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]

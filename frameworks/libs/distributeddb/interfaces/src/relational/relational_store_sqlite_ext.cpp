@@ -357,9 +357,9 @@ int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
     return E_OK;
 }
 
-void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *dbName)
+void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *schemaName)
 {
-    if (db == nullptr || tableName == nullptr) {
+    if (db == nullptr || tableName == nullptr || schemaName == nullptr) {
         return;
     }
     sqlite3_stmt *stmt = nullptr;
