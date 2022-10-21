@@ -783,7 +783,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::list<DistributedKv::Entry>
     return status;
 }
 
-napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject &valueObject)
+napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject)
 {
     napi_valuetype type = napi_undefined;
     napi_typeof(env, jsValue, &type);

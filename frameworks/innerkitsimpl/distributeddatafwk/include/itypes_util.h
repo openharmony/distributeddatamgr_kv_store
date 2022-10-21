@@ -32,6 +32,9 @@ public:
     static bool Marshal(MessageParcel &data);
     static bool Unmarshal(MessageParcel &data);
 
+    static bool Marshalling(int16_t input, MessageParcel &data);
+    static bool Unmarshalling(int16_t &output, MessageParcel &data);
+
     static bool Marshalling(uint32_t input, MessageParcel &data);
     static bool Unmarshalling(uint32_t &output, MessageParcel &data);
 
@@ -40,6 +43,15 @@ public:
 
     static bool Marshalling(uint64_t input, MessageParcel &data);
     static bool Unmarshalling(uint64_t &output, MessageParcel &data);
+
+    static bool Marshalling(int64_t input, MessageParcel &data);
+    static bool Unmarshalling(int64_t &output, MessageParcel &data);
+
+    static bool Marshalling(double input, MessageParcel &data);
+    static bool Unmarshalling(double &output, MessageParcel &data);
+
+    static bool Marshalling(bool input, MessageParcel &data);
+    static bool Unmarshalling(bool &output, MessageParcel &data);
 
     static bool Marshalling(const std::monostate &input, MessageParcel &data);
     static bool Unmarshalling(std::monostate &output, MessageParcel &data);
@@ -83,11 +95,7 @@ public:
     static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
     static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
     static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
 
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
@@ -141,8 +149,10 @@ public:
     static bool UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output);
 
 private:
-    static bool Marshalling(bool input, MessageParcel &data) = delete;
-    static bool Unmarshalling(bool &output, MessageParcel &data) = delete;
+    template<typename T>
+    static bool Marshalling(T *input, MessageParcel &data) = delete;
+    template<typename T>
+    static bool Unmarshalling(T *&output, MessageParcel &data) = delete;
     template<typename _OutTp>
     static bool ReadVariant(uint32_t step, uint32_t index, const _OutTp &output, MessageParcel &data)
     {
