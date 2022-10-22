@@ -116,9 +116,9 @@ void DistributedDBRelationalEncryptedDbTest::SetUpTestCase(void)
     ASSERT_TRUE(communicator != nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicator);
 
-    g_correctPasswd.SetValue((const uint8_t *)(CORRECT_KEY.data()), CORRECT_KEY.size());
-    g_rekeyPasswd.SetValue((const uint8_t *)(REKEY_KEY.data()), REKEY_KEY.size());
-    g_incorrectPasswd.SetValue((const uint8_t *)(INCORRECT_KEY.data()), INCORRECT_KEY.size());
+    g_correctPasswd.SetValue(reinterpret_cast<const uint8_t *>(CORRECT_KEY.data()), CORRECT_KEY.size());
+    g_rekeyPasswd.SetValue(reinterpret_cast<const uint8_t *>(REKEY_KEY.data()), REKEY_KEY.size());
+    g_incorrectPasswd.SetValue(reinterpret_cast<const uint8_t *>(INCORRECT_KEY.data()), INCORRECT_KEY.size());
 }
 
 void DistributedDBRelationalEncryptedDbTest::TearDownTestCase(void)

@@ -102,25 +102,23 @@ namespace {
     {
         char *zErrMsg = nullptr;
         int errCode = sqlite3_key(g_db, static_cast<const void *>(passwd), strlen(passwd));
-        if (errCode != SQLITE_OK && zErrMsg != nullptr) {
-            LOGE(" [SQLITE]: %s", zErrMsg);
-            sqlite3_free(zErrMsg);
+        if (errCode != SQLITE_OK) {
             return errCode;
         }
 
-        errCode = sqlite3_exec(g_db, (PRAGMA_KDF_ITER + to_string(iterNumber)).c_str(), nullptr, nullptr,
-                               &zErrMsg);
-        if (errCode != SQLITE_OK && zErrMsg != nullptr) {
-            LOGE(" [SQLITE]: %s", zErrMsg);
-            sqlite3_free(zErrMsg);
+        errCode = sqlite3_exec(g_db, (PRAGMA_KDF_ITER + to_string(iterNumber)).c_str(), nullptr, nullptr, &zErrMsg);
+        if (errCode != SQLITE_OK) {
+            if (zErrMsg != nullptr) {
+                sqlite3_free(zErrMsg);
+            }
             return errCode;
         }
 
-        errCode = sqlite3_exec(g_db, (PRAGMA_CIPHER + algName + ";").c_str(), nullptr, nullptr,
-                               &zErrMsg);
-        if (errCode != SQLITE_OK && zErrMsg != nullptr) {
-            LOGE(" [SQLITE]: %s", zErrMsg);
-            sqlite3_free(zErrMsg);
+        errCode = sqlite3_exec(g_db, (PRAGMA_CIPHER + algName + ";").c_str(), nullptr, nullptr, &zErrMsg);
+        if (errCode != SQLITE_OK) {
+            if (zErrMsg != nullptr) {
+                sqlite3_free(zErrMsg);
+            }
             return errCode;
         }
 
@@ -348,9 +346,7 @@ void DistributedDBStorageEncryptTest::TearDown(void)
     /**
       * @tc.make sure g_db is nullptr and is closed.
       */
-    if (g_db != nullptr) {
-        g_db = nullptr;
-    }
+    g_db = nullptr;
     /**
       * @tc.Clean DB files created from every test case.
       */
