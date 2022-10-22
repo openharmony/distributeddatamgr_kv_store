@@ -1121,7 +1121,7 @@ int MultiVerStorageExecutor::GetResolvedConflictEntries(const MultiVerCommitNode
 void MultiVerStorageExecutor::CommitNotifiedData(const CommitID &commitId)
 {
     CommitID startId;
-    Version currentVersion;
+    Version currentVersion = 0;
     int errCode = GetParentCommitId(commitId, startId, currentVersion);
     if (errCode != E_OK || currentVersion == 0) { // make sure that the version - 1 is valid.
         LOGE("Notify: get the parent commit failed:%d", errCode);

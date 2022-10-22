@@ -575,7 +575,7 @@ HWTEST_F(DistributedDBParcelTest, WriteString003, TestSize.Level1)
     uint32_t readLen = readParcel.ReadString(readData);
     EXPECT_TRUE(readParcel.IsError());
     EXPECT_TRUE(readLen == 0);
-    EXPECT_TRUE(readData.size()== 0);
+    EXPECT_TRUE(readData.size() == 0);
     delete []buf;
 }
 
@@ -609,7 +609,7 @@ HWTEST_F(DistributedDBParcelTest, WriteString004, TestSize.Level1)
     uint32_t readLen = readParcel.ReadString(readData);
     EXPECT_TRUE(!readParcel.IsError());
     EXPECT_TRUE(readLen != 0);
-    EXPECT_TRUE(readData.size()== 0);
+    EXPECT_TRUE(readData.size() == 0);
     delete []buf;
 }
 

@@ -19,7 +19,6 @@
 #include "dds_trace.h"
 #include "dev_manager.h"
 #include "kvdb_service_client.h"
-#include "kvstore_utils.h"
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
@@ -467,7 +466,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     KVDBService::SyncInfo syncInfo;
-    syncInfo.seqId = KvStoreUtils::GenerateSequenceId();
+    syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.mode = mode;
     syncInfo.delay = delay;
     syncInfo.devices = devices;
@@ -479,7 +478,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     KVDBService::SyncInfo syncInfo;
-    syncInfo.seqId = KvStoreUtils::GenerateSequenceId();
+    syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.mode = mode;
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
@@ -488,8 +487,7 @@ Status SingleStoreImpl::Sync(const std::vector<std::string> &devices, SyncMode m
 
 Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callback)
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
-        TraceSwitch::BYTRACE_ON | TraceSwitch::API_PERFORMANCE_TRACE_ON);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     if (callback == nullptr) {
         ZLOGW("INVALID_ARGUMENT.");
         return INVALID_ARGUMENT;
@@ -500,8 +498,7 @@ Status SingleStoreImpl::RegisterSyncCallback(std::shared_ptr<SyncCallback> callb
 
 Status SingleStoreImpl::UnRegisterSyncCallback()
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
-        TraceSwitch::BYTRACE_ON | TraceSwitch::API_PERFORMANCE_TRACE_ON);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     syncObserver_->Clean();
     return SUCCESS;
 }
@@ -558,7 +555,7 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
         return SERVER_UNAVAILABLE;
     }
     SyncInfo syncInfo;
-    syncInfo.seqId = KvStoreUtils::GenerateSequenceId();
+    syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
     auto syncAgent = service->GetSyncAgent({ appId_ });
@@ -579,7 +576,7 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
         return SERVER_UNAVAILABLE;
     }
     SyncInfo syncInfo;
-    syncInfo.seqId = KvStoreUtils::GenerateSequenceId();
+    syncInfo.seqId = StoreUtil::GenSequenceId();
     syncInfo.devices = devices;
     syncInfo.query = query.ToString();
     auto syncAgent = service->GetSyncAgent({ appId_ });

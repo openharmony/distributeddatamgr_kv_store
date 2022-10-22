@@ -131,8 +131,8 @@ public:
         return entries_.size();
     }
 
-    // The action`s return true mains meet the erase condition
-    // The action`s return false mains not meet the erase condition
+    // The action`s return true means meeting the erase condition
+    // The action`s return false means not meeting the erase condition
     size_type EraseIf(const std::function<bool(const key_type &key, mapped_type &value)> &action) noexcept
     {
         if (action == nullptr) {
@@ -175,7 +175,20 @@ public:
         }
     }
 
-    // The action's return value mains that the element is keep in map or not; true mains keep, false mains remove.
+    void ForEachCopies(const std::function<bool(const key_type &, mapped_type &)> &action)
+    {
+        if (action == nullptr) {
+            return;
+        }
+        auto entries = Clone();
+        for (auto &[key, value] : entries) {
+            if (action(key, value)) {
+                break;
+            }
+        }
+    }
+
+    // The action's return value means that the element is keep in map or not; true means keeping, false means removing.
     bool Compute(const key_type &key, const std::function<bool(const key_type &, mapped_type &)> &action)
     {
         if (action == nullptr) {
@@ -196,7 +209,7 @@ public:
         return true;
     }
 
-    // The action's return value mains that the element is keep in map or not; true mains keep, false mains remove.
+    // The action's return value means that the element is keep in map or not; true means keeping, false means removing.
     bool ComputeIfPresent(const key_type &key, const std::function<bool(const key_type &, mapped_type &)> &action)
     {
         if (action == nullptr) {

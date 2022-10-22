@@ -15,7 +15,6 @@
 
 #define LOG_TAG "KvStoreDataShareBridge"
 
-#include "constant.h"
 #include "log_print.h"
 #include "kvstore_datashare_bridge.h"
 

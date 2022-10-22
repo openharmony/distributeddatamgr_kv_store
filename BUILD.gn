@@ -27,4 +27,13 @@ group("build_native_test") {
     "frameworks/libs/distributeddb/test:unittest",
   ]
 }
+
 ###############################################################################
+group("unittest") {
+  testonly = true
+  deps = []
+  deps += [
+    "frameworks/innerkitsimpl/kvdb/test:unittest",
+    "test/unittest:unittest",
+  ]
+}

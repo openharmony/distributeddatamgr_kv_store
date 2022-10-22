@@ -43,7 +43,7 @@ Status DistributedTestHelper::GetRemote(const Key &key, Value &value)
     msg += key.ToString();
     Status status;
     SendMessage(AGENT_NO::ONE, msg, msg.size(), [&](const std::string &buf, int len)->bool {
-        int index = buf.find(",");
+        auto index = buf.find(",");
         std::string temp = buf.substr(0, index);
         value = temp;
         temp = buf.substr(index + 1);

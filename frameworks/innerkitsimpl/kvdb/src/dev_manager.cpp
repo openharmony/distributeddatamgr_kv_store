@@ -29,7 +29,7 @@ constexpr size_t DevManager::MAX_ID_LEN;
 constexpr const char *PKG_NAME_EX = "_distributed_data";
 class DMStateCallback : public DeviceStateCallback {
 public:
-    DMStateCallback(DevManager &devManager) : devManager_(devManager){};
+    explicit DMStateCallback(DevManager &devManager) : devManager_(devManager){};
     void OnDeviceOnline(const DmDeviceInfo &deviceInfo) override;
     void OnDeviceOffline(const DmDeviceInfo &deviceInfo) override;
     void OnDeviceChanged(const DmDeviceInfo &deviceInfo) override;
@@ -61,7 +61,7 @@ void DMStateCallback::OnDeviceReady(const DmDeviceInfo &deviceInfo)
 
 class DmDeathCallback : public DmInitCallback {
 public:
-    DmDeathCallback(DevManager &devManager) : devManager_(devManager){};
+    explicit DmDeathCallback(DevManager &devManager) : devManager_(devManager){};
     void OnRemoteDied() override;
 
 private:
@@ -216,11 +216,8 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 
 void DevManager::Online(const std::string &networkId)
 {
+    // do nothing
     ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-    observers_.ForEach([&networkId](const auto &key, auto &value) {
-        value->Online(networkId);
-        return false;
-    });
 }
 
 void DevManager::Offline(const std::string &networkId)
@@ -245,8 +242,11 @@ void DevManager::OnChanged(const std::string &networkId)
 
 void DevManager::OnReady(const std::string &networkId)
 {
-    // do nothing
     ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
+    observers_.ForEach([&networkId](const auto &key, auto &value) {
+        value->Online(networkId);
+        return false;
+    });
 }
 
 void DevManager::Register(DevManager::Observer *observer)

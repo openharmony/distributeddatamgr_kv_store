@@ -2255,7 +2255,8 @@ int SQLiteUtils::SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword 
 #endif
 }
 
-int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd, uint32_t iterTimes)
+int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd,
+    uint32_t iterTimes)
 {
     if (passwd.GetSize() != 0) {
         int errCode = SetKeyInner(db, type, passwd, iterTimes);

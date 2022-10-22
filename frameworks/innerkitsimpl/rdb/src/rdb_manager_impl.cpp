@@ -88,7 +88,7 @@ sptr<RdbServiceProxy> RdbManagerImpl::GetRdbService()
         return nullptr;
     }
 
-    auto remote = distributedDataMgr_->GetRdbService();
+    auto remote = distributedDataMgr_->GetFeatureInterface("relational_store");
     if (remote == nullptr) {
         ZLOGE("get rdb service failed");
         return nullptr;

@@ -55,6 +55,8 @@ public:
         ContinueToken &token) const = 0;
 
     virtual const RelationalDBProperties &GetRelationalDbProperties() const = 0;
+
+    virtual void ReleaseRemoteQueryContinueToken(ContinueToken &token) const = 0;
 };
 }
 #endif // RELATIONAL_STORE

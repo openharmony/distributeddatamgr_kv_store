@@ -19,11 +19,14 @@
 #include <memory>
 
 #include "change_notification.h"
+#include "datashare_predicates.h"
+#include "datashare_values_bucket.h"
 #include "message_parcel.h"
 #include "rdb_types.h"
 #include "types.h"
 
-namespace OHOS::DistributedKv {
+namespace OHOS {
+namespace DistributedKv {
 class ITypesUtil final {
 public:
     static bool Marshal(MessageParcel &data);
@@ -79,6 +82,13 @@ public:
     static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
     static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
+    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
+    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
+
     static int64_t GetTotalSize(const std::vector<Entry> &entries);
     static int64_t GetTotalSize(const std::vector<Key> &entries);
 
@@ -120,15 +130,15 @@ public:
     static bool Unmarshal(MessageParcel &parcel, T &first, Types &...others);
 
     template<typename T>
-    static Status MarshalToBuffer(const T &input, int size, MessageParcel &data);
+    static bool MarshalToBuffer(const T &input, int size, MessageParcel &data);
 
     template<typename T>
-    static Status MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data);
+    static bool MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data);
 
     template<typename T>
-    static Status UnmarshalFromBuffer(MessageParcel &data, int size, T &output);
+    static bool UnmarshalFromBuffer(MessageParcel &data, T &output);
     template<typename T>
-    static Status UnmarshalFromBuffer(MessageParcel &data, int size, std::vector<T> &output);
+    static bool UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output);
 
 private:
     static bool Marshalling(bool input, MessageParcel &data) = delete;
@@ -215,85 +225,91 @@ bool ITypesUtil::Unmarshalling(std::vector<T> &val, MessageParcel &parcel)
 }
 
 template<typename T>
-Status ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
+bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
 {
-    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
-    if (!data.WriteBool(buffer != nullptr)) {
-        return Status::IPC_ERROR;
+    if (!data.WriteInt32(size)) {
+        return false;
     }
+    if (size == 0) {
+        return true;
+    }
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
     if (buffer == nullptr) {
-        return Status::ILLEGAL_STATE;
+        return false;
     }
 
     int leftSize = size;
     uint8_t *cursor = buffer.get();
     if (!input.WriteToBuffer(cursor, leftSize)) {
-        return Status::IPC_ERROR;
+        return false;
     }
-    return data.WriteRawData(buffer.get(), size) ? Status::SUCCESS : Status::IPC_ERROR;
+    return data.WriteRawData(buffer.get(), size);
 }
 
 template<typename T>
-Status ITypesUtil::MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data)
+bool ITypesUtil::MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data)
 {
-    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
-    if (!data.WriteBool(buffer != nullptr)) {
-        return Status::IPC_ERROR;
+    if (!data.WriteInt32(size)) {
+        return false;
     }
-    if (buffer == nullptr) {
-        return Status::ILLEGAL_STATE;
-    }
-    uint8_t *cursor = buffer.get();
-    for (const auto &entry : input) {
-        if (!entry.WriteToBuffer(cursor, size)) {
-            return Status::IPC_ERROR;
-        }
+    if (size == 0) {
+        return true;
     }
     if (!data.WriteInt32(input.size())) {
-        return Status::IPC_ERROR;
+        return false;
     }
-    return data.WriteRawData(buffer.get(), size) ? Status::SUCCESS : Status::IPC_ERROR;
+
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(size);
+    if (buffer == nullptr) {
+        return false;
+    }
+
+    uint8_t *cursor = buffer.get();
+    int32_t left = size;
+    for (const auto &entry : input) {
+        if (!entry.WriteToBuffer(cursor, left)) {
+            return false;
+        }
+    }
+    return data.WriteRawData(buffer.get(), size);
 }
 
 template<typename T>
-Status ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, int size, T &output)
+bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, T &output)
 {
-    if (size < 0) {
-        return Status::INVALID_ARGUMENT;
-    }
-    if (!data.ReadBool()) {
-        return Status::ILLEGAL_STATE;
+    int32_t size = data.ReadInt32();
+    if (size == 0) {
+        return true;
     }
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
     if (buffer == nullptr) {
-        return Status::INVALID_ARGUMENT;
+        return false;
     }
-    return output.ReadFromBuffer(buffer, size) ? Status::SUCCESS : Status::IPC_ERROR;
+    return output.ReadFromBuffer(buffer, size);
 }
 
 template<typename T>
-Status ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, int size, std::vector<T> &output)
+bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output)
 {
-    if (size < 0) {
-        return Status::INVALID_ARGUMENT;
+    int size = data.ReadInt32();
+    if (size == 0) {
+        return true;
     }
-    if (!data.ReadBool()) {
-        return Status::ILLEGAL_STATE;
-    }
+
     int count = data.ReadInt32();
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
     if (count < 0 || buffer == nullptr) {
-        return Status::INVALID_ARGUMENT;
+        return false;
     }
 
     output.resize(count);
     for (auto &entry : output) {
         if (!entry.ReadFromBuffer(buffer, size)) {
             output.clear();
-            return Status::IPC_ERROR;
+            return false;
         }
     }
-    return Status::SUCCESS;
+    return true;
 }
 
 template<typename T, typename... Types>
@@ -361,5 +377,6 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
     }
     return true;
 }
-} // namespace OHOS::DistributedKv
+} // namespace DistributedKv
+} // namespace OHOS
 #endif

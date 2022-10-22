@@ -388,4 +388,58 @@ void RdbServiceProxy::ImportObservers(ObserverMap &observers)
         return false;
     });
 }
+int32_t RdbServiceProxy::CreateRDBTable(
+    const RdbSyncerParam &param, const std::string &writePermission, const std::string &readPermission)
+{
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(IRdbService::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return RDB_ERROR;
+    }
+    if (!DistributedKv::ITypesUtil::Marshal(data, param, writePermission, readPermission)) {
+        ZLOGE("write to message parcel failed");
+        return RDB_ERROR;
+    }
+
+    MessageParcel reply;
+    MessageOption option;
+    if (Remote()->SendRequest(RDB_SERVICE_CREATE_RDB_TABLE, data, reply, option) != 0) {
+        ZLOGE("send request failed");
+        return RDB_ERROR;
+    }
+
+    int32_t status = reply.ReadInt32();
+    if (status != RdbStatus::RDB_OK) {
+        ZLOGE("remote query failed, server side status is %{public}d", status);
+        return status;
+    }
+    return RDB_OK;
+}
+
+int32_t RdbServiceProxy::DestroyRDBTable(const RdbSyncerParam &param)
+{
+    MessageParcel data;
+    if (!data.WriteInterfaceToken(IRdbService::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return RDB_ERROR;
+    }
+    if (!DistributedKv::ITypesUtil::Marshal(data, param)) {
+        ZLOGE("write to message parcel failed");
+        return RDB_ERROR;
+    }
+
+    MessageParcel reply;
+    MessageOption option;
+    if (Remote()->SendRequest(RDB_SERVICE_DESTROY_RDB_TABLE, data, reply, option) != 0) {
+        ZLOGE("send request failed");
+        return RDB_ERROR;
+    }
+
+    int32_t status = reply.ReadInt32();
+    if (status != RdbStatus::RDB_OK) {
+        ZLOGE("remote query failed, server side status is %{public}d", status);
+        return status;
+    }
+    return RDB_OK;
+}
 } // namespace OHOS::DistributedRdb

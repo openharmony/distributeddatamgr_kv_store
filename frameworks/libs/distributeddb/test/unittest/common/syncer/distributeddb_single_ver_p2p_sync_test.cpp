@@ -2215,10 +2215,9 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck009, TestSize.Level3)
                 LOGD("in RunPermissionCheck callback, check result:%d, flag:%d", result, flag);
                 count++;
                 return result;
-            } else {
-                LOGD("in RunPermissionCheck callback, check pass, flag:%d", flag);
-                return true;
             }
+            LOGD("in RunPermissionCheck callback, check pass, flag:%d", flag);
+            return true;
         };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     std::vector<std::string> devices = {g_deviceB->GetDeviceId()};

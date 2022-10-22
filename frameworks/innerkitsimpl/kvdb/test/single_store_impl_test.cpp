@@ -12,13 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <gtest/gtest.h>
-
 #include <condition_variable>
+#include <gtest/gtest.h>
 #include <vector>
 
+#include "block_data.h"
 #include "dev_manager.h"
+#include "distributed_kv_data_manager.h"
 #include "store_manager.h"
+#include "sys/stat.h"
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
@@ -26,37 +28,25 @@ class SingleStoreImplTest : public testing::Test {
 public:
     class TestObserver : public KvStoreObserver {
     public:
-        bool IsChanged()
+        TestObserver()
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock, [this]() { return isChanged_; });
-            bool current = isChanged_;
-            isChanged_ = false;
-            cv_.notify_one();
-            return current;
+            data_ = std::make_shared<OHOS::BlockData<bool>>(5, false);
         }
-
         void OnChange(const ChangeNotification &notification) override
         {
             insert_ = notification.GetInsertEntries();
             update_ = notification.GetUpdateEntries();
             delete_ = notification.GetDeleteEntries();
             deviceId_ = notification.GetDeviceId();
-            {
-                std::lock_guard<std::mutex> lock(mutex_);
-                isChanged_ = true;
-                cv_.notify_one();
-            }
+            bool value = true;
+            data_->SetValue(value);
         }
         std::vector<Entry> insert_;
         std::vector<Entry> update_;
         std::vector<Entry> delete_;
         std::string deviceId_;
 
-    private:
-        std::mutex mutex_;
-        std::condition_variable cv_;
-        bool isChanged_ = false;
+        std::shared_ptr<OHOS::BlockData<bool>> data_;
     };
 
     static void SetUpTestCase(void);
@@ -64,61 +54,75 @@ public:
     void SetUp();
     void TearDown();
 
-protected:
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
 void SingleStoreImplTest::SetUpTestCase(void)
 {
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void SingleStoreImplTest::TearDownTestCase(void)
 {
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
+
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest/key");
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest/kvdb");
+    (void)remove("/data/service/el1/public/database/SingleStoreImplTest");
 }
 
 void SingleStoreImplTest::SetUp(void)
 {
-    Options options;
-    options.kvStoreType = SINGLE_VERSION;
-    options.securityLevel = S1;
-    AppId appId = { "LocalSingleKVStore" };
-    StoreId storeId = { "LocalSingleKVStore" };
-    std::string path = "";
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, path);
-    kvStore_ = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
-    ASSERT_EQ(status, SUCCESS);
+    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION);
+    ASSERT_NE(kvStore_, nullptr);
 }
 
 void SingleStoreImplTest::TearDown(void)
 {
-    AppId appId = { "LocalSingleKVStore" };
-    StoreId storeId = { "LocalSingleKVStore" };
-    std::string path = "";
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, path);
-    ASSERT_EQ(status, SUCCESS);
+}
+
+std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type)
+{
+    Options options;
+    options.kvStoreType = type;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    SyncPolicy policy;
+    policy.type = PolicyType::IMMEDIATE_SYNC_ON_ONLINE;
+    policy.value.emplace<1>(100);
+    options.policies.emplace_back(policy);
+
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { storeIdTest };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
+    return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
 }
 
 /**
-* @tc.name: GetStoreId
-* @tc.desc: get the store id of the kv store
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetStoreId
+ * @tc.desc: get the store id of the kv store
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetStoreId, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     auto storeId = kvStore_->GetStoreId();
-    ASSERT_EQ(storeId.storeId, "LocalSingleKVStore");
+    ASSERT_EQ(storeId.storeId, "SingleKVStore");
 }
 
 /**
-* @tc.name: Put
-* @tc.desc: put key-value data to the kv store
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Put
+ * @tc.desc: put key-value data to the kv store
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -133,12 +137,12 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
 }
 
 /**
-* @tc.name: PutBatch
-* @tc.desc: put some key-value data to the kv store
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: PutBatch
+ * @tc.desc: put some key-value data to the kv store
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, PutBatch, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -154,12 +158,12 @@ HWTEST_F(SingleStoreImplTest, PutBatch, TestSize.Level0)
 }
 
 /**
-* @tc.name: Delete
-* @tc.desc: delete the value of the key
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Delete
+ * @tc.desc: delete the value of the key
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, Delete, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -178,12 +182,12 @@ HWTEST_F(SingleStoreImplTest, Delete, TestSize.Level0)
 }
 
 /**
-* @tc.name: DeleteBatch
-* @tc.desc: delete the values of the keys
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: DeleteBatch
+ * @tc.desc: delete the values of the keys
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, DeleteBatch, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -212,12 +216,12 @@ HWTEST_F(SingleStoreImplTest, DeleteBatch, TestSize.Level0)
 }
 
 /**
-* @tc.name: Transaction
-* @tc.desc: do transaction
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: Transaction
+ * @tc.desc: do transaction
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, Transaction, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -233,12 +237,12 @@ HWTEST_F(SingleStoreImplTest, Transaction, TestSize.Level0)
 }
 
 /**
-* @tc.name: SubscribeKvStore
-* @tc.desc: subscribe local
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: SubscribeKvStore
+ * @tc.desc: subscribe local
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -257,31 +261,35 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore, TestSize.Level0)
     ASSERT_EQ(status, STORE_ALREADY_SUBSCRIBE);
     status = kvStore_->Put({ "Put Test" }, { "Put Value" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    bool invalidValue = false;
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 1);
     ASSERT_EQ(observer->update_.size(), 0);
     ASSERT_EQ(observer->delete_.size(), 0);
     status = kvStore_->Put({ "Put Test" }, { "Put Value1" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 0);
     ASSERT_EQ(observer->update_.size(), 1);
     ASSERT_EQ(observer->delete_.size(), 0);
     status = kvStore_->Delete({ "Put Test" });
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_TRUE(observer->IsChanged());
+    observer->data_->Clear(invalidValue);
+    ASSERT_TRUE(observer->data_->GetValue());
     ASSERT_EQ(observer->insert_.size(), 0);
     ASSERT_EQ(observer->update_.size(), 0);
     ASSERT_EQ(observer->delete_.size(), 1);
 }
 
 /**
-* @tc.name: SubscribeKvStore002
-* @tc.desc: subscribe local
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Hollokin
-*/
+ * @tc.name: SubscribeKvStore002
+ * @tc.desc: subscribe local
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Hollokin
+ */
 HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -337,12 +345,12 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
 }
 
 /**
-* @tc.name: UnsubscribeKvStore
-* @tc.desc: unsubscribe
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: UnsubscribeKvStore
+ * @tc.desc: unsubscribe
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -366,12 +374,12 @@ HWTEST_F(SingleStoreImplTest, UnsubscribeKvStore, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetEntries
-* @tc.desc: get entries by prefix
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetEntries
+ * @tc.desc: get entries by prefix
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -396,12 +404,12 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetEntries
-* @tc.desc: get entries by query
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetEntries
+ * @tc.desc: get entries by query
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -415,7 +423,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
     auto status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     DataQuery query;
-    query.InKeys({"0_k", "1_k"});
+    query.InKeys({ "0_k", "1_k" });
     std::vector<Entry> output;
     status = kvStore_->GetEntries(query, output);
     ASSERT_EQ(status, SUCCESS);
@@ -429,12 +437,12 @@ HWTEST_F(SingleStoreImplTest, GetEntries_DataQuery, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetResultSet
-* @tc.desc: get result set by prefix
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set by prefix
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -466,12 +474,12 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Prefix, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetResultSet
-* @tc.desc: get result set by query
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetResultSet
+ * @tc.desc: get result set by query
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -488,7 +496,7 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
     auto status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     DataQuery query;
-    query.InKeys({"0_k", "1_k"});
+    query.InKeys({ "0_k", "1_k" });
     std::shared_ptr<KvStoreResultSet> output;
     status = kvStore_->GetResultSet(query, output);
     ASSERT_EQ(status, SUCCESS);
@@ -505,12 +513,12 @@ HWTEST_F(SingleStoreImplTest, GetResultSet_Query, TestSize.Level0)
 }
 
 /**
-* @tc.name: CloseResultSet
-* @tc.desc: close the result set
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: CloseResultSet
+ * @tc.desc: close the result set
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -527,7 +535,7 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
     auto status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     DataQuery query;
-    query.InKeys({"0_k", "1_k"});
+    query.InKeys({ "0_k", "1_k" });
     std::shared_ptr<KvStoreResultSet> output;
     status = kvStore_->GetResultSet(query, output);
     ASSERT_EQ(status, SUCCESS);
@@ -554,12 +562,12 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 }
 
 /**
-* @tc.name: GetCount
-* @tc.desc: close the result set
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetCount
+ * @tc.desc: close the result set
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -576,7 +584,7 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
     auto status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     DataQuery query;
-    query.InKeys({"0_k", "1_k"});
+    query.InKeys({ "0_k", "1_k" });
     int count = 0;
     status = kvStore_->GetCount(query, count);
     ASSERT_EQ(status, SUCCESS);
@@ -588,15 +596,16 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
 }
 
 /**
-* @tc.name: RemoveDeviceData
-* @tc.desc: remove local device data
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: RemoveDeviceData
+ * @tc.desc: remove local device data
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
 {
-    ASSERT_NE(kvStore_, nullptr);
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION);
+    ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
@@ -607,26 +616,29 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
         dictionary[entry.key] = entry.value;
         input.push_back(entry);
     }
-    auto status = kvStore_->PutBatch(input);
+    auto status = store->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     int count = 0;
-    status = kvStore_->GetCount({}, count);
+    status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
-    status = kvStore_->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().uuid);
+    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
     ASSERT_EQ(status, SUCCESS);
-    status = kvStore_->GetCount({}, count);
+    status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(count, 0);
+    ASSERT_EQ(count, 10);
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
-* @tc.name: RemoveDeviceData
-* @tc.desc: remove local device data
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: GetSecurityLevel
+ * @tc.desc: get security level
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
@@ -637,16 +649,16 @@ HWTEST_F(SingleStoreImplTest, GetSecurityLevel, TestSize.Level0)
 }
 
 /**
-* @tc.name: RegisterSyncCallback
-* @tc.desc: register the data sync callback
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: RegisterSyncCallback
+ * @tc.desc: register the data sync callback
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
-    class TestSyncCallback : public  KvStoreSyncCallback {
+    class TestSyncCallback : public KvStoreSyncCallback {
     public:
         void SyncCompleted(const map<std::string, Status> &results) override
         {
@@ -658,16 +670,16 @@ HWTEST_F(SingleStoreImplTest, RegisterSyncCallback, TestSize.Level0)
 }
 
 /**
-* @tc.name: UnRegisterSyncCallback
-* @tc.desc: unregister the data sync callback
-* @tc.type: FUNC
-* @tc.require: I4XVQQ
-* @tc.author: Sven Wang
-*/
+ * @tc.name: UnRegisterSyncCallback
+ * @tc.desc: unregister the data sync callback
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Sven Wang
+ */
 HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
-    class TestSyncCallback : public  KvStoreSyncCallback {
+    class TestSyncCallback : public KvStoreSyncCallback {
     public:
         void SyncCompleted(const map<std::string, Status> &results) override
         {

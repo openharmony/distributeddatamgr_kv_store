@@ -21,10 +21,23 @@ DeviceStatusChangeListenerClient::DeviceStatusChangeListenerClient(
     std::shared_ptr<DeviceStatusChangeListener> listener) : listener_(std::move(listener))
 {}
 
-void DeviceStatusChangeListenerClient::OnChange(const DeviceInfo &results, const DeviceChangeType &type)
+void DeviceStatusChangeListenerClient::Online(const std::string &device)
 {
-    if (listener_ != nullptr) {
-        listener_->OnDeviceChanged(results, type);
+    if (listener_ == nullptr) {
+        return;
     }
+    DeviceInfo info;
+    info.deviceId = device;
+    listener_->OnDeviceChanged(info, DeviceChangeType::DEVICE_ONLINE);
+}
+
+void DeviceStatusChangeListenerClient::Offline(const std::string &device)
+{
+    if (listener_ == nullptr) {
+        return;
+    }
+    DeviceInfo info;
+    info.deviceId = device;
+    listener_->OnDeviceChanged(info, DeviceChangeType::DEVICE_OFFLINE);
 }
 } // namespace OHOS::DistributedKv

@@ -15,15 +15,16 @@
 
 #ifndef DEV_DEVICE_STATUS_CHANGE_LISTENER_IMPL_H
 #define DEV_DEVICE_STATUS_CHANGE_LISTENER_IMPL_H
-
-#include "idevice_status_change_listener.h"
+#include <memory>
+#include "dev_manager.h"
 #include "device_status_change_listener.h"
 
 namespace OHOS::DistributedKv {
-class DeviceStatusChangeListenerClient : public DeviceStatusChangeListenerStub {
+class DeviceStatusChangeListenerClient : public DevManager::Observer {
 public:
     explicit DeviceStatusChangeListenerClient(std::shared_ptr<DeviceStatusChangeListener> listener);
-    void OnChange(const DeviceInfo &results, const DeviceChangeType &type) override;
+    void Online(const std::string &device) override;
+    void Offline(const std::string &device) override;
     ~DeviceStatusChangeListenerClient() {}
 private:
     std::shared_ptr<DeviceStatusChangeListener> listener_;

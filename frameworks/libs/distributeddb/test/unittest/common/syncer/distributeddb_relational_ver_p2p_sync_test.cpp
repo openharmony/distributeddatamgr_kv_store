@@ -22,6 +22,7 @@
 #include "isyncer.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
+#include "process_system_api_adapter_impl.h"
 #include "relational_schema_object.h"
 #include "relational_store_manager.h"
 #include "relational_virtual_device.h"
@@ -638,6 +639,141 @@ namespace {
         }
         SQLiteUtils::ResetStatement(stmt, true, errCode);
         return errCode;
+    }
+
+    void GenerateSecurityData(std::vector<SecurityLabel> &labelList, std::vector<SecurityFlag> &flagList)
+    {
+        labelList = {
+            SecurityLabel::NOT_SET, SecurityLabel::S0,
+            SecurityLabel::S1, SecurityLabel::S2,
+            SecurityLabel::S3, SecurityLabel::S4
+        };
+        flagList = {
+            SecurityFlag::ECE, SecurityFlag::SECE
+        };
+    }
+
+    SecurityOption SelectSecurityOption(int &labelIndex, int &flagIndex,
+        const std::vector<SecurityLabel> &labelList, const std::vector<SecurityFlag> &flagList)
+    {
+        SecurityOption option;
+        if (labelIndex >= static_cast<int>(labelList.size()) || flagIndex >= static_cast<int>(flagList.size())) {
+            return option;
+        }
+        option.securityLabel = labelList[labelIndex];
+        option.securityFlag = flagList[flagIndex];
+        labelIndex++;
+        if (labelIndex >= static_cast<int>(labelList.size())) {
+            labelIndex = 0;
+            flagIndex++;
+        }
+        return option;
+    }
+
+    bool SelectSecurityEnd(int flagIndex, const std::vector<SecurityFlag> &flagList)
+    {
+        return flagIndex >= static_cast<int>(flagList.size());
+    }
+
+    DBStatus GetSecurityRes(const SecurityOption &localOption, const SecurityOption &remoteOption,
+        bool checkDeviceResult)
+    {
+        if (!checkDeviceResult) {
+            return SECURITY_OPTION_CHECK_ERROR;
+        }
+        if (localOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET) ||
+            remoteOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET)) {
+            return OK;
+        }
+        if (localOption.securityLabel != remoteOption.securityLabel) {
+            return SECURITY_OPTION_CHECK_ERROR;
+        }
+        return OK;
+    }
+
+    void SyncWithSecurityCheck(const SecurityOption &localOption, const SecurityOption &remoteOption,
+        bool remoteQuery, bool checkDeviceResult)
+    {
+        std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+        adapter->ForkCheckDeviceSecurityAbility(
+            [&localOption, &remoteOption, checkDeviceResult, remoteQuery](const std::string &devId,
+                const SecurityOption &option) {
+            if (remoteQuery) {
+                EXPECT_TRUE(remoteOption == option);
+                EXPECT_EQ(devId, DEVICE_A);
+            } else {
+                EXPECT_TRUE(localOption == option);
+            }
+            return checkDeviceResult;
+        });
+        adapter->ForkGetSecurityOption(
+            [&localOption, &remoteOption](const std::string &filePath, SecurityOption &option) {
+            if (filePath.empty()) {
+                option = remoteOption;
+            } else {
+                option = localOption;
+            }
+            return OK;
+        });
+        RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+        DBStatus resStatus = GetSecurityRes(localOption, remoteOption, checkDeviceResult);
+        if (remoteQuery) {
+            RemoteCondition condition;
+            condition.sql = "SELECT * FROM " + g_tableName;
+            std::shared_ptr<ResultSet> result = nullptr;
+            EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), resStatus);
+        } else {
+            BlockSync(SYNC_MODE_PUSH_ONLY, resStatus, {DEVICE_B});
+        }
+        RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+        if (g_rdbDelegatePtr != nullptr) {
+            LOGD("CloseStore Start");
+            ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
+            g_rdbDelegatePtr = nullptr;
+        }
+        OpenStore();
+    }
+
+    void TestWithSecurityCheck(bool remoteQuery)
+    {
+        /**
+         * @tc.steps: step1. create table and open store
+         * @tc.expected: step1. open store ok
+         */
+        std::map<std::string, DataValue> dataMap;
+        if (remoteQuery) {
+            PrepareEnvironment(dataMap, {g_deviceB});
+        } else {
+            PrepareVirtualEnvironment(dataMap, {g_deviceB});
+        }
+        ASSERT_NE(g_rdbDelegatePtr, nullptr);
+
+        /**
+         * @tc.steps: step2. generate test data
+         */
+        std::vector<SecurityLabel> labelList;
+        std::vector<SecurityFlag> flagList;
+        int localLabelIndex = 0;
+        int localFlagIndex = 0;
+        GenerateSecurityData(labelList, flagList);
+
+        // loop local
+        while (!SelectSecurityEnd(localFlagIndex, flagList)) {
+            SecurityOption localOption = SelectSecurityOption(localLabelIndex, localFlagIndex, labelList, flagList);
+            // loop remote
+            int remoteLabelIndex = 0;
+            int remoteFlagIndex = 0;
+            while (!SelectSecurityEnd(remoteFlagIndex, flagList)) {
+                SecurityOption remoteOption = SelectSecurityOption(remoteLabelIndex, remoteFlagIndex,
+                    labelList, flagList);
+                /**
+                 * @tc.steps: step3. call sync
+                 * @tc.expected: step3. sync result is based on security option
+                 */
+                SyncWithSecurityCheck(localOption, remoteOption, remoteQuery, true);
+                SyncWithSecurityCheck(localOption, remoteOption, remoteQuery, false);
+            }
+        }
     }
 }
 
@@ -1736,6 +1872,26 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
 }
 
 /**
+* @tc.name: remote query 010
+* @tc.desc: Test rdb remote query with
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery011, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_deviceB, nullptr);
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "This is error sql";
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_deviceB->RemoteQuery(DEVICE_A, condition, DBConstant::MIN_TIMEOUT, result), DB_ERROR);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC
@@ -1927,6 +2083,77 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RelationalPemissionTest004, Test
 }
 
 /**
+* @tc.name: SecurityOptionCheck001
+* @tc.desc: Test sync failed when getSecurityOption return error
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize.Level1)
+{
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. make getSecurityOption return -1
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkGetSecurityOption(
+        [](const std::string &filePath, SecurityOption &option) {
+        (void)filePath;
+        (void)option;
+        return DB_ERROR;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, { g_deviceB });
+
+    /**
+     * @tc.steps: step2. sync with deviceB
+     */
+    BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, SECURITY_OPTION_CHECK_ERROR, { DEVICE_B });
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+}
+
+/**
+* @tc.name: SecurityOptionCheck002
+* @tc.desc: Test remote query failed when getSecurityOption return error
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. make getSecurityOption return -1
+     */
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    adapter->ForkGetSecurityOption(
+        [](const std::string &filePath, SecurityOption &option) {
+        (void)filePath;
+        (void)option;
+        return DB_ERROR;
+    });
+    RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
+
+    /**
+     * @tc.steps: step2. remote query with deviceB
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_deviceB, nullptr);
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM " + g_tableName + " WHERE 1=0";
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_deviceB->RemoteQuery(DEVICE_A, condition, DBConstant::MIN_TIMEOUT, result),
+        SECURITY_OPTION_CHECK_ERROR);
+    EXPECT_EQ(result, nullptr);
+    RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
+}
+
+/**
 * @tc.name: OrderbyWriteTimeSync001
 * @tc.desc: sync query with order by writeTime
 * @tc.type: FUNC
@@ -1940,6 +2167,30 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, OrderbyWriteTimeSync001, TestSiz
     Query query = Query::Select(g_tableName).OrderByWriteTime(true);;
     EXPECT_EQ(g_rdbDelegatePtr->Sync({DEVICE_B}, DistributedDB::SYNC_MODE_PUSH_ONLY, query, nullptr, false),
         NOT_SUPPORT);
+}
+
+/**
+* @tc.name: RDBSecurityOptionCheck001
+* @tc.desc: Test sync with security option.
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck001, TestSize.Level3)
+{
+    TestWithSecurityCheck(false);
+}
+
+/**
+* @tc.name: RDBSecurityOptionCheck002
+* @tc.desc: Test remote query with security option.
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RDBSecurityOptionCheck002, TestSize.Level1)
+{
+    TestWithSecurityCheck(true);
 }
 
 /**

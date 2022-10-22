@@ -17,7 +17,6 @@
 
 #include "ikvstore_data_service.h"
 #include <ipc_skeleton.h>
-#include "constant.h"
 #include "irdb_service.h"
 #include "rdb_service_proxy.h"
 #include "itypes_util.h"
@@ -34,174 +33,34 @@ KvStoreDataServiceProxy::KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl
     ZLOGI("init data service proxy.");
 }
 
-Status KvStoreDataServiceProxy::GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
-                                                 std::function<void(sptr<ISingleKvStore>)> callback)
+sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::string &name)
 {
-    ZLOGI("%s %s", appId.appId.c_str(), storeId.storeId.c_str());
+    ZLOGI("%s", name.c_str());
     MessageParcel data;
-    MessageParcel reply;
     if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
+        return nullptr;
     }
-    if (!data.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
-        ZLOGW("SetMaxCapacity failed.");
-        return Status::IPC_ERROR;
-    }
-    // Passing a struct with an std::string field is a potential security exploit.
-    OptionsIpc optionsIpc;
-    optionsIpc.createIfMissing = options.createIfMissing;
-    optionsIpc.encrypt = options.encrypt;
-    optionsIpc.persistent = options.persistent;
-    optionsIpc.backup = options.backup;
-    optionsIpc.autoSync = options.autoSync;
-    optionsIpc.securityLevel = options.securityLevel;
-    optionsIpc.kvStoreType = options.kvStoreType;
-    optionsIpc.syncable = options.syncable;
-    std::string schemaString = options.schema;
 
-    if (!data.WriteBuffer(&optionsIpc, sizeof(OptionsIpc)) ||
-        !data.WriteString(appId.appId) ||
-        !data.WriteString(storeId.storeId) ||
-        !data.WriteString(schemaString)) {
-        ZLOGW("failed to write parcel.");
-        return Status::IPC_ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GETSINGLEKVSTORE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        return Status::IPC_ERROR;
-    }
-    Status status = static_cast<Status>(reply.ReadInt32());
-    if (status == Status::SUCCESS) {
-        sptr<IRemoteObject> remote = reply.ReadRemoteObject();
-        if (remote != nullptr) {
-            sptr<ISingleKvStore> kvstoreImplProxy = iface_cast<ISingleKvStore>(remote);
-            callback(std::move(kvstoreImplProxy));
-        }
-    } else {
-        callback(nullptr);
-    }
-    return status;
-}
-
-void KvStoreDataServiceProxy::GetAllKvStoreId(const AppId &appId,
-                                              std::function<void(Status, std::vector<StoreId> &)> callback)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!ITypesUtil::Marshal(data, name)) {
         ZLOGE("write descriptor failed");
-        return;
+        return nullptr;
     }
-    if (!data.WriteString(appId.appId)) {
-        ZLOGW("failed to write parcel.");
-        return;
-    }
-    std::vector<StoreId> storeIds;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GETALLKVSTOREID, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        callback(Status::IPC_ERROR, storeIds);
-        return;
-    }
-    std::vector<std::string> stores;
-    reply.ReadStringVector(&stores);
-    for (const auto &id: stores) {
-        storeIds.push_back({id});
-    }
-    Status status = static_cast<Status>(reply.ReadInt32());
-    callback(status, storeIds);
-}
 
-Status KvStoreDataServiceProxy::CloseKvStore(const AppId &appId, const StoreId &storeId)
-{
-    MessageParcel data;
     MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteString(appId.appId) ||
-        !data.WriteString(storeId.storeId)) {
-        ZLOGW("failed to write parcel.");
-        return Status::IPC_ERROR;
-    }
     MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(CLOSEKVSTORE, data, reply, mo);
+    int32_t error = Remote()->SendRequest(GET_FEATURE_INTERFACE, data, reply, mo);
     if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        return Status::IPC_ERROR;
+        ZLOGE("SendRequest returned %{public}d", error);
+        return nullptr;
     }
-    return static_cast<Status>(reply.ReadInt32());
-}
 
-/* close all opened kvstore */
-Status KvStoreDataServiceProxy::CloseAllKvStore(const AppId &appId)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
+    sptr<IRemoteObject> remoteObject;
+    if (!ITypesUtil::Unmarshal(reply, remoteObject)) {
+        ZLOGE("remote object is nullptr");
+        return nullptr;
     }
-    if (!data.WriteString(appId.appId)) {
-        ZLOGW("failed to write parcel.");
-        return Status::IPC_ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(CLOSEALLKVSTORE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
-}
-
-Status KvStoreDataServiceProxy::DeleteKvStore(const AppId &appId, const StoreId &storeId)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteString(appId.appId) ||
-        !data.WriteString(storeId.storeId)) {
-        ZLOGW("failed to write parcel.");
-        return Status::IPC_ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(DELETEKVSTORE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
-}
-
-/* delete all kv store */
-Status KvStoreDataServiceProxy::DeleteAllKvStore(const AppId &appId)
-{
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteString(appId.appId)) {
-        ZLOGW("failed to write parcel.");
-        return Status::IPC_ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(DELETEALLKVSTORE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("failed during IPC. errCode %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
+    return remoteObject;
 }
 
 Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
@@ -234,344 +93,16 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     return static_cast<Status>(reply.ReadInt32());
 }
 
-Status KvStoreDataServiceProxy::GetLocalDevice(OHOS::DistributedKv::DeviceInfo &device)
+int32_t KvStoreDataServiceStub::NoSupport(MessageParcel &data, MessageParcel &reply)
 {
-    MessageParcel data;
-    MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GETLOCALDEVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    Status status = static_cast<Status>(reply.ReadInt32());
-    if (status == Status::SUCCESS) {
-        device = {reply.ReadString(), reply.ReadString(), reply.ReadString()};
-    }
-    return status;
-}
-
-Status KvStoreDataServiceProxy::GetRemoteDevices(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy)
-{
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(static_cast<int>(strategy))) {
-        ZLOGW("write int failed.");
-        return Status::IPC_ERROR;
-    }
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GETREMOTEDEVICES, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    Status status = static_cast<Status>(reply.ReadInt32());
-    if (status == Status::SUCCESS) {
-        int len = reply.ReadInt32();
-        for (int i = 0; i < len; i++) {
-            DeviceInfo deviceInfo = {
-                .deviceId = reply.ReadString(),
-                .deviceName = reply.ReadString(),
-                .deviceType = reply.ReadString()
-            };
-            deviceInfoList.push_back(std::move(deviceInfo));
-        }
-    }
-    return status;
-}
-
-Status KvStoreDataServiceProxy::StartWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer,
-                                                       DeviceFilterStrategy strategy)
-{
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(static_cast<int>(strategy))) {
-        ZLOGW("write int failed.");
-        return Status::IPC_ERROR;
-    }
-    if (observer != nullptr) {
-        if (!data.WriteRemoteObject(observer->AsObject().GetRefPtr())) {
-            return Status::IPC_ERROR;
-        }
-    } else {
-        return Status::INVALID_ARGUMENT;
-    }
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(STARTWATCHDEVICECHANGE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
-}
-
-Status KvStoreDataServiceProxy::StopWatchDeviceChange(sptr<IDeviceStatusChangeListener> observer)
-{
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return Status::IPC_ERROR;
-    }
-    if (observer != nullptr) {
-        if (!data.WriteRemoteObject(observer->AsObject().GetRefPtr())) {
-            return Status::IPC_ERROR;
-        }
-    } else {
-        return Status::INVALID_ARGUMENT;
-    }
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(STOPWATCHDEVICECHANGE, data, reply, mo);
-    if (error != 0) {
-        ZLOGW("SendRequest returned %d", error);
-        return Status::IPC_ERROR;
-    }
-    return static_cast<Status>(reply.ReadInt32());
-}
-
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetRdbService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_RDB_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetObjectService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_OBJECT_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetKVdbService()
-{
-    ZLOGI("enter");
-    MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
-        ZLOGE("write descriptor failed");
-        return nullptr;
-    }
-
-    MessageParcel reply;
-    MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_KVDB_SERVICE, data, reply, mo);
-    if (error != 0) {
-        ZLOGE("SendRequest returned %{public}d", error);
-        return nullptr;
-    }
-    auto remoteObject = reply.ReadRemoteObject();
-    if (remoteObject == nullptr) {
-        ZLOGE("remote object is nullptr");
-        return nullptr;
-    }
-    return remoteObject;
-}
-
-int32_t KvStoreDataServiceStub::GetAllKvStoreIdOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    std::vector<std::string> storeIdList;
-    Status statusTmp;
-    GetAllKvStoreId(appId, [&](Status status, std::vector<StoreId> &storeIds) {
-        for (const auto &id : storeIds) {
-            storeIdList.push_back(id.storeId);
-        }
-        statusTmp = status;
-    });
-
-    if (!reply.WriteStringVector(storeIdList)) {
-        return -1;
-    }
-
-    if (!reply.WriteInt32(static_cast<int>(statusTmp))) {
-        return -1;
-    }
-    return 0;
-}
-int32_t KvStoreDataServiceStub::GetRemoteDevicesOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    std::vector<DeviceInfo> infos;
-    DeviceFilterStrategy strategy = static_cast<DeviceFilterStrategy>(data.ReadInt32());
-    Status status = GetRemoteDevices(infos, strategy);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    if (status == Status::SUCCESS) {
-        if (!reply.WriteInt32(infos.size())) {
-            return -1;
-        }
-        for (DeviceInfo const &info : infos) {
-            if (!reply.WriteString(info.deviceId) || !reply.WriteString(info.deviceName) ||
-                !reply.WriteString(info.deviceType)) {
-                return -1;
-            }
-        }
-    }
-    return 0;
-}
-int32_t KvStoreDataServiceStub::StartWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    DeviceFilterStrategy strategy = static_cast<DeviceFilterStrategy>(data.ReadInt32());
-    sptr<IRemoteObject> remote = data.ReadRemoteObject();
-    if (remote == nullptr) {
-        ZLOGW("observerProxy nullptr after ipc");
-        if (!reply.WriteInt32(static_cast<int>(Status::IPC_ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-    sptr<IDeviceStatusChangeListener> observerProxy = iface_cast<IDeviceStatusChangeListener>(remote);
-    Status status = StartWatchDeviceChange(std::move(observerProxy), strategy);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
-}
-int32_t KvStoreDataServiceStub::StopWatchDeviceChangeOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    sptr<IRemoteObject> remote = data.ReadRemoteObject();
-    if (remote == nullptr) {
-        ZLOGW("observerProxy nullptr after ipc");
-        if (!reply.WriteInt32(static_cast<int>(Status::IPC_ERROR))) {
-            return -1;
-        }
-        return 0;
-    }
-    sptr<IDeviceStatusChangeListener> observerProxy = iface_cast<IDeviceStatusChangeListener>(remote);
-    Status status = StopWatchDeviceChange(std::move(observerProxy));
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
-}
-int32_t KvStoreDataServiceStub::GetSingleKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    const OptionsIpc *optionIpcPtr = reinterpret_cast<const OptionsIpc *>(data.ReadBuffer(sizeof(OptionsIpc)));
-    if (optionIpcPtr == nullptr) {
-        ZLOGW("optionPtr is nullptr");
-        if (!reply.WriteInt32(static_cast<int>(Status::INVALID_ARGUMENT))) {
-            return -1;
-        }
-        return 0;
-    }
-    OptionsIpc optionsIpc = *optionIpcPtr;
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    Options options;
-    options.createIfMissing = optionsIpc.createIfMissing;
-    options.encrypt = optionsIpc.encrypt;
-    options.persistent = optionsIpc.persistent;
-    options.backup = optionsIpc.backup;
-    options.autoSync = optionsIpc.autoSync;
-    options.securityLevel = optionsIpc.securityLevel;
-    options.kvStoreType = optionsIpc.kvStoreType;
-    options.syncable = optionsIpc.syncable;
-    options.schema = data.ReadString();
-    sptr<ISingleKvStore> proxyTmp;
-    Status status = GetSingleKvStore(options, appId, storeId,
-                                     [&](sptr<ISingleKvStore> proxy) { proxyTmp = std::move(proxy); });
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    if (status == Status::SUCCESS && proxyTmp != nullptr) {
-        if (!reply.WriteRemoteObject(proxyTmp->AsObject().GetRefPtr())) {
-            return -1;
-        }
-    }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::CloseKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    Status status = CloseKvStore(appId, storeId);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::CloseAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    Status status = CloseAllKvStore(appId);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::DeleteKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    StoreId storeId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    Status status = DeleteKvStore(appId, storeId);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::DeleteAllKvStoreOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
-    Status status = DeleteAllKvStore(appId);
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
-    }
-    return 0;
+    (void)data;
+    (void)reply;
+    return NOT_SUPPORT;
 }
 
 int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    AppId appId = { Constant::TrimCopy<std::string>(data.ReadString())};
+    AppId appId = { data.ReadString() };
     sptr<IRemoteObject> kvStoreClientDeathObserverProxy = data.ReadRemoteObject();
     if (kvStoreClientDeathObserverProxy == nullptr) {
         return -1;
@@ -583,32 +114,16 @@ int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParce
     return 0;
 }
 
-int32_t KvStoreDataServiceStub::GetLocalDeviceOnRemote(MessageParcel &data, MessageParcel &reply)
+int32_t KvStoreDataServiceStub::GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply)
 {
-    DeviceInfo info;
-    Status status = GetLocalDevice(info);
-    if (!reply.WriteInt32(static_cast<int>(status)) || !reply.WriteString(info.deviceId) ||
-        !reply.WriteString(info.deviceName) || !reply.WriteString(info.deviceType)) {
+    std::string name;
+    if (!ITypesUtil::Unmarshal(data, name)) {
         return -1;
     }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetRdbServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetRdbService());
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetKVdbServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetKVdbService());
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::GetObjectServiceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    reply.WriteRemoteObject(GetObjectService());
+    auto remoteObject = GetFeatureInterface(name);
+    if (!ITypesUtil::Marshal(reply, remoteObject)) {
+        return -1;
+    }
     return 0;
 }
 

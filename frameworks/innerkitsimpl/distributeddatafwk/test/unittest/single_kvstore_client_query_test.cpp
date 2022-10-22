@@ -51,10 +51,17 @@ std::shared_ptr<SingleKvStore> SingleKvStoreClientQueryTest::singleKvStorePtr = 
 Status SingleKvStoreClientQueryTest::statusGetKvStore = Status::ERROR;
 
 void SingleKvStoreClientQueryTest::SetUpTestCase(void)
-{}
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+}
 
 void SingleKvStoreClientQueryTest::TearDownTestCase(void)
-{}
+{
+    (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/key");
+    (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/kvdb");
+    (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest");
+}
 
 void SingleKvStoreClientQueryTest::SetUp(void)
 {}
@@ -432,8 +439,10 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC001, TestSize.Leve
     ZLOGD("TestSingleKvStoreQueryC001 start");
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
-                       .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
-    AppId appId = { "SingleKvStoreClientQueryTestAppId1" };
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
+    AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId1" };
     statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
     EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
@@ -479,7 +488,7 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC001, TestSize.Leve
     singleKvStorePtr->Delete("test_key_3");
     Status status = manager.CloseAllKvStore(appId);
     EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.DeleteAllKvStore(appId);
+    status = manager.DeleteAllKvStore(appId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
     ZLOGD("TestSingleKvStoreQueryC001 end");
 }
@@ -498,9 +507,10 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC002, TestSize.Leve
 
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
-            .kvStoreType = KvStoreType::SINGLE_VERSION };
-    options.schema = VALID_SCHEMA_STRICT_DEFINE;
-    AppId appId = { "SingleKvStoreClientQueryTestAppId2" };
+                        .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
+    AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId2" };
     statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
     EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
@@ -549,9 +559,8 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC002, TestSize.Leve
     singleKvStorePtr->Delete("test_key_3");
     Status status = manager.CloseAllKvStore(appId);
     EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.DeleteAllKvStore(appId);
+    status = manager.DeleteAllKvStore(appId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
-
     ZLOGD("TestSingleKvStoreQueryC002 end");
 }
 

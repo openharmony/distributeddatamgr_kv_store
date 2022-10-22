@@ -24,6 +24,7 @@
 #include "icommunicator.h"
 #include "isync_interface.h"
 #include "message.h"
+#include "relational_db_sync_interface.h"
 #include "relational_result_set_impl.h"
 #include "remote_executor_packet.h"
 #include "runtime_context.h"
@@ -79,6 +80,12 @@ protected:
     void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
 
 private:
+    struct SendMessage {
+        uint32_t sessionId;
+        uint32_t sequenceId;
+        bool isLast;
+        SecurityOption option;
+    };
 
     void ReceiveMessageInner(const std::string &targetDev, Message *inMsg);
 
@@ -105,6 +112,9 @@ private:
 
     int ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
         const std::string &device);
+
+    int ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage, const std::string &device);
+
     int ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,
         const std::string &device);
 
@@ -127,6 +137,13 @@ private:
     void RemoveTaskByDevice(const std::string &device, std::vector<uint32_t> &removeList);
     void RemoveAllTask(int errCode);
     void RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList);
+
+    int GetPacketSize(const std::string &device, size_t &packetSize);
+    int CheckSecurityOption(ISyncInterface *storage, ICommunicator *communicator, const SecurityOption &remoteOption);
+    bool CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
+        const SecurityOption &localOption);
+    int ResponseRemoteQueryRequest(RelationalDBSyncInterface *storage, const PreparedStmt &stmt,
+        const std::string &device, uint32_t sessionId);
 
     ICommunicator *GetAndIncCommunicator() const;
     ISyncInterface *GetAndIncSyncInterface() const;

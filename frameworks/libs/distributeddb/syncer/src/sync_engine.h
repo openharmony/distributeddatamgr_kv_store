@@ -202,7 +202,7 @@ private:
 
     void SetRemoteExector(RemoteExecutor *executor);
 
-    bool CheckDeviceIdValid(const std::string &checkDeviceId, const std::string &localDeviceId);
+    bool CheckDeviceIdValid(const std::string &deviceId, const std::string &localDeviceId);
 
     int GetLocalDeviceId(std::string &deviceId);
 

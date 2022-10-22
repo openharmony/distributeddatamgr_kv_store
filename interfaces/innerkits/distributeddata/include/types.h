@@ -127,6 +127,9 @@ enum SubscribeType : uint32_t {
 struct Entry : public virtual Parcelable {
     Key key;
     Value value;
+
+    static constexpr size_t MAX_KEY_LENGTH = 1024;
+    static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
     /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
     bool WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const
     {
@@ -253,6 +256,7 @@ enum class DeviceFilterStrategy {
 enum PolicyType : uint32_t {
     TERM_OF_SYNC_VALIDITY,
     IMMEDIATE_SYNC_ON_ONLINE,
+    IMMEDIATE_SYNC_ON_CHANGE,
     POLICY_BUTT
 };
 
@@ -273,7 +277,7 @@ struct Options {
     int32_t area = EL1;
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
 
-    std::vector<SyncPolicy> policies;
+    std::vector<SyncPolicy> policies{ { IMMEDIATE_SYNC_ON_CHANGE } };
     std::string schema = "";
     std::string hapName = "";
     std::string baseDir = "";

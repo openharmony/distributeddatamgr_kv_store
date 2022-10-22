@@ -38,12 +38,17 @@ public:
     void ResetSecOptDic();
     void ResetAdapter();
 
+    void ForkGetSecurityOption(std::function<DBStatus (const std::string &, SecurityOption &)> callBack);
+    void ForkCheckDeviceSecurityAbility(std::function<bool (const std::string &, const SecurityOption &)> callBack);
+
 private:
     mutable std::mutex adapterlock_;
     OnAccessControlledEvent callback_;
     std::map<const std::string, SecurityOption> pathSecOptDic_;
     bool isLocked_;
     bool createDb_;
+    std::function<DBStatus (const std::string &, SecurityOption &)> getSecurityOptionCallBack_;
+    std::function<bool (const std::string &, const SecurityOption &)> checkDeviceCallBack_;
 };
 } // namespace DistributedDB
 

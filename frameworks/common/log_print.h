@@ -35,6 +35,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 }
 } // end namespace DistributedData
 
+namespace DistributedKVStore {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001612, "ZDD" };
+}
+} // end namespace DistributedKVStore
+
 namespace AppDistributedKv {
 static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 {
@@ -48,6 +55,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
     return { LOG_CORE, 0xD001655, "DRDB" };
 }
 } // end namespace DistributedRdb
+
+namespace DataShare {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001651, "DataShare" };
+}
+} // end namespace DataShare
 } // end namespace OHOS
 
 #define ZLOGD(fmt, ...) \

@@ -81,6 +81,8 @@ namespace {
         std::string dbPath = dbDir + "/test.db";
         auto db = RelationalTestUtils::CreateDataBase(dbPath);
         EXPECT_EQ(sqlite3_exec(db, "PRAGMA journal_mode=WAL;", nullptr, nullptr, nullptr), SQLITE_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+        db = nullptr;
         RelationalStoreDelegate::Option option;
         return mgr.OpenStore(dbPath, STORE_ID_1, option, rdbDelegatePtr);
     }
