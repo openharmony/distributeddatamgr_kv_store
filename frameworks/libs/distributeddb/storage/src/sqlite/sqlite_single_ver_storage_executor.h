@@ -365,7 +365,7 @@ private:
 
     int MigrateDataItems(std::vector<DataItem> &dataItems, NotifyMigrateSyncData &syncData);
 
-    int MigrateDataItem(DataItem &dataItem, NotifyMigrateSyncData &syncData);
+    int MigrateDataItem(DataItem &dataItem, const NotifyMigrateSyncData &syncData);
 
     int GetEntriesForNotifyRemoveDevData(const DataItem &item, std::vector<Entry> &entries) const;
 
