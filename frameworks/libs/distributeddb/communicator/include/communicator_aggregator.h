@@ -83,8 +83,8 @@ public:
     // Called by communicator to make itself really in work
     void ActivateCommunicator(const LabelType &commLabel);
 
-    // SerialBuffer surely is heap memory, CreateSendTask responsible for lifecycle
-    int CreateSendTask(const std::string &dstTarget, SerialBuffer *inBuff, FrameType inType,
+    // SerialBuffer surely is heap memory, ScheduleSendTask responsible for lifecycle
+    int ScheduleSendTask(const std::string &dstTarget, SerialBuffer *inBuff, FrameType inType,
         const TaskConfig &inConfig, const OnSendEnd &onEnd = nullptr);
 
     static void EnableCommunicatorNotFoundFeedback(bool isEnable);

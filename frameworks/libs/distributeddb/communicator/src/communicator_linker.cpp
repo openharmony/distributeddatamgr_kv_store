@@ -395,7 +395,7 @@ void CommunicatorLinker::SendLabelExchange(const std::string &toTarget, SerialBu
     int error = E_OK;
     SerialBuffer *cloneBuffer = inBuff->Clone(error);
     TaskConfig config{true, 0, Priority::HIGH};
-    int errCode = aggregator_->CreateSendTask(toTarget, inBuff, FrameType::COMMUNICATION_LABEL_EXCHANGE, config);
+    int errCode = aggregator_->ScheduleSendTask(toTarget, inBuff, FrameType::COMMUNICATION_LABEL_EXCHANGE, config);
     if (errCode == E_OK) {
         // Send ok, go on to wait ack, and maybe resend
         if (error == E_OK) {
@@ -453,7 +453,7 @@ void CommunicatorLinker::SendLabelExchangeAck(const std::string &toTarget, Seria
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    int errCode = aggregator_->CreateSendTask(toTarget, inBuff, FrameType::COMMUNICATION_LABEL_EXCHANGE_ACK, config);
+    int errCode = aggregator_->ScheduleSendTask(toTarget, inBuff, FrameType::COMMUNICATION_LABEL_EXCHANGE_ACK, config);
     if (errCode == E_OK) {
         // Send ok, finish event
         RefObject::DecObjRef(this); // ATTENTION: The DecObjRef should be outside entireInfoLockGuard!!!

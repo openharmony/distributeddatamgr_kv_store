@@ -726,7 +726,7 @@ void GenericSyncer::GetOnlineDevices(std::vector<std::string> &devices) const
     }
     std::lock_guard<std::mutex> lock(syncerLock_);
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGW("[Syncer] Syncer is closing, return!");
         return;
     }
     if (syncEngine_ != nullptr) {
@@ -760,7 +760,7 @@ std::string GenericSyncer::GetSyncDevicesStr(const std::vector<std::string> &dev
 {
     std::string syncDevices;
     for (const auto &dev:devices) {
-        syncDevices += STR_MASK(dev);
+        syncDevices += DBCommon::StringMasking(dev);
         syncDevices += ",";
     }
     return syncDevices.substr(0, syncDevices.size() - 1);
@@ -773,7 +773,7 @@ int GenericSyncer::StatusCheck() const
         return -E_NOT_INIT;
     }
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGW("[Syncer] Syncer is closing, return!");
         return -E_BUSY;
     }
     return E_OK;

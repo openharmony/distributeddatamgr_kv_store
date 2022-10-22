@@ -524,6 +524,15 @@ uint32_t Parcel::GetMultiVerCommitsLen(const std::vector<MultiVerCommitNode> &co
 
 void Parcel::EightByteAlign()
 {
+    if (IsError()) {
+        LOGE("EightByteAlign already error");
+        return;
+    }
+    if (BYTE_8_ALIGN(parcelLen_) > totalLen_) {
+        LOGE("byte 8 align failed");
+        isError_ = true;
+        return;
+    }
     bufPtr_ += BYTE_8_ALIGN(parcelLen_) - parcelLen_;
     parcelLen_ = BYTE_8_ALIGN(parcelLen_);
 }

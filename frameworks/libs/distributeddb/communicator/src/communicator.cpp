@@ -131,7 +131,7 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     }
 
     TaskConfig taskConfig {config.nonBlock, config.timeout, inMsg->GetPriority()};
-    errCode = commAggrHandle_->CreateSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, taskConfig, onEnd);
+    errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, taskConfig, onEnd);
     if (errCode == E_OK) {
         // if ok, free inMsg, otherwise the caller should take over inMsg
         delete inMsg;
@@ -226,7 +226,7 @@ void Communicator::TriggerVersionNegotiation(const std::string &dstTarget)
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = commAggrHandle_->CreateSendTask(dstTarget, buffer, FrameType::EMPTY, config);
+    errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::EMPTY, config);
     if (errCode != E_OK) {
         LOGE("[Comm][TrigVer] Send empty frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by comminucator aggregator
@@ -259,7 +259,7 @@ void Communicator::TriggerUnknownMessageFeedback(const std::string &dstTarget, M
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = commAggrHandle_->CreateSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
+    errCode = commAggrHandle_->ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
         LOGE("[Comm][TrigFeedback] Send unknown message feedback frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by comminucator aggregator

@@ -138,6 +138,9 @@ int PreparedStmt::DeSerialize(Parcel &parcel)
     }
 
     (void)parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 }
 }

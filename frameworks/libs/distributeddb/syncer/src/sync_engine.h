@@ -179,10 +179,7 @@ private:
     // Handle message in order.
     int ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg);
 
-    // Schedule Sync Task
-    void ScheduleSyncTask(ISyncTaskContext *context);
-
-    ISyncTaskContext *GetConextForMsg(const std::string &targetDev, int &errCode);
+    ISyncTaskContext *GetContextForMsg(const std::string &targetDev, int &errCode);
 
     ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode);
 

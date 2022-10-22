@@ -403,7 +403,7 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     // it will deal with the first message in queue, we should increase object reference counts and sure that resources
     // could be prevented from destroying by other threads.
     do {
-        ISyncTaskContext *nextContext = GetConextForMsg(inMsg->GetTarget(), errCode);
+        ISyncTaskContext *nextContext = GetContextForMsg(inMsg->GetTarget(), errCode);
         if (errCode != E_OK) {
             break;
         }
@@ -420,7 +420,7 @@ int SyncEngine::DealMsgUtilQueueEmpty()
     return errCode;
 }
 
-ISyncTaskContext *SyncEngine::GetConextForMsg(const std::string &targetDev, int &errCode)
+ISyncTaskContext *SyncEngine::GetContextForMsg(const std::string &targetDev, int &errCode)
 {
     ISyncTaskContext *context = nullptr;
     {
@@ -530,7 +530,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
     }
 
     int errCode = E_OK;
-    ISyncTaskContext *nextContext = GetConextForMsg(targetDev, errCode);
+    ISyncTaskContext *nextContext = GetContextForMsg(targetDev, errCode);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -749,7 +749,7 @@ int SyncEngine::SetEqualIdentifier(const std::string &identifier, const std::vec
     }
     LOGI("[SyncEngine] set equal identifier=%s, original=%s, targetDevices=%s",
         DBCommon::TransferStringToHex(identifier).c_str(), label_.c_str(),
-        targetDevices.substr(0, targetDevices.size() - 1).c_str());
+        targetDevices.substr(0, (targetDevices.size() > 0 ? targetDevices.size() - 1 : 0)).c_str());
     communicatorProxy_->SetEqualCommunicator(communicator, identifier, targets);
     communicator->Activate();
     return E_OK;

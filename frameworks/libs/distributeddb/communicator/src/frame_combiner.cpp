@@ -20,7 +20,7 @@
 
 namespace DistributedDB {
 static const uint32_t MAX_WORK_PER_SRC_TARGET = 1; // Only allow 1 CombineWork for each target
-static const int SURVAIL_PERIOD_IN_MILLISECOND = 10000; // Period is 10 s
+static const int COMBINER_SURVAIL_PERIOD_IN_MILLISECOND = 10000; // Period is 10 s
 
 void FrameCombiner::Initialize()
 {
@@ -32,7 +32,7 @@ void FrameCombiner::Initialize()
     TimerFinalizer finalizer = [this]() {
         timerRemovedIndicator_.SendSemaphore();
     };
-    int errCode = context->SetTimer(SURVAIL_PERIOD_IN_MILLISECOND, action, finalizer, timerId_);
+    int errCode = context->SetTimer(COMBINER_SURVAIL_PERIOD_IN_MILLISECOND, action, finalizer, timerId_);
     if (errCode != E_OK) {
         LOGE("[Combiner][Init] Set timer fail, errCode=%d.", errCode);
         return;
@@ -193,7 +193,7 @@ int FrameCombiner::CreateNewCombineWork(const uint8_t *bytes, uint32_t length, c
 
 void FrameCombiner::AbortCombineWorkBySource(uint64_t inSourceId)
 {
-    if (combineWorkPool_[inSourceId].size() == 0) {
+    if (combineWorkPool_[inSourceId].empty()) {
         return;
     }
     uint32_t toBeAbortFrameId = 0;

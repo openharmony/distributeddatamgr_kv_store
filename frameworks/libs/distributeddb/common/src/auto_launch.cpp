@@ -62,13 +62,13 @@ void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
     errCode = aggregator->RegOnConnectCallback(std::bind(&AutoLaunch::OnlineCallBack, this,
         std::placeholders::_1, std::placeholders::_2), nullptr);
     if (errCode != E_OK) {
-        LOGW("[AutoLaunch] RegOnConnectCallback errCode:%d", errCode);
+        LOGE("[AutoLaunch] RegOnConnectCallback errCode:%d", errCode);
     }
     errCode = aggregator->RegCommunicatorLackCallback(
         std::bind(&AutoLaunch::ReceiveUnknownIdentifierCallBack, this, std::placeholders::_1, std::placeholders::_2),
         nullptr);
     if (errCode != E_OK) {
-        LOGW("[AutoLaunch] RegCommunicatorLackCallback errCode:%d", errCode);
+        LOGE("[AutoLaunch] RegCommunicatorLackCallback errCode:%d", errCode);
     }
 }
 
@@ -205,7 +205,7 @@ int AutoLaunch::GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const st
         return E_OK;
     }
     if (autoLaunchItem.conn == nullptr) {
-        EraseAutoLauchItem(identifier, userId);
+        EraseAutoLaunchItem(identifier, userId);
         return errCode;
     }
     bool isEmpty = false;
@@ -219,7 +219,7 @@ int AutoLaunch::GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const st
         errCode = KvDBManager::ReleaseDatabaseConnection(kvConn);
         if (errCode != E_OK) {
             LOGE("[AutoLaunch] GetKVConnectionInEnable ReleaseDatabaseConnection failed errCode:%d", errCode);
-            EraseAutoLauchItem(identifier, userId);
+            EraseAutoLaunchItem(identifier, userId);
             return errCode;
         }
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -235,7 +235,7 @@ int AutoLaunch::GetKVConnectionInEnable(AutoLaunchItem &autoLaunchItem, const st
     } else {
         LOGE("[AutoLaunch] GetKVConnectionInEnable RegisterObserverAndLifeCycleCallback err, do CloseConnection");
         TryCloseConnection(autoLaunchItem); // do nothing if failed
-        EraseAutoLauchItem(identifier, userId);
+        EraseAutoLaunchItem(identifier, userId);
     }
     return errCode;
 }
@@ -384,11 +384,12 @@ void AutoLaunch::ObserverFunc(const KvDBCommitNotifyData &notifyData, const std:
 int AutoLaunch::DisableKvStoreAutoLaunch(const std::string &normalIdentifier, const std::string &dualTupleIdentifier,
     const std::string &userId)
 {
-    std::string identifier = (autoLaunchItemMap_.count(normalIdentifier) == 0) ? dualTupleIdentifier : normalIdentifier;
-    LOGI("[AutoLaunch] DisableKvStoreAutoLaunch identifier=%.6s", STR_TO_HEX(identifier));
+    std::string identifier;
     AutoLaunchItem autoLaunchItem;
     {
         std::unique_lock<std::mutex> autoLock(dataLock_);
+        identifier = (autoLaunchItemMap_.count(normalIdentifier) == 0) ? dualTupleIdentifier : normalIdentifier;
+        LOGI("[AutoLaunch] DisableKvStoreAutoLaunch identifier=%.6s", STR_TO_HEX(identifier));
         if (autoLaunchItemMap_.count(identifier) == 0 || autoLaunchItemMap_[identifier].count(userId) == 0) {
             LOGE("[AutoLaunch] DisableKvStoreAutoLaunch identifier is not exist!");
             return -E_NOT_FOUND;
@@ -423,7 +424,7 @@ int AutoLaunch::DisableKvStoreAutoLaunch(const std::string &normalIdentifier, co
         return errCode;
     }
 
-    EraseAutoLauchItem(identifier, userId);
+    EraseAutoLaunchItem(identifier, userId);
     cv_.notify_all();
     if (autoLaunchItem.isWriteOpenNotified && autoLaunchItem.notifier) {
         RuntimeContext::GetInstance()->ScheduleTask([autoLaunchItem] { CloseNotifier(autoLaunchItem); });
@@ -693,23 +694,26 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
     const std::string identifier(label.begin(), label.end());
     // originalUserId size maybe 0
     std::string userId = originalUserId;
-    if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
-        autoLaunchItemMap_[identifier].size() > 1) {
-        LOGE("[AutoLaunch] normal tuple mode userId larger than one userId");
-        goto EXT;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
+            autoLaunchItemMap_[identifier].size() > 1) {
+            LOGE("[AutoLaunch] normal tuple mode userId larger than one userId");
+            return AutoLaunchExt(identifier, userId);
+        }
+        if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
+            autoLaunchItemMap_[identifier].size() == 1) {
+            // normal tuple mode
+            userId = autoLaunchItemMap_[identifier].begin()->first;
+        }
+        LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack identifier=%.6s", STR_TO_HEX(identifier));
     }
-    if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
-        autoLaunchItemMap_[identifier].size() == 1) {
-        // normal tuple mode
-        userId = autoLaunchItemMap_[identifier].begin()->first;
-    }
-    LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack identifier=%.6s", STR_TO_HEX(identifier));
     int errCode;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (autoLaunchItemMap_.count(identifier) == 0 || autoLaunchItemMap_[identifier].count(userId) == 0) {
             LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack not find identifier");
-            goto EXT;
+            return AutoLaunchExt(identifier, userId);
         } else if (autoLaunchItemMap_[identifier][userId].isDisable) {
             LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack isDisable ,do nothing");
             return -E_NOT_FOUND; // not E_OK is ok for communicator
@@ -733,9 +737,6 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
         autoLaunchItemMap_[identifier][userId].state = AutoLaunchItemState::IDLE;
     }
     return errCode;
-
-EXT:
-    return AutoLaunchExt(identifier, userId);
 }
 
 void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
@@ -1179,7 +1180,7 @@ void AutoLaunch::TryCloseRelationConnection(AutoLaunchItem &autoLaunchItem)
     }
 }
 
-void AutoLaunch::EraseAutoLauchItem(const std::string &identifier, const std::string &userId)
+void AutoLaunch::EraseAutoLaunchItem(const std::string &identifier, const std::string &userId)
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     autoLaunchItemMap_[identifier].erase(userId);

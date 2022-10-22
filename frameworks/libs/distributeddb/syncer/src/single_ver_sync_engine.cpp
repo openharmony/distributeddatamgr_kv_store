@@ -99,7 +99,7 @@ int SingleVerSyncEngine::SubscribeTimeOut(TimerId id)
     std::map<std::string, std::vector<QuerySyncObject>> allSyncQueries;
     GetAllUnFinishSubQueries(allSyncQueries);
     LOGI("[SingleVerSyncEngine] SubscribeTimeOut,size=%zu", allSyncQueries.size());
-    if (allSyncQueries.size() == 0) {
+    if (allSyncQueries.empty()) {
         LOGI("no need to trigger auto subscribe");
         return E_OK;
     }

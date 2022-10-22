@@ -31,7 +31,7 @@ public:
     std::string GetQuerySyncId() const override;
     std::string GetDeleteSyncId() const override;
 
-    void SetRelationalSyncStrategy(RelationalSyncStrategy strategy);
+    void SetRelationalSyncStrategy(RelationalSyncStrategy &strategy);
     SyncStrategy GetSyncStrategy(QuerySyncObject &querySyncObject) const override;
 
     void SetIsNeedResetAbilitySync(bool isNeedReset) override;

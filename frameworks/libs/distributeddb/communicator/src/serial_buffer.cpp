@@ -107,6 +107,10 @@ int SerialBuffer::SetExternalBuff(const uint8_t *buff, uint32_t inTotalLen, uint
 
 SerialBuffer *SerialBuffer::Clone(int &outErrorNo)
 {
+    if (totalLen_ == 0) {
+        outErrorNo = -E_INVALID_ARGS;
+        return nullptr;
+    }
     SerialBuffer *twinBuffer = new (std::nothrow) SerialBuffer();
     if (twinBuffer == nullptr) {
         outErrorNo = -E_OUT_OF_MEMORY;
@@ -144,6 +148,9 @@ SerialBuffer *SerialBuffer::Clone(int &outErrorNo)
 
 int SerialBuffer::ConvertForCrossThread()
 {
+    if (totalLen_ == 0) {
+        return -E_INVALID_ARGS;
+    }
     if (externalBytes_ == nullptr) {
         // No associated external stack memory. Do nothing and return E_OK.
         return E_OK;

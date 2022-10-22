@@ -187,7 +187,7 @@ int SingleVerDataSync::TryContinueSync(SingleVerSyncTaskContext *context, const 
     }
     if (!isAllDataHasSent_) {
         return InnerSyncStart(context);
-    } else if (reSendMap_.size() == 0) {
+    } else if (reSendMap_.empty()) {
         context->SetOperationStatus(SyncOperation::OP_SEND_FINISHED);
         InnerClearSyncStatus();
         return -E_FINISHED;
@@ -672,11 +672,16 @@ void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleV
 
 int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
 {
-    if (!SingleVerDataSyncUtils::QuerySyncCheck(context)) {
+    bool isCheckStatus = false;
+    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCheckStatus) {
         context->SetTaskErrCode(-E_NOT_SUPPORT);
         return -E_NOT_SUPPORT;
     }
-    int errCode = RemoveDeviceDataIfNeed(context);
+    errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
         return errCode;
@@ -746,11 +751,16 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     if (context == nullptr) {
         return -E_INVALID_ARGS;
     }
-    if (!SingleVerDataSyncUtils::QuerySyncCheck(context)) {
+    bool isCheckStatus = false;
+    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCheckStatus) {
         context->SetTaskErrCode(-E_NOT_SUPPORT);
         return -E_NOT_SUPPORT;
     }
-    int errCode = RemoveDeviceDataIfNeed(context);
+    errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
         return errCode;

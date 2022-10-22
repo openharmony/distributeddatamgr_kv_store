@@ -55,7 +55,7 @@ int SingleVerSyncer::SetStaleDataWipePolicy(WipePolicy policy)
 {
     std::lock_guard<std::mutex> lock(syncerLock_);
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGI("[Syncer] Syncer is closing, return!");
         return -E_BUSY;
     }
     if (syncEngine_ == nullptr) {

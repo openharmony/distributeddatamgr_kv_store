@@ -179,6 +179,7 @@ int SingleVerSyncStateMachine::ReceiveMessageCallback(Message *inMsg)
 {
     int errCode = MessageCallbackPre(inMsg);
     if (errCode != E_OK) {
+        LOGE("[StateMachine] message pre check failed");
         return errCode;
     }
     switch (inMsg->GetMessageId()) {
@@ -363,7 +364,7 @@ void SingleVerSyncStateMachine::InitStateMapping()
     stateMapping_[SYNC_CONTROL_CMD] = std::bind(&SingleVerSyncStateMachine::DoInitiactiveControlSync, this);
 }
 
-Event SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow()
+Event SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow() const
 {
     LOGD("[StateMachine][activeDataSync] mode=%d,label=%s,dev=%s", context_->GetMode(),
         dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
@@ -424,7 +425,7 @@ Event SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow()
     return Event::WAIT_ACK_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoInitiactiveControlSync()
+Event SingleVerSyncStateMachine::DoInitiactiveControlSync() const
 {
     LOGD("[StateMachine][activeControlSync] mode=%d,label=%s,dev=%s", context_->GetMode(),
         dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
@@ -465,7 +466,7 @@ Event SingleVerSyncStateMachine::DoWaitForDataRecv() const
     return Event::WAIT_ACK_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoTimeSync()
+Event SingleVerSyncStateMachine::DoTimeSync() const
 {
     if (timeSync_->IsNeedSync()) {
         CommErrHandler handler = nullptr;
@@ -485,7 +486,7 @@ Event SingleVerSyncStateMachine::DoTimeSync()
     return Event::TIME_SYNC_FINISHED_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoAbilitySync()
+Event SingleVerSyncStateMachine::DoAbilitySync() const
 {
     uint16_t remoteCommunicatorVersion = 0;
     int errCode = communicator_->GetRemoteCommunicatorVersion(context_->GetDeviceId(), remoteCommunicatorVersion);

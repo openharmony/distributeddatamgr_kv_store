@@ -49,7 +49,7 @@ void SingleVerKVSyncer::EnableAutoSync(bool enable)
     }
 
     if (!initialized_) {
-        LOGE("[Syncer] Syncer has not Init");
+        LOGI("[Syncer] Syncer has not Init");
         return;
     }
 
@@ -145,7 +145,7 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     // if remote device online, subscribequery num is 0
     std::vector<QuerySyncObject> syncQueries;
     static_cast<SingleVerSyncEngine *>(syncEngine_)->GetLocalSubscribeQueries(device, syncQueries);
-    if (syncQueries.size() == 0) {
+    if (syncQueries.empty()) {
         LOGI("no need to trigger auto subscribe");
         return;
     }

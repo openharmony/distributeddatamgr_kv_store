@@ -131,6 +131,9 @@ int GenericSingleVerKvEntry::SerializeDatas(const std::vector<SingleVerKvEntry *
         return errCode;
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     for (const auto &kvEntry : kvEntries) {
         if (kvEntry == nullptr) {
             continue;
@@ -196,19 +199,23 @@ int GenericSingleVerKvEntry::DeSerializeDatas(std::vector<SingleVerKvEntry *> &k
         len = 0;
     } else {
         parcel.EightByteAlign();
-        len = BYTE_8_ALIGN(len);
-        for (uint32_t i = 0; i < size; i++) {
-            auto kvEntry = new (std::nothrow) GenericSingleVerKvEntry();
-            if (kvEntry == nullptr) {
-                LOGE("Create kvEntry failed.");
-                len = 0;
-                break;
-            }
-            len += kvEntry->DeSerializeData(parcel);
-            kvEntries.push_back(kvEntry);
-            if (len > INT32_MAX || parcel.IsError()) {
-                len = 0;
-                break;
+        if (parcel.IsError()) {
+            len = 0;
+        } else {
+            len = BYTE_8_ALIGN(len);
+            for (uint32_t i = 0; i < size; i++) {
+                auto kvEntry = new (std::nothrow) GenericSingleVerKvEntry();
+                if (kvEntry == nullptr) {
+                    LOGE("Create kvEntry failed.");
+                    len = 0;
+                    break;
+                }
+                len += kvEntry->DeSerializeData(parcel);
+                kvEntries.push_back(kvEntry);
+                if (len > INT32_MAX || parcel.IsError()) {
+                    len = 0;
+                    break;
+                }
             }
         }
     }

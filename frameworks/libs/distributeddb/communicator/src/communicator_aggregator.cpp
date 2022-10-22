@@ -279,7 +279,7 @@ void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 }
 }
 
-int CommunicatorAggregator::CreateSendTask(const std::string &dstTarget, SerialBuffer *inBuff,
+int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, SerialBuffer *inBuff,
     FrameType inType, const TaskConfig &inConfig, const OnSendEnd &onEnd)
 {
     if (inBuff == nullptr) {
@@ -365,7 +365,7 @@ void CommunicatorAggregator::SendDataRoutine()
         }
         // <addr, <extendHeadSize, totalLen>>
         std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> eachPacket;
-        if (piecePackets.size() == 0) {
+        if (piecePackets.empty()) {
             // Case that no need to split a frame, just use original buffer as a packet
             std::pair<const uint8_t *, uint32_t> tmpEntry = taskToSend.buffer->GetReadOnlyBytesForEntireBuffer();
             std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> entry;
@@ -804,7 +804,7 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = CreateSendTask(dstTarget, buffer, FrameType::EMPTY, config);
+    errCode = ScheduleSendTask(dstTarget, buffer, FrameType::EMPTY, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigVer] Send empty frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by SendTaskScheduler
@@ -856,10 +856,10 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = CreateSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
+    errCode = ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigNotFound] Send communicator not found feedback frame fail, errCode=%d", errCode);
-        // if send fails, free buffer, otherwise buffer will be taked over by CreateSendTask
+        // if send fails, free buffer, otherwise buffer will be taked over by ScheduleSendTask
         delete buffer;
         buffer = nullptr;
     }

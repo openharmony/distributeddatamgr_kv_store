@@ -13,7 +13,8 @@
  * limitations under the License.
  */
 
-#include "../include/ievent.h"
+#include "ievent.h"
+
 #include "db_errno.h"
 #include "event_impl.h"
 

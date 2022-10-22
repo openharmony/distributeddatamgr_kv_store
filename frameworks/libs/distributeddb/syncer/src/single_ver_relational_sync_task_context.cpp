@@ -52,7 +52,7 @@ void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *targe
     deleteSyncId_ = GetDeviceId() + hexTableName; // save as deviceId + hexTableName
 }
 
-void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy strategy)
+void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy &strategy)
 {
     std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     relationalSyncStrategy_ = strategy;

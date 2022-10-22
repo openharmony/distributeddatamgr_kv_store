@@ -381,6 +381,9 @@ int ValueSliceSync::RequestPacketDeSerialization(const uint8_t *buffer, uint32_t
     // errCode DeSerialization
     uint32_t packLen = parcel.ReadInt(ackCode);
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     packLen = Parcel::GetEightByteAlign(packLen);
 
     ValueSliceHash valueSliceHash;
@@ -455,6 +458,9 @@ int ValueSliceSync::AckPacketDeSerialization(const uint8_t *buffer, uint32_t len
     // errCode DeSerialization
     packLen += parcel.ReadInt(ackCode);
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     packLen = Parcel::GetEightByteAlign(packLen);
     // valueSlice DeSerialization
     packLen += parcel.ReadVectorChar(valueSlice);

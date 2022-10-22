@@ -231,10 +231,14 @@ SerialBuffer *ProtocolProto::BuildLabelExchange(uint64_t inDistinctValue, uint64
 
     auto payloadByteLen = buffer->GetWritableBytesForPayload();
     auto fieldPtr = reinterpret_cast<uint64_t *>(payloadByteLen.first);
-    *fieldPtr++ = HostToNet(static_cast<uint64_t>(PROTOCOL_VERSION));
-    *fieldPtr++ = HostToNet(inDistinctValue);
-    *fieldPtr++ = HostToNet(inSequenceId);
-    *fieldPtr++ = HostToNet(static_cast<uint64_t>(inLabels.size()));
+    *fieldPtr = HostToNet(static_cast<uint64_t>(PROTOCOL_VERSION));
+    fieldPtr++;
+    *fieldPtr = HostToNet(inDistinctValue);
+    fieldPtr++;
+    *fieldPtr = HostToNet(inSequenceId);
+    fieldPtr++;
+    *fieldPtr = HostToNet(static_cast<uint64_t>(inLabels.size()));
+    fieldPtr++;
     // Note: don't worry, memory length had been carefully calculated above
     auto bytePtr = reinterpret_cast<uint8_t *>(fieldPtr);
     for (auto &eachLabel : inLabels) {
@@ -265,9 +269,12 @@ SerialBuffer *ProtocolProto::BuildLabelExchangeAck(uint64_t inDistinctValue, uin
 
     auto payloadByteLen = buffer->GetWritableBytesForPayload();
     auto fieldPtr = reinterpret_cast<uint64_t *>(payloadByteLen.first);
-    *fieldPtr++ = HostToNet(static_cast<uint64_t>(PROTOCOL_VERSION));
-    *fieldPtr++ = HostToNet(inDistinctValue);
-    *fieldPtr++ = HostToNet(inSequenceId);
+    *fieldPtr = HostToNet(static_cast<uint64_t>(PROTOCOL_VERSION));
+    fieldPtr++;
+    *fieldPtr = HostToNet(inDistinctValue);
+    fieldPtr++;
+    *fieldPtr = HostToNet(inSequenceId);
+    fieldPtr++;
     outErrorNo = E_OK;
     return buffer;
 }
@@ -556,8 +563,8 @@ void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t leng
 
 int ProtocolProto::CalculateXorSum(const uint8_t *bytes, uint32_t length, uint64_t &outSum)
 {
-    if (length % sizeof(uint64_t) != 0) {
-        LOGE("[Proto][CalcuXorSum] Length=%d not multiple of eight.", length);
+    if ((length > INT32_MAX) || (length % sizeof(uint64_t) != 0)) {
+        LOGE("[Proto][CalcuXorSum] Length=%d not multiple of eight or larget than int32_max.", length);
         return -E_LENGTH_ERROR;
     }
     int count = length / sizeof(uint64_t);
