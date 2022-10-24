@@ -1393,6 +1393,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey003, TestSize.L
      */
     errCode = g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
     EXPECT_EQ(entriesRes.size(), 5ul);
+    EXPECT_EQ(errCode, OK);
     int count = -1;
     errCode = g_kvNbDelegatePtrForQuery->GetCount(query1, count);
     EXPECT_EQ(errCode, INVALID_QUERY_FORMAT);
@@ -1729,7 +1730,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
     EXPECT_EQ(entriesRes[4].key, KEY_2);
 
     Query query1 = Query::Select().OrderBy("$.field_name1", false);
-    (void) g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
+    errCode = g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
+    EXPECT_EQ(errCode, OK);
     ASSERT_EQ(entriesRes.size(), 5ul);
     EXPECT_EQ(entriesRes[0].key, KEY_5);
     EXPECT_EQ(entriesRes[1].key, KEY_4);
@@ -1811,7 +1813,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeys001, TestSize.Level1)
     std::set<Key> keys;
     for (uint8_t i = 0; i < dataSize; i++) {
         key.push_back(i);
-        DBStatus status = g_kvNbDelegatePtrForQuery->Put(key, VALUE_1);
+        status = g_kvNbDelegatePtrForQuery->Put(key, VALUE_1);
         ASSERT_EQ(status, OK);
         keys.emplace(key);
         key.pop_back();

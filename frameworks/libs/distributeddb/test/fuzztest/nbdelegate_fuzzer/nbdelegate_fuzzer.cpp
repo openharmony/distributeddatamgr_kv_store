@@ -104,7 +104,7 @@ bool KvStoreObserverFuzzTest::IsCleared() const
     return isCleared_;
 }
 
-std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<Key> keys)
+std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<Key> &keys)
 {
     std::vector<Entry> entries;
     // key'length is less than 1024.

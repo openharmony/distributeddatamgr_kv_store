@@ -310,7 +310,7 @@ int RelationalSchemaObject::ParseCheckSchemaTableDefine(const JsonObject &inJson
         errCode = ParseCheckTableInfo(table);
         if (errCode != E_OK) {
             LOGE("[RelationalSchema][Parse] Parse schema TABLES failed: %d.", errCode);
-            return errCode;
+            return -E_SCHEMA_PARSE_FAIL;
         }
     }
     return E_OK;

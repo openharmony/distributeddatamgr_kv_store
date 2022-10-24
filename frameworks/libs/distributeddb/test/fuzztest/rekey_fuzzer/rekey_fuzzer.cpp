@@ -78,9 +78,9 @@ void MultiVerVerReKey(const uint8_t* data, size_t size)
 
     if (kvNbDelegatePtr != nullptr) {
         kvNbDelegatePtr->PutBatch(CreateEntries(data, size));
-        CipherPassword passwd;
-        passwd.SetValue(data, size);
-        kvNbDelegatePtr->Rekey(passwd);
+        CipherPassword passwdTwo;
+        passwdTwo.SetValue(data, size);
+        kvNbDelegatePtr->Rekey(passwdTwo);
         g_kvManager.CloseKvStore(kvNbDelegatePtr);
     }
 }
