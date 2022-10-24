@@ -31,7 +31,7 @@ namespace {
     int GetEntriesFromItems(std::vector<SingleVerKvEntry *> &entries, const std::vector<VirtualDataItem> &dataItems)
     {
         int errCode = E_OK;
-        for (auto &item : dataItems) {
+        for (const auto &item : dataItems) {
             auto entry = new (std::nothrow) GenericSingleVerKvEntry();
             if (entry == nullptr) {
                 LOGE("Create entry failed.");

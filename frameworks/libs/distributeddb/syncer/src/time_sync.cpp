@@ -149,7 +149,7 @@ int TimeSync::RegisterTransformFunc()
     return MessageTransform::RegTransformFunction(TIME_SYNC_MESSAGE, func);
 }
 
-int TimeSync::Initialize(ICommunicator *communicator, std::shared_ptr<Metadata> &metadata,
+int TimeSync::Initialize(ICommunicator *communicator, const std::shared_ptr<Metadata> &metadata,
     const ISyncInterface *storage, const DeviceID &deviceId)
 {
     if ((communicator == nullptr) || (storage == nullptr) || (metadata == nullptr)) {

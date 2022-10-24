@@ -180,7 +180,7 @@ protected:
 
     int SendDataPacket(SyncType syncType, const DataRequestPacket *packet, SingleVerSyncTaskContext *context);
 
-    void UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId, SyncTimeRange &dataTime,
+    void UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId, const SyncTimeRange &dataTime,
         const SingleVerSyncTaskContext *context, UpdateWaterMark isUpdateWaterMark);
 
     void UpdatePeerWaterMark(SyncType syncType, const std::string &queryId, const SingleVerSyncTaskContext *context,
