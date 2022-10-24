@@ -421,6 +421,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
     commEE = envDeviceE.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
     ASSERT_NOT_NULL_AND_ACTIVATE(commEE);
     REG_CONNECT_CALLBACK(commEE, onlineForEE);
+    onlineForEE.onlineDevices.clear();
     /**
      * @tc.steps: step6. deviceD connect to deviceE again
      * @tc.expected: step6. communicatorE has callback;

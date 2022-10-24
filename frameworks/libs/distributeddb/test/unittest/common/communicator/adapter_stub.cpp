@@ -172,8 +172,9 @@ void AdapterStub::Connect(AdapterStub *inStub)
 {
     LOGI("[UT][Stub][Connect] thisStub=%s, thatStub=%s.", localTarget_.c_str(), inStub->GetLocalTarget().c_str());
     std::lock_guard<std::mutex> onChangeLockGuard(onChangeMutex_);
+    bool isOnlineBefore = targetMapAdapter_.find(inStub->GetLocalTarget()) != targetMapAdapter_.end();
     targetMapAdapter_[inStub->GetLocalTarget()] = inStub;
-    if (onChangeHandle_) {
+    if (!isOnlineBefore && onChangeHandle_) {
         onChangeHandle_(inStub->GetLocalTarget(), true);
     }
 }
