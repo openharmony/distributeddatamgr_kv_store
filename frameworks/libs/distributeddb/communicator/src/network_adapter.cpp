@@ -252,7 +252,6 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
     }
     uint32_t headLength = 0;
     std::vector<std::string> userId;
-    std::string currentUserId;
     DBStatus errCode = processCommunicator_->CheckAndGetDataHeadInfo(data, length, headLength, userId);
     LOGI("[NAdapt][OnDataRecv] Enter, from=%s{private}, extendHeadLength=%u, totalLength=%u",
         srcDevInfo.identifier.c_str(), headLength, length);
@@ -266,6 +265,7 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
             LOGE("[NAdapt][OnDataRecv] onReceiveHandle invalid.");
             return;
         }
+        std::string currentUserId;
         if (userId.size() >= 1) {
             currentUserId = userId[0];
         }

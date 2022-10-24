@@ -770,6 +770,7 @@ static void TestSnapshotEntryPut()
      */
     snapshotA->Get(keyA, g_valueCallback);
     EXPECT_EQ(g_valueStatus, NOT_FOUND);
+    ASSERT_NE(snapshotB, nullptr);
     snapshotB->Get(keyA, g_valueCallback);
     EXPECT_EQ(g_valueStatus, OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(g_value, valueA), true);
@@ -904,6 +905,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntry002, Te
      */
     g_kvDelegatePtr->GetKvStoreSnapshot(observer, snapshotDelegateCallback);
 
+    ASSERT_NE(snapshot, nullptr);
     snapshot->Get(key, g_valueCallback);
     ASSERT_EQ(g_valueStatus, OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(g_value, value), true);
@@ -1272,6 +1274,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, GetSnapshotEntries003, 
      */
     g_kvDelegatePtr->GetKvStoreSnapshot(observer, snapshotDelegateCallback);
 
+    ASSERT_NE(snapshot, nullptr);
     snapshot->GetEntries(key, g_entryVectorCallback);
     ASSERT_EQ(g_entryVectorStatus, OK);
     EXPECT_EQ(g_matchSize, 1UL);
