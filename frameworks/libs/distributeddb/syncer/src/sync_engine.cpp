@@ -762,7 +762,7 @@ void SyncEngine::SetEqualIdentifier()
             equalIdentifier[item.second].push_back(item.first);
         }
     }
-    for (auto &item : equalIdentifier) {
+    for (const auto &item : equalIdentifier) {
         SetEqualIdentifier(item.first, item.second);
     }
 }
@@ -776,7 +776,7 @@ void SyncEngine::SetEqualIdentifierMap(const std::string &identifier, const std:
         }
         iter++;
     }
-    for (auto &device : targets) {
+    for (const auto &device : targets) {
         equalIdentifierMap_[device] = identifier;
     }
 }
@@ -832,7 +832,7 @@ void SyncEngine::GetRemoteSubscribeQueries(const std::string &device, std::vecto
     subManager_->GetRemoteSubscribeQueries(device, subscribeQueries);
 }
 
-void SyncEngine::PutUnfiniedSubQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries)
+void SyncEngine::PutUnfiniedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries)
 {
     subManager_->PutLocalUnFiniedSubQueries(device, subscribeQueries);
 }
@@ -989,7 +989,7 @@ bool SyncEngine::IsEngineActive() const
 void SyncEngine::SchemaChange()
 {
     std::lock_guard<std::mutex> lock(contextMapLock_);
-    for (auto &entry : syncTaskContextMap_) {
+    for (const auto &entry : syncTaskContextMap_) {
         auto context = entry.second;
         if (context->IsKilled()) {
             continue;
@@ -1105,7 +1105,7 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
     ISyncTaskContext *abortContext = nullptr;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
-        for (auto &entry : syncTaskContextMap_) {
+        for (const auto &entry : syncTaskContextMap_) {
             auto context = entry.second;
             if (context->IsKilled()) {
                 continue;

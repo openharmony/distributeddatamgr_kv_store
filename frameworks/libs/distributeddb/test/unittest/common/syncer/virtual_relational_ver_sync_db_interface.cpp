@@ -25,7 +25,7 @@ namespace {
     int GetEntriesFromItems(std::vector<SingleVerKvEntry *> &entries, const std::vector<DataItem> &dataItems)
     {
         int errCode = E_OK;
-        for (auto &item : dataItems) {
+        for (const auto &item : dataItems) {
             auto entry = new (std::nothrow) GenericSingleVerKvEntry();
             if (entry == nullptr) {
                 LOGE("Create entry failed.");
@@ -274,7 +274,7 @@ int VirtualRelationalVerSyncDBInterface::DeleteMetaDataByPrefixKey(const Key &ke
 
 int VirtualRelationalVerSyncDBInterface::GetAllMetaKeys(std::vector<Key> &keys) const
 {
-    for (auto &iter : metadata_) {
+    for (const auto &iter : metadata_) {
         keys.push_back(iter.first);
     }
     LOGD("GetAllMetaKeys size %zu", keys.size());
@@ -364,7 +364,7 @@ void VirtualRelationalVerSyncDBInterface::SetPermitCreateDistributedTable(bool p
     permitCreateDistributedTable_ = permitCreateDistributedTable;
 }
 
-void ObjectData::PutDataValue(const std::string &fieldName, const DataValue &value)
+void ObjectData::PutDataValue(const std::string &fieldName, const DataValue &value) const
 {
     fieldData[fieldName] = value;
 }
