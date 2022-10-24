@@ -96,8 +96,8 @@ void SubscribeManager::DeleteRemoteSubscribeQuery(const std::string &device, con
     DeleteSubscribeQuery(device, queryId, remoteSubscribedMap_, remoteSubscribedTotalMap_);
 }
 
-void SubscribeManager::PutLocalUnFiniedSubQueries(const std::string &device,
-    std::vector<QuerySyncObject> &subscribeQueries)
+void SubscribeManager::PutLocalUnFinishedSubQueries(const std::string &device,
+    const std::vector<QuerySyncObject> &subscribeQueries)
 {
     LOGI("[SubscribeManager] put local unfinished subscribe queries, nums=%zu", subscribeQueries.size());
     std::unique_lock<std::shared_mutex> lockGuard(localSubscribeMapLock_);

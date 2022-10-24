@@ -658,7 +658,7 @@ distributeddb_unittest("DistributedDBCommunicatorProxyTest") {
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PSubscribeSyncTest") {
-  sources = [ "unittest/common/syncer/distributeddb_single_ver_p2p_subsribe_sync_test.cpp" ]
+  sources = [ "unittest/common/syncer/distributeddb_single_ver_p2p_subscribe_sync_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBMockSyncModuleTest") {

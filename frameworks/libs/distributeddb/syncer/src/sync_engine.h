@@ -93,7 +93,7 @@ public:
 
     void GetRemoteSubscribeQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries);
 
-    void PutUnfiniedSubQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries);
+    void PutUnfinishedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries);
 
     void GetAllUnFinishSubQueries(std::map<std::string, std::vector<QuerySyncObject>> &allSyncQueries);
 

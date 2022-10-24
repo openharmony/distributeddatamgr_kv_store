@@ -145,7 +145,7 @@ namespace {
         return sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     }
 
-    int CreateTable(sqlite3 *db, std::vector<FieldInfo> &fieldInfoList, const std::string &tableName)
+    int CreateTable(sqlite3 *db, const std::vector<FieldInfo> &fieldInfoList, const std::string &tableName)
     {
         std::string sql = "CREATE TABLE " + tableName + "(";
         int index = 0;
@@ -398,7 +398,7 @@ namespace {
     }
 
     void GetSyncDataStep(std::map<std::string, DataValue> &dataMap, sqlite3_stmt *statement,
-        std::vector<FieldInfo> fieldInfoList)
+        std::vector<FieldInfo> &fieldInfoList)
     {
         int columnCount = sqlite3_column_count(statement);
         ASSERT_EQ(static_cast<size_t>(columnCount), fieldInfoList.size());
@@ -410,7 +410,7 @@ namespace {
     }
 
     void GetSyncData(sqlite3 *db, std::map<std::string, DataValue> &dataMap, const std::string &tableName,
-        std::vector<FieldInfo> fieldInfoList)
+        std::vector<FieldInfo> &fieldInfoList)
     {
         sqlite3_stmt *statement = nullptr;
         EXPECT_EQ(PrepareSelect(db, statement, GetDeviceTableName(tableName)), SQLITE_OK);
@@ -434,7 +434,7 @@ namespace {
     }
 
     void PrepareBasicTable(const std::string &tableName, std::vector<FieldInfo> &fieldInfoList,
-        std::vector<RelationalVirtualDevice *> &remoteDeviceVec, bool createDistributedTable = true)
+        const std::vector<RelationalVirtualDevice *> &remoteDeviceVec, bool createDistributedTable = true)
     {
         sqlite3 *db = nullptr;
         EXPECT_EQ(GetDB(db), SQLITE_OK);
@@ -466,7 +466,7 @@ namespace {
     }
 
     void PrepareVirtualEnvironment(std::map<std::string, DataValue> &dataMap, const std::string &tableName,
-        std::vector<FieldInfo> &fieldInfoList, std::vector<RelationalVirtualDevice *> remoteDeviceVec,
+        std::vector<FieldInfo> &fieldInfoList, const std::vector<RelationalVirtualDevice *> remoteDeviceVec,
         bool createDistributedTable = true)
     {
         PrepareBasicTable(tableName, fieldInfoList, remoteDeviceVec, createDistributedTable);
@@ -480,13 +480,13 @@ namespace {
     }
 
     void PrepareVirtualEnvironment(std::map<std::string, DataValue> &dataMap,
-        std::vector<RelationalVirtualDevice *> remoteDeviceVec, bool createDistributedTable = true)
+        const std::vector<RelationalVirtualDevice *> remoteDeviceVec, bool createDistributedTable = true)
     {
         PrepareVirtualEnvironment(dataMap, g_tableName, g_fieldInfoList, remoteDeviceVec, createDistributedTable);
     }
 
-    void CheckData(std::map<std::string, DataValue> &targetMap, const std::string &tableName,
-        std::vector<FieldInfo> fieldInfoList)
+    void CheckData(const std::map<std::string, DataValue> &targetMap, const std::string &tableName,
+        std::vector<FieldInfo> &fieldInfoList)
     {
         std::map<std::string, DataValue> dataMap;
         sqlite3 *db = nullptr;
@@ -500,7 +500,7 @@ namespace {
         }
     }
 
-    void CheckData(std::map<std::string, DataValue> &targetMap)
+    void CheckData(const std::map<std::string, DataValue> &targetMap)
     {
         CheckData(targetMap, g_tableName, g_fieldInfoList);
     }
@@ -576,7 +576,7 @@ namespace {
 
     void PrepareEnvironment(std::map<std::string, DataValue> &dataMap,
         std::vector<FieldInfo> &localFieldInfoList, std::vector<FieldInfo> &remoteFieldInfoList,
-        std::vector<RelationalVirtualDevice *> remoteDeviceVec)
+        const std::vector<RelationalVirtualDevice *> remoteDeviceVec)
     {
         PrepareEnvironment(dataMap, g_tableName, localFieldInfoList, remoteFieldInfoList, remoteDeviceVec);
     }

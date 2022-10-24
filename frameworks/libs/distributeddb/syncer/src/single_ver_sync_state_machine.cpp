@@ -299,7 +299,7 @@ void SingleVerSyncStateMachine::CommErrAbort(uint32_t sessionId)
 {
     std::lock_guard<std::mutex> lock(stateMachineLock_);
     uint32_t requestSessionId = context_->GetRequestSessionId();
-    if ((sessionId != 0) && ((sessionId != requestSessionId) || (requestSessionId == 0))) {
+    if ((sessionId != 0) && ((requestSessionId == 0) || (sessionId != requestSessionId))) {
         return;
     }
     context_->SetCommNormal(false);

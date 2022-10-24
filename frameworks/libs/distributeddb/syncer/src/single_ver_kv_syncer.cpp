@@ -156,7 +156,7 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     for (const auto &query : syncQueries) {
         TriggerSubscribe(device, query);
     }
-    static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfiniedSubQueries(device, syncQueries);
+    static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
 }
 
 void SingleVerKVSyncer::QueryAutoSync(const InternalSyncParma &param)

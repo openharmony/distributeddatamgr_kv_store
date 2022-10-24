@@ -96,7 +96,7 @@ namespace {
         }
         return oriSchemaStr;
     }
-    bool SchemaChecker(const std::string schema)
+    bool SchemaChecker(const std::string &schema)
     {
         SchemaObject schemaObj;
         return (schemaObj.ParseFromSchemaString(schema) == E_OK);

@@ -71,7 +71,7 @@ public:
 
     static int DeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg); // register to communicator
 
-    int Initialize(ICommunicator *communicator, std::shared_ptr<Metadata> &metadata,
+    int Initialize(ICommunicator *communicator, const std::shared_ptr<Metadata> &metadata,
         const ISyncInterface *storage, const DeviceID &deviceId);
 
     int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0); // send timesync request

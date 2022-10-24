@@ -770,7 +770,7 @@ static bool IsCommitHistorySyncRequestPacketEqual(const CommitHistorySyncRequest
     std::map<std::string, MultiVerCommitNode> commitMapB;
     inPacketA.GetCommitMap(commitMapA);
     inPacketB.GetCommitMap(commitMapB);
-    for (auto &entry : commitMapA) {
+    for (const auto &entry : commitMapA) {
         if (commitMapB.count(entry.first) == 0) {
             return false;
         }
@@ -778,7 +778,7 @@ static bool IsCommitHistorySyncRequestPacketEqual(const CommitHistorySyncRequest
             return false;
         }
     }
-    for (auto &entry : commitMapB) {
+    for (const auto &entry : commitMapB) {
         if (commitMapA.count(entry.first) == 0) {
             return false;
         }
@@ -897,7 +897,7 @@ static bool IsCommitHistorySyncAckPacketEqual(const CommitHistorySyncAckPacket &
         return false;
     }
     int count = 0;
-    for (auto &entry : commitVecA) {
+    for (const auto &entry : commitVecA) {
         if (!IsMultiVerCommitEqual(entry, commitVecB[count++])) {
             return false;
         }

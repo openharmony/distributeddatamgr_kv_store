@@ -593,7 +593,7 @@ void SyncWithQuery(vector<std::string> &devices, const Query &query, const DBSta
     SyncWithQuery(devices, query, DistributedDB::SYNC_MODE_PUSH_ONLY, targetStatus);
 }
 
-void SyncWithDeviceOffline(vector<std::string> &devices, Key &key, Query &query)
+void SyncWithDeviceOffline(vector<std::string> &devices, Key &key, const Query &query)
 {
     Value value = {'2'};
     ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
@@ -660,7 +660,6 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, AckSessionCheck001, TestSize.Le
      * @tc.steps: step1. deviceB sync to deviceA just for timeSync and abilitySync
      * @tc.expected: step1. should return OK.
      */
-    std::map<std::string, DBStatus> result;
     ASSERT_TRUE(g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, true) == OK);
 
     /**
