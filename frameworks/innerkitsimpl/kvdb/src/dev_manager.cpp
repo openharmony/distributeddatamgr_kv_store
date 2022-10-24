@@ -114,7 +114,6 @@ void DevManager::RegisterDevCallback()
         ZLOGI("reg device exit now: %{public}d times, errNo: %{public}d", i, errNo);
     };
     TaskExecutor::GetInstance().Execute(std::move(task));
-
 }
 
 DevManager &DevManager::GetInstance()

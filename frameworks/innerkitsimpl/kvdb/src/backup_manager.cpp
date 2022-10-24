@@ -44,7 +44,6 @@ BackupManager::BackupManager()
 BackupManager::~BackupManager()
 {
 }
-}
 
 void BackupManager::Init(const std::string &baseDir)
 {
