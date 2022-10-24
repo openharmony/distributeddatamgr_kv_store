@@ -948,7 +948,6 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage022, TestSize
      * @tc.steps: step1. Put the batch data.
      */
     EXPECT_EQ(g_transaction->PutBatch(entries), E_OK);
-    std::vector<Key> keys = {entry.key, entry1.key};
     /**
      * @tc.steps: step2. Delete the batch data.
      */
@@ -1066,7 +1065,6 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage025, TestSize
      * @tc.steps: step1. Put the batch data.
      */
     EXPECT_EQ(g_transaction->PutBatch(entries), E_OK);
-    std::vector<Key> keys = {entry.key, entry1.key};
     /**
      * @tc.steps: step2. Delete the batch data.
      */
