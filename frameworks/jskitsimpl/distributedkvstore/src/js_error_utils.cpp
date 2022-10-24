@@ -70,8 +70,7 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
     }
     if (isParamsCheck) {
         napiError.message += errMessage;
-        constexpr int32_t ERROR_CODE = 401;
-        napiError.jsCode = ERROR_CODE;
+        napiError.jsCode = 401;
     }
     napi_throw_error(env, std::to_string(napiError.jsCode).c_str(), napiError.message.c_str());
 }

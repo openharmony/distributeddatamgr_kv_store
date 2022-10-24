@@ -69,10 +69,10 @@ napi_value JsQuery::New(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The parameter is incorrect.");
 
     JsQuery* query = new (std::nothrow) JsQuery();
-    ASSERT_ERR(env, query != nullptr, PARAM_ERROR, "no memory for query.");
+    ASSERT_ERR(env, query != nullptr, Status::INVALID_ARGUMENT, "no memory for query.");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("query finalize.");
@@ -103,11 +103,11 @@ struct ValueContext : public ContextBase {
     {
         auto input = [this, env](size_t argc, napi_value* argv) {
             // required 2 arguments :: <field> <value>
-            ASSERT_BUSINESS_ERR(this, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+            ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
             status = JSUtil::GetValue(env, argv[0], field);
-            ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The parameters field is incorrect.");
+            ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT, "The parameters field is incorrect.");
             status = JSUtil::GetValue(env, argv[1], vv);
-            ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The parameters value is incorrect.");
+            ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT, "The parameters value is incorrect.");
         };
         GetCbInfoSync(env, info, input);
     }
@@ -124,7 +124,7 @@ napi_value JsQuery::EqualTo(napi_env env, napi_callback_info info)
         return nullptr;
     }
     ASSERT_NULL(!ctxt->isThrowError, "EqualTo exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function EqualTo parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function EqualTo parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -150,7 +150,7 @@ napi_value JsQuery::NotEqualTo(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ValueContext>();
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "NotEqualTo exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function NotEqualTo parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function NotEqualTo parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -176,7 +176,7 @@ napi_value JsQuery::GreaterThan(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ValueContext>();
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "GreaterThan exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function GreaterThan parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function GreaterThan parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -202,7 +202,7 @@ napi_value JsQuery::LessThan(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ValueContext>();
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "LessThan exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function LessThan parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function LessThan parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -228,7 +228,8 @@ napi_value JsQuery::GreaterThanOrEqualTo(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ValueContext>();
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "GreaterThanOrEqualTo exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function GreaterThanOrEqualTo parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        "The function GreaterThanOrEqualTo parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -254,7 +255,8 @@ napi_value JsQuery::LessThanOrEqualTo(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ValueContext>();
     ctxt->GetValueSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "LessThanOrEqualTo exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function LessThanOrEqualTo parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+        "The function LessThanOrEqualTo parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     auto strValue = std::get_if<std::string>(&ctxt->vv);
@@ -280,13 +282,13 @@ napi_value JsQuery::IsNull(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &field](size_t argc, napi_value* argv) {
         // required 1 arguments :: <field>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameters field is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The parameters field is incorrect.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "IsNull exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function IsNull parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function IsNull parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.IsNull(field);
@@ -314,9 +316,9 @@ struct NumbersContext : public ContextBase {
     {
         auto input = [this, env](size_t argc, napi_value* argv) {
             // required 2 arguments :: <field> <value-list>
-            ASSERT_BUSINESS_ERR(this, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+            ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
             status = JSUtil::GetValue(env, argv[0], field);
-            ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The parameters field is incorrect.");
+            ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT, "The parameters field is incorrect.");
             bool isTypedArray = false;
             status = napi_is_typedarray(env, argv[1], &isTypedArray);
             ZLOGD("arg[1] %{public}s a TypedArray", isTypedArray ? "is" : "is not");
@@ -327,7 +329,7 @@ struct NumbersContext : public ContextBase {
                 size_t offset = 0;
                 void* data = nullptr;
                 status = napi_get_typedarray_info(env, argv[1], &type, &length, &data, &buffer, &offset);
-                ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The parameters number array is incorrect.");
+                ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT, "The parameters number array is incorrect.");
                 if (type < napi_uint32_array) {
                     status = JSUtil::GetValue(env, argv[1], intList);
                     innerType = NumberType::NUMBER_INT;
@@ -341,10 +343,10 @@ struct NumbersContext : public ContextBase {
             } else {
                 bool isArray = false;
                 status = napi_is_array(env, argv[1], &isArray);
-                ASSERT_BUSINESS_ERR(this, isArray, PARAM_ERROR, "The type of parameters number array is incorrect.");
+                ASSERT_BUSINESS_ERR(this, isArray, Status::INVALID_ARGUMENT, "The type of parameters number array is incorrect.");
                 ZLOGD("arg[1] %{public}s a Array, treat as array of double.", isTypedArray ? "is" : "is not");
                 status = JSUtil::GetValue(env, argv[1], doubleList);
-                ASSERT_BUSINESS_ERR(this, status == napi_ok, PARAM_ERROR, "The parameters number array is incorrect.");
+                ASSERT_BUSINESS_ERR(this, status == napi_ok, Status::INVALID_ARGUMENT, "The parameters number array is incorrect.");
                 innerType = NumberType::NUMBER_DOUBLE;
             }
         };
@@ -358,8 +360,8 @@ napi_value JsQuery::InNumber(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<NumbersContext>();
     ctxt->GetNumberSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "InNumber exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function InNumber parameter is incorrect.");
-    
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function InNumber parameter is incorrect.");
+
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     if (ctxt->innerType == NumberType::NUMBER_INT) {
         query.In(ctxt->field, ctxt->intList);
@@ -381,15 +383,15 @@ napi_value JsQuery::InString(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<StringsContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <field> <valueList>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->valueList);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of valueList must be array.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of valueList must be array.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "InString exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function InString parameter is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function InString parameter is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.In(ctxt->field, ctxt->valueList);
@@ -402,7 +404,7 @@ napi_value JsQuery::NotInNumber(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<NumbersContext>();
     ctxt->GetNumberSync(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "NotInNumber exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function InString NotInNumber is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function InString NotInNumber is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     if (ctxt->innerType == NumberType::NUMBER_INT) {
@@ -425,15 +427,15 @@ napi_value JsQuery::NotInString(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<StringsContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <field> <valueList>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->valueList);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of valueList must be array.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of valueList must be array.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "NotInString exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function NotInString is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function NotInString is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.NotIn(ctxt->field, ctxt->valueList);
@@ -450,15 +452,15 @@ napi_value JsQuery::Like(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<LikeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <field> <value>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of value must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of value must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Like exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function Like is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function Like is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Like(ctxt->field, ctxt->value);
@@ -475,15 +477,15 @@ napi_value JsQuery::Unlike(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<UnlikeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <field> <value>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->value);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of value must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of value must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Unlike exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function Unlike is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function Unlike is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Unlike(ctxt->field, ctxt->value);
@@ -508,7 +510,7 @@ napi_value JsQuery::Or(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfoSync(env, info);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
-    
+
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Or();
     return ctxt->self;
@@ -521,13 +523,13 @@ napi_value JsQuery::OrderByAsc(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &field](size_t argc, napi_value* argv) {
         // required 1 arguments :: <field>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "OrderByAsc exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function OrderByAsc is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function OrderByAsc is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.OrderByAsc(field);
@@ -541,13 +543,13 @@ napi_value JsQuery::OrderByDesc(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &field](size_t argc, napi_value* argv) {
         // required 1 arguments :: <field>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "OrderByDesc exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function OrderByDesc is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function OrderByDesc is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.OrderByDesc(field);
@@ -563,15 +565,15 @@ napi_value JsQuery::Limit(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<LimitContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 2 arguments :: <number> <offset>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = napi_get_value_int32(env, argv[0], &ctxt->number);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of number must be int.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of number must be int.");
         ctxt->status = napi_get_value_int32(env, argv[1], &ctxt->offset);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of offset must be int.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of offset must be int.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "Limit exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function Limit is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function Limit is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.Limit(ctxt->number, ctxt->offset);
@@ -585,13 +587,13 @@ napi_value JsQuery::IsNotNull(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &field](size_t argc, napi_value* argv) {
         // required 1 arguments :: <field>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], field);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of field must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of field must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "IsNotNull exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function IsNotNull is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function IsNotNull is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.IsNotNull(field);
@@ -628,13 +630,13 @@ napi_value JsQuery::PrefixKey(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &prefix](size_t argc, napi_value* argv) {
         // required 1 arguments :: <prefix>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], prefix);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of prefix must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of prefix must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "PrefixKey exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function PrefixKey is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function PrefixKey is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.KeyPrefix(prefix);
@@ -647,13 +649,14 @@ napi_value JsQuery::SetSuggestIndex(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &suggestIndex](size_t argc, napi_value* argv) {
         // required 1 arguments :: <suggestIndex>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], suggestIndex);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of suggestIndex must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            "The type of suggestIndex must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "SetSuggestIndex exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function SetSuggestIndex is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function SetSuggestIndex is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.SetSuggestIndex(suggestIndex);
@@ -666,13 +669,13 @@ napi_value JsQuery::DeviceId(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &deviceId](size_t argc, napi_value* argv) {
         // required 1 arguments :: <deviceId>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of deviceId must be string.");
         ctxt->status = JSUtil::GetValue(env, argv[0], deviceId);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of deviceId must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeviceId exit");
-    ASSERT_ERR(env, ctxt->status == napi_ok, PARAM_ERROR, "The function DeviceId is incorrect.");
+    ASSERT_ERR(env, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The function DeviceId is incorrect.");
 
     auto& query = reinterpret_cast<JsQuery*>(ctxt->native)->query_;
     query.DeviceId(deviceId);

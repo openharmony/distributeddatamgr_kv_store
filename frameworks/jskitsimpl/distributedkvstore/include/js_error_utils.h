@@ -31,7 +31,6 @@ struct JsErrorCode {
     int32_t jsCode;
     std::string message;
 };
-constexpr int32_t PARAM_ERROR = Status::INVALID_ARGUMENT;
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
 Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage);
