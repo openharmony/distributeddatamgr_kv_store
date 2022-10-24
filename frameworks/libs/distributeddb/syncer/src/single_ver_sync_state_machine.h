@@ -199,7 +199,7 @@ private:
 
     bool IsNeedResetWatchdog(const Message *inMsg) const;
 
-    Event TransforTimeOutErrCodeToEvent();
+    Event TransforTimeOutErrCodeToEvent() const;
 
     bool AbilityMsgSessionIdCheck(const Message *inMsg);
 

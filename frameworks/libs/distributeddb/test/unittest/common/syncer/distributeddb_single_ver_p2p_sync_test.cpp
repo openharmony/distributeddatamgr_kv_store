@@ -2302,11 +2302,12 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, SaveDataNotify001, TestSize.Level3)
      */
     g_deviceB->SetSaveDataDelayTime(WAIT_30_SECONDS);
     status = g_kvDelegatePtr->Put(key, value);
-
+    ASSERT_TRUE(status == OK);
      /**
      * @tc.steps: step3. deviceA call sync and wait
      * @tc.expected: step3. sync should return OK. onComplete should be called, deviceB sync success.
      */
+    result.clear();
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
     ASSERT_TRUE(status == OK);
     ASSERT_TRUE(result.size() == devices.size());
@@ -2317,11 +2318,12 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, SaveDataNotify001, TestSize.Level3)
      */
     g_deviceB->SetSaveDataDelayTime(WAIT_36_SECONDS);
     status = g_kvDelegatePtr->Put(key, value);
-
+    ASSERT_TRUE(status == OK);
     /**
      * @tc.steps: step5. deviceA call sync and wait
      * @tc.expected: step5. sync should return OK. onComplete should be called, deviceB sync TIME_OUT.
      */
+    result.clear();
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
     ASSERT_TRUE(status == OK);
     ASSERT_TRUE(result.size() == devices.size());
@@ -2412,7 +2414,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, SametimeSync002, TestSize.Level3)
         }
     });
     std::map<std::string, DBStatus> result;
-    auto callback = [&result](std::map<std::string, DBStatus> map) {
+    auto callback = [&result](const std::map<std::string, DBStatus> &map) {
         result = map;
     };
     Query query = Query::Select().PrefixKey({'k', '1'});
@@ -2431,7 +2433,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, SametimeSync002, TestSize.Level3)
     });
     std::thread subThread([&devices] {
         std::map<std::string, DBStatus> result;
-        auto callback = [&result](std::map<std::string, DBStatus> map) {
+        auto callback = [&result](const std::map<std::string, DBStatus> &map) {
             result = map;
         };
         Query query = Query::Select().PrefixKey({'k', '2'});
@@ -2447,7 +2449,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, SametimeSync002, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     std::map<std::string, int> virtualResult;
     g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, query,
-        [&virtualResult](std::map<std::string, int> map) {
+        [&virtualResult](const std::map<std::string, int> &map) {
             virtualResult = map;
         }, true);
     EXPECT_TRUE(status == OK);

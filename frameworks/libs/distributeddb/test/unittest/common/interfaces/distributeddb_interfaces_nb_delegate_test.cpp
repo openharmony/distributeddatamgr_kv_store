@@ -88,6 +88,9 @@ namespace {
 
     void ReadResultSet(KvStoreResultSet *readResultSet)
     {
+        if (readResultSet == nullptr) {
+            return;
+        }
         // index from 0 to 8(first to last)
         for (int i = 0; i < RESULT_SET_COUNT; i++) {
             Entry entry;
@@ -112,6 +115,9 @@ namespace {
 
     void CheckResultSetValue(KvStoreResultSet *readResultSet, DBStatus errCode, int position)
     {
+        if (readResultSet == nullptr) {
+            return;
+        }
         Entry entry;
         EXPECT_EQ(readResultSet->GetPosition(), position);
         EXPECT_EQ(readResultSet->GetEntry(entry), errCode);
@@ -1519,7 +1525,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerConcurrentPut001, TestS
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    std::vector<Entry> entries;
     for (size_t i = 0; i < CON_PUT_THREAD_NUM * PER_THREAD_PUT_NUM; i++) {
         Entry entry;
         DistributedDBToolsUnitTest::GetRandomKeyValue(entry.key, DEFAULT_KEY_VALUE_SIZE);
@@ -1870,6 +1875,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
      */
     KvStoreResultSet *resultSet = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(Key{}, resultSet), OK);
+    ASSERT_NE(resultSet, nullptr);
     EXPECT_EQ(resultSet->GetCount(), 3); // size of all the entries is 3
     EXPECT_EQ(resultSet->MoveToFirst(), true);
 

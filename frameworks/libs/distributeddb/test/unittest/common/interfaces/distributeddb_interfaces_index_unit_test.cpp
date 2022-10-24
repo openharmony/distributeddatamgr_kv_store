@@ -139,7 +139,7 @@ namespace {
         bool hasIndex, bool hasSkipSize)
     {
         string result = "{\"SCHEMA_VERSION\":\"1.0\",\"SCHEMA_MODE\":\"STRICT\",\"SCHEMA_DEFINE\":{";
-        for (auto &entry : define) {
+        for (const auto &entry : define) {
             string defineStr = GenerateEachSchemaDefine(entry);
             result += defineStr;
             result += ",";
@@ -177,7 +177,7 @@ namespace {
         int intValue = 0;
         string result(skipSize, '*');
         result += "{";
-        for (auto &entry : define) {
+        for (const auto &entry : define) {
             string defineStr = GenerateValueItem(entry, intValue++);
             result += defineStr;
             result += ",";
@@ -233,7 +233,7 @@ namespace {
 
     inline void CheckIndexFromDbFile(sqlite3 *db, const vector<string> &indexToCheck, int expectCount)
     {
-        for (auto &str : indexToCheck) {
+        for (const auto &str : indexToCheck) {
             string querySeq = SQL_QUERY_INDEX + "'" + str + "'";
             int count = -1;
             EXPECT_EQ(sqlite3_exec(db, querySeq.c_str(), CallbackReturnCount, &count, nullptr), SQLITE_OK);
@@ -625,7 +625,6 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize001, TestSize.
 {
     PrepareInfoForCheckSchemaSkipsize001();
     string storeId = "CheckSchemaSkipsize001";
-    string filePath = GetKvStoreDirectory(storeId, DBConstant::DB_TYPE_SINGLE_VER);
     KvStoreNbDelegate::Option option = {true, false, false};
     /**
      * @tc.steps:step1. Specify an undefined skipsize schema to open the schema database.
@@ -666,7 +665,6 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize002, TestSize.
 {
     PrepareCommonInfo(false);
     string storeId = "CheckSchemaSkipsize002";
-    string filePath = GetKvStoreDirectory(storeId, DBConstant::DB_TYPE_SINGLE_VER);
     KvStoreNbDelegate::Option option = {true, false, false};
     /**
      * @tc.steps:step1. Set "SCHEMA_SKIPSIZE" in the schema as -1 to create the schema database.
@@ -749,7 +747,6 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CheckSchemaSkipsize003, TestSize.
 {
     PrepareInfoForCheckSchemaSkipsize003();
     string storeId = "CheckSchemaSkipsize003";
-    string filePath = GetKvStoreDirectory(storeId, DBConstant::DB_TYPE_SINGLE_VER);
     KvStoreNbDelegate::Option option = {true, false, false};
     /**
      * @tc.steps:step1. Set "SCHEMA_SKIPSIZE" in the schema as 20 to create the schema database.
@@ -792,7 +789,6 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, SchemaCompareSkipsize004, TestSiz
 {
     PrepareCommonInfo(false);
     string storeId = "SchemaCompareSkipsize004";
-    string filePath = GetKvStoreDirectory(storeId, DBConstant::DB_TYPE_SINGLE_VER);
     KvStoreNbDelegate::Option option = {true, false, false};
     /**
      * @tc.steps:step1. Set "SCHEMA_SKIPSIZE" in the schema as 0 to create the schema database.

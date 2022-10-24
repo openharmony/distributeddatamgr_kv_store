@@ -271,7 +271,7 @@ int MultiVerDataSync::AckRecvCallback(MultiVerSyncTaskContext *context, const Me
     MultiVerKvEntry *entry = nullptr;
 
     packet->GetData(dataEntries);
-    for (auto &iter : dataEntries) {
+    for (const auto &iter : dataEntries) {
         MultiVerKvEntry *item = CreateKvEntry(iter);
         entries.push_back(item);
     }

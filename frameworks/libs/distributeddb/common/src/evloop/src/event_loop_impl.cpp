@@ -272,14 +272,11 @@ int EventLoopImpl::QueueRequest(int type, EventImpl *event, T argument)
         return -E_OBJ_IS_KILLED;
     }
 
-    int errCode;
-    if (event != nullptr) {
-        errCode = event->CheckStatus();
-        if (errCode != E_OK) {
-            if (errCode != -E_OBJ_IS_KILLED ||
-                type != EventRequest::REMOVE_EVENT) {
-                return errCode;
-            }
+    int errCode = event->CheckStatus();
+    if (errCode != E_OK) {
+        if (errCode != -E_OBJ_IS_KILLED ||
+            type != EventRequest::REMOVE_EVENT) {
+            return errCode;
         }
     }
 

@@ -37,7 +37,7 @@ void SendTaskScheduler::Initialize()
     priorityOrder_.push_back(Priority::HIGH);
     priorityOrder_.push_back(Priority::NORMAL);
     priorityOrder_.push_back(Priority::LOW);
-    for (auto &prio : priorityOrder_) {
+    for (const auto &prio : priorityOrder_) {
         extraCapacityInByteByPrio_[prio] = 0;
         taskCountByPrio_[prio] = 0;
         taskDelayCountByPrio_[prio] = 0;
@@ -235,7 +235,7 @@ uint32_t SendTaskScheduler::GetNoDelayTaskCount() const
 
 int SendTaskScheduler::ScheduleDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo)
 {
-    for (auto &prio : priorityOrder_) {
+    for (const auto &prio : priorityOrder_) {
         if (taskCountByPrio_[prio] == 0) {
             // No task of this priority
             continue;
@@ -253,7 +253,7 @@ int SendTaskScheduler::ScheduleDelayTask(SendTask &outTask, SendTaskInfo &outTas
 
 int SendTaskScheduler::ScheduleNoDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo)
 {
-    for (auto &prio : priorityOrder_) {
+    for (const auto &prio : priorityOrder_) {
         if (taskCountByPrio_[prio] == 0 || taskCountByPrio_[prio] == taskDelayCountByPrio_[prio]) {
             // No no_delay_task of this priority
             continue;

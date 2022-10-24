@@ -166,7 +166,7 @@ namespace {
         EXPECT_TRUE(g_mgr.DeleteKvStore(storeId) == OK);
     }
 
-    void OpenClosedSchemaKvStore(const std::string &storeId, bool isEncrypt, std::string &inSchema)
+    void OpenClosedSchemaKvStore(const std::string &storeId, bool isEncrypt, const std::string &inSchema)
     {
         /**
          * @tc.steps: step1. create a new db(non-memory), with input schema;

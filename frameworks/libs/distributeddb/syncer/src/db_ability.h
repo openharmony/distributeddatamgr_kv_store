@@ -39,7 +39,7 @@ public:
 
     static uint32_t CalculateLen(const DbAbility &curAbility);
 
-    void SetDbAbilityBuff(std::vector<bool> &buff);
+    void SetDbAbilityBuff(const std::vector<bool> &buff);
 
     const std::vector<bool> &GetDbAbilityBuff() const;
 

@@ -129,7 +129,7 @@ void RelationalStoreDelegateImpl::SetReleaseFlag(bool flag)
 }
 
 void RelationalStoreDelegateImpl::OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
-    SyncStatusCallback &onComplete)
+    const SyncStatusCallback &onComplete)
 {
     const auto &statusMap = SyncOperation::DBStatusTransMap();
     std::map<std::string, std::vector<TableStatus>> res;

@@ -132,8 +132,8 @@ std::list<FrameInfo> FrameRetainer::FetchFramesForSpecificCommunicator(const Lab
     }
     auto &perLabel = retainWorkPool_[inCommLabel];
     std::map<uint64_t, std::string> fetchOrder;
-    for (auto &eachTarget : perLabel) {
-        for (auto &eachFrame : eachTarget.second) {
+    for (const auto &eachTarget : perLabel) {
+        for (const auto &eachFrame : eachTarget.second) {
             fetchOrder[eachFrame.first] = eachTarget.first;
         }
     }
@@ -188,9 +188,9 @@ void FrameRetainer::DiscardObsoleteFramesIfNeed()
     }
     std::map<uint64_t, std::pair<LabelType, std::string>> discardOrder;
     // Sort all the frames by their retain order ascendingly
-    for (auto &eachLabel : retainWorkPool_) {
-        for (auto &eachTarget : eachLabel.second) {
-            for (auto &eachFrame : eachTarget.second) {
+    for (const auto &eachLabel : retainWorkPool_) {
+        for (const auto &eachTarget : eachLabel.second) {
+            for (const auto &eachFrame : eachTarget.second) {
                 discardOrder[eachFrame.first] = {eachLabel.first, eachTarget.first};
             }
         }

@@ -87,7 +87,6 @@ int AddOrUpdateRecord(int64_t key, int64_t value)
 
 int GetLogData(int key, uint64_t &flag, Timestamp &timestamp, const DeviceID &device = "")
 {
-    string tableName = g_tableName;
     if (!device.empty()) {
     }
     const string sql = "SELECT timestamp, flag \
@@ -744,8 +743,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateData1, TestSize.Level1)
         "INSERT INTO " + tableName + " VALUES(NULL, x'0123456789');",
     };
     const size_t RECORD_COUNT = sqls.size();
-    for (const auto &sql : sqls) {
-        ASSERT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
+    for (const auto &item : sqls) {
+        ASSERT_EQ(sqlite3_exec(db, item.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
     }
 
     /**

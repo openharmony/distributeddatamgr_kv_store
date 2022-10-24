@@ -55,7 +55,7 @@ struct FileContext {
     uint64_t offset = 0;
 };
 
-static void Clear(ofstream &target, string targetFile)
+static void Clear(ofstream &target, const string &targetFile)
 {
     if (target.is_open()) {
         target.close();

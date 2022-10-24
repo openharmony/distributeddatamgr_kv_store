@@ -22,7 +22,7 @@
 namespace DistributedDB {
 class MockAutoLaunch : public AutoLaunch {
 public:
-    void SetAutoLaunchItem(const std::string &identify, const std::string &userId, AutoLaunchItem &item)
+    void SetAutoLaunchItem(const std::string &identify, const std::string &userId, const AutoLaunchItem &item)
     {
         std::lock_guard<std::mutex> autoLock(extLock_);
         extItemMap_[identify][userId] = item;
