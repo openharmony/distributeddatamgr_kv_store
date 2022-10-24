@@ -1483,35 +1483,6 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue006(SQ
     EXPECT_EQ(numSelect, 1);
 }
 
-// private Begin
-void DistributedDBStorageSingleVerNaturalStoreTestCase::CreateMemDb(SQLiteSingleVerNaturalStoreConnection *&connection,
-    int &errCode)
-{
-    // pre-Set close other db
-    if (connection != nullptr) {
-        connection->Close();
-        connection = nullptr;
-    }
-
-    KvDBProperties property;
-    property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNB");
-    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestGeneralNB");
-    property.SetBoolProp(KvDBProperties::MEMORY_MODE, true);
-
-    SQLiteSingleVerNaturalStore *memoryStore = nullptr;
-    memoryStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
-    ASSERT_NE(memoryStore, nullptr);
-
-    errCode = memoryStore->Open(property);
-    if (errCode != E_OK) {
-        return;
-    }
-
-    connection = static_cast<SQLiteSingleVerNaturalStoreConnection *>(memoryStore->GetDBConnection(errCode));
-    ASSERT_NE(connection, nullptr);
-    memoryStore->DecObjRef(memoryStore);
-}
-
 // param [in] dbName:Database name,strSql: The sql statement executed,[out],vecSyncData:SYNC_DATA table data
 // Real query sync-DATA table data via sqlite. return query data row number
 int DistributedDBStorageSingleVerNaturalStoreTestCase::GetRawSyncData(const std::string &dbName,

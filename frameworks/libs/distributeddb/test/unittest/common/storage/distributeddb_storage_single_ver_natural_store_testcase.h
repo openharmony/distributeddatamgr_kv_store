@@ -111,36 +111,34 @@ public:
         DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection);
 
     static void DeleteUserKeyValue001(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void MemoryDbDeleteUserKeyValue001(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void DeleteUserKeyValue002(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void DeleteUserKeyValue003(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void DeleteUserKeyValue004(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void MemoryDbDeleteUserKeyValue004(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void DeleteUserKeyValue005(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void MemoryDbDeleteUserKeyValue005(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
 
     static void DeleteUserKeyValue006(DistributedDB::SQLiteSingleVerNaturalStore *&store,
-        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &dbName);
+        DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, const std::string &url);
     static int GetRawSyncData(const std::string &dbName, const std::string &strSql, std::vector<SyncData> &vecSyncData);
 
 private:
-    static void CreateMemDb(DistributedDB::SQLiteSingleVerNaturalStoreConnection *&connection, int &errCode);
-
     static bool IsSqlinteExistKey(const std::vector<SyncData> &vecSyncData, const std::vector<uint8_t> &key);
 
     static void TestMetaDataPutAndGet(DistributedDB::SQLiteSingleVerNaturalStore *&store,

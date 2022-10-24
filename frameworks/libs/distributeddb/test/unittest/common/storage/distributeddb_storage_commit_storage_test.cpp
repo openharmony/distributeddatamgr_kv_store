@@ -786,7 +786,6 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage016, TestSi
     TestLatestCommitOfDevice(latestCommits, g_remoteDeviceC, commitInfoC);
     for (auto latestCommit : latestCommits) {
         g_commitStorage->ReleaseCommit(latestCommit.second);
-        latestCommit.second = nullptr;
     }
 }
 
