@@ -119,6 +119,7 @@ ohos_shared_library("distributeddata_inner") {
     "hitrace_native:hitrace_meter",
     "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
+    "huks:libhukssdk",
     "ipc:ipc_core",
     "samgr:samgr_proxy",
   ]
