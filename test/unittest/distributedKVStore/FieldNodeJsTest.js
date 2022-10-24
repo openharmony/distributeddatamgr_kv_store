@@ -12,10 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
-import ddm from '@ohos.data.distributedData';
 
-describe('fieldNodeTest', function() {
+import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
+import ddm from '@ohos.data.distributedKVStore';
+
+describe('FieldNodeTest', function() {
 
     /**
      * @tc.name FieldNodeAppendChildTest001

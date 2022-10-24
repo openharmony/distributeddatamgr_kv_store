@@ -12,22 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
-import factory from '@ohos.data.distributedData';
+import factory from '@ohos.data.distributedKVStore';
 
 describe('singleKvStoreEnumTest', function () {
-
-    /**
-     * @tc.name SingleKvStoreEnumUsertypeSameUserIdTest001
-     * @tc.desc  Test Js Enum Value Usertype.SAME_USER_ID
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreEnumUsertypeSameUserIdTest001', 0, function () {
-        var sameUserId = factory.UserType.SAME_USER_ID;
-        console.info('sameUserId = ' + sameUserId);
-        expect(sameUserId == 0).assertTrue()
-    })
 
     /**
      * @tc.name SingleKvStoreEnumConstantsMaxKeyLengthTest001
@@ -283,42 +272,6 @@ describe('singleKvStoreEnumTest', function () {
         var single = factory.KVStoreType.SINGLE_VERSION;
         console.info('single = ' + single);
         expect(single == 1).assertTrue()
-    })
-
-    /**
-     * @tc.name SingleKvStoreEnumKvstoretypeMultiVersionTest001
-     * @tc.desc  Test Js Enum Value Kvstoretype.MULTI_VERSION
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreEnumKvstoretypeMultiVersionTest001', 0, function () {
-        var multi = factory.KVStoreType.MULTI_VERSION;
-        console.info('multi = ' + multi);
-        expect(multi == 2).assertTrue()
-    })
-
-    /**
-     * @tc.name SingleKvStoreEnumSecuritylevelNoLevelTest001
-     * @tc.desc  Test Js Enum Value Securitylevel.NO_LEVEL
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreEnumSecuritylevelNoLevelTest001', 0, function () {
-        var nolevel = factory.SecurityLevel.NO_LEVEL;
-        console.info('nolevel = ' + nolevel);
-        expect(nolevel == 0).assertTrue()
-    })
-
-    /**
-     * @tc.name SingleKvStoreEnumSecuritylevelS0Test001
-     * @tc.desc  Test Js Enum Value Securitylevel.S0
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreEnumSecuritylevelS0Test001', 0, function () {
-        var s0 = factory.SecurityLevel.S0;
-        console.info('s0 = ' + s0);
-        expect(s0 == 1).assertTrue()
     })
 
     /**

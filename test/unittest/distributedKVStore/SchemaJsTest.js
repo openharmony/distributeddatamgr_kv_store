@@ -12,9 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
-import ddm from '@ohos.data.distributedData';
 
+import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
+import ddm from '@ohos.data.distributedKVStore';
+import abilityFeatureAbility from '@ohos.ability.featureAbility'
+
+var context = abilityFeatureAbility.getContext();
 const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
 
@@ -86,10 +89,7 @@ async function testPutAndGet(kvManager, options) {
 describe('schemaTest', function() {
     const config = {
         bundleName : TEST_BUNDLE_NAME,
-        userInfo : {
-            userId : '0',
-            userType : ddm.UserType.SAME_USER_ID
-        }
+        context: context,
     }
 
     var options = {
@@ -99,7 +99,7 @@ describe('schemaTest', function() {
         autoSync : true,
         kvStoreType : ddm.KVStoreType.SINGLE_VERSION,
         schema : {},
-        securityLevel : ddm.SecurityLevel.NO_LEVEL,
+        securityLevel : ddm.SecurityLevel.S1,
     }
 
     beforeAll(async function (done) {
