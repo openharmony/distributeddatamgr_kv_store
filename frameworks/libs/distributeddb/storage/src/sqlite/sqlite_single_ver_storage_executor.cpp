@@ -303,14 +303,16 @@ int SQLiteSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key 
     return E_OK;
 }
 
-int SQLiteSingleVerStorageExecutor::GetEntries(SingleVerDataType type, const Key &keyPrefix,
+int SQLiteSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix,
     std::vector<Entry> &entries) const
 {
     if ((type != SingleVerDataType::LOCAL_TYPE) && (type != SingleVerDataType::SYNC_TYPE)) {
         return -E_INVALID_ARGS;
     }
 
-    std::string sql = (type == SingleVerDataType::SYNC_TYPE) ? SELECT_SYNC_PREFIX_SQL : SELECT_LOCAL_PREFIX_SQL;
+    std::string sql = (type == SingleVerDataType::SYNC_TYPE) ? 
+        isGetValue ? SELECT_SYNC_PREFIX_SQL : SELECT_SYNC_KEY_PREFIX_SQL
+        : SELECT_LOCAL_PREFIX_SQL;
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
@@ -323,7 +325,7 @@ int SQLiteSingleVerStorageExecutor::GetEntries(SingleVerDataType type, const Key
         goto END;
     }
 
-    errCode = StepForResultEntries(statement, entries);
+    errCode = StepForResultEntries(isGetValue, statement, entries);
 
 END:
     SQLiteUtils::ResetStatement(statement, true, errCode);
@@ -341,7 +343,7 @@ int SQLiteSingleVerStorageExecutor::GetEntries(QueryObject &queryObj, std::vecto
     sqlite3_stmt *statement = nullptr;
     errCode = helper.GetQuerySqlStatement(dbHandle_, false, statement);
     if (errCode == E_OK) {
-        errCode = StepForResultEntries(statement, entries);
+        errCode = StepForResultEntries(true, statement, entries);
     }
 
     SQLiteUtils::ResetStatement(statement, true, errCode);
@@ -1799,7 +1801,8 @@ ERROR:
     return CheckCorruptedStatus(errCode);
 }
 
-int SQLiteSingleVerStorageExecutor::StepForResultEntries(sqlite3_stmt *statement, std::vector<Entry> &entries) const
+int SQLiteSingleVerStorageExecutor::StepForResultEntries(bool isGetValue, sqlite3_stmt *statement,
+    std::vector<Entry> &entries) const
 {
     entries.clear();
     entries.shrink_to_fit();
@@ -1812,10 +1815,11 @@ int SQLiteSingleVerStorageExecutor::StepForResultEntries(sqlite3_stmt *statement
             if (errCode != E_OK) {
                 return errCode;
             }
-
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 1, entry.value);
-            if (errCode != E_OK) {
-                return errCode;
+            if (isGetValue) {
+                errCode = SQLiteUtils::GetColumnBlobValue(statement, 1, entry.value);
+                if (errCode != E_OK) {
+                    return errCode;
+                }
             }
 
             entries.push_back(std::move(entry));

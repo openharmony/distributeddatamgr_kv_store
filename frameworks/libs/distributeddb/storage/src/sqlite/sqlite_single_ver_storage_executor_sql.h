@@ -140,6 +140,9 @@ namespace DistributedDB {
     const std::string SELECT_SYNC_PREFIX_SQL =
         "SELECT key, value FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
 
+    const std::string SELECT_SYNC_KEY_PREFIX_SQL =
+        "SELECT key FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
+
     const std::string SELECT_SYNC_ROWID_PREFIX_SQL =
         "SELECT rowid FROM sync_data WHERE key>=? AND key<=? AND (flag&0x01=0) ORDER BY key ASC;";
 
