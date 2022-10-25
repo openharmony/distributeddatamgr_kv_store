@@ -1088,6 +1088,56 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync006, TestSize.Level1)
 }
 
 /**
+* @tc.name: Normal Sync 009
+* @tc.desc: Test normal push sync for while create distribute table
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhuwentao
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level0)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db), SQLITE_OK);
+    std::string sql = "alter table TEST_TABLE add column addr Text;";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    sqlite3_close(db);
+
+    std::mutex syncMutex;
+    std::condition_variable syncCv;
+    std::mutex syncCallMutex;
+    std::condition_variable syncCallCv;
+    std::map<std::string, std::vector<TableStatus>> statusMap;
+    SyncStatusCallback callBack = [&statusMap, &syncMutex, &syncCv](
+        const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+        statusMap = devicesMap;
+        std::unique_lock<std::mutex> lock(syncMutex);
+        syncCv.notify_one();
+    };
+    std::thread t1([] {
+        g_rdbDelegatePtr->CreateDistributedTable(g_tableName);
+    });
+    DBStatus callStatus = OK;
+    std::thread t2([&syncCallCv, &callBack, &callStatus] {
+        Query query = Query::Select(g_tableName);
+        callStatus = g_rdbDelegatePtr->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callBack, false);
+        syncCallCv.notify_one();
+    });
+    {
+        std::unique_lock<std::mutex> lock(syncCallMutex);
+        syncCallCv.wait(lock);
+    }
+    {
+        std::unique_lock<std::mutex> lock(syncMutex);
+        syncCv.wait(lock);
+    }
+    t1.join();
+    t2.join();
+}
+
+/**
 * @tc.name: AutoLaunchSync 001
 * @tc.desc: Test rdb autoLaunch success when callback return true.
 * @tc.type: FUNC

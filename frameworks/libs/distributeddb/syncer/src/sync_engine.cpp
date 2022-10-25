@@ -1016,14 +1016,21 @@ bool SyncEngine::IsEngineActive() const
 
 void SyncEngine::SchemaChange()
 {
-    std::lock_guard<std::mutex> lock(contextMapLock_);
-    for (const auto &entry : syncTaskContextMap_) {
-        auto context = entry.second;
-        if (context == nullptr || context->IsKilled()) {
-            continue;
+    std::vector<ISyncTaskContext *> tmpContextVec;
+    {
+        std::lock_guard<std::mutex> lock(contextMapLock_);
+        for (const auto &entry : syncTaskContextMap_) {
+            auto context = entry.second;
+            if (context == nullptr || context->IsKilled()) {
+                continue;
+            }
+            RefObject::IncObjRef(context);
+            tmpContextVec.push_back(context);
         }
-        // IncRef for SyncEngine to make sure context is valid, to avoid a big lock
-        context->SchemaChange();
+    }
+    for (const auto &entryContext : tmpContextVec) {
+        entryContext->SchemaChange();
+        RefObject::DecObjRef(entryContext);
     }
 }
 
