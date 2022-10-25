@@ -2462,12 +2462,20 @@ describe('deviceKvStorePromiseTest', function () {
      */
     it('DeviceKvStoreCloseResultSetPromiseTest004', 0, async function (done) {
         console.info('DeviceKvStoreCloseResultSetPromiseTest004');
-        try {
-            console.info('DeviceKvStoreCloseResultSetPromiseTest004 success');
-        }catch(e) {
+        let errorInfo;
+        try{
+            kvStore.closeResultSet(1).then((err) => {
+                console.info('DeviceKvStoreCloseResultSetPromiseTest004 close resultset success');
+                expect(null).assertFail();
+            }).catch((err) => {
+                console.error('DeviceKvStoreCloseResultSetPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            })
+        }catch (e) {
             console.error('DeviceKvStoreCloseResultSetPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            errorInfo = e;
+            expect(e.code).assertEqual("401");
         }
+        expect(errorInfo != undefined).assertEqual(true);
         done();
     })
 
