@@ -1020,7 +1020,7 @@ void SingleVerSyncStateMachine::AddPullResponseTarget(const Message *inMsg, Wate
     }
 }
 
-Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode)
+Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode) const
 {
     switch (errCode) {
         case -E_TIMEOUT:
@@ -1067,7 +1067,7 @@ bool SingleVerSyncStateMachine::IsNeedResetWatchdog(const Message *inMsg) const
     return false;
 }
 
-Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent()
+Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent() const
 {
     if (syncContext_->IsSyncTaskNeedRetry() && (syncContext_->GetRetryTime() < syncContext_->GetSyncRetryTimes())) {
         return Event::WAIT_TIME_OUT_EVENT;

@@ -197,11 +197,11 @@ private:
 
     void AddPullResponseTarget(const Message *inMsg, WaterMark pullEndWatermark);
 
-    Event TransformErrCodeToEvent(int errCode);
+    Event TransformErrCodeToEvent(int errCode) const;
 
     bool IsNeedResetWatchdog(const Message *inMsg) const;
 
-    Event TransforTimeOutErrCodeToEvent();
+    Event TransforTimeOutErrCodeToEvent() const;
 
     bool AbilityMsgSessionIdCheck(const Message *inMsg);
 
