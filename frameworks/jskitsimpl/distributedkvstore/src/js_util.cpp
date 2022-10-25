@@ -983,8 +983,25 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
 
     int32_t level = 0;
     status = GetNamedProperty(env, in, "securityLevel", level);
-    options.securityLevel = level;
-    return status;
+    if (status != napi_ok) {
+        return status;
+    }
+
+    return GetLevel(level, options.securityLevel);
+}
+
+napi_status JSUtil::GetLevel(int32_t level, int32_t &out)
+{
+    switch(level) {
+        case SecurityLevel::S1:
+        case SecurityLevel::S2:
+        case SecurityLevel::S3:
+        case SecurityLevel::S4:
+            out = level;
+            return napi_ok;
+        default:
+            return napi_invalid_arg;
+    }
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value inner, JsSchema*& out)
