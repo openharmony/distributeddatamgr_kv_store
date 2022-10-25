@@ -1670,7 +1670,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreRollbackCallbackTest003
-     * @tc.desc Test Js Api DeviceKvStore.9.Rollback() testcase 003
+     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase 003
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1694,7 +1694,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreEnableSyncCallbackTest001
-     * @tc.desc Test Js Api DeviceKvStore.9.EnableSync() testcase 001
+     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 001
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1720,7 +1720,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreEnableSyncCallbackTest002
-     * @tc.desc Test Js Api DeviceKvStore.9.EnableSync() testcase 002
+     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 002
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1746,7 +1746,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreEnableSyncCallbackTest003
-     * @tc.desc Test Js Api DeviceKvStore.9.EnableSync() testcase 003
+     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 003
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1770,7 +1770,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreEnableSyncCallbackTest004
-     * @tc.desc Test Js Api DeviceKvStore.9.EnableSync() testcase 004
+     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 004
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1794,7 +1794,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreRemoveDeviceDataCallbackTest001
-     * @tc.desc Test Js Api DeviceKvStore.9.RemoveDeviceData() testcase 001
+     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 001
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1829,7 +1829,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreRemoveDeviceDataCallbackTest002
-     * @tc.desc Test Js Api DeviceKvStore.9.RemoveDeviceData() testcase 002
+     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 002
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1853,7 +1853,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreRemoveDeviceDataCallbackTest003
-     * @tc.desc Test Js Api DeviceKvStore.9.RemoveDeviceData() testcase 003
+     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 003
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1877,7 +1877,7 @@ describe('deviceKvStoreCallbackTest', function () {
 
     /**
      * @tc.name DeviceKvStoreRemoveDeviceDataCallbackTest004
-     * @tc.desc Test Js Api DeviceKvStore.9.RemoveDeviceData() testcase 004
+     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 004
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -2241,12 +2241,23 @@ describe('deviceKvStoreCallbackTest', function () {
      */
     it('DeviceKvStoreCloseResultSetCallbackTest004', 0, async function (done) {
         console.info('DeviceKvStoreCloseResultSetCallbackTest004');
-        try {
-            console.info('DeviceKvStoreCloseResultSetCallbackTest004 success');
-        }catch(e) {
+        let errorInfo = undefined;
+        try{
+            kvStore.closeResultSet(1, function (err, data) {
+                if (err != null) {
+                    console.error('DeviceKvStoreCloseResultSetCallbackTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
+                } else {
+                    console.info('DeviceKvStoreCloseResultSetCallbackTest004 close resultset success');
+                    expect(null).assertFail();
+                }
+            })
+            console.info('DeviceKvStoreCloseResultSetCallbackTest004 success')
+        }catch (e) {
             console.error('DeviceKvStoreCloseResultSetCallbackTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            errorInfo = e;
+            expect(e.code).assertEqual("401");
         }
+        expect(errorInfo != undefined).assertEqual(true);
         done();
     })
 
