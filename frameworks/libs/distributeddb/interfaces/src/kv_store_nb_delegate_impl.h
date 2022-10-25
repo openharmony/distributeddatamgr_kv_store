@@ -152,6 +152,8 @@ public:
 
     DBStatus RemoveDeviceData() override;
 
+    DBStatus GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const override;
+
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

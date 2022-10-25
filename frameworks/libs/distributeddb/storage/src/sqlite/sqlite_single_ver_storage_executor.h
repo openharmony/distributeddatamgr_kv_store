@@ -113,7 +113,7 @@ public:
     int PutKvData(SingleVerDataType type, const Key &key, const Value &value,
         Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData);
 
-    int GetEntries(SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries) const;
+    int GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries) const;
 
     int GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const;
 
@@ -291,7 +291,7 @@ private:
     int PrepareForSyncDataByTime(Timestamp begin, Timestamp end, sqlite3_stmt *&statement, bool getDeletedData = false)
         const;
 
-    int StepForResultEntries(sqlite3_stmt *statement, std::vector<Entry> &entries) const;
+    int StepForResultEntries(bool isGetValue, sqlite3_stmt *statement, std::vector<Entry> &entries) const;
 
     int InitResultSet(const Key &keyPrefix, sqlite3_stmt *&countStmt);
 
