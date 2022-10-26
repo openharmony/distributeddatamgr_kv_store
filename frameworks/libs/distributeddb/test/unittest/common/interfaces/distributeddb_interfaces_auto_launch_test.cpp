@@ -300,18 +300,16 @@ void PutSyncData(const std::string &storeId, const Key &key, const Value &value,
     int errCode;
     auto *connection = kvStore->GetDBConnection(errCode);
     ASSERT_NE(connection, nullptr);
-    if (kvStore != nullptr) {
-        std::vector<DataItem> vect;
-        Timestamp time = 100; // initial valid timestamp.
-        kvStore->GetMaxTimestamp(time);
-        if (isCover) {
-            time += 10; // add the diff for 10.
-        } else {
-            time -= 10; // add the diff for -10.
-        }
-        vect.push_back({key, value, time, 0, DBCommon::TransferHashString("deviceB")});
-        EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(kvStore, vect, "deviceB"), E_OK);
+    std::vector<DataItem> vect;
+    Timestamp time = 100; // initial valid timestamp.
+    kvStore->GetMaxTimestamp(time);
+    if (isCover) {
+        time += 10; // add the diff for 10.
+    } else {
+        time -= 10; // add the diff for -10.
     }
+    vect.push_back({key, value, time, 0, DBCommon::TransferHashString("deviceB")});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(kvStore, vect, "deviceB"), E_OK);
     RefObject::DecObjRef(kvStore);
     connection->Close();
     connection = nullptr;

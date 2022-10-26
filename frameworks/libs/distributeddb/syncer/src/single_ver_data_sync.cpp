@@ -325,7 +325,7 @@ int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vec
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
     WaterMark endMark = MAX_TIMESTAMP;
-    if ((endMark == 0) || (startMark > endMark)) {
+    if ((startMark > endMark)) {
         return E_OK;
     }
     ContinueToken token = nullptr;
@@ -833,8 +833,8 @@ int SingleVerDataSync::PullResponseStart(SingleVerSyncTaskContext *context)
     return errCode;
 }
 
-void SingleVerDataSync::UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId, SyncTimeRange &dataTime,
-    const SingleVerSyncTaskContext *context, UpdateWaterMark isUpdateWaterMark)
+void SingleVerDataSync::UpdateQueryPeerWaterMark(SyncType syncType, const std::string &queryId,
+    const SyncTimeRange &dataTime, const SingleVerSyncTaskContext *context, UpdateWaterMark isUpdateWaterMark)
 {
     WaterMark tmpPeerWatermark = dataTime.endTime;
     WaterMark tmpPeerDeletedWatermark = dataTime.deleteEndTime;

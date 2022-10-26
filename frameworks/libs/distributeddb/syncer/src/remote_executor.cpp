@@ -123,7 +123,7 @@ void RemoteExecutor::NotifyDeviceOffline(const std::string &device)
     LOGD("[RemoteExecutor][NotifyDeviceOffline] device=%s{private} offline", device.c_str());
     std::vector<uint32_t> removeList;
     RemoveTaskByDevice(device, removeList);
-    for (auto &sessionId : removeList) {
+    for (const auto &sessionId : removeList) {
         DoFinished(sessionId, -E_PERIPHERAL_INTERFACE_FAIL);
     }
 }
@@ -158,7 +158,7 @@ void RemoteExecutor::NotifyConnectionClosed(uint64_t connectionId)
     }
     std::vector<uint32_t> removeList;
     RemoveTaskByConnection(connectionId, removeList);
-    for (auto &sessionId : removeList) {
+    for (const auto &sessionId : removeList) {
         DoFinished(sessionId, -E_BUSY);
     }
 }
@@ -854,10 +854,10 @@ void RemoteExecutor::RemoveAllTask(int errCode)
         deviceWorkingSet_.clear();
         searchTaskQueue_.clear();
     }
-    for (auto &callBack : waitToNotify) {
+    for (const auto &callBack : waitToNotify) {
         callBack(errCode, nullptr);
     }
-    for (auto &sessionId : removeTimerList) {
+    for (const auto &sessionId : removeTimerList) {
         RemoveTimer(sessionId);
     }
     std::lock_guard<std::mutex> autoLock(timeoutLock_);

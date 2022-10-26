@@ -99,7 +99,7 @@ private:
 
     static void RefreshCommitTree(std::list<IKvDBCommit *> &commits);
 
-    int GetAllCommits(std::map<CommitID, IKvDBCommit *> &commits, CommitID &header) const;
+    int GetAllCommits(std::map<CommitID, IKvDBCommit *> &commits, CommitID &headerId) const;
 
     int SetHeaderInner(const CommitID &commitId);
 

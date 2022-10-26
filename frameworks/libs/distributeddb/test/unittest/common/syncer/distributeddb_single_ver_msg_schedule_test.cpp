@@ -432,8 +432,8 @@ HWTEST_F(DistributedDBSingleVerMsgScheduleTest, MsgSchedule007, TestSize.Level0)
         msgSchedule.ScheduleInfoHandle(isNeedHandle, false, msg);
         delete msg;
     }
-    Message *msg = msgSchedule.MoveNextMsg(context, isNeedHandle, isNeedContinue);
-    ASSERT_TRUE(msg == nullptr);
+    Message *msg2 = msgSchedule.MoveNextMsg(context, isNeedHandle, isNeedContinue);
+    ASSERT_TRUE(msg2 == nullptr);
     /**
      * @tc.steps: step2. put msg seq1_packet1, seq2_packet2
      * @tc.expected: get nullptr
@@ -448,9 +448,9 @@ HWTEST_F(DistributedDBSingleVerMsgScheduleTest, MsgSchedule007, TestSize.Level0)
     isNeedHandle = true;
     isNeedContinue = true;
     for (uint32_t i = 1; i <= 3; i++) {
-        Message *msg = msgSchedule.MoveNextMsg(context, isNeedHandle, isNeedContinue);
+        Message *msg3 = msgSchedule.MoveNextMsg(context, isNeedHandle, isNeedContinue);
         EXPECT_EQ(isNeedContinue, true);
-        ASSERT_TRUE(msg == nullptr);
+        ASSERT_TRUE(msg3 == nullptr);
     }
     RefObject::KillAndDecObjRef(context);
     context = nullptr;

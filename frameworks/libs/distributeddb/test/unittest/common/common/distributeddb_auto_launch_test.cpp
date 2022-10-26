@@ -170,15 +170,13 @@ static void PutSyncData(const KvDBProperties &prop, const Key &key, const Value 
     ASSERT_NE(kvStore, nullptr);
     auto *connection = kvStore->GetDBConnection(errCode);
     ASSERT_NE(connection, nullptr);
-    if (kvStore != nullptr) {
-        std::vector<DataItem> vect;
-        Timestamp time;
-        kvStore->GetMaxTimestamp(time);
-        time += TIME_ADD;
-        LOGD("time:%" PRIu64, time);
-        vect.push_back({key, value, time, 0, DBCommon::TransferHashString(REMOTE_DEVICE_ID)});
-        EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(kvStore, vect, REMOTE_DEVICE_ID), E_OK);
-    }
+    std::vector<DataItem> vect;
+    Timestamp time;
+    kvStore->GetMaxTimestamp(time);
+    time += TIME_ADD;
+    LOGD("time:%" PRIu64, time);
+    vect.push_back({key, value, time, 0, DBCommon::TransferHashString(REMOTE_DEVICE_ID)});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(kvStore, vect, REMOTE_DEVICE_ID), E_OK);
     RefObject::DecObjRef(kvStore);
     connection->Close();
     connection = nullptr;

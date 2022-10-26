@@ -103,8 +103,8 @@ int SingleVerSyncEngine::SubscribeTimeOut(TimerId id)
         LOGI("no need to trigger auto subscribe");
         return E_OK;
     }
-    for (auto &item : allSyncQueries) {
-        for (auto &query : item.second) {
+    for (const auto &item : allSyncQueries) {
+        for (const auto &query : item.second) {
             InternalSyncParma param;
             GetSubscribeSyncParam(item.first, query, param);
             queryAutoSyncCallback_(param);

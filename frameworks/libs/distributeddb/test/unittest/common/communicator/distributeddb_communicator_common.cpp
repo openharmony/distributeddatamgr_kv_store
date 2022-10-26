@@ -334,7 +334,7 @@ bool RegedGiantObject::CheckEqual(const RegedGiantObject &inLeft, const RegedGia
         return false;
     }
     uint32_t index = 0;
-    for (auto &left : inLeft.rawData_) {
+    for (const auto &left : inLeft.rawData_) {
         uint8_t right = inRight.rawData_[index];
         if (left != right) {
             LOGE("[RegedGiantObject][CheckEqual] RawData unequal at index=%u", index);

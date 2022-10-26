@@ -344,9 +344,11 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync003, TestSize.Level1)
     Value value = {'1'};
     const int dataSize = 10;
     status = g_kvDelegatePtr->Put(key, value);
+    ASSERT_TRUE(status == OK);
     Key key2 = {'2'};
     Value value2 = {'2'};
     status = g_kvDelegatePtr->Put(key2, value2);
+    ASSERT_TRUE(status == OK);
 
     /**
      * @tc.steps: step2. deviceB put {b0, v0} - {b9, v9}, {c, v}
@@ -1448,6 +1450,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync001, TestS
         key.push_back(i);
         key2.push_back(i);
         status = g_schemaKvDelegatePtr->Put(key, value);
+        ASSERT_TRUE(status == OK);
         status = g_schemaKvDelegatePtr->Put(key2, value2);
         ASSERT_TRUE(status == OK);
         key.pop_back();
@@ -1545,6 +1548,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync003, TestS
         key.push_back(i);
         key2.push_back(i);
         status = g_schemaKvDelegatePtr->Put(key, value);
+        ASSERT_TRUE(status == OK);
         status = g_schemaKvDelegatePtr->Put(key2, value2);
         ASSERT_TRUE(status == OK);
         key.pop_back();

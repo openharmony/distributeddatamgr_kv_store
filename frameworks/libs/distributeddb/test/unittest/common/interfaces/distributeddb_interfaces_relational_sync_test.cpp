@@ -72,8 +72,6 @@ namespace {
             "flag=0x22 WHERE hash_key=calc_hash(OLD.id) AND flag&0x02=0x02;\n"
             "END;";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, oldTrigger), SQLITE_OK);
-        std::string logVersion = "UPDATE naturalbase_rdb_aux_metadata SET value = '1.0'" \
-            " where key = 'log_table_version'";
         Key key;
         DBCommon::StringToVector("log_table_version", key);
         Value val;

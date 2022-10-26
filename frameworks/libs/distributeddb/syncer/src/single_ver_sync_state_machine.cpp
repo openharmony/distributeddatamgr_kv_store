@@ -298,7 +298,7 @@ void SingleVerSyncStateMachine::CommErrAbort(uint32_t sessionId)
 {
     std::lock_guard<std::mutex> lock(stateMachineLock_);
     uint32_t requestSessionId = context_->GetRequestSessionId();
-    if ((sessionId != 0) && ((sessionId != requestSessionId) || (requestSessionId == 0))) {
+    if ((sessionId != 0) && ((requestSessionId == 0) || (sessionId != requestSessionId))) {
         return;
     }
     context_->SetCommNormal(false);
@@ -1062,7 +1062,7 @@ bool SingleVerSyncStateMachine::IsNeedResetWatchdog(const Message *inMsg) const
     return false;
 }
 
-Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent()
+Event SingleVerSyncStateMachine::TransforTimeOutErrCodeToEvent() const
 {
     if (syncContext_->IsSyncTaskNeedRetry() && (syncContext_->GetRetryTime() < syncContext_->GetSyncRetryTimes())) {
         return Event::WAIT_TIME_OUT_EVENT;
