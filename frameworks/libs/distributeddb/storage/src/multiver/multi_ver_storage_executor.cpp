@@ -433,7 +433,7 @@ int MultiVerStorageExecutor::AddSliceDataCount(const std::vector<Value> &values)
         }
         std::vector<ValueSliceHash> valueHashList;
         valueObject.GetValueHash(valueHashList);
-        for (auto &iter : valueHashList) {
+        for (const auto &iter : valueHashList) {
             Value filledData;
             errCode = PutValueSliceInner(sliceTransaction_, iter, filledData, true);
             if (errCode != E_OK) {

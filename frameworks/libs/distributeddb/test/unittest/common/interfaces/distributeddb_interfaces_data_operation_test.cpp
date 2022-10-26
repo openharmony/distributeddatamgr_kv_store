@@ -1393,6 +1393,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, QueryPreFixKey003, TestSize.L
      */
     errCode = g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
     EXPECT_EQ(entriesRes.size(), 5ul);
+    EXPECT_EQ(errCode, OK);
     int count = -1;
     errCode = g_kvNbDelegatePtrForQuery->GetCount(query1, count);
     EXPECT_EQ(errCode, INVALID_QUERY_FORMAT);
@@ -1730,6 +1731,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
 
     Query query1 = Query::Select().OrderBy("$.field_name1", false);
     errCode = g_kvNbDelegatePtrForQuery->GetEntries(query1, entriesRes);
+    EXPECT_EQ(errCode, OK);
     ASSERT_EQ(entriesRes.size(), 5ul);
     EXPECT_EQ(entriesRes[0].key, KEY_5);
     EXPECT_EQ(entriesRes[1].key, KEY_4);
@@ -1738,7 +1740,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, PreifxAndOrderBy001, TestSize
     EXPECT_EQ(entriesRes[4].key, KEY_1);
 
     Query query2 = Query::Select().PrefixKey({}).OrderBy("$.field_name1", false).OrderBy("$.field_name2", false);
-    errCode = g_kvNbDelegatePtrForQuery->GetEntries(query2, entriesRes);
+    (void) g_kvNbDelegatePtrForQuery->GetEntries(query2, entriesRes);
     ASSERT_EQ(entriesRes.size(), 5ul);
     EXPECT_EQ(entriesRes[0].key, KEY_5);
     EXPECT_EQ(entriesRes[1].key, KEY_4);
@@ -1811,7 +1813,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, InKeys001, TestSize.Level1)
     std::set<Key> keys;
     for (uint8_t i = 0; i < dataSize; i++) {
         key.push_back(i);
-        DBStatus status = g_kvNbDelegatePtrForQuery->Put(key, VALUE_1);
+        status = g_kvNbDelegatePtrForQuery->Put(key, VALUE_1);
         ASSERT_EQ(status, OK);
         keys.emplace(key);
         key.pop_back();
@@ -2075,6 +2077,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort001, TestSize.Le
         EXPECT_EQ(entry.value, VALUE_1);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort001"), OK);
 }
 
 /**
@@ -2138,6 +2142,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort002, TestSize.Le
         EXPECT_EQ(expectedKeys[i], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort002"), OK);
 }
 
 /**
@@ -2211,6 +2217,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort003, TestSize.Le
         EXPECT_EQ(entry.value, VALUE_1);
     }
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort003"), OK);
 }
 
 /**
@@ -2274,6 +2282,20 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort004, TestSize.Le
         EXPECT_EQ(expectedKeys[dataSize - i - 1], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort004"), OK);
+}
+
+namespace {
+void CheckResultSize(KvStoreResultSet *resultSet, const std::vector<Key> &expectedKeys, int expectedSize)
+{
+    for (int i = 0; i < expectedSize; i++) {
+        resultSet->MoveToPosition(i);
+        Entry entry;
+        resultSet->GetEntry(entry);
+        EXPECT_EQ(expectedKeys[i], entry.key);
+    }
+}
 }
 
 /**
@@ -2343,13 +2365,10 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort005, TestSize.Le
     ASSERT_NE(resultSet2, nullptr);
     int expectedSize = (keys.size() >= limitNum) ? limitNum : keys.size();
     ASSERT_EQ(resultSet2->GetCount(), static_cast<int>(expectedSize));
-    for (int i = 0; i < expectedSize; i++) {
-        resultSet2->MoveToPosition(i);
-        Entry entry;
-        resultSet2->GetEntry(entry);
-        EXPECT_EQ(expectedKeys[i], entry.key);
-    }
+    CheckResultSize(resultSet2, expectedKeys, expectedSize);
     g_kvNbDelegatePtrForQuery->CloseResultSet(resultSet2);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort005"), OK);
 }
 
 /**
@@ -2421,6 +2440,8 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort006, TestSize.Le
         EXPECT_EQ(expectedKeys[keys.size() - i - 1], entries2[i].key);
         EXPECT_EQ(entries2[i].value, VALUE_1);
     }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort006"), OK);
 }
 
 /**
@@ -2455,5 +2476,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, WriteTimeSort007, TestSize.Le
     Query query1 = Query::Select().PrefixKey(key).OrderByWriteTime(false);
     EXPECT_EQ(g_kvNbDelegatePtrForQuery->GetCount(query1, count), OK);
     EXPECT_EQ(count, 1);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("WriteTimeSort007"), OK);
 }
 #endif // OMIT_JSON

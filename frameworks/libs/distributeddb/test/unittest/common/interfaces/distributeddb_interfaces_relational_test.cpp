@@ -316,7 +316,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
-    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
     /**
      * @tc.steps:step2. Open store
@@ -344,6 +343,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
      */
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 /**

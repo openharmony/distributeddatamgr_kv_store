@@ -388,7 +388,7 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, RelationalSchemaParseTest003, 
 
     std::string invalidTableStr06 = "{" + TABLE_DEFINE_STR_NAME + TABLE_DEFINE_STR_FIELDS +
         TABLE_DEFINE_BOOL_ARRAY_KEY_INVALID + "}";
-    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr05 + "]"));
+    errCode = schemaObj.ParseFromSchemaString(GenerateFromTableStr("[" + invalidTableStr06 + "]"));
     EXPECT_EQ(errCode, -E_SCHEMA_PARSE_FAIL);
 
     std::string invalidTableStr07 = "{" + TABLE_DEFINE_STR_NAME_INVALID_CHARACTER + TABLE_DEFINE_STR_FIELDS +

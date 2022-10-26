@@ -823,6 +823,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
      */
     OpenStore1(true);
     OpenStore2(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
 
     /**
      * @tc.steps: step3. user1 call remote query

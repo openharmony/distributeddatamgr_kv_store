@@ -50,9 +50,8 @@ namespace {
         list<OS::FileAttr> files;
         int errCode = OS::GetFileAttrFromPath(path, files);
         ASSERT_EQ(errCode, E_OK);
-        string fileName;
         for (auto file : files) {
-            fileName = path + "/" + file.fileName;
+            string fileName = path + "/" + file.fileName;
             switch (file.fileType) {
                 case OS::FILE:
                     (void)remove(fileName.c_str());

@@ -107,7 +107,7 @@ int CommunicatorLinker::IncreaseLocalLabel(const LabelType &inLabel, std::set<st
         }
     }
     bool everFail = false;
-    for (auto &entry : totalOnlineTargets) {
+    for (const auto &entry : totalOnlineTargets) {
         int errCode = TriggerLabelExchangeEvent(entry);
         if (errCode != E_OK) {
             everFail = true;
@@ -127,7 +127,7 @@ int CommunicatorLinker::DecreaseLocalLabel(const LabelType &inLabel)
         totalOnlineTargets = remoteOnlineTarget_;
     }
     bool everFail = false;
-    for (auto &entry : totalOnlineTargets) {
+    for (const auto &entry : totalOnlineTargets) {
         int errCode = TriggerLabelExchangeEvent(entry);
         if (errCode != E_OK) {
             everFail = true;
@@ -165,7 +165,7 @@ int CommunicatorLinker::ReceiveLabelExchange(const std::string &inTarget, const 
             }
         }
         // Find out offline labels by check difference
-        for (auto &entry : targetMapOnlineLabels_[inTarget]) {
+        for (const auto &entry : targetMapOnlineLabels_[inTarget]) {
             if (inLatestLabels.count(entry) == 0) {
                 outChangeLabels[entry] = false;
             }
@@ -259,7 +259,7 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
 {
     // Firstly received distinctValue from this target ever or after offline
     if (targetDistinctValue_.count(inTarget) == 0) {
-        targetDistinctValue_[inTarget] = inDistinctValue;
+        targetDistinctValue_.try_emplace(inTarget, inDistinctValue);
         return;
     }
 
@@ -274,6 +274,16 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
     targetDistinctValue_[inTarget] = inDistinctValue;
     // The process of remote target must have undergone a quit and restart, the remote sequenceId will start from zero.
     topRecvLabelSeq_.erase(inTarget);
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, inTarget]() {
+        LOGD("ReTrigger label exchange because remote process restarted!");
+        this->TriggerLabelExchangeEvent(inTarget);
+        RefObject::DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        LOGD("ReTrigger label exchange failed! errCode = %d", errCode);
+        RefObject::DecObjRef(this);
+    }
 }
 
 int CommunicatorLinker::TriggerLabelExchangeEvent(const std::string &toTarget)

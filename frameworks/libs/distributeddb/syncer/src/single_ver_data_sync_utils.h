@@ -79,7 +79,8 @@ public:
     static SyncTimeRange GetQuerySyncDataTimeRange(const std::vector<SendDataItem> &inData, WaterMark localMark,
         WaterMark deleteLocalMark, UpdateWaterMark &isUpdate);
 
-    static SyncTimeRange ReviseLocalMark(SyncType syncType, SyncTimeRange &dataTimeRange, UpdateWaterMark updateMark);
+    static SyncTimeRange ReviseLocalMark(SyncType syncType, const SyncTimeRange &dataTimeRange,
+        UpdateWaterMark updateMark);
 
     static SyncTimeRange GetRecvDataTimeRange(SyncType syncType,
         const std::vector<SendDataItem> &data, UpdateWaterMark &isUpdate);

@@ -257,7 +257,7 @@ void SingleVerDataSyncUtils::FillControlRequestPacket(ControlRequestPacket *pack
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     uint32_t flag = 0;
     if (context->GetMode() == SyncModeType::SUBSCRIBE_QUERY && context->IsAutoSubscribe()) {
-        flag = flag | SubscribeRequest::IS_AUTO_SUBSCRIBE;
+        flag = SubscribeRequest::IS_AUTO_SUBSCRIBE;
     }
     packet->SetPacketHead(E_OK, version, GetControlCmdType(context->GetMode()), flag);
     packet->SetQuery(context->GetQuery());
@@ -298,7 +298,7 @@ bool SingleVerDataSyncUtils::IsNeedTriggerQueryAutoSync(Message *inMsg, QuerySyn
     uint32_t controlCmdType = packet->GetcontrolCmdType();
     if (controlCmdType == ControlCmdType::SUBSCRIBE_QUERY_CMD && inMsg->GetMessageType() == TYPE_REQUEST) {
         const SubscribeRequest *subPacket = inMsg->GetObject<SubscribeRequest>();
-        if (packet == nullptr) {
+        if (subPacket == nullptr) {
             return false;
         }
         query = subPacket->GetQuery();
@@ -398,7 +398,7 @@ SyncTimeRange SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(const std::vecto
     return dataTimeRange;
 }
 
-SyncTimeRange SingleVerDataSyncUtils::ReviseLocalMark(SyncType syncType, SyncTimeRange &dataTimeRange,
+SyncTimeRange SingleVerDataSyncUtils::ReviseLocalMark(SyncType syncType, const SyncTimeRange &dataTimeRange,
     UpdateWaterMark updateMark)
 {
     SyncTimeRange tmpDataTime = dataTimeRange;

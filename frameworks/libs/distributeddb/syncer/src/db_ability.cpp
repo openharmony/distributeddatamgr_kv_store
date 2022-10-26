@@ -106,7 +106,7 @@ uint32_t DbAbility::CalculateLen(const DbAbility &curAbility)
     return Parcel::GetVectorLen<uint64_t>(std::vector<uint64_t>(buffLen, 0));
 }
 
-void DbAbility::SetDbAbilityBuff(std::vector<bool> &buff)
+void DbAbility::SetDbAbilityBuff(const std::vector<bool> &buff)
 {
     dbAbility_ = buff;
 }

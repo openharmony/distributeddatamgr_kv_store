@@ -544,16 +544,13 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, GetQuerySyncData010, TestSize.Level1
      * @tc.steps: step1. Put 100 entries from k100 to k1.
      * @tc.expected: step1. Put data successfully.
      */
-    Key key;
-    Value value;
-    string str;
     IOption option{ IOption::SYNC_DATA };
     const uint64_t totalSize = 100; // 100 data in DB.
     for (unsigned i = totalSize; i > 0; i--) {
-        str = "k" + to_string(i);
-        key = Key(str.begin(), str.end());
+        string str = "k" + to_string(i);
+        Key key = Key(str.begin(), str.end());
         str[0] = 'v';
-        value = Value(str.begin(), str.end());
+        Value value = Value(str.begin(), str.end());
         EXPECT_EQ(g_connection->Put(option, key, value), E_OK);
     }
 
