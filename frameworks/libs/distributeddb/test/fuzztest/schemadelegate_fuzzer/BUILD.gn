@@ -52,7 +52,7 @@ ohos_fuzztest("SchemaDelegateFuzzTest") {
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
   ]
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/nbdelegate_fuzzer"
+  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/schemadelegate_fuzzer"
 
   sources = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
@@ -61,7 +61,7 @@ ohos_fuzztest("SchemaDelegateFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/fuzzer_data.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
-    "schema_delegate_fuzzer.cpp",
+    "schemadelegate_fuzzer.cpp",
   ]
 
   defines = [

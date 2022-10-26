@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "schema_delegate_fuzzer.h"
+#include "schemadelegate_fuzzer.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -27,12 +27,6 @@
 
 using namespace DistributedDB;
 using namespace DistributedDBTest;
-
-const int FUZZ_DATA_LEN = 3;
-const int FUZZ_FST_DATA = 0;
-const int FUZZ_SND_DATA = 1;
-const int FUZZ_TRD_DATA = 2;
-const int FUZZ_FTH_DATA = 3;
 
 namespace OHOS {
 const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
@@ -58,10 +52,40 @@ void SchemaFuzzCURD(FuzzerData &fuzz, KvStoreNbDelegate *delegate)
 
     Key key = fuzz.GetSequence(fuzz.GetInt());
     Value val = fuzz.GetSequence(fuzz.GetInt());
-    delegate->Put(key, value);
+    delegate->Put(key, val);
     Value valGot;
-    delegate->Put(key, valGot);
+    delegate->Get(key, valGot);
     delegate->Delete(key);
+
+    int cnt = fuzz.GetInt() % 200;
+    std::vector<Key> keys;
+    std::vector<Value> values;
+    std::vector<Entry> entries;
+    for (int i = 0; i < cnt; i++) {
+        Key key1 = fuzz.GetSequence(fuzz.GetInt());
+        Value val1 = fuzz.GetSequence(fuzz.GetInt());
+        keys.push_back(key1);
+        values.push_back(val1);
+        entries.emplace_back(Entry {key1, val1});
+    }
+
+    delegate->PutBatch(entries);
+
+    std::vector<Entry> entriesGot;
+    Key keyPrefix = fuzz.GetSequence(fuzz.GetInt());
+    delegate->GetEntries(keyPrefix, entriesGot);
+
+    std::vector<Entry> entriesGotByQuery;
+    delegate->GetEntries(Query::Select(), entriesGotByQuery);
+
+    KvStoreResultSet *readResultSet = nullptr;
+    delegate->GetEntries(keyPrefix, readResultSet);
+    delegate->CloseResultSet(readResultSet);
+
+    delegate->GetEntries(Query::Select(), readResultSet);
+    delegate->CloseResultSet(readResultSet);
+
+    delegate->DeleteBatch(keys);
 }
 
 bool SchemaFuzzTest(const uint8_t* data, size_t size)
@@ -93,6 +117,7 @@ bool SchemaFuzzTest(const uint8_t* data, size_t size)
     kvManager.CloseKvStore(kvNbDelegatePtr);
     kvManager.DeleteKvStore("distributed_nb_delegate_test");
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
+    return true;
 }
 }
 

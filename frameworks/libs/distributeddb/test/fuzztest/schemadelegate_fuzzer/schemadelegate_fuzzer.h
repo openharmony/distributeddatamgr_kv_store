@@ -20,5 +20,5 @@
 #include <cstdlib>
 #include <fcntl.h>
 
-#define FUZZ_PROJECT_NAME "schema_delegate_fuzzer"
+#define FUZZ_PROJECT_NAME "schemadelegate_fuzzer"
 
