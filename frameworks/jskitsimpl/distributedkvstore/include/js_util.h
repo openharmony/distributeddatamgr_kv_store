@@ -194,7 +194,7 @@ private:
         TUPLE_VALUE,
         TUPLE_SIZE
     };
-    
+    static napi_status GetLevel(int32_t level, int32_t &out);
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H
