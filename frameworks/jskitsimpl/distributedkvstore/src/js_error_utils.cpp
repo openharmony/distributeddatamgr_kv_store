@@ -39,7 +39,7 @@ static const std::map<int32_t, JsErrorCode> jsErrCodeMsgMap {
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 {
     auto iter = jsErrCodeMsgMap.find(errorCode);
-    if (iter != jsErrCodeMsgMap.end()) {j
+    if (iter != jsErrCodeMsgMap.end()) {
         return iter->second;
     }
     return std::nullopt;
