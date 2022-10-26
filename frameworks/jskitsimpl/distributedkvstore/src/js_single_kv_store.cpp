@@ -984,7 +984,8 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT, "KVStoreResultSet::New failed!");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
+            "KVStoreResultSet::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
@@ -1149,7 +1150,8 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
         if (ctxt->type == napi_object) {
             ctxt->status = JSUtil::Unwrap(env,
                 argv[1], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The parameters mode is incorrect.");
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+                "The parameters mode is incorrect.");
             ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->mode);
         }
         if (ctxt->type == napi_number) {

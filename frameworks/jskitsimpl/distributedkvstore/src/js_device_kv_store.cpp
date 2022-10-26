@@ -203,7 +203,7 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok,Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetEntries exit");
@@ -262,7 +262,8 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr,Status::INVALID_ARGUMENT, "KVStoreResultSet::New failed!");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
+            "KVStoreResultSet::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
@@ -356,7 +357,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
         // required 2 arguments :: <storeId> <options>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], storeId);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(),Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), Status::INVALID_ARGUMENT,
             "The type of storeId must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
