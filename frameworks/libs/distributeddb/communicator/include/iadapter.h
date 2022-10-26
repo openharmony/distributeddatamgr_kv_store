@@ -16,10 +16,10 @@
 #ifndef IADAPTER_H
 #define IADAPTER_H
 
-#include <string>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
 #include "communicator_type_define.h"
 #include "iprocess_communicator.h"
 

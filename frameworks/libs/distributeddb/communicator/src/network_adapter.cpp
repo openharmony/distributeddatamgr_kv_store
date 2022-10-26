@@ -146,7 +146,7 @@ uint32_t NetworkAdapter::GetMtuSize()
     std::lock_guard<std::mutex> mtuSizeLockGuard(mtuSizeMutex_);
     if (!isMtuSizeValid_) {
         mtuSize_ = processCommunicator_->GetMtuSize();
-        LOGI("[NAdapt][GetMtu] mtuSize=%u.", mtuSize_);
+        LOGD("[NAdapt][GetMtu] mtuSize=%" PRIu32 ".", mtuSize_);
         mtuSize_ = CheckAndAdjustMtuSize(mtuSize_);
         isMtuSizeValid_ = true;
     }
@@ -166,7 +166,7 @@ uint32_t NetworkAdapter::GetMtuSize(const std::string &target)
         DeviceInfos devInfo;
         devInfo.identifier = target;
         uint32_t oriMtuSize = processCommunicator_->GetMtuSize(devInfo);
-        LOGI("[NAdapt][GetMtu] mtuSize=%u of target=%s{private}.", oriMtuSize, target.c_str());
+        LOGD("[NAdapt][GetMtu] mtuSize=%" PRIu32 " of target=%s{private}.", oriMtuSize, target.c_str());
         devMapMtuSize_[target] = CheckAndAdjustMtuSize(oriMtuSize);
     }
     return devMapMtuSize_[target];
@@ -176,7 +176,7 @@ uint32_t NetworkAdapter::GetMtuSize(const std::string &target)
 uint32_t NetworkAdapter::GetTimeout()
 {
     uint32_t timeout = processCommunicator_->GetTimeout();
-    LOGI("[NAdapt][GetTimeout] timeout_=%u ms.", timeout);
+    LOGD("[NAdapt][GetTimeout] timeout_=%" PRIu32 " ms.", timeout);
     return CheckAndAdjustTimeout(timeout);
 }
 
@@ -185,7 +185,7 @@ uint32_t NetworkAdapter::GetTimeout(const std::string &target)
     DeviceInfos devInfos;
     devInfos.identifier = target;
     uint32_t timeout = processCommunicator_->GetTimeout(devInfos);
-    LOGI("[NAdapt][GetTimeout] timeout=%u ms of target=%s{private}.", timeout, target.c_str());
+    LOGD("[NAdapt][GetTimeout] timeout=%" PRIu32 " ms of target=%s{private}.", timeout, target.c_str());
     return CheckAndAdjustTimeout(timeout);
 }
 

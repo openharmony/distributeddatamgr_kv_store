@@ -75,7 +75,7 @@ SerialBuffer *FrameCombiner::AssembleFrameFragment(const uint8_t *bytes, uint32_
 
         if (combineWorkPool_[sourceId][frameId].status.IsCombineDone()) {
             // We can parse the combined frame here, or outside this class.
-            LOGI("[Combiner][Assemble] Combine done, sourceId=%llu, frameId=%u.", ULL(sourceId), frameId);
+            LOGI("[Combiner][Assemble] Combine done, sourceId=%" PRIu64 ", frameId=%" PRIu32, ULL(sourceId), frameId);
             SerialBuffer *outFrame = combineWorkPool_[sourceId][frameId].buffer;
             outFrameInfo = combineWorkPool_[sourceId][frameId].frameInfo;
             outErrorNo = E_OK;
@@ -107,8 +107,8 @@ void FrameCombiner::PeriodicalSurveillance()
         std::set<uint32_t> frameToAbort;
         for (auto &eachFrame : eachSource.second) {
             if (!eachFrame.second.status.CheckProgress()) {
-                LOGW("[Combiner][Surveil] Source=%llu, frame=%u has no progress, this combine work will be aborted.",
-                    ULL(eachSource.first), eachFrame.first);
+                LOGW("[Combiner][Surveil] Source=%" PRIu64 ", frame=%" PRIu32
+                    " has no progress, this combine work will be aborted.", ULL(eachSource.first), eachFrame.first);
                 // Free this combine work first
                 delete eachFrame.second.buffer;
                 eachFrame.second.buffer = nullptr;
@@ -205,7 +205,7 @@ void FrameCombiner::AbortCombineWorkBySource(uint64_t inSourceId)
         }
     }
     // Do Abort!
-    LOGW("[Combiner][AbortWork] Abort Incomplete CombineWork, sourceId=%llu, frameId=%u.",
+    LOGW("[Combiner][AbortWork] Abort Incomplete CombineWork, sourceId=%" PRIu64 ", frameId=%" PRIu32 ".",
         ULL(inSourceId), toBeAbortFrameId);
     delete combineWorkPool_[inSourceId][toBeAbortFrameId].buffer;
     combineWorkPool_[inSourceId][toBeAbortFrameId].buffer = nullptr;
@@ -215,22 +215,22 @@ void FrameCombiner::AbortCombineWorkBySource(uint64_t inSourceId)
 bool FrameCombiner::CheckPacketWithOriWork(const ParseResult &inPacketInfo, const CombineWork &inWork)
 {
     if (inPacketInfo.GetFrameLen() != inWork.frameInfo.GetFrameLen()) {
-        LOGE("[Combiner][CheckPacket] FrameLen mismatch %u vs %u.", inPacketInfo.GetFrameLen(),
+        LOGE("[Combiner][CheckPacket] FrameLen mismatch %" PRIu32 " vs %" PRIu32 ".", inPacketInfo.GetFrameLen(),
             inWork.frameInfo.GetFrameLen());
         return false;
     }
     if (inPacketInfo.GetFragCount() != inWork.frameInfo.GetFragCount()) {
-        LOGE("[Combiner][CheckPacket] FragCount mismatch %u vs %u.", inPacketInfo.GetFragCount(),
+        LOGE("[Combiner][CheckPacket] FragCount mismatch %" PRIu32 " vs %" PRIu32 ".", inPacketInfo.GetFragCount(),
             inWork.frameInfo.GetFragCount());
         return false;
     }
     if (inPacketInfo.GetFragNo() >= inPacketInfo.GetFragCount()) {
-        LOGE("[Combiner][CheckPacket] FragNo=%u illegal vs FragCount=%u.", inPacketInfo.GetFragNo(),
+        LOGE("[Combiner][CheckPacket] FragNo=%" PRIu32 " illegal vs FragCount=%" PRIu32 ".", inPacketInfo.GetFragNo(),
             inPacketInfo.GetFragCount());
         return false;
     }
     if (inWork.status.IsFragNoAlreadyExist(inPacketInfo.GetFragNo())) {
-        LOGE("[Combiner][CheckPacket] FragNo=%u already exist.", inPacketInfo.GetFragNo());
+        LOGE("[Combiner][CheckPacket] FragNo=%" PRIu32 " already exist.", inPacketInfo.GetFragNo());
         return false;
     }
     return true;

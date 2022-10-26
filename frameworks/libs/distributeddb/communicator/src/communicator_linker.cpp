@@ -14,12 +14,12 @@
  */
 
 #include "communicator_linker.h"
-#include "hash.h"
-#include "db_errno.h"
-#include "log_print.h"
-#include "protocol_proto.h"
-#include "platform_specific.h"
 #include "communicator_aggregator.h"
+#include "db_errno.h"
+#include "hash.h"
+#include "log_print.h"
+#include "platform_specific.h"
+#include "protocol_proto.h"
 
 namespace DistributedDB {
 namespace {
@@ -51,7 +51,7 @@ void CommunicatorLinker::Initialize()
     }
     std::string curTimeStr = std::to_string(curTime);
     localDistinctValue_ = Hash::HashFunc(curTimeStr);
-    LOGI("[Linker][Init] curTime=%llu, distinct=%llu.", ULL(curTime), ULL(localDistinctValue_));
+    LOGI("[Linker][Init] curTime=%" PRIu64 ", distinct=%" PRIu64 ".", ULL(curTime), ULL(localDistinctValue_));
 }
 
 // Create async task to send out label_exchange and waiting for label_exchange_ack.
@@ -73,7 +73,7 @@ int CommunicatorLinker::TargetOnline(const std::string &inTarget, std::set<Label
 
 // Clear all labels related to this target. Let no longer waiting for ack of this target.
 // The caller should notify all related communicator about this target offline.
-int CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<LabelType> &outRelatedLabels)
+void CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<LabelType> &outRelatedLabels)
 {
     std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
     outRelatedLabels = targetMapOnlineLabels_[inTarget];
@@ -83,7 +83,6 @@ int CommunicatorLinker::TargetOffline(const std::string &inTarget, std::set<Labe
     // the distinctValue of this remote target may be changed, and the sequenceId may start from zero
     targetDistinctValue_.erase(inTarget);
     topRecvLabelSeq_.erase(inTarget);
-    return E_OK;
 }
 
 // Add local label. Create async task to send out label_exchange and waiting for label_exchange_ack.
@@ -151,8 +150,8 @@ int CommunicatorLinker::ReceiveLabelExchange(const std::string &inTarget, const 
         } else if (inSequenceId < topRecvLabelSeq_[inTarget]) {
             // inSequenceId can be equal to topRecvLabelSeq, in this case, the ack of this sequence send to this target
             // may be lost, this target resend LabelExchange, and we should resend ack to this target
-            LOGW("[Linker][RecvLabel] inSequenceId=%llu smaller than topRecvLabelSeq=%llu. Frame Ignored.",
-                ULL(inSequenceId), ULL(topRecvLabelSeq_[inTarget]));
+            LOGW("[Linker][RecvLabel] inSequenceId=%" PRIu64 " smaller than topRecvLabelSeq=%" PRIu64
+                ". Frame Ignored.", ULL(inSequenceId), ULL(topRecvLabelSeq_[inTarget]));
             return -E_OUT_OF_DATE;
         } else {
             // Update top sequenceId of received LabelExchange
@@ -192,11 +191,11 @@ int CommunicatorLinker::ReceiveLabelExchangeAck(const std::string &inTarget, uin
     // This two judge is for detecting case that local device process restart so incSequenceId_ restart from 0
     // The remote device may send an ack cause by previous process, which may destroy the functionality of this process
     if (waitAckSeq_.count(inTarget) == 0) {
-        LOGW("[Linker][RecvAck] Not waiting any ack now, inSequenceId=%llu", ULL(inSequenceId));
+        LOGW("[Linker][RecvAck] Not waiting any ack now, inSequenceId=%" PRIu64 "", ULL(inSequenceId));
         return -E_NOT_FOUND;
     }
     if (waitAckSeq_[inTarget] < inSequenceId) {
-        LOGW("[Linker][RecvAck] Not waiting this ack now, inSequenceId=%llu, waitAckSeq_=%llu",
+        LOGW("[Linker][RecvAck] Not waiting this ack now, inSequenceId=%" PRIu64 ", waitAckSeq_=%" PRIu64,
             ULL(inSequenceId), ULL(waitAckSeq_[inTarget]));
         return -E_NOT_FOUND;
     }
@@ -205,7 +204,7 @@ int CommunicatorLinker::ReceiveLabelExchangeAck(const std::string &inTarget, uin
         // Firstly receive LabelExchangeAck from this target
         recvAckSeq_[inTarget] = inSequenceId;
     } else if (inSequenceId <= recvAckSeq_[inTarget]) {
-        LOGW("[Linker][RecvAck] inSequenceId=%llu not greater than recvAckSeq_=%llu. Frame Ignored.",
+        LOGW("[Linker][RecvAck] inSequenceId=%" PRIu64 " not greater than recvAckSeq_=%" PRIu64 ". Frame Ignored.",
             ULL(inSequenceId), ULL(recvAckSeq_[inTarget]));
         return -E_OUT_OF_DATE;
     } else {
@@ -237,12 +236,13 @@ void CommunicatorLinker::SuspendByOnceTimer(const std::function<void(void)> &inA
     RuntimeContext *context = RuntimeContext::GetInstance();
     int errCode = context->SetTimer(static_cast<int>(inCountDown), [inAction](TimerId inTimerId)->int{
         // Note: inAction should be captured by value (must not by reference)
-        LOGI("[Linker][Suspend] Timer Due : inTimerId=%llu.", ULL(inTimerId));
+        LOGI("[Linker][Suspend] Timer Due : inTimerId=%" PRIu64 ".", ULL(inTimerId));
         inAction();
         return -E_END_TIMER;
     }, nullptr, thisTimerId);
     if (errCode == E_OK) {
-        LOGI("[Linker][Suspend] SetTimer Success : thisTimerId=%llu, wait=%u(ms).", ULL(thisTimerId), inCountDown);
+        LOGI("[Linker][Suspend] SetTimer Success : thisTimerId=%" PRIu64 ", wait=%u(ms).",
+            ULL(thisTimerId), inCountDown);
     } else {
         LOGI("[Linker][Suspend] SetTimer Fail Raise Thread Instead : errCode=%d, wait=%u(ms).", errCode, inCountDown);
         std::thread timerThread([inAction, inCountDown]() {
@@ -269,7 +269,7 @@ void CommunicatorLinker::DetectDistinctValueChange(const std::string &inTarget, 
     }
 
     // DistinctValue change detected !!! This must be caused by malfunctioning of underlayer communication component.
-    LOGE("[Linker][Detect] ######## DISTINCT VALUE CHANGE DETECTED : %llu VS %llu ########",
+    LOGE("[Linker][Detect] ######## DISTINCT VALUE CHANGE DETECTED : %" PRIu64 " VS %" PRIu64 " ########",
         ULL(inDistinctValue), ULL(targetDistinctValue_[inTarget]));
     targetDistinctValue_[inTarget] = inDistinctValue;
     // The process of remote target must have undergone a quit and restart, the remote sequenceId will start from zero.
@@ -311,8 +311,8 @@ int CommunicatorLinker::TriggerLabelExchangeEvent(const std::string &toTarget)
             waitAckSeq_[toTarget] = sequenceId;
         } else if (waitAckSeq_[toTarget] > sequenceId) {
             // New LabelExchangeEvent had been trigger for this target, so this event can be abort
-            LOGI("[Linker][TriggerLabel] Detect newSeqId=%llu than thisSeqId=%llu be triggered for target=%s{private}",
-                ULL(waitAckSeq_[toTarget]), ULL(sequenceId), toTarget.c_str());
+            LOGI("[Linker][TriggerLabel] Detect newSeqId=%" PRIu64 " than thisSeqId=%" PRIu64
+                " be triggered for target=%s{private}", ULL(waitAckSeq_[toTarget]), ULL(sequenceId), toTarget.c_str());
             delete buffer;
             buffer = nullptr;
             return E_OK;
@@ -379,9 +379,10 @@ void CommunicatorLinker::SendLabelExchange(const std::string &toTarget, SerialBu
             noNeedToSend = true;
         }
         if (noNeedToSend) { // ATTENTION: This Log should be inside the protection of entireInfoLockGuard!!!
-            LOGI("[Linker][SendLabel] NoNeedSend:target=%s{private}, thisSeqId=%llu, waitAckSeq=%llu, recvAckSeq=%llu,"
-                "retrans=%u.", toTarget.c_str(), ULL(inSequenceId), ULL(waitAckSeq_[toTarget]),
-                ULL((recvAckSeq_.count(toTarget) != 0) ? recvAckSeq_[toTarget] : ~ULL(0)), inRetransmitCount);
+            LOGI("[Linker][SendLabel] NoNeedSend:target=%s{private}, thisSeqId=%" PRIu64 ", waitAckSeq=%" PRIu64
+                ", recvAckSeq=%" PRIu64 ",retrans=%u.", toTarget.c_str(), ULL(inSequenceId),
+                ULL(waitAckSeq_[toTarget]), ULL((recvAckSeq_.count(toTarget) != 0) ? recvAckSeq_[toTarget] : ~ULL(0)),
+                inRetransmitCount);
         } // ~0 indicate no ack ever recv
     }
     if (noNeedToSend) {
@@ -403,7 +404,8 @@ void CommunicatorLinker::SendLabelExchange(const std::string &toTarget, SerialBu
                 SendLabelExchange(toTarget, cloneBuffer, inSequenceId, inRetransmitCount + 1); // Do retransmission
             }, GetDynamicTimeLapseForWaitingAck(inRetransmitCount));
         } else {
-            LOGE("[Linker][SendLabel] CloneFail: target=%s{private}, SeqId=%llu.", toTarget.c_str(), ULL(inSequenceId));
+            LOGE("[Linker][SendLabel] CloneFail: target=%s{private}, SeqId=%" PRIu64 ".",
+            toTarget.c_str(), ULL(inSequenceId));
         }
     } else {
         // Send fail, go on to retry send
@@ -436,8 +438,9 @@ void CommunicatorLinker::SendLabelExchangeAck(const std::string &toTarget, Seria
             noNeedToSend = true;
         }
         if (noNeedToSend) { // ATTENTION: This Log should be inside the protection of entireInfoLockGuard!!!
-            LOGI("[Linker][SendAck] NoNeedSend:target=%s{private}, thisSeqId=%llu, topRecLabelSeq=%llu, thisAckId=%llu,"
-                "ackTriggerId=%llu.", toTarget.c_str(), ULL(inSequenceId), // ~0 indacate no label ever recv
+            LOGI("[Linker][SendAck] NoNeedSend:target=%s{private}, thisSeqId=%" PRIu64 ", topRecLabelSeq=%" PRIu64
+                ", thisAckId=%" PRIu64 ",ackTriggerId=%" PRIu64 ".",
+                toTarget.c_str(), ULL(inSequenceId), // ~0 indacate no label ever recv
                 ULL((topRecvLabelSeq_.count(toTarget) != 0) ? topRecvLabelSeq_[toTarget] : ~ULL(0)),
                 ULL(inAckTriggerId), ULL(ackTriggerId_[toTarget]));
         }

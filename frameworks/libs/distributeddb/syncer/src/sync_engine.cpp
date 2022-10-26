@@ -129,14 +129,16 @@ int SyncEngine::Close()
 
     WaitingExecTaskExist();
     ReleaseCommunicators();
-    std::lock_guard<std::mutex> msgLock(queueLock_);
-    while (!msgQueue_.empty()) {
-        Message *inMsg = msgQueue_.front();
-        msgQueue_.pop_front();
-        if (inMsg != nullptr) {
-            queueCacheSize_ -= GetMsgSize(inMsg);
-            delete inMsg;
-            inMsg = nullptr;
+    {
+        std::lock_guard<std::mutex> msgLock(queueLock_);
+        while (!msgQueue_.empty()) {
+            Message *inMsg = msgQueue_.front();
+            msgQueue_.pop_front();
+            if (inMsg != nullptr) {
+                queueCacheSize_ -= GetMsgSize(inMsg);
+                delete inMsg;
+                inMsg = nullptr;
+            }
         }
     }
     // close db, rekey or import scene, need clear all remote query info
@@ -200,18 +202,18 @@ void SyncEngine::BroadCastDataChanged() const
     }
 }
 
-void SyncEngine::RegConnectCallback()
+void SyncEngine::StartCommunicator()
 {
     if (communicator_ == nullptr) {
-        LOGE("[SyncEngine][RegConnCB] communicator is not set!");
+        LOGE("[SyncEngine][StartCommunicator] communicator is not set!");
         return;
     }
-    LOGD("[SyncEngine] RegOnConnectCallback");
+    LOGD("[SyncEngine][StartCommunicator] RegOnConnectCallback");
     int errCode = communicator_->RegOnConnectCallback(
         std::bind(&DeviceManager::OnDeviceConnectCallback, deviceManager_,
             std::placeholders::_1, std::placeholders::_2), nullptr);
     if (errCode != E_OK) {
-        LOGE("[SyncEngine][RegConnCB] register failed, auto sync can not use! err %d", errCode);
+        LOGE("[SyncEngine][StartCommunicator] register failed, auto sync can not use! err %d", errCode);
         return;
     }
     communicator_->Activate();
@@ -361,14 +363,12 @@ MSG_CALLBACK_OUT_NOT_DEL:
 
 void SyncEngine::RemoteDataChangedTask(ISyncTaskContext *context, const ICommunicator *communicator, Message *inMsg)
 {
-    do {
-        std::string deviceId = context->GetDeviceId();
-        if (onRemoteDataChanged_ && deviceManager_->IsDeviceOnline(deviceId)) {
-            onRemoteDataChanged_(deviceId);
-        } else {
-            LOGE("[SyncEngine] onRemoteDataChanged is null!");
-        }
-    } while (false);
+    std::string deviceId = context->GetDeviceId();
+    if (onRemoteDataChanged_ && deviceManager_->IsDeviceOnline(deviceId)) {
+        onRemoteDataChanged_(deviceId);
+    } else {
+        LOGE("[SyncEngine] onRemoteDataChanged is null!");
+    }
     delete inMsg;
     inMsg = nullptr;
     ScheduleTaskOut(context, communicator);

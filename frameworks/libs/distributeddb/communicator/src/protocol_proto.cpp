@@ -14,16 +14,16 @@
  */
 
 #include "protocol_proto.h"
-#include <new>
 #include <iterator>
-#include "hash.h"
-#include "securec.h"
-#include "version.h"
+#include <new>
 #include "db_common.h"
+#include "endian_convert.h"
+#include "hash.h"
+#include "header_converter.h"
 #include "log_print.h"
 #include "macro_utils.h"
-#include "endian_convert.h"
-#include "header_converter.h"
+#include "securec.h"
+#include "version.h"
 
 namespace DistributedDB {
 namespace {
@@ -44,9 +44,9 @@ const uint32_t SEQUENCE_ID_LEN = sizeof(uint64_t);
 // Note: COMM_LABEL_LENGTH is defined in communicator_type_define.h
 const uint32_t COMM_LABEL_COUNT_LEN = sizeof(uint64_t);
 // Local func to set and get frame Type from packet Type field
-void SetFrameType(uint8_t &inPacketType, FrameType inFrameType)
+void SetFrameType(FrameType inFrameType, uint8_t &inPacketType)
 {
-    inPacketType &= 0x0F; // Use 0x0F to clear high for bits
+    inPacketType &= 0x0F; // Use 0x0F to clear high four bits
     inPacketType |= (static_cast<uint8_t>(inFrameType) << 4); // frame type is on high 4 bits
 }
 FrameType GetFrameType(uint8_t inPacketType)
@@ -79,8 +79,8 @@ uint32_t ProtocolProto::GetCommLayerFrameHeaderLength()
     return length;
 }
 
-SerialBuffer *ProtocolProto::ToSerialBuffer(const Message *inMsg, int &outErrorNo,
-    std::shared_ptr<ExtendHeaderHandle> &extendHandle, bool onlyMsgHeader)
+SerialBuffer *ProtocolProto::ToSerialBuffer(const Message *inMsg,
+    std::shared_ptr<ExtendHeaderHandle> &extendHandle, bool onlyMsgHeader, int &outErrorNo)
 {
     if (inMsg == nullptr) {
         outErrorNo = -E_INVALID_ARGS;
@@ -186,7 +186,7 @@ SerialBuffer *ProtocolProto::BuildFeedbackMessageFrame(const Message *inMsg, con
     int &outErrorNo)
 {
     std::shared_ptr<ExtendHeaderHandle> extendHandle = nullptr;
-    SerialBuffer *buffer = ToSerialBuffer(inMsg, outErrorNo, extendHandle, true);
+    SerialBuffer *buffer = ToSerialBuffer(inMsg, extendHandle, true, outErrorNo);
     if (buffer == nullptr) {
         // outErrorNo had already been set in ToSerialBuffer
         return nullptr;
@@ -305,14 +305,14 @@ int ProtocolProto::AnalyzeSplitStructure(const ParseResult &inResult, uint32_t &
 
     // Firstly: Check frameLen
     if (frameLen <= sizeof(CommPhyHeader) || frameLen > MAX_FRAME_LEN) {
-        LOGE("[Proto][ParsePhyOpt] FrameLen=%u illegal.", frameLen);
+        LOGE("[Proto][ParsePhyOpt] FrameLen=%" PRIu32 " illegal.", frameLen);
         return -E_PARSE_FAIL;
     }
 
     // Secondly: Check fragCount and fragNo
     uint32_t lengthBeSplit = frameLen - sizeof(CommPhyHeader);
     if (fragCount == 0 || fragCount < MIN_FRAGMENT_COUNT || fragCount > lengthBeSplit || fragNo >= fragCount) {
-        LOGE("[Proto][ParsePhyOpt] FragCount=%u or fragNo=%u illegal.", fragCount, fragNo);
+        LOGE("[Proto][ParsePhyOpt] FragCount=%" PRIu32 " or fragNo=%" PRIu32 " illegal.", fragCount, fragNo);
         return -E_PARSE_FAIL;
     }
 
@@ -322,10 +322,11 @@ int ProtocolProto::AnalyzeSplitStructure(const ParseResult &inResult, uint32_t &
     outFragLen = quotient;
     outLastFragLen = quotient + remainder;
     uint32_t thisFragLen = ((fragNo != fragCount - 1) ? outFragLen : outLastFragLen); // subtract by 1 for index
-    if (sizeof(CommPhyHeader) + sizeof(CommPhyOptHeader) + thisFragLen +
-        inResult.GetPaddingLen() != inResult.GetPacketLen()) {
-        LOGE("[Proto][ParsePhyOpt] Length Error: FrameLen=%u, FragCount=%u, fragNo=%u, PaddingLen=%u, PacketLen=%u",
-            frameLen, fragCount, fragNo, inResult.GetPaddingLen(), inResult.GetPacketLen());
+    if ((sizeof(CommPhyHeader) + sizeof(CommPhyOptHeader) + thisFragLen +
+        inResult.GetPaddingLen()) != inResult.GetPacketLen()) {
+        LOGE("[Proto][ParsePhyOpt] Length Error: FrameLen=%" PRIu32 ", FragCount=%" PRIu32 ", fragNo=%" PRIu32
+            ", PaddingLen=%" PRIu32 ", PacketLen=%" PRIu32, frameLen, fragCount, fragNo, inResult.GetPaddingLen(),
+            inResult.GetPacketLen());
         return -E_PARSE_FAIL;
     }
 
@@ -405,7 +406,7 @@ int ProtocolProto::SetDivergeHeader(SerialBuffer *inBuff, const LabelType &inCom
 }
 
 namespace {
-void FillPhyHeaderLenInfo(CommPhyHeader &header, uint32_t packetLen, uint64_t sum, uint8_t type, uint8_t paddingLen)
+void FillPhyHeaderLenInfo(uint32_t packetLen, uint64_t sum, uint8_t type, uint8_t paddingLen, CommPhyHeader &header)
 {
     header.packetLen = packetLen;
     header.checkSum = sum;
@@ -430,7 +431,7 @@ int ProtocolProto::SetPhyHeader(SerialBuffer *inBuff, const PhyHeaderInfo &inInf
     uint8_t paddingLen = static_cast<uint8_t>(bufferByteLen.second - frameByteLen.second);
     uint8_t packetType = PACKET_TYPE_NOT_FRAGMENTED;
     if (inInfo.frameType != FrameType::INVALID_MAX_FRAME_TYPE) {
-        SetFrameType(packetType, inInfo.frameType);
+        SetFrameType(inInfo.frameType, packetType);
     } else {
         return -E_INVALID_ARGS;
     }
@@ -442,7 +443,7 @@ int ProtocolProto::SetPhyHeader(SerialBuffer *inBuff, const PhyHeaderInfo &inInf
     phyHeader.frameId = inInfo.frameId;
     phyHeader.packetType = 0;
     phyHeader.dbIntVer = DB_GLOBAL_VERSION;
-    FillPhyHeaderLenInfo(phyHeader, packetLen, 0, packetType, paddingLen); // Sum is calculated afterwards
+    FillPhyHeaderLenInfo(packetLen, 0, packetType, paddingLen, phyHeader); // Sum is calculated afterwards
     HeaderConverter::ConvertHostToNet(phyHeader, phyHeader);
 
     errno_t retCode = memcpy_s(headerByteLen.first, headerByteLen.second, &phyHeader, sizeof(CommPhyHeader));
@@ -483,22 +484,19 @@ int ProtocolProto::CheckAndParsePacket(const std::string &srcTarget, const uint8
         errCode = ParseCommPhyOptHeader(bytes, length, outResult);
         if (errCode != E_OK) {
             LOGE("[Proto][ParsePacket] Parse CommPhyOptHeader Fail, errCode=%d.", errCode);
-            return errCode;
         }
     } else if (outResult.GetFrameTypeInfo() != FrameType::APPLICATION_MESSAGE) {
         errCode = ParseCommLayerPayload(bytes, length, outResult);
         if (errCode != E_OK) {
             LOGE("[Proto][ParsePacket] Parse CommLayerPayload Fail, errCode=%d.", errCode);
-            return errCode;
         }
     } else {
         errCode = ParseCommDivergeHeader(bytes, length, outResult);
         if (errCode != E_OK) {
             LOGE("[Proto][ParsePacket] Parse DivergeHeader Fail, errCode=%d.", errCode);
-            return errCode;
         }
     }
-    return E_OK;
+    return errCode;
 }
 
 int ProtocolProto::CheckAndParseFrame(const SerialBuffer *inBuff, ParseResult &outResult)
@@ -548,11 +546,11 @@ void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t leng
             return;
         }
         auto phyOpt = reinterpret_cast<const CommPhyOptHeader *>(bytes + sizeof(CommPhyHeader));
-        LOGI("[Proto][Display] This is %s, frameId=%u, frameLen=%u, fragCount=%u, fragNo=%u.",
-            frameTypeStr[frameType].c_str(), frameId, NetToHost(phyOpt->frameLen),
+        LOGI("[Proto][Display] This is %s, frameId=%" PRIu32 ", frameLen=%" PRIu32 ", fragCount=%" PRIu32
+            ", fragNo=%" PRIu32 ".", frameTypeStr[frameType].c_str(), frameId, NetToHost(phyOpt->frameLen),
             NetToHost(phyOpt->fragCount), NetToHost(phyOpt->fragNo));
     } else {
-        LOGI("[Proto][Display] This is %s, frameId=%u.", frameTypeStr[frameType].c_str(), frameId);
+        LOGI("[Proto][Display] This is %s, frameId=%" PRIu32 ".", frameTypeStr[frameType].c_str(), frameId);
     }
 }
 
@@ -575,7 +573,7 @@ int ProtocolProto::CalculateDataSerializeLength(const Message *inMsg, uint32_t &
 {
     uint32_t messageId = inMsg->GetMessageId();
     if (msgIdMapFunc_.count(messageId) == 0) {
-        LOGE("[Proto][CalcuDataSerialLen] Not registered for messageId=%u.", messageId);
+        LOGE("[Proto][CalcuDataSerialLen] Not registered for messageId=%" PRIu32 ".", messageId);
         return -E_NOT_REGISTER;
     }
 
@@ -584,8 +582,8 @@ int ProtocolProto::CalculateDataSerializeLength(const Message *inMsg, uint32_t &
     uint32_t alignedLen = BYTE_8_ALIGN(serializeLen);
     // Currently not allowed the upper module to send a message without data. Regard serializeLen zero as abnormal.
     if (serializeLen == 0 || alignedLen > MAX_FRAME_LEN - GetLengthBeforeSerializedData()) {
-        LOGE("[Proto][CalcuDataSerialLen] Length too large, msgId=%u, serializeLen=%u, alignedLen=%u.",
-            messageId, serializeLen, alignedLen);
+        LOGE("[Proto][CalcuDataSerialLen] Length too large, msgId=%" PRIu32 ", serializeLen=%" PRIu32
+            ", alignedLen=%" PRIu32 ".", messageId, serializeLen, alignedLen);
         return -E_LENGTH_ERROR;
     }
     // Attention: return the serializeLen nor the alignedLen. Let SerialBuffer to deal with the padding
@@ -597,7 +595,7 @@ int ProtocolProto::SerializeMessage(SerialBuffer *inBuff, const Message *inMsg)
 {
     auto payloadByteLen = inBuff->GetWritableBytesForPayload();
     if (payloadByteLen.second < sizeof(MessageHeader)) { // For equal, only msgHeader case
-        LOGE("[Proto][Serialize] Length error, payload length=%u.", payloadByteLen.second);
+        LOGE("[Proto][Serialize] Length error, payload length=%" PRIu32 ".", payloadByteLen.second);
         return -E_LENGTH_ERROR;
     }
     uint32_t dataLen = payloadByteLen.second - sizeof(MessageHeader);
@@ -636,12 +634,12 @@ int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg
     }
     uint16_t version = NetToHost(*(reinterpret_cast<const uint16_t *>(payloadByteLen.first)));
     if (!IsSupportMessageVersion(version)) {
-        LOGE("[Proto][DeSerialize] Version=%u not support.", version);
+        LOGE("[Proto][DeSerialize] Version=%" PRIu32 " not support.", version);
         return -E_VERSION_NOT_SUPPORT;
     }
 
     if (payloadByteLen.second < sizeof(MessageHeader)) {
-        LOGE("[Proto][DeSerialize] Length error, payload length=%u.", payloadByteLen.second);
+        LOGE("[Proto][DeSerialize] Length error, payload length=%" PRIu32 ".", payloadByteLen.second);
         return -E_LENGTH_ERROR;
     }
     auto oriMsgHeader = reinterpret_cast<const MessageHeader *>(payloadByteLen.first);
@@ -655,12 +653,12 @@ int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg
     inMsg->SetErrorNo(messageHdr.errorNo);
     uint32_t dataLen = payloadByteLen.second - sizeof(MessageHeader);
     if (dataLen != messageHdr.dataLen) {
-        LOGE("[Proto][DeSerialize] dataLen=%u, msgDataLen=%u.", dataLen, messageHdr.dataLen);
+        LOGE("[Proto][DeSerialize] dataLen=%" PRIu32 ", msgDataLen=%" PRIu32 ".", dataLen, messageHdr.dataLen);
         return -E_LENGTH_ERROR;
     }
     // It is better to check FeedbackMessage first and check onlyMsgHeader flag later
     if (IsFeedbackErrorMessage(messageHdr.errorNo)) {
-        LOGI("[Proto][DeSerialize] Feedback Message with errorNo=%u.", messageHdr.errorNo);
+        LOGI("[Proto][DeSerialize] Feedback Message with errorNo=%" PRIu32 ".", messageHdr.errorNo);
         return E_OK;
     }
     if (onlyMsgHeader || dataLen == 0) { // Do not need to deserialize data
@@ -668,7 +666,7 @@ int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg
     }
     uint32_t messageId = inMsg->GetMessageId();
     if (msgIdMapFunc_.count(messageId) == 0) {
-        LOGE("[Proto][DeSerialize] Not register, messageId=%u.", messageId);
+        LOGE("[Proto][DeSerialize] Not register, messageId=%" PRIu32 ".", messageId);
         return -E_NOT_REGISTER;
     }
     TransformFunc function = msgIdMapFunc_[messageId];
@@ -702,11 +700,11 @@ int ProtocolProto::ParseCommPhyHeaderCheckMagicAndVersion(const uint8_t *bytes, 
     uint16_t version = NetToHost(*fieldPtr++);
 
     if (magic != MAGIC_CODE) {
-        LOGE("[Proto][ParsePhyCheckVer] MagicCode=%u Error.", magic);
+        LOGE("[Proto][ParsePhyCheckVer] MagicCode=%" PRIu32 " Error.", magic);
         return -E_PARSE_FAIL;
     }
     if (version != PROTOCOL_VERSION) {
-        LOGE("[Proto][ParsePhyCheckVer] Version=%u Error.", version);
+        LOGE("[Proto][ParsePhyCheckVer] Version=%" PRIu32 " Error.", version);
         return -E_VERSION_NOT_SUPPORT;
     }
     return E_OK;
@@ -716,16 +714,16 @@ int ProtocolProto::ParseCommPhyHeaderCheckField(const std::string &srcTarget, co
     const uint8_t *bytes, uint32_t length)
 {
     if (phyHeader.sourceId != Hash::HashFunc(srcTarget)) {
-        LOGE("[Proto][ParsePhyCheck] SourceId Error: inSourceId=%llu, srcTarget=%s{private}, hashId=%llu.",
+        LOGE("[Proto][ParsePhyCheck] SourceId Error: inSourceId=%" PRIu64 ", srcTarget=%s{private}, hashId=%" PRIu64,
             ULL(phyHeader.sourceId), srcTarget.c_str(), ULL(Hash::HashFunc(srcTarget)));
         return -E_PARSE_FAIL;
     }
     if (phyHeader.packetLen != length) {
-        LOGE("[Proto][ParsePhyCheck] PacketLen=%u Mismatch length=%u.", phyHeader.packetLen, length);
+        LOGE("[Proto][ParsePhyCheck] PacketLen=%" PRIu32 " Mismatch length=%" PRIu32 ".", phyHeader.packetLen, length);
         return -E_PARSE_FAIL;
     }
     if (phyHeader.paddingLen > MAX_PADDING_LEN) {
-        LOGE("[Proto][ParsePhyCheck] PaddingLen=%u Error.", phyHeader.paddingLen);
+        LOGE("[Proto][ParsePhyCheck] PaddingLen=%" PRIu32 " Error.", phyHeader.paddingLen);
         return -E_PARSE_FAIL;
     }
     if (sizeof(CommPhyHeader) + phyHeader.paddingLen > phyHeader.packetLen) {
@@ -739,7 +737,7 @@ int ProtocolProto::ParseCommPhyHeaderCheckField(const std::string &srcTarget, co
         return -E_SUM_CALCULATE_FAIL;
     }
     if (phyHeader.checkSum != sumResult) {
-        LOGE("[Proto][ParsePhyCheck] Sum Mismatch, checkSum=%llu, sumResult=%llu.",
+        LOGE("[Proto][ParsePhyCheck] Sum Mismatch, checkSum=%" PRIu64 ", sumResult=%" PRIu64 ".",
             ULL(phyHeader.checkSum), ULL(sumResult));
         return -E_SUM_MISMATCH;
     }
@@ -778,7 +776,7 @@ int ProtocolProto::ParseCommPhyHeader(const std::string &srcTarget, const uint8_
     } // FragmentFlag default is false
     FrameType frameType = GetFrameType(phyHeader.packetType);
     if (frameType == FrameType::INVALID_MAX_FRAME_TYPE) {
-        LOGW("[Proto][ParsePhy] Unrecognized frame, pktType=%u.", phyHeader.packetType);
+        LOGW("[Proto][ParsePhy] Unrecognized frame, pktType=%" PRIu32 ".", phyHeader.packetType);
         return -E_FRAME_TYPE_NOT_SUPPORT;
     }
     inResult.SetFrameTypeInfo(frameType);
@@ -858,7 +856,7 @@ int ProtocolProto::ParseLabelExchange(const uint8_t *bytes, uint32_t length, Par
     auto fieldPtr = reinterpret_cast<const uint64_t *>(bytes + sizeof(CommPhyHeader));
     uint64_t version = NetToHost(*fieldPtr++);
     if (version != PROTOCOL_VERSION) {
-        LOGE("[Proto][ParseLabel] Version=%llu not support.", ULL(version));
+        LOGE("[Proto][ParseLabel] Version=%" PRIu64 " not support.", ULL(version));
         return -E_VERSION_NOT_SUPPORT;
     }
 
@@ -873,13 +871,13 @@ int ProtocolProto::ParseLabelExchange(const uint8_t *bytes, uint32_t length, Par
     inResult.SetLabelExchangeSequenceId(sequenceId);
     uint64_t commLabelCount = NetToHost(*fieldPtr++);
     if (length < commLabelCount || (UINT32_MAX / COMM_LABEL_LENGTH) < commLabelCount) {
-        LOGE("[Proto][ParseLabel] commLabelCount=%llu invalid.", ULL(commLabelCount));
+        LOGE("[Proto][ParseLabel] commLabelCount=%" PRIu64 " invalid.", ULL(commLabelCount));
         return -E_PARSE_FAIL;
     }
     // commLabelCount is expected to be not very large
     if (length < sizeof(CommPhyHeader) + LABEL_VER_LEN + DISTINCT_VALUE_LEN + SEQUENCE_ID_LEN + COMM_LABEL_COUNT_LEN +
         commLabelCount * COMM_LABEL_LENGTH) {
-        LOGE("[Proto][ParseLabel] Length of Bytes Error, commLabelCount=%llu", ULL(commLabelCount));
+        LOGE("[Proto][ParseLabel] Length of Bytes Error, commLabelCount=%" PRIu64, ULL(commLabelCount));
         return -E_LENGTH_ERROR;
     }
 
@@ -908,7 +906,7 @@ int ProtocolProto::ParseLabelExchangeAck(const uint8_t *bytes, uint32_t length, 
     auto fieldPtr = reinterpret_cast<const uint64_t *>(bytes + sizeof(CommPhyHeader));
     uint64_t version = NetToHost(*fieldPtr++);
     if (version != PROTOCOL_VERSION) {
-        LOGE("[Proto][ParseLabelAck] Version=%llu not support.", ULL(version));
+        LOGE("[Proto][ParseLabelAck] Version=%" PRIu64 " not support.", ULL(version));
         return -E_VERSION_NOT_SUPPORT;
     }
 
@@ -947,7 +945,7 @@ int ProtocolProto::FrameFragmentation(const uint8_t *splitStartBytes, const Fram
         // Since exception is disabled, we have to check the vector size to assure that memory is truly allocated
         entry.first.resize(pieceTotalLen + fragmentInfo.extendHeadSize); // Note: should use resize other than reserve
         if (entry.first.size() != (pieceTotalLen + fragmentInfo.extendHeadSize)) {
-            LOGE("[Proto][FrameFrag] Resize failed for length=%u", pieceTotalLen);
+            LOGE("[Proto][FrameFrag] Resize failed for length=%" PRIu32, pieceTotalLen);
             return -E_OUT_OF_MEMORY;
         }
 
@@ -956,7 +954,7 @@ int ProtocolProto::FrameFragmentation(const uint8_t *splitStartBytes, const Fram
 
         // The sum value need to be recalculated, and the packet is fragmented.
         // The alignedFragLen is always larger than pieceFragLen
-        FillPhyHeaderLenInfo(pktPhyHeader, pieceTotalLen, 0, PACKET_TYPE_FRAGMENTED, alignedFragLen - pieceFragLen);
+        FillPhyHeaderLenInfo(pieceTotalLen, 0, PACKET_TYPE_FRAGMENTED, alignedFragLen - pieceFragLen, pktPhyHeader);
         HeaderConverter::ConvertHostToNet(pktPhyHeader, pktPhyHeader);
 
         CommPhyOptHeader pktPhyOptHeader = {static_cast<uint32_t>(fragmentInfo.splitLength + sizeof(CommPhyHeader)),
@@ -1081,7 +1079,6 @@ int ProtocolProto::FillExtendHeadDataIfNeed(std::shared_ptr<ExtendHeaderHandle> 
             LOGI("[Proto][ToSerial] fill head data failed");
             return -E_FEEDBACK_COMMUNICATOR_NOT_FOUND;
         }
-        return E_OK;
     }
     return E_OK;
 }

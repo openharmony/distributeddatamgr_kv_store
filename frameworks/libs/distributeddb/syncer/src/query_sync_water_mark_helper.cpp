@@ -513,26 +513,24 @@ int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Ke
 int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName)
 {
     // lock prevent other thread modify queryWaterMark at this moment
-    {
-        std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
-        std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
-        if (!tableName.empty()) {
-            std::string hashTableName = DBCommon::TransferHashString(tableName);
-            std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
-            prefixKeyStr += hexTableName;
-        }
-
-        // remove in db
-        Key prefixKey;
-        DBCommon::StringToVector(prefixKeyStr, prefixKey);
-        int errCode = storage_->DeleteMetaDataByPrefixKey(prefixKey);
-        if (errCode != E_OK) {
-            LOGE("[META]ResetRecvQueryWaterMark fail errCode:%d", errCode);
-            return errCode;
-        }
-        // clean cache
-        querySyncCache_.RemoveWithPrefixKey(prefixKeyStr);
+    std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
+    std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+    if (!tableName.empty()) {
+        std::string hashTableName = DBCommon::TransferHashString(tableName);
+        std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
+        prefixKeyStr += hexTableName;
     }
+
+    // remove in db
+    Key prefixKey;
+    DBCommon::StringToVector(prefixKeyStr, prefixKey);
+    int errCode = storage_->DeleteMetaDataByPrefixKey(prefixKey);
+    if (errCode != E_OK) {
+        LOGE("[META]ResetRecvQueryWaterMark fail errCode:%d", errCode);
+        return errCode;
+    }
+    // clean cache
+    querySyncCache_.RemoveWithPrefixKey(prefixKeyStr);
     return E_OK;
 }
 }  // namespace DistributedDB

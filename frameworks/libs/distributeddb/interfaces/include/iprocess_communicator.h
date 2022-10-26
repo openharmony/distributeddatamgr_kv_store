@@ -16,11 +16,11 @@
 #ifndef IPROCESSCOMMUNICATOR_H
 #define IPROCESSCOMMUNICATOR_H
 
-#include <string>
-#include <vector>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 #include "store_types.h"
 
 namespace DistributedDB {

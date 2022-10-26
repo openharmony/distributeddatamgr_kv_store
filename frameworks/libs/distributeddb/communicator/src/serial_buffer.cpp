@@ -15,10 +15,10 @@
 
 #include "serial_buffer.h"
 #include <new>
-#include "securec.h"
-#include "db_errno.h"
 #include "communicator_type_define.h"
+#include "db_errno.h"
 #include "log_print.h"
+#include "securec.h"
 
 namespace DistributedDB {
 SerialBuffer::~SerialBuffer()

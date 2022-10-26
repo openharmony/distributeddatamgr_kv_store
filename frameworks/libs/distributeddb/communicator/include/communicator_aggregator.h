@@ -16,20 +16,20 @@
 #ifndef COMMUNICATORAGGREGATOR_H
 #define COMMUNICATORAGGREGATOR_H
 
+#include <atomic>
+#include <condition_variable>
+#include <cstdint>
 #include <map>
 #include <mutex>
 #include <string>
-#include <atomic>
 #include <thread>
-#include <cstdint>
-#include <condition_variable>
-#include "iadapter.h"
-#include "parse_result.h"
-#include "icommunicator.h"
 #include "frame_combiner.h"
 #include "frame_retainer.h"
-#include "send_task_scheduler.h"
+#include "iadapter.h"
+#include "icommunicator.h"
 #include "icommunicator_aggregator.h"
+#include "parse_result.h"
+#include "send_task_scheduler.h"
 
 namespace DistributedDB {
 // Forward Declarations

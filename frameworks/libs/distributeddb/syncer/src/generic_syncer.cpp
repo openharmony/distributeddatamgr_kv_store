@@ -135,8 +135,8 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         initialized_ = true;
     }
 
-    // RegConnectCallback may start an auto sync, this function can not in syncerLock_
-    syncEngine_->RegConnectCallback();
+    // StartCommunicator may start an auto sync, this function can not in syncerLock_
+    syncEngine_->StartCommunicator();
     return E_OK;
 }
 
@@ -885,7 +885,7 @@ int GenericSyncer::InitTimeChangedListener()
             Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
             Timestamp maxItemTime = 0;
             this->syncInterface_->GetMaxTimestamp(maxItemTime);
-            if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
+            if ((orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
                 orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
                     currentSysTime + TimeHelper::MS_TO_100_NS;
             }

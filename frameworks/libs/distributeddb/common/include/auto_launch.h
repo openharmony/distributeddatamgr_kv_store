@@ -40,7 +40,7 @@ enum class AutoLaunchItemState {
 };
 
 enum class DBType {
-    DB_KV = 0,
+    DB_KV = 1,
     DB_RELATION,
     DB_INVALID,
 };

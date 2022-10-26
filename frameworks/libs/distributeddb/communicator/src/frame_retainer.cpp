@@ -28,8 +28,8 @@ const int SURVAIL_PERIOD_IN_MILLISECOND = 1000; // Period is 1 s
 inline void LogRetainInfo(const std::string &logPrefix, const LabelType &label, const std::string &target,
     uint64_t order, const RetainWork &work)
 {
-    LOGI("%s : Label=%s, target=%s{private}, retainOrder=%llu, frameId=%u, remainTime=%u, frameSize=%u.",
-        logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
+    LOGI("%s : Label=%s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", remainTime=%" PRIu32
+        ", frameSize=%" PRIu32 ".", logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
         work.frameId, work.remainTime, work.buffer->GetSize());
 }
 }
@@ -119,8 +119,8 @@ void FrameRetainer::RetainFrame(const FrameInfo &inFrame)
     // Discard obsolete frames until totalSize under capacity.
     DiscardObsoleteFramesIfNeed();
     // Display the final statistics
-    LOGI("[Retainer][Retain] Order=%llu. Statistics: TOTAL_BYTE=%u, TOTAL_FRAME=%u.", ULL(incRetainOrder_ - 1),
-        totalSizeByByte_, totalRetainFrames_);
+    LOGI("[Retainer][Retain] Order=%" PRIu64 ". Statistics: TOTAL_BYTE=%" PRIu32 ", TOTAL_FRAME=%" PRIu32 ".",
+        ULL(incRetainOrder_ - 1), totalSizeByByte_, totalRetainFrames_);
 }
 
 std::list<FrameInfo> FrameRetainer::FetchFramesForSpecificCommunicator(const LabelType &inCommLabel)
@@ -198,7 +198,8 @@ void FrameRetainer::DiscardObsoleteFramesIfNeed()
     // Discard obsolete frames until totalSize under capacity.
     while (totalSizeByByte_ > MAX_CAPACITY) {
         if (discardOrder.empty()) { // Unlikely to happen
-            LOGE("[Retainer][Discard] Internal Error: Byte=%u, Frames=%u.", totalSizeByByte_, totalRetainFrames_);
+            LOGE("[Retainer][Discard] Internal Error: Byte=%" PRIu32 ", Frames=%" PRIu32 ".",
+                totalSizeByByte_, totalRetainFrames_);
             return;
         }
         auto iter = discardOrder.begin();

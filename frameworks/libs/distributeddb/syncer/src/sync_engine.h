@@ -58,7 +58,7 @@ public:
     void GetOnlineDevices(std::vector<std::string> &devices) const override;
 
     // Register the device connect callback, this function must be called after Engine inited
-    void RegConnectCallback() override;
+    void StartCommunicator() override;
 
     // Get the queue cache memory size
     int GetQueueCacheSize() const;

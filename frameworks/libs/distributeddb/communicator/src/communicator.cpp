@@ -116,7 +116,7 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     }
     int error = E_OK;
     // if error is not E_OK , null pointer will be returned
-    SerialBuffer *buffer = ProtocolProto::ToSerialBuffer(inMsg, error, extendHandle, false);
+    SerialBuffer *buffer = ProtocolProto::ToSerialBuffer(inMsg, extendHandle, false, error);
     extendHandle = nullptr;
     if (error != E_OK) {
         LOGE("[Comm][Send] Serial fail, label=%s, error=%d.", VEC_TO_STR(commLabel_), error);
