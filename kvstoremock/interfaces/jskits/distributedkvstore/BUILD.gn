@@ -55,6 +55,7 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
+      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_error_utils.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_field_node.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_kv_manager.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_kv_store_resultset.cpp",
@@ -64,7 +65,6 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_single_kv_store.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/napi_queue.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
-      "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_error_utils.cpp",
     ]
 
     deps = [
