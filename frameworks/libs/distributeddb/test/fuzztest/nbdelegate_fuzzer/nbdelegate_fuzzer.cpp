@@ -152,7 +152,29 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->DeleteBatch(keys);
     kvNbDelegatePtr->UnRegisterObserver(observer);
     kvNbDelegatePtr->PutLocalBatch(tmp);
-
+    kvNbDelegatePtr->DeleteLocalBatch(keys);
+    SecurityOption secOption;
+    kvNbDelegatePtr->GetSecurityOption(secOption);
+    kvNbDelegatePtr->CheckIntegrity();
+    kvNbDelegatePtr->SetPushDataInterceptor(
+        [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
+            int errCode = OK;
+            auto entries = data.GetEntries();
+            for (size_t i = 0; i < entries.size(); i++) {
+                if (entries[i].key.empty() || entries[i].key.at(0) != 'A') {
+                    continue;
+                }
+                auto newKey = entries[i].key;
+                newKey[0] = 'B';
+                errCode = data.ModifyKey(i, newKey);
+                if (errCode != OK) {
+                    break;
+                }
+            }
+            return errCode;
+        }
+    );
+    
     if (!keys.empty()) {
         /* random deletePublic updateTimestamp 2 */
         kvNbDelegatePtr->PublishLocal(keys[0], (data[0] > data[1]), (data[2] > data[1]), nullptr);
@@ -160,6 +182,18 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->DeleteBatch(keys);
     std::string rawString(reinterpret_cast<const char *>(data), size);
     kvNbDelegatePtr->RemoveDeviceData(rawString);
+}
+
+void EncryptOperation(const uint8_t* data, size_t size, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
+{
+    CipherPassword passwd;
+    passwd.SetValue(data, 50);
+    kvNbDelegatePtr->Rekey(passwd);
+    int len = static_cast<int>(std::min(size, size_t(100)));
+    std::string fileName(data, data + len);
+    std::string mulitExportFileName = DirPath + "/" + fileName + ".db";
+    kvNbDelegatePtr->Export(mulitExportFileName, passwd);
+    kvNbDelegatePtr->Import(mulitExportFileName, passwd);
 }
 
 void CombineTest(const uint8_t* data, size_t size, KvStoreNbDelegate::Option &option)
@@ -176,6 +210,9 @@ void CombineTest(const uint8_t* data, size_t size, KvStoreNbDelegate::Option &op
             }
         });
     FuzzCURD(data, size, kvNbDelegatePtr);
+    if (option.isEncryptedDb) {
+        EncryptOperation(data, size, config.dataDir, kvNbDelegatePtr);
+    }
     kvManager.CloseKvStore(kvNbDelegatePtr);
     kvManager.DeleteKvStore("distributed_nb_delegate_test");
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
