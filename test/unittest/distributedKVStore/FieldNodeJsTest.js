@@ -77,7 +77,7 @@ describe('FieldNodeTest', function() {
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
-            console.info("FieldNodeAppendChildTest003 is ok :" + e);
+            console.info("FieldNodeAppendChildTest003 fail on exception :" + e);
         }
         done();
     })
@@ -129,7 +129,7 @@ describe('FieldNodeTest', function() {
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
-            console.info("FieldNodeToJsonTest003 is ok : " + e);
+            console.info("FieldNodeToJsonTest003 fail on exception: " + e);
         }
         done();
     })
