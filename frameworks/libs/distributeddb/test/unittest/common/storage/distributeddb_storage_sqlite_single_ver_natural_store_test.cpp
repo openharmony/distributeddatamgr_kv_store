@@ -1079,3 +1079,22 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
     DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue006(g_store, g_connection, url);
 }
 
+/**
+ * @tc.name: ConflictTypeTest001
+ * @tc.desc: check conflict function type
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: xulianhui
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, ConflictTypeTest001, TestSize.Level1)
+{
+    SQLiteSingleVerNaturalStore *store = new SQLiteSingleVerNaturalStore();
+    RegisterFuncType type;
+    EXPECT_EQ(store->TransConflictTypeToRegisterFunctionType(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY, type), E_OK);
+    EXPECT_EQ(type, CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY);
+    EXPECT_EQ(store->TransConflictTypeToRegisterFunctionType(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG, type), E_OK);
+    EXPECT_EQ(type, CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG);
+    EXPECT_EQ(store->TransConflictTypeToRegisterFunctionType(SQLITE_GENERAL_NS_NATIVE_ALL, type), E_OK);
+    EXPECT_EQ(type, CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL);
+    delete store;
+}
