@@ -675,7 +675,7 @@ void DistributedDBToolsUnitTest::Dump()
     const std::u16string u16DumpRightParam =
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(RIGHT_DUMP_PARAM);
     const std::u16string u16DumpIgnoreParam =
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(RIGHT_DUMP_PARAM);
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(IGNORE_DUMP_PARAM);
     std::vector<std::u16string> params = {
         u16DumpRightParam,
         u16DumpIgnoreParam
