@@ -905,6 +905,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level0)
     BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
 
     CheckVirtualData(dataMap);
+    DistributedDBToolsUnitTest::Dump();
 }
 
 /**
