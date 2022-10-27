@@ -278,7 +278,7 @@ describe('schemaTest', function() {
             schema.indexes = [];    // indexex set to empty array -> invalid indexes.
             expect(null).assertFail();
         } catch (e) {
-            console.info("schema exception is ok: " + e);
+            console.info("schema exception is : " + e);
         }
         done();
     })

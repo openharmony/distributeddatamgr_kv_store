@@ -275,10 +275,10 @@ describe('schemaTest', function() {
 
             let schema = new ddm.Schema();
             schema.root.appendChild(english);
-            schema.indexes = [];    // indexex set to empty array -> invalid indexes.
+            schema.indexes = [];
             expect(null).assertFail();
         } catch (e) {
-            console.info("schema exception is ok: " + e);
+            console.info("schema exception is: " + e);
         }
         done();
     })
