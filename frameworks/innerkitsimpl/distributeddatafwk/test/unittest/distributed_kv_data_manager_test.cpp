@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "device_status_change_listener.h"
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
 #include "types.h"
