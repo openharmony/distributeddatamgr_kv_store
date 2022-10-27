@@ -767,7 +767,6 @@ HWTEST_F(DistributedKvDataManagerTest, GetDeviceList001, TestSize.Level1)
     std::vector<DeviceInfo> dvInfos;
     Status status = manager.GetDeviceList(dvInfos, DeviceFilterStrategy::NO_FILTER);
     EXPECT_EQ(status, Status::ERROR);
-    EXPECT_EQ(dvInfos.size(), 0);
 }
 
 /**
