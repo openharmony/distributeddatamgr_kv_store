@@ -97,13 +97,14 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // number 2 means: required 2 arguments, <deviceId> + <key>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = (argc == 1) ? GetLocalDeviceId(ctxt->deviceId)
                                    : JSUtil::GetValue(env, argv[0], ctxt->deviceId);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The parameter deviceId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            "The parameter deviceId is incorrect.");
         int32_t pos = (argc == 1) ? 0 : 1;
         ctxt->status = JSUtil::GetValue(env, argv[pos], ctxt->key);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, "The type of key must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of key must be string.");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeviceGet exits");
@@ -142,7 +143,7 @@ struct VariantArgs {
     JsQuery* query;
     ArgsType type = ArgsType::UNKNOWN;
     DataQuery dataQuery;
-    std::string errMsg ="";
+    std::string errMsg = "";
 };
 
 static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
@@ -200,9 +201,9 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
     };
     auto ctxt = std::make_shared<GetEntriesContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, PARAM_ERROR, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetEntries exit");
@@ -256,12 +257,13 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     };
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, PARAM_ERROR, ctxt->va.errMsg);
-        ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, PARAM_ERROR, "KVStoreResultSet::New failed!");
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
+            "KVStoreResultSet::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetResultSet exit");
@@ -318,11 +320,11 @@ napi_value JsDeviceKVStore::GetResultSize(napi_env env, napi_callback_info info)
     };
     auto ctxt = std::make_shared<ResultSizeContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, PARAM_ERROR, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->va.type == ArgsType::DEVICEID_QUERY) || (ctxt->va.type == ArgsType::QUERY),
-            PARAM_ERROR, "The type of parameters ArgsType is incorrect.");
+           Status::INVALID_ARGUMENT, "The type of parameters ArgsType is incorrect.");
     };
 
     ctxt->GetCbInfo(env, info, input);
@@ -353,16 +355,16 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &storeId](size_t argc, napi_value* argv) {
         // required 2 arguments :: <storeId> <options>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, PARAM_ERROR, "The number of parameters is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], storeId);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), PARAM_ERROR,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && !storeId.empty(), Status::INVALID_ARGUMENT,
             "The type of storeId must be string.");
     };
     ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "New JsDeviceKVStore exit");
 
     JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId);
-    ASSERT_ERR(env, kvStore != nullptr, PARAM_ERROR, "no memory for kvStore");
+    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("deviceKvStore finalize.");
