@@ -130,6 +130,51 @@ void DistributedDBToolsTest::GetRandomKeyValue(std::vector<uint8_t> &value, uint
     RAND_bytes(value.data(), randSize);
 }
 
+DBStatus DistributedDBToolsTest::SyncTestWithQuery(KvStoreNbDelegate* delegate,
+    const std::vector<std::string>& devices, SyncMode mode,
+    std::map<std::string, DBStatus>& statuses, const Query &query)
+{
+    std::mutex syncLock;
+    std::condition_variable syncCondVar;
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses, &syncLock, &syncCondVar](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(syncLock);
+            syncCondVar.notify_one();
+        }, query, false);
+    std::unique_lock<std::mutex> lock(syncLock);
+    syncCondVar.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            return !statuses.empty();
+        });
+    return callStatus;
+}
+
+DBStatus DistributedDBToolsTest::SyncTest(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices,
+    SyncMode mode, std::map<std::string, DBStatus>& statuses)
+{
+    std::mutex syncLock;
+    std::condition_variable syncCondVar;
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses,  &syncLock, &syncCondVar](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(syncLock);
+            syncCondVar.notify_one();
+        }, false);
+    std::unique_lock<std::mutex> lock(syncLock);
+    syncCondVar.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            return !statuses.empty();
+        });
+    return callStatus;   
+}
+
 KvStoreObserverTest::KvStoreObserverTest() : callCount_(0), isCleared_(false)
 {}
 
