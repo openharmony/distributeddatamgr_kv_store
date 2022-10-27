@@ -15,8 +15,8 @@
 
 #include "schemadelegate_fuzzer.h"
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "distributeddb_tools_test.h"
 #include "fuzzer_data.h"
@@ -98,7 +98,7 @@ bool SchemaFuzzTest(const uint8_t* data, size_t size)
     KvStoreNbDelegate *kvNbDelegatePtr = nullptr;
 
     DistributedDB::KvStoreNbDelegate::Option option = {true, false, false};
-    if (fuzz.GetInt() % 2 == 0) {
+    if (fuzz.GetInt() % 2 == 0) { // 2: schema mode count
         option.schema = VALID_SCHEMA_STRICT_DEFINE;
     } else {
         option.schema = VALID_SCHEMA_COMPA_DEFINE;

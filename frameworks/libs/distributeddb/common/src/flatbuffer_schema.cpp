@@ -821,7 +821,8 @@ int CompareFieldInfo(const reflection::Field &selfField, const reflection::Field
         auto selfElementType = selfType->element();
         auto otherElementType = otherType->element();
         if (selfElementType != otherElementType) {
-            LOGE("[FBSchema][CompareField] ElementType diff:%" PRIu32 " vs %" PRIu32, selfElementType, otherElementType);
+            LOGE("[FBSchema][CompareField] ElementType diff:%" PRIu32 " vs %" PRIu32, selfElementType,
+                otherElementType);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }

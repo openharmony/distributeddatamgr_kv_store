@@ -69,7 +69,7 @@ private:
     SyncerProxy syncer_;
 };
 
-class TestInterface: public TestKvDb, public VirtualSingleVerSyncDBInterface {
+class TestInterface : public TestKvDb, public VirtualSingleVerSyncDBInterface {
 public:
     TestInterface() {}
     ~TestInterface()
@@ -873,7 +873,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->TestSetIdentifier(identifierVec);
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
-    std::thread WriteThread([&syncDBInterface] {
+    std::thread writeThread([&syncDBInterface] {
         syncDBInterface->TestLocalChange();
     });
     std::thread deleteThread([&syncDBInterface] {
@@ -881,7 +881,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
         delete syncDBInterface;
     });
     deleteThread.join();
-    WriteThread.join();
+    writeThread.join();
     std::this_thread::sleep_for(std::chrono::seconds(5));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
@@ -946,7 +946,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
             communicator->CallbackOnMessage("src", message);
         }
     });
-    std::thread thread2([&]() {
+    std::thread thread2([&enginePtr]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         enginePtr->Close();
     });

@@ -2086,7 +2086,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
 }
 
 namespace {
-void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices, VirtualSingleVerSyncDBInterface *&syncInterface)
+void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices,
+    VirtualSingleVerSyncDBInterface *&syncInterface)
 {
     devices = new (std::nothrow) KvVirtualDevice(devId);
     ASSERT_TRUE(devices != nullptr);
@@ -2152,7 +2153,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, val), NOT_FOUND);
 
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    // EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
     FreeVirtualDevice(g_deviceB);
     FreeVirtualDevice(g_deviceC);
     FreeVirtualDevice(g_deviceD);

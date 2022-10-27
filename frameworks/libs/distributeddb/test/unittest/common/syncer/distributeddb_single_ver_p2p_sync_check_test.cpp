@@ -1417,7 +1417,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
 
     /**
      * @tc.steps: step4. deviceA call sync and wait
-     * @tc.expected: step4. sync should return OK. because notify timer trigger (30s - 1s)/2s => 15times 
+     * @tc.expected: step4. sync should return OK. because notify timer trigger (30s - 1s)/2s => 15times
      */
     std::this_thread::sleep_for(std::chrono::seconds(1));
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, true);

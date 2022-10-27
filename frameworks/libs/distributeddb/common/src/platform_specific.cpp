@@ -338,7 +338,7 @@ int FileLock(const FileHandle &handle, bool isBlock)
 
 int FileUnlock(FileHandle &handle)
 {
-    return E_OK;;
+    return E_OK;
 }
 #else
 namespace {
