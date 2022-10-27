@@ -21,12 +21,13 @@ TaskExecutor &TaskExecutor::GetInstance()
     return instance;
 }
 
-bool TaskExecutor::Execute(TaskScheduler::Task &&task)
+bool TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
 {
     if (pool_ == nullptr) {
         return false;
     }
-    pool_->At(TaskScheduler::System::now(), std::move(task));
+    auto time = TaskScheduler::System::now() + std::chrono::milliseconds(interval);
+    pool_->At(time, std::move(task));
     return true;
 }
 

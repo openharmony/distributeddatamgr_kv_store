@@ -99,21 +99,20 @@ void DevManager::RegisterDevCallback()
     if (errNo == DM_OK) {
         return;
     }
-	ZLOGE("register device failed, try again");
-    TaskScheduler::Task task = [this]() {
-        constexpr int RETRY_TIMES = 300;
-        int i = 0;
+    Retry();
+}
+
+std::function<void()> DevManager::Retry()
+{
+    return [this]() {
         int32_t errNo = DM_ERROR;
-        while (i++ < RETRY_TIMES) {
-            errNo = Init();
-            if (errNo == DM_OK) {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        errNo = Init();
+        if (errNo == DM_OK) {
+            return;
         }
-        ZLOGI("reg device exit now: %{public}d times, errNo: %{public}d", i, errNo);
+        constexpr int32_t interval = 300;
+        TaskExecutor::GetInstance().Execute(Retry(), interval);
     };
-    TaskExecutor::GetInstance().Execute(std::move(task));
 }
 
 DevManager &DevManager::GetInstance()

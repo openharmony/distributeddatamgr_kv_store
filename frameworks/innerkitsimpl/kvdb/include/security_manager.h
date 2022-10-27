@@ -44,7 +44,7 @@ private:
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
     int32_t GenerateRootKey();
     int32_t CheckRootKey();
-    void Retry();
+    std::function<void()> Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
     

@@ -45,39 +45,31 @@ void SecurityManager::Init()
 {
     auto status = CheckRootKey();
     if (status == ErrCode::SUCCESS) {
-        ZLOGI("root key exit");
+        ZLOGE("root key exists.");
         return;
     }
     if (status == ErrCode::NOT_EXIST && GenerateRootKey() == ErrCode::SUCCESS) {
-        ZLOGI("GenerateRootKey success");
+        ZLOGE("GenerateRootKey successs.");
         return;
     }
     Retry(); 
 }
 
-void SecurityManager::Retry()
+std::function<void()> SecurityManager::Retry()
 {
-    ZLOGI("check start.");
-    TaskScheduler::Task task([this]() {
-        constexpr uint32_t RETRY_MAX_TIMES = 100;
-        uint32_t retryCount = 0;
-        constexpr int RETRY_TIME_INTERVAL_MILLISECOND = 1 * 1000 * 10;
-        while (retryCount < RETRY_MAX_TIMES) {
-            auto status = CheckRootKey();
-            if (status == ErrCode::SUCCESS) {
-                ZLOGI("root key exist.");
-                break;
-            }
-            if (status == ErrCode::NOT_EXIST && GenerateRootKey() == ErrCode::SUCCESS) {
-                ZLOGI("GenerateRootKey success.");
-                break;
-            }
-            retryCount++;
-            ZLOGE("generate rootkey-client fail, try count:%{public}u", retryCount);
-            usleep(RETRY_TIME_INTERVAL_MILLISECOND);
+    return [this]() {
+        auto status = CheckRootKey();
+        if (status == ErrCode::SUCCESS) {
+            ZLOGE("root key already exists.");
+            return;
         }
-    });
-    TaskExecutor::GetInstance().Execute(std::move(task));
+        if (status == ErrCode::NOT_EXIST && GenerateRootKey() == ErrCode::SUCCESS) {
+            ZLOGE("GenerateRootKey succeed.");
+            return;
+        }
+        constexpr int32_t interval = 100;
+        TaskExecutor::GetInstance().Execute(Retry(), interval);
+    };
 }
 
 SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
@@ -196,7 +188,7 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed with error %{public}d", ret);
+        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
         return {};
     }
     struct HksParam hksParam[] = {
@@ -210,14 +202,14 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed with error %{public}d", ret);
+        ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return {};
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed with error %{public}d", ret);
+        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return {};
     }
@@ -227,7 +219,7 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
     ret = HksEncrypt(&rootKeyName, params, &plainKey, &cipherText);
     (void)HksFreeParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksEncrypt failed with error %{public}d", ret);
+        ZLOGE("HksEncrypt failed, status: %{public}d", ret);
         return {};
     }
     std::vector<uint8_t> encryptedKey(cipherText.data, cipherText.data + cipherText.size);
@@ -245,7 +237,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet()-client2 failed with error %{public}d", ret);
+        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
         return false;
     }
     struct HksParam hksParam[] = {
@@ -259,14 +251,14 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams-client2 failed with error %{public}d", ret);
+        ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return false;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet-client2 failed with error %{public}d", ret);
+        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return false;
     }
@@ -276,7 +268,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
     ret = HksDecrypt(&rootKeyName, params, &encryptedKeyBlob, &plainKeyBlob);
     (void)HksFreeParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksDecrypt-client2 failed with error %{public}d", ret);
+        ZLOGE("HksDecrypt, status: %{public}d", ret);
         return false;
     }
 
@@ -291,7 +283,7 @@ int32_t SecurityManager::GenerateRootKey()
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet()-client failed with error %{public}d", ret);
+        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
         return ErrCode::ERROR;
     }
 
@@ -306,14 +298,14 @@ int32_t SecurityManager::GenerateRootKey()
 
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed with error %{public}d", ret);
+        ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return ErrCode::ERROR;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed with error %{public}d", ret);
+        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return ErrCode::ERROR;
     }
@@ -325,7 +317,7 @@ int32_t SecurityManager::GenerateRootKey()
         return ErrCode::SUCCESS;
     }
 
-    ZLOGE("HksGenerateKey failed with error %{public}d", ret);
+    ZLOGE("HksGenerateKey failed, status: %{public}d", ret);
     return ErrCode::ERROR;
 }
 
@@ -335,7 +327,7 @@ int32_t SecurityManager::CheckRootKey()
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksInitParamSet failed with error %{public}d", ret);
+        ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
         return ErrCode::ERROR;
     }
 
@@ -350,14 +342,14 @@ int32_t SecurityManager::CheckRootKey()
 
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksAddParams failed with error %{public}d", ret);
+        ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return ErrCode::ERROR;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
-        ZLOGE("HksBuildParamSet failed with error %{public}d", ret);
+        ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
         return ErrCode::ERROR;
     }
@@ -367,9 +359,9 @@ int32_t SecurityManager::CheckRootKey()
     if (ret == HKS_SUCCESS) {
         return ErrCode::SUCCESS;
     }
-    ZLOGE("HksEncrypt failed with error %{public}d", ret);
+
     if (ret == HKS_ERROR_NOT_EXIST) {
-        ZLOGE("~~~~~~~~~err");
+        ZLOGE("HksKey not exits");
         return ErrCode::NOT_EXIST;
     }
     return ErrCode::ERROR;
