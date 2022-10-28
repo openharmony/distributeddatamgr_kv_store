@@ -19,6 +19,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
+#include "platform_specific.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -324,7 +325,11 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
     observer = nullptr;
 
     std::string filePath = g_testDir + "test.txt";
+    OS::RemoveFile(filePath);
     EXPECT_EQ(g_kvNbDelegatePtr->Export(filePath, password), BUSY);
+
+    OS::CreateFileByFileName(filePath);
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(filePath, password), BUSY);
 
     KvStoreResultSet *readResultSet = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(KEY_4, readResultSet), BUSY);
