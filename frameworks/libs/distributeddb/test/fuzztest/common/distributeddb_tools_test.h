@@ -34,6 +34,8 @@
 #include "message.h"
 #include "query.h"
 
+#include "sqlite_utils.h"
+
 namespace DistributedDBTest {
 using namespace DistributedDB;
 
@@ -67,6 +69,13 @@ private:
     std::list<DistributedDB::Entry> inserted_;
     std::list<DistributedDB::Entry> updated_;
     std::list<DistributedDB::Entry> deleted_;
+};
+
+class RdbTestUtils {
+public:
+    static sqlite3 *CreateDataBase(const std::string &dbUri);
+    static int ExecSql(sqlite3 *db, const std::string &sql);
+    static int CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device);
 };
 } // namespace DistributedDBTest
 #endif // DISTRIBUTEDDB_TOOLS_TEST_H

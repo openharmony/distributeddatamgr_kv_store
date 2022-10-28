@@ -188,4 +188,46 @@ void KvStoreObserverTest::OnChange(const KvStoreChangedData& data)
     LOGD("Onchangedata :%zu -- %zu -- %zu -- %d", inserted_.size(), updated_.size(), deleted_.size(), isCleared_);
     LOGD("Onchange() called success!");
 }
+
+sqlite3 *RdbTestUtils::CreateDataBase(const std::string &dbUri)
+{
+    sqlite3 *db = nullptr;
+    if (int r = sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+        if (db != nullptr) {
+            (void)sqlite3_close_v2(db);
+            db = nullptr;
+        }
+    }
+    return db;
+}
+
+int RdbTestUtils::ExecSql(sqlite3 *db, const std::string &sql)
+{
+    if (db == nullptr || sql.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    char *errMsg = nullptr;
+    int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
+    if (errCode != SQLITE_OK && errMsg != nullptr) {
+        LOGE("Execute sql failed. %d err: %s", errCode, errMsg);
+    }
+    sqlite3_free(errMsg);
+    return errCode;
+}
+
+int RdbTestUtils::CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device)
+{
+    std::string deviceTable = DBCommon::GetDistributedTableName(device, table);
+    TableInfo baseTbl;
+    if (SQLiteUtils::AnalysisSchema(db, table, baseTbl) != E_OK) {
+        return -1;
+    }
+    if (SQLiteUtils::CreateSameStuTable(db, baseTbl, deviceTable) != E_OK) {
+        return -1;
+    }
+    if (SQLiteUtils::CloneIndexes(db, table, deviceTable) != E_OK) {
+        return -1;
+    }
+    return 0;
+}
 }
