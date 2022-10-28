@@ -16,6 +16,7 @@
 #include "kvdelegatemanager_fuzzer.h"
 #include <list>
 #include <securec.h>
+#include "distributeddb_tools_test.h"
 #include "kv_store_delegate_manager.h"
 #include "log_print.h"
 
@@ -25,6 +26,7 @@ class KvDelegateManagerFuzzer {
 
 namespace OHOS {
 using namespace DistributedDB;
+using namespace DistributedDBTest;
 
 std::string GetRandomString(const uint8_t* data, size_t size, size_t len, uint32_t &start)
 {
@@ -45,9 +47,20 @@ std::string GetRandomString(const uint8_t* data, size_t size, size_t len, uint32
     return res;
 }
 
+void GetRandomAutoLaunchOption(const uint8_t* data, size_t size, AutoLaunchOption &option)
+{
+    std::string randomStr = size == 0 ? "" : std::string(data, data + size - 1);
+    option.schema = randomStr;
+    option.observer = nullptr;
+    option.notifier = nullptr;
+    option.storeObserver = nullptr;
+}
+
 void CombineTest(const uint8_t* data, size_t size)
 {
     LOGD("Begin KvDelegateManagerFuzzer");
+    std::string path;
+    DistributedDBToolsTest::TestDirInit(path);
     const int paramCount = 3;
     for (size_t len = 1; len < (size / paramCount); len++) {
         uint32_t start = 0;
@@ -61,9 +74,12 @@ void CombineTest(const uint8_t* data, size_t size)
         bool syncDualTupleMode = static_cast<bool>(*data);
         (void) KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
         AutoLaunchOption option;
+        GetRandomAutoLaunchOption(data, size, option);
+        option.dataDir = path;
         (void) KvStoreDelegateManager::EnableKvStoreAutoLaunch(userId, appId, storeId, option, nullptr);
         (void) KvStoreDelegateManager::DisableKvStoreAutoLaunch(userId, appId, storeId);
     }
+    DistributedDBToolsTest::RemoveTestDbFiles(path);
     LOGD("End KvDelegateManagerFuzzer");
 }
 }
@@ -74,4 +90,3 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     OHOS::CombineTest(data, size);
     return 0;
 }
-
