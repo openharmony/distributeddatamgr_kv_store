@@ -153,6 +153,7 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->UnRegisterObserver(observer);
     kvNbDelegatePtr->PutLocalBatch(tmp);
     kvNbDelegatePtr->DeleteLocalBatch(keys);
+    std::string tmpStoreId = kvNbDelegatePtr->GetStoreId();
     SecurityOption secOption;
     kvNbDelegatePtr->GetSecurityOption(secOption);
     kvNbDelegatePtr->CheckIntegrity();
@@ -182,6 +183,7 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->DeleteBatch(keys);
     std::string rawString(reinterpret_cast<const char *>(data), size);
     kvNbDelegatePtr->RemoveDeviceData(rawString);
+    kvNbDelegatePtr->RemoveDeviceData();
 }
 
 void EncryptOperation(const uint8_t* data, size_t size, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
