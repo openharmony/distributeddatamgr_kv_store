@@ -14,7 +14,9 @@
  */
 
 #include "fuzzer_data.h"
-
+#include <codecvt>
+#include <cstdio>
+#include <locale>
 
 namespace DistributedDBTest {
 FuzzerData::FuzzerData(const uint8_t *data, size_t size) : data_(data), size_(size), curr_(data)
@@ -61,5 +63,36 @@ std::vector<uint8_t> FuzzerData::GetSequence(size_t size)
     std::vector<uint8_t> r(curr_, curr_ + size);
     curr_ += size;
     return r;
+}
+
+std::string FuzzerData::GetString(size_t len)
+{
+    if (curr_ - data_ + len > size_ || len == 0) {
+        return "";
+    }
+
+    std::string res = std::string(curr_, curr_ + len - 1);
+    curr_ += len;
+    return res;
+}
+
+std::vector<std::string> FuzzerData::GetStringVector(size_t size)
+{
+    std::vector<std::string> vec;
+    for(size_t i = 1; i <= size; i++) {
+        vec.push_back(GetString(i));
+    }
+    return vec;
+}
+
+std::vector<std::u16string> FuzzerData::GetU16StringVector(size_t size)
+{
+    std::vector<std::u16string> vec;
+    for(size_t i = 1; i <= size; i++) {
+        std::u16string u16str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(
+            GetString(i));
+        vec.push_back(u16str);
+    }
+    return vec;
 }
 } // DistributedDBTest
