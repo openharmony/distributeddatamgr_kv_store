@@ -42,13 +42,13 @@ void Setup()
     DistributedDBToolsTest::TestDirInit(g_testDir);
     g_dbDir = g_testDir + "/";
     g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
-    if(g_communicatorAggregator == nullptr) {
+    if (g_communicatorAggregator == nullptr) {
         return;
     }
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
 
     g_db = RdbTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    if(g_db == nullptr) {
+    if (g_db == nullptr) {
         return;
     }
 }
@@ -77,7 +77,7 @@ void CombineTest(const uint8_t* data, size_t size)
     RelationalStoreManager mgr(appId, userId, instanceId);
     g_mgr.GetDistributedTableName(appId, userId);
     g_mgr.OpenStore(g_dbDir + appId + DB_SUFFIX, storeId, {}, g_delegate);
-    g_mgr.GetRelationalStoreIdentifier(userId, appId, storeId, instanceId % 2);
+    g_mgr.GetRelationalStoreIdentifier(userId, appId, storeId, instanceId % 2); // 2 is mod num for last parameter
     RuntimeConfig::SetProcessLabel(appId, userId);
 }
 }

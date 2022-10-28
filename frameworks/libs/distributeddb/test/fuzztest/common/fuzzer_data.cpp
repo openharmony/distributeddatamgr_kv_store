@@ -79,7 +79,7 @@ std::string FuzzerData::GetString(size_t len)
 std::vector<std::string> FuzzerData::GetStringVector(size_t size)
 {
     std::vector<std::string> vec;
-    for(size_t i = 1; i <= size; i++) {
+    for (size_t i = 1; i <= size; i++) {
         vec.push_back(GetString(i));
     }
     return vec;
@@ -88,7 +88,7 @@ std::vector<std::string> FuzzerData::GetStringVector(size_t size)
 std::vector<std::u16string> FuzzerData::GetU16StringVector(size_t size)
 {
     std::vector<std::u16string> vec;
-    for(size_t i = 1; i <= size; i++) {
+    for (size_t i = 1; i <= size; i++) {
         std::u16string u16str = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(
             GetString(i));
         vec.push_back(u16str);
