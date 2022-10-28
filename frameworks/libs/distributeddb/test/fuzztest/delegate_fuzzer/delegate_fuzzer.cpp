@@ -79,15 +79,10 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     kvStoreSnapshotPtr->GetEntries(keyPrefix, [](DBStatus status, const std::vector<Entry> &entries) {
         (void) entries.size();
     });
-    kvDelegatePtr->CheckIntegrity();
-    std::string tmpStoreId = kvDelegatePtr->GetStoreId();
-    kvDelegatePtr->RemoveDeviceData(deviceId);
-    kvDelegatePtr->RemoveDeviceData();
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
     kvDelegatePtr->UnRegisterObserver(observer);
     kvDelegatePtr->ReleaseKvStoreSnapshot(kvStoreSnapshotPtr);
-    std::string deviceId(data, data + size % 100); 
     kvManger.CloseKvStore(kvDelegatePtr);
     kvManger.DeleteKvStore("distributed_delegate_test");
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
