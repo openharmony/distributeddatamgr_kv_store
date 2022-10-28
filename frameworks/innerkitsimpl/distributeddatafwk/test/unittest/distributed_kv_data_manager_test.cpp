@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <vector>
 
+#include "device_status_change_listener.h"
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
 #include "types.h"
@@ -55,6 +56,15 @@ public:
     MyDeathRecipient() {}
     virtual ~MyDeathRecipient() {}
     void OnRemoteDied() override {}
+};
+
+class DeviceChangelistener : public DeviceStatusChangeListener {
+public:
+    void OnDeviceChanged(const DeviceInfo &info, const DeviceChangeType &type) const override {}
+    DeviceFilterStrategy GetFilterStrategy() const override
+    {
+        return DeviceFilterStrategy::NO_FILTER;
+    }
 };
 
 DistributedKvDataManager DistributedKvDataManagerTest::manager;
@@ -617,6 +627,11 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore001, TestSize.Level1)
     stat = manager.CloseKvStore(appId, storeIdTest);
     EXPECT_EQ(stat, Status::SUCCESS);
 
+    stat = manager.DeleteAllKvStore({""}, create.baseDir);
+    EXPECT_NE(stat, Status::SUCCESS);
+    stat = manager.DeleteAllKvStore(appId, "");
+    EXPECT_EQ(stat, Status::INVALID_ARGUMENT);
+
     stat = manager.DeleteAllKvStore(appId, create.baseDir);
     EXPECT_EQ(stat, Status::SUCCESS);
 }
@@ -698,7 +713,11 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore004, TestSize.Level1)
 HWTEST_F(DistributedKvDataManagerTest, RegisterKvStoreServiceDeathRecipient001, TestSize.Level1)
 {
     ZLOGI("RegisterKvStoreServiceDeathRecipient001 begin.");
-    std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient = std::make_shared<MyDeathRecipient>();
+    std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient = nullptr;
+    manager.RegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
+    manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
+
+    kvStoreDeathRecipient = std::make_shared<MyDeathRecipient>();
     manager.RegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
     kvStoreDeathRecipient->OnRemoteDied();
 }
@@ -715,4 +734,65 @@ HWTEST_F(DistributedKvDataManagerTest, UnRegisterKvStoreServiceDeathRecipient001
     ZLOGI("UnRegisterKvStoreServiceDeathRecipient001 begin.");
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipientPtr = std::make_shared<MyDeathRecipient>();
     manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipientPtr);
+}
+
+/**
+* @tc.name: GetLocalDevice
+* @tc.desc: Get local device info
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice001, TestSize.Level1)
+{
+    ZLOGI("GetLocalDevice001 begin.");
+    DeviceInfo dvInfo;
+    Status status = manager.GetLocalDevice(dvInfo);
+    EXPECT_EQ(status, Status::SUCCESS);
+    EXPECT_EQ(dvInfo.deviceId.empty(), false);
+    EXPECT_EQ(dvInfo.deviceName.empty(), false);
+    EXPECT_EQ(dvInfo.deviceType.empty(), false);
+}
+
+/**
+* @tc.name: GetDeviceList
+* @tc.desc: Get remote device info
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, GetDeviceList001, TestSize.Level1)
+{
+    ZLOGI("GetDeviceList001 begin.");
+    std::vector<DeviceInfo> dvInfos;
+    Status status = manager.GetDeviceList(dvInfos, DeviceFilterStrategy::NO_FILTER);
+    EXPECT_EQ(status, Status::ERROR);
+}
+
+/**
+* @tc.name: WatchDeviceChange
+* @tc.desc: register device change observer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange001, TestSize.Level1)
+{
+    ZLOGI("GetDeviceList001 begin.");
+    std::vector<DeviceInfo> dvInfos;
+    std::shared_ptr<DeviceChangelistener> observer = nullptr;
+    Status status = manager.StartWatchDeviceChange(observer);
+    EXPECT_EQ(status, Status::SUCCESS);
+    status = manager.StopWatchDeviceChange(observer);
+    EXPECT_EQ(status, Status::SUCCESS);
+
+    observer = std::make_shared<DeviceChangelistener>();
+    status = manager.StartWatchDeviceChange(observer);
+    EXPECT_EQ(status, Status::SUCCESS);
+    status = manager.StopWatchDeviceChange(observer);
+    EXPECT_EQ(status, Status::SUCCESS);
+
+    std::shared_ptr<DeviceChangelistener> noRegObserver = std::make_shared<DeviceChangelistener>();
+    status = manager.StopWatchDeviceChange(noRegObserver);
+    EXPECT_EQ(status, Status::ERROR);
 }
