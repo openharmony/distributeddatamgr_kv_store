@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "db_types.h"
+#include "store_types.h"
 #include "kv_store_changed_data.h"
 #include "kv_store_delegate_impl.h"
 #include "kv_store_delegate_manager.h"
@@ -34,6 +35,8 @@
 #include "query.h"
 
 namespace DistributedDBTest {
+using namespace DistributedDB;
+
 class DistributedDBToolsTest final {
 public:
     DistributedDBToolsTest() {}
@@ -44,6 +47,10 @@ public:
     static int RemoveTestDbFiles(const std::string &dir);
     static int GetCurrentDir(std::string& dir);
     static void GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize = 0);
+    static DBStatus SyncTestWithQuery(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices,
+        SyncMode mode, std::map<std::string, DBStatus>& statuses, const Query &query);
+    static DBStatus SyncTest(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices, SyncMode mode,
+            std::map<std::string, DBStatus>& statuses);
 };
 
 class KvStoreObserverTest : public DistributedDB::KvStoreObserver {
