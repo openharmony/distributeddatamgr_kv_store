@@ -1887,6 +1887,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
     DistributedDBToolsUnitTest::GetRandomKeyValue(key, 40); // for 40B random key
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
+
     DistributedDBToolsUnitTest::GetRandomKeyValue(key, 20); // for 20B random key
     DistributedDBToolsUnitTest::GetRandomKeyValue(value, 1 * 1024 * 1024); // 1M value
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
@@ -2091,6 +2092,140 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
 
+/**
+ * @tc.name: GetKeys001
+ * @tc.desc: Test get keys from the database.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, GetKeys001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("GetKeys001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step2. Put the all keys into the database.
+     * @tc.expected: step2. Returns OK.
+     */
+    std::vector<Key> expectKeys = {
+        {'k', '1', '1'},
+        {'k', '2'},
+        {'k', '3'},
+        {'k', '4'}
+    };
+    for (const auto &key : expectKeys) {
+        EXPECT_EQ(g_kvNbDelegatePtr->Put(key, {}), OK);
+    }
+    EXPECT_EQ(g_kvNbDelegatePtr->Put({'k', '2'}, {}), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete({'k', '4'}), OK);
+
+    /**
+     * @tc.steps:step3. Get the all keys.
+     * @tc.expected: step3. Returns OK.
+     */
+    Key keyPrefix = {'k', '1'};
+    std::vector<Key> actualKeys;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), OK);
+    EXPECT_EQ(actualKeys.size(), 1u); // get the k11
+    for (const auto &key : actualKeys) {
+        EXPECT_EQ(key, expectKeys[0]);
+    }
+    keyPrefix.clear();
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), OK);
+    EXPECT_EQ(actualKeys.size(), 3u); // size of all the key is 3
+
+    keyPrefix = {'k', '4'};
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), NOT_FOUND);
+    EXPECT_EQ(actualKeys.size(), 0u); // not found key and size is 0
+
+    DistributedDBToolsUnitTest::GetRandomKeyValue(keyPrefix, 2048); // for 2048B random key
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), INVALID_ARGS);
+    EXPECT_EQ(actualKeys.size(), 0u); // invalid prefix key and size is 0
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("GetKeys001"), OK);
+}
+
+namespace {
+void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices,
+    VirtualSingleVerSyncDBInterface *&syncInterface)
+{
+    devices = new (std::nothrow) KvVirtualDevice(devId);
+    ASSERT_TRUE(devices != nullptr);
+    syncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterface != nullptr);
+    ASSERT_EQ(devices->Initialize(g_communicatorAggregator, syncInterface), E_OK);
+}
+
+void FreeVirtualDevice(KvVirtualDevice *&devices)
+{
+    if (devices != nullptr) {
+        devices = nullptr;
+    }
+}
+}
+
+/**
+  * @tc.name: RemoveDeviceDataTest001
+  * @tc.desc: remove device data with devId unspecified
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSize.Level1)
+{
+    InitVirtualDevice(DEVICE_B, g_deviceB, g_syncInterfaceB);
+    InitVirtualDevice(DEVICE_C, g_deviceC, g_syncInterfaceC);
+    InitVirtualDevice(DEVICE_D, g_deviceD, g_syncInterfaceD);
+
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+    g_deviceB->PutData(KEY_2, VALUE_2, 0, 0);
+    g_deviceC->PutData(KEY_3, VALUE_3, 0, 0);
+    g_deviceD->PutData(KEY_4, VALUE_4, 0, 0);
+
+    std::vector<std::string> devices;
+    devices.push_back(DEVICE_B);
+    devices.push_back(DEVICE_C);
+    devices.push_back(DEVICE_D);
+    DBStatus status = g_kvNbDelegatePtr->Sync(devices, SYNC_MODE_PULL_ONLY,
+        [devices, this](const std::map<std::string, DBStatus>& statusMap) {
+            ASSERT_EQ(statusMap.size(), devices.size());
+            for (const auto &pair : statusMap) {
+                EXPECT_EQ(pair.second, OK);
+            }
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData(), OK);
+
+    Value val;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, val), OK);
+    EXPECT_EQ(val, VALUE_1);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_2, val), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_3, val), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, val), NOT_FOUND);
+
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    FreeVirtualDevice(g_deviceB);
+    FreeVirtualDevice(g_deviceC);
+    FreeVirtualDevice(g_deviceD);
+}
 namespace {
 void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices,
     VirtualSingleVerSyncDBInterface *&syncInterface)
