@@ -155,40 +155,24 @@ napi_value JsKVStore::Delete(napi_env env, napi_callback_info info)
     ZLOGD("KVStore::Delete()");
     struct DeleteContext : public ContextBase {
         std::string key;
-        std::vector<DistributedKv::Blob> keys;
-        napi_valuetype type;
     };
     auto ctxt = std::make_shared<DeleteContext>();
 
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <key> || <predicates>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->type = napi_undefined;
-        ctxt->status = napi_typeof(env, argv[0], &(ctxt->type));
-        if (ctxt->type == napi_string) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
-            ZLOGD("kvStore->Delete %{public}.6s  status:%{public}d", ctxt->key.c_str(), ctxt->status);
-            CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
-        } else if (ctxt->type == napi_object) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
-            ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
-            CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid predicates!");
-        }
+        // required 1 arguments :: <key>
+        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");        
+        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
+        ZLOGD("kvStore->Delete %{public}.6s  status:%{public}d", ctxt->key.c_str(), ctxt->status);
+        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");
     });
 
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), [ctxt]() {
-        if (ctxt->type == napi_string) {
-            OHOS::DistributedKv::Key key(ctxt->key);
-            auto& kvStore = reinterpret_cast<JsKVStore*>(ctxt->native)->kvStore_;
-            Status status = kvStore->Delete(key);
-            ZLOGD("kvStore->Delete %{public}.6s status:%{public}d", ctxt->key.c_str(), status);
-            ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
-            CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Delete() failed!");
-        } else if (ctxt->type == napi_object) {
-            auto& kvStore = reinterpret_cast<JsKVStore*>(ctxt->native)->kvStore_;
-            Status status = kvStore->DeleteBatch(ctxt->keys);
-            ZLOGD("kvStore->DeleteBatch status:%{public}d", status);
-        }
+        OHOS::DistributedKv::Key key(ctxt->key);
+        auto& kvStore = reinterpret_cast<JsKVStore*>(ctxt->native)->kvStore_;
+        Status status = kvStore->Delete(key);
+        ZLOGD("kvStore->Delete %{public}.6s status:%{public}d", ctxt->key.c_str(), status);
+        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
+        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Delete() failed!");
     });
 }
 
@@ -441,105 +425,6 @@ napi_value JsKVStore::SetSyncRange(napi_env env, napi_callback_info info)
         CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->SetCapabilityRange() failed!");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
-}
-
-/*
- * [JS API Prototype]
- * [AsyncCallback]
- *      backup(file:string, callback: AsyncCallback<void>):void;
- * [Promise]
- *      backup(file:string): Promise<void>;
- */
-napi_value JsKVStore::Backup(napi_env env, napi_callback_info info)
-{
-    struct BackupContext : public ContextBase {
-        std::string file;
-    };
-    auto ctxt = std::make_shared<BackupContext>();
-    auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <file>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid file!");
-    };
-    ctxt->GetCbInfo(env, info, input);
-
-    auto execute = [ctxt]() {
-        auto jsKvStore = reinterpret_cast<JsKVStore*>(ctxt->native);
-        Status status = jsKvStore->kvStore_->Backup(ctxt->file, jsKvStore->param_->baseDir);
-        ZLOGD("kvStore->Backup return %{public}d", status);
-        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
-        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Backup() failed!");
-    };
-    return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
-}
-
-/*
- * [JS API Prototype]
- * [AsyncCallback]
- *      restore(file:string, callback: AsyncCallback<void>):void;
- * [Promise]
- *      restore(file:string): Promise<void>;
- */
-napi_value JsKVStore::Restore(napi_env env, napi_callback_info info)
-{
-    struct RestoreContext : public ContextBase {
-        std::string file;
-    };
-    auto ctxt = std::make_shared<RestoreContext>();
-    auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <file>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->file);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid file!");
-    };
-    ctxt->GetCbInfo(env, info, input);
-
-    auto execute = [ctxt]() {
-        auto jsKvStore = reinterpret_cast<JsKVStore*>(ctxt->native);
-        Status status = jsKvStore->kvStore_->Restore(ctxt->file, jsKvStore->param_->baseDir);
-        ZLOGD("kvStore->Restore return %{public}d", status);
-        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
-        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->Restore() failed!");
-    };
-    return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
-}
-
-/*
- * [JS API Prototype]
- * [AsyncCallback]
- *      deleteBackup(files:Array<string>, callback: AsyncCallback<Array<[string, number]>>):void;
- * [Promise]
- *      deleteBackup(files:Array<string>): Promise<Array<[string, number]>>;
- */
-napi_value JsKVStore::DeleteBackup(napi_env env, napi_callback_info info)
-{
-    struct DeleteBackupContext : public ContextBase {
-        std::vector<std::string> files;
-        std::map<std::string, DistributedKv::Status> results;
-    };
-    auto ctxt = std::make_shared<DeleteBackupContext>();
-    auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <files>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->files);
-        CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid file!");
-    };
-    ctxt->GetCbInfo(env, info, input);
-
-    auto execute = [ctxt]() {
-        auto jsKvStore = reinterpret_cast<JsKVStore*>(ctxt->native);
-        Status status = jsKvStore->kvStore_->DeleteBackup(ctxt->files,
-            jsKvStore->param_->baseDir, ctxt->results);
-        ZLOGD("kvStore->DeleteBackup return %{public}d", status);
-        ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
-        CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->DeleteBackup() failed!");
-    };
-    auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = JSUtil::SetValue(env, ctxt->results, result);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output failed!");
-    };
-    return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
 
 /*

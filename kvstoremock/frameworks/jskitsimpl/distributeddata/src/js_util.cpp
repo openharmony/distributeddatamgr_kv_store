@@ -839,27 +839,6 @@ napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject &valu
     return napi_ok;
 }
 
-napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket)
-{
-    napi_value keys = 0;
-    napi_get_property_names(env, jsValue, &keys);
-    uint32_t arrLen = 0;
-    napi_status status = napi_get_array_length(env, keys, &arrLen);
-    if (status != napi_ok) {
-        return status;
-    }
-    for (size_t i = 0; i < arrLen; ++i) {
-        napi_value jsKey = 0;
-        status = napi_get_element(env, keys, i, &jsKey);
-        std::string key;
-        JSUtil::GetValue(env, jsKey, key);
-        napi_value valueJs = 0;
-        napi_get_property(env, jsValue, jsKey, &valueJs);
-        GetValue(env, valueJs, valuesBucket.valuesMap[key]);
-    }
-    return napi_ok;
-}
-
 /* napi_value <-> std::vector<DistributedKv::Entry> */
 napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<DistributedKv::Entry> &out, bool hasSchema)
 {
@@ -881,19 +860,9 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
         }
         DistributedKv::Entry entry;
         status = GetValue(env, item, entry, hasSchema);
-        if (status != napi_ok) {
-            ZLOGD("maybe valubucket type");
-            DataShareValuesBucket values;
-            GetValue(env, item, values);
-            entry = KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin() + 1, entry.key.Data().end());
-            if (hasSchema) {
-                entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
-            }
-        }
         out.push_back(entry);
     }
-    return napi_ok;
+    return status;
 }
 
 napi_status JSUtil::SetValue(napi_env env, const std::vector<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
@@ -1115,27 +1084,6 @@ bool JSUtil::Equals(napi_env env, napi_value value, napi_ref copy)
     bool isEquals = false;
     napi_strict_equals(env, value, copyValue, &isEquals);
     return isEquals;
-}
-
-napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out)
-{
-    ZLOGD("napi_value -> std::GetValue Blob");
-    out.clear();
-    napi_valuetype type = napi_undefined;
-    napi_status nstatus = napi_typeof(env, in, &type);
-    CHECK_RETURN((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
-    CHECK_RETURN((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
-    nstatus = napi_invalid_arg;
-    Status status = KvUtils::GetKeys(*(predicates->predicates_), keys);
-    if (status == Status::SUCCESS) {
-        ZLOGD("napi_value —> GetValue Blob ok");
-        out = keys;
-        nstatus = napi_ok;
-    }
-    return nstatus;
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
