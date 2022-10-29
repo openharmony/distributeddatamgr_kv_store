@@ -957,7 +957,7 @@ DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &
     if (errCode == E_OK) {
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] Get the batch data failed:%d", errCode);
+    LOGW("[KvStoreNbDelegate] Get the keys failed:%d", errCode);
     return TransferDBErrno(errCode);
 }
 } // namespace DistributedDB

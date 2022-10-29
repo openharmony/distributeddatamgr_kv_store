@@ -1768,6 +1768,8 @@ int SQLiteSingleVerNaturalStoreConnection::CalcHashDevID(PragmaDeviceIdentifier 
 int SQLiteSingleVerNaturalStoreConnection::GetKeys(const IOption &option,
     const Key &keyPrefix, std::vector<Key> &keys) const
 {
+    keys.clear();
+    keys.shrink_to_fit();
     std::vector<Entry> entries;
     int errCode = GetEntriesInner(false, option, keyPrefix, entries);
     if (errCode == E_OK) {
