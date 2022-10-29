@@ -69,8 +69,6 @@ struct SingleStatistics {
 
 class PerformanceAnalysis {
 public:
-    ~PerformanceAnalysis();
-
     static PerformanceAnalysis *GetInstance(int stepNum = 20);
 
     void Initialization();
@@ -93,6 +91,8 @@ public:
 
 private:
     explicit PerformanceAnalysis(uint32_t step);
+
+    ~PerformanceAnalysis();
 
     bool IsStepValid(uint32_t step) const;
 
