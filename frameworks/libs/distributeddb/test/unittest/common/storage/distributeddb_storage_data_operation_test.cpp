@@ -783,3 +783,35 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.
     */
     sqlite3_close_v2(db);
 }
+
+/**
+  * @tc.name: ShaAlgoEncryptTest003
+  * @tc.desc: Test unnormal sql
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest004, TestSize.Level1)
+{
+    sqlite3 *db = nullptr;
+    std::string fileUrl = g_testDir + "/ShaAlgoEncryptTest004.db";
+    std::string attachName = "EncryptTest004";
+    SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd, fileUrl, attachName);
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_NE(SQLiteUtils::SetKey(db, static_cast<CipherType>(3), g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::SetKey(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+
+    std::string fileUrl2 = g_testDir + "/ShaAlgoEncryptTest004_attach.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl2.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd2, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    EXPECT_NE(SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd2, fileUrl, attachName), E_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+}
