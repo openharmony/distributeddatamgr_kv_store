@@ -963,6 +963,65 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SyncEngineTest002
+ * @tc.desc: Test SyncEngine add sync operation.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare env
+     */
+    auto *enginePtr = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(enginePtr, nullptr);
+    EXPECT_CALL(*enginePtr, CreateSyncTaskContext())
+        .WillRepeatedly([]() {
+            return new (std::nothrow) SingleVerKvSyncTaskContext();
+        });
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    MockKvSyncInterface syncDBInterface;
+    int syncInterfaceRefCount = 1;
+    EXPECT_CALL(syncDBInterface, IncRefCount()).WillRepeatedly([&syncInterfaceRefCount]() {
+        syncInterfaceRefCount++;
+    });
+    EXPECT_CALL(syncDBInterface, DecRefCount()).WillRepeatedly([&syncInterfaceRefCount]() {
+        syncInterfaceRefCount--;
+    });
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface.SetIdentifier(identifier);
+    std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    enginePtr->Initialize(&syncDBInterface, metaData, nullptr, nullptr, nullptr);
+    /**
+     * @tc.steps: step2. add sync operation for DEVICE_A and DEVICE_B. It will create two context for A and B
+     */
+    std::vector<std::string> devices = {
+        "DEVICES_A", "DEVICES_B"
+    };
+    const int syncId = 1;
+    auto operation = new (std::nothrow) SyncOperation(syncId, devices, 0, nullptr, false);
+    if (operation != nullptr) {
+        enginePtr->AddSyncOperation(operation);
+    }
+    /**
+     * @tc.steps: step3. abort machine and both context will be released
+     */
+    enginePtr->AbortMachineIfNeed(syncId);
+    enginePtr->Close();
+
+    RefObject::KillAndDecObjRef(enginePtr);
+    enginePtr = nullptr;
+    metaData = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    virtualCommunicatorAggregator = nullptr;
+    EXPECT_EQ(syncInterfaceRefCount, 0);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+
+/**
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC
