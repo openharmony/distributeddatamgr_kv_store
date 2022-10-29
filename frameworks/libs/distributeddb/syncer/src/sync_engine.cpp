@@ -1108,7 +1108,7 @@ int SyncEngine::GetLocalDeviceId(std::string &deviceId)
 
 void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
 {
-    ISyncTaskContext *abortContext = nullptr;
+    std::vector<ISyncTaskContext *> abortContexts;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
         for (auto &entry : syncTaskContextMap_) {
@@ -1118,13 +1118,13 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
             }
             RefObject::IncObjRef(context);
             if (context->GetSyncId() == syncId) {
-                abortContext = context;
-                RefObject::IncObjRef(abortContext);
+                RefObject::IncObjRef(context);
+                abortContexts.push_back(context);
             }
             RefObject::DecObjRef(context);
         }
     }
-    if (abortContext != nullptr) {
+    for (const auto &abortContext : abortContexts) {
         abortContext->AbortMachineIfNeed(static_cast<uint32_t>(syncId));
         RefObject::DecObjRef(abortContext);
     }
