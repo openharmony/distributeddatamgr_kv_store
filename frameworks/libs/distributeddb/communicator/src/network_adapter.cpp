@@ -47,7 +47,7 @@ NetworkAdapter::~NetworkAdapter()
 
 int NetworkAdapter::StartAdapter()
 {
-    LOGI("[NAdapt][Start] Enter, ProcessLabel=%s.", processLabel_.c_str());
+    LOGI("[NAdapt][Start] Enter, ProcessLabel=%s.", STR_MASK(DBCommon::TransferStringToHex(processLabel_)));
     if (processLabel_.empty()) {
         return -E_INVALID_ARGS;
     }

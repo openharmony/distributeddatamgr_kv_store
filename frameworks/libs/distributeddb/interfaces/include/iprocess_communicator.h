@@ -53,9 +53,6 @@ public:
     // return not OK if fill data failed
     virtual DBStatus FillHeadData(uint8_t *data, uint32_t headSize, uint32_t totalLen)
     {
-        (void)data;
-        (void)headSize;
-        (void)totalLen;
         return OK;
     };
 };
@@ -148,7 +145,6 @@ public:
 
     virtual std::shared_ptr<ExtendHeaderHandle> GetExtendHeaderHandle(const ExtendInfo &paramInfo)
     {
-        (void)paramInfo;
         return nullptr;
     }
     // called after OnDataReceive
@@ -158,9 +154,6 @@ public:
     virtual DBStatus CheckAndGetDataHeadInfo(const uint8_t *data, uint32_t totalLen, uint32_t &headLength,
         std::vector<std::string> &userId)
     {
-        (void)data;
-        (void)totalLen;
-        (void)userId;
         headLength = 0;
         return OK;
     }

@@ -175,36 +175,25 @@ int RemoteExecutor::ReceiveRemoteExecutorRequest(const std::string &targetDev, M
         }
         workingThreadsCount_++;
     }
-    RefObject::IncObjRef(this);
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
-        bool empty = true;
-        do {
-            std::pair<std::string, Message *> entry;
-            {
-                std::lock_guard<std::mutex> autoLock(msgQueueLock_);
-                empty = searchMessageQueue_.empty();
-                if (empty) {
-                    workingThreadsCount_--;
-                    continue;
-                }
-                entry = searchMessageQueue_.front();
-                searchMessageQueue_.pop();
+    bool empty = true;
+    do {
+        std::pair<std::string, Message *> entry;
+        {
+            std::lock_guard<std::mutex> autoLock(msgQueueLock_);
+            empty = searchMessageQueue_.empty();
+            if (empty) {
+                workingThreadsCount_--;
+                continue;
             }
-            ParseOneRequestMessage(entry.first, entry.second);
-            delete entry.second;
-            entry.second = nullptr;
-        } while (!empty);
-        clearCV_.notify_one();
-        RefObject::DecObjRef(this);
-    });
-    if (errCode != E_OK) {
-        workingThreadsCount_--;
-        clearCV_.notify_one();
-        RefObject::DecObjRef(this);
-    } else {
-        errCode = -E_NOT_NEED_DELETE_MSG;
-    }
-    return errCode;
+            entry = searchMessageQueue_.front();
+            searchMessageQueue_.pop();
+        }
+        ParseOneRequestMessage(entry.first, entry.second);
+        delete entry.second;
+        entry.second = nullptr;
+    } while (!empty);
+    clearCV_.notify_one();
+    return -E_NOT_NEED_DELETE_MSG;
 }
 
 void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *inMsg)

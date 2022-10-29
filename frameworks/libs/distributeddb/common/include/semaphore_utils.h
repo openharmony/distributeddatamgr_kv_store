@@ -16,8 +16,6 @@
 #ifndef SEMAPHORE_UTILS_H
 #define SEMAPHORE_UTILS_H
 
-#include <cstdio>
-#include <cstdlib>
 #include <mutex>
 #include <condition_variable>
 #include "macro_utils.h"

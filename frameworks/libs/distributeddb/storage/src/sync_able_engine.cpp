@@ -228,21 +228,6 @@ void SyncAbleEngine::ReSetSyncModuleActive()
     isSyncNeedActive_ = true;
 }
 
-void SyncAbleEngine::TriggerSync(int notifyEvent)
-{
-    if (!started_) {
-        StartSyncer();
-    }
-    if (started_) {
-        int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, notifyEvent] {
-            syncer_.LocalDataChanged(notifyEvent);
-        });
-        if (errCode != E_OK) {
-            LOGE("[TriggerSync] SyncAbleEngine TriggerSync LocalDataChanged retCode:%d", errCode);
-        }
-    }
-}
-
 int SyncAbleEngine::GetLocalIdentity(std::string &outTarget)
 {
     if (!started_) {

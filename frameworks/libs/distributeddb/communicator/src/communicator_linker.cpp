@@ -363,7 +363,7 @@ void CommunicatorLinker::SendLabelExchange(const std::string &toTarget, SerialBu
     uint32_t inRetransmitCount)
 {
     // Check whether have the need to send
-    bool noNeedToSend = ((inRetransmitCount <= RETRANSMIT_LIMIT) ? false : true);
+    bool noNeedToSend = inRetransmitCount > RETRANSMIT_LIMIT;
     {
         std::lock_guard<std::mutex> entireInfoLockGuard(entireInfoMutex_);
         if (remoteOnlineTarget_.count(toTarget) == 0) {

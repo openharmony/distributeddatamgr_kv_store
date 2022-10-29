@@ -320,7 +320,6 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
 int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
     size_t packetSize)
 {
-    int errCode;
     WaterMark startMark = 0;
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
@@ -334,6 +333,7 @@ int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vec
         storage_->ReleaseContinueToken(token);
     }
     DataSizeSpecInfo syncDataSizeInfo = GetDataSizeSpecInfo(packetSize);
+    int errCode;
     if (curType != SyncType::QUERY_SYNC_TYPE) {
         errCode = storage_->GetSyncData(startMark, endMark, outData, token, syncDataSizeInfo);
     } else {

@@ -69,7 +69,6 @@ struct SingleStatistics {
 
 class PerformanceAnalysis {
 public:
-    explicit PerformanceAnalysis(uint32_t step);
     ~PerformanceAnalysis();
 
     static PerformanceAnalysis *GetInstance(int stepNum = 20);
@@ -93,6 +92,7 @@ public:
     void SetFileName(const std::string &fileName);
 
 private:
+    explicit PerformanceAnalysis(uint32_t step);
 
     bool IsStepValid(uint32_t step) const;
 

@@ -210,7 +210,7 @@ void SyncerProxy::Dump(int fd)
 SyncerBasicInfo SyncerProxy::DumpSyncerBasicInfo()
 {
     if (syncer_ == nullptr) {
-        return SyncerBasicInfo { false, false, false };
+        return SyncerBasicInfo { false, false };
     }
     return syncer_->DumpSyncerBasicInfo();
 }
