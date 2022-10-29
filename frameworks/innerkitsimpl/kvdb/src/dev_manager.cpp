@@ -95,11 +95,8 @@ int32_t DevManager::Init()
 
 void DevManager::RegisterDevCallback()
 {
-    int32_t errNo = Init();
-    if (errNo == DM_OK) {
-        return;
-    }
-    Retry();
+    auto check = Retry();
+    check();
 }
 
 std::function<void()> DevManager::Retry()
@@ -110,7 +107,7 @@ std::function<void()> DevManager::Retry()
         if (errNo == DM_OK) {
             return;
         }
-        constexpr int32_t interval = 300;
+        constexpr int32_t interval = 100;
         TaskExecutor::GetInstance().Execute(Retry(), interval);
     };
 }

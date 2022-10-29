@@ -43,28 +43,20 @@ SecurityManager &SecurityManager::GetInstance()
 
 void SecurityManager::Init()
 {
-    auto status = CheckRootKey();
-    if (status == ErrCode::SUCCESS) {
-        ZLOGE("root key exists.");
-        return;
-    }
-    if (status == ErrCode::NOT_EXIST && GenerateRootKey() == ErrCode::SUCCESS) {
-        ZLOGE("GenerateRootKey successs.");
-        return;
-    }
-    Retry(); 
+    auto check = Retry();
+    check();
 }
 
 std::function<void()> SecurityManager::Retry()
 {
     return [this]() {
         auto status = CheckRootKey();
-        if (status == ErrCode::SUCCESS) {
-            ZLOGE("root key already exists.");
+        if (status == HKS_SUCCESS) {
+            ZLOGE("root key already exist.");
             return;
         }
-        if (status == ErrCode::NOT_EXIST && GenerateRootKey() == ErrCode::SUCCESS) {
-            ZLOGE("GenerateRootKey succeed.");
+        if (status == HKS_ERROR_NOT_EXIST && GenerateRootKey() == HKS_SUCCESS) {
+            ZLOGE("GenerateRootKey success.");
             return;
         }
         constexpr int32_t interval = 100;
@@ -155,7 +147,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
 
 bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
 {
-    if (CheckRootKey() != ErrCode::SUCCESS) {
+    if (CheckRootKey() != HKS_SUCCESS) {
         ZLOGE("client rootkey generation failed");
         return false;
     }
@@ -284,7 +276,7 @@ int32_t SecurityManager::GenerateRootKey()
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     struct HksParam hksParam[] = {
@@ -300,25 +292,20 @@ int32_t SecurityManager::GenerateRootKey()
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     ret = HksGenerateKey(&rootKeyName, params, nullptr);
     HksFreeParamSet(&params);
-    if (ret == HKS_SUCCESS) {
-        ZLOGI("GenerateRootKey Succeed.");
-        return ErrCode::SUCCESS;
-    }
-
-    ZLOGE("HksGenerateKey failed, status: %{public}d", ret);
-    return ErrCode::ERROR;
+    ZLOGI("HksGenerateKey status: %{public}d", ret);
+    return ret;
 }
 
 int32_t SecurityManager::CheckRootKey()
@@ -328,7 +315,7 @@ int32_t SecurityManager::CheckRootKey()
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     struct HksParam hksParam[] = {
@@ -344,26 +331,19 @@ int32_t SecurityManager::CheckRootKey()
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ErrCode::ERROR;
+        return ret;
     }
 
     ret = HksKeyExist(&rootKeyName, params);
     HksFreeParamSet(&params);
-    if (ret == HKS_SUCCESS) {
-        return ErrCode::SUCCESS;
-    }
-
-    if (ret == HKS_ERROR_NOT_EXIST) {
-        ZLOGE("HksKey not exits");
-        return ErrCode::NOT_EXIST;
-    }
-    return ErrCode::ERROR;
+    ZLOGI("HksKeyExist status: %{public}d", ret);
+    return ret;
 }
 } // namespace OHOS::DistributedKv

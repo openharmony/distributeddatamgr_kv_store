@@ -26,11 +26,6 @@ public:
     void DelDBPassword(const std::string &name, const std::string &path);
     void Init();
 
-    enum ErrCode : int32_t {
-        SUCCESS,
-        NOT_EXIST,
-        ERROR,
-    };
 private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";

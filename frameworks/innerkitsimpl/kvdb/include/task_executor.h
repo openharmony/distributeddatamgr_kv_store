@@ -26,8 +26,6 @@ private:
     TaskExecutor();
     ~TaskExecutor();
 
-    static constexpr int POOL_SIZE = 3;
-
     std::shared_ptr<TaskScheduler> pool_;
 };
 } // namespace OHOS::DistributedKv
