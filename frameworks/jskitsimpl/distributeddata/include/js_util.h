@@ -47,7 +47,6 @@ public:
     using StoreId = OHOS::DistributedKv::StoreId;
     using Status = OHOS::DistributedKv::Status;
     using DataQuery = OHOS::DistributedKv::DataQuery;
-    using ValuesBucket = OHOS::DataShare::DataShareValuesBucket;
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
@@ -145,11 +144,9 @@ public:
     
     static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
 
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
     static napi_status GetValue(napi_env env, napi_value in, DataQuery &out);
 
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &value);
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
+    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject);
 
     static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);
 
