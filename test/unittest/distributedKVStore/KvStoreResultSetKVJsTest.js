@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
+import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
 import factory from '@ohos.data.distributedKVStore'
 import abilityFeatureAbility from '@ohos.ability.featureAbility';
 
@@ -24,20 +24,20 @@ var kvManager = null;
 var kvStore = null;
 var resultSet = null;
 
-describe('KvStoreResultSetTest', function() {
+describe('KvStoreResultSetTest', function () {
     const config = {
-        bundleName : TEST_BUNDLE_NAME,
+        bundleName: TEST_BUNDLE_NAME,
         context: context
     }
 
     const options = {
-        createIfMissing : true,
-        encrypt : false,
-        backup : false,
-        autoSync : true,
-        kvStoreType : factory.KVStoreType.SINGLE_VERSION,
-        schema : '',
-        securityLevel : factory.SecurityLevel.S2,
+        createIfMissing: true,
+        encrypt: false,
+        backup: false,
+        autoSync: true,
+        kvStoreType: factory.KVStoreType.SINGLE_VERSION,
+        schema: '',
+        securityLevel: factory.SecurityLevel.S2,
     }
 
     beforeAll(async function (done) {
@@ -86,10 +86,10 @@ describe('KvStoreResultSetTest', function() {
         for (var i = 0; i < 10; i++) {
             var key = 'batch_test_string_key';
             var entry = {
-                key : key + i,
-                value : {
-                    type : factory.ValueType.STRING,
-                    value : 'batch_test_string_value'
+                key: key + i,
+                value: {
+                    type: factory.ValueType.STRING,
+                    value: 'batch_test_string_value'
                 }
             }
             entries.push(entry);
@@ -132,15 +132,14 @@ describe('KvStoreResultSetTest', function() {
     })
 
     /**
-     * @tc.name KvStoreResultSetGetCountTest001
-     * @tc.desc Test Js Api KvStoreResultSet.GetCount() testcase 001
+     * @tc.name KvStoreResultSetGetCountSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetCount() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetCountTest001', 0, async function(done) {
+    it('KvStoreResultSetGetCountSucTest', 0, async function (done) {
         try {
             var count = resultSet.getCount();
-            console.info("KvStoreResultSetGetCountTest001 getCount " + count);
             expect(count == 10).assertTrue();
         } catch (e) {
             console.error("KvStoreResultSetGetCountTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
@@ -150,212 +149,142 @@ describe('KvStoreResultSetTest', function() {
     })
 
     /**
-     * @tc.name KvStoreResultSetGetCountTest002
-     * @tc.desc Test Js Api KvStoreResultSet.GetCount() testcase 002
+     * @tc.name KvStoreResultSetGetCountNullSetTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetCount() from a null resultset
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetCountTest002', 0, async function(done) {
+    it('KvStoreResultSetGetCountNullSetTest', 0, async function (done) {
         try {
             var rs;
             await kvStore.getResultSet('test').then((result) => {
-                console.info('KvStoreResultSetGetCountTest002 getResultSet success');
                 rs = result;
                 expect(rs.getCount() == 0).assertTrue();
             }).catch((err) => {
-                console.error('KvStoreResultSetGetCountTest002 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('KvStoreResultSetGetCountNullSetTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await kvStore.closeResultSet(rs).then((err) => {
-                console.info('KvStoreResultSetGetCountTest002 closeResultSet success');
             }).catch((err) => {
-                console.error('KvStoreResultSetGetCountTest002 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('KvStoreResultSetGetCountNullSetTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('KvStoreResultSetGetCountTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('KvStoreResultSetGetCountNullSetTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetGetCountTest003
-     * @tc.desc Test Js Api KvStoreResultSet.GetCount() testcase 003
+     * @tc.name KvStoreResultSetGetCountWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetCount() with arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetCountTest003', 0, async function(done) {
+    it('KvStoreResultSetGetCountWithArgsTest', 0, async function (done) {
         try {
             var count = resultSet.getCount(123);
-            console.info("KvStoreResultSetGetCountTest003 getCount " + count);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetGetCountTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetCountWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetGetCountTest004
-     * @tc.desc Test Js Api KvStoreResultSet.GetCount() testcase 004
+     * @tc.name KvStoreResultSetGetPositionSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetCountTest004', 0, async function(done) {
-        try {
-            var count = resultSet.getCount(123, 'test_string');
-            console.info("KvStoreResultSetGetCountTest004 getCount " + count);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetGetCountTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetGetPositionTest001
-     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetGetPositionTest001', 0, async function(done) {
+    it('KvStoreResultSetGetPositionSucTest', 0, async function (done) {
         try {
             var position = resultSet.getPosition();
-            console.info("KvStoreResultSetGetPositionTest001 getPosition " + position);
+            console.info("KvStoreResultSetGetPositionSucTest getPosition " + position);
             expect(position == -1).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetGetPositionTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetPositionSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetGetPositionTest002
-     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() testcase 002
+     * @tc.name KvStoreResultSetGetPositionMoveToLastTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() after move to last
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetPositionTest002', 0, async function(done) {
+    it('KvStoreResultSetGetPositionMoveToLastTest', 0, async function (done) {
         try {
             var position = resultSet.getPosition();
-            console.info("KvStoreResultSetGetPositionTest002 getPosition " + position);
+            console.info("KvStoreResultSetGetPositionMoveToLastTest getPosition " + position);
             expect(position).assertEqual(-1);
             var flag = resultSet.moveToLast();
             expect(flag).assertTrue();
             position = resultSet.getPosition();
             expect(position).assertEqual(9);
         } catch (e) {
-            console.error("KvStoreResultSetGetPositionTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetPositionMoveToLastTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetGetPositionTest003
-     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() testcase 003
+     * @tc.name KvStoreResultSetGetPositionWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() with arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetPositionTest003', 0, async function(done) {
+    it('KvStoreResultSetGetPositionWithArgsTest', 0, async function (done) {
         try {
             var position = resultSet.getPosition(123);
-            console.info("KvStoreResultSetGetPositionTest003 getPosition " + position);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetGetPositionTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetPositionWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetGetPositionTest004
-     * @tc.desc Test Js Api KvStoreResultSet.GetPosition() testcase 004
+     * @tc.name KvStoreResultSetMoveToFirstSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetPositionTest004', 0, async function(done) {
-        try {
-            var position = resultSet.getPosition(123, 'test_string');
-            console.info("KvStoreResultSetGetPositionTest004 getPosition " + position);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetGetPositionTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToFirstTest001
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToFirstTest001', 0, async function(done) {
+    it('KvStoreResultSetMoveToFirstSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToFirst();
-            console.info("KvStoreResultSetMoveToFirstTest001 moveToFirst " + moved);
-            expect(moved).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToFirstTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToFirstTest002
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToFirstTest002', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToFirst();
-            console.info("KvStoreResultSetMoveToFirstTest002 moveToFirst " + moved);
+            console.info("KvStoreResultSetMoveToFirstSucTest moveToFirst " + moved);
             expect(moved).assertTrue();
             var pos = resultSet.getPosition();
-            console.info("KvStoreResultSetMoveToFirstTest002 getPosition " + pos);
+            console.info("KvStoreResultSetMoveToFirstSucTest getPosition " + pos);
             expect(pos == 0).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToFirstTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToFirstSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToFirstTest003
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() testcase 003
+     * @tc.name KvStoreResultSetMoveToFirstWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() with args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToFirstTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveToFirstWithArgsTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToFirst(123);
-            console.info("KvStoreResultSetMoveToFirstTest003 moveToFirst " + moved);
+            console.info("KvStoreResultSetMoveToFirstWithArgsTest moveToFirst " + moved);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToFirstTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToFirstTest004
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToFirst() testcase 004
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToFirstTest004', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToFirst(123, 'test_string');
-            console.info("KvStoreResultSetMoveToFirstTest004 moveToFirst " + moved);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetMoveToFirstTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToFirstWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
@@ -366,7 +295,7 @@ describe('KvStoreResultSetTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToFirstTest005', 0, async function(done) {
+    it('KvStoreResultSetMoveToFirstTest005', 0, async function (done) {
         try {
             var moved = resultSet.moveToLast();
             console.info("KvStoreResultSetMoveToFirstTest004 moveToFirst " + moved);
@@ -380,693 +309,468 @@ describe('KvStoreResultSetTest', function() {
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToLastTest001
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() testcase 001
+     * @tc.name KvStoreResultSetMoveToLastSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToLastTest001', 0, async function(done) {
+    it('KvStoreResultSetMoveToLastSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToLast();
-            console.info("KvStoreResultSetMoveToLastTest001 moveToLast " + moved);
-            expect(moved).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToLastTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToLastTest002
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToLastTest002', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToLast();
-            console.info("KvStoreResultSetMoveToLastTest002 moveToLast " + moved);
+            console.info("KvStoreResultSetMoveToLastSucTest moveToLast " + moved);
             expect(moved && (resultSet.getPosition() == 9)).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToLastTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToLastSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToLastTest003
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() testcase 003
+     * @tc.name KvStoreResultSetMoveToLastWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() with args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToLastTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveToLastWithArgsTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToLast(123);
-            console.info("KvStoreResultSetMoveToLastTest003 moveToLast " + moved);
+            console.info("KvStoreResultSetMoveToLastWithArgsTest moveToLast " + moved);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToLastTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToLastWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToLastTest004
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToLast() testcase 004
+     * @tc.name KvStoreResultSetMoveToNextSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToLastTest004', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToLast(123, 'test_string');
-            console.info("KvStoreResultSetMoveToLastTest004 moveToLast " + moved);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetMoveToLastTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToNextTest001
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToNextTest001', 0, async function(done) {
+    it('KvStoreResultSetMoveToNextSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToNext();
-            console.info("KvStoreResultSetMoveToNextTest001 moveToNext " + moved);
-            expect(moved && (resultSet.getPosition() == 0)).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToNextTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToNextTest002
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToNextTest002', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToNext();
-            console.info("KvStoreResultSetMoveToNextTest002 moveToNext " + moved);
+            console.info("KvStoreResultSetMoveToNextSucTest moveToNext " + moved);
             expect(moved && (resultSet.getPosition() == 0)).assertTrue();
             moved = resultSet.moveToNext();
             expect(moved && (resultSet.getPosition() == 1)).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToNextTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToNextSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToNextTest003
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() testcase 003
+     * @tc.name KvStoreResultSetMoveToNextWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() with arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToNextTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveToNextWithArgsTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToNext(123);
-            console.info("KvStoreResultSetMoveToNextTest003 moveToNext " + moved);
+            console.info("KvStoreResultSetMoveToNextWithArgsTest moveToNext " + moved);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToNextTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToNextWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToNextTest004
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToNext() testcase 004
+     * @tc.name KvStoreResultSetMoveToPreviousSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToNextTest004', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToNext(123, 'test_string');
-            console.info("KvStoreResultSetMoveToNextTest004 moveToNext " + moved);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetMoveToNextTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToPreviousTest001
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToPreviousTest001', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToPrevious();
-            console.info("KvStoreResultSetMoveToPreviousTest001 moveToPrevious " + moved);
-            expect(!moved).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetMoveToPreviousTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToPreviousTest002
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToPreviousTest002', 0, async function(done) {
+    it('KvStoreResultSetMoveToPreviousSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToFirst();
             expect(moved && (resultSet.getPosition() == 0)).assertTrue();
             moved = resultSet.moveToNext();
-            console.info("KvStoreResultSetMoveToPreviousTest002 moveToNext " + moved);
+            console.info("KvStoreResultSetMoveToPreviousSucTest moveToNext " + moved);
             expect(moved && (resultSet.getPosition() == 1)).assertTrue();
             moved = resultSet.moveToPrevious();
-            console.info("KvStoreResultSetMoveToPreviousTest002 moveToPrevious " + moved);
+            console.info("KvStoreResultSetMoveToPreviousSucTest moveToPrevious " + moved);
             expect(moved && (resultSet.getPosition() == 0)).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPreviousTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPreviousSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToPreviousTest003
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() testcase 003
+     * @tc.name KvStoreResultSetMoveToPreviousWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() with args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToPreviousTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveToPreviousWithArgsTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToPrevious(123);
-            console.info("KvStoreResultSetMoveToPreviousTest003 moveToPrevious " + moved);
+            console.info("KvStoreResultSetMoveToPreviousWithArgsTest moveToPrevious " + moved);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPreviousTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPreviousWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToPreviousTest004
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() testcase 004
+     * @tc.name KvStoreResultSetMoveToPreviousInvalidPositionTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() move to previous at first
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToPreviousTest004', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToPrevious(123, 'test_string');
-            console.info("KvStoreResultSetMoveToPreviousTest004 moveToPrevious " + moved);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetMoveToPreviousTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveToPreviousTest005
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPrevious() testcase 005
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveToPreviousTest005', 0, async function(done) {
+    it('KvStoreResultSetMoveToPreviousInvalidPositionTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToFirst();
             expect(moved && (resultSet.getPosition() == 0)).assertTrue();
             moved = resultSet.moveToPrevious();
-            console.info("KvStoreResultSetMoveToPreviousTest005 from 0 to -1 return" + moved);
+            console.info("KvStoreResultSetMoveToPreviousInvalidPositionTest from 0 to -1 return" + moved);
             expect(moved == false).assertTrue();
-            console.info("KvStoreResultSetMoveToPreviousTest005 from 0 to " + resultSet.getPosition());
+            console.info("KvStoreResultSetMoveToPreviousInvalidPositionTest from 0 to " + resultSet.getPosition());
             expect(-1).assertEqual(resultSet.getPosition());
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPreviousTest005 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPreviousInvalidPositionTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveTest001
-     * @tc.desc Test Js Api KvStoreResultSet.Move() testcase 001
+     * @tc.name KvStoreResultSetMoveSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.Move() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveTest001', 0, async function(done) {
-        try {
-            var moved = resultSet.move();
-            console.info("KvStoreResultSetMoveTest001 move " + moved);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetMoveTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetMoveTest002
-     * @tc.desc Test Js Api KvStoreResultSet.Move() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetMoveTest002', 0, async function(done) {
+    it('KvStoreResultSetMoveSucTest', 0, async function (done) {
         try {
             resultSet.moveToFirst();
             expect(resultSet.getPosition() == 0).assertTrue();
             var moved = resultSet.move(3);
-            console.info("KvStoreResultSetMoveTest002 move " + moved);
+            console.info("KvStoreResultSetMoveSucTest move " + moved);
             expect(moved).assertTrue();
             expect(3).assertEqual(resultSet.getPosition());
         } catch (e) {
-            console.error("KvStoreResultSetMoveTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveTest003
-     * @tc.desc Test Js Api KvStoreResultSet.Move() testcase 003
+     * @tc.name KvStoreResultSetMoveInvalidArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.Move() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveInvalidArgsTest', 0, async function (done) {
         try {
-            expect(resultSet.getPosition() == -1).assertTrue();
-            var moved = resultSet.move(3);
-            console.info("KvStoreResultSetMoveTest003 move " + moved);
-            expect(moved && (resultSet.getPosition() == 2)).assertTrue();
-            moved = resultSet.move(2);
-            console.info("KvStoreResultSetMoveTest003 move " + moved);
-            expect(moved && (resultSet.getPosition() == 4)).assertTrue();
+            var moved = resultSet.move(3, 'test_string');
+            console.info("KvStoreResultSetMoveInvalidArgsTest move " + moved);
+            expect(true).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetMoveTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveInvalidArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToPositionTest001
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() testcase 001
+     * @tc.name KvStoreResultSetMoveToPositionWithoutArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() without args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToPositionTest001', 0, async function(done) {
+    it('KvStoreResultSetMoveToPositionWithoutArgsTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToPosition();
-            console.info("KvStoreResultSetMoveToPositionTest001 moveToPosition " + moved);
+            console.info("KvStoreResultSetMoveToPositionWithoutArgsTest moveToPosition " + moved);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPositionTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPositionWithoutArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToPositionTest003
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() testcase 003
+     * @tc.name KvStoreResultSetMoveToPositionInvalidMoreArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToPositionTest003', 0, async function(done) {
+    it('KvStoreResultSetMoveToPositionInvalidMoreArgsTest', 0, async function (done) {
+        try {
+            var moved = resultSet.moveToPosition(1, 'test_string');
+            console.info("KvStoreResultSetMoveToPositionInvalidMoreArgsTest moveToPosition " + moved);
+            expect(moved).assertTrue();
+        } catch (e) {
+            console.error("KvStoreResultSetMoveToPositionInvalidMoreArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name KvStoreResultSetMoveToPositionSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('KvStoreResultSetMoveToPositionSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToPosition(5);
-            console.info("KvStoreResultSetMoveToPositionTest003 moveToPosition " + moved);
+            console.info("KvStoreResultSetMoveToPositionSucTest moveToPosition " + moved);
             expect(moved && (resultSet.getPosition() == 5)).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPositionTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPositionSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetMoveToPositionTest004
-     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() testcase 004
+     * @tc.name KvStoreResultSetMoveToPositionAfterMoveTest
+     * @tc.desc Test Js Api KvStoreResultSet.MoveToPosition() move and movetoposition
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetMoveToPositionTest004', 0, async function(done) {
+    it('KvStoreResultSetMoveToPositionAfterMoveTest', 0, async function (done) {
         try {
             var moved = resultSet.move(3);
-            console.info("KvStoreResultSetMoveToPositionTest004 moveToPosition " + moved);
+            console.info("KvStoreResultSetMoveToPositionAfterMoveTest moveToPosition " + moved);
             expect(moved && (resultSet.getPosition() == 2)).assertTrue();
             moved = resultSet.moveToPosition(5);
-            console.info("KvStoreResultSetMoveToPositionTest004 moveToPosition " + moved);
+            console.info("KvStoreResultSetMoveToPositionAfterMoveTest moveToPosition " + moved);
             expect(moved && (resultSet.getPosition() == 5)).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetMoveToPositionTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetMoveToPositionAfterMoveTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsFirstTest001
-     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() testcase 001
+     * @tc.name KvStoreResultSetIsFirstSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsFirstTest001', 0, async function(done) {
+    it('KvStoreResultSetIsFirstSucTest', 0, async function (done) {
         try {
             var flag = resultSet.isFirst();
-            console.info("KvStoreResultSetIsFirstTest001 isFirst " + flag);
+            console.info("KvStoreResultSetIsFirstSucTest isFirst " + flag);
             expect(!flag).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetIsFirstTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsFirstSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsFirstTest002
-     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() testcase 002
+     * @tc.name KvStoreResultSetIsFirstAfterMoveTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() after move
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsFirstTest002', 0, async function(done) {
+    it('KvStoreResultSetIsFirstAfterMoveTest', 0, async function (done) {
         try {
             var flag = resultSet.isFirst();
-            console.info("KvStoreResultSetIsFirstTest002 isFirst " + flag);
+            console.info("KvStoreResultSetIsFirstAfterMoveTest isFirst " + flag);
             expect(!flag).assertTrue();
             resultSet.move(3);
             flag = resultSet.isFirst();
-            console.info("KvStoreResultSetIsFirstTest002 isFirst " + flag);
+            console.info("KvStoreResultSetIsFirstAfterMoveTest isFirst " + flag);
             expect(!flag).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetIsFirstTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsFirstAfterMoveTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsFirstTest003
-     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() testcase 003
+     * @tc.name KvStoreResultSetIsFirstWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() with args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsFirstTest003', 0, async function(done) {
+    it('KvStoreResultSetIsFirstWithArgsTest', 0, async function (done) {
         try {
             var flag = resultSet.isFirst(1);
-            console.info("KvStoreResultSetIsFirstTest003 isFirst " + flag);
+            console.info("KvStoreResultSetIsFirstWithArgsTest isFirst " + flag);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetIsFirstTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsFirstWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsFirstTest004
-     * @tc.desc Test Js Api KvStoreResultSet.IsFirst() testcase 004
+     * @tc.name KvStoreResultSetIsLastFailTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsLast() fail
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsFirstTest004', 0, async function(done) {
-        try {
-            var flag = resultSet.isFirst(1, 'test_string');
-            console.info("KvStoreResultSetIsFirstTest004 isFirst " + flag);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetIsFirstTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetIsLastTest001
-     * @tc.desc Test Js Api KvStoreResultSet.IsLast() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetIsLastTest001', 0, async function(done) {
+    it('KvStoreResultSetIsLastFailTest', 0, async function (done) {
         try {
             var flag = resultSet.isLast();
-            console.info("KvStoreResultSetIsLastTest001 isLast " + flag);
+            console.info("KvStoreResultSetIsLastFailTest isLast " + flag);
             expect(!flag).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetIsFirstTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsLastFailTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsLastTest002
-     * @tc.desc Test Js Api KvStoreResultSet.IsLast() testcase 002
+     * @tc.name KvStoreResultSetIsLastSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsLast() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsLastTest002', 0, async function(done) {
+    it('KvStoreResultSetIsLastSucTest', 0, async function (done) {
         try {
             resultSet.moveToLast();
             var flag = resultSet.isLast();
-            console.info("KvStoreResultSetIsLastTest002 isLast " + flag);
+            console.info("KvStoreResultSetIsLastSucTest isLast " + flag);
             expect(flag).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetIsLastTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsLastSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsLastTest003
-     * @tc.desc Test Js Api KvStoreResultSet.IsLast() testcase 003
+     * @tc.name KvStoreResultSetIsLastWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsLast() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsLastTest003', 0, async function(done) {
+    it('KvStoreResultSetIsLastWithArgsTest', 0, async function (done) {
         try {
             var flag = resultSet.isLast(1);
-            console.info("KvStoreResultSetIsLastTest003 isLast " + flag);
+            console.info("KvStoreResultSetIsLastWithArgsTest isLast " + flag);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetIsLastTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsLastWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsLastTest004
-     * @tc.desc Test Js Api KvStoreResultSet.IsLast() testcase 004
+     * @tc.name KvStoreResultSetIsBeforeFirstSucTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsLastTest004', 0, async function(done) {
-        try {
-            var flag = resultSet.isLast(1, 'test_string');
-            console.info("KvStoreResultSetIsLastTest004 isLast " + flag);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetIsLastTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetIsBeforeFirstTest001
-     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetIsBeforeFirstTest001', 0, async function(done) {
+    it('KvStoreResultSetIsBeforeFirstSucTest', 0, async function (done) {
         try {
             var flag = resultSet.isBeforeFirst();
-            console.info("KvStoreResultSetIsBeforeFirstTest001 isBeforeFirst " + flag);
+            console.info("KvStoreResultSetIsBeforeFirstSucTest isBeforeFirst " + flag);
             expect(flag).assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetIsBeforeFirstTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsBeforeFirstSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsBeforeFirstTest002
-     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() testcase 002
+     * @tc.name KvStoreResultSetIsBeforeFirstInvalidArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsBeforeFirstTest002', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToPrevious();
-            expect(!moved).assertTrue();
-            var flag = resultSet.isBeforeFirst();
-            console.info("KvStoreResultSetIsBeforeFirstTest002 isBeforeFirst " + flag);
-            expect(flag).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetIsBeforeFirstTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetIsBeforeFirstTest003
-     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetIsBeforeFirstTest003', 0, async function(done) {
+    it('KvStoreResultSetIsBeforeFirstInvalidArgsTest', 0, async function (done) {
         try {
             var flag = resultSet.isBeforeFirst(1);
-            console.info("KvStoreResultSetIsBeforeFirstTest003 isBeforeFirst " + flag);
+            console.info("KvStoreResultSetIsBeforeFirstInvalidArgsTest isBeforeFirst " + flag);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetIsBeforeFirstTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsBeforeFirstInvalidArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsBeforeFirstTest004
-     * @tc.desc Test Js Api KvStoreResultSet.IsBeforeFirst() testcase 004
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetIsBeforeFirstTest004', 0, async function(done) {
-        try {
-            var flag = resultSet.isBeforeFirst(1, 'test_string');
-            console.info("KvStoreResultSetIsBeforeFirstTest004 isBeforeFirst " + flag);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetIsBeforeFirstTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetIsAfterLastTest001
-     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetIsAfterLastTest001', 0, async function(done) {
-        try {
-            var flag = resultSet.isAfterLast();
-            console.info("KvStoreResultSetIsAfterLastTest001 isAfterLast " + flag);
-            expect(!flag).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetIsAfterLastTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetIsAfterLastTest002
+     * @tc.name KvStoreResultSetIsAfterLastSucTest
      * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() testcase 002
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsAfterLastTest002', 0, async function(done) {
+    it('KvStoreResultSetIsAfterLastSucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToLast();
-            console.info("KvStoreResultSetIsAfterLastTest002  moveToLast  moved=" + moved);
+            console.info("KvStoreResultSetIsAfterLastSucTest  moveToLast  moved=" + moved);
             expect(moved).assertTrue();
             moved = resultSet.moveToNext();
-            console.info("KvStoreResultSetIsAfterLastTest002  moveToNext  moved=" + moved);
+            console.info("KvStoreResultSetIsAfterLastSucTest  moveToNext  moved=" + moved);
             expect(moved == false).assertTrue();
             var flag = resultSet.isAfterLast();
-            console.info("KvStoreResultSetIsAfterLastTest002  isAfterLast true=" + flag);
+            console.info("KvStoreResultSetIsAfterLastSucTest  isAfterLast true=" + flag);
             expect(flag).assertTrue();
         } catch (e) {
-            console.error("KvStoreResultSetIsAfterLastTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsAfterLastSucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsAfterLastTest003
-     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() testcase 003
+     * @tc.name KvStoreResultSetIsAfterLastWithArgsTest
+     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsAfterLastTest003', 0, async function(done) {
+    it('KvStoreResultSetIsAfterLastWithArgsTest', 0, async function (done) {
         try {
             var flag = resultSet.isAfterLast(1);
-            console.info("KvStoreResultSetIsAfterLastTest003 isAfterLast " + flag);
+            console.info("KvStoreResultSetIsAfterLastWithArgsTest isAfterLast " + flag);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetIsAfterLastTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetIsAfterLastWithArgsTest fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name KvStoreResultSetIsAfterLastTest004
-     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() testcase 004
+     * @tc.name KvStoreResultSetGetEntrySucTest
+     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetIsAfterLastTest004', 0, async function(done) {
-        try {
-            var flag = resultSet.isAfterLast(1, 'test_string');
-            console.info("KvStoreResultSetIsAfterLastTest004 isAfterLast " + flag);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetIsAfterLastTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetGetEntryTest001
-     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetGetEntryTest001', 0, async function(done) {
+    it('KvStoreResultSetGetEntrySucTest', 0, async function (done) {
         try {
             var moved = resultSet.moveToNext();
             var entry = resultSet.getEntry();
-            console.info("KvStoreResultSetGetEntryTest001 getEntry " + entry);
-            expect(moved && (entry.key == 'batch_test_string_key0')).assertTrue();
-            expect(moved && (entry.value.value == 'batch_test_string_value')).assertTrue();
-        } catch (e) {
-            expect(null).assertFail();
-            console.error("KvStoreResultSetGetEntryTest001 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetGetEntryTest002
-     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetGetEntryTest002', 0, async function(done) {
-        try {
-            var moved = resultSet.moveToNext();
-            var entry = resultSet.getEntry();
-            console.info("KvStoreResultSetGetEntryTest002 getEntry " + entry);
+            console.info("KvStoreResultSetGetEntrySucTest getEntry " + entry);
             expect(entry.key == 'batch_test_string_key0').assertTrue();
             expect(entry.value.value == 'batch_test_string_value').assertTrue();
             moved = resultSet.moveToNext();
             expect(moved).assertTrue();
             entry = resultSet.getEntry();
-            console.info("KvStoreResultSetGetEntryTest002 getEntry " + entry);
+            console.info("KvStoreResultSetGetEntrySucTest getEntry " + entry);
             expect(entry.key == 'batch_test_string_key1').assertTrue();
             expect(entry.value.value == 'batch_test_string_value').assertTrue();
         } catch (e) {
             expect(null).assertFail();
-            console.error("KvStoreResultSetGetEntryTest002 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetEntrySucTest fail " + `, error code is ${e.code}, message is ${e.message}`);
         }
         done();
     })
@@ -1077,30 +781,14 @@ describe('KvStoreResultSetTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetEntryTest003', 0, async function(done) {
+    it('KvStoreResultSetGetEntryTest003', 0, async function (done) {
         try {
             var entry = resultSet.getEntry(1);
             console.info("KvStoreResultSetGetEntryTest003 getEntry " + entry);
             expect(null).assertFail();
         } catch (e) {
             console.error("KvStoreResultSetGetEntryTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KvStoreResultSetGetEntryTest004
-     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() testcase 004
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KvStoreResultSetGetEntryTest004', 0, async function(done) {
-        try {
-            var entry = resultSet.getEntry(1, 'test_string');
-            console.info("KvStoreResultSetGetEntryTest004 getEntry " + entry);
-            expect(null).assertFail();
-        } catch (e) {
-            console.error("KvStoreResultSetGetEntryTest004 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         done();
     })
