@@ -542,6 +542,7 @@ bool RuntimeContextImpl::CheckDeviceSecurityAbility(const std::string &devId, co
     {
         std::lock_guard<std::recursive_mutex> autoLock(systemApiAdapterLock_);
         if (systemApiAdapter_ == nullptr) {
+            LOGI("[CheckDeviceSecurityAbility] security not set");
             return true;
         }
         tempSystemApiAdapter = systemApiAdapter_;
