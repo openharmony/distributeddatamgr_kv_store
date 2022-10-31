@@ -59,11 +59,11 @@ void SetUpTestcase()
 {
     KvStoreNbDelegate::Option option = {true, false, false};
     g_mgr.GetKvStore("distributed_nb_delegate_test", option,
-    [] (DBStatus status, KvStoreNbDelegate* kvNbDelegate) {
-        if (status == DBStatus::OK) {
-            g_kvDelegatePtr = kvNbDelegate;
-        }
-    });
+        [] (DBStatus status, KvStoreNbDelegate* kvNbDelegate) {
+            if (status == DBStatus::OK) {
+                g_kvDelegatePtr = kvNbDelegate;
+            }
+        });
     g_deviceB = new (std::nothrow) KvVirtualDevice(DEVICE_B);
     if (g_deviceB == nullptr) {
         return;
@@ -204,7 +204,7 @@ void OtherOperation(const uint8_t* data, size_t size)
     int count = std::min(size, size_t(4));
     for (int i = 0; i < count; i++) {
         std::string tmpStr(data + j, data + j + 1);
-        j = j + 10;
+        j = j + 10; // target size is 10
         targets.push_back(tmpStr);
         if ((1 + j) >= size) {
             break;
@@ -229,7 +229,7 @@ void PragmaOperation(const uint8_t* data, size_t size)
     g_kvDelegatePtr->Pragma(GET_IDENTIFIER_OF_DEVICE, input);
 
     PragmaEntryDeviceIdentifier param2;
-    len = std::min(size, size_t(10));
+    len = std::min(size, size_t(10)); // use min 10
     param2.key.assign(data, data + len);
     param2.origDevice = false;
     input = static_cast<void *>(&param2);

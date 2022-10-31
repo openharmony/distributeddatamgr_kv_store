@@ -22,6 +22,8 @@
 #include <string>
 
 namespace DistributedDBTest {
+static const uint32_t MOD = 1024; // MOD length
+
 class FuzzerData final {
 public:
     FuzzerData(const uint8_t *data, size_t size);
@@ -30,7 +32,7 @@ public:
     int GetInt();
     uint32_t GetUInt32();
     uint64_t GetUInt64();
-    std::vector<uint8_t> GetSequence(size_t size);
+    std::vector<uint8_t> GetSequence(size_t size, uint32_t mod = MOD);
     std::string GetString(size_t len);
     std::vector<std::string> GetStringVector(size_t size);
     std::vector<std::u16string> GetU16StringVector(size_t size);
