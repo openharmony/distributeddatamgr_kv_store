@@ -19,38 +19,12 @@ import ddm from '@ohos.data.distributedKVStore';
 describe('FieldNodeTest', function() {
 
     /**
-     * @tc.name FieldNodeAppendChildTest001
-     * @tc.desc  Test Js Api FieldNode.AppendChild() testcase 001
+     * @tc.name FieldNodeAppendChildSucTest
+     * @tc.desc  Test Js Api FieldNode.AppendChild() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('FieldNodeAppendChildTest001', 0, async function(done) {
-        try {
-            let node = new ddm.FieldNode("root");
-            let child1 = new ddm.FieldNode("child1");
-            let child2 = new ddm.FieldNode("child2");
-            let child3 = new ddm.FieldNode("child3");
-            node.appendChild(child1);
-            node.appendChild(child2);
-            node.appendChild(child3);
-            child1 = null;
-            child2 = null;
-            child3 = null;
-            node = null;
-        } catch (e) {
-            console.info("FieldNodeAppendChildTest001 " + e);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name FieldNodeAppendChildTest002
-     * @tc.desc  Test Js Api FieldNode.AppendChild() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('FieldNodeAppendChildTest002', 0, async function(done) {
+    it('FieldNodeAppendChildSucTest', 0, async function(done) {
         try {
             let node = new ddm.FieldNode("root");
             let child = new ddm.FieldNode("child");
@@ -58,15 +32,15 @@ describe('FieldNodeTest', function() {
             child = null;
             node = null;
         } catch (e) {
-            console.info("FieldNodeAppendChildTest002 " + e);
+            console.info("FieldNodeAppendChildSucTest " + e);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodeAppendChildTest003
-     * @tc.desc  Test Js Api FieldNode.AppendChild() testcase 003
+     * @tc.name FieldNodeAppendChildInvalidChildTest
+     * @tc.desc  Test Js Api FieldNode.AppendChild() with invalid child node
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -77,203 +51,195 @@ describe('FieldNodeTest', function() {
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
-            console.info("FieldNodeAppendChildTest003 fail on exception :" + e);
+            console.info("FieldNodeAppendChildInvalidChildTest throws exception successfully :" + e);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
-
     /**
-     * @tc.name FieldNodeToJsonTest001
-     * @tc.desc  Test Js Api FieldNode.ToJson() testcase 001
+     * @tc.name FieldNodeAppendChildNullTest
+     * @tc.desc  Test Js Api FieldNode.AppendChild() append null
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('FieldNodeToJsonTest001', 0, async function(done) {
+    it('FieldNodeAppendChildNullTest', 0, async function(done) {
         try {
             let node = new ddm.FieldNode("root");
-            let child = new ddm.FieldNode("child");
-            node.appendChild(child);
-        } catch (e) {
+            let child = new ddm.FieldNode("abc");
+            node.appendChild(null);
             expect(null).assertFail();
+        } catch (e) {
+            console.info("FieldNodeAppendChildNullTest throws exception successfully :" + e);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodeToJsonTest002
-     * @tc.desc  Test Js Api FieldNode.ToJson() testcase 002
+     * @tc.name FieldNodeAppendChildBothInvalidTest
+     * @tc.desc  Test Js Api FieldNode.ToJson() node and child both invalid
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('FieldNodeToJsonTest002', 0, async function(done) {
-        try {
-            let node = new ddm.FieldNode("root");
-            let child = new ddm.FieldNode("child");
-            node.appendChild(child);
-        } catch (e) {
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name FieldNodeToJsonTest003
-     * @tc.desc  Test Js Api FieldNode.ToJson() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('FieldNodeToJsonTest003', 0, async function(done) {
+    it('FieldNodeAppendChildBothInvalidTest', 0, async function(done) {
         try {
             let node = new ddm.FieldNode();
             let child = new ddm.FieldNode();
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
-            console.info("FieldNodeToJsonTest003 fail on exception: " + e);
+            console.info("FieldNodeAppendChildBothInvalidTest is ok: " + e);
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodedefaultTest001
-     * @tc.desc  Test Js Api FieldNode.default testcase 001
+     * @tc.name FieldNodedefaultSucTest
+     * @tc.desc  Test Js Api FieldNode.default successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodedefaultTest001', 0, async function(done) {
+     it('FieldNodedefaultSucTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
+            let node = new ddm.FieldNode("first");
             node.default = 'first name';
             console.info('defaultValue = ' + node.default);
             expect(node.default === 'first name').assertTrue()
         } catch (e) {
-            console.info("FieldNodedefaultTest001 fail on exception: " + e);
+            console.info("FieldNodedefaultSucTest fail on exception: " + e);
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodenullableTest001
-     * @tc.desc  Test Js Api FieldNode.nullable testcase 001
+     * @tc.name FieldNodenullableSucTest
+     * @tc.desc  Test Js Api FieldNode.nullable successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodenullableTest001', 0, async function(done) {
+     it('FieldNodenullableSucTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
+            let node = new ddm.FieldNode("first");
             node.nullable = false;
             console.info('nullable = ' + node.nullable);
             expect(node.nullable === false).assertTrue()
         } catch (e) {
-            console.info("FieldNodenullableTest001 fail on exception: " + e);
+            console.info("FieldNodenullableSucTest fail on exception: " + e);
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest001
-     * @tc.desc  Test Js Api FieldNode.type testcase 001
+     * @tc.name FieldNodetypeStringTest
+     * @tc.desc  Test Js Api FieldNode.type String
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest001', 0, async function(done) {
+     it('FieldNodetypeStringTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.value.type.STRING;
+            let node = new ddm.FieldNode("first");
+            node.type = ddm.ValueType.STRING;
             console.info('type = ' + node.type);
-            expect(node.type === ddm.type.STRING).assertTrue()
+            expect(node.type === ddm.ValueType.STRING).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest001 fail on exception: " + e);
+            console.info("FieldNodetypeStringTest fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest002
-     * @tc.desc  Test Js Api FieldNode.type testcase 002
+     * @tc.name FieldNodetypeIntegerTest
+     * @tc.desc  Test Js Api FieldNode.type integer
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest002', 0, async function(done) {
+     it('FieldNodetypeIntegerTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.type.INTEGER;
+            let node = new ddm.FieldNode("first");
+            console.info("success 1");
+            node.type = ddm.ValueType.INTEGER;
             console.info('type = ' + node.type);
-            expect(node.type === ddm.type.INTEGER).assertTrue()
+            expect(node.type === ddm.ValueType.INTEGER).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest002 fail on exception: " + e);
+            console.info("FieldNodetypeIntegerTest fail on exception: " + e);
+            expect(null).assertFail;
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest003
-     * @tc.desc  Test Js Api FieldNode.type testcase 003
+     * @tc.name FieldNodetypeFloatTest
+     * @tc.desc  Test Js Api FieldNode.type float
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest003', 0, async function(done) {
+     it('FieldNodetypeFloatTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.type.FLOAT;
+            let node = new ddm.FieldNode("first");
+            node.type = ddm.ValueType.FLOAT;
             console.info('type = ' + node.type);
-            expect(node.type === ddm.type.FLOAT).assertTrue()
+            expect(node.type === ddm.ValueType.FLOAT).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest003 fail on exception: " + e);
+            console.info("FieldNodetypeFloatTest fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest004
-     * @tc.desc  Test Js Api FieldNode.type testcase 004
+     * @tc.name FieldNodetypeByteArrayTest
+     * @tc.desc  Test Js Api FieldNode.type byte array
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest004', 0, async function(done) {
+     it('FieldNodetypeByteArrayTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.type.BYTE_ARRAY;
+            let node = new ddm.FieldNode("first");
+            node.type = ddm.ValueType.BYTE_ARRAY;
             console.info('type = ' + node.type);
-            expect(node.type === ddm.type.BYTE_ARRAY).assertTrue()
+            expect(node.type === ddm.ValueType.BYTE_ARRAY).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest004 fail on exception: " + e);
+            console.info("FieldNodetypeByteArrayTest fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest005
-     * @tc.desc  Test Js Api FieldNode.type testcase 005
+     * @tc.name FieldNodetypeBooleanTest
+     * @tc.desc  Test Js Api FieldNode.type boolean
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest005', 0, async function(done) {
+     it('FieldNodetypeBooleanTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.type.BOOLEAN;
+            let node = new ddm.FieldNode("first");
+            node.type = ddm.ValueType.BOOLEAN;
             console.info('type = ' + node.type);
             expect(node.type === ddm.ValueType.BOOLEAN).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest005 fail on exception: " + e);
+            console.info("FieldNodetypeBooleanTest fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name FieldNodetypeTest006
-     * @tc.desc  Test Js Api FieldNode.type testcase 006
+     * @tc.name FieldNodetypeDoubleTest
+     * @tc.desc  Test Js Api FieldNode.type double
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('FieldNodetypeTest006', 0, async function(done) {
+     it('FieldNodetypeDoubleTest', 0, async function(done) {
         try {
-            let node = new ddm.FieldNode('first');
-            node.type = ddm.type.DOUBLE;
+            let node = new ddm.FieldNode("first");
+            node.type = ddm.ValueType.DOUBLE;
             console.info('type = ' + node.type);
-            expect(node.type === ddm.type.DOUBLE).assertTrue()
+            expect(node.type === ddm.ValueType.DOUBLE).assertTrue()
         } catch (e) {
-            console.info("FieldNodetypeTest006 fail on exception: " + e);
+            console.info("FieldNodetypeDoubleTest fail on exception: " + e);
+            expect(null).assertFail();
         }
         done();
     })

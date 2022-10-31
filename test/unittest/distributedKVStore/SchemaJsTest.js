@@ -147,12 +147,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemaToJsonStringTest001
-     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 001
+     * @tc.name SchemaToJsonStringSingleTest
+     * @tc.desc  Test Js Api Schema.ToJsonString() single successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringTest001', 0, async function(done) {
+    it('SchemaToJsonStringSingleTest', 0, async function(done) {
         try {
             let first = new ddm.FieldNode('first');
             first.type = ddm.ValueType.STRING;
@@ -172,6 +172,9 @@ describe('schemaTest', function() {
             let schema = new ddm.Schema();
             schema.root.appendChild(english);
             schema.indexes = ['$.english.first', '$.english.second'];
+            options.schema = schema;
+            await testPutAndGet(kvManager, options);
+            expect(true).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);
             expect(null).assertFail();
@@ -180,12 +183,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemaToJsonStringTest002
-     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 002
+     * @tc.name SchemaToJsonStringDeviceTest
+     * @tc.desc  Test Js Api Schema.ToJsonString() device successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringTest002', 0, async function(done) {
+    it('SchemaToJsonStringDeviceTest', 0, async function(done) {
         try {
             let first = new ddm.FieldNode('first');
             first.type = ddm.ValueType.STRING;
@@ -208,7 +211,7 @@ describe('schemaTest', function() {
             options.kvStoreType = ddm.KVStoreType.DEVICE_COLLABORATION;
             options.schema = schema;
             await testPutAndGet(kvManager, options);
-            console.info("schematestPutAndGet done");
+            expect(true).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);
             expect(null).assertFail();
@@ -217,12 +220,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemaToJsonStringTest003
-     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 003
+     * @tc.name SchemaToJsonStringSucTest
+     * @tc.desc  Test Js Api Schema.ToJsonString() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringTest003', 0, async function(done) {
+    it('SchemaToJsonStringSucTest', 0, async function(done) {
         try {
             let name = new ddm.FieldNode('name');
             name.type = ddm.ValueType.INTEGER;
@@ -236,46 +239,46 @@ describe('schemaTest', function() {
             options.kvStoreType = ddm.KVStoreType.SINGLE_VERSION;
             options.schema = schema;
             await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
-                console.info('SchemaToJsonStringTest003 getKVStore success' + JSON.stringify(options));
+                console.info('SchemaToJsonStringSucTest getKVStore success' + JSON.stringify(options));
                 kvStore = store;
                 expect(store != null).assertTrue();
                 await kvStore.put("test_key_1", '{"name":1}');
                 await kvStore.put("test_key_2", '{"name":2}');
                 await kvStore.put("test_key_3", '{"name":3}');
-                console.info('SchemaToJsonStringTest003 Put success');
+                console.info('SchemaToJsonStringSucTest Put success');
             });
-            console.info('SchemaToJsonStringTest003 start Query ...');
+            console.info('SchemaToJsonStringSucTest start Query ...');
             var query = new ddm.Query();
             query.prefixKey('test_key_');
             query.notEqualTo("$.name", 3);
             await kvStore.getEntries(query).then((entries) => {
-                console.info('SchemaToJsonStringTest003 get success : ' + JSON.stringify(entries));
+                console.info('SchemaToJsonStringSucTest get success : ' + JSON.stringify(entries));
                 expect(entries.length == 2).assertTrue();
             }).catch((err) => {
-                console.info('SchemaToJsonStringTest003 get fail ' + err);
+                console.info('SchemaToJsonStringSucTest get fail ' + err);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.info("SchemaToJsonStringTest003 fail on exception: " + e);
+            console.info("SchemaToJsonStringSucTest fail on exception: " + e);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name SchemaToJsonStringTest004
-     * @tc.desc  Test Js Api Schema.ToJsonString() testcase 004
+     * @tc.name SchemaToJsonStringInvalidIndexesTest
+     * @tc.desc  Test Js Api Schema.ToJsonString() with invalid indexes
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringTest004', 0, async function(done) {
+    it('SchemaToJsonStringInvalidIndexesTest', 0, async function(done) {
         try {
             let english = new ddm.FieldNode('english');
             english.type = ddm.ValueType.STRING;
 
             let schema = new ddm.Schema();
             schema.root.appendChild(english);
-            schema.indexes = [];    // indexex set to empty array -> invalid indexes.
+            schema.indexes = [];
             expect(null).assertFail();
         } catch (e) {
             console.info("schema exception fail on exception: " + e);
@@ -284,12 +287,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemarootTest001
-     * @tc.desc  Test Js Api Schema.root testcase 001
+     * @tc.name SchemaRootTest
+     * @tc.desc  Test Js Api Schema.root successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemarootTest001', 0, async function(done) {
+     it('SchemaRootTest', 0, async function(done) {
         try {
             let english = new ddm.FieldNode('english');
             english.type = ddm.ValueType.STRING;
@@ -304,12 +307,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemaindexesTest001
-     * @tc.desc  Test Js Api Schema.indexes testcase 001
+     * @tc.name SchemaIndexesSucTest
+     * @tc.desc  Test Js Api Schema.indexes successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaindexesTest001', 0, async function(done) {
+     it('SchemaIndexesSucTest', 0, async function(done) {
         try {
 
             let schema = new ddm.Schema();
@@ -323,12 +326,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemamodeTest001
-     * @tc.desc  Test Js Api Schema.mode testcase 001
+     * @tc.name SchemaMode1Test
+     * @tc.desc  Test Js Api Schema.mode with mode 1
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemamodeTest001', 0, async function(done) {
+     it('SchemaMode1Test', 0, async function(done) {
         try {
 
             let schema = new ddm.Schema();
@@ -343,12 +346,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemamodeTest002
-     * @tc.desc  Test Js Api Schema.mode testcase 002
+     * @tc.name SchemaMode0Test
+     * @tc.desc  Test Js Api Schema.mode with mode 0
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemamodeTest002', 0, async function(done) {
+     it('SchemaMode0Test', 0, async function(done) {
         try {
 
             let schema = new ddm.Schema();
@@ -363,12 +366,12 @@ describe('schemaTest', function() {
     })
 
     /**
-     * @tc.name SchemaskipTest001
-     * @tc.desc  Test Js Api Schema.skip testcase 001
+     * @tc.name SchemaSkipSucTest
+     * @tc.desc  Test Js Api Schema.skip successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaskipTest001', 0, async function(done) {
+     it('SchemaSkipSucTest', 0, async function(done) {
         try {
 
             let schema = new ddm.Schema();
