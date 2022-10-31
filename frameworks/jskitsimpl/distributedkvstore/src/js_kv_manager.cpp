@@ -216,9 +216,11 @@ napi_value JsKVManager::DeleteKVStore(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         size_t index = 0;
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->appId);
-        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT, "The parameters of appId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT,
+            "The parameters of appId is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[index++], ctxt->storeId);
-        ASSERT_BUSINESS_ERR(ctxt, !ctxt->storeId.empty(), Status::INVALID_ARGUMENT, "The parameters of storeId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->storeId.empty(), Status::INVALID_ARGUMENT,
+            "The parameters of storeId is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "DeleteKVStore exits");
