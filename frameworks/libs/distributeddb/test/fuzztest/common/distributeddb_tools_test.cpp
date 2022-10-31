@@ -172,7 +172,7 @@ DBStatus DistributedDBToolsTest::SyncTest(KvStoreNbDelegate* delegate, const std
             }
             return !statuses.empty();
         });
-    return callStatus;   
+    return callStatus;
 }
 
 KvStoreObserverTest::KvStoreObserverTest() : callCount_(0), isCleared_(false)
