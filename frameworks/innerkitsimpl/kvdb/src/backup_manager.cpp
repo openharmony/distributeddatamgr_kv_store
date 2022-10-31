@@ -17,7 +17,7 @@
 #include "backup_manager.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
-
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 namespace {
 constexpr const char *BACKUP_POSTFIX = ".bak";
@@ -39,24 +39,14 @@ BackupManager &BackupManager::GetInstance()
 
 BackupManager::BackupManager()
 {
-    pool_ = std::make_shared<TaskScheduler>(POOL_SIZE);
 }
 
 BackupManager::~BackupManager()
 {
-    if (pool_ != nullptr) {
-        pool_->Clean();
-        pool_ = nullptr;
-    }
 }
 
 void BackupManager::Init(const std::string &baseDir)
 {
-    if (pool_ == nullptr) {
-        ZLOGE("Backup Init, pool is null");
-        return;
-    }
-
     TaskScheduler::Task task = [this, baseDir]() {
         auto topPath = baseDir + BACKUP_TOP_PATH;
         auto keyPath = baseDir + KEY_PATH;
@@ -74,7 +64,7 @@ void BackupManager::Init(const std::string &baseDir)
             }
         }
     };
-    pool_->At(TaskScheduler::System::now(), std::move(task));
+    TaskExecutor::GetInstance().Execute(std::move(task));
 }
 
 void BackupManager::Prepare(const std::string &path, const std::string &storeId)

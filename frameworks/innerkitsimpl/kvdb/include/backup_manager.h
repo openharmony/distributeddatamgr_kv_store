@@ -75,8 +75,6 @@ private:
     bool IsBeginWith(const std::string &fullString, const std::string &begin);
 
     static constexpr int MAX_BACKUP_NUM = 5;
-    static constexpr int POOL_SIZE = 1;
-    std::shared_ptr<TaskScheduler> pool_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_BACKUP_MANAGER_H
