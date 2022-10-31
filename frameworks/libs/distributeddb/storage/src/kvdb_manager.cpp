@@ -238,13 +238,13 @@ int KvDBManager::UnlockDB(const KvDBProperties &kvDBProp)
         return E_OK;
     }
     int errCode = OS::FileUnlock(locks_[identifierDir]);
-    LOGI("DB unlocked! errCode = [%d]", errCode);
     if (errCode != E_OK) {
+        LOGE("DB unlocked! errCode = [%d]", errCode);
         return errCode;
     }
     errCode = OS::CloseFile(locks_[identifierDir]);
-    LOGI("DB closed! errCode = [%d]", errCode);
     if (errCode != E_OK) {
+        LOGE("DB closed! errCode = [%d]", errCode);
         return errCode;
     }
     locks_.erase(identifierDir);
