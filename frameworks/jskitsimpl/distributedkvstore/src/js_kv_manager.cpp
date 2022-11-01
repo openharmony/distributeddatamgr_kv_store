@@ -257,7 +257,8 @@ napi_value JsKVManager::GetAllKVStoreId(napi_env env, napi_callback_info info)
         // required 1 arguments :: <appId>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->appId);
-        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT, "The parameters of appId is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt, !ctxt->appId.empty(), Status::INVALID_ARGUMENT,
+            "The parameters of appId is incorrect.");
     };
     ctxt->GetCbInfo(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "GetAllKVStoreId exits");
@@ -385,7 +386,8 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
             "Missing bundleName parameter.");
-        ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), Status::INVALID_ARGUMENT, "The type of bundleName must be string.");
+        ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), Status::INVALID_ARGUMENT,
+            "The type of bundleName must be string.");
 
         napi_value jsContext = nullptr;
         JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
