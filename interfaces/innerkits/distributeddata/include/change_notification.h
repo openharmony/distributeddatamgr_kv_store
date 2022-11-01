@@ -22,7 +22,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class ChangeNotification final : public virtual Parcelable {
+class ChangeNotification final {
 public:
     // Constructor of ChangeNotification.
     ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
@@ -44,15 +44,6 @@ public:
 
     // Check if this change is made by calling the Clear function.
     API_EXPORT bool IsClear() const;
-
-    // Write a parcelable object to the given parcel.
-    // The object position is saved into Parcel if asRemote_ is set to
-    // true, and this intends to use in kernel data transaction.
-    // Returns true if the writing is successful; returns false otherwise.
-    API_EXPORT bool Marshalling(Parcel &parcel) const override;
-
-    // Unmarshall the given parcel from this parcelable object.
-    API_EXPORT static ChangeNotification *Unmarshalling(Parcel &parcel);
 
 private:
     std::vector<Entry> insertEntries_;

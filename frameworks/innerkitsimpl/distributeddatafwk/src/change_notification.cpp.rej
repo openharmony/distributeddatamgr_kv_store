@@ -1,0 +1,103 @@
+--- frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp
++++ frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp
+@@ -55,100 +55,5 @@ bool ChangeNotification::IsClear() const
+     return isClear_;
+ }
+ 
+-bool ChangeNotification::Marshalling(Parcel &parcel) const
+-{
+-    if (!parcel.SetMaxCapacity(Constant::MAX_IPC_CAPACITY)) {
+-        return false;
+-    }
+-    int32_t lenInsert = static_cast<int32_t>(insertEntries_.size());
+-    if (!parcel.WriteInt32(lenInsert)) {
+-        return false;
+-    }
+-
+-    for (const auto &entry : insertEntries_) {
+-        if (!parcel.WriteParcelable(&entry)) {
+-            return false;
+-        }
+-    }
+-
+-    int32_t lenUpdate = static_cast<int32_t>(updateEntries_.size());
+-    if (!parcel.WriteInt32(lenUpdate)) {
+-        return false;
+-    }
+-    for (const auto &entry : updateEntries_) {
+-        if (!parcel.WriteParcelable(&entry)) {
+-            return false;
+-        }
+-    }
+-
+-    int32_t lenDelete =  static_cast<int32_t>(deleteEntries_.size());
+-    if (!parcel.WriteInt32(lenDelete)) {
+-        return false;
+-    }
+-    for (const auto &entry : deleteEntries_) {
+-        if (!parcel.WriteParcelable(&entry)) {
+-            return false;
+-        }
+-    }
+-    if (!parcel.WriteString(deviceId_)) {
+-        ZLOGE("WriteString deviceId_ failed.");
+-        return false;
+-    }
+-
+-    return parcel.WriteBool(isClear_);
+-}
+-
+-ChangeNotification *ChangeNotification::Unmarshalling(Parcel &parcel)
+-{
+-    std::vector<Entry> insertEntries;
+-    std::vector<Entry> updateEntries;
+-    std::vector<Entry> deleteEntries;
+-    int lenInsert = parcel.ReadInt32();
+-    if (lenInsert < 0) {
+-        ZLOGE("lenInsert is %d", lenInsert);
+-        return nullptr;
+-    }
+-    for (int i = 0; i < lenInsert; i++) {
+-        sptr<Entry> entryTmp = parcel.ReadParcelable<Entry>();
+-        if (entryTmp != nullptr) {
+-            insertEntries.push_back(*entryTmp);
+-        } else {
+-            ZLOGE("insertEntries get nullptr");
+-            return nullptr;
+-        }
+-    }
+-    int lenUpdate = parcel.ReadInt32();
+-    if (lenUpdate < 0) {
+-        ZLOGE("lenUpdate is %d", lenUpdate);
+-        return nullptr;
+-    }
+-    for (int i = 0; i < lenUpdate; i++) {
+-        sptr<Entry> entryTmp = parcel.ReadParcelable<Entry>();
+-        if (entryTmp != nullptr) {
+-            updateEntries.push_back(*entryTmp);
+-        } else {
+-            ZLOGE("updateEntries get nullptr");
+-            return nullptr;
+-        }
+-    }
+-    int lenDelete = parcel.ReadInt32();
+-    if (lenDelete < 0) {
+-        ZLOGE("lenDelete is %d", lenDelete);
+-        return nullptr;
+-    }
+-    for (int i = 0; i < lenDelete; i++) {
+-        sptr<Entry> entryTmp = parcel.ReadParcelable<Entry>();
+-        if (entryTmp != nullptr) {
+-            deleteEntries.push_back(*entryTmp);
+-        } else {
+-            ZLOGE("deleteEntries get nullptr");
+-            return nullptr;
+-        }
+-    }
+-    std::string deviceId = parcel.ReadString();
+-    bool isClear = parcel.ReadBool();
+-    return new(std::nothrow) ChangeNotification(std::move(insertEntries), std::move(updateEntries),
+-        std::move(deleteEntries), deviceId, isClear);
+-}
+ }  // namespace DistributedKv
+ }  // namespace OHOS
