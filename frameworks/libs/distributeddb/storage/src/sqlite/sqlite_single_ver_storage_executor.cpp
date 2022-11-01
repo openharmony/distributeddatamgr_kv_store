@@ -1399,7 +1399,7 @@ int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &ke
 
     Key keyPrefix;
     DBCommon::StringToVector(keyPre + '%', keyPrefix);
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyPrefix);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyPrefix); // 1: bind index for prefix key
     if (errCode != E_OK) {
         LOGE("[SingleVerExe][GetAllKey] Bind statement failed:%d", errCode);
         SQLiteUtils::ResetStatement(statement, true, errCode);
