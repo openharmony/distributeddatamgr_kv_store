@@ -779,7 +779,6 @@ HWTEST_F(DistributedKvDataManagerTest, GetDeviceList001, TestSize.Level1)
 HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange001, TestSize.Level1)
 {
     ZLOGI("GetDeviceList001 begin.");
-    std::vector<DeviceInfo> dvInfos;
     std::shared_ptr<DeviceChangelistener> observer = nullptr;
     Status status = manager.StartWatchDeviceChange(observer);
     EXPECT_EQ(status, Status::SUCCESS);
