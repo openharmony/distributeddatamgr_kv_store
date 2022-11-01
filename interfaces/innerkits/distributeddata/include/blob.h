@@ -18,7 +18,6 @@
 
 #include <string>
 #include <vector>
-#include "parcel.h"
 #include "visibility.h"
 
 namespace OHOS {

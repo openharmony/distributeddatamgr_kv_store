@@ -145,8 +145,6 @@ struct Entry {
     {
         return key.RawSize() + value.RawSize();
     }
-
-    API_EXPORT virtual ~Entry() {}
 };
 
 enum SyncMode : int32_t {

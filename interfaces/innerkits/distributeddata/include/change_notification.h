@@ -18,7 +18,6 @@
 
 #include <list>
 #include "types.h"
-#include "parcel.h"
 
 namespace OHOS {
 namespace DistributedKv {
