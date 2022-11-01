@@ -672,14 +672,9 @@ void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleV
 
 int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
 {
-    bool isCheckStatus = false;
-    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    int errCode = QuerySyncCheck(context);
     if (errCode != E_OK) {
         return errCode;
-    }
-    if (!isCheckStatus) {
-        context->SetTaskErrCode(-E_NOT_SUPPORT);
-        return -E_NOT_SUPPORT;
     }
     errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
@@ -751,14 +746,9 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     if (context == nullptr) {
         return -E_INVALID_ARGS;
     }
-    bool isCheckStatus = false;
-    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    int errCode = QuerySyncCheck(context);
     if (errCode != E_OK) {
         return errCode;
-    }
-    if (!isCheckStatus) {
-        context->SetTaskErrCode(-E_NOT_SUPPORT);
-        return -E_NOT_SUPPORT;
     }
     errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
@@ -2043,5 +2033,22 @@ void SingleVerDataSync::ScheduleInfoHandle(bool isNeedHandleStatus, bool isNeedC
 void SingleVerDataSync::ClearDataMsg()
 {
     msgSchedule_.ClearMsg();
+}
+
+int SingleVerDataSync::QuerySyncCheck(SingleVerSyncTaskContext *context)
+{
+    if (context == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    bool isCheckStatus = false;
+    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCheckStatus) {
+        context->SetTaskErrCode(-E_NOT_SUPPORT);
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB
