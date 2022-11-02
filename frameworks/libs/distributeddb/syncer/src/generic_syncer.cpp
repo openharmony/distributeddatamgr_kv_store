@@ -68,12 +68,8 @@ GenericSyncer::~GenericSyncer()
         }
         syncEngine_ = nullptr;
     }
-    if (timeChangedListener_ != nullptr) {
-        timeChangedListener_->Drop(true);
-        timeChangedListener_ = nullptr;
-    }
-    timeHelper_ = nullptr;
-    metadata_ = nullptr;
+    std::lock_guard<std::mutex> lock(syncerLock_);
+    ReleaseInnerResourceWithNoLock();
     syncInterface_ = nullptr;
 }
 
@@ -146,8 +142,7 @@ int GenericSyncer::Close(bool isClosedOperation)
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (!initialized_) {
             if (isClosedOperation) {
-                timeHelper_ = nullptr;
-                metadata_ = nullptr;
+                ReleaseInnerResourceWithNoLock();
             }
             LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
             return -E_NOT_INIT;
@@ -167,8 +162,8 @@ int GenericSyncer::Close(bool isClosedOperation)
         closing_ = false;
     }
     if (isClosedOperation) {
-        timeHelper_ = nullptr;
-        metadata_ = nullptr;
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        ReleaseInnerResourceWithNoLock();
     }
     return E_OK;
 }
@@ -876,8 +871,16 @@ int GenericSyncer::InitTimeChangedListener()
     }
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
-            if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
-                return;
+            std::shared_ptr<Metadata> metadata = nullptr;
+            ISyncInterface *storage = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(syncerLock_);
+                if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
+                    return;
+                }
+                storage = syncInterface_;
+                metadata = metadata_;
+                storage->IncRefCount();
             }
             TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
                 static_cast<TimeOffset>(TimeHelper::TO_100_NS);
@@ -893,11 +896,22 @@ int GenericSyncer::InitTimeChangedListener()
                 orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
             }
             this->metadata_->SaveLocalTimeOffset(orgOffset);
+            storage->DecRefCount();
         }, errCode);
     if (timeChangedListener_ == nullptr) {
         LOGE("[GenericSyncer] Init RegisterTimeChangedLister failed");
         return errCode;
     }
     return E_OK;
+}
+
+void GenericSyncer::ReleaseInnerResourceWithNoLock()
+{
+    if (timeChangedListener_ != nullptr) {
+        timeChangedListener_->Drop(true);
+        timeChangedListener_ = nullptr;
+    }
+    timeHelper_ = nullptr;
+    metadata_ = nullptr;
 }
 } // namespace DistributedDB

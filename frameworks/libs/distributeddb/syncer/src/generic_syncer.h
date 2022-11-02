@@ -178,6 +178,8 @@ protected:
 
     int InitTimeChangedListener();
 
+    void ReleaseInnerResourceWithNoLock();
+
     static int SyncModuleInit();
 
     static int SyncResourceInit();
