@@ -57,26 +57,25 @@ void Setup()
     DistributedDBToolsTest::TestDirInit(g_testDir);
     g_dbDir = g_testDir + "/";
     g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
-    if(g_communicatorAggregator == nullptr) {
+    if (g_communicatorAggregator == nullptr) {
         return;
     }
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
 
     g_db = RdbTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    if(g_db == nullptr) {
+    if (g_db == nullptr) {
         return;
     }
-    LOGI("create db = %s", (g_dbDir + STORE_ID + DB_SUFFIX).c_str());
-    if(RdbTestUtils::ExecSql(g_db, "PRAGMA journal_mode=WAL;") != SQLITE_OK) {
+    if (RdbTestUtils::ExecSql(g_db, "PRAGMA journal_mode=WAL;") != SQLITE_OK) {
         return;
     }
-    if(RdbTestUtils::ExecSql(g_db, NORMAL_CREATE_TABLE_SQL) != SQLITE_OK) {
+    if (RdbTestUtils::ExecSql(g_db, NORMAL_CREATE_TABLE_SQL) != SQLITE_OK) {
         return;
     }
     if (RdbTestUtils::CreateDeviceTable(g_db, "sync_data", DEVICE_A) != 0) {
         return;
     }
-    LOGI("open store");
+    LOGD("open store");
     if (g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, g_delegate) != E_OK) {
         LOGE("fuzz open store faile");
     }
@@ -84,7 +83,7 @@ void Setup()
 
 void TearDown()
 {
-    LOGI("close store");
+    LOGD("close store");
     g_mgr.CloseStore(g_delegate);
     g_delegate = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
@@ -96,7 +95,7 @@ void TearDown()
     DistributedDBToolsTest::RemoveTestDbFiles(g_testDir);
 }
 
-void CombineTest(const uint8_t* data, size_t size) 
+void CombineTest(const uint8_t* data, size_t size)
 {
     if (g_delegate == nullptr) {
         LOGI("delegate is null");
@@ -104,19 +103,20 @@ void CombineTest(const uint8_t* data, size_t size)
     }
     FuzzerData fuzzerData(data, size);
     uint32_t len = fuzzerData.GetUInt32();
-    std::string tableName = fuzzerData.GetString(len % 30);
+    const int lenMod = 30; // 30 is mod for string vector size
+    std::string tableName = fuzzerData.GetString(len % lenMod);
     g_delegate->CreateDistributedTable(tableName);
 
-    std::vector<std::string> device = fuzzerData.GetStringVector(len % 30);
+    std::vector<std::string> device = fuzzerData.GetStringVector(len % lenMod);
     Query query = Query::Select();
-    int index = len % 3;
+    int index = len % 3; // 3 is the mod
     SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
     if (index == 1) {
         mode = SyncMode::SYNC_MODE_PULL_ONLY;
-    } else if (index == 2) {
+    } else if (index == 2) { // 2 is the remainder
         mode = SyncMode::SYNC_MODE_PUSH_PULL;
     }
-    g_delegate->Sync(device, mode, query, nullptr, len % 2);
+    g_delegate->Sync(device, mode, query, nullptr, len % 2); // 2 is mod num for wait parameter
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
     g_delegate->RemoveDeviceData(deviceId);
     g_delegate->RemoveDeviceData(deviceId, tableName);

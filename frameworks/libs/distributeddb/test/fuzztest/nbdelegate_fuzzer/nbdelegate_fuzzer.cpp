@@ -189,7 +189,8 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
 void EncryptOperation(const uint8_t* data, size_t size, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
 {
     CipherPassword passwd;
-    passwd.SetValue(data, 50);
+    auto *pwdLen = reinterpret_cast<const int *>(data);
+    passwd.SetValue(data, *pwdLen);
     kvNbDelegatePtr->Rekey(passwd);
     int len = static_cast<int>(std::min(size, size_t(100)));
     std::string fileName(data, data + len);

@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef SCHEMA_DELTEGATE_FUZZER_H
+#define SCHEMA_DELTEGATE_FUZZER_H
 
 #include <cstdint>
 #include <unistd.h>
@@ -21,4 +23,6 @@
 #include <fcntl.h>
 
 #define FUZZ_PROJECT_NAME "schemadelegate_fuzzer"
+
+#endif // SCHEMA_DELTEGATE_FUZZER_H
 
