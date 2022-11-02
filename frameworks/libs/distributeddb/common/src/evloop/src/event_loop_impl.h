@@ -20,8 +20,8 @@
 #include <set>
 #include <thread>
 #include "platform_specific.h"
-#include "../include/ievent_loop.h"
-#include "../include/ievent.h"
+#include "ievent_loop.h"
+#include "ievent.h"
 
 #if defined EVLOOP_TIMER_ONLY
 #define EVENT_LOOP_USE_SELECT

@@ -465,8 +465,8 @@ int CommitHistorySync::AckPacketSerialization(uint8_t *buffer, uint32_t length, 
     packet->GetData(commits);
     packet->GetErrorCode(ackErrCode);
     // errCode Serialization
-    int errCode = parcel.WriteInt(ackErrCode);
-    errCode = parcel.WriteUInt32(packet->GetVersion());
+    parcel.WriteInt(ackErrCode);
+    parcel.WriteUInt32(packet->GetVersion());
     parcel.EightByteAlign();
     if (parcel.IsError()) { // almost success
         return -E_INVALID_ARGS;
