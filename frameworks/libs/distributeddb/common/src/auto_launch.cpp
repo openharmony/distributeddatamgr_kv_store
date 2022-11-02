@@ -699,7 +699,7 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
         if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
             autoLaunchItemMap_[identifier].size() > 1) {
             LOGE("[AutoLaunch] normal tuple mode userId larger than one userId");
-            return AutoLaunchExt(identifier, userId);
+            goto EXT;
         }
         if (originalUserId.size() == 0 && autoLaunchItemMap_.count(identifier) != 0 &&
             autoLaunchItemMap_[identifier].size() == 1) {
@@ -713,7 +713,7 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (autoLaunchItemMap_.count(identifier) == 0 || autoLaunchItemMap_[identifier].count(userId) == 0) {
             LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack not find identifier");
-            return AutoLaunchExt(identifier, userId);
+            goto EXT;
         } else if (autoLaunchItemMap_[identifier][userId].isDisable) {
             LOGI("[AutoLaunch] ReceiveUnknownIdentifierCallBack isDisable ,do nothing");
             return -E_NOT_FOUND; // not E_OK is ok for communicator
@@ -737,6 +737,8 @@ int AutoLaunch::ReceiveUnknownIdentifierCallBack(const LabelType &label, const s
         autoLaunchItemMap_[identifier][userId].state = AutoLaunchItemState::IDLE;
     }
     return errCode;
+EXT:
+    return AutoLaunchExt(identifier, userId);
 }
 
 void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
