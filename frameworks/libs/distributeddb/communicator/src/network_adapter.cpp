@@ -15,6 +15,7 @@
 
 #include "network_adapter.h"
 #include "db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "runtime_context.h"

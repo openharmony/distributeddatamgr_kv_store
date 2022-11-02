@@ -472,7 +472,7 @@ int CommitHistorySync::AckPacketSerialization(uint8_t *buffer, uint32_t length, 
         return -E_INVALID_ARGS;
     }
     // commits vector Serialization
-    errCode = parcel.WriteMultiVerCommits(commits);
+    int errCode = parcel.WriteMultiVerCommits(commits);
     if (errCode != E_OK) {
         return -E_SECUREC_ERROR;
     }
