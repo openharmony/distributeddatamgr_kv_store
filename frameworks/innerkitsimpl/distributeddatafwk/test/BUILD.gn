@@ -192,7 +192,10 @@ ohos_unittest("BlobTest") {
     "//third_party/googletest:gtest_main",
   ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+  ]
 }
 
 ohos_unittest("TypesUtilTest") {
