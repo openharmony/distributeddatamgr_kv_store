@@ -146,7 +146,7 @@ protected:
     SyncTimeRange GetSyncDataTimeRange(SyncType syncType, SingleVerSyncTaskContext *context,
         const std::vector<SendDataItem> &inData, UpdateWaterMark &isUpdate);
 
-    int GetData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize);
+    int GetData(SingleVerSyncTaskContext *context, size_t packetSize, std::vector<SendDataItem> &outData);
 
     int GetDataWithPerformanceRecord(SingleVerSyncTaskContext *context, SyncEntry &syncOutData);
 

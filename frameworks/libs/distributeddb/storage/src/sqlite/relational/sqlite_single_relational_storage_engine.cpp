@@ -40,7 +40,7 @@ StorageExecutor *SQLiteSingleRelationalStorageEngine::NewSQLiteStorageExecutor(s
 
 int SQLiteSingleRelationalStorageEngine::Upgrade(sqlite3 *db)
 {
-    int errCode = SQLiteUtils::CreateRelationalMetaTable(db);
+    int errCode = CreateRelationalMetaTable(db);
     if (errCode != E_OK) {
         LOGE("Create relational store meta table failed. err=%d", errCode);
         return errCode;
@@ -288,6 +288,19 @@ const RelationalDBProperties &SQLiteSingleRelationalStorageEngine::GetProperties
 void SQLiteSingleRelationalStorageEngine::SetProperties(const RelationalDBProperties &properties)
 {
     properties_ = properties;
+}
+
+int SQLiteSingleRelationalStorageEngine::CreateRelationalMetaTable(sqlite3 *db)
+{
+    std::string sql =
+        "CREATE TABLE IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "metadata(" \
+        "key    BLOB PRIMARY KEY NOT NULL," \
+        "value  BLOB);";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("[SQLite] execute create table sql failed, err=%d", errCode);
+    }
+    return errCode;
 }
 }
 #endif

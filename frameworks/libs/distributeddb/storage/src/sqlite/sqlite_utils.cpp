@@ -48,7 +48,6 @@ namespace {
     const int USING_STR_LEN = -1;
     const std::string WAL_MODE_SQL = "PRAGMA journal_mode=WAL;";
     const std::string SYNC_MODE_FULL_SQL = "PRAGMA synchronous=FULL;";
-    const std::string SYNC_MODE_NORMAL_SQL = "PRAGMA synchronous=NORMAL;";
     const std::string USER_VERSION_SQL = "PRAGMA user_version;";
     const std::string BEGIN_SQL = "BEGIN TRANSACTION";
     const std::string BEGIN_IMMEDIATE_SQL = "BEGIN IMMEDIATE TRANSACTION";
@@ -815,7 +814,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
         field.SetDefaultValue(tmpString);
     }
 
-    int keyIndex = sqlite3_column_int64(statement, 5); // 5 means primary key index
+    int keyIndex = sqlite3_column_int(statement, 5); // 5 means primary key index
     if (keyIndex != 0) {  // not 0 means is a primary key
         table.SetPrimaryKey(field.GetFieldName(), keyIndex);
     }
@@ -1144,24 +1143,6 @@ int SQLiteUtils::ExportDatabase(const std::string &srcFile, CipherType type, con
 }
 #endif
 
-int SQLiteUtils::SaveSchema(const OpenDbProperties &properties)
-{
-    if (properties.uri.empty()) {
-        return -E_INVALID_ARGS;
-    }
-
-    sqlite3 *db = nullptr;
-    int errCode = OpenDatabase(properties, db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    errCode = SaveSchema(db, properties.schema);
-    (void)sqlite3_close_v2(db);
-    db = nullptr;
-    return errCode;
-}
-
 int SQLiteUtils::SaveSchema(sqlite3 *db, const std::string &strSchema)
 {
     if (db == nullptr) {
@@ -1273,12 +1254,8 @@ int SQLiteUtils::IncreaseIndex(sqlite3 *db, const IndexName &name, const IndexIn
         LOGE("[IncreaseIndex] Sqlite DB not exists.");
         return -E_INVALID_DB;
     }
-    if (name.empty()) {
-        LOGE("[IncreaseIndex] Name can not be empty.");
-        return -E_NOT_PERMIT;
-    }
-    if (info.empty()) {
-        LOGE("[IncreaseIndex] Info can not be empty.");
+    if (name.empty() || info.empty()) {
+        LOGE("[IncreaseIndex] Name or info can not be empty.");
         return -E_NOT_PERMIT;
     }
     std::string indexName = SchemaUtils::FieldPathString(name);
@@ -1390,19 +1367,6 @@ int SQLiteUtils::RegisterGetSysTime(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &GetSysTime;
     return SQLiteUtils::RegisterFunction(db, "get_sys_time", 1, nullptr, func);
-}
-
-int SQLiteUtils::CreateRelationalMetaTable(sqlite3 *db)
-{
-    std::string sql =
-        "CREATE TABLE IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + "metadata(" \
-        "key    BLOB PRIMARY KEY NOT NULL," \
-        "value  BLOB);";
-    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
-    if (errCode != E_OK) {
-        LOGE("[SQLite] execute create table sql failed, err=%d", errCode);
-    }
-    return errCode;
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
@@ -1772,7 +1736,7 @@ void SQLiteUtils::JsonExtractByPath(sqlite3_context *ctx, int argc, sqlite3_valu
     int errCode = SchemaUtils::ParseAndCheckFieldPath(path, outPath);
     if (errCode != E_OK) {
         sqlite3_result_error(ctx, "[JsonExtract] Path illegal.", USING_STR_LEN);
-        LOGE("[JsonExtract] Path=%s illegal.", path);
+        LOGE("[JsonExtract] Path illegal.");
         return;
     }
     // Parameter Check Done Here
@@ -2089,7 +2053,6 @@ int SQLiteUtils::SetCipherSettings(sqlite3 *db, CipherType type, uint32_t iterTi
     errCode = SQLiteUtils::ExecuteRawSQL(db, KDF_ITER_CONFIG_SQL + std::to_string(iterTimes));
     if (errCode != E_OK) {
         LOGE("[SQLiteUtils][SetCipherSettings] config iter failed:%d", errCode);
-        return errCode;
     }
     return errCode;
 }
@@ -2153,11 +2116,7 @@ int SQLiteUtils::CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool
 
     errCode = SQLiteUtils::StepWithRetry(stmt, false);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        if (sqlite3_column_type(stmt, 0) == SQLITE_NULL) {
-            isEmpty = true;
-        } else {
-            isEmpty = false;
-        }
+        isEmpty = (sqlite3_column_type(stmt, 0) == SQLITE_NULL);
         errCode = E_OK;
     }
 

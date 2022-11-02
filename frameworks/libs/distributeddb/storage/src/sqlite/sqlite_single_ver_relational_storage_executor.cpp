@@ -327,7 +327,7 @@ std::map<std::string, CompositeFields> GetChangedIndexes(const TableInfo &oldTab
     return indexes;
 }
 
-int Upgradeindexes(sqlite3 *db, const std::vector<std::string> &tables,
+int UpgradeIndexes(sqlite3 *db, const std::vector<std::string> &tables,
     const std::map<std::string, CompositeFields> &indexes)
 {
     if (db == nullptr) {
@@ -390,7 +390,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AlterAuxTableForUpgrade(const Tabl
         return errCode;
     }
 
-    errCode = Upgradeindexes(dbHandle_, deviceTables, upgradeIndexces);
+    errCode = UpgradeIndexes(dbHandle_, deviceTables, upgradeIndexces);
     if (errCode != E_OK) {
         LOGE("upgrade indexes failed. %d", errCode);
     }

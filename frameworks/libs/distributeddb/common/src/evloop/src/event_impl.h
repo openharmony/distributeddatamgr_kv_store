@@ -26,7 +26,7 @@ class EventLoopImpl;
 class EventImpl : public IEvent {
 public:
     explicit EventImpl(EventTime timeout);
-    EventImpl(EventFd fd, EventsMask events, EventTime timeout);
+    EventImpl(const EventFd &fd, EventsMask events, EventTime timeout);
     ~EventImpl() override;
 
     int SetAction(const EventAction &action, const EventFinalizer &finalizer) override;

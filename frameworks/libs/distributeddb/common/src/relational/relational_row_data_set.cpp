@@ -77,7 +77,7 @@ int RelationalRowDataSet::Serialize(Parcel &parcel) const
     (void)parcel.WriteUInt32(data_.size());
     for (const auto &rowData : data_) {
         rowData->Serialize(parcel);
-    };
+    }
 
     parcel.EightByteAlign();
     if (parcel.IsError()) {
@@ -144,7 +144,7 @@ void RelationalRowDataSet::SetRowData(std::vector<RelationalRowData *> &&data)
     data_ = data;
     for (const auto &rowData : data_) {
         serialLength_ += rowData->CalcLength();
-    };
+    }
 }
 
 int RelationalRowDataSet::Insert(RelationalRowData *rowData)

@@ -63,15 +63,6 @@ int RelationalStoreInstance::ReleaseDataBaseConnection(RelationalStoreConnection
     return errCode;
 }
 
-int RelationalStoreInstance::CheckDatabaseFileStatus(const std::string &id)
-{
-    std::lock_guard<std::mutex> lockGuard(storeLock_);
-    if (dbs_.count(id) != 0 && dbs_[id] != nullptr) {
-        return -E_BUSY;
-    }
-    return E_OK;
-}
-
 static IRelationalStore *GetFromCache(const RelationalDBProperties &properties, int &errCode)
 {
     errCode = E_OK;

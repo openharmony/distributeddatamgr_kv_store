@@ -35,7 +35,7 @@ namespace DistributedDB {
 
 #define BYTE_8_ALIGN(x) (((x) + (8 - 1)) & ~(8 - 1))
 
-#define BITX(x) (1 << (x))
+#define BITX(x) (1U << (x))
 
 #define ULL(x) (static_cast<unsigned long long>(x))
 

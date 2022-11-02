@@ -215,8 +215,7 @@ int SQLiteRelationalStore::SaveTableModeToMeta(DistributedTableMode mode)
 
 int SQLiteRelationalStore::SaveLogTableVersionToMeta()
 {
-    LOGD("save log table version to meta table, key: %s, val: %s", DBConstant::LOG_TABLE_VERSION_KEY.c_str(),
-        DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+    LOGD("save log table version to meta table, version: %s", DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
     const Key logVersionKey(DBConstant::LOG_TABLE_VERSION_KEY.begin(), DBConstant::LOG_TABLE_VERSION_KEY.end());
     Value logVersionVal(DBConstant::LOG_TABLE_VERSION_CURRENT.begin(), DBConstant::LOG_TABLE_VERSION_CURRENT.end());
     int errCode = storageEngine_->PutMetaData(logVersionKey, logVersionVal);

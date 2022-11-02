@@ -44,8 +44,6 @@ public:
 
     void SetEngineState(EngineState state) override;
 
-    const OpenDbProperties &GetOpenOption() const;
-
     virtual void IncreaseCacheRecordVersion();
     virtual uint64_t GetCacheRecordVersion() const;
     virtual uint64_t GetAndIncreaseCacheRecordVersion();

@@ -182,17 +182,15 @@ SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
 
 std::string SQLiteSingleVerNaturalStore::GetDatabasePath(const KvDBProperties &kvDBProp)
 {
-    std::string filePath = GetSubDirPath(kvDBProp) + "/" +
-        DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
-    return filePath;
+    return GetSubDirPath(kvDBProp) + "/" + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
+        DBConstant::SQLITE_DB_EXTENSION;
 }
 
 std::string SQLiteSingleVerNaturalStore::GetSubDirPath(const KvDBProperties &kvDBProp)
 {
     std::string dataDir = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR, "");
     std::string identifierDir = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
-    std::string dirPath = dataDir + "/" + identifierDir + "/" + DBConstant::SINGLE_SUB_DIR;
-    return dirPath;
+    return dataDir + "/" + identifierDir + "/" + DBConstant::SINGLE_SUB_DIR;
 }
 
 int SQLiteSingleVerNaturalStore::SetUserVer(const KvDBProperties &kvDBProp, int version)
@@ -298,8 +296,8 @@ inline bool AmendValueShouldBeUse(int errCode)
 inline bool IsValueMismatched(int errCode)
 {
     return (errCode == -E_VALUE_MISMATCH_FEILD_COUNT ||
-            errCode == -E_VALUE_MISMATCH_FEILD_TYPE ||
-            errCode == -E_VALUE_MISMATCH_CONSTRAINT);
+        errCode == -E_VALUE_MISMATCH_FEILD_TYPE ||
+        errCode == -E_VALUE_MISMATCH_CONSTRAINT);
 }
 }
 
@@ -935,13 +933,12 @@ void SQLiteSingleVerNaturalStore::GetMaxTimestamp(Timestamp &stamp) const
     stamp = currentMaxTimestamp_;
 }
 
-int SQLiteSingleVerNaturalStore::SetMaxTimestamp(Timestamp timestamp)
+void SQLiteSingleVerNaturalStore::SetMaxTimestamp(Timestamp timestamp)
 {
     std::lock_guard<std::mutex> lock(maxTimestampMutex_);
     if (timestamp > currentMaxTimestamp_) {
         currentMaxTimestamp_ = timestamp;
     }
-    return E_OK;
 }
 
 // In sync procedure, call this function
@@ -1277,7 +1274,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToMain(const QueryObject &query, st
     int errCode = SaveSyncItems(query, dataItems, deviceInfo, maxTimestamp, committedData);
     if (errCode == E_OK) {
         isNeedCommit = true;
-        (void)SetMaxTimestamp(maxTimestamp);
+        SetMaxTimestamp(maxTimestamp);
     }
 
     CommitAndReleaseNotifyData(committedData, isNeedCommit, SQLITE_GENERAL_NS_SYNC_EVENT);
@@ -1354,7 +1351,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Failed to save sync data in cache mode, err : %d", errCode);
     } else {
-        (void)SetMaxTimestamp(maxTimestamp);
+        SetMaxTimestamp(maxTimestamp);
     }
     DBDfxAdapter::FinishTraceSQL();
     ReleaseHandle(handle);
@@ -2073,7 +2070,7 @@ END:
 void SQLiteSingleVerNaturalStore::NotifyRemotePushFinished(const std::string &targetId) const
 {
     std::string identifier = DBCommon::VectorToHexString(GetIdentifier());
-    LOGI("label:%s sourceTarget: %s{private} push finished", identifier.c_str(), targetId.c_str());
+    LOGI("label:%.6s sourceTarget: %s{private} push finished", identifier.c_str(), targetId.c_str());
     NotifyRemotePushFinishedInner(targetId);
 }
 

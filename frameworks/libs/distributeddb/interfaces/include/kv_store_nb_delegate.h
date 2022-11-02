@@ -16,17 +16,17 @@
 #ifndef KV_STORE_NB_DELEGATE_H
 #define KV_STORE_NB_DELEGATE_H
 
-#include <string>
-#include <map>
 #include <functional>
+#include <map>
+#include <string>
 
-#include "store_types.h"
-#include "kv_store_observer.h"
+#include "intercepted_data.h"
+#include "iprocess_system_api_adapter.h"
 #include "kv_store_nb_conflict_data.h"
+#include "kv_store_observer.h"
 #include "kv_store_result_set.h"
 #include "query.h"
-#include "iprocess_system_api_adapter.h"
-#include "intercepted_data.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 using KvStoreNbPublishOnConflict = std::function<void (const Entry &local, const Entry *sync, bool isLocalLastest)>;

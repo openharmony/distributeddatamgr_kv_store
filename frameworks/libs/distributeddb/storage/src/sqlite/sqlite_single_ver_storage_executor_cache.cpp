@@ -140,7 +140,7 @@ int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
         LOGE("GetStatement fail when get min version cache data! errCode = [%d]", errCode);
-        goto END;
+        return CheckCorruptedStatus(errCode);
     }
 
     errCode = GetAllDataItems(statement, dataItems, minVerIncurCacheDb, true);
@@ -148,7 +148,6 @@ int SQLiteSingleVerStorageExecutor::GetMinVersionCacheData(
         LOGE("Failed to get all the data items by the min version:[%d]", errCode);
     }
 
-END:
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return CheckCorruptedStatus(errCode);
 }

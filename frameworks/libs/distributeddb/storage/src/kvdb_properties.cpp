@@ -63,11 +63,6 @@ void KvDBProperties::SetPassword(CipherType type, const CipherPassword &password
     password_ = password;
 }
 
-bool KvDBProperties::IsSchemaExist() const
-{
-    return schema_.IsSchemaValid();
-}
-
 void KvDBProperties::SetSchema(const SchemaObject &schema)
 {
     schema_ = schema;

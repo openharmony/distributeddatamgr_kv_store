@@ -19,7 +19,6 @@
 #include "lru_map.h"
 #include "relational_db_sync_interface.h"
 #include "relationaldb_properties.h"
-#include "runtime_context.h"
 #include "sqlite_single_relational_storage_engine.h"
 #include "sqlite_single_ver_relational_continue_token.h"
 
@@ -90,20 +89,12 @@ public:
     // Get the timestamp when database created or imported
     int GetDatabaseCreateTimestamp(Timestamp &outTime) const override;
 
-    // Get batch meta data associated with the given key.
-    int GetBatchMetaData(const std::vector<Key> &keys, std::vector<Entry> &entries) const override;
-    // Put batch meta data as a key-value entry vector
-    int PutBatchMetaData(std::vector<Entry> &entries) override;
-
     std::vector<QuerySyncObject> GetTablesQuery() override;
 
     int LocalDataChanged(int notifyEvent, std::vector<QuerySyncObject> &queryObj) override;
 
     int InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
-        const std::string &targetID) const override
-    {
-        return E_OK;
-    }
+        const std::string &targetID) const override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
     void RegisterObserverAction(const RelationalObserverAction &action);

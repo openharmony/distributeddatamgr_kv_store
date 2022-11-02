@@ -583,7 +583,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest004, TestSize.Level
      * @tc.expected: step2. Expect -E_INVALID_ARGS
      */
     StorageEngineAttr poolSize = {17, 1, 1, 1};  // 17 means the maximum value is exceeded, 1 is the normal value
-    OpenDbProperties option = storageEngine->GetOpenOption();
+    OpenDbProperties option;
     EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), -E_INVALID_ARGS);
 
     /**
@@ -660,7 +660,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest006, TestSize.Level
      * @tc.steps: step2. Set the error Schema for the option
      * @tc.expected: step2. Expect return -E_SCHEMA_MISMATCH
      */
-    OpenDbProperties option = storageEngine->GetOpenOption();
+    OpenDbProperties option;
     option.schema = "errorSchema";
     StorageEngineAttr poolSize = {1, 1, 1, 1};  // 1 is the valid size
     EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);

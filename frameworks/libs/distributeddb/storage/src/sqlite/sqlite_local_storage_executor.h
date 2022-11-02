@@ -59,23 +59,6 @@ public:
 
     // Roll back the transaction
     int RollBack();
-
-private:
-    // Put the value to the sqlite database, used by Put &PutBach
-    int PutInner(const Key &key, const Value &value);
-
-    // Delete the value from the sqlite database, used by Delete &DeleteBach
-    int DeleteInner(const Key &key);
-
-    // Start the transaction
-    int StartTransactionInner(bool &isAuto);
-
-    // Commit the transaction
-    int CommitInner();
-
-    // Roll back the transaction
-    int RollBackInner();
 };
 } // namespace DistributedDB
-
-#endif // SQLITE_DB_HANDLE_H
+#endif // SQLITE_LOCAL_DB_HANDLE_H

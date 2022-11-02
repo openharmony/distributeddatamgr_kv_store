@@ -17,15 +17,15 @@
 #include <atomic>
 #include <mutex>
 
-#include "sync_able_kvdb.h"
-#include "sqlite_single_ver_storage_engine.h"
-#include "sqlite_utils.h"
 #include "isyncer.h"
-#include "single_ver_natural_store_commit_notify_data.h"
-#include "single_ver_kvdb_sync_interface.h"
 #include "kv_store_nb_conflict_data_impl.h"
 #include "runtime_context.h"
+#include "single_ver_kvdb_sync_interface.h"
+#include "single_ver_natural_store_commit_notify_data.h"
 #include "sqlite_single_ver_continue_token.h"
+#include "sqlite_single_ver_storage_engine.h"
+#include "sqlite_utils.h"
+#include "sync_able_kvdb.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerNaturalStore : public SyncAbleKvDB, public SingleVerKvDBSyncInterface {
@@ -95,7 +95,7 @@ public:
 
     void GetMaxTimestamp(Timestamp &stamp) const override;
 
-    int SetMaxTimestamp(Timestamp timestamp);
+    void SetMaxTimestamp(Timestamp timestamp);
 
     int Rekey(const CipherPassword &passwd) override;
 
@@ -299,5 +299,5 @@ private:
     PushDataInterceptor dataInterceptor_;
     std::atomic<uint64_t> maxLogSize_;
 };
-}
-#endif
+} // namespace DistributedDB
+#endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

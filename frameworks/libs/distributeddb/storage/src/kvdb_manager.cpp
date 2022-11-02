@@ -655,7 +655,7 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
 // Save to IKvDB to the global map
 void KvDBManager::RemoveKvDBFromCache(const IKvDB *kvDB)
 {
-    KvDBProperties properties = kvDB->GetMyProperties();
+    const KvDBProperties &properties = kvDB->GetMyProperties();
     std::string identifier = GenerateKvDBIdentifier(properties);
     int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::lock_guard<std::mutex> lockGuard(kvDBLock_);
@@ -835,11 +835,7 @@ bool KvDBManager::CompareSchemaObject(const SchemaObject &newSchema, const Schem
     if (!newSchema.IsSchemaValid() || !oldSchema.IsSchemaValid()) {
         return false;
     }
-    int errCode = oldSchema.CompareAgainstSchemaObject(newSchema);
-    if (errCode == -E_SCHEMA_EQUAL_EXACTLY) {
-        return true;
-    }
-    return false;
+    return (oldSchema.CompareAgainstSchemaObject(newSchema) == -E_SCHEMA_EQUAL_EXACTLY);
 }
 
 int KvDBManager::CheckSchema(const IKvDB *kvDB, const KvDBProperties &properties)

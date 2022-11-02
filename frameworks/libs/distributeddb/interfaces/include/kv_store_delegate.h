@@ -16,12 +16,12 @@
 #ifndef KV_STORE_DELEGATE_H
 #define KV_STORE_DELEGATE_H
 
-#include <string>
 #include <functional>
+#include <string>
 
-#include "store_types.h"
 #include "kv_store_observer.h"
 #include "kv_store_snapshot_delegate.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 class KvStoreDelegate {

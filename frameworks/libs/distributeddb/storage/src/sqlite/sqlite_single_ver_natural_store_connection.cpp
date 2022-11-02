@@ -16,17 +16,16 @@
 #include "sqlite_single_ver_natural_store_connection.h"
 #include <algorithm>
 
+#include "db_common.h"
 #include "db_constant.h"
 #include "db_dfx_adapter.h"
 #include "db_errno.h"
-#include "log_print.h"
-#include "kvdb_pragma.h"
-#include "sqlite_single_ver_natural_store.h"
 #include "kvdb_observer_handle.h"
-#include "store_types.h"
-#include "db_common.h"
+#include "kvdb_pragma.h"
+#include "log_print.h"
+#include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_result_set.h"
-#include "sqlite_single_ver_forward_cursor.h"
+#include "store_types.h"
 
 namespace DistributedDB {
 namespace {
@@ -63,7 +62,7 @@ SQLiteSingleVerNaturalStoreConnection::~SQLiteSingleVerNaturalStoreConnection()
 inline bool SQLiteSingleVerNaturalStoreConnection::IsFileAccessControlled() const
 {
     return RuntimeContext::GetInstance()->IsAccessControlled() &&
-           kvDB_->GetMyProperties().GetSecLabel() > SecurityLabel::S2;
+        kvDB_->GetMyProperties().GetSecLabel() > SecurityLabel::S2;
 }
 
 int SQLiteSingleVerNaturalStoreConnection::CheckReadDataControlled() const
@@ -407,8 +406,8 @@ int SQLiteSingleVerNaturalStoreConnection::TranslateObserverModeToEventTypes(uns
         case static_cast<unsigned>(SQLITE_GENERAL_NS_SYNC_EVENT):
             eventTypes.push_back(SQLITE_GENERAL_NS_SYNC_EVENT);
             break;
-        case (static_cast<unsigned>(SQLITE_GENERAL_NS_PUT_EVENT)
-            | static_cast<unsigned>(SQLITE_GENERAL_NS_SYNC_EVENT)):
+        case (static_cast<unsigned>(SQLITE_GENERAL_NS_PUT_EVENT) |
+            static_cast<unsigned>(SQLITE_GENERAL_NS_SYNC_EVENT)):
             eventTypes.push_back(SQLITE_GENERAL_NS_PUT_EVENT);
             eventTypes.push_back(SQLITE_GENERAL_NS_SYNC_EVENT);
             break;
@@ -1558,9 +1557,6 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishToLocal(const Key &key, bool
 
     if (deletePublic && (syncRecord.flag & DataItem::DELETE_FLAG) != DataItem::DELETE_FLAG) {
         errCode = SaveEntry({hashKey, {}}, true);
-        if (errCode != E_OK) {
-            goto END;
-        }
     }
 
 END:

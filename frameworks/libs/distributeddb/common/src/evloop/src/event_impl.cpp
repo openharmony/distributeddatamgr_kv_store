@@ -44,7 +44,7 @@ EventImpl::EventImpl(EventTime timeout)
     });
 }
 
-EventImpl::EventImpl(EventFd fd, EventsMask events, EventTime timeout)
+EventImpl::EventImpl(const EventFd &fd, EventsMask events, EventTime timeout)
     : fd_(fd),
       events_(events),
       revents_(0),

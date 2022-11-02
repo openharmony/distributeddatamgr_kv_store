@@ -204,8 +204,9 @@ int SQLiteSingleVerSchemaDatabaseUpgrader::UpgradeIndexes(const IndexDifference 
     uint32_t skipSize = newSchema_.GetSkipSize();
     SchemaType theType = newSchema_.GetSchemaType();
     // The order of index upgrade is not compulsory, we think order "decrease, change, increase" may be better.
+    LOGD("[SqlSingleSchemaUp][UpIndex] DecreaseIndex: %zu, ChangeIndex: %zu, IncreaseIndex: %zu",
+        indexDiffer.decrease.size(), indexDiffer.change.size(), indexDiffer.increase.size());
     for (const auto &entry : indexDiffer.decrease) {
-        LOGI("[SqlSingleSchemaUp][UpIndex] DecreaseIndex : indexName=%s.", SchemaUtils::FieldPathString(entry).c_str());
         int errCode = SQLiteUtils::DecreaseIndex(db_, entry);
         if (errCode != E_OK) {
             LOGE("[SqlSingleSchemaUp][UpIndex] DecreaseIndex fail, errCode=%d.", errCode);
@@ -213,9 +214,6 @@ int SQLiteSingleVerSchemaDatabaseUpgrader::UpgradeIndexes(const IndexDifference 
         }
     }
     for (const auto &entry : indexDiffer.change) {
-        LOGI("[SqlSingleSchemaUp][UpIndex] ChangeIndex : SkipSize=%u, indexName=%s, fieldCount=%zu, type=%s.",
-            skipSize, SchemaUtils::FieldPathString(entry.first).c_str(), entry.second.size(),
-            SchemaUtils::SchemaTypeString(theType).c_str());
         int errCode = SQLiteUtils::ChangeIndex(db_, entry.first, entry.second, theType, skipSize);
         if (errCode != E_OK) {
             LOGE("[SqlSingleSchemaUp][UpIndex] ChangeIndex fail, errCode=%d.", errCode);
@@ -223,9 +221,6 @@ int SQLiteSingleVerSchemaDatabaseUpgrader::UpgradeIndexes(const IndexDifference 
         }
     }
     for (const auto &entry : indexDiffer.increase) {
-        LOGI("[SqlSingleSchemaUp][UpIndex] IncreaseIndex : SkipSize=%u, indexName=%s, fieldCount=%zu, type=%s.",
-            skipSize, SchemaUtils::FieldPathString(entry.first).c_str(), entry.second.size(),
-            SchemaUtils::SchemaTypeString(theType).c_str());
         int errCode = SQLiteUtils::IncreaseIndex(db_, entry.first, entry.second, theType, skipSize);
         if (errCode != E_OK) {
             LOGE("[SqlSingleSchemaUp][UpIndex] IncreaseIndex fail, errCode=%d.", errCode);

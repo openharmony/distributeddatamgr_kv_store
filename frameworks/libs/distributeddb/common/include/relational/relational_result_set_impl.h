@@ -28,7 +28,7 @@ namespace DistributedDB {
 class RelationalResultSetImpl : public ResultSet {
 public:
     RelationalResultSetImpl()
-        : isClosed_(false), dataSetSize_(0), index_(-1), dataSet_(), colNames_(), cacheDataSet_(), mutex_()
+        : isClosed_(false), dataSetSize_(0), index_(-1)
     {}
 
     ~RelationalResultSetImpl() = default;

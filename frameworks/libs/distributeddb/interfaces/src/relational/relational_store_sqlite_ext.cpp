@@ -84,7 +84,6 @@ private:
     SHA256_CTX *context_ = nullptr;
 };
 
-
 const uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
 
 using Timestamp = uint64_t;

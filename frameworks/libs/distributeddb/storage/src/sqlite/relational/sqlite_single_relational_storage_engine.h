@@ -57,6 +57,8 @@ private:
     int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
         RelationalSchemaObject &tmpSchema);
 
+    int CreateRelationalMetaTable(sqlite3 *db);
+
     RelationalSchemaObject schema_;
     mutable std::mutex schemaMutex_;
 

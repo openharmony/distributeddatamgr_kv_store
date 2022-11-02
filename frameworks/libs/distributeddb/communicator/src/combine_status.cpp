@@ -63,7 +63,7 @@ void CombineStatus::SetFragmentCount(uint16_t inFragCount)
 
 bool CombineStatus::IsFragNoAlreadyExist(uint16_t inFragNo) const
 {
-    return (combinedFragmentNo_.count(inFragNo) != 0) ? true : false;
+    return (combinedFragmentNo_.count(inFragNo) != 0);
 }
 
 void CombineStatus::CheckInFragmentNo(uint16_t inFragNo)

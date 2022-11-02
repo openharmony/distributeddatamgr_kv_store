@@ -678,7 +678,6 @@ std::string SqliteQueryHelper::MapKeywordSymbolToSql(const QueryObjNode &queryNo
         default:
             return "";
     }
-    return sql;
 }
 
 std::string SqliteQueryHelper::MapValueToSql(const QueryObjNode &queryNode, bool placeholder) const
@@ -746,24 +745,6 @@ int SqliteQueryHelper::BindFieldValue(sqlite3_stmt *statement, const QueryObjNod
         index++;
     }
     return SQLiteUtils::MapSQLiteErrno(errCode);
-}
-
-std::string SqliteQueryHelper::MapCastTypeSql(const FieldType &type) const
-{
-    switch (type) {
-        case FieldType::LEAF_FIELD_BOOL:
-        case FieldType::LEAF_FIELD_INTEGER:
-        case FieldType::LEAF_FIELD_LONG:
-            return "INT";
-        case FieldType::LEAF_FIELD_DOUBLE:
-            return "REAL";
-        case FieldType::LEAF_FIELD_STRING:
-            return "TEXT";
-        case FieldType::LEAF_FIELD_NULL:
-            return "NULL";
-        default:
-            return "";
-    }
 }
 
 std::string SqliteQueryHelper::GetFieldShape(const QueryObjNode &queryNode, const std::string &accessStr)

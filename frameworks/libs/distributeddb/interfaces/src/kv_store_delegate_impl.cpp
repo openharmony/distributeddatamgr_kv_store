@@ -19,22 +19,21 @@
 #include <functional>
 #include <string>
 
-#include "platform_specific.h"
-#include "log_print.h"
-#include "param_check_utils.h"
-#include "db_constant.h"
 #include "db_errno.h"
 #include "db_types.h"
-#include "kv_store_errno.h"
-#include "kvdb_pragma.h"
-#include "kv_store_observer.h"
-#include "kvdb_manager.h"
-#include "kv_store_snapshot_delegate_impl.h"
 #include "kv_store_changed_data_impl.h"
+#include "kv_store_errno.h"
+#include "kv_store_observer.h"
+#include "kv_store_snapshot_delegate_impl.h"
+#include "kvdb_manager.h"
+#include "kvdb_pragma.h"
+#include "log_print.h"
+#include "param_check_utils.h"
+#include "platform_specific.h"
 
 namespace DistributedDB {
 namespace {
-    const std::string INVALID_CONNECTION = "[KvStoreDelegate] Invalid connection for operation";
+    constexpr const char *INVALID_CONNECTION = "[KvStoreDelegate] Invalid connection for operation";
 }
 KvStoreDelegateImpl::KvStoreDelegateImpl(IKvDBConnection *conn, const std::string &storeId)
     : conn_(conn),
@@ -66,7 +65,7 @@ DBStatus KvStoreDelegateImpl::Put(const Key &key, const Value &value)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -83,7 +82,7 @@ DBStatus KvStoreDelegateImpl::PutBatch(const std::vector<Entry> &entries)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -100,7 +99,7 @@ DBStatus KvStoreDelegateImpl::Delete(const Key &key)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -117,7 +116,7 @@ DBStatus KvStoreDelegateImpl::DeleteBatch(const std::vector<Key> &keys)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -134,7 +133,7 @@ DBStatus KvStoreDelegateImpl::Clear()
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -177,7 +176,7 @@ void KvStoreDelegateImpl::GetKvStoreSnapshot(KvStoreObserver *observer,
         }
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     callback(DB_ERROR, nullptr);
 }
 
@@ -210,7 +209,7 @@ DBStatus KvStoreDelegateImpl::RegisterObserver(KvStoreObserver *observer)
     }
 
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -248,7 +247,7 @@ DBStatus KvStoreDelegateImpl::UnRegisterObserver(const KvStoreObserver *observer
     }
 
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -272,7 +271,7 @@ DBStatus KvStoreDelegateImpl::UnRegisterObserver(const KvStoreObserver *observer
 DBStatus KvStoreDelegateImpl::StartTransaction()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -287,7 +286,7 @@ DBStatus KvStoreDelegateImpl::StartTransaction()
 DBStatus KvStoreDelegateImpl::Commit()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -302,7 +301,7 @@ DBStatus KvStoreDelegateImpl::Commit()
 DBStatus KvStoreDelegateImpl::Rollback()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -340,7 +339,7 @@ DBStatus KvStoreDelegateImpl::Rekey(const CipherPassword &password)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -374,7 +373,7 @@ DBStatus KvStoreDelegateImpl::Export(const std::string &filePath, const CipherPa
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -404,7 +403,7 @@ DBStatus KvStoreDelegateImpl::Import(const std::string &filePath, const CipherPa
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -431,7 +430,7 @@ DBStatus KvStoreDelegateImpl::Close()
 DBStatus KvStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
     int errCode;

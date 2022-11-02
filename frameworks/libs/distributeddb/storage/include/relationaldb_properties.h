@@ -28,9 +28,6 @@ public:
     RelationalDBProperties();
     ~RelationalDBProperties() override;
 
-    // is schema exist
-    bool IsSchemaExist() const;
-
     // set schema
     void SetSchema(const RelationalSchemaObject &schema);
 

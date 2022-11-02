@@ -28,12 +28,9 @@ bool ParamCheckUtils::CheckDataDir(const std::string &dataDir, std::string &cano
         return false;
     }
 
-    if (OS::GetRealPath(dataDir, canonicalDir) != E_OK) {
-        return false;
-    }
     // After normalizing the path, determine whether the path is a legal path considered by the program.
     // There has been guaranteed by the upper layer, So there is no need trustlist set here.
-    return true;
+    return (OS::GetRealPath(dataDir, canonicalDir) == E_OK);
 }
 
 bool ParamCheckUtils::IsStoreIdSafe(const std::string &storeId)

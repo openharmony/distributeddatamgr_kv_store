@@ -165,7 +165,7 @@ int SingleVerDatabaseOper::RekeyPostHandle(const CipherPassword &passwd)
     singleVerNaturalStore_->GetDbPropertyForUpdate().GetPassword(cipherType, oldPasswd);
     singleVerNaturalStore_->GetDbPropertyForUpdate().SetPassword(cipherType, passwd);
     singleVerNaturalStore_->GetDbPropertyForUpdate().SetBoolProp(
-        KvDBProperties::ENCRYPTED_MODE, (passwd.GetSize() == 0) ? false : true);
+        KvDBProperties::ENCRYPTED_MODE, (passwd.GetSize() != 0));
 
     return InitStorageEngine();
 }

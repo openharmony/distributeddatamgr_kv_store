@@ -197,6 +197,7 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
+    CHECK_STORAGE_ENGINE;
     for (const auto &key : keys) {
         if (key.empty() || key.size() > DBConstant::MAX_KEY_SIZE) {
             return -E_INVALID_ARGS;
@@ -224,6 +225,7 @@ int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 // Delete multiple meta data records with key prefix in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
 {
+    CHECK_STORAGE_ENGINE;
     if (keyPrefix.empty() || keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
@@ -394,6 +396,7 @@ int RelationalSyncAbleStorage::GetSyncDataNext(std::vector<SingleVerKvEntry *> &
     RelationalSchemaObject schema = storageEngine_->GetSchema();
     const auto fieldInfos = schema.GetTable(token->GetQuery().GetTableName()).GetFieldInfos();
     std::vector<std::string> fieldNames;
+    fieldNames.reserve(fieldInfos.size());
     for (const auto &fieldInfo : fieldInfos) {
         fieldNames.push_back(fieldInfo.GetFieldName());
     }
@@ -539,18 +542,6 @@ int RelationalSyncAbleStorage::GetDatabaseCreateTimestamp(Timestamp &outTime) co
     return OS::GetCurrentSysTimeInMicrosecond(outTime);
 }
 
-// Get batch meta data associated with the given key.
-int RelationalSyncAbleStorage::GetBatchMetaData(const std::vector<Key> &keys, std::vector<Entry> &entries) const
-{
-    return -E_NOT_SUPPORT;
-}
-
-// Put batch meta data as a key-value entry vector
-int RelationalSyncAbleStorage::PutBatchMetaData(std::vector<Entry> &entries)
-{
-    return -E_NOT_SUPPORT;
-}
-
 std::vector<QuerySyncObject> RelationalSyncAbleStorage::GetTablesQuery()
 {
     return {};
@@ -560,6 +551,12 @@ int RelationalSyncAbleStorage::LocalDataChanged(int notifyEvent, std::vector<Que
 {
     (void) queryObj;
     return -E_NOT_SUPPORT;
+}
+
+int RelationalSyncAbleStorage::InterceptData(std::vector<SingleVerKvEntry *> &entries, const std::string &sourceID,
+    const std::string &targetID) const
+{
+    return E_OK;
 }
 
 int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &device,

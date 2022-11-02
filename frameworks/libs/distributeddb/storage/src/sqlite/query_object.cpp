@@ -14,6 +14,7 @@
  */
 
 #include "query_object.h"
+
 #include "db_errno.h"
 #include "get_query_info.h"
 #include "log_print.h"
@@ -37,7 +38,7 @@ QueryObject::QueryObject()
 {
 }
 
-void QueryObject::GetAttrFromQueryObjNodes()
+void QueryObject::SetAttrWithQueryObjNodes()
 {
     for (const auto &iter : queryObjNodes_) {
         SymbolType symbolType = SqliteQueryHelper::GetSymbolType(iter.operFlag);
@@ -69,7 +70,7 @@ QueryObject::QueryObject(const Query &query)
 {
     QueryExpression queryExpressions = GetQueryInfo::GetQueryExpression(query);
     queryObjNodes_ = queryExpressions.GetQueryExpression();
-    GetAttrFromQueryObjNodes();
+    SetAttrWithQueryObjNodes();
     isValid_ = queryExpressions.GetErrFlag();
     prefixKey_ = queryExpressions.GetPreFixKey();
     suggestIndex_ = queryExpressions.GetSuggestIndex();
@@ -94,7 +95,7 @@ QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std
       hasInKeys_(false),
       orderByCounts_(0)
 {
-    GetAttrFromQueryObjNodes();
+    SetAttrWithQueryObjNodes();
 }
 
 QueryObject::~QueryObject()
@@ -267,7 +268,6 @@ int QueryObject::ParseNodeByOperFlag(const std::list<QueryObjNode>::iterator &it
         default:
             return E_OK;
     }
-    return E_OK;
 }
 
 int QueryObject::CheckLinkerBefore(const std::list<QueryObjNode>::iterator &iter) const
@@ -280,11 +280,6 @@ int QueryObject::CheckLinkerBefore(const std::list<QueryObjNode>::iterator &iter
         return -E_INVALID_QUERY_FORMAT;
     }
     return E_OK;
-}
-
-bool QueryObject::IsRelationalQuery() const
-{
-    return isTableNameSpecified_;
 }
 
 int QueryObject::CheckEqualFormat(const std::list<QueryObjNode>::iterator &iter) const
@@ -457,5 +452,31 @@ int QueryObject::SetSchema(const RelationalSchemaObject &schemaObj)
     return E_OK;
 }
 #endif
+
+void QueryObject::SetTableName(const std::string &tableName)
+{
+    tableName_ = tableName;
+    isTableNameSpecified_ = true;
+}
+
+const std::string &QueryObject::GetTableName() const
+{
+    return tableName_;
+}
+
+bool QueryObject::HasInKeys() const
+{
+    return hasInKeys_;
+}
+
+void QueryObject::SetSortType(SortType sortType)
+{
+    sortType_ = sortType;
+}
+
+SortType QueryObject::GetSortType() const
+{
+    return sortType_;
+}
 }
 

@@ -16,8 +16,8 @@
 #ifndef SQLITE_STORAGE_EXECUTOR_H
 #define SQLITE_STORAGE_EXECUTOR_H
 
-#include "sqlite_import.h"
 #include "macro_utils.h"
+#include "sqlite_import.h"
 #include "storage_executor.h"
 
 namespace DistributedDB {

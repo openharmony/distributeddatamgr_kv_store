@@ -15,14 +15,16 @@
 
 #include "query_sync_object.h"
 
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
-#include "db_common.h"
 #include "version.h"
 
 namespace DistributedDB {
 namespace {
 const std::string MAGIC = "remote query";
+// Max value size of each QueryObjNode, current is In & NotIn predicate which is 128
+const int MAX_VALUE_SIZE = 128;
 
 int SerializeDataObjNode(Parcel &parcel, const QueryObjNode &objNode)
 {
@@ -63,7 +65,7 @@ int DeSerializeDataObjNode(Parcel &parcel, QueryObjNode &objNode)
 
     uint32_t valueSize = 0;
     (void)parcel.ReadUInt32(valueSize);
-    if (parcel.IsError()) {
+    if (parcel.IsError() || valueSize > MAX_VALUE_SIZE) {
         return -E_INVALID_ARGS;
     }
 
@@ -122,6 +124,9 @@ std::string QuerySyncObject::GetIdentify() const
     if (!isValid_) {
         return std::string();
     }
+    if (!identify_.empty()) {
+        return identify_;
+    }
     // suggestionIndex is local attribute, do not need to be propagated to remote
     uint64_t len = Parcel::GetVectorCharLen(prefixKey_);
     for (const QueryObjNode &node : queryObjNodes_) {
@@ -173,8 +178,8 @@ std::string QuerySyncObject::GetIdentify() const
     if (parcel.IsError() || DBCommon::CalcValueHash(buff, hashBuff) != E_OK) {
         return std::string();
     }
-
-    return DBCommon::VectorToHexString(hashBuff);
+    identify_ = DBCommon::VectorToHexString(hashBuff);
+    return identify_;
 }
 
 uint32_t QuerySyncObject::CalculateParcelLen(uint32_t softWareVersion) const

@@ -16,9 +16,7 @@
 #include "relational_store_changed_data_impl.h"
 
 namespace DistributedDB {
-RelationalStoreChangedDataImpl::~RelationalStoreChangedDataImpl()
-{
-}
+RelationalStoreChangedDataImpl::~RelationalStoreChangedDataImpl() = default;
 
 DB_API std::string RelationalStoreChangedDataImpl::GetDataChangeDevice() const
 {
