@@ -1159,3 +1159,21 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Le
     ChangeTime(-2); // decrease 2s
 }
 #endif
+
+/**
+ * @tc.name: TimeChangeListenerTest002
+ * @tc.desc: Test TimeChange.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Level1)
+{
+    SingleVerKVSyncer syncer;
+    VirtualSingleVerSyncDBInterface syncDBInterface;
+    KvDBProperties dbProperties;
+    dbProperties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    syncDBInterface.SetDbProperties(dbProperties);
+    EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
+    
+}

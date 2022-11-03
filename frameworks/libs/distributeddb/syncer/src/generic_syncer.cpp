@@ -871,32 +871,7 @@ int GenericSyncer::InitTimeChangedListener()
     }
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
-            std::shared_ptr<Metadata> metadata = nullptr;
-            ISyncInterface *storage = nullptr;
-            {
-                std::lock_guard<std::mutex> lock(syncerLock_);
-                if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
-                    return;
-                }
-                storage = syncInterface_;
-                metadata = metadata_;
-                storage->IncRefCount();
-            }
-            TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
-                static_cast<TimeOffset>(TimeHelper::TO_100_NS);
-            TimeOffset orgOffset = this->metadata_->GetLocalTimeOffset() - changedTimeOffset;
-            Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-            Timestamp maxItemTime = 0;
-            this->syncInterface_->GetMaxTimestamp(maxItemTime);
-            if ((orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
-                orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
-                    currentSysTime + TimeHelper::MS_TO_100_NS;
-            }
-            if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
-                orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
-            }
-            this->metadata_->SaveLocalTimeOffset(orgOffset);
-            storage->DecRefCount();
+            RecordTimeChangeOffset(changedOffset);
         }, errCode);
     if (timeChangedListener_ == nullptr) {
         LOGE("[GenericSyncer] Init RegisterTimeChangedLister failed");
@@ -913,5 +888,35 @@ void GenericSyncer::ReleaseInnerResourceWithNoLock()
     }
     timeHelper_ = nullptr;
     metadata_ = nullptr;
+}
+
+void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
+            return;
+        }
+        storage = syncInterface_;
+        metadata = metadata_;
+        storage->IncRefCount();
+    }
+    TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
+        static_cast<TimeOffset>(TimeHelper::TO_100_NS);
+    TimeOffset orgOffset = metadata->GetLocalTimeOffset() - changedTimeOffset;
+    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
+    Timestamp maxItemTime = 0;
+    storage->GetMaxTimestamp(maxItemTime);
+    if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
+        orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
+            currentSysTime + TimeHelper::MS_TO_100_NS;
+    }
+    if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
+        orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
+    }
+    metadata->SaveLocalTimeOffset(orgOffset);
+    storage->DecRefCount();
 }
 } // namespace DistributedDB
