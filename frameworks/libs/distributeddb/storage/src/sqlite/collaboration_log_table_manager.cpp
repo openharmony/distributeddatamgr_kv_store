@@ -30,11 +30,11 @@ std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &
         sql = "calc_hash('" + identity + "'||calc_hash(" + references + "rowid))";
     } else {
         if (table.GetIdentifyKey().size() == 1) {
-            sql = "calc_hash(" + references + table.GetIdentifyKey().at(0) + ")";
+            sql = "calc_hash(" + references + "'" + table.GetIdentifyKey().at(0) + "')";
         } else {
             sql = "calc_hash(";
             for (const auto &it : table.GetIdentifyKey()) {
-                sql += "calc_hash(" + references + it + ")||";
+                sql += "calc_hash(" + references + "'" + it + "')||";
             }
             sql.pop_back();
             sql.pop_back();
@@ -49,7 +49,7 @@ std::string CollaborationLogTableManager::GetInsertTrigger(const TableInfo &tabl
     std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_INSERT AFTER INSERT \n";
-    insertTrigger += "ON " + table.GetTableName() + "\n";
+    insertTrigger += "ON '" + table.GetTableName() + "'\n";
     insertTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
@@ -69,7 +69,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_UPDATE AFTER UPDATE \n";
-    updateTrigger += "ON " + table.GetTableName() + "\n";
+    updateTrigger += "ON '" + table.GetTableName() + "'\n";
     updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n";
@@ -95,7 +95,7 @@ std::string CollaborationLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     (void)identity;
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_DELETE BEFORE DELETE \n";
-    deleteTrigger += "ON " + table.GetTableName() + "\n";
+    deleteTrigger += "ON '" + table.GetTableName() + "'\n";
     deleteTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";

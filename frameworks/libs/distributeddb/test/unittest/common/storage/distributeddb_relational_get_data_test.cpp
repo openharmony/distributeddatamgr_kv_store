@@ -1195,10 +1195,10 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData2, TestSize.Level1)
      * @tc.steps: step3. Check deviceA's distributed table.
      * @tc.expected: The create sql is correct.
      */
-    std::string expectSql = "CREATE TABLE naturalbase_rdb_aux_data_"
-        "265a9c8c3c690cdfdac72acfe7a50f748811802635d987bb7d69dc602ed3794f(key integer NOT NULL,"
-        "value integer, integer_type integer NOT NULL DEFAULT 123, text_type text NOT NULL DEFAULT 'high_version', "
-        "real_type real NOT NULL DEFAULT 123.123456, blob_type blob NOT NULL DEFAULT 123, PRIMARY KEY (key))";
+    std::string expectSql = "CREATE TABLE 'naturalbase_rdb_aux_data_"
+        "265a9c8c3c690cdfdac72acfe7a50f748811802635d987bb7d69dc602ed3794f' ('key' 'integer' NOT NULL,'value' 'integer',"
+        " 'integer_type' 'integer' NOT NULL DEFAULT 123, 'text_type' 'text' NOT NULL DEFAULT 'high_version', "
+        "'real_type' 'real' NOT NULL DEFAULT 123.123456, 'blob_type' 'blob' NOT NULL DEFAULT 123, PRIMARY KEY ('key'))";
     sql = "SELECT sql FROM sqlite_master WHERE tbl_name='" + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + "';";
     EXPECT_EQ(GetOneText(db, sql), expectSql);

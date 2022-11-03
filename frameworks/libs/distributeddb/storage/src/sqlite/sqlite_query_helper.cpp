@@ -97,11 +97,11 @@ std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std
         sql += "a.*";
     } else {
         for (const auto &fieldName : fieldNames) {  // For query data.
-            sql += "a." + fieldName + ",";
+            sql += "a.'" + fieldName + "',";
         }
         sql.pop_back();
     }
-    sql += " FROM " + tableName + " AS a INNER JOIN " + DBConstant::RELATIONAL_PREFIX + tableName + "_log AS b "
+    sql += " FROM '" + tableName + "' AS a INNER JOIN " + DBConstant::RELATIONAL_PREFIX + tableName + "_log AS b "
         "ON a.rowid=b.data_key ";
     return sql;
 }
@@ -770,7 +770,7 @@ std::string SqliteQueryHelper::GetFieldShape(const QueryObjNode &queryNode, cons
 {
     if (isRelationalQuery_) {
         // For relational query, $. prefix is not permitted, so need not extract json. Return directly will be OK.
-        return "a." + queryNode.fieldName + " ";
+        return "a.'" + queryNode.fieldName + "' ";
     }
     return MapCastFuncSql(queryNode, accessStr);
 }

@@ -31,6 +31,7 @@ namespace {
     constexpr const char* DB_SUFFIX = ".db";
     constexpr const char* STORE_ID = "Relational_Store_ID";
     const std::string DEVICE_A = "DEVICE_A";
+    const std::string DEVICE_B = "DEVICE_B";
     std::string g_testDir;
     std::string g_dbDir;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
@@ -468,13 +469,13 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpgradeTriggerTest001, TestS
     EXPECT_EQ(errCode, E_OK);
     LOGD("result trigger: %s", resultTrigger.c_str());
     std::string expectTrigger = "CREATE TRIGGER naturalbase_rdb_student_1_ON_UPDATE AFTER UPDATE \n"
-        "ON student_1\n"
+        "ON 'student_1'\n"
         "BEGIN\n"
         "\t UPDATE naturalbase_rdb_aux_student_1_log SET data_key=-1,timestamp=get_sys_time(0), device='',"
-        " flag=0x03 WHERE hash_key=calc_hash(OLD.id) AND flag&0x02=0x02;\n"
+        " flag=0x03 WHERE hash_key=calc_hash(OLD.'id') AND flag&0x02=0x02;\n"
         "\t INSERT OR REPLACE INTO naturalbase_rdb_aux_student_1_log VALUES (NEW.rowid, '', '', get_sys_time(0), "
-        "get_sys_time(0), CASE WHEN (calc_hash(NEW.id) != calc_hash(NEW.id)) " \
-        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.id));\n"
+        "get_sys_time(0), CASE WHEN (calc_hash(NEW.'id') != calc_hash(NEW.'id')) " \
+        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id'));\n"
         "END";
     EXPECT_TRUE(resultTrigger == expectTrigger);
 }
