@@ -116,7 +116,7 @@ void DistributedDBInterfacesImportAndExportTest::TearDownTestCase(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
-    std::this_thread::sleep_for(std::chrono::seconds(1)); // wait 1s for all thread exit
+    RuntimeContext::GetInstance()->StopTaskPool(); // wait for all thread exit
 }
 
 void DistributedDBInterfacesImportAndExportTest::SetUp(void)
