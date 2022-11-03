@@ -164,16 +164,16 @@ private:
 
     ContinueToken token_;
     WaterMark endMark_;
-    uint32_t responseSessionId_ = 0;
+    volatile uint32_t responseSessionId_ = 0;
 
     bool needClearRemoteStaleData_;
     SecurityOption remoteSecOption_ = {0, 0}; // remote targe can handle secOption data or not.
-    bool isReceivcPermitChecked_ = false;
-    bool isSendPermitChecked_ = false;
+    volatile bool isReceivcPermitChecked_ = false;
+    volatile bool isSendPermitChecked_ = false;
     std::atomic<bool> isSchemaSync_ = false;
 
     // is receive waterMark err, peerWaterMark bigger than remote localWaterMark
-    bool isReceiveWaterMarkErr_ = false;
+    volatile bool isReceiveWaterMarkErr_ = false;
 
     // For db ability
     mutable std::mutex remoteDbAbilityLock_;

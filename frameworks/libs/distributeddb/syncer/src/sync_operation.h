@@ -160,21 +160,21 @@ private:
     std::map<std::string, int> statuses_;
 
     // Is this operation is a block sync
-    bool isBlockSync_;
+    volatile bool isBlockSync_;
 
     // Is this operation is an auto sync
-    bool isAutoSync_;
+    volatile bool isAutoSync_;
 
     // Is this operation has finished
-    bool isFinished_;
+    volatile bool isFinished_;
 
     // Used for block sync
     std::unique_ptr<SemaphoreUtils> semaphore_;
 
     QuerySyncObject query_;
-    bool isQuerySync_;
+    volatile bool isQuerySync_;
 
-    bool isAutoSubscribe_;
+    volatile bool isAutoSubscribe_;
 
     // record identifier used to call ScheduleQueuedTask in SyncOperation::Finished
     std::string identifier_;

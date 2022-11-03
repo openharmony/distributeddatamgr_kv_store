@@ -211,9 +211,9 @@ private:
     std::function<void(const std::string &)> offlineChanged_;
     std::shared_ptr<Metadata> metadata_;
     std::deque<Message *> msgQueue_;
-    uint32_t execTaskCount_;
+    volatile uint32_t execTaskCount_;
     std::string label_;
-    bool isSyncRetry_;
+    volatile bool isSyncRetry_;
     CommunicatorProxy *communicatorProxy_;
     std::mutex equalCommunicatorsLock_;
     std::map<std::string, ICommunicator *> equalCommunicators_;

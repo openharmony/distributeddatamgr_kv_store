@@ -623,7 +623,7 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
         return -E_INVALID_DB;
     }
     if (condition.sql.size() > DBConstant::REMOTE_QUERY_MAX_SQL_LEN) {
-        LOGE("remote query sql len is larger than 100,0000");
+        LOGE("remote query sql len is larger than %" PRIu32, DBConstant::REMOTE_QUERY_MAX_SQL_LEN);
         return -E_MAX_LIMITS;
     }
 

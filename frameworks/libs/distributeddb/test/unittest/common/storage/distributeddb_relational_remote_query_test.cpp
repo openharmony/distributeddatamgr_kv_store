@@ -220,7 +220,7 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery2, TestSize.Level1)
     RemoteCondition sqlCondition;
     sqlCondition.sql.resize(1000001, 'a');
     std::shared_ptr<ResultSet> result = nullptr;
-    EXPECT_EQ(g_delegate->RemoteQuery(device, sqlCondition, 5000, result),OVER_MAX_LIMITS);
+    EXPECT_EQ(g_delegate->RemoteQuery(device, sqlCondition, 5000, result), OVER_MAX_LIMITS);
 }
 
 /**

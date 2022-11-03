@@ -242,27 +242,27 @@ protected:
     std::list<ISyncTarget *> responseTargetQueue_;
     SyncOperation *syncOperation_;
     mutable std::mutex operationLock_;
-    uint32_t syncId_;
-    int mode_;
-    bool isAutoSync_;
-    int status_;
-    int taskExecStatus_;
+    volatile uint32_t syncId_;
+    volatile int mode_;
+    volatile bool isAutoSync_;
+    volatile int status_;
+    volatile int taskExecStatus_;
     std::string deviceId_;
     std::string syncActionName_;
     ISyncInterface *syncInterface_;
     ICommunicator *communicator_;
     ISyncStateMachine *stateMachine_;
     TimeOffset timeOffset_ = 0;
-    int retryTime_ = 0;
-    int isNeedRetry_ = SyncTaskContext::NO_NEED_RETRY;
-    uint32_t requestSessionId_ = 0;
-    uint32_t lastRequestSessionId_ = 0;
-    uint32_t sequenceId_ = 1;
+    volatile int retryTime_ = 0;
+    volatile int isNeedRetry_ = SyncTaskContext::NO_NEED_RETRY;
+    volatile uint32_t requestSessionId_ = 0;
+    volatile uint32_t lastRequestSessionId_ = 0;
+    volatile uint32_t sequenceId_ = 1;
     std::function<int(void)> onSyncTaskAdd_;
 
     // for safe exit
     std::condition_variable safeKill_;
-    int usedCount_ = 0;
+    volatile int usedCount_ = 0;
 
     // for timeout callback
     std::mutex timerLock_;
@@ -273,16 +273,16 @@ protected:
 
     // for version sync
     mutable std::mutex remoteSoftwareVersionLock_;
-    uint32_t remoteSoftwareVersion_;
-    uint64_t remoteSoftwareVersionId_; // Check if the remoteSoftwareVersion_ is is overdue
+    volatile uint32_t remoteSoftwareVersion_;
+    volatile uint64_t remoteSoftwareVersionId_; // Check if the remoteSoftwareVersion_ is is overdue
 
-    bool isCommNormal_;
-    int taskErrCode_;
-    uint64_t packetId_ = 0; // used for assignment to reSendMap_.ReSendInfo.packetId in 103 version or above
-    bool syncTaskRetryStatus_;
-    bool isSyncRetry_;
-    uint32_t negotiationCount_;
-    bool isAutoSubscribe_;
+    volatile bool isCommNormal_;
+    volatile int taskErrCode_;
+    volatile uint64_t packetId_ = 0; // used for assignment to reSendMap_.ReSendInfo.packetId in 103 version or above
+    volatile bool syncTaskRetryStatus_;
+    volatile bool isSyncRetry_;
+    volatile uint32_t negotiationCount_;
+    volatile bool isAutoSubscribe_;
     // syncFinished_ need to set false if isNeedResetSyncFinished_ is true when start do abilitySync interface
     std::atomic<bool> isNeedResetAbilitySync_;
 
