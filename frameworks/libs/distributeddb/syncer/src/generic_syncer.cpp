@@ -909,11 +909,11 @@ void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
     Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
     Timestamp maxItemTime = 0;
     storage->GetMaxTimestamp(maxItemTime);
-    if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
+    if ((orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
         orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
             currentSysTime + TimeHelper::MS_TO_100_NS;
     }
-    if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
+    if ((currentSysTime + orgOffset) <= maxItemTime) {
         orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
     }
     metadata->SaveLocalTimeOffset(orgOffset);

@@ -29,6 +29,7 @@
 #include "mock_meta_data.h"
 #include "mock_remote_executor.h"
 #include "mock_single_ver_data_sync.h"
+#include "mock_single_ver_kv_syncer.h"
 #include "mock_single_ver_state_machine.h"
 #include "mock_sync_engine.h"
 #include "mock_sync_task_context.h"
@@ -1169,11 +1170,28 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Le
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Level1)
 {
-    SingleVerKVSyncer syncer;
+    /**
+     * @tc.steps: step1. create syncer without activation
+     */
+    MockSingleVerKVSyncer syncer;
     VirtualSingleVerSyncDBInterface syncDBInterface;
     KvDBProperties dbProperties;
     dbProperties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
     syncDBInterface.SetDbProperties(dbProperties);
-    EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
-    
+    /**
+     * @tc.steps: step2. trigger time change logic and reopen syncer at the same time
+     * @tc.expected: no crash here
+     */
+    const int loopCount = 100;
+    std::thread timeChangeThread([&syncer]() {
+        for (int i = 0; i < loopCount; ++i) {
+            int64_t changeOffset = 1;
+            syncer.CallRecordTimeChangeOffset(&changeOffset);
+        }
+    });
+    for (int i = 0; i < loopCount; ++i) {
+        EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
+        EXPECT_EQ(syncer.Close(true), -E_NOT_INIT);
+    }
+    timeChangeThread.join();
 }

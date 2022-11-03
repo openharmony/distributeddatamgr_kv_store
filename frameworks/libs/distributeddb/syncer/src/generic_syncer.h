@@ -180,7 +180,7 @@ protected:
 
     void ReleaseInnerResourceWithNoLock();
 
-    virtual void RecordTimeChangeOffset(void *changedOffset);
+    void RecordTimeChangeOffset(void *changedOffset);
 
     static int SyncModuleInit();
 
