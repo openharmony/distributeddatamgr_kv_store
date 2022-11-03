@@ -116,6 +116,7 @@ void DistributedDBInterfacesImportAndExportTest::TearDownTestCase(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+    RuntimeContext::GetInstance()->StopTaskPool(); // wait for all thread exit
 }
 
 void DistributedDBInterfacesImportAndExportTest::SetUp(void)
