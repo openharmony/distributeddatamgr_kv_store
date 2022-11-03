@@ -639,7 +639,7 @@ void SyncTaskContext::ClearSyncOperation()
 
 void SyncTaskContext::CancelCurrentSyncRetryIfNeed(int newTargetMode)
 {
-    AutoLock(this);
+    AutoLock lock(this);
     if (!isAutoSync_) {
         return;
     }
@@ -683,7 +683,7 @@ int SyncTaskContext::GetSyncRetryTimeout(int retryTime) const
     int timeoutTime = GetTimeoutTime();
     if (IsAutoSync()) {
         // set the new timeout value with 2 raised to the power of retryTime.
-        return timeoutTime * (1 << retryTime);
+        return timeoutTime * (1u << retryTime);
     }
     return timeoutTime;
 }

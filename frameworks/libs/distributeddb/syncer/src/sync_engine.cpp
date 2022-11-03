@@ -209,9 +209,8 @@ void SyncEngine::StartCommunicator()
         return;
     }
     LOGD("[SyncEngine][StartCommunicator] RegOnConnectCallback");
-    int errCode = communicator_->RegOnConnectCallback(
-        std::bind(&DeviceManager::OnDeviceConnectCallback, deviceManager_,
-            std::placeholders::_1, std::placeholders::_2), nullptr);
+    int errCode = communicator_->RegOnConnectCallback(std::bind(&DeviceManager::OnDeviceConnectCallback,
+        deviceManager_, std::placeholders::_1, std::placeholders::_2), nullptr);
     if (errCode != E_OK) {
         LOGE("[SyncEngine][StartCommunicator] register failed, auto sync can not use! err %d", errCode);
         return;

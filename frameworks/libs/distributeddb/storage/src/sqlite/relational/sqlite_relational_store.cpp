@@ -622,6 +622,10 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
     if (sqliteStorageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
+    if (condition.sql.size() > DBConstant::REMOTE_QUERY_MAX_SQL_LEN) {
+        LOGE("remote query sql len is larger than 100,0000");
+        return -E_MAX_LIMITS;
+    }
 
     if (!sqliteStorageEngine_->GetSchemaRef().IsSchemaValid()) {
         LOGW("not a distributed relational store.");
