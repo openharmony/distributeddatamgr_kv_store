@@ -771,6 +771,12 @@ int SQLiteSingleVerNaturalStore::GetSyncDataForQuerySync(std::vector<DataItem> &
         goto ERROR;
     }
 
+    errCode = handle->StartTransaction(TransactType::DEFERRED);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] Start transaction for get sync data failed. err=%d", errCode);
+        goto ERROR;
+    }
+
     // Get query data.
     if (!continueStmtToken->IsGetQueryDataFinished()) {
         LOGD("[SingleVerNStore] Get query data between %" PRIu64 " and %" PRIu64 ".",
@@ -795,6 +801,7 @@ int SQLiteSingleVerNaturalStore::GetSyncDataForQuerySync(std::vector<DataItem> &
         }
     }
 
+    (void)handle->Rollback(); // roll back query statement
     if (errCode == -E_FINISHED) {
         errCode = E_OK;
     }

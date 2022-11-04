@@ -672,3 +672,71 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest002, TestSize.L
     RefObject::KillAndDecObjRef(store);
     KvDBManager::ReleaseDatabaseConnection(conn);
 }
+
+namespace {
+void PutSyncData(SQLiteSingleVerNaturalStore *store, const Key &key, const std::string &valStr)
+{
+    Value value(valStr.begin(), valStr.end());
+    std::vector<DataItem> data;
+    Timestamp now = store->GetCurrentTimestamp();
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_A, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
+}
+}
+
+/**
+  * @tc.name: GetSyncDataTransTest001
+  * @tc.desc: Get sync data with put
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, GetSyncDataTransTest001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Put data when sync
+     * @tc.expected: step2. Get sync data correct
+     */
+    std::string data1(R""({"field_name1":false,"field_name2":true,"field_name3":100})"");
+    PutSyncData(store, KEY1, data1);
+
+    std::thread th([store]() {
+        std::string data2(R""({"field_name1":false,"field_name2":true,"field_name3":101})"");
+        PutSyncData(store, KEY2, data2);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5)); // wait for 5 ms
+    Query query = Query::Select().EqualTo("field_name1", false);
+    QueryObject queryObj(query);
+    DataSizeSpecInfo  specInfo = {4 * 1024 * 1024, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
+    std::vector<SingleVerKvEntry *> entries;
+    ContinueToken token = nullptr;
+    EXPECT_EQ(store->GetSyncData(queryObj, SyncTimeRange{}, specInfo, token, entries), E_OK);
+
+    th.join();
+
+    if (entries.size() == 1U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+    } else if (entries.size() == 2U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+        EXPECT_EQ(entries[0]->GetFlag(), 0U);
+        EXPECT_EQ(entries[1]->GetKey(), KEY2);
+        EXPECT_EQ(entries[1]->GetFlag(), 0U);
+    }
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
