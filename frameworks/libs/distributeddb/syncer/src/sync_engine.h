@@ -214,6 +214,7 @@ private:
     volatile uint32_t execTaskCount_;
     std::string label_;
     volatile bool isSyncRetry_;
+    std::mutex communicatorProxyLock_;
     CommunicatorProxy *communicatorProxy_;
     std::mutex equalCommunicatorsLock_;
     std::map<std::string, ICommunicator *> equalCommunicators_;

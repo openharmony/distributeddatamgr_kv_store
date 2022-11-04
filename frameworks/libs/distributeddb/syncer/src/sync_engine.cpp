@@ -244,7 +244,14 @@ int SyncEngine::InitInnerSource(const std::function<void(std::string)> &onRemote
 
     int errCode = E_OK;
     do {
-        errCode = deviceManager_->Initialize(communicatorProxy_, onRemoteDataChanged, offlineChanged);
+        CommunicatorProxy *comProxy = nullptr;
+        {
+            std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+            comProxy = communicatorProxy_;
+            RefObject::IncObjRef(comProxy);
+        }
+        errCode = deviceManager_->Initialize(comProxy, onRemoteDataChanged, offlineChanged);
+        RefObject::DecObjRef(comProxy);
         if (errCode != E_OK) {
             LOGE("[SyncEngine] deviceManager init failed! err %d", errCode);
             break;
@@ -293,15 +300,16 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
         communicator_ = nullptr;
         return errCode;
     }
-
-    communicatorProxy_ = new (std::nothrow) CommunicatorProxy();
-    if (communicatorProxy_ == nullptr) {
-        communicatorAggregator->ReleaseCommunicator(communicator_);
-        communicator_ = nullptr;
-        return -E_OUT_OF_MEMORY;
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        communicatorProxy_ = new (std::nothrow) CommunicatorProxy();
+        if (communicatorProxy_ == nullptr) {
+            communicatorAggregator->ReleaseCommunicator(communicator_);
+            communicator_ = nullptr;
+            return -E_OUT_OF_MEMORY;
+        }
+        communicatorProxy_->SetMainCommunicator(communicator_);
     }
-
-    communicatorProxy_->SetMainCommunicator(communicator_);
     label.resize(3); // only show 3 Bytes enough
     label_ = DBCommon::VectorToHexString(label);
     LOGD("[SyncEngine] RegOnConnectCallback");
@@ -453,19 +461,24 @@ int SyncEngine::ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg)
         DecExecTaskCount();
         return E_OK;
     }
-    RefObject::IncObjRef(communicatorProxy_);
+    CommunicatorProxy *comProxy = nullptr;
+    {   
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        comProxy = communicatorProxy_;
+        RefObject::IncObjRef(comProxy);
+    }
     int errCode = E_OK;
     // deal remote local data changed message
     if (inMsg->GetMessageId() == LOCAL_DATA_CHANGED) {
-        RemoteDataChangedTask(context, communicatorProxy_, inMsg);
+        RemoteDataChangedTask(context, comProxy, inMsg);
     } else {
         errCode = RuntimeContext::GetInstance()->ScheduleTask(std::bind(&SyncEngine::MessageReciveCallbackTask,
-            this, context, communicatorProxy_, inMsg));
+            this, context, comProxy, inMsg));
     }
 
     if (errCode != E_OK) {
         LOGE("[SyncEngine] MessageReciveCallbackTask Schedule failed err %d", errCode);
-        RefObject::DecObjRef(communicatorProxy_);
+        RefObject::DecObjRef(comProxy);
     }
     return errCode;
 }
@@ -749,7 +762,13 @@ int SyncEngine::SetEqualIdentifier(const std::string &identifier, const std::vec
     LOGI("[SyncEngine] set equal identifier=%s, original=%s, targetDevices=%s",
         DBCommon::TransferStringToHex(identifier).c_str(), label_.c_str(),
         targetDevices.substr(0, (targetDevices.size() > 0 ? targetDevices.size() - 1 : 0)).c_str());
-    communicatorProxy_->SetEqualCommunicator(communicator, identifier, targets);
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        if (communicatorProxy_ == nullptr) {
+            return -E_INTERNAL_ERROR;
+        }
+        communicatorProxy_->SetEqualCommunicator(communicator, identifier, targets);
+    }
     communicator->Activate();
     return E_OK;
 }
@@ -785,10 +804,6 @@ void SyncEngine::SetEqualIdentifierMap(const std::string &identifier, const std:
 
 void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
 {
-    if (communicatorProxy_ == nullptr) {
-        return;
-    }
-
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (executor != nullptr) {
         executor->NotifyDeviceOffline(deviceId);
@@ -805,10 +820,16 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
     if (context != nullptr) {
         context->SetIsNeedResetAbilitySync(true);
     }
-    if (communicatorProxy_->IsDeviceOnline(deviceId)) {
-        LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
-        RefObject::DecObjRef(context);
-        return;
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        if (communicatorProxy_ == nullptr) {
+            return;
+        }
+        if (communicatorProxy_->IsDeviceOnline(deviceId)) {
+            LOGI("[SyncEngine] target dev=%s is online, no need to clear task.", STR_MASK(deviceId));
+            RefObject::DecObjRef(context);
+            return;
+        }
     }
     // means device is offline, clear local subscribe
     subManager_->ClearLocalSubscribeQuery(deviceId);
@@ -898,8 +919,11 @@ void SyncEngine::UnRegCommunicatorsCallback()
 
 void SyncEngine::ReleaseCommunicators()
 {
-    RefObject::KillAndDecObjRef(communicatorProxy_);
-    communicatorProxy_ = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        RefObject::KillAndDecObjRef(communicatorProxy_);
+        communicatorProxy_ = nullptr;
+    }
     ICommunicatorAggregator *communicatorAggregator = nullptr;
     int errCode = RuntimeContext::GetInstance()->GetCommunicatorAggregator(communicatorAggregator);
     if (communicatorAggregator == nullptr) {
@@ -1018,14 +1042,17 @@ void SyncEngine::DecExecTaskCount()
 
 void SyncEngine::Dump(int fd)
 {
-    std::string communicatorLabel;
-    if (communicatorProxy_ != nullptr) {
-        communicatorProxy_->GetLocalIdentity(communicatorLabel);
-    }
-    DBDumpHelper::Dump(fd, "\tcommunicator label = %s, equalIdentify Info [\n", communicatorLabel.c_str());
-    if (communicatorProxy_ != nullptr) {
-        communicatorProxy_->GetLocalIdentity(communicatorLabel);
-        communicatorProxy_->Dump(fd);
+    {
+        std::lock_guard<std::mutex> lock(communicatorProxyLock_);
+        std::string communicatorLabel;
+        if (communicatorProxy_ != nullptr) {
+            communicatorProxy_->GetLocalIdentity(communicatorLabel);
+        }
+        DBDumpHelper::Dump(fd, "\tcommunicator label = %s, equalIdentify Info [\n", communicatorLabel.c_str());
+        if (communicatorProxy_ != nullptr) {
+            communicatorProxy_->GetLocalIdentity(communicatorLabel);
+            communicatorProxy_->Dump(fd);
+        }
     }
     DBDumpHelper::Dump(fd, "\t]\n\tcontext info [\n");
     // dump context info
