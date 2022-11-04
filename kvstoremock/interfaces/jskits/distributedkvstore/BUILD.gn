@@ -50,7 +50,7 @@ if (use_platform_win || use_platforn_mac) {
 
     sources = [
       "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
-      "../../../frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp",
+      "../../../frameworks/jskitsimpl/distributedkvstore/src/js_util_mock.cpp",
       "../../../interfaces/mock/log_print.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
@@ -79,6 +79,7 @@ if (use_platform_win || use_platforn_mac) {
         "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
       ]
     } else if (use_platforn_mac) {
+      defines = [ "_MACOS" ]
       deps +=
           [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
     }

@@ -12,12 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#if !defined(_WIN32) && !defined(_MACOS)
 #define LOG_TAG "JSUtil"
 #include "js_util.h"
 #include <endian.h>
 #include <securec.h>
 #include "ability.h"
 #include "hap_module_info.h"
+#endif
+
 #include "js_schema.h"
 #include "kv_utils.h"
 #include "log_print.h"
@@ -25,13 +28,11 @@
 #include "napi_queue.h"
 #include "types.h"
 
-using namespace OHOS::DistributedKv;
-using namespace OHOS::DataShare;
 namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
 struct PredicatesProxy {
-    std::shared_ptr<DataShareAbsPredicates> predicates_;
+    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates_;
 };
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
@@ -227,8 +228,8 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
         int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp4int);
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
+        tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
     }
@@ -851,9 +852,9 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
         status = GetValue(env, item, entry, hasSchema);
         if (status != napi_ok) {
             ZLOGD("maybe valubucket type");
-            DataShareValuesBucket values;
+            OHOS::DataShare::DataShareValuesBucket values;
             GetValue(env, item, values);
-            entry = KvUtils::ToEntry(values);
+            entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
             entry.key = std::vector<uint8_t>(entry.key.Data().begin() + 1, entry.key.Data().end());
             if (hasSchema) {
                 entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
@@ -993,10 +994,10 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
 napi_status JSUtil::GetLevel(int32_t level, int32_t &out)
 {
     switch(level) {
-        case SecurityLevel::S1:
-        case SecurityLevel::S2:
-        case SecurityLevel::S3:
-        case SecurityLevel::S4:
+        case OHOS::DistributedKv::SecurityLevel::S1:
+        case OHOS::DistributedKv::SecurityLevel::S2:
+        case OHOS::DistributedKv::SecurityLevel::S3:
+        case OHOS::DistributedKv::SecurityLevel::S4:
             out = level;
             return napi_ok;
         default:
@@ -1113,9 +1114,9 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out
     PredicatesProxy *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
+    std::vector<OHOS::DistributedKv::Key> keys;
     nstatus = napi_invalid_arg;
-    Status status = KvUtils::GetKeys(*(predicates->predicates_), keys);
+    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(predicates->predicates_), keys);
     if (status == Status::SUCCESS) {
         ZLOGD("napi_value —> GetValue Blob ok");
         out = keys;
@@ -1133,14 +1134,15 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     PredicatesProxy *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
-    Status status = KvUtils::ToQuery(*(predicates->predicates_), query);
+    std::vector<OHOS::DistributedKv::Key> keys;
+    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
     }
     return nstatus;
 }
 
+#if !defined(_WIN32) && !defined(_MACOS)
 napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
 {
     auto ability = AbilityRuntime::GetCurrentAbility(env);
@@ -1164,6 +1166,7 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
         param.baseDir.c_str());
     return napi_ok;
 }
+#endif
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
 {
