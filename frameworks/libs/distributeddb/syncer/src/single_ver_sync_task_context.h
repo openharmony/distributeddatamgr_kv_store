@@ -108,12 +108,8 @@ public:
     void SetSendPermitCheck(bool isChecked);
 
     bool GetSendPermitCheck() const;
-
-    virtual SyncStrategy GetSyncStrategy(QuerySyncObject &querySyncObject) const = 0;
-
-    void SetIsSchemaSync(bool isSchemaSync);
-
-    bool GetIsSchemaSync() const;
+    // pair<bool, bool>: first:SyncStrategy.permitSync, second: isSchemaSync_
+    virtual std::pair<bool, bool> GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const = 0;
 
     bool IsSkipTimeoutError(int errCode) const;
 
@@ -170,7 +166,6 @@ private:
     SecurityOption remoteSecOption_ = {0, 0}; // remote targe can handle secOption data or not.
     volatile bool isReceivcPermitChecked_ = false;
     volatile bool isSendPermitChecked_ = false;
-    std::atomic<bool> isSchemaSync_ = false;
 
     // is receive waterMark err, peerWaterMark bigger than remote localWaterMark
     volatile bool isReceiveWaterMarkErr_ = false;

@@ -616,7 +616,6 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
                 LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
                     dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
                 currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
-                (static_cast<SingleVerSyncTaskContext *>(context_))->SetIsSchemaSync(true);
                 std::lock_guard<std::mutex> lock(stateMachineLock_);
                 (void)ResetWatchDog();
                 JumpStatusAfterAbilitySync(context_->GetMode());

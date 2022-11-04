@@ -471,7 +471,6 @@ int AbilitySync::AckNotifyRecv(const Message *message, ISyncTaskContext *context
     LOGI("[AckNotifyRecv] receive dev = %s ack notify, remoteSoftwareVersion = %u, ackCode = %d",
         STR_MASK(deviceId_), remoteSoftwareVersion, errCode);
     if (errCode == E_OK) {
-        (static_cast<SingleVerSyncTaskContext *>(context))->SetIsSchemaSync(true);
         ackCode = AbilitySync::LAST_NOTIFY;
     }
     (void)SendAckWithEmptySchema(message, ackCode, true);
@@ -1145,7 +1144,7 @@ void AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
     SyncOpinion syncOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
     SyncStrategy localStrategy = SchemaNegotiate::ConcludeSyncStrategy(syncOpinion, remoteOpinion);
     SetAbilityAckSyncOpinionInfo(sendPacket, syncOpinion);
-    (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy);
+    (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy, true);
 }
 
 int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket, AbilitySyncAckPacket &sendPacket,
@@ -1157,7 +1156,7 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     auto localOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
     auto localStrategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion,
         recvPacket->GetRelationalSyncOpinion());
-    (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy);
+    (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy, true);
     int errCode = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->
         CreateDistributedDeviceTable(context->GetDeviceId(), localStrategy);
     if (errCode != E_OK) {
@@ -1181,8 +1180,8 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     }
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
     auto query = singleVerContext->GetQuery();
-    bool permitSync = (singleVerContext->GetSyncStrategy(query)).permitSync;
-    if (!permitSync) {
+    std::pair<bool, bool> schemaSyncStatus = (singleVerContext->GetSchemaSyncStatus(query));
+    if (!schemaSyncStatus.first) {
         singleVerContext->SetTaskErrCode(-E_SCHEMA_MISMATCH);
         LOGE("[AbilitySync][AckRecv] scheme check failed");
         return -E_SCHEMA_MISMATCH;
@@ -1198,7 +1197,6 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     DbAbility remoteDbAbility = packet->GetDbAbility();
     singleVerContext->SetDbAbility(remoteDbAbility);
     (void)SendAck(message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
-    singleVerContext->SetIsSchemaSync(true);
     return E_OK;
 }
 } // namespace DistributedDB

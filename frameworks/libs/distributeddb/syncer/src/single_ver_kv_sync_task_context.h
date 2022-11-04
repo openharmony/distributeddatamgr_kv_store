@@ -29,12 +29,14 @@ public:
     std::string GetQuerySyncId() const override;
     std::string GetDeleteSyncId() const override;
 
-    void SetSyncStrategy(const SyncStrategy &strategy);
-    SyncStrategy GetSyncStrategy(QuerySyncObject &querySyncObject) const override;
+    void SetSyncStrategy(const SyncStrategy &strategy, bool isSchemaSync);
+    std::pair<bool, bool> GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const override;
 protected:
     ~SingleVerKvSyncTaskContext() override;
 
+    mutable std::mutex syncStrategyMutex_;
     SyncStrategy syncStrategy_;
+    std::atomic<bool> isSchemaSync_ = false;
 };
 }
 #endif // SINGLE_VER_KV_SYNC_TASK_CONTEXT_H

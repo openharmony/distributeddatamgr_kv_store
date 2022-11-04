@@ -1489,14 +1489,14 @@ int SingleVerDataSync::CheckSchemaStrategy(SingleVerSyncTaskContext *context, co
         return -E_INVALID_ARGS;
     }
     auto query = packet->GetQuery();
-    SyncStrategy localStrategy = context->GetSyncStrategy(query);
-    if (!context->GetIsSchemaSync()) {
-        LOGE("[DataSync][CheckSchemaStrategy] isSchemaSync=%d check failed", context->GetIsSchemaSync());
+    std::pair<bool, bool> schemaSyncStatus = context->GetSchemaSyncStatus(query);
+    if (!schemaSyncStatus.second) {
+        LOGE("[DataSync][CheckSchemaStrategy] isSchemaSync=%d check failed", schemaSyncStatus.second);
         (void)SendDataAck(context, message, -E_NEED_ABILITY_SYNC, 0);
         return -E_NEED_ABILITY_SYNC;
     }
-    if (!localStrategy.permitSync) {
-        LOGE("[DataSync][CheckSchemaStrategy] Strategy permitSync=%d check failed", localStrategy.permitSync);
+    if (!schemaSyncStatus.first) {
+        LOGE("[DataSync][CheckSchemaStrategy] Strategy permitSync=%d check failed", schemaSyncStatus.first);
         (void)SendDataAck(context, message, -E_SCHEMA_MISMATCH, 0);
         return -E_SCHEMA_MISMATCH;
     }

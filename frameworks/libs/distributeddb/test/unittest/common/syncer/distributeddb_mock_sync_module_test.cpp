@@ -753,8 +753,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
      * @tc.steps: step2. set syncDBInterface busy for save data return -E_BUSY
      */
     syncDBInterface.SetBusy(true);
-    SyncStrategy mockStrategy = {true, false, false};
-    EXPECT_CALL(syncTaskContext, GetSyncStrategy(_)).WillOnce(Return(mockStrategy));
+    std::pair<bool, bool> schemaSyncStatus = {true, true};
+    EXPECT_CALL(syncTaskContext, GetSchemaSyncStatus(_)).WillOnce(Return(schemaSyncStatus));
     EXPECT_EQ(abilitySync.AckRecv(message, &syncTaskContext), -E_BUSY);
     delete message;
     EXPECT_EQ(syncTaskContext.GetTaskErrCode(), -E_BUSY);
@@ -777,19 +777,19 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
     RelationalSyncStrategy strategy;
     const std::string tableName = "TEST";
     strategy[tableName] = {true, true, true};
-    context->SetRelationalSyncStrategy(strategy);
+    context->SetRelationalSyncStrategy(strategy, true);
     QuerySyncObject query;
     query.SetTableName(tableName);
     /**
      * @tc.steps: step2. set table is need reset ability sync but it still permit sync
      */
     context->SetIsNeedResetAbilitySync(true);
-    EXPECT_EQ(context->GetSyncStrategy(query).permitSync, true);
+    EXPECT_EQ(context->GetSchemaSyncStatus(query).first, true);
     /**
      * @tc.steps: step3. set table is schema change now it don't permit sync
      */
     context->SchemaChange();
-    EXPECT_EQ(context->GetSyncStrategy(query).permitSync, false);
+    EXPECT_EQ(context->GetSchemaSyncStatus(query).first, false);
     RefObject::KillAndDecObjRef(context);
 }
 

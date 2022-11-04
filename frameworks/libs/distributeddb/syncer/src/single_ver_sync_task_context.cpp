@@ -353,16 +353,6 @@ bool SingleVerSyncTaskContext::GetSendPermitCheck() const
     return isSendPermitChecked_;
 }
 
-void SingleVerSyncTaskContext::SetIsSchemaSync(bool isSchemaSync)
-{
-    isSchemaSync_ = isSchemaSync;
-}
-
-bool SingleVerSyncTaskContext::GetIsSchemaSync() const
-{
-    return isSchemaSync_;
-}
-
 bool SingleVerSyncTaskContext::IsSkipTimeoutError(int errCode) const
 {
     if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) {
