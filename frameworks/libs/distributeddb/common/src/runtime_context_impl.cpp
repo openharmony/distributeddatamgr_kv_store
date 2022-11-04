@@ -717,4 +717,14 @@ std::map<std::string, std::string> RuntimeContextImpl::GetPermissionCheckParam(c
     }
     return permissionConditionCallback_(param);
 }
+
+void RuntimeContextImpl::StopTaskPool()
+{
+    std::lock_guard<std::mutex> autoLock(taskLock_);
+    if (taskPool_ != nullptr) {
+        taskPool_->Stop();
+        TaskPool::Release(taskPool_);
+        taskPool_ = nullptr;
+    }
+}
 } // namespace DistributedDB

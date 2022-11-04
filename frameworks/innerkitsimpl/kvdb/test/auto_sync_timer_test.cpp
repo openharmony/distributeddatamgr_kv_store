@@ -77,6 +77,6 @@ void AutoSyncTimerTest::TearDown(void)
 HWTEST_F(AutoSyncTimerTest, GetStoreId, TestSize.Level0)
 {
     AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {{"ut_test_store"}});
-    sleep(3);
+    sleep(1);
     ASSERT_TRUE(true);
 }

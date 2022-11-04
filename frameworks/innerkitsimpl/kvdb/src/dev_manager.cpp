@@ -21,6 +21,7 @@
 #include "dm_device_info.h"
 #include "log_print.h"
 #include "store_util.h"
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
 constexpr int32_t DM_OK = 0;
@@ -94,25 +95,21 @@ int32_t DevManager::Init()
 
 void DevManager::RegisterDevCallback()
 {
-    int32_t errNo = Init();
-    if (errNo == DM_OK) {
-        return;
-    }
-    ZLOGE("register device failed, try again");
-    std::thread th = std::thread([this]() {
-        constexpr int RETRY_TIMES = 300;
-        int i = 0;
+    auto check = Retry();
+    check();
+}
+
+std::function<void()> DevManager::Retry()
+{
+    return [this]() {
         int32_t errNo = DM_ERROR;
-        while (i++ < RETRY_TIMES) {
-            errNo = Init();
-            if (errNo == DM_OK) {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        errNo = Init();
+        if (errNo == DM_OK) {
+            return;
         }
-        ZLOGI("reg device exit now: %{public}d times, errNo: %{public}d", i, errNo);
-    });
-    th.detach();
+        constexpr int32_t interval = 100;
+        TaskExecutor::GetInstance().Execute(Retry(), interval);
+    };
 }
 
 DevManager &DevManager::GetInstance()

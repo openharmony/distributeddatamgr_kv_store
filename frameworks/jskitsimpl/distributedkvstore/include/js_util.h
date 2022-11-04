@@ -26,7 +26,6 @@
 #include "datashare_abs_predicates.h"
 #include "datashare_values_bucket.h"
 #include "js_error_utils.h"
-// #include "js_status_utils.h"
 
 namespace OHOS::DistributedKVStore {
 class JSUtil final {

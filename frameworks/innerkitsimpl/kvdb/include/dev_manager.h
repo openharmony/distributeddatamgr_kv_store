@@ -57,6 +57,7 @@ private:
     void RegisterDevCallback();
 
     int32_t Init();
+    std::function<void()> Retry();
     const std::string PKG_NAME;
     const DetailInfo invalidDetail_ {};
     DetailInfo localInfo_ {};
