@@ -188,11 +188,14 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
 
 void EncryptOperation(const uint8_t* data, size_t size, std::string &DirPath, KvStoreNbDelegate *kvNbDelegatePtr)
 {
+    if (kvNbDelegatePtr == nullptr) {
+        return;
+    }
     CipherPassword passwd;
-    auto *pwdLen = reinterpret_cast<const int *>(data);
-    passwd.SetValue(data, *pwdLen);
+    int len = static_cast<int>(std::min(size, size_t(20)));
+    passwd.SetValue(data, len);
     kvNbDelegatePtr->Rekey(passwd);
-    int len = static_cast<int>(std::min(size, size_t(100)));
+    len = static_cast<int>(std::min(size, size_t(100)));
     std::string fileName(data, data + len);
     std::string mulitExportFileName = DirPath + "/" + fileName + ".db";
     kvNbDelegatePtr->Export(mulitExportFileName, passwd);
