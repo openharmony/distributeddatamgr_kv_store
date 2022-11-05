@@ -351,4 +351,9 @@ int GenericKvDBConnection::GetKeys(const IOption &option, const Key &keyPrefix, 
 {
     return -E_NOT_SUPPORT;
 }
+
+int GenericKvDBConnection::CalculateSyncDataSize(const std::string &device, uint32_t &size) const
+{
+    return -E_NOT_SUPPORT;
+}
 }

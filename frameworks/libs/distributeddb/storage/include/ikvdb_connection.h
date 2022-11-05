@@ -129,6 +129,8 @@ public:
     virtual int CheckIntegrity() const = 0;
 
     virtual int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const = 0;
+
+    virtual int CalculateSyncDataSize(const std::string &device, uint32_t &size) const = 0;
 };
 } // namespace DistributedDB
 

@@ -125,6 +125,8 @@ public:
 
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) = 0;
+
+    virtual int CalculateSyncDataSize(const std::string &device, uint32_t &size) const = 0;
 };
 } // namespace DistributedDB
 
