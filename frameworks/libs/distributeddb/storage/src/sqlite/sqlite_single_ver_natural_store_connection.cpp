@@ -1825,6 +1825,5 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
     DBDfxAdapter::FinishTraceSQL();
     return errCode;
 }
-
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

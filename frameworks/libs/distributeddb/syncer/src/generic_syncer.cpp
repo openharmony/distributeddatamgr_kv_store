@@ -30,6 +30,7 @@
 #include "device_manager.h"
 #include "db_constant.h"
 #include "ability_sync.h"
+#include "generic_single_ver_kv_entry.h"
 #include "single_ver_serialize_manager.h"
 
 namespace DistributedDB {
@@ -926,6 +927,52 @@ int GenericSyncer::CloseInner(bool isClosedOperation)
         std::lock_guard<std::mutex> lock(syncerLock_);
         closing_ = false;
     }
+    return E_OK;
+}
+
+int GenericSyncer::CalculateSyncDataSize(const std::string &device, uint32_t &size) const
+{
+    uint64_t localWaterMark = 0;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr || syncInterface_ == nullptr) {
+            return -E_INTERNAL_ERROR;
+        }
+        if (closing_) {
+            LOGE("[Syncer] Syncer is closing, return!");
+            return -E_BUSY;
+        }
+        syncInterface_->IncRefCount();
+        metadata_->GetLocalWaterMark(device, localWaterMark);
+    }
+    uint32_t expectedMtuSize = 1024u * 1024u; // 1M
+    DataSizeSpecInfo syncDataSizeInfo = {expectedMtuSize, static_cast<size_t>(MAX_TIMESTAMP)};
+    std::vector<SendDataItem> outData;
+    ContinueToken token = nullptr;
+    int errCode = static_cast<SyncGenericInterface *>(syncInterface_)->GetSyncData(localWaterMark, MAX_TIMESTAMP,
+        outData, token, syncDataSizeInfo);
+    if (token != nullptr) {
+        static_cast<SyncGenericInterface *>(syncInterface_)->ReleaseContinueToken(token);
+        token = nullptr;
+    }
+    if ((errCode != E_OK) && (errCode != -E_UNFINISHED)) {
+        LOGI("calculate sync data size failed %d", errCode);
+        syncInterface_->DecRefCount();
+        return errCode;
+    }
+    uint32_t totalLen = 0;
+    if (errCode == -E_UNFINISHED) {
+        totalLen = expectedMtuSize;
+    } else {
+        totalLen = GenericSingleVerKvEntry::CalculateLens(outData, SOFTWARE_VERSION_CURRENT);
+    }
+    for (auto &entry : outData) {
+        delete entry;
+        entry = nullptr;
+    }
+    syncInterface_->DecRefCount();
+    // if larger than 1M, return 1M
+    size = (totalLen >= expectedMtuSize) ? expectedMtuSize : totalLen;
     return E_OK;
 }
 } // namespace DistributedDB

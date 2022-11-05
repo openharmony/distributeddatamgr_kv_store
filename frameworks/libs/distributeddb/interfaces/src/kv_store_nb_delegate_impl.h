@@ -154,6 +154,8 @@ public:
 
     DBStatus GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const override;
 
+    DBStatus CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
+
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);
