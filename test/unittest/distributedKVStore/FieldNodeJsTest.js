@@ -33,7 +33,7 @@ describe('FieldNodeTest', function () {
             child = null;
             node = null;
         } catch (e) {
-            console.info("FieldNodeAppendChildSucTest " + e);
+            console.info("FieldNodeAppendChildSucTest fail " + e);
             expect(null).assertFail();
         }
         done();
@@ -89,7 +89,7 @@ describe('FieldNodeTest', function () {
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
-            console.info("FieldNodeAppendChildBothInvalidTest is ok: " + e);
+            console.info("FieldNodeAppendChildBothInvalidTest throws exception ok: " + e);
             expect(e != undefined).assertTrue();
         }
         done();
