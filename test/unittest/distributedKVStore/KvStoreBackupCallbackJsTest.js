@@ -234,7 +234,8 @@ describe('kvStoreBackupCallbackJsunittest', function () {
                 done();
             }).catch((err) => {
                 console.log("KvStoreBackupManalRestoreCallbackSucTest Manualrestore fail 1" + err);
-                expect(true).assertEqual(err == "Error: Parameter error.The number of parameters is incorrect.");
+                expect(err.code == 401).assertTrue();
+                // expect(true).assertEqual(err == "Error: Parameter error.The number of parameters is incorrect.");
                 done();
             })
         } catch (e) {
@@ -258,7 +259,7 @@ describe('kvStoreBackupCallbackJsunittest', function () {
             await publicBackup(kvStore, file)
                 .then(() => publicRestoresp(kvStore, file))
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -284,7 +285,7 @@ describe('kvStoreBackupCallbackJsunittest', function () {
             files[0] = file;
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -335,7 +336,7 @@ describe('kvStoreBackupCallbackJsunittest', function () {
             console.log("KvStoreBackupManalRestoreCallbackIntNameTest before backup");
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -359,7 +360,7 @@ describe('kvStoreBackupCallbackJsunittest', function () {
             files[0] = file;
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -384,7 +385,7 @@ describe('kvStoreBackupCallbackJsunittest', function () {
                 expect(true).assertEqual(data == "code数字");
                 done();
             }).catch((err) => {
-                console.log("KvStoreBackupManalBackupCallbackInvalidNameTest ManualbackupCallback002 fail1 " + err);
+                console.log("KvStoreBackupManalBackupCallbackInvalidNameTest fail " + err);
                 expect(true).assertEqual(err.code == 401);
                 done();
             })

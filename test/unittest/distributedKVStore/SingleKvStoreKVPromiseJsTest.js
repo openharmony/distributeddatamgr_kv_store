@@ -135,6 +135,7 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((error) => {
                 console.error('SingleKvStorePutStringPromiseInvalidArgsTest put error' + `, error code is ${error.code}, message is ${error.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStorePutStringPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -244,9 +245,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreGetStringPromiseNoPutTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100004).assertTrue();
             });
         } catch (e) {
             console.error('SingleKvStoreGetStringPromiseNoPutTest get e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1658,9 +1661,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStorestartTransactionPromiseInvalidArgsTest startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         } catch (e) {
             console.error('SingleKvStorestartTransactionPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1679,9 +1684,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreCommitPromiseInvalidArgsTest commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         } catch (e) {
             console.error('SingleKvStoreCommitPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1700,9 +1707,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreRollbackPromiseInvalidArgsTest rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         } catch (e) {
             console.error('SingleKvStoreRollbackPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1767,9 +1776,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreEnableSyncPromiseInvalidArgsTest enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStoreEnableSyncPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1825,9 +1836,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreRemoveDeviceDataPromiseInvalidArgsTest removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStoreRemoveDeviceDataPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1870,9 +1883,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreSetSyncParamPromiseInvalidArgsTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStoreSetSyncParamPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1913,9 +1928,11 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreGetSecurityLevelPromiseInvalidArgsTest getSecurityLevel fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         } catch (e) {
             console.error('SingleKvStoreGetSecurityLevelPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -2018,6 +2035,7 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreGetResultSetPromiseInvalidArgsTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStoreGetResultSetPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -2171,6 +2189,7 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('SingleKvStoreCloseResultSetPromiseTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('SingleKvStoreCloseResultSetPromiseTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -2296,9 +2315,11 @@ describe('SingleKvStorePromiseTest', function () {
         });
         await getInsertEntries.then(function (insertEntries) {
             console.info('SingleKvStoreChangeNotificationPromiseTest getInsertEntries' + JSON.stringify(insertEntries));
-            expect(insertEntries).assertNotNull();
+            expect(insertEntries != null).assertTrue();
+            // expect(insertEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromiseTest can NOT getInsertEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
+            expect(null).assertFail();
         });
         done();
     })
@@ -2323,9 +2344,11 @@ describe('SingleKvStorePromiseTest', function () {
         });
         await getUpdateEntries.then(function (updateEntries) {
             console.info('SingleKvStoreChangeNotificationPromisePutTest getUpdateEntries' + JSON.stringify(updateEntries));
-            expect(updateEntries).assertNotNull();
+            expect(updateEntries != null).assertTrue();
+            // expect(updateEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromisePutTest can NOT getUpdateEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
+            expect(null).assertFail();
         });
         done();
     })
@@ -2350,9 +2373,11 @@ describe('SingleKvStorePromiseTest', function () {
         });
         await getdeleteEntries.then(function (deleteEntries) {
             console.info('SingleKvStoreChangeNotificationPromiseDeleteTest deleteEntries' + JSON.stringify(getdeleteEntries));
-            expect(deleteEntries != null).assertNotNull();
+            expect(deleteEntries != null).assertTrue();
+            // expect(deleteEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromiseDeleteTest can NOT getdeleteEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
+            expect(null).assertFail();
         });
         done();
     })

@@ -1636,9 +1636,11 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreEnableSyncPromiseNoArgsTest enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoreEnableSyncPromiseNoArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1687,6 +1689,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreRemoveDeviceDataPromiseWrongDeviceIdTest removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 401).assertTrue();
             });
             await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
                 console.info('DeviceKvStoreRemoveDeviceDataPromiseWrongDeviceIdTest get success data:' + data);
@@ -1716,10 +1719,11 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreRemoveDeviceDataPromiseWrongArgsTest removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(err.code == 401).assertTrue();
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoreRemoveDeviceDataPromiseWrongArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1738,9 +1742,11 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -1843,6 +1849,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoregetResultSetPromiseNoArgsTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoregetResultSetPromiseNoArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -1866,6 +1873,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoregetResultSetPromiseInvalidArgsTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoregetResultSetPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -2044,6 +2052,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreCloseResultSetPromiseCloseNullTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoreCloseResultSetPromiseCloseNullTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -2100,6 +2109,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreCloseResultSetPromiseNoArgsTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         }catch(e) {
             console.error('DeviceKvStoreCloseResultSetPromiseNoArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -2122,6 +2132,7 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreCloseResultSetPromiseTest failed');
+                expect(null).assertFail();
             })
         }catch (e) {
             console.error('DeviceKvStoreCloseResultSetPromiseTest e ' + `, error code is ${e.code}, message is ${e.message}`);

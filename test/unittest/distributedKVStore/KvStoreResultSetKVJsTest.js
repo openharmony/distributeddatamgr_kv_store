@@ -709,7 +709,7 @@ describe('KvStoreResultSetTest', function () {
 
     /**
      * @tc.name KvStoreResultSetIsAfterLastSucTest
-     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() testcase 002
+     * @tc.desc Test Js Api KvStoreResultSet.IsAfterLast() success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -776,18 +776,18 @@ describe('KvStoreResultSetTest', function () {
     })
 
     /**
-     * @tc.name KvStoreResultSetGetEntryTest003
-     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() testcase 003
+     * @tc.name KvStoreResultSetGetEntryInvalidArgsTes
+     * @tc.desc Test Js Api KvStoreResultSet.GetEntry() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KvStoreResultSetGetEntryTest003', 0, async function (done) {
+    it('KvStoreResultSetGetEntryInvalidArgsTes', 0, async function (done) {
         try {
             var entry = resultSet.getEntry(1);
-            console.info("KvStoreResultSetGetEntryTest003 getEntry " + entry);
+            console.info("KvStoreResultSetGetEntryInvalidArgsTes getEntry " + entry);
             expect(null).assertFail();
         } catch (e) {
-            console.error("KvStoreResultSetGetEntryTest003 fail " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("KvStoreResultSetGetEntryInvalidArgsTes fail " + `, error code is ${e.code}, message is ${e.message}`);
             expect(true).assertTrue();
         }
         done();
