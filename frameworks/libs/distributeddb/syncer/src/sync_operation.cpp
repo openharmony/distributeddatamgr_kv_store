@@ -257,7 +257,7 @@ void SyncOperation::SetIdentifier(const std::vector<uint8_t> &identifier)
 
 SyncType SyncOperation::GetSyncType(int mode)
 {
-    static const std::map<int, SyncType> syncTypeMap = {
+    const std::map<int, SyncType> syncTypeMap = {
         {SyncModeType::PUSH, SyncType::MANUAL_FULL_SYNC_TYPE},
         {SyncModeType::PULL, SyncType::MANUAL_FULL_SYNC_TYPE},
         {SyncModeType::PUSH_AND_PULL, SyncType::MANUAL_FULL_SYNC_TYPE},
@@ -290,9 +290,9 @@ std::string SyncOperation::GetQueryId() const
     return query_.GetIdentify();
 }
 
-const std::map<int, DBStatus> &SyncOperation::DBStatusTransMap()
+std::map<int, DBStatus> SyncOperation::DBStatusTransMap()
 {
-    static const std::map<int, DBStatus> transMap = {
+    const std::map<int, DBStatus> transMap = {
         { static_cast<int>(OP_FINISHED_ALL),                  OK },
         { static_cast<int>(OP_TIMEOUT),                       TIME_OUT },
         { static_cast<int>(OP_PERMISSION_CHECK_FAILED),       PERMISSION_CHECK_FORBID_SYNC },

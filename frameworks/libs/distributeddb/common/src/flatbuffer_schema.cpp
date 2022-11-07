@@ -243,7 +243,7 @@ int SchemaObject::FlatBufferSchema::VerifyFlatBufferValue(const RawValue &inValu
 namespace {
 FieldType MapFieldType(reflection::BaseType inType)
 {
-    static std::map<reflection::BaseType, FieldType> fieldTypeMap{
+    std::map<reflection::BaseType, FieldType> fieldTypeMap{
         {reflection::BaseType::Bool, FieldType::LEAF_FIELD_BOOL},
         {reflection::BaseType::Byte, FieldType::LEAF_FIELD_INTEGER},
         {reflection::BaseType::UByte, FieldType::LEAF_FIELD_INTEGER},
