@@ -993,7 +993,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
 
 napi_status JSUtil::GetLevel(int32_t level, int32_t &out)
 {
-    switch(level) {
+    switch (level) {
         case OHOS::DistributedKv::SecurityLevel::S1:
         case OHOS::DistributedKv::SecurityLevel::S2:
         case OHOS::DistributedKv::SecurityLevel::S3:
