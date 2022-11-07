@@ -848,7 +848,7 @@ void SingleVerSyncStateMachine::StepToTimeout(TimerId timerId)
 
 int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
 {
-    static const std::map<int, int> statusMap = {
+    const std::map<int, int> statusMap = {
         { -E_SCHEMA_MISMATCH,                 SyncOperation::OP_SCHEMA_INCOMPATIBLE },
         { -E_EKEYREVOKED,                     SyncOperation::OP_EKEYREVOKED_FAILURE },
         { -E_SECURITY_OPTION_CHECK_ERROR,     SyncOperation::OP_SECURITY_OPTION_CHECK_FAILURE },

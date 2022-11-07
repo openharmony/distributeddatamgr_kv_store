@@ -99,13 +99,15 @@ int DataTransformer::DeSerializeDataItem(const DataItem &dataItem, OptRowDataWit
 
 uint32_t DataTransformer::CalDataValueLength(const DataValue &dataValue)
 {
-    static std::map<StorageType, uint32_t> lengthMap = {
-        { StorageType::STORAGE_TYPE_NULL, Parcel::GetUInt32Len()},
-        { StorageType::STORAGE_TYPE_INTEGER, Parcel::GetInt64Len()},
-        { StorageType::STORAGE_TYPE_REAL, Parcel::GetDoubleLen()}
-    };
-    if (lengthMap.find(dataValue.GetType()) != lengthMap.end()) {
-        return lengthMap[dataValue.GetType()];
+    switch (dataValue.GetType()) {
+        case StorageType::STORAGE_TYPE_NULL:
+            return Parcel::GetUInt32Len();
+        case StorageType::STORAGE_TYPE_INTEGER:
+            return Parcel::GetInt64Len();
+        case StorageType::STORAGE_TYPE_REAL:
+            return Parcel::GetDoubleLen();
+        default:
+            break;
     }
     if (dataValue.GetType() != StorageType::STORAGE_TYPE_BLOB &&
         dataValue.GetType() != StorageType::STORAGE_TYPE_TEXT) {

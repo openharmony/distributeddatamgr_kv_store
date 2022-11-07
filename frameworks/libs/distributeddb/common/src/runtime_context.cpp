@@ -21,7 +21,6 @@
 namespace DistributedDB {
 RuntimeContext *RuntimeContext::GetInstance()
 {
-    static char instMemory[sizeof(RuntimeContextImpl)];
     static std::mutex instLock_;
     static std::atomic<RuntimeContext *> instPtr = nullptr;
     // For Double-Checked Locking, we need check insPtr twice
@@ -30,7 +29,7 @@ RuntimeContext *RuntimeContext::GetInstance()
         if (instPtr == nullptr) {
             // Use instMemory to make sure this singleton not free before other object.
             // This operation needn't to malloc memory, we needn't to check nullptr.
-            instPtr = new (instMemory) RuntimeContextImpl;
+            instPtr = new (std::nothrow) RuntimeContextImpl;
             LOGI("DistributedDB Version : %s", SOFTWARE_VERSION_STRING.c_str());
         }
     }

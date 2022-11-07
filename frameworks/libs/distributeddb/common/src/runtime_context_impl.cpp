@@ -48,6 +48,7 @@ RuntimeContextImpl::~RuntimeContextImpl()
         taskPool_ = nullptr;
     }
     if (mainLoop_ != nullptr) {
+        mainLoop_->Stop();
         mainLoop_->KillAndDecObjRef(mainLoop_);
         mainLoop_ = nullptr;
     }

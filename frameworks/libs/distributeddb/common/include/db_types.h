@@ -138,7 +138,7 @@ struct SyncTimeRange {
 };
 
 // field types stored in sqlite
-enum class StorageType {
+enum class StorageType : int32_t {
     STORAGE_TYPE_NONE = 0,
     STORAGE_TYPE_NULL,
     STORAGE_TYPE_INTEGER,

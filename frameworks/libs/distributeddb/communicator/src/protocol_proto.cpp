@@ -530,11 +530,12 @@ int ProtocolProto::CheckAndParseFrame(const SerialBuffer *inBuff, ParseResult &o
 
 void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t length)
 {
-    static std::map<FrameType, std::string> frameTypeStr{
-        {FrameType::EMPTY, "EmptyFrame"},
-        {FrameType::APPLICATION_MESSAGE, "AppLayerFrame"},
-        {FrameType::COMMUNICATION_LABEL_EXCHANGE, "CommLayerFrame_LabelExchange"},
-        {FrameType::COMMUNICATION_LABEL_EXCHANGE_ACK, "CommLayerFrame_LabelExchangeAck"}};
+    static const char *frameTypeStr[] = {
+        "EmptyFrame",
+        "AppLayerFrame",
+        "CommLayerFrame_LabelExchange",
+        "CommLayerFrame_LabelExchangeAck"
+    };
 
     if (length < sizeof(CommPhyHeader)) {
         return;
@@ -544,7 +545,7 @@ void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t leng
     uint8_t pktType = NetToHost(phyHeader->packetType);
     bool isFragment = ((pktType & PACKET_TYPE_FRAGMENTED) != 0);
     FrameType frameType = GetFrameType(pktType);
-    if (frameType == FrameType::INVALID_MAX_FRAME_TYPE) {
+    if (frameType >= FrameType::INVALID_MAX_FRAME_TYPE) {
         LOGW("[Proto][Display] This is unrecognized frame, pktType=%" PRIu8 ".", pktType);
         return;
     }
@@ -554,10 +555,12 @@ void ProtocolProto::DisplayPacketInformation(const uint8_t *bytes, uint32_t leng
         }
         auto phyOpt = reinterpret_cast<const CommPhyOptHeader *>(bytes + sizeof(CommPhyHeader));
         LOGI("[Proto][Display] This is %s, frameId=%" PRIu32 ", frameLen=%" PRIu32 ", fragCount=%" PRIu32
-            ", fragNo=%" PRIu32 ".", frameTypeStr[frameType].c_str(), frameId, NetToHost(phyOpt->frameLen),
+            ", fragNo=%" PRIu32 ".", frameTypeStr[static_cast<int32_t>(frameType)],
+            frameId, NetToHost(phyOpt->frameLen),
             NetToHost(phyOpt->fragCount), NetToHost(phyOpt->fragNo));
     } else {
-        LOGI("[Proto][Display] This is %s, frameId=%" PRIu32 ".", frameTypeStr[frameType].c_str(), frameId);
+        LOGI("[Proto][Display] This is %s, frameId=%" PRIu32 ".",
+            frameTypeStr[static_cast<int32_t>(frameType)], frameId);
     }
 }
 

@@ -42,6 +42,7 @@ public:
     int Add(IEvent *event) override;
     int Remove(IEvent *event) override;
     int Run() override;
+    int Stop() override;
     int Modify(EventImpl *event, bool isAdd, EventsMask events);
     int Modify(EventImpl *event, EventTime time);
 
@@ -79,6 +80,7 @@ private:
     std::set<EventImpl *> polling_;
     bool pollingSetChanged_;
     std::thread::id loopThread_;
+    volatile bool running_;
 };
 }
 
