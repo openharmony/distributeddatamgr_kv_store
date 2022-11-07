@@ -512,6 +512,7 @@ describe('kvManagerCallbackTest', function () {
                     });
                 } catch (e) {
                     console.error('KVManagerDeleteKVStoreCallbackParaErrorTest deleteKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
+                    expect(e.code == 401).assertTrue();
                     done();
                 }
             });

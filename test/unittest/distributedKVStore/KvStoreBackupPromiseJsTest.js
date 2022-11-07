@@ -246,7 +246,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
             await publicBackup(kvStore, file)
                 .then(() => publicRestoreSp(kvStore, file))
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -271,7 +271,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
             files[0] = "legal";
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -295,7 +295,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
             files[0] = file;
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -319,7 +319,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
             files[0] = file;
             await publicBackup(kvStore, file)
                 .then(() => publicDeleteBackup(kvStore, files))
-                .then((data) => {
+                .then(() => {
                     let delResult = delresult[0];
                     expect(0).assertEqual(delResult[1]);
                     done();
@@ -390,7 +390,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
                 expect(true).assertEqual(JSON.stringify(err) == "{\"code\":\"\"}");
             })
             await sleep(1000);
-            await publicDeleteBackup(kvStore, files).then((data) => {
+            await publicDeleteBackup(kvStore, files).then(() => {
                 expect("1").assertEqual(delresult[0][0])
                 expect(0).assertEqual(delresult[0][1]);
 
@@ -417,7 +417,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
     it('KvStoreBackupManalRestorePromiseNoBackupTest', 0, async function (done) {
         try {
             file = 'legal';
-            await publicRestoreSp(kvStore, file).then((data) => {
+            await publicRestoreSp(kvStore, file).then(() => {
                 expect(true).assertEqual(false);
                 done();
             }).catch((err) => {
@@ -443,7 +443,7 @@ describe('kvStoreBackupPromiseJsunittest', function () {
         try {
             file = '123';
             files[0] = file;
-            await publicDeleteBackup(kvStore, files).then((data) => {
+            await publicDeleteBackup(kvStore, files).then(() => {
                 let delResult = delresult[0];
                 expect(27459591).assertEqual(delResult[1]);
                 done();

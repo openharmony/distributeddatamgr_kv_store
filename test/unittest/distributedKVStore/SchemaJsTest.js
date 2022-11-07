@@ -282,6 +282,7 @@ describe('schemaTest', function() {
             expect(null).assertFail();
         } catch (e) {
             console.info("schema exception fail on exception: " + e);
+            expect(e != null).assertTrue();
         }
         done();
     })

@@ -19,7 +19,7 @@ import ddm from '@ohos.data.distributedKVStore';
 describe('queryTest', function () {
 
     /**
-     * @tc.nameQueryResetOneSucTest
+     * @tc.name: QueryResetOneSucTest
      * @tc.desc: Test Js Api Query.reset() reset one calls successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -44,7 +44,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryResetDumpSucTest
+     * @tc.name: QueryResetDumpSucTest
      * @tc.desc: Test Js Api Query.reset() reset dumplicated calls successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -75,7 +75,7 @@ describe('queryTest', function () {
 
 
     /**
-     * @tc.nameQueryResetCalAfterResetTest
+     * @tc.name: QueryResetCalAfterResetTest
      * @tc.desc: Test Js Api Query.reset() call after reset successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -100,7 +100,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryResetInvalidArgumentsTest
+     * @tc.name: QueryResetInvalidArgumentsTest
      * @tc.desc: Test Js Api Query.reset() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -124,7 +124,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryEqualToSucTest
+     * @tc.name: QueryEqualToSucTest
      * @tc.desc: Test Js Api Query.equalTo() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -149,7 +149,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryEqualToMChainCallsTest
+     * @tc.name: QueryEqualToMChainCallsTest
      * @tc.desc: Test Js Api Query.equalTo() with chaining calls successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -171,7 +171,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryEqualToNanTest
+     * @tc.name: QueryEqualToNanTest
      * @tc.desc: Test Js Api Query.equalTo() with value Nan
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -192,7 +192,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryEqualToInvalidArgTest
+     * @tc.name: QueryEqualToInvalidArgTest
      * @tc.desc: Test Js Api Query.equalTo() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -203,19 +203,18 @@ describe('queryTest', function () {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
             query.equalTo("key1", "value", "too more");
-            console.info("should throw exception on invalid arguments");
-            console.info("query is " + query.getSqlLike());
+            console.info("should not throw exception on invalid arguments");
             expect(query.getSqlLike() !== "").assertTrue();
         } catch (e) {
-            console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(true).assertTrue();
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryNotEqualToSucTest
+     * @tc.name: QueryNotEqualToSucTest
      * @tc.desc: Test Js Api Query.notEualTo() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -240,7 +239,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotEqualToChainCallsTest
+     * @tc.name: QueryNotEqualToChainCallsTest
      * @tc.desc: Test Js Api Query.equalTo() with chaining calls successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -254,7 +253,6 @@ describe('queryTest', function () {
             query.reset();
             query.notEqualTo("key0", 5).equalTo("key1", 5).notEqualTo("key2", "str").notEqualTo("key3", false);
             expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
@@ -264,7 +262,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotEqualToNanTest
+     * @tc.name: QueryNotEqualToNanTest
      * @tc.desc: Test Js Api Query.equalTo() with nan values
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -276,7 +274,6 @@ describe('queryTest', function () {
             expect("").assertEqual(query.getSqlLike());
             query.notEqualTo("key2", NaN);
             expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
         } catch (e) {
             expect(null).assertFail();
         }
@@ -285,7 +282,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotEqualToInvalidArgTest
+     * @tc.name: QueryNotEqualToInvalidArgTest
      * @tc.desc: Test Js Api Query.equalTo() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -306,7 +303,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreaterThanSucTest
+     * @tc.name: QueryGreaterThanSucTest
      * @tc.desc: Test Js Api Query.greaterThan() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -331,7 +328,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreatThanChainCallsTest
+     * @tc.name: QueryGreatThanChainCallsTest
      * @tc.desc: Test Js Api Query.GreatThan() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -355,7 +352,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreatThanNanTest
+     * @tc.name: QueryGreatThanNanTest
      * @tc.desc: Test Js Api Query.GreatThan() with value nan
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -376,7 +373,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreatThanInvalidArgsTest
+     * @tc.name: QueryGreatThanInvalidArgsTest
      * @tc.desc: Test Js Api Query.GreatThan() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -398,7 +395,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanSucTest
+     * @tc.name: QueryLessThanSucTest
      * @tc.desc: Test Js Api Query.LessThan() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -413,16 +410,16 @@ describe('queryTest', function () {
             query.lessThan("key3", true);
             query.lessThan("key4", "string");
             expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLessThanChainCallsTest
+     * @tc.name: QueryLessThanChainCallsTest
      * @tc.desc: Test Js Api Query.LessThan() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -439,14 +436,14 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertTrue();
+            expect(null).assertFail();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLessThanNanTest
+     * @tc.name: QueryLessThanNanTest
      * @tc.desc: Test Js Api Query.LessThan() with value nan
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -466,7 +463,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanInvalidArgsTest
+     * @tc.name: QueryLessThanInvalidArgsTest
      * @tc.desc: Test Js Api Query.LessThan() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -488,7 +485,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreaterThanOrEqualToSucTest
+     * @tc.name: QueryGreaterThanOrEqualToSucTest
      * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -513,7 +510,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreaterThanOrEqualToChainCallsTest
+     * @tc.name: QueryGreaterThanOrEqualToChainCallsTest
      * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -539,7 +536,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreaterThanOrEqualToNanTest
+     * @tc.name: QueryGreaterThanOrEqualToNanTest
      * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with value nan
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -560,7 +557,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGreaterThanOrEqualToInvalidArgsTest
+     * @tc.name: QueryGreaterThanOrEqualToInvalidArgsTest
      * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with invalid arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -582,7 +579,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanOrEqualToSucTest
+     * @tc.name: QueryLessThanOrEqualToSucTest
      * @tc.desc: Test Js Api Query.LessThanOrEqualTo() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -607,7 +604,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanOrEqualToChainCallsTest
+     * @tc.name: QueryLessThanOrEqualToChainCallsTest
      * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -631,7 +628,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanOrEqualToNanTest
+     * @tc.name: QueryLessThanOrEqualToNanTest
      * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with value nan
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -651,7 +648,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLessThanOrEqualToInvalidMoreArgsTest
+     * @tc.name: QueryLessThanOrEqualToInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -673,7 +670,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNullSucTest
+     * @tc.name: QueryIsNullSucTest
      * @tc.desc: Test Js Api Query.IsNull() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -696,7 +693,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNullChainCallsTest
+     * @tc.name: QueryIsNullChainCallsTest
      * @tc.desc: Test Js Api Query.IsNull() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -718,7 +715,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNullInvalidMoreArgsTest
+     * @tc.name: QueryIsNullInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.IsNull() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -739,7 +736,7 @@ describe('queryTest', function () {
         done();
     })
     /**
-     * @tc.nameQueryIsNullInvalidTypeArgsTest
+     * @tc.name: QueryIsNullInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.IsNull() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -759,25 +756,8 @@ describe('queryTest', function () {
         done();
     })
 
-    /*
-    * =======================================================================================
-    *           Int8Array             |  INTEGER
-    *           Uint8Array            |  INTEGER
-    *           Uint8ClampedArray     |  INTEGER
-    *           Int16Array            |  INTEGER
-    *           Uint16Array           |  INTEGER
-    *           Int32Array            |  INTEGER
-    *           Uint32Array           |  LONG
-    *           Float32Array          |  DOUBLE
-    *           Float64Array          |  DOUBLE
-    *           BigInt64Array         |  ERROR: cannot convert to bigint
-    *           BigUint64Array        |  ERROR: cannot convert to bigint
-    * =======================================================================================
-	*           Array                 |  DOUBLE    * not-typedArray treated as array of double.
-    */
-
     /**
-     * @tc.nameQueryInNumberSucTest
+     * @tc.name: QueryInNumberSucTest
      * @tc.desc: Test Js Api Query.InNumber() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -828,7 +808,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInNumberChainCallsTest
+     * @tc.name: QueryInNumberChainCallsTest
      * @tc.desc: Test Js Api Query.InNumber() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -850,7 +830,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInNumberInvalidMoreArgsTest
+     * @tc.name: QueryInNumberInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.InNumber() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -872,7 +852,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInNumberInvalidTypeArgsTest
+     * @tc.name: QueryInNumberInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.InNumber() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -887,13 +867,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryInNumberInvalidArrayArgsTest
+     * @tc.name: QueryInNumberInvalidArrayArgsTest
      * @tc.desc: Test Js Api Query.InNumber() with invalid array args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -911,13 +892,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryInNumberDumpCallsTest
+     * @tc.name: QueryInNumberDumpCallsTest
      * @tc.desc: Test Js Api Query.InNumber() dumplicated calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -954,7 +936,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInStringSucTest
+     * @tc.name: QueryInStringSucTest
      * @tc.desc: Test Js Api Query.InString() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -977,7 +959,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInStringChainCallsTest
+     * @tc.name: QueryInStringChainCallsTest
      * @tc.desc: Test Js Api Query.InString() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1001,7 +983,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInStringInvalidMoreArgsTest
+     * @tc.name: QueryInStringInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.InString() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1023,7 +1005,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryInStringInvalidTypeArgsTest
+     * @tc.name: QueryInStringInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.InString() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1038,13 +1020,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryNotInNumberSucTest
+     * @tc.name: QueryNotInNumberSucTest
      * @tc.desc: Test Js Api Query.NotInNumber() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1067,7 +1050,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInNumberChainCallsTest
+     * @tc.name: QueryNotInNumberChainCallsTest
      * @tc.desc: Test Js Api Query.NotInNumber() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1089,7 +1072,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInNumberInvalidMoreArgsTest
+     * @tc.name: QueryNotInNumberInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.NotInNumber() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1111,7 +1094,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInNumberInvalidTypeArgsTest
+     * @tc.name: QueryNotInNumberInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.NotInNumber() with invalid type arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1127,13 +1110,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryNotInStringSucTest
+     * @tc.name: QueryNotInStringSucTest
      * @tc.desc: Test Js Api Query.NotInString() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1156,7 +1140,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInStringChainCallsTest
+     * @tc.name: QueryNotInStringChainCallsTest
      * @tc.desc: Test Js Api Query.NotInString() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1178,7 +1162,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInStringInvalidMoreArgsTest
+     * @tc.name: QueryNotInStringInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.NotInString() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1200,7 +1184,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryNotInStringInvalidTypeArgsTest
+     * @tc.name: QueryNotInStringInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.NotInString() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1215,13 +1199,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLikeSucTest
+     * @tc.name: QueryLikeSucTest
      * @tc.desc: Test Js Api Query.Like() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1244,7 +1229,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLikeChainCallsTest
+     * @tc.name: QueryLikeChainCallsTest
      * @tc.desc: Test Js Api Query.Like() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1266,7 +1251,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLikeInvalidArgsTypeTest
+     * @tc.name: QueryLikeInvalidArgsTypeTest
      * @tc.desc: Test Js Api Query.Like() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1281,13 +1266,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLikeInvalidMoreTypesTest
+     * @tc.name: QueryLikeInvalidMoreTypesTest
      * @tc.desc: Test Js Api Query.Like() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1309,7 +1295,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryUnlikeSucTest
+     * @tc.name: QueryUnlikeSucTest
      * @tc.desc: Test Js Api Query.Unlike() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1331,7 +1317,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryUnlikeChainCallsTest
+     * @tc.name: QueryUnlikeChainCallsTest
      * @tc.desc: Test Js Api Query.Unlike() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1353,7 +1339,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryUnlikeInvalidTypeArgsTest
+     * @tc.name: QueryUnlikeInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.Unlike() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1368,13 +1354,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryUnlikeInvalidMoreArgsTest
+     * @tc.name: QueryUnlikeInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.Unlike() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1396,7 +1383,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryAndSucTest
+     * @tc.name: QueryAndSucTest
      * @tc.desc: Test Js Api Query.And() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1420,7 +1407,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryAndEqualToTest
+     * @tc.name: QueryAndEqualToTest
      * @tc.desc: Test Js Api Query.And() equalto
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1442,7 +1429,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryAndNotEqualToTest
+     * @tc.name: QueryAndNotEqualToTest
      * @tc.desc: Test Js Api Query.And() notEqualTo
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1464,7 +1451,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryAndDiffTest
+     * @tc.name: QueryAndDiffTest
      * @tc.desc: Test Js Api Query.And() different calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1479,13 +1466,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryOrSucTest
+     * @tc.name: QueryOrSucTest
      * @tc.desc: Test Js Api Query.Or() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1509,7 +1497,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrEqualToTest
+     * @tc.name: QueryOrEqualToTest
      * @tc.desc: Test Js Api Query.Or() equalto
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1532,7 +1520,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrNotEqualToTest
+     * @tc.name: QueryOrNotEqualToTest
      * @tc.desc: Test Js Api Query.Or() notequalto
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1556,7 +1544,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrDiffTest
+     * @tc.name: QueryOrDiffTest
      * @tc.desc: Test Js Api Query.Or() with diff calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1571,13 +1559,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryOrderByAscSucTest
+     * @tc.name: QueryOrderByAscSucTest
      * @tc.desc: Test Js Api Query.OrderByAsc() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1600,7 +1589,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrderByAscChainCallsTest
+     * @tc.name: QueryOrderByAscChainCallsTest
      * @tc.desc: Test Js Api Query.OrderByAsc() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1622,7 +1611,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrderByAscInvalidArgsTest
+     * @tc.name: QueryOrderByAscInvalidArgsTest
      * @tc.desc: Test Js Api Query.OrderByAsc() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1637,13 +1626,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryOrderByAscWithNullTest
+     * @tc.name: QueryOrderByAscWithNullTest
      * @tc.desc: Test Js Api Query.OrderByAsc() null args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1658,13 +1648,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : ");
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryOrderByDescTest
+     * @tc.name: QueryOrderByDescTest
      * @tc.desc: Test Js Api Query.OrderByDesc() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1687,7 +1678,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrderByDescChainCallsTest
+     * @tc.name: QueryOrderByDescChainCallsTest
      * @tc.desc: Test Js Api Query.OrderByDesc() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1709,7 +1700,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryOrderByDescInvalidArgsTest
+     * @tc.name: QueryOrderByDescInvalidArgsTest
      * @tc.desc: Test Js Api Query.OrderByDesc() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1724,13 +1715,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryOrderByDescNullTest
+     * @tc.name: QueryOrderByDescNullTest
      * @tc.desc: Test Js Api Query.OrderByDesc() with null args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1745,13 +1737,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLimitSucTest
+     * @tc.name: QueryLimitSucTest
      * @tc.desc: Test Js Api Query.Limit() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1774,7 +1767,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLimitChainCallsTest
+     * @tc.name: QueryLimitChainCallsTest
      * @tc.desc: Test Js Api Query.Limit() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1797,7 +1790,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLimitMoreArgsTest
+     * @tc.name: QueryLimitMoreArgsTest
      * @tc.desc: Test Js Api Query.Limit() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1820,7 +1813,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryLimitLessArgsTest
+     * @tc.name: QueryLimitLessArgsTest
      * @tc.desc: Test Js Api Query.Limit() with invalid less args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1835,13 +1828,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryLimitInvalidTypeArgsTest
+     * @tc.name: QueryLimitInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.Limit() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1857,13 +1851,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryIsNotNullSucTest
+     * @tc.name: QueryIsNotNullSucTest
      * @tc.desc: Test Js Api Query.IsNotNull() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1885,7 +1880,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNotNullChainCallsTest
+     * @tc.name: QueryIsNotNullChainCallsTest
      * @tc.desc: Test Js Api Query.IsNotNull() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1907,7 +1902,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNotNullMoreArgsTest
+     * @tc.name: QueryIsNotNullMoreArgsTest
      * @tc.desc: Test Js Api Query.IsNotNull() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1929,7 +1924,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryIsNotNullInvalidTypeArgsTest
+     * @tc.name: QueryIsNotNullInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.IsNotNull() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1944,13 +1939,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryBeginGroupSucTest
+     * @tc.name: QueryBeginGroupSucTest
      * @tc.desc: Test Js Api Query.BeginGroup() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -1974,7 +1970,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryBeginGroupChainCallsTest
+     * @tc.name: QueryBeginGroupChainCallsTest
      * @tc.desc: Test Js Api Query.BeginGroup() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2000,7 +1996,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryBeginGroupInvalidTypeArgsTest
+     * @tc.name: QueryBeginGroupInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.BeginGroup() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2015,13 +2011,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryBeginGroupInvalidMoreArgsTest
+     * @tc.name: QueryBeginGroupInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.BeginGroup() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2043,7 +2040,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryEndGroupInvalidTypeArgsTest
+     * @tc.name: QueryEndGroupInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.EndGroup() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2058,13 +2055,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(true).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryPrefixKeySucTest
+     * @tc.name: QueryPrefixKeySucTest
      * @tc.desc: Test Js Api Query.PrefixKey() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2086,7 +2084,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryPrefixKeyChainCallsTest
+     * @tc.name: QueryPrefixKeyChainCallsTest
      * @tc.desc: Test Js Api Query.PrefixKey() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2107,7 +2105,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryPrefixKeyInvalidMoreArgsTest
+     * @tc.name: QueryPrefixKeyInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.PrefixKey() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2129,7 +2127,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryPrefixKeyInvalidTypeArgsTest
+     * @tc.name: QueryPrefixKeyInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.PrefixKey() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2144,13 +2142,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQuerySetSuggestIndexSucTest
+     * @tc.name: QuerySetSuggestIndexSucTest
      * @tc.desc: Test Js Api Query.SetSuggestIndex() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2172,7 +2171,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQuerySetSuggestIndexChainCallsTest
+     * @tc.name: QuerySetSuggestIndexChainCallsTest
      * @tc.desc: Test Js Api Query.SetSuggestIndex() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2193,7 +2192,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQuerySetSuggestIndexInvalidMoreArgsTest
+     * @tc.name: QuerySetSuggestIndexInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.SetSuggestIndex() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2215,7 +2214,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQuerySetSuggestIndexInvalidTypeArgsTest
+     * @tc.name: QuerySetSuggestIndexInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.SetSuggestIndex() with invalid more types
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2237,7 +2236,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryDeviceIdSucTest
+     * @tc.name: QueryDeviceIdSucTest
      * @tc.desc: Test Js Api Query.DeviceId() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2260,7 +2259,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryDeviceIdChainCallsTest
+     * @tc.name: QueryDeviceIdChainCallsTest
      * @tc.desc: Test Js Api Query.DeviceId() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2282,7 +2281,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryDeviceIdInvalidMoreArgsTest
+     * @tc.name: QueryDeviceIdInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.DeviceId() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2304,7 +2303,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryDeviceIdInvalidTypeArgsTest
+     * @tc.name: QueryDeviceIdInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.DeviceId() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2319,13 +2318,14 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.nameQueryGetSqlLikeSucTest
+     * @tc.name: QueryGetSqlLikeSucTest
      * @tc.desc: Test Js Api Query.GetSqlLike() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2349,7 +2349,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGetSqlLikeChainCallsTest
+     * @tc.name: QueryGetSqlLikeChainCallsTest
      * @tc.desc: Test Js Api Query.GetSqlLike() with chaining calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
@@ -2377,7 +2377,7 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.nameQueryGetSqlLikeInvalidMoreArgsTest
+     * @tc.name: QueryGetSqlLikeInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.GetSqlLike() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
