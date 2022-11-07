@@ -473,23 +473,23 @@ describe('deviceKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStorePutFloatPromiseTestSuc001
+     * @tc.name DeviceKvStorePutFloatPromiseSucTest
      * @tc.desc Test Js Api DeviceKvStore.Put(Float) successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutFloatPromiseTestSuc001', 0, async function (done) {
-        console.info('DeviceKvStorePutFloatPromiseTestSuc001');
+    it('DeviceKvStorePutFloatPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStorePutFloatPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then((data) => {
-                console.info('DeviceKvStorePutFloatPromiseTestSuc001 put success');
+                console.info('DeviceKvStorePutFloatPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutFloatPromiseTestSuc001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutFloatPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutFloatPromiseTestSuc001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutFloatPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
@@ -1527,9 +1527,11 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStorestartTransactionPromiseInvalidArgsTest startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         }catch(e) {
             console.error('DeviceKvStorestartTransactionPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1548,16 +1550,18 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreCommitPromiseInvalidArgsTest commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         }catch(e) {
             console.error('DeviceKvStoreCommitPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
      * @tc.name DeviceKvStoreRollbackPromiseInvalidArgsTest
-     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase 001
+     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -1569,9 +1573,11 @@ describe('deviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             }).catch((err) => {
                 console.error('DeviceKvStoreRollbackPromiseInvalidArgsTest rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
         }catch(e) {
             console.error('DeviceKvStoreRollbackPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -1968,7 +1974,7 @@ describe('deviceKvStorePromiseTest', function () {
             var query = new factory.Query();
             query.deviceId(localDeviceId);
             query.prefixKey("batch_test");
-            console.info("testDeviceKvStoreGetResultSet006 " + query.getSqlLike());
+            console.info("DeviceKvStorePutBatchPromiseStringTest " + query.getSqlLike());
             await kvStore.getResultSet(query).then((result) => {
                 console.info('DeviceKvStoregetResultSetPromiseQueryDeviceIdTest getResultSet success');
                 resultSet = result;
