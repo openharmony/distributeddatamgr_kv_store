@@ -18,14 +18,12 @@
 
 #include <string>
 #include <vector>
-#include "parcel.h"
 #include "visibility.h"
 
 namespace OHOS {
 namespace DistributedKv {
-// note: Blob derives from Parcelable, so hiding inner a interface using blob is not possible unless Parcelable
-// declared its interface as visible.
-class Blob : public virtual Parcelable {
+
+class Blob  {
 public:
     API_EXPORT Blob();
 
@@ -92,15 +90,6 @@ public:
 
     // Return true if "blob" is a prefix of "*this"
     API_EXPORT bool StartsWith(const Blob &blob) const;
-
-    // Write a parcelable object to the given parcel.
-    // The object position is saved into Parcel if set asRemote_ to
-    // true, and this intends to use in kernel data transaction.
-    // Returns true being written on success or false if any error occur.
-    API_EXPORT bool Marshalling(Parcel &parcel) const override;
-
-    // get data from the given parcel into this parcelable object.
-    API_EXPORT static Blob *Unmarshalling(Parcel &parcel);
 
     /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
     bool WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const;

@@ -1134,7 +1134,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     PredicatesProxy *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<OHOS::DistributedKv::Key> keys;
+
     Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");

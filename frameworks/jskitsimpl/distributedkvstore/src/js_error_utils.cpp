@@ -45,7 +45,7 @@ const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
     return std::nullopt;
 }
 
-Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessage)
+Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessage)
 {
     auto errormsg = GetJsErrorCode(status);
     if (errormsg.has_value()) {
@@ -53,7 +53,7 @@ Status GenerateNapiError(Status status ,int32_t &errCode, std::string &errMessag
         errCode = napiError.jsCode;
         errMessage = napiError.message;
     }
-    ZLOGD("GenerateNapiError errCode is %{public}d",errCode);
+    ZLOGD("GenerateNapiError errCode is %{public}d", errCode);
     if (errCode == 0) {
         return Status::SUCCESS;
     }

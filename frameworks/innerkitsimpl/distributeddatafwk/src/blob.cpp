@@ -183,20 +183,6 @@ bool Blob::StartsWith(const Blob &blob) const
     return true;
 }
 
-bool Blob::Marshalling(Parcel &parcel) const
-{
-    return parcel.WriteUInt8Vector(this->blob_);
-}
-
-Blob *Blob::Unmarshalling(Parcel &parcel)
-{
-    std::vector<uint8_t> blobData;
-    if (!parcel.ReadUInt8Vector(&blobData)) {
-        return nullptr;
-    }
-    return new Blob(blobData);
-}
-
 /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
 bool Blob::WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const
 {
