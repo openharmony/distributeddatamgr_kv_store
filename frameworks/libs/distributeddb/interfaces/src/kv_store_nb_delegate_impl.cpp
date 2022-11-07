@@ -834,14 +834,9 @@ DBStatus KvStoreNbDelegateImpl::DeleteInner(const IOption &option, const Key &ke
 void KvStoreNbDelegateImpl::OnSyncComplete(const std::map<std::string, int> &statuses,
     const std::function<void(const std::map<std::string, DBStatus> &devicesMap)> &onComplete) const
 {
-    const auto &statusMap = SyncOperation::DBStatusTransMap();
     std::map<std::string, DBStatus> result;
     for (const auto &pair : statuses) {
-        DBStatus status = DB_ERROR;
-        auto iter = statusMap.find(pair.second);
-        if (iter != statusMap.end()) {
-            status = iter->second;
-        }
+        DBStatus status = SyncOperation::DBStatusTrans(pair.second);
         result.insert(std::pair<std::string, DBStatus>(pair.first, status));
     }
     if (onComplete) {

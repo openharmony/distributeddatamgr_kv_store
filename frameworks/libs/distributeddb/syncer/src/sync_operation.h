@@ -128,6 +128,7 @@ public:
     static int TransferSyncMode(int mode);
 
     static std::map<int, DBStatus> DBStatusTransMap();
+    static DBStatus DBStatusTrans(int operationStatus);
 
 protected:
     virtual ~SyncOperation();

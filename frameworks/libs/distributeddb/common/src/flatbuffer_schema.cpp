@@ -241,9 +241,14 @@ int SchemaObject::FlatBufferSchema::VerifyFlatBufferValue(const RawValue &inValu
 }
 
 namespace {
+struct BaseTypeNode {
+    reflection::BaseType type;
+    FieldType fieldType;
+}
+
 FieldType MapFieldType(reflection::BaseType inType)
 {
-    std::map<reflection::BaseType, FieldType> fieldTypeMap{
+    static const BaseTypeNode baseTypeNodes[]= {
         {reflection::BaseType::Bool, FieldType::LEAF_FIELD_BOOL},
         {reflection::BaseType::Byte, FieldType::LEAF_FIELD_INTEGER},
         {reflection::BaseType::UByte, FieldType::LEAF_FIELD_INTEGER},
@@ -257,12 +262,14 @@ FieldType MapFieldType(reflection::BaseType inType)
         {reflection::BaseType::Double, FieldType::LEAF_FIELD_DOUBLE},
         {reflection::BaseType::String, FieldType::LEAF_FIELD_STRING},
         {reflection::BaseType::Vector, FieldType::LEAF_FIELD_ARRAY},
-        {reflection::BaseType::Obj, FieldType::INTERNAL_FIELD_OBJECT},
+        {reflection::BaseType::Obj, FieldType::INTERNAL_FIELD_OBJECT}
     };
-    if (fieldTypeMap.count(inType) == 0) {
-        return FieldType::LEAF_FIELD_NULL;
+    for (const auto &node : baseTypeNodes) {
+        if (node.type == inType) {
+            return node.fieldType;
+        }
     }
-    return fieldTypeMap[inType];
+    return FieldType::LEAF_FIELD_NULL;
 }
 
 RawString CheckDollarDotAndSkipIt(RawString inPath)
