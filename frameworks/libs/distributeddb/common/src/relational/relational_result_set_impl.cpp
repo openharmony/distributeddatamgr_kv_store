@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
+
+#include <mutex>
+
 #include "relational_result_set_impl.h"
 #include "kv_store_errno.h"
 

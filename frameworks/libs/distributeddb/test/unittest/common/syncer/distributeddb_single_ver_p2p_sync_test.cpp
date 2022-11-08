@@ -2578,6 +2578,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync001, TestSize.Level3)
     EXPECT_EQ(result.size(), 0u);
     VirtualDataItem actualValue;
     EXPECT_EQ(g_deviceB->GetData(key, actualValue), -E_NOT_FOUND);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 
 /**
@@ -2629,6 +2630,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync002, TestSize.Level3)
     DBStatus status = g_mgr.DeleteKvStore(STORE_ID);
     LOGD("delete kv store status %d", status);
     ASSERT_TRUE(status == OK);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 
 /**
