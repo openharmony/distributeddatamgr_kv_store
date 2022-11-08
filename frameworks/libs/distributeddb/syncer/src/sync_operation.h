@@ -127,7 +127,6 @@ public:
     static SyncType GetSyncType(int mode);
     static int TransferSyncMode(int mode);
 
-    static std::map<int, DBStatus> DBStatusTransMap();
     static DBStatus DBStatusTrans(int operationStatus);
 
 protected:

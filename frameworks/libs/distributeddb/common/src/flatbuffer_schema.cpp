@@ -244,11 +244,11 @@ namespace {
 struct BaseTypeNode {
     reflection::BaseType type;
     FieldType fieldType;
-}
+};
 
 FieldType MapFieldType(reflection::BaseType inType)
 {
-    static const BaseTypeNode baseTypeNodes[]= {
+    static const BaseTypeNode baseTypeNodes[] = {
         {reflection::BaseType::Bool, FieldType::LEAF_FIELD_BOOL},
         {reflection::BaseType::Byte, FieldType::LEAF_FIELD_INTEGER},
         {reflection::BaseType::UByte, FieldType::LEAF_FIELD_INTEGER},
