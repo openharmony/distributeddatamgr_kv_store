@@ -35,6 +35,7 @@ if (use_platform_win || use_platforn_mac) {
       "//third_party/json/single_include",
       "//third_party/libuv/include",
       "//third_party/node/src",
+      "//foundation/distributeddatamgr/kv_store",
       "//foundation/distributeddatamgr/kv_store/frameworks/common",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
