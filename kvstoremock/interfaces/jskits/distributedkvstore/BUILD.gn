@@ -45,6 +45,9 @@ if (use_platform_win || use_platforn_mac) {
       "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
       "//commonlibrary/c_utils/base/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+      "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework/include/utils",
+      "//foundation/ability/ability_runtime/interfaces/kits/native/ability/native",
+      "//foundation/bundlemanager/bundle_framework/interfaces/inner_api/appexecfwk_base/include",
     ]
     cflags_cc = [ "-std=c++17" ]
 

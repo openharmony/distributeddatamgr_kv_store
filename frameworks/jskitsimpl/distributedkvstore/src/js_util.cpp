@@ -12,28 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#if !defined(_WIN32) && !defined(_MACOS)
 #define LOG_TAG "JSUtil"
 #include "js_util.h"
-#include <endian.h>
-#include <securec.h>
+#include "endian_converter.h"
 #include "ability.h"
 #include "hap_module_info.h"
-#endif
-
+#include "napi_base_context.h"
 #include "js_schema.h"
 #include "kv_utils.h"
 #include "log_print.h"
-#include "napi_base_context.h"
 #include "napi_queue.h"
 #include "types.h"
 
 namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
-struct PredicatesProxy {
-    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates_;
-};
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
 {
@@ -1111,12 +1104,12 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
+    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
     std::vector<OHOS::DistributedKv::Key> keys;
     nstatus = napi_invalid_arg;
-    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(predicates->predicates_), keys);
+    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(predicates), keys);
     if (status == Status::SUCCESS) {
         ZLOGD("napi_value —> GetValue Blob ok");
         out = keys;
@@ -1131,18 +1124,16 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
+    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-
-    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates->predicates_), query);
+    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
     }
     return nstatus;
 }
 
-#if !defined(_WIN32) && !defined(_MACOS)
 napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
 {
     auto ability = AbilityRuntime::GetCurrentAbility(env);
@@ -1166,7 +1157,6 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
         param.baseDir.c_str());
     return napi_ok;
 }
-#endif
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
 {

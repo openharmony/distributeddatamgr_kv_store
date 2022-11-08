@@ -12,15 +12,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JSUtilMock"
 #include "js_util.h"
 #include "securec.h"
+
+#define OHOS_ABILITY_RUNTIME_ABILITY_H
+#define ABILITY_RUNTIME_NAPI_BASE_CONTEXT_H
+#define DISTRIBUTEDDATAMGR_ENDIAN_CONVERTER_H
+#define FOUNDATION_APPEXECFWK_INTERFACES_INNERKITS_APPEXECFWK_BASE_INCLUDE_HAP_MODULE_INFO_H
+
+#ifdef LOG_TAG
+#undef LOG_TAG
+#endif
 
 #define be32toh(data) data
 #define be64toh(data) data
 #define htobe32(data) data
 #define htobe64(data) data
-#define GetCurrentAbilityParam(env, param)    GetParam(env, param)
+
+#define GetCurrentAbility(env)    GetAbility()
 
 #ifdef _WIN32
 #define mkdir(dir, mode)  mkdir(dir)
@@ -30,26 +39,55 @@
 #define memcpy_s(t, tLen, s, len) memcpy(t, s, std::min(tlen, slen))
 #endif
 
-static napi_status GetParam(napi_env env, OHOS::DistributedKVStore::ContextParam &param)                                        
-{                                
-#ifdef _WIN32                                                                      
-    std::string baseDir = getenv("TEMP");                                              
-    if (baseDir.empty()) {                                                             
-        return napi_invalid_arg;                                                       
-    }                                                                                
-#else                                                                                  
-    std::string baseDir = getenv("LOGNAME");                                           
-    if (baseDir.empty()) {                                                             
-        return napi_invalid_arg;                                                       
-    }                                                                                  
-    baseDir = "/Users/" + baseDir + "/Library/Caches";                         
-#endif
-    mkdir(param.baseDir.c_str(), MODE);                                         
-    param.baseDir = baseDir + "/HuaweiDevEcoStudioDatabases";
-    param.area = OHOS::DistributedKv::Area::EL1;                                         
-    param.hapName = "com.example.myapplication";
-    return napi_ok;               
+class AbilityMock {
+public:
+        
+    AbilityMock() = default;
+
+    ~AbilityMock() = default;
+    
+    struct moduleInfo {
+        std::string moduleName = "com.example.myapplication";
+    };
+    
+    class contextMcok
+    {        
+    public:
+        int GetArea()
+        {
+            return OHOS::DistributedKv::Area::EL1;
+        };
+        
+        std::string GetDatabaseDir()
+        {
+        #ifdef _WIN32
+            std::string baseDir = getenv("TEMP");
+        #else
+            std::string baseDir = getenv("LOGNAME");
+            baseDir = "/Users/" + baseDir + "/Library/Caches";
+        #endif
+            baseDir = baseDir + "/HuaweiDevEcoStudioDatabases";
+            mkdir(baseDir.c_str(), MODE);
+            return baseDir;
+        }
+        
+        std::shared_ptr<moduleInfo> GetHapModuleInfo()
+        {
+            return std::make_shared<moduleInfo>();
+        }
+    };
+
+    std::shared_ptr<contextMcok> GetAbilityContext()
+    {
+        return std::make_shared<contextMcok>();
+    }    
+};
+
+namespace AbilityRuntime {
+    std::shared_ptr<AbilityMock> GetAbility()
+    {
+        return std::make_shared<AbilityMock>();
+    }
 }
 
-#include "../../frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp"
-
+#include "frameworks/jskitsimpl/distributedkvstore/src/js_util.cpp"
