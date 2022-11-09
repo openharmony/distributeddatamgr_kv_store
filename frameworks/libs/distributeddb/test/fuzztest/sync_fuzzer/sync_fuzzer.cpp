@@ -106,6 +106,9 @@ std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<K
 void NormalSyncPush(const uint8_t* data, size_t size, bool isWithQuery = false)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     std::vector<Key> keys;
     std::vector<Entry> tmp = CreateEntries(data, size, keys);
     g_kvDelegatePtr->PutBatch(tmp);
@@ -126,6 +129,9 @@ void NormalSyncPush(const uint8_t* data, size_t size, bool isWithQuery = false)
 void NormalSyncPull(const uint8_t* data, size_t size, bool isWithQuery = false)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     std::vector<Key> keys;
     std::vector<Entry> tmp = CreateEntries(data, size, keys);
     g_kvDelegatePtr->PutBatch(tmp);
@@ -156,6 +162,9 @@ void NormalSyncPull(const uint8_t* data, size_t size, bool isWithQuery = false)
 void NormalSyncPushAndPull(const uint8_t* data, size_t size, bool isWithQuery = false)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     std::vector<Key> keys;
     std::vector<Entry> tmp = CreateEntries(data, size, keys);
     g_kvDelegatePtr->PutBatch(tmp);
@@ -176,10 +185,12 @@ void NormalSyncPushAndPull(const uint8_t* data, size_t size, bool isWithQuery = 
 void SubscribeOperation(const uint8_t* data, size_t size)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
     Query query2 = Query::Select().EqualTo("$.field_name1", 1).Limit(20, 0);
-    LOGI("----begin to SubscribeRemoteQuery query2");
     g_kvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query2, true);
     std::set<Key> keys;
     int count = std::min(size, size_t(3));
@@ -197,6 +208,9 @@ void SubscribeOperation(const uint8_t* data, size_t size)
 void OtherOperation(const uint8_t* data, size_t size)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     int len = std::min(size, size_t(10));
     std::string tmpIdentifier(data, data + len);
     std::vector<std::string> targets;
@@ -206,7 +220,7 @@ void OtherOperation(const uint8_t* data, size_t size)
         std::string tmpStr(data + j, data + j + 1);
         j = j + 10; // target size is 10
         targets.push_back(tmpStr);
-        if ((1 + j) >= size) {
+        if ((1 + j) >= static_cast<int>(size)) {
             break;
         }
     }
@@ -217,6 +231,9 @@ void OtherOperation(const uint8_t* data, size_t size)
 void PragmaOperation(const uint8_t* data, size_t size)
 {
     SetUpTestcase();
+    if (g_kvDelegatePtr == nullptr) {
+        return;
+    }
     bool autoSync = (size == 0) ? true : data[0];
     PragmaData praData = static_cast<PragmaData>(&autoSync);
     g_kvDelegatePtr->Pragma(AUTO_SYNC, praData);
