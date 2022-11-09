@@ -1104,12 +1104,12 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates;
+    JSUtil *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
     std::vector<OHOS::DistributedKv::Key> keys;
     nstatus = napi_invalid_arg;
-    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(predicates), keys);
+    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(predicates->predicates_), keys);
     if (status == Status::SUCCESS) {
         ZLOGD("napi_value —> GetValue Blob ok");
         out = keys;
@@ -1124,10 +1124,10 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates;
+    JSUtil *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates), query);
+    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(predicates->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
     }
