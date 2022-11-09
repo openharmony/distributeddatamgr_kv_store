@@ -195,7 +195,6 @@ private:
     };
     static napi_status GetLevel(int32_t level, int32_t &out);
 
-    std::shared_ptr<OHOS::DataShare::DataShareAbsPredicates> predicates_;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

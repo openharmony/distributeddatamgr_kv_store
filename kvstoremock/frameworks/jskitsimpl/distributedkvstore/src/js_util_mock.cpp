@@ -35,7 +35,7 @@
 #define mkdir(dir, mode)  mkdir(dir)
 #endif
 
-#ifndef _WIN32
+#ifdef _MACOS
 #define memcpy_s(t, tLen, s, len) memcpy(t, s, std::min(tlen, slen))
 #endif
 
@@ -46,11 +46,11 @@ public:
 
     ~AbilityMock() = default;
     
-    struct moduleInfo {
+    struct ModuleInfo {
         std::string moduleName = "com.example.myapplication";
     };
     
-    class contextMcok
+    class ContextMcok
     {        
     public:
         int GetArea()
@@ -71,15 +71,15 @@ public:
             return baseDir;
         }
         
-        std::shared_ptr<moduleInfo> GetHapModuleInfo()
+        std::shared_ptr<ModuleInfo> GetHapModuleInfo()
         {
-            return std::make_shared<moduleInfo>();
+            return std::make_shared<ModuleInfo>();
         }
     };
 
-    std::shared_ptr<contextMcok> GetAbilityContext()
+    std::shared_ptr<ContextMcok> GetAbilityContext()
     {
-        return std::make_shared<contextMcok>();
+        return std::make_shared<ContextMcok>();
     }    
 };
 
