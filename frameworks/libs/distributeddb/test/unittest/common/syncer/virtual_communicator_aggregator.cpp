@@ -250,4 +250,29 @@ void VirtualCommunicatorAggregator::SetCurrentUserId(const std::string &userId)
 {
     userId_ = userId;
 }
+
+void VirtualCommunicatorAggregator::SetTimeout(const std::string &deviceId, uint32_t timeout)
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    if (communicators_.find(deviceId) != communicators_.end()) {
+        communicators_[deviceId]->SetTimeout(timeout);
+    }
+}
+
+void VirtualCommunicatorAggregator::SetDropMessageTypeByDevice(const std::string &deviceId, MessageId msgid,
+    uint32_t dropTimes)
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    if (communicators_.find(deviceId) != communicators_.end()) {
+        communicators_[deviceId]->SetDropMessageTypeByDevice(msgid, dropTimes);
+    }
+}
+
+void VirtualCommunicatorAggregator::SetDeviceMtuSize(const std::string &deviceId, uint32_t mtuSize)
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    if (communicators_.find(deviceId) != communicators_.end()) {
+        communicators_[deviceId]->SetCommunicatorMtuSize(mtuSize);
+    }
+}
 } // namespace DistributedDB

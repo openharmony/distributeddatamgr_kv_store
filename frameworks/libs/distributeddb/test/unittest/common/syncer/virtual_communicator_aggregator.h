@@ -70,6 +70,12 @@ public:
 
     void SetCurrentUserId(const std::string &userId);
 
+    void SetTimeout(const std::string &deviceId, uint32_t timeout);
+
+    void SetDropMessageTypeByDevice(const std::string &deviceId, MessageId msgid, uint32_t dropTimes = 1);
+
+    void SetDeviceMtuSize(const std::string &deviceId, uint32_t mtuSize);
+
     ~VirtualCommunicatorAggregator() {};
     VirtualCommunicatorAggregator() {};
 
