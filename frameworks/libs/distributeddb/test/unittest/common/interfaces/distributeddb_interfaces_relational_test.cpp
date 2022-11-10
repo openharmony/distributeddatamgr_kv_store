@@ -385,8 +385,17 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
     EXPECT_EQ(delegate->CreateDistributedTable("t1"), NOT_SUPPORT);
 
     /**
-     * @tc.steps:step4. Close store
-     * @tc.expected: step4. Return OK.
+     * @tc.steps:step4. Create distributed table temp table or not exist table
+     * @tc.expected: step4. Create distributed table failed.
+     */
+    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+    std::string tempTableSql = "CREATE TEMP TABLE child(x, y, z)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, tempTableSql), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+
+    /**
+     * @tc.steps:step5. Close store
+     * @tc.expected: step5. Return OK.
      */
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);

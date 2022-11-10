@@ -118,19 +118,19 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
         return -E_INVALID_DB;
     }
 
-    if (mode == DistributedTableMode::SPLIT_BY_DEVICE && !isUpgraded) {
-        bool isEmpty = false;
-        int errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, tableName, isEmpty);
-        if (errCode != E_OK || !isEmpty) {
-            LOGE("[CreateDistributedTable] check table empty failed. error=%d, isEmpty=%d", errCode, isEmpty);
-            return -E_NOT_SUPPORT;
-        }
-    }
-
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] analysis table schema failed. %d", errCode);
         return errCode;
+    }
+
+    if (mode == DistributedTableMode::SPLIT_BY_DEVICE && !isUpgraded) {
+        bool isEmpty = false;
+        errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, tableName, isEmpty);
+        if (errCode != E_OK || !isEmpty) {
+            LOGE("[CreateDistributedTable] check table empty failed. error=%d, isEmpty=%d", errCode, isEmpty);
+            return -E_NOT_SUPPORT;
+        }
     }
 
     errCode = CheckTableConstraint(table, mode);
