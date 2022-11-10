@@ -196,8 +196,17 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 // Stop syncer
 void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
 {
-    std::unique_lock<std::mutex> lock(syncerOperateLock_);
-    StopSyncerWithNoLock(isClosedOperation);
+    NotificationChain::Listener *userChangeListener = nullptr;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        StopSyncerWithNoLock(isClosedOperation);
+        userChangeListener = userChangeListener_;
+        userChangeListener_ = nullptr;
+    }
+    if (userChangeListener != nullptr) {
+        userChangeListener->Drop(true);
+        userChangeListener = nullptr;
+    }
 }
 
 void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
@@ -208,7 +217,7 @@ void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
         started_ = false;
     }
     closed_ = isClosedOperation;
-    if (userChangeListener_ != nullptr) {
+    if (!isClosedOperation && userChangeListener_ != nullptr) {
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }

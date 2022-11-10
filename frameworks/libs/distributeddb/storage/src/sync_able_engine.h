@@ -61,7 +61,7 @@ private:
     int StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActive);
 
     // Stop syncer
-    void StopSyncer(bool isClosedOperation = false);
+    void StopSyncer();
 
     void StopSyncerWithNoLock(bool isClosedOperation = false);
 
