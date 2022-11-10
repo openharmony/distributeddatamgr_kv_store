@@ -68,10 +68,10 @@ int ResultEntriesWindow::GetCurrentPosition() const
 
 bool ResultEntriesWindow::MoveToPosition(int position)
 {
-    if ((rawCursor_ == nullptr && buffer_.size() == 0) || (position < 0 || position >= totalCount_)) {
+    if ((rawCursor_ == nullptr && buffer_.empty()) || (position < 0 || position >= totalCount_)) {
         return false;
     }
-    if (buffer_.size() == 0) {
+    if (buffer_.empty()) {
         if (SetCursor(0, position) != E_OK) {
             return false;
         }
@@ -107,13 +107,13 @@ bool ResultEntriesWindow::MoveToPosition(int position)
 
 int ResultEntriesWindow::GetEntry(Entry &entry) const
 {
-    if (rawCursor_ == nullptr && buffer_.size() == 0) {
+    if (rawCursor_ == nullptr && buffer_.empty()) {
         return -E_NOT_INIT;
     }
     if (totalCount_ == 0) {
         return -E_NOT_FOUND;
     }
-    if (buffer_.size() == 0) {
+    if (buffer_.empty()) {
         int errCode = LoadData(0, currentPosition_);
         if (errCode != E_OK) {
             return errCode;
@@ -132,7 +132,6 @@ void ResultEntriesWindow::ResetWindow()
     }
     begin_ = 0;
     currentPosition_ = 0;
-    return;
 }
 
 int ResultEntriesWindow::SetCursor(int begin, int target)

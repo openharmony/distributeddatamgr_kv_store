@@ -37,7 +37,7 @@ namespace {
         return RuntimeContext::GetInstance()->GetSecurityOption(filePath, secOpt);
     }
 
-    enum class DbType {
+    enum class DbType : int32_t {
         MAIN,
         META,
         CACHE
@@ -45,16 +45,17 @@ namespace {
 
     std::string GetDbDir(const std::string &subDir, DbType type)
     {
-        static const std::map<DbType, std::string> dbDirDic {
-            { DbType::MAIN, DBConstant::MAINDB_DIR },
-            { DbType::META, DBConstant::METADB_DIR },
-            { DbType::CACHE, DBConstant::CACHEDB_DIR },
-        }; // for ensure static compilation order
-
-        if (dbDirDic.find(type) == dbDirDic.end()) {
-            return std::string();
+        switch (type) {
+            case DbType::MAIN:
+                return subDir + "/" + DBConstant::MAINDB_DIR;
+            case DbType::META:
+                return subDir + "/" + DBConstant::METADB_DIR;
+            case DbType::CACHE:
+                return subDir + "/" + DBConstant::CACHEDB_DIR;
+            default:
+                break;
         }
-        return subDir + "/" + dbDirDic.at(type);
+        return "";
     }
 } // namespace
 

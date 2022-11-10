@@ -37,4 +37,4 @@ protected:
 };
 } // namespace DistributedDB
 
-#endif // I_KV_DB_CONNECTION_H
+#endif // I_CONNECTION_H

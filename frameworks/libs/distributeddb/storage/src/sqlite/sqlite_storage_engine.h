@@ -13,14 +13,14 @@
  * limitations under the License.
  */
 
-#ifndef SQLITE_KVDB_HANDLE_POOL_H
-#define SQLITE_KVDB_HANDLE_POOL_H
+#ifndef SQLITE_STORAGE_ENGINE_H
+#define SQLITE_STORAGE_ENGINE_H
 
 #include <vector>
 
 #include "macro_utils.h"
-#include "storage_engine.h"
 #include "sqlite_utils.h"
+#include "storage_engine.h"
 
 namespace DistributedDB {
 class SQLiteStorageEngine : public StorageEngine {
@@ -71,4 +71,4 @@ protected:
     OpenDbProperties option_;
 };
 } // namespace DistributedDB
-#endif // SQLITE_DB_HANDLE_H
+#endif // SQLITE_STORAGE_ENGINE_H

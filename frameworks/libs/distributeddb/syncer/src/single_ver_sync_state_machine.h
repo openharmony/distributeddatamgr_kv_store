@@ -97,6 +97,8 @@ public:
         uint64_t &outValue);
 
     void InnerErrorAbort(uint32_t sessionId) override;
+
+    void NotifyClosing() override;
 protected:
     // Step the SingleVerSyncStateMachine
     void SyncStep() override;
@@ -195,7 +197,7 @@ private:
 
     void AddPullResponseTarget(const Message *inMsg, WaterMark pullEndWatermark);
 
-    Event TransformErrCodeToEvent(int errCode);
+    Event TransformErrCodeToEvent(int errCode) const;
 
     bool IsNeedResetWatchdog(const Message *inMsg) const;
 

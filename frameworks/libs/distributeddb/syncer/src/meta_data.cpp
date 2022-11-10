@@ -30,7 +30,6 @@ namespace {
     const int STR_TO_LL_BY_DEVALUE = 10;
     // store local timeoffset;this is a special key;
     const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
-    const std::string DEVICEID_PREFIX_KEY = "deviceId";
 }
 
 Metadata::Metadata()
@@ -321,7 +320,7 @@ int Metadata::LoadAllMetadata()
 
     std::vector<std::vector<uint8_t>> querySyncIds;
     for (const auto &deviceId : metaDataKeys) {
-        if (IsMetaDataKey(deviceId, DEVICEID_PREFIX_KEY)) {
+        if (IsMetaDataKey(deviceId, DBConstant::DEVICEID_PREFIX_KEY)) {
             errCode = LoadDeviceIdDataToMap(deviceId);
             if (errCode != E_OK) {
                 return errCode;
@@ -376,7 +375,7 @@ void Metadata::GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId,
         return;
     }
     if (deviceIdToHashDeviceIdMap_.count(deviceId) == 0) {
-        hashDeviceId = DEVICEID_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        hashDeviceId = DBConstant::DEVICEID_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
         deviceIdToHashDeviceIdMap_.insert(std::pair<DeviceID, DeviceID>(deviceId, hashDeviceId));
     } else {
         hashDeviceId = deviceIdToHashDeviceIdMap_[deviceId];

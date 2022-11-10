@@ -30,16 +30,20 @@ const std::string PerformanceAnalysis::DEFAULT_FILE_NAME = "default00";
 PerformanceAnalysis *PerformanceAnalysis::GetInstance(int stepNum)
 {
     static PerformanceAnalysis inst(stepNum);
+    inst.Initialization();
     return &inst;
 }
 
 PerformanceAnalysis::PerformanceAnalysis(uint32_t inStepNum)
     : isOpen_(false)
 {
-    if (inStepNum == 0) {
-        stepNum_ = 0;
-    }
     stepNum_ = inStepNum;
+    fileNumber_ = 0;
+    fileName_ = std::string(DEFAULT_FILE_NAME) + std::to_string(fileNumber_);
+}
+
+void PerformanceAnalysis::Initialization()
+{
     counts_.resize(stepNum_);
     timeRecordData_.timeInfo.resize(stepNum_);
     stepTimeRecordInfo_.resize(stepNum_);
@@ -51,8 +55,6 @@ PerformanceAnalysis::PerformanceAnalysis(uint32_t inStepNum)
     for (auto iter = counts_.begin(); iter != counts_.end(); ++iter) {
         *iter = 0;
     }
-    fileNumber_ = 0;
-    fileID_ = std::string(DEFAULT_FILE_NAME) + std::to_string(fileNumber_);
 }
 
 PerformanceAnalysis::~PerformanceAnalysis() {};
@@ -190,7 +192,7 @@ std::string PerformanceAnalysis::GetStatistics()
 
 void PerformanceAnalysis::OutStatistics()
 {
-    std::string addrStatistics = STATISTICAL_DATA_FILE_NAME_HEADER + fileID_ + CSV_FILE_EXTENSION;
+    std::string addrStatistics = STATISTICAL_DATA_FILE_NAME_HEADER + fileName_ + CSV_FILE_EXTENSION;
     outFile.open(addrStatistics, std::ios_base::app);
     if (!outFile.is_open()) {
         return;
@@ -220,11 +222,11 @@ void PerformanceAnalysis::Clear()
         iter.min = ULLONG_MAX;
         iter.average = 0;
     }
-    fileID_ = std::string(DEFAULT_FILE_NAME) + std::to_string(fileNumber_);
+    fileName_ = std::string(DEFAULT_FILE_NAME) + std::to_string(fileNumber_);
 }
 
-void PerformanceAnalysis::SetFileNumber(const std::string &FileID)
+void PerformanceAnalysis::SetFileName(const std::string &fileName)
 {
-    fileID_ = FileID;
+    fileName_ = fileName;
 }
 }  // namespace DistributedDB

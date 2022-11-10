@@ -149,7 +149,7 @@ public:
     virtual uint32_t GetRemoteSoftwareVersion() const = 0;
 
     // Get the remount software version id, when called GetRemoteSoftwareVersion this id will be increase.
-    // Used to check if the version num is is overdue
+    // Used to check if the version num is overdue
     virtual uint64_t GetRemoteSoftwareVersionId() const = 0;
 
     // Judge if the communicator is normal

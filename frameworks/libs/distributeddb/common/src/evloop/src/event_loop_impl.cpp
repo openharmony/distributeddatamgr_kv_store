@@ -98,7 +98,8 @@ private:
 };
 
 EventLoopImpl::EventLoopImpl()
-    : pollingSetChanged_(false)
+    : pollingSetChanged_(false),
+      running_(true)
 {
     OnKill([this](){ OnKillLoop(); });
 }
@@ -169,7 +170,7 @@ int EventLoopImpl::Run()
     int errCode;
     IncObjRef(this);
 
-    while (true) {
+    while (running_) {
         errCode = ProcessRequest();
         if (errCode != E_OK) {
             break;
@@ -205,6 +206,12 @@ int EventLoopImpl::Run()
         LOGE("Loop exited, err:'%d'.", errCode);
     }
     return errCode;
+}
+
+int EventLoopImpl::Stop()
+{
+    running_ = false;
+    return E_OK;
 }
 
 int EventLoopImpl::Modify(EventImpl *event, bool isAdd, EventsMask events)

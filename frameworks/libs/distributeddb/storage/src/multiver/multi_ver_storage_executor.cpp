@@ -826,7 +826,7 @@ int MultiVerStorageExecutor::CommitAllDbTransaction()
     }
 
     // start commit history transaction
-    errCode = commitStorage_->FinishlVacuum();
+    errCode = commitStorage_->FinishVacuum();
     if (errCode != E_OK) {
         LOGE("Finish commitStorage transaction failed:%d", errCode);
         goto END;

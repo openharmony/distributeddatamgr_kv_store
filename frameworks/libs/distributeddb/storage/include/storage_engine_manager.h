@@ -41,7 +41,7 @@ private:
     StorageEngineManager();
     ~StorageEngineManager();
 
-    // Get a StorageEngineManager instance, Singleton  mode
+    // Get a StorageEngineManager instance, Singleton mode
     static StorageEngineManager *GetInstance();
 
     int RegisterLockStatusListener();

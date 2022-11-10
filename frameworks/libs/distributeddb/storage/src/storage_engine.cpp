@@ -55,7 +55,7 @@ int StorageEngine::Init()
     if (engineAttr_.minReadNum == 0 && engineAttr_.minWriteNum == 0) {
         errCode = CreateNewExecutor(true, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            goto END;
         }
 
         if (handle != nullptr) {
@@ -68,7 +68,7 @@ int StorageEngine::Init()
         handle = nullptr;
         errCode = CreateNewExecutor(true, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            goto END;
         }
         AddStorageExecutor(handle);
     }
@@ -77,13 +77,13 @@ int StorageEngine::Init()
         handle = nullptr;
         errCode = CreateNewExecutor(false, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            goto END;
         }
         AddStorageExecutor(handle);
     }
     isInitialized_ = true;
 
-ERROR:
+END:
     if (errCode != E_OK) {
         // Assumed file system has classification function, can only get one write handle
         if (errCode == -E_EKEYREVOKED && !writeIdleList_.empty()) {
@@ -329,7 +329,6 @@ void StorageEngine::SetNotifiedCallback(const std::function<void(int, KvDBCommit
 {
     std::unique_lock<std::shared_mutex> lock(notifyMutex_);
     commitNotifyFunc_ = callback;
-    return;
 }
 
 void StorageEngine::SetConnectionFlag(bool isExisted)

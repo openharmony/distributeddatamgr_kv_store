@@ -319,15 +319,6 @@ StorageType DataValue::GetType() const
     return type_;
 }
 
-int DataValue::GetBlobLength(uint32_t &length) const
-{
-    if (type_ != StorageType::STORAGE_TYPE_BLOB && type_ != StorageType::STORAGE_TYPE_TEXT) {
-        return -E_NOT_SUPPORT;
-    }
-    length = value_.blobPtr->GetSize();
-    return E_OK;
-}
-
 void DataValue::ResetValue()
 {
     switch (type_) {

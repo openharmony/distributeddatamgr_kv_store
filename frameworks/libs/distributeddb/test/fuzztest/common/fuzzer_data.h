@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,23 +12,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef RELATIONAL_STORE
-#include "relational_store_connection.h"
-#include "db_errno.h"
 
-namespace DistributedDB {
-RelationalStoreConnection::RelationalStoreConnection() : isExclusive_(false)
-{}
 
-RelationalStoreConnection::RelationalStoreConnection(IRelationalStore *store)
-    : store_(store), isExclusive_(false)
-{}
+#ifndef FUZZER_DATA_H
+#define FUZZER_DATA_H
 
-int RelationalStoreConnection::Pragma(int cmd, void *parameter)
-{
-    (void) cmd;
-    (void) parameter;
-    return E_OK;
-}
-}
-#endif
+#include <cstdint>
+#include <vector>
+
+namespace DistributedDBTest {
+class FuzzerData final {
+public:
+    FuzzerData(const uint8_t *data, size_t size);
+    ~FuzzerData();
+
+    int GetInt();
+    uint32_t GetUInt32();
+    uint64_t GetUInt64();
+    std::vector<uint8_t> GetSequence(size_t size);
+private:
+    const uint8_t *data_;
+    const size_t size_;
+    const uint8_t *curr_;
+};
+} // DistributedDBTest
+#endif // FUZZER_DATA_H

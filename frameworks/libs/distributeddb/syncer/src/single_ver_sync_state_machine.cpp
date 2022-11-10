@@ -645,34 +645,39 @@ int SingleVerSyncStateMachine::HandleDataRequestRecv(const Message *inMsg)
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_DATA_REQUEST_RECV_TO_SEND_ACK);
     }
     DecRefCountOfFeedDogTimer(SyncDirectionFlag::RECEIVE);
+
+    // RequestRecv will save data, it may cost a long time.
+    // So we need to send save data notify to keep remote alive.
+    bool isNeedStop = StartSaveDataNotify(inMsg->GetSessionId(), inMsg->GetSequenceId(), inMsg->GetMessageId());
     {
         std::lock_guard<std::mutex> lockWatchDog(stateMachineLock_);
         if (IsNeedResetWatchdog(inMsg)) {
             (void)ResetWatchDog();
         }
     }
-
-    // RequestRecv will save data, it may cost a long time.
-    // So we need to send save data notify to keep remote alive.
-    bool isNeedStop = StartSaveDataNotify(inMsg->GetSessionId(), inMsg->GetSequenceId(), inMsg->GetMessageId());
     WaterMark pullEndWaterkark = 0;
     errCode = dataSync_->DataRequestRecv(context_, inMsg, pullEndWaterkark);
     if (performance != nullptr) {
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_DATA_REQUEST_RECV_TO_SEND_ACK);
     }
-    if (isNeedStop) {
-        StopSaveDataNotify();
-    }
     // only higher than 102 version receive this errCode here.
     // while both RequestSessionId is not equal,but get this errCode;slwr would seem to handle first secquencid.
     // so while receive the same secquencid after abiitysync it wouldn't handle.
     if (errCode == -E_NEED_ABILITY_SYNC) {
+        if (isNeedStop) {
+            StopSaveDataNotify();
+        }
         return errCode;
     }
-    std::lock_guard<std::mutex> lock(stateMachineLock_);
-    DataRecvErrCodeHandle(inMsg->GetSessionId(), errCode);
-    if (pullEndWaterkark > 0) {
-        AddPullResponseTarget(inMsg, pullEndWaterkark);
+    {
+        std::lock_guard<std::mutex> lock(stateMachineLock_);
+        DataRecvErrCodeHandle(inMsg->GetSessionId(), errCode);
+        if (pullEndWaterkark > 0) {
+            AddPullResponseTarget(inMsg, pullEndWaterkark);
+        }
+    }
+    if (isNeedStop) {
+        StopSaveDataNotify();
     }
     return E_OK;
 }
@@ -841,9 +846,15 @@ void SingleVerSyncStateMachine::StepToTimeout(TimerId timerId)
     SwitchStateAndStep(Event::TIME_OUT_EVENT);
 }
 
+namespace {
+struct StateNode {
+    int errCode = 0;
+    SyncOperation::Status status = SyncOperation::OP_WAITING;
+};
+}
 int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
 {
-    static const std::map<int, int> statusMap = {
+    static const StateNode stateNodes[] = {
         { -E_SCHEMA_MISMATCH,                 SyncOperation::OP_SCHEMA_INCOMPATIBLE },
         { -E_EKEYREVOKED,                     SyncOperation::OP_EKEYREVOKED_FAILURE },
         { -E_SECURITY_OPTION_CHECK_ERROR,     SyncOperation::OP_SECURITY_OPTION_CHECK_FAILURE },
@@ -861,11 +872,12 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_NOT_REGISTER,                    SyncOperation::OP_NOT_SUPPORT },
         { -E_DENIED_SQL,                      SyncOperation::OP_DENIED_SQL },
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
-        { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED },
+        { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED }
     };
-    auto iter = statusMap.find(errCode);
-    if (iter != statusMap.end()) {
-        return iter->second;
+    for (const auto &node : stateNodes) {
+        if (node.errCode == errCode) {
+            return static_cast<int>(node.status);
+        }
     }
     return SyncOperation::OP_FAILED;
 }
@@ -1015,7 +1027,7 @@ void SingleVerSyncStateMachine::AddPullResponseTarget(const Message *inMsg, Wate
     }
 }
 
-Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode)
+Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode) const
 {
     switch (errCode) {
         case -E_TIMEOUT:
@@ -1250,6 +1262,13 @@ void SingleVerSyncStateMachine::InnerErrorAbort(uint32_t sessionId)
     }
     if (SwitchMachineState(Event::INNER_ERR_EVENT) == E_OK) {
         SyncStep();
+    }
+}
+
+void SingleVerSyncStateMachine::NotifyClosing()
+{
+    if (timeSync_ != nullptr) {
+        timeSync_->Close();
     }
 }
 } // namespace DistributedDB

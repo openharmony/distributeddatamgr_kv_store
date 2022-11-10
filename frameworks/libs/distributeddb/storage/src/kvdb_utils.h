@@ -35,4 +35,4 @@ public:
     static int RemoveKvDB(const std::string &dirAll, const std::string &dirStoreOnly, const std::string &dbName);
 };
 } // namespace DistributedDB
-#endif // LOCAL_KVDB_H
+#endif // KVDB_UTILLS_H

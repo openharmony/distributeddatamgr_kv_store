@@ -60,10 +60,9 @@ static void Clear(ofstream &target, const string &targetFile)
     if (target.is_open()) {
         target.close();
     }
-    if (OS::RemoveFile(targetFile.c_str()) != E_OK) {
+    if (OS::RemoveFile(targetFile) != E_OK) {
         LOGE("Remove file failed.");
     }
-    return;
 }
 
 static int GetChecksum(const string &file, vector<char> &result)

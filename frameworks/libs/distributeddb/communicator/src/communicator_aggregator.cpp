@@ -15,6 +15,8 @@
 
 #include "communicator_aggregator.h"
 
+#include <sstream>
+
 #include "hash.h"
 #include "communicator.h"
 #include "communicator_linker.h"

@@ -818,6 +818,7 @@ group("distributeddatamgr_fuzztest") {
     "fuzztest/parseckeck_fuzzer:fuzztest",
     "fuzztest/query_fuzzer:fuzztest",
     "fuzztest/rekey_fuzzer:fuzztest",
+    "fuzztest/schemadelegate_fuzzer:fuzztest",
   ]
 }
 ###############################################################################

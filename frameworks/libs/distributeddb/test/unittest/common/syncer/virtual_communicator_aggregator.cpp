@@ -143,7 +143,7 @@ ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(const std::strin
     }
     {
         std::lock_guard<std::mutex> lock(communicatorsLock_);
-        communicators_.insert(std::pair<std::string, ICommunicator *>(deviceId, communicator));
+        communicators_.insert(std::pair<std::string, VirtualCommunicator *>(deviceId, communicator));
     }
     OnlineDevice(deviceId);
     return communicator;
@@ -249,5 +249,13 @@ void VirtualCommunicatorAggregator::RegOnDispatch(
 void VirtualCommunicatorAggregator::SetCurrentUserId(const std::string &userId)
 {
     userId_ = userId;
+}
+
+void VirtualCommunicatorAggregator::SetTimeout(const std::string &deviceId, uint32_t timeout)
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    if (communicators_.find(deviceId) != communicators_.end()) {
+        communicators_[deviceId]->SetTimeout(timeout);
+    }
 }
 } // namespace DistributedDB

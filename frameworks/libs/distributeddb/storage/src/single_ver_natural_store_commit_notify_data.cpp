@@ -45,7 +45,6 @@ const std::list<KvDBConflictEntry> SingleVerNaturalStoreCommitNotifyData::GetCom
 void SingleVerNaturalStoreCommitNotifyData::SetFilterKey(const Key &key)
 {
     keyFilter_ = key;
-    return;
 }
 
 bool SingleVerNaturalStoreCommitNotifyData::IsChangedDataEmpty() const

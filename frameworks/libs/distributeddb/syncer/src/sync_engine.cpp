@@ -113,12 +113,6 @@ int SyncEngine::Close()
     UnRegCommunicatorsCallback();
     StopAutoSubscribeTimer();
 
-    std::unique_lock<std::mutex> closeLock(execTaskCountLock_);
-    bool isTimeout = execTaskCv_.wait_for(closeLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
-        [this]() { return execTaskCount_ == 0; });
-    if (!isTimeout) {
-        LOGD("SyncEngine Close with executing task!");
-    }
     // Clear SyncContexts
     {
         std::unique_lock<std::mutex> lock(contextMapLock_);
@@ -133,6 +127,7 @@ int SyncEngine::Close()
         syncTaskContextMap_.clear();
     }
 
+    WaitingExecTaskExist();
     ReleaseCommunicators();
     std::lock_guard<std::mutex> msgLock(queueLock_);
     while (!msgQueue_.empty()) {
@@ -508,6 +503,7 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
         DecExecTaskCount();
         return -E_BUSY;
     }
+    RefObject::DecObjRef(executor);
     int msgSize = 0;
     if (!IsSkipCalculateLen(inMsg)) {
         msgSize = GetMsgSize(inMsg);
@@ -633,9 +629,16 @@ ISyncTaskContext *SyncEngine::GetSyncTaskContext(const std::string &deviceId, in
     syncTaskContextMap_.insert(std::pair<std::string, ISyncTaskContext *>(deviceId, context));
     // IncRef for SyncEngine to make sure SyncEngine is valid when context access
     RefObject::IncObjRef(this);
-    context->OnLastRef([this, deviceId]() {
+    auto storage = syncInterface_;
+    if (storage != nullptr) {
+        storage->IncRefCount();
+    }
+    context->OnLastRef([this, deviceId, storage]() {
         LOGD("[SyncEngine] SyncTaskContext for id %s finalized", STR_MASK(deviceId));
         RefObject::DecObjRef(this);
+        if (storage != nullptr) {
+            storage->DecRefCount();
+        }
     });
     context->RegOnSyncTask(std::bind(&SyncEngine::ExecSyncTask, this, context));
     return context;
@@ -1039,6 +1042,7 @@ int SyncEngine::RemoteQuery(const std::string &device, const RemoteCondition &co
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return -E_BUSY; // db is closing just return
     }
     int errCode = executor->RemoteQuery(device, condition, timeout, connectionId, result);
@@ -1050,6 +1054,7 @@ void SyncEngine::NotifyConnectionClosed(uint64_t connectionId)
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return; // db is closing just return
     }
     executor->NotifyConnectionClosed(connectionId);
@@ -1060,6 +1065,7 @@ void SyncEngine::NotifyUserChange()
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (!isActive_ || executor == nullptr) {
+        RefObject::DecObjRef(executor);
         return; // db is closing just return
     }
     executor->NotifyUserChange();
@@ -1102,7 +1108,7 @@ int SyncEngine::GetLocalDeviceId(std::string &deviceId)
 
 void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
 {
-    ISyncTaskContext *abortContext = nullptr;
+    std::vector<ISyncTaskContext *> abortContexts;
     {
         std::lock_guard<std::mutex> lock(contextMapLock_);
         for (const auto &entry : syncTaskContextMap_) {
@@ -1112,15 +1118,25 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
             }
             RefObject::IncObjRef(context);
             if (context->GetSyncId() == syncId) {
-                abortContext = context;
-                RefObject::IncObjRef(abortContext);
+                RefObject::IncObjRef(context);
+                abortContexts.push_back(context);
             }
             RefObject::DecObjRef(context);
         }
     }
-    if (abortContext != nullptr) {
+    for (const auto &abortContext : abortContexts) {
         abortContext->AbortMachineIfNeed(static_cast<uint32_t>(syncId));
         RefObject::DecObjRef(abortContext);
+    }
+}
+
+void SyncEngine::WaitingExecTaskExist()
+{
+    std::unique_lock<std::mutex> closeLock(execTaskCountLock_);
+    bool isTimeout = execTaskCv_.wait_for(closeLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
+        [this]() { return execTaskCount_ == 0; });
+    if (!isTimeout) {
+        LOGD("SyncEngine Close with executing task!");
     }
 }
 } // namespace DistributedDB

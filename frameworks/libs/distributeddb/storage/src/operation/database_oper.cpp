@@ -366,7 +366,7 @@ int DatabaseOper::RemoveFile(const std::string &fileName)
         return E_OK;
     }
 
-    if (OS::RemoveFile(fileName.c_str()) != E_OK) {
+    if (OS::RemoveFile(fileName) != E_OK) {
         LOGE("Remove file failed:%d", errno);
         return -E_REMOVE_FILE;
     }

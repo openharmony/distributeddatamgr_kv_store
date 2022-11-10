@@ -83,19 +83,19 @@ void SingleVerKVSyncer::LocalDataChanged(int notifyEvent)
         return;
     }
     triggerSyncTask_ = false;
+    std::vector<std::string> devices;
+    GetOnlineDevices(devices);
+    if (devices.empty()) {
+        LOGI("[Syncer] LocalDataChanged no online devices, Label=%s", label_.c_str());
+        triggerSyncTask_ = true;
+        return;
+    }
     RefObject::IncObjRef(syncEngine_);
     // To avoid many task were produced and waiting in the queue. For example, put value in a loop.
     // It will consume thread pool resources, so other task will delay until these task finish.
     // In extreme situation, 10 thread run the localDataChanged task and 1 task waiting in queue.
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this] {
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, devices] {
         triggerSyncTask_ = true;
-        std::vector<std::string> devices;
-        GetOnlineDevices(devices);
-        if (devices.empty()) {
-            LOGI("[Syncer] LocalDataChanged no online devices, Label=%s", label_.c_str());
-            RefObject::DecObjRef(syncEngine_);
-            return;
-        }
         if (!TryFullSync(devices)) {
             TriggerSubQuerySync(devices);
         }

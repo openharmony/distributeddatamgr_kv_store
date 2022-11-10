@@ -150,7 +150,7 @@ int SQLiteSingleVerStorageExecutor::AddSubscribeTrigger(QueryObject &query, cons
 {
     if (executorState_ == ExecutorState::CACHEDB || executorState_ == ExecutorState::CACHE_ATTACH_MAIN) {
         LOGE("Not support add subscribe in cache db.");
-        return -E_NOT_SUPPORT;
+        return -E_EKEYREVOKED;
     }
     int errCode = E_OK;
     SqliteQueryHelper helper = query.GetQueryHelper(errCode);

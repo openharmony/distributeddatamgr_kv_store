@@ -121,6 +121,7 @@ public:
 
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
+    int GetMetaKeysByKeyPrefix(const std::string &keyPre, std::vector<std::string> &keys) const;
 
     int GetAllSyncedEntries(const std::string &deviceName, std::vector<Entry> &entries) const;
 
@@ -248,6 +249,8 @@ public:
 
     uint64_t GetLogFileSize() const;
 
+    int GetExistsDevicesFromMeta(std::vector<std::string> &deviceList);
+
 private:
     struct SaveRecordStatements {
         sqlite3_stmt *queryStatement = nullptr;
@@ -263,7 +266,7 @@ private:
     };
 
     void PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet, const DataOperStatus &status,
-        const Key &hashKey, SingleVerNaturalStoreCommitNotifyData *committedData);
+        SingleVerNaturalStoreCommitNotifyData *committedData);
 
     static int BindSavedSyncData(sqlite3_stmt *statement, const DataItem &dataItem, const Key &hashKey,
         const SyncDataDevices &devices, bool isUpdate);

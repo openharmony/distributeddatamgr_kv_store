@@ -86,6 +86,16 @@ void ExecSqlAndAssertOK(sqlite3 *db, const std::string &sql)
 {
     ASSERT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
 }
+
+void FreeEntires(std::vector<SingleVerKvEntry *> &entries)
+{
+    for (auto *&it : entries) {
+        if (it != nullptr) {
+            delete it;
+            it = nullptr;
+        }
+    }
+}
 }
 
 class DistributedDBRelationalEncryptedDbTest : public testing::Test {
@@ -254,7 +264,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithPasswdInSpli
     std::vector<SingleVerKvEntry *> entries;
     EXPECT_EQ(store->GetSyncData(query, SyncTimeRange {}, DataSizeSpecInfo {}, token, entries), E_OK);
     EXPECT_EQ(entries.size(), 3u);
-
+    FreeEntires(entries);
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
 }
@@ -356,7 +366,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, OpenEncryptedDBWithCustomizedIt
     std::vector<SingleVerKvEntry *> entries;
     EXPECT_EQ(store->GetSyncData(query, SyncTimeRange {}, DataSizeSpecInfo {}, token, entries), E_OK);
     EXPECT_EQ(entries.size(), 3u);
-
+    FreeEntires(entries);
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
 }
@@ -432,7 +442,7 @@ HWTEST_F(DistributedDBRelationalEncryptedDbTest, RekeyAfterOpenStore_001, TestSi
     store = GetRelationalStore();
     ASSERT_NE(store, nullptr);
     EXPECT_EQ(store->GetSyncData(query, SyncTimeRange {}, DataSizeSpecInfo {}, token, entries), E_OK);
-
+    FreeEntires(entries);
     sqlite3_close(db);
     RefObject::DecObjRef(g_store);
 }

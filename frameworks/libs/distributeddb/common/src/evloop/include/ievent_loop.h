@@ -38,6 +38,8 @@ public:
     // Run the loop.
     virtual int Run() = 0;
 
+    virtual int Stop() = 0;
+
     // Create a loop object.
     static IEventLoop *CreateEventLoop(int &errCode);
 

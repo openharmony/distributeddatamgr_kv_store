@@ -31,6 +31,8 @@ SyncStateMachine::SyncStateMachine()
       currentSyncProctolVersion_(SINGLE_VER_SYNC_PROCTOL_V3),
       saveDataNotifyTimerId_(0),
       saveDataNotifyCount_(0),
+      waitingResetLockBySaveData_(false),
+      saveDataNotifyRefCount_(0),
       getDataNotifyTimerId_(0),
       getDataNotifyCount_(0)
 {
@@ -223,10 +225,11 @@ void SyncStateMachine::StopWatchDog()
 bool SyncStateMachine::StartSaveDataNotify(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
     std::lock_guard<std::mutex> lockGuard(saveDataNotifyLock_);
+    saveDataNotifyRefCount_++;
     if (saveDataNotifyTimerId_ > 0) {
         saveDataNotifyCount_ = 0;
         LOGW("[SyncStateMachine][SaveDataNotify] timer has been started!");
-        return false;
+        return true;
     }
 
     // Incref to make sure context still alive before timer stopped.
@@ -249,6 +252,7 @@ bool SyncStateMachine::StartSaveDataNotify(uint32_t sessionId, uint32_t sequence
         saveDataNotifyTimerId_);
     if (errCode != E_OK) {
         LOGW("[SyncStateMachine][SaveDataNotify] start timer failed err %d !", errCode);
+        saveDataNotifyRefCount_--;
         return false;
     }
     return true;
@@ -266,9 +270,14 @@ void SyncStateMachine::StopSaveDataNotifyNoLock()
         LOGI("[SyncStateMachine][SaveDataNotify] timer is not started!");
         return;
     }
+    saveDataNotifyRefCount_--;
+    if (saveDataNotifyRefCount_ > 0) {
+        return;
+    }
     RuntimeContext::GetInstance()->RemoveTimer(saveDataNotifyTimerId_);
     saveDataNotifyTimerId_ = 0;
     saveDataNotifyCount_ = 0;
+    saveDataNotifyRefCount_ = 0;
 }
 
 bool SyncStateMachine::StartFeedDogForSync(uint32_t time, SyncDirectionFlag flag)
@@ -375,17 +384,26 @@ void SyncStateMachine::DecRefCountOfFeedDogTimer(SyncDirectionFlag flag)
 
 void SyncStateMachine::DoSaveDataNotify(uint32_t sessionId, uint32_t sequenceId, uint32_t inMsgId)
 {
+    // we send notify packet at first, because it will cost a lot of time to get machine lock
     {
-        std::lock_guard<std::mutex> lock(stateMachineLock_);
-        (void)ResetWatchDog();
+        std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
+        if (saveDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
+            StopSaveDataNotifyNoLock();
+            return;
+        }
+        SendNotifyPacket(sessionId, sequenceId, inMsgId);
+        saveDataNotifyCount_++;
+        if (waitingResetLockBySaveData_) {
+            return;
+        }
+        waitingResetLockBySaveData_ = true;
     }
-    std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
-    if (saveDataNotifyCount_ >= MAX_DATA_NOTIFY_COUNT) {
-        StopSaveDataNotifyNoLock();
-        return;
+    std::lock_guard<std::mutex> lock(stateMachineLock_);
+    {
+        std::lock_guard<std::mutex> innerLock(saveDataNotifyLock_);
+        waitingResetLockBySaveData_ = false;
     }
-    SendNotifyPacket(sessionId, sequenceId, inMsgId);
-    saveDataNotifyCount_++;
+    (void)ResetWatchDog();
 }
 
 void SyncStateMachine::DoFeedDogForSync(SyncDirectionFlag flag)
@@ -406,6 +424,11 @@ void SyncStateMachine::InnerErrorAbort(uint32_t sessionId)
 {
     // do nothing
     (void) sessionId;
+}
+
+void SyncStateMachine::NotifyClosing()
+{
+    // do nothing
 }
 
 void SyncStateMachine::StartFeedDogForGetData(uint32_t sessionId)

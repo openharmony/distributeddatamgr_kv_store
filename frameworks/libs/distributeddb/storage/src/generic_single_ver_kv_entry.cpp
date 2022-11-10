@@ -243,14 +243,14 @@ int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVe
     return errCode;
 }
 
-int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVersion, uint64_t &datalen)
+int GenericSingleVerKvEntry::AdaptToVersion(OperType operType, uint32_t targetVersion, uint64_t &dataLen)
 {
     if (targetVersion < SOFTWARE_VERSION_EARLIEST || targetVersion > SOFTWARE_VERSION_CURRENT) {
         return -E_VERSION_NOT_SUPPORT;
     }
 
     if (operType == OperType::CAL_LEN) {
-        return CalLenByVersion(targetVersion, datalen);
+        return CalLenByVersion(targetVersion, dataLen);
     } else {
         LOGE("Unknown upgrade serialize oper!");
         return -E_UPGRADE_FAILED;

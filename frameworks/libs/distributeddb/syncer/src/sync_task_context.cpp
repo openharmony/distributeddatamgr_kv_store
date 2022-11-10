@@ -536,15 +536,28 @@ void SyncTaskContext::CommErrHandlerFuncInner(int errCode, uint32_t sessionId)
 
 int SyncTaskContext::TimeOut(TimerId id)
 {
-    int errCode = E_OK;
     if (!timeOutCallback_) {
-        return errCode;
+        return E_OK;
     }
-    if (IncUsedCount() == E_OK) {
-        errCode = timeOutCallback_(id);
+    int errCode = IncUsedCount();
+    if (errCode != E_OK) {
+        LOGW("[SyncTaskContext][TimeOut] IncUsedCount failed! errCode=", errCode);
+        // if return is not E_OK, the timer will be removed
+        // we removed timer when context call StopTimer
+        return E_OK;
+    }
+    IncObjRef(this);
+    errCode = RuntimeContext::GetInstance()->ScheduleTask([this, id]() {
+        timeOutCallback_(id);
         SafeExit();
+        DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        LOGW("[SyncTaskContext][Timeout] Trigger Timeout Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
+        SafeExit();
+        DecObjRef(this);
     }
-    return errCode;
+    return E_OK;
 }
 
 void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam)
@@ -591,6 +604,7 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
 void SyncTaskContext::KillWait()
 {
     StopTimer();
+    stateMachine_->NotifyClosing();
     UnlockObj();
     stateMachine_->AbortImmediately();
     LockObj();

@@ -273,6 +273,8 @@ private:
 
     int RemoveAllSubscribe();
 
+    int GetExistsDeviceList(std::vector<std::string> &deviceList) const;
+
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
     Timestamp currentMaxTimestamp_ = 0;

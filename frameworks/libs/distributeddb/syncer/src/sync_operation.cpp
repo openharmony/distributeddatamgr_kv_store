@@ -255,22 +255,34 @@ void SyncOperation::SetIdentifier(const std::vector<uint8_t> &identifier)
     identifier_.assign(identifier.begin(), identifier.end());
 }
 
+namespace {
+struct SyncTypeNode {
+    int mode = static_cast<int>(SyncModeType::INVALID_MODE);
+    SyncType type = SyncType::INVALID_SYNC_TYPE;
+};
+struct SyncOperationStatusNode {
+    int operationStatus = 0;
+    DBStatus status = DBStatus::DB_ERROR;
+};
+}
+
 SyncType SyncOperation::GetSyncType(int mode)
 {
-    static const std::map<int, SyncType> syncTypeMap = {
-        {SyncModeType::PUSH, SyncType::MANUAL_FULL_SYNC_TYPE},
-        {SyncModeType::PULL, SyncType::MANUAL_FULL_SYNC_TYPE},
-        {SyncModeType::PUSH_AND_PULL, SyncType::MANUAL_FULL_SYNC_TYPE},
-        {SyncModeType::RESPONSE_PULL, SyncType::MANUAL_FULL_SYNC_TYPE},
-        {SyncModeType::AUTO_PULL, SyncType::AUTO_SYNC_TYPE},
-        {SyncModeType::AUTO_PUSH, SyncType::AUTO_SYNC_TYPE},
-        {SyncModeType::QUERY_PUSH, SyncType::QUERY_SYNC_TYPE},
-        {SyncModeType::QUERY_PULL, SyncType::QUERY_SYNC_TYPE},
-        {SyncModeType::QUERY_PUSH_PULL, SyncType::QUERY_SYNC_TYPE},
+    static const SyncTypeNode syncTypeNodes[] = {
+        {static_cast<int>(SyncModeType::PUSH), SyncType::MANUAL_FULL_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::PULL), SyncType::MANUAL_FULL_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::PUSH_AND_PULL), SyncType::MANUAL_FULL_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::RESPONSE_PULL), SyncType::MANUAL_FULL_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::AUTO_PULL), SyncType::AUTO_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::AUTO_PUSH), SyncType::AUTO_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::QUERY_PUSH), SyncType::QUERY_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::QUERY_PULL), SyncType::QUERY_SYNC_TYPE},
+        {static_cast<int>(SyncModeType::QUERY_PUSH_PULL), SyncType::QUERY_SYNC_TYPE}
     };
-    auto iter = syncTypeMap.find(mode);
-    if (iter != syncTypeMap.end()) {
-        return iter->second;
+    for (const auto &node: syncTypeNodes) {
+        if (node.mode == mode) {
+            return node.type;
+        }
     }
     return SyncType::INVALID_SYNC_TYPE;
 }
@@ -290,9 +302,9 @@ std::string SyncOperation::GetQueryId() const
     return query_.GetIdentify();
 }
 
-const std::map<int, DBStatus> &SyncOperation::DBStatusTransMap()
+DBStatus SyncOperation::DBStatusTrans(int operationStatus)
 {
-    static const std::map<int, DBStatus> transMap = {
+    static const SyncOperationStatusNode syncOperationStatusNodes[] = {
         { static_cast<int>(OP_FINISHED_ALL),                  OK },
         { static_cast<int>(OP_TIMEOUT),                       TIME_OUT },
         { static_cast<int>(OP_PERMISSION_CHECK_FAILED),       PERMISSION_CHECK_FORBID_SYNC },
@@ -312,7 +324,12 @@ const std::map<int, DBStatus> &SyncOperation::DBStatusTransMap()
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
     };
-    return transMap;
+    for (const auto &node: syncOperationStatusNodes) {
+        if (node.operationStatus == operationStatus) {
+            return node.status;
+        }
+    }
+    return DB_ERROR;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SyncOperation)
 } // namespace DistributedDB

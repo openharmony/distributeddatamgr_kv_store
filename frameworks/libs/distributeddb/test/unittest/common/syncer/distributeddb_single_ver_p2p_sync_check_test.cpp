@@ -42,6 +42,7 @@ namespace {
     const int THREE_HUNDRED = 300;
     const int WAIT_30_SECONDS = 30000;
     const int WAIT_40_SECONDS = 40000;
+    const int TIMEOUT_6_SECONDS = 6000;
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
@@ -1332,6 +1333,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Leve
      * @tc.steps: step1. deviceB set get data delay 40s
      */
     g_deviceB->DelayGetSyncData(WAIT_40_SECONDS);
+    g_communicatorAggregator->SetTimeout(DEVICE_A, TIMEOUT_6_SECONDS);
 
     /**
      * @tc.steps: step2. deviceA call sync and wait
@@ -1371,4 +1373,56 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Leve
     EXPECT_EQ(virtualRes.size(), devices.size());
     EXPECT_EQ(virtualRes[DEVICE_A], static_cast<int>(SyncOperation::OP_FINISHED_ALL));
     g_deviceB->DelayGetSyncData(0);
+}
+
+/**
+  * @tc.name: GetDataNotify002
+  * @tc.desc: Test GetDataNotify function, two device sync each other at same time
+  * @tc.type: FUNC
+  * @tc.require: AR000D4876
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Level3)
+{
+    ASSERT_NE(g_kvDelegatePtr, nullptr);
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    const std::string DEVICE_A = "real_device";
+
+    /**
+     * @tc.steps: step1. deviceA sync first to finish time sync and ability sync
+     */
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, true);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], OK);
+    /**
+     * @tc.steps: step2. deviceB set get data delay 30s
+     */
+    g_deviceB->DelayGetSyncData(WAIT_30_SECONDS);
+
+    /**
+     * @tc.steps: step3. deviceB call sync and wait
+     */
+    std::thread asyncThread([]() {
+        std::map<std::string, int> virtualRes;
+        Query query = Query::Select();
+        g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, query, [&virtualRes](std::map<std::string, int> resMap) {
+            virtualRes = std::move(resMap);
+        }, true);
+    });
+
+    /**
+     * @tc.steps: step4. deviceA call sync and wait
+     * @tc.expected: step4. sync should return OK. because notify timer trigger (30s - 1s)/2s => 15times
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, true);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(result.size(), devices.size());
+    EXPECT_EQ(result[DEVICE_B], OK);
+    asyncThread.join();
+    std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
 }

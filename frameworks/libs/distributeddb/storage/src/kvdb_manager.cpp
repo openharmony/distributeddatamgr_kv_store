@@ -238,8 +238,13 @@ int KvDBManager::UnlockDB(const KvDBProperties &kvDBProp)
         return E_OK;
     }
     int errCode = OS::FileUnlock(locks_[identifierDir]);
-    LOGI("DB unlocked! errCode = [%d]", errCode);
     if (errCode != E_OK) {
+        LOGE("DB unlocked! errCode = [%d]", errCode);
+        return errCode;
+    }
+    errCode = OS::CloseFile(locks_[identifierDir]);
+    if (errCode != E_OK) {
+        LOGE("DB closed! errCode = [%d]", errCode);
         return errCode;
     }
     locks_.erase(identifierDir);
@@ -446,7 +451,7 @@ int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t
         totalSize = totalSize + dbSize;
     }
     // This represent Db file size(Unit is byte), It is small than max size(max uint64_t represent 2^64B)
-    if (totalSize != 0ull) {
+    if (totalSize != 0ULL) {
         size = totalSize;
         return E_OK;
     }

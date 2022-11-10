@@ -672,7 +672,7 @@ int RelationalSyncAbleStorage::CheckAndInitQueryCondition(QueryObject &query) co
     query.SetSchema(schema);
 
     int errCode = E_OK;
-    auto *handle = GetHandle(false, errCode);
+    auto *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
         return errCode;
     }

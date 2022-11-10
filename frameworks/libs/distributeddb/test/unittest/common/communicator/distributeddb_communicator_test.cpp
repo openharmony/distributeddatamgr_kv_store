@@ -369,6 +369,77 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: Online And Offline 003
+ * @tc.desc: Test functionality triggered by remote restart
+ * @tc.type: FUNC
+ * @tc.require: AR000CQE0I
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. connect device D with device E
+     */
+    EnvHandle envDeviceD;
+    EnvHandle envDeviceE;
+    SetUpEnv(envDeviceD, "DEVICE_D");
+    SetUpEnv(envDeviceE, "DEVICE_E");
+
+    /**
+     * @tc.steps: step2. device D alloc communicator DD using label A and register callback
+     */
+    int errorNo = E_OK;
+    ICommunicator *commDD = envDeviceD.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commDD);
+    OnOfflineDevice onlineForDD;
+    REG_CONNECT_CALLBACK(commDD, onlineForDD);
+
+    /**
+     * @tc.steps: step3. device E alloc communicator EE using label A and register callback
+     */
+    ICommunicator *commEE = envDeviceE.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commEE);
+    OnOfflineDevice onlineForEE;
+    REG_CONNECT_CALLBACK(commEE, onlineForEE);
+    /**
+     * @tc.steps: step4. deviceD connect to deviceE
+     * @tc.expected: step4. both communicator has callback;
+     */
+    AdapterStub::ConnectAdapterStub(envDeviceD.adapterHandle, envDeviceE.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForDD.onlineDevices.size(), static_cast<size_t>(1));
+    EXPECT_EQ(onlineForEE.onlineDevices.size(), static_cast<size_t>(1));
+
+    /**
+     * @tc.steps: step5. device E restart
+     */
+    envDeviceE.commAggrHandle->ReleaseCommunicator(commEE);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    TearDownEnv(envDeviceE);
+    SetUpEnv(envDeviceE, "DEVICE_E");
+
+    commEE = envDeviceE.commAggrHandle->AllocCommunicator(LABEL_A, errorNo);
+    ASSERT_NOT_NULL_AND_ACTIVATE(commEE);
+    REG_CONNECT_CALLBACK(commEE, onlineForEE);
+    onlineForEE.onlineDevices.clear();
+    /**
+     * @tc.steps: step6. deviceD connect to deviceE again
+     * @tc.expected: step6. communicatorE has callback;
+     */
+    AdapterStub::ConnectAdapterStub(envDeviceD.adapterHandle, envDeviceE.adapterHandle);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(onlineForEE.onlineDevices.size(), static_cast<size_t>(1));
+    // Clean up and disconnect
+    envDeviceD.commAggrHandle->ReleaseCommunicator(commDD);
+    envDeviceE.commAggrHandle->ReleaseCommunicator(commEE);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    AdapterStub::DisconnectAdapterStub(envDeviceD.adapterHandle, envDeviceE.adapterHandle);
+    TearDownEnv(envDeviceD);
+    TearDownEnv(envDeviceE);
+}
+
+/**
  * @tc.name: Report Device Connect Change 001
  * @tc.desc: Test CommunicatorAggregator support report device connect change event
  * @tc.type: FUNC

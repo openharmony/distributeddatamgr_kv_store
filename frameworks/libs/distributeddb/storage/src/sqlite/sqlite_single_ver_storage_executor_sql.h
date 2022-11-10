@@ -71,11 +71,23 @@ namespace DistributedDB {
     const std::string SELECT_ATTACH_ALL_META_KEYS =
         "SELECT key FROM meta.meta_data;";
 
+    const std::string SELECT_META_KEYS_BY_PREFIX =
+        "SELECT key FROM meta_data where key like ?;";
+
+    const std::string SELECT_ATTACH_META_KEYS_BY_PREFIX =
+        "SELECT key FROM meta.meta_data where key like ?;";
+
     const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV =
         "SELECT key, value FROM sync_data WHERE device=? AND (flag&0x03=0);";
 
+    const std::string SELECT_ALL_SYNC_ENTRIES =
+        "SELECT key, value FROM sync_data WHERE (flag&0x03=0);";
+
     const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE =
         "SELECT key, value FROM maindb.sync_data WHERE device=? AND (flag&0x03=0);";
+
+    const std::string SELECT_ALL_SYNC_ENTRIES_FROM_CACHEHANDLE =
+        "SELECT key, value FROM maindb.sync_data WHERE (flag&0x03=0);";
 
     const std::string SELECT_LOCAL_VALUE_TIMESTAMP_SQL =
         "SELECT value, timestamp FROM local_data WHERE key=?;";
@@ -142,8 +154,15 @@ namespace DistributedDB {
 
     const std::string REMOVE_DEV_DATA_SQL =
         "DELETE FROM sync_data WHERE device=? AND (flag&0x02=0);";
+
+    const std::string REMOVE_ALL_DEV_DATA_SQL =
+        "DELETE FROM sync_data WHERE (flag&0x02=0);";
+
     const std::string REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
+
+    const std::string REMOVE_ALL_DEV_DATA_SQL_FROM_CACHEHANDLE =
+        "DELETE FROM maindb.sync_data WHERE (flag&0x02=0);";
 
     const std::string SELECT_ENTRY_DEVICE =
         "SELECT ori_device, device FROM sync_data WHERE key=?;";

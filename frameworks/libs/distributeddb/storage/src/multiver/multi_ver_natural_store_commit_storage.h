@@ -74,7 +74,7 @@ public:
 
     int CancelVacuum() override;
 
-    int FinishlVacuum() override;
+    int FinishVacuum() override;
 
     int GetAllCommitsInTree(std::list<MultiVerCommitNode> &commits) const override;
 

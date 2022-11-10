@@ -15,9 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_instance.h"
 
-#include <thread>
-#include <algorithm>
-
 #include "db_common.h"
 #include "db_errno.h"
 #include "sqlite_relational_store.h"
@@ -184,6 +181,12 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
          !DBCommon::IsSameCipher(prop.GetCipherType(), existedProp.GetCipherType()))) {
         LOGE("Failed to check cipher args.");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+    }
+
+    if (prop.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false) !=
+        existedProp.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
+            LOGE("Failed to check dual tuple sync mode for rdb");
+            return -E_MODE_MISMATCH;
     }
     return E_OK;
 }

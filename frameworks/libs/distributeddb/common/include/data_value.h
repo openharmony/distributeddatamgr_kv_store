@@ -75,7 +75,6 @@ public:
     int SetText(const uint8_t *val, uint32_t length);
     int GetText(std::string &outVal) const;
     void ResetValue();
-    int GetBlobLength(uint32_t &length) const;
     std::string ToString() const;
 
 private:

@@ -57,7 +57,7 @@ public:
     virtual int ImportDatabase(const Property &property, const std::string &dir, const CipherPassword &passwd) = 0;
     virtual int StartVacuum() = 0;
     virtual int CancelVacuum() = 0;
-    virtual int FinishlVacuum() = 0;
+    virtual int FinishVacuum() = 0;
     virtual int GetAllCommitsInTree(std::list<MultiVerCommitNode> &commits) const = 0;
 };
 } // namespace DistributedDB

@@ -241,9 +241,14 @@ int SchemaObject::FlatBufferSchema::VerifyFlatBufferValue(const RawValue &inValu
 }
 
 namespace {
+struct BaseTypeNode {
+    reflection::BaseType type;
+    FieldType fieldType;
+};
+
 FieldType MapFieldType(reflection::BaseType inType)
 {
-    static std::map<reflection::BaseType, FieldType> fieldTypeMap{
+    static const BaseTypeNode baseTypeNodes[] = {
         {reflection::BaseType::Bool, FieldType::LEAF_FIELD_BOOL},
         {reflection::BaseType::Byte, FieldType::LEAF_FIELD_INTEGER},
         {reflection::BaseType::UByte, FieldType::LEAF_FIELD_INTEGER},
@@ -257,12 +262,14 @@ FieldType MapFieldType(reflection::BaseType inType)
         {reflection::BaseType::Double, FieldType::LEAF_FIELD_DOUBLE},
         {reflection::BaseType::String, FieldType::LEAF_FIELD_STRING},
         {reflection::BaseType::Vector, FieldType::LEAF_FIELD_ARRAY},
-        {reflection::BaseType::Obj, FieldType::INTERNAL_FIELD_OBJECT},
+        {reflection::BaseType::Obj, FieldType::INTERNAL_FIELD_OBJECT}
     };
-    if (fieldTypeMap.count(inType) == 0) {
-        return FieldType::LEAF_FIELD_NULL;
+    for (const auto &node : baseTypeNodes) {
+        if (node.type == inType) {
+            return node.fieldType;
+        }
     }
-    return fieldTypeMap[inType];
+    return FieldType::LEAF_FIELD_NULL;
 }
 
 RawString CheckDollarDotAndSkipIt(RawString inPath)
@@ -763,12 +770,12 @@ int CompareFieldCount(bool isRoot, uint32_t selfCount, uint32_t otherCount)
 {
     if (isRoot) {
         if (otherCount < selfCount) {
-            LOGW("[FBSchema][CompareRoot] RootFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
+            LOGW("[FBSchema][CompareRoot] RootFieldSize: %" PRIu32 " vs %" PRIu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     } else {
         if (selfCount != otherCount) {
-            LOGW("[FBSchema][CompareRoot] StructFieldSize: %" PRu32 " vs %" PRu32, selfCount, otherCount);
+            LOGW("[FBSchema][CompareRoot] StructFieldSize: %" PRIu32 " vs %" PRIu32, selfCount, otherCount);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }
@@ -821,7 +828,8 @@ int CompareFieldInfo(const reflection::Field &selfField, const reflection::Field
         auto selfElementType = selfType->element();
         auto otherElementType = otherType->element();
         if (selfElementType != otherElementType) {
-            LOGE("[FBSchema][CompareField] ElementType diff:%" PRu32 " vs %" PRu32, selfElementType, otherElementType);
+            LOGE("[FBSchema][CompareField] ElementType diff:%" PRIu32 " vs %" PRIu32, selfElementType,
+                otherElementType);
             return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
         }
     }

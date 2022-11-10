@@ -34,8 +34,8 @@ enum FileType {
 
 struct FileAttr {
     std::string fileName;
-    FileType fileType;
-    uint64_t fileLen;
+    FileType fileType = FileType::FILE;
+    uint64_t fileLen = 0;
 };
 
 // Shield the representation method of file handles on different platforms

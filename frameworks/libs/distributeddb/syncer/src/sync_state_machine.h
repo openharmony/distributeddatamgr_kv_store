@@ -77,6 +77,9 @@ public:
 
     // start a timer to ResetWatchDog when get data and stop send notify ack if need
     void StopFeedDogForGetData() override;
+
+    // Notify machine is closing, should release some lock
+    void NotifyClosing() override;
 protected:
 
     // SyncOperation is timeout, step to timeout state
@@ -167,6 +170,8 @@ protected:
     std::mutex saveDataNotifyLock_;
     TimerId saveDataNotifyTimerId_;
     uint8_t saveDataNotifyCount_;
+    bool waitingResetLockBySaveData_;
+    int32_t saveDataNotifyRefCount_;
 
     std::mutex getDataNotifyLock_;
     TimerId getDataNotifyTimerId_;

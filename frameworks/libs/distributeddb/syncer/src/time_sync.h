@@ -87,6 +87,8 @@ public:
 
     void SetOnline(bool isOnline);
 
+    void Close();
+
     // Used in send msg, as execution is asynchronous, should use this function to handle result.
     static void CommErrHandlerFunc(int errCode, TimeSync *timeSync);
 
@@ -107,6 +109,8 @@ private:
 
     void ResetTimer();
 
+    bool IsClosed();
+
     ICommunicator *communicateHandle_;
     std::shared_ptr<Metadata> metadata_;
     std::unique_ptr<TimeHelper> timeHelper_;
@@ -123,6 +127,7 @@ private:
     std::mutex timeDriverLock_;
     int timeDriverLockCount_;
     bool isOnline_;
+    bool closed_;
     static std::mutex timeSyncSetLock_;
     static std::set<TimeSync *> timeSyncSet_;
 };

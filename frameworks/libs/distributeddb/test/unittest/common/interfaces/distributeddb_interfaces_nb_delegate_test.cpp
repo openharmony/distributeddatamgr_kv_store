@@ -26,6 +26,8 @@
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
 #include "sqlite_single_ver_natural_store.h"
+#include "kv_virtual_device.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -55,6 +57,17 @@ namespace {
 
     const int CON_PUT_THREAD_NUM = 4;
     const int PER_THREAD_PUT_NUM = 100;
+
+    const std::string DEVICE_B = "deviceB";
+    const std::string DEVICE_C = "deviceC";
+    const std::string DEVICE_D = "deviceD";
+    VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+    KvVirtualDevice *g_deviceB = nullptr;
+    KvVirtualDevice *g_deviceC = nullptr;
+    KvVirtualDevice *g_deviceD = nullptr;
+    VirtualSingleVerSyncDBInterface *g_syncInterfaceB = nullptr;
+    VirtualSingleVerSyncDBInterface *g_syncInterfaceC = nullptr;
+    VirtualSingleVerSyncDBInterface *g_syncInterfaceD = nullptr;
 
     // the type of g_kvNbDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
@@ -200,14 +213,23 @@ void DistributedDBInterfacesNBDelegateTest::SetUpTestCase(void)
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     g_config.dataDir = g_testDir;
     g_mgr.SetKvStoreConfig(g_config);
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
+
+    g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(g_communicatorAggregator != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
+
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
 }
 
 void DistributedDBInterfacesNBDelegateTest::TearDownTestCase(void)
 {
-    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
-        LOGE("rm test db files error!");
-    }
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
 void DistributedDBInterfacesNBDelegateTest::SetUp(void)
@@ -1902,6 +1924,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
     EXPECT_EQ(g_kvNbDelegatePtr->StartTransaction(), LOG_OVER_LIMITS);
     EXPECT_EQ(g_kvNbDelegatePtr->PutLocal(key, value), LOG_OVER_LIMITS);
     EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData("deviceA"), LOG_OVER_LIMITS);
+    EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData(), LOG_OVER_LIMITS);
     /**
      * @tc.steps:step4. Change the max log size limit, and put the data.
      * @tc.expected: step4. Returns OK.
@@ -2066,4 +2089,78 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     sqlite3_close_v2(db);
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+
+namespace {
+void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices,
+    VirtualSingleVerSyncDBInterface *&syncInterface)
+{
+    devices = new (std::nothrow) KvVirtualDevice(devId);
+    ASSERT_TRUE(devices != nullptr);
+    syncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterface != nullptr);
+    ASSERT_EQ(devices->Initialize(g_communicatorAggregator, syncInterface), E_OK);
+}
+
+void FreeVirtualDevice(KvVirtualDevice *&devices)
+{
+    if (devices != nullptr) {
+        devices = nullptr;
+    }
+}
+}
+
+/**
+  * @tc.name: RemoveDeviceDataTest001
+  * @tc.desc: remove device data with devId unspecified
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSize.Level1)
+{
+    InitVirtualDevice(DEVICE_B, g_deviceB, g_syncInterfaceB);
+    InitVirtualDevice(DEVICE_C, g_deviceC, g_syncInterfaceC);
+    InitVirtualDevice(DEVICE_D, g_deviceD, g_syncInterfaceD);
+
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+    g_deviceB->PutData(KEY_2, VALUE_2, 0, 0);
+    g_deviceC->PutData(KEY_3, VALUE_3, 0, 0);
+    g_deviceD->PutData(KEY_4, VALUE_4, 0, 0);
+
+    std::vector<std::string> devices;
+    devices.push_back(DEVICE_B);
+    devices.push_back(DEVICE_C);
+    devices.push_back(DEVICE_D);
+    DBStatus status = g_kvNbDelegatePtr->Sync(devices, SYNC_MODE_PULL_ONLY,
+        [devices, this](const std::map<std::string, DBStatus>& statusMap) {
+            ASSERT_EQ(statusMap.size(), devices.size());
+            for (const auto &pair : statusMap) {
+                EXPECT_EQ(pair.second, OK);
+            }
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData(), OK);
+
+    Value val;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, val), OK);
+    EXPECT_EQ(val, VALUE_1);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_2, val), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_3, val), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, val), NOT_FOUND);
+
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    FreeVirtualDevice(g_deviceB);
+    FreeVirtualDevice(g_deviceC);
+    FreeVirtualDevice(g_deviceD);
 }

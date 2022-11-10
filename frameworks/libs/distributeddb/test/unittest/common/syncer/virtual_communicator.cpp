@@ -124,12 +124,17 @@ uint32_t VirtualCommunicator::GetCommunicatorMtuSize(const std::string &target) 
 
 uint32_t VirtualCommunicator::GetTimeout() const
 {
-    return 5 * 1000; // 5 * 1000ms
+    return timeout_;
 }
 
 uint32_t VirtualCommunicator::GetTimeout(const std::string &target) const
 {
     return GetTimeout();
+}
+
+void VirtualCommunicator::SetTimeout(uint32_t timeout)
+{
+    timeout_ = timeout;
 }
 
 int VirtualCommunicator::GetLocalIdentity(std::string &outTarget) const
@@ -202,10 +207,8 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
     }
 
     outMsg = ProtocolProto::ToMessage(buffer, errCode);
-    if (errCode != E_OK) {
-        delete buffer;
-        buffer = nullptr;
-    }
+    delete buffer;
+    buffer = nullptr;
     return errCode;
 }
 } // namespace DistributedDB
