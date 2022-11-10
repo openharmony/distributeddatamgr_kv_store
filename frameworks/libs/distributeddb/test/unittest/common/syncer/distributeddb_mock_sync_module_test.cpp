@@ -90,6 +90,25 @@ int BuildRemoteQueryMsg(DistributedDB::Message *&message)
     message->SetExternalObject(packet);
     return E_OK;
 }
+
+void ConstructPacel(Parcel &parcel, uint32_t conditionCount, const std::string &key, const std::string &value)
+{
+    parcel.WriteUInt32(RemoteExecutorRequestPacket::REQUEST_PACKET_VERSION_V2); // version
+    parcel.WriteUInt32(1); // flag
+    parcel.WriteInt(1); // current_version
+    parcel.WriteInt(1); // opcode
+    parcel.WriteString("sql"); // sql
+    parcel.WriteInt(1); // bandArgs_
+    parcel.WriteString("condition");
+    parcel.EightByteAlign();
+
+    parcel.WriteUInt32(conditionCount);
+    if (key.empty()) {
+        return;
+    }
+    parcel.WriteString(key);
+    parcel.WriteString(value);
+}
 }
 
 class DistributedDBMockSyncModuleTest : public testing::Test {
@@ -807,6 +826,9 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
     std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    EXPECT_EQ(enginePtr->Initialize(nullptr, metaData, nullptr, nullptr, nullptr), -E_INVALID_ARGS);
+    std::shared_ptr<Metadata> nullMetaData = nullptr;
+    EXPECT_EQ(enginePtr->Initialize(&syncDBInterface, nullMetaData, nullptr, nullptr, nullptr), -E_INVALID_ARGS);
     enginePtr->Initialize(&syncDBInterface, metaData, nullptr, nullptr, nullptr);
     auto communicator =
         static_cast<VirtualCommunicator *>(virtualCommunicatorAggregator->GetCommunicator("real_device"));
@@ -848,6 +870,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket001, TestSize.Level1)
      * @tc.steps: step1. create remoteExecutorRequestPacket
      */
     RemoteExecutorRequestPacket packet;
+    std::map<std::string, std::string> extraCondition = { { "test", "testsql" } };
+    packet.SetExtraConditions(extraCondition);
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
 
@@ -913,6 +937,106 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket002, TestSize.Level1)
     EXPECT_EQ(packet.GetVersion(), targetPacket.GetVersion());
     EXPECT_EQ(packet.GetFlag(), targetPacket.GetFlag());
     EXPECT_EQ(packet.GetAckCode(), targetPacket.GetAckCode());
+}
+
+/**
+* @tc.name: remote query packet 003
+* @tc.desc: Test RemoteExecutorRequestPacket Serialization with invalid args
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. check E_INVALID_ARGS
+     */
+    RemoteExecutorRequestPacket packet;
+    packet.SetNeedResponse();
+    packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
+    
+    std::vector<uint8_t> buffer(packet.CalculateLen());
+    Parcel parcel(buffer.data(), buffer.size());
+
+    ASSERT_EQ(packet.Serialization(parcel), E_OK);
+    std::map<std::string, std::string> extraCondition = { { "test", "testsql" } };
+    packet.SetExtraConditions(extraCondition);
+    EXPECT_EQ(packet.Serialization(parcel), -E_INVALID_ARGS);
+    
+    std::string sql = "testsql";
+    for (uint32_t i = 0; i < DBConstant::MAX_CONDITION_COUNT; i++) {
+        extraCondition[std::to_string(i)] = sql;
+    }
+    packet.SetExtraConditions(extraCondition);
+
+    std::vector<uint8_t> buffer2(packet.CalculateLen());
+    Parcel parcel2(buffer2.data(), buffer2.size());
+    Parcel targetParcel2(buffer2.data(), buffer2.size());
+    EXPECT_EQ(packet.Serialization(parcel2), -E_INVALID_ARGS);
+
+    extraCondition.erase("0");
+    extraCondition.erase("1");
+    extraCondition.erase("2");
+    std::string bigKey(DBConstant::MAX_CONDITION_KEY_LEN + 1, 'a');
+    extraCondition[bigKey] = sql;
+    packet.SetExtraConditions(extraCondition);
+    std::vector<uint8_t> buffer3(packet.CalculateLen());
+    Parcel parcel3(buffer3.data(), buffer3.size());
+    EXPECT_EQ(packet.Serialization(parcel3), -E_INVALID_ARGS);
+
+    std::string bigValue(DBConstant::MAX_CONDITION_VALUE_LEN + 1, 'a');
+    extraCondition["1"] = bigValue;
+    packet.SetExtraConditions(extraCondition);
+    std::vector<uint8_t> buffer4(packet.CalculateLen());
+    Parcel parcel4(buffer4.data(), buffer4.size());
+    EXPECT_EQ(packet.Serialization(parcel4), -E_INVALID_ARGS);
+}
+
+/**
+* @tc.name: remote query packet 004
+* @tc.desc: Test RemoteExecutorRequestPacket Deserialization with invalid args
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
+{
+    RemoteExecutorRequestPacket packet;
+    packet.SetNeedResponse();
+    packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
+    
+    std::vector<uint8_t> buffer(packet.CalculateLen());
+    RemoteExecutorRequestPacket targetPacket;
+    Parcel targetParcel(buffer.data(), 3); // 3 is invalid len for deserialization
+    EXPECT_EQ(targetPacket.DeSerialization(targetParcel), -E_INVALID_ARGS);
+
+    std::vector<uint8_t> buffer1(1024); // 1024 is buffer len for serialization
+    Parcel parcel(buffer1.data(), buffer1.size());
+    ConstructPacel(parcel, DBConstant::MAX_CONDITION_COUNT + 1, "", "");
+    Parcel desParcel(buffer1.data(), buffer1.size());
+    EXPECT_EQ(targetPacket.DeSerialization(desParcel), -E_INVALID_ARGS);
+
+    Parcel parcel2(buffer1.data(), buffer1.size());
+    std::string bigKey(DBConstant::MAX_CONDITION_KEY_LEN + 1, 'a');
+    ConstructPacel(parcel2, 1, bigKey, "");
+    Parcel desParcel2(buffer1.data(), buffer1.size());
+    EXPECT_EQ(targetPacket.DeSerialization(desParcel2), -E_INVALID_ARGS);
+
+    Parcel parcel3(buffer1.data(), buffer1.size());
+    std::string bigValue(DBConstant::MAX_CONDITION_VALUE_LEN + 1, 'a');
+    ConstructPacel(parcel3, 1, "1", bigValue);
+    Parcel desParcel3(buffer1.data(), buffer1.size());
+    EXPECT_EQ(targetPacket.DeSerialization(desParcel3), -E_INVALID_ARGS);
+
+    Parcel parcel4(buffer1.data(), buffer1.size());
+    ConstructPacel(parcel4, 1, "1", "1");
+    Parcel desParcel4(buffer1.data(), buffer1.size());
+    EXPECT_EQ(targetPacket.DeSerialization(desParcel4), E_OK);
+
+    Parcel parcel5(buffer1.data(), buffer1.size());
+    ConstructPacel(parcel5, 0, "", "");
+    Parcel desParcel5(buffer1.data(), buffer1.size());
+    EXPECT_EQ(targetPacket.DeSerialization(desParcel5), E_OK);
 }
 
 /**

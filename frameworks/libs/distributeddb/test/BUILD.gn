@@ -517,6 +517,11 @@ distributeddb_unittest("DistributedDBMultiVerP2PSyncTest") {
       [ "unittest/common/syncer/distributeddb_multi_ver_p2p_sync_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRelationalVerP2PSyncTest") {
+  sources =
+      [ "unittest/common/syncer/distributeddb_relational_ver_p2p_sync_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBStorageSQLiteSingleVerNaturalStoreTest") {
   sources = [
     "unittest/common/storage/distributeddb_storage_single_ver_natural_store_testcase.cpp",
