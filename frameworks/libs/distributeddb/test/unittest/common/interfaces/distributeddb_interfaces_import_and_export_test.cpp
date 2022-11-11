@@ -15,6 +15,7 @@
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
 
+#include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "platform_specific.h"
 #include "process_communicator_test_stub.h"
@@ -1180,4 +1181,62 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ForceExportTest001, TestSiz
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID_1), OK);
 }
-#endif
+
+/**
+  * @tc.name: ImportWithTimeChange001
+  * @tc.desc: Import DB after time changed.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportWithTimeChange001, TestSize.Level1)
+{
+    KvStoreNbDelegate::Option option = {true, false, false};
+    std::string storeId = "ImportWithTimeChange001";
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+
+    // fake entry timestamp
+    std::string origId = USER_ID + "-" + APP_ID + "-" + storeId;
+    std::string identifier = DBCommon::TransferHashString(origId);
+    std::string hexDir = DBCommon::TransferStringToHex(identifier);
+    std::string dbPath = g_testDir + "/" + hexDir + "/single_ver/main/gen_natural_store.db";
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
+    ASSERT_NE(db, nullptr);
+    std::string fakeSql = "UPDATE sync_data SET timestamp = 3270281552768731970, w_timestamp = 3270281552768731970";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, fakeSql), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    db = nullptr;
+
+    // prepare import file with timestamp later then current
+    CipherPassword passwd;
+    std::string exportFileName = g_exportFileDir + storeId + ".back";
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(exportFileName, passwd, true), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+
+    // import
+    g_mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Import(exportFileName, passwd), OK);
+
+    // check crud normal
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(KEY_1), OK);
+    Value val;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, val), NOT_FOUND);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_2, val), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+#endif // OMIT_ENCRYPT
