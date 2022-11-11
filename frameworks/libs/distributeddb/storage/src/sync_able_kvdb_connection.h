@@ -35,6 +35,8 @@ public:
     // Pragma interface.
     int Pragma(int cmd, void *parameter) override;
 
+    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
+
 protected:
     int DisableManualSync();
 
@@ -67,8 +69,6 @@ private:
     int SetEqualIdentifier(const PragmaSetEqualIdentifier *param);
 
     int SetPushDataInterceptor(const PushDataInterceptor &interceptor);
-
-    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
 
     std::mutex remotePushFinishedListenerLock_;
     NotificationChain::Listener *remotePushFinishedListener_;
