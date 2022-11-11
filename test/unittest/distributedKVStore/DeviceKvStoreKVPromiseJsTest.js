@@ -125,33 +125,6 @@ describe('DeviceKvStorePromiseTest', function () {
         done();
     })
 
-    // beforeEach(async function (done) {
-    //     console.info('beforeEach' + JSON.stringify(options));
-    //     await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
-    //         kvStore = store;
-    //         console.info('beforeEach getKVStore success');
-    //     }).catch((err) => {
-    //         console.error('beforeEach getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //     });
-    //     console.info('beforeEach end');
-    //     done();
-    // })
-    //
-    // afterEach(async function (done) {
-    //     console.info('afterEach');
-    //     await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
-    //         console.info('afterEach closeKVStore success');
-    //         await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
-    //             console.info('afterEach deleteKVStore success');
-    //         }).catch((err) => {
-    //             console.error('afterEach deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //         });
-    //     }).catch((err) => {
-    //         console.error('afterEach closeKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //     });
-    //     kvStore = null;
-    //     done();
-    // })
     beforeEach(async function (done) {
         console.info('beforeEach' + JSON.stringify(options));
         await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {

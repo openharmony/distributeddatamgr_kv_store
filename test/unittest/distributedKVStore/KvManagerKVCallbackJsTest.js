@@ -82,6 +82,7 @@ describe('kvManagerCallbackTest', function () {
         try {
             await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackSucTest getKVStore success');
+                expect(true).assertTrue();
                 kvStore = store;
                 done();
             });
@@ -460,11 +461,13 @@ describe('kvManagerCallbackTest', function () {
                             expect(true).assertTrue();
                         } else {
                             console.info('KVManagerCloseKVStoreCallbackSucTest closeKVStore fail');
+                            expect(null).assertFail();
                         }
                         done();
                     });
                 } catch (e) {
                     console.error('KVManagerCloseKVStoreCallbackSucTest closeKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
+                    expect(null).assertFail();
                     done();
                 }
             });
@@ -476,8 +479,8 @@ describe('kvManagerCallbackTest', function () {
     })
 
     /**
-     * @tc.name KVManagerCloseKVStoreCallbackCloseTwiceFailTest
-     * @tc.desc Test Js Api KVManager.CloseKVStore() close twice
+     * @tc.name KVManagerCloseKVStoreCallbackCloseInvalidArgsTest
+     * @tc.desc Test Js Api KVManager.CloseKVStore() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -487,18 +490,15 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
                 console.info('KVManagerCloseKVStoreCallbackCloseTwiceFailTest getKVStore success');
                 kvStore = store;
-                await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID);
             });
-            console.info('KVManagerCloseKVStoreCallbackCloseTwiceFailTest closeKVStore redo.');
-            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
-                console.error('KVManagerCloseKVStoreCallbackCloseTwiceFailTest closeKVStore twice ' + `, error code is ${err.code}, message is ${err.message}`);
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, function (err) {
                 if (err == undefined) {
                     expect(null).assertFail();
                 }
             });
         } catch (e) {
             console.error('KVManagerCloseKVStoreCallbackCloseTwiceFailTest closeKVStore twice e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -598,7 +598,7 @@ describe('kvManagerCallbackTest', function () {
         console.info('KVManagerGetAllKVStoreIdCallbackEqual0Test');
         try {
             await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME, function (err, data) {
-                expect(1 == data.length).assertTrue();
+                expect(0 == data.length).assertTrue();
                 done();
             });
         } catch (e) {

@@ -540,7 +540,7 @@ describe('KVManagerPromiseTest', function () {
     it('KVManagerGetAllKVStoreIdPromiseSucTest', 0, async function (done) {
         console.info('KVManagerGetAllKVStoreIdPromiseSucTest');
         await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME).then((data) => {
-            expect(1 == data.length).assertTrue();
+            expect(0 == data.length).assertTrue();
         }).catch((err) => {
             console.error('KVManagerGetAllKVStoreIdPromiseSucTest getAllKVStoreId err ' + `, error code is ${err.code}, message is ${err.message}`);
             expect(null).assertFail();
@@ -597,8 +597,8 @@ describe('KVManagerPromiseTest', function () {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('KVManagerOnPromiseTwiceTest', 0, function (done) {
-        console.info('KVManagerOnPromiseTwiceTest');
+    it('KVManagerOnPromiseInvalidArgsTest', 0, function (done) {
+        console.info('KVManagerOnPromiseInvalidArgsTest');
         var deathCallback = function () {
             console.info('death callback call');
         }
@@ -608,7 +608,7 @@ describe('KVManagerPromiseTest', function () {
             kvManager.off('distributedDataServiceDie', deathCallback);
             expect(null).assertFail();
         } catch (e) {
-            console.error(`KVManagerOnPromiseTwiceTest failed, error code is ${e.code}, message is ${e.message}`);
+            console.error(`KVManagerOnPromiseInvalidArgsTest failed, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
         }
         done();
@@ -630,29 +630,6 @@ describe('KVManagerPromiseTest', function () {
             expect(true).assertTrue();
         } catch (e) {
             console.error(`KVManagerOffPromiseWithoutOnTest failed, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name KVManagerOffPromiseTwiceTest
-     * @tc.desc Test Js Api KVManager.Off() off twice
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('KVManagerOffPromiseTwiceTest', 0, function (done) {
-        console.info('KVManagerOffPromiseTwiceTest');
-        var deathCallback = function () {
-            console.info('death callback call');
-        }
-        try {
-            kvManager.on('distributedDataServiceDie', deathCallback);
-            kvManager.off('distributedDataServiceDie', deathCallback);
-            kvManager.off('distributedDataServiceDie', deathCallback);
-            expect(true).assertTrue();
-        } catch (e) {
-            console.error(`KVManagerOffPromiseTwiceTest failed, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();

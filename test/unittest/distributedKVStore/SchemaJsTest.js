@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
+import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
 import ddm from '@ohos.data.distributedKVStore';
 import abilityFeatureAbility from '@ohos.ability.featureAbility'
 
@@ -24,20 +24,20 @@ const TEST_STORE_ID = 'storeId';
 var kvManager = null;
 var kvStore = null;
 
-describe('schemaTest', function() {
+describe('schemaTest', function () {
     const config = {
-        bundleName : TEST_BUNDLE_NAME,
+        bundleName: TEST_BUNDLE_NAME,
         context: context,
     }
 
     var options = {
-        createIfMissing : true,
-        encrypt : false,
-        backup : false,
-        autoSync : true,
-        kvStoreType : ddm.KVStoreType.SINGLE_VERSION,
-        schema : {},
-        securityLevel : ddm.SecurityLevel.S1,
+        createIfMissing: true,
+        encrypt: false,
+        backup: false,
+        autoSync: true,
+        kvStoreType: ddm.KVStoreType.SINGLE_VERSION,
+        schema: {},
+        securityLevel: ddm.SecurityLevel.S1,
     }
 
     beforeAll(async function (done) {
@@ -70,7 +70,7 @@ describe('schemaTest', function() {
 
     afterEach(async function (done) {
         console.info('afterEach');
-        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore).then(async () => {
             console.info('afterEach closeKVStore success');
             await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
                 console.info('afterEach deleteKVStore success');
@@ -90,7 +90,7 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringSucTest', 0, async function(done) {
+    it('SchemaToJsonStringSucTest', 0, async function (done) {
         try {
             let name = new ddm.FieldNode('name');
             name.type = ddm.ValueType.INTEGER;
@@ -137,7 +137,7 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SchemaToJsonStringInvalidIndexesTest', 0, async function(done) {
+    it('SchemaToJsonStringInvalidIndexesTest', 0, async function (done) {
         try {
             let english = new ddm.FieldNode('english');
             english.type = ddm.ValueType.STRING;
@@ -159,7 +159,7 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaRootTest', 0, async function(done) {
+    it('SchemaRootTest', 0, async function (done) {
         try {
             let english = new ddm.FieldNode('english');
             english.type = ddm.ValueType.STRING;
@@ -179,7 +179,7 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaIndexesSucTest', 0, async function(done) {
+    it('SchemaIndexesSucTest', 0, async function (done) {
         try {
 
             let schema = new ddm.Schema();
@@ -198,12 +198,12 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaMode1Test', 0, async function(done) {
+    it('SchemaMode1Test', 0, async function (done) {
         try {
 
             let schema = new ddm.Schema();
             schema.mode = 1;
-            console.info("schema mode = "+schema.mode)
+            console.info("schema mode = " + schema.mode)
             expect(schema.mode === 1).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);
@@ -218,12 +218,12 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaMode0Test', 0, async function(done) {
+    it('SchemaMode0Test', 0, async function (done) {
         try {
 
             let schema = new ddm.Schema();
             schema.mode = 0;
-            console.info("schema mode = "+schema.mode)
+            console.info("schema mode = " + schema.mode)
             expect(schema.mode === 0).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);
@@ -238,7 +238,7 @@ describe('schemaTest', function() {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('SchemaSkipSucTest', 0, async function(done) {
+    it('SchemaSkipSucTest', 0, async function (done) {
         try {
 
             let schema = new ddm.Schema();
