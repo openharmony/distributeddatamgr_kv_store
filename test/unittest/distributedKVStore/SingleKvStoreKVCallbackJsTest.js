@@ -1567,12 +1567,12 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesCallbackQueryTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with query
+     * @tc.name SingleKvStoreGetEntriesCallbackQueryTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() with query
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesCallbackQueryTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesCallbackQueryTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1598,19 +1598,19 @@ describe('SingleKvStoreCallbackTest', function () {
                 });
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesCallbackQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesCallbackQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() query from a closed kvstore
+     * @tc.name SingleKvStoreGetEntriesCallbackQueryClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() query from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesCallbackQueryClosedKVStoreTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1640,32 +1640,20 @@ describe('SingleKvStoreCallbackTest', function () {
                     });
                 });
             });
-            // await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
-            //     expect(err == undefined).assertTrue();
-            // });
-            // let query = new factory.Query();
-            // query.prefixKey("batch_test");
-            // kvStore.getEntries(query, function (err) {
-            //     if (err == undefined) {
-            //         expect(null).assertFail();
-            //     } else {
-            //         expect(err.code == 15100006);
-            //     }
-            // });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesCallbackQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesCallbackSucTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() success
+     * @tc.name SingleKvStoreGetEntriesCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesCallbackSucTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesCallbackSucTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1689,19 +1677,19 @@ describe('SingleKvStoreCallbackTest', function () {
                 });
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesCallbackSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesCallbackSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesCallbackClosedKVStoreTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() from a closed kvstore
+     * @tc.name SingleKvStoreGetEntriesCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesCallbackClosedKVStoreTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesCallbackClosedKVStoreTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1729,30 +1717,20 @@ describe('SingleKvStoreCallbackTest', function () {
                     });
                 });
             });
-            // await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
-            //     expect(err == undefined).assertTrue();
-            // });
-            // kvStore.getEntries("batch_test", function (err) {
-            //     if (err == undefined) {
-            //         expect(null).assertFail();
-            //     } else {
-            //         expect(err.code == 15100006);
-            //     }
-            // });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesCallbackInvalidArgsTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with invalid args
+     * @tc.name SingleKvStoreGetEntriesCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesCallbackInvalidArgsTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesCallbackInvalidArgsTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1778,7 +1756,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 });
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
         }
         done();
