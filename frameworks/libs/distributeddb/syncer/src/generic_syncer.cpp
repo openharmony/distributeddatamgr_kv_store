@@ -928,7 +928,7 @@ int GenericSyncer::CalculateSyncDataSize(const std::string &device, uint32_t &si
         token = nullptr;
     }
     if ((errCode != E_OK) && (errCode != -E_UNFINISHED)) {
-        LOGI("calculate sync data size failed %d", errCode);
+        LOGE("calculate sync data size failed %d", errCode);
         syncInterface_->DecRefCount();
         return errCode;
     }
