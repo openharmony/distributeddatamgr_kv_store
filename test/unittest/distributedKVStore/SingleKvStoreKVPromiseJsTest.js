@@ -94,34 +94,6 @@ describe('SingleKvStorePromiseTest', function () {
         kvStore = null;
         done();
     })
-
-    // beforeEach(async function (done) {
-    //     console.info('beforeEach' + JSON.stringify(options));
-    //     await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
-    //         kvStore = store;
-    //         console.info('beforeEach getKVStore success');
-    //     }).catch((err) => {
-    //         console.error('beforeEach getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //     });
-    //     console.info('beforeEach end');
-    //     done();
-    // })
-    //
-    // afterEach(async function (done) {
-    //     console.info('afterEach');
-    //     await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
-    //         console.info('afterEach closeKVStore success');
-    //         await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
-    //             console.info('afterEach deleteKVStore success');
-    //         }).catch((err) => {
-    //             console.error('afterEach deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //         });
-    //     }).catch((err) => {
-    //         console.error('afterEach closeKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-    //     });
-    //     kvStore = null;
-    //     done();
-    // })
     beforeEach(async function (done) {
         console.info('beforeEach' + JSON.stringify(options));
         await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
@@ -1445,13 +1417,13 @@ describe('SingleKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseQueryTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with query
+     * @tc.name SingleKvStoreGetEntriesPromiseQueryTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() with query
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseQueryTest', 0, async function (done) {
-        console.info('DeviceKvStoreGetEntriesPromiseQueryTest');
+    it('SingleKvStoreGetEntriesPromiseQueryTest', 0, async function (done) {
+        console.info('SingleKvStoreGetEntriesPromiseQueryTest');
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1466,9 +1438,9 @@ describe('SingleKvStorePromiseTest', function () {
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStoreGetEntriesPromiseQueryTest entries: ' + JSON.stringify(entries));
+            console.info('SingleKvStoreGetEntriesPromiseQueryTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetEntriesPromiseQueryTest putBatch success');
+                console.info('SingleKvStoreGetEntriesPromiseQueryTest putBatch success');
                 expect(err == undefined).assertTrue();
                 let query = new factory.Query();
                 query.prefixKey("batch_test");
@@ -1484,7 +1456,7 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesPromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesPromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             console.log("errr3")
             expect(null).assertFail();
         }
@@ -1492,12 +1464,12 @@ describe('SingleKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() query from a closed kvstore
+     * @tc.name SingleKvStoreGetEntriesPromiseQueryClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() query from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesPromiseQueryClosedKVStoreTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1532,20 +1504,20 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(err.code == 15100006).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesPromiseQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseSucTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() success
+     * @tc.name SingleKvStoreGetEntriesPromiseSucTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseSucTest', 0, async function (done) {
-        console.info('DeviceKvStoreGetEntriesPromiseSucTest');
+    it('SingleKvStoreGetEntriesPromiseSucTest', 0, async function (done) {
+        console.info('SingleKvStoreGetEntriesPromiseSucTest');
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1574,19 +1546,19 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(error == undefined).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseClosedKVStoreTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() from a closed kvstore
+     * @tc.name SingleKvStoreGetEntriesPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseClosedKVStoreTest', 0, async function (done) {
+    it('SingleKvStoreGetEntriesPromiseClosedKVStoreTest', 0, async function (done) {
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1619,20 +1591,20 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(err.code == 15100006).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseInvalidArgsTest
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with invalid args
+     * @tc.name SingleKvStoreGetEntriesPromiseInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.GetEntries() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseInvalidArgsTest', 0, async function (done) {
-        console.info('DeviceKvStoreGetEntriesPromiseInvalidArgsTest');
+    it('SingleKvStoreGetEntriesPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreGetEntriesPromiseInvalidArgsTest');
         try {
             var arr = new Uint8Array([21, 31]);
             let entries = [];
@@ -1658,7 +1630,7 @@ describe('SingleKvStorePromiseTest', function () {
                 expect(err.code == 401).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetEntriesPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetEntriesPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
@@ -1914,12 +1886,12 @@ describe('SingleKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreSetSyncRangePromiseSameTest
-     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() with same range
+     * @tc.name SingleKvStoreSetSyncRangePromiseSameTest
+     * @tc.desc Test Js Api SingleKvStore.SetSyncRange() with same range
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
+    it('SingleKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
         try {
             var localLabels = ['A', 'B'];
             var remoteSupportLabels = ['A', 'B'];
@@ -1935,12 +1907,12 @@ describe('SingleKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreSetSyncRangePromiseSameTest
-     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() with invalid args
+     * @tc.name SingleKvStoreSetSyncRangePromiseSameTest
+     * @tc.desc Test Js Api SingleKvStore.SetSyncRange() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
+    it('SingleKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
         try {
             await kvStore.setSyncRange().then((err) => {
                 expect(null).assertFail();
@@ -2597,7 +2569,6 @@ describe('SingleKvStorePromiseTest', function () {
         await getInsertEntries.then(function (insertEntries) {
             console.info('SingleKvStoreChangeNotificationPromiseTest getInsertEntries' + JSON.stringify(insertEntries));
             expect(insertEntries != null).assertTrue();
-            // expect(insertEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromiseTest can NOT getInsertEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
@@ -2626,7 +2597,6 @@ describe('SingleKvStorePromiseTest', function () {
         await getUpdateEntries.then(function (updateEntries) {
             console.info('SingleKvStoreChangeNotificationPromisePutTest getUpdateEntries' + JSON.stringify(updateEntries));
             expect(updateEntries != null).assertTrue();
-            // expect(updateEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromisePutTest can NOT getUpdateEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
@@ -2655,7 +2625,6 @@ describe('SingleKvStorePromiseTest', function () {
         await getdeleteEntries.then(function (deleteEntries) {
             console.info('SingleKvStoreChangeNotificationPromiseDeleteTest deleteEntries' + JSON.stringify(getdeleteEntries));
             expect(deleteEntries != null).assertTrue();
-            // expect(deleteEntries).assertNotNull();
         }).catch((error) => {
             console.error('SingleKvStoreChangeNotificationPromiseDeleteTest can NOT getdeleteEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
