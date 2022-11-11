@@ -25,9 +25,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxKeyLengthSucSucTest', 0, function () {
-        var maxKeyLength = factory.Constants.MAX_KEY_LENGTH;
-        console.info('maxKeyLength = ' + maxKeyLength);
-        expect(maxKeyLength == 1024).assertTrue()
+        try {
+            var maxKeyLength = factory.Constants.MAX_KEY_LENGTH;
+            console.info('maxKeyLength = ' + maxKeyLength);
+            expect(maxKeyLength == 1024).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -37,10 +41,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxValueLengthSucSucTest', 0, function () {
-        var maxValueLength = factory.Constants.MAX_VALUE_LENGTH;
-        console.info('maxValueLength = ' + maxValueLength);
-        expect(maxValueLength == 4194303).assertTrue();
-        expect(factory.Constants.MAX_VALUE_LENGTH).assertEqual(4194303);
+        try {
+            var maxValueLength = factory.Constants.MAX_VALUE_LENGTH;
+            console.info('maxValueLength = ' + maxValueLength);
+            expect(maxValueLength == 4194303).assertTrue();
+            expect(factory.Constants.MAX_VALUE_LENGTH).assertEqual(4194303);
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -65,9 +73,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxKeyLengthDeviceSucTest', 0, function () {
-        var maxKeyLengthDevice = factory.Constants.MAX_KEY_LENGTH_DEVICE;
-        console.info('maxKeyLengthDevice = ' + maxKeyLengthDevice);
-        expect(maxKeyLengthDevice == 896).assertTrue()
+
+        try {
+            var maxKeyLengthDevice = factory.Constants.MAX_KEY_LENGTH_DEVICE;
+            console.info('maxKeyLengthDevice = ' + maxKeyLengthDevice);
+            expect(maxKeyLengthDevice == 896).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -77,9 +90,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxStoreIdLengthSucTest', 0, function () {
-        var maxStoreIdLength = factory.Constants.MAX_STORE_ID_LENGTH;
-        console.info('maxStoreIdLength = ' + maxStoreIdLength);
-        expect(maxStoreIdLength == 128).assertTrue()
+
+        try {
+            var maxStoreIdLength = factory.Constants.MAX_STORE_ID_LENGTH;
+            console.info('maxStoreIdLength = ' + maxStoreIdLength);
+            expect(maxStoreIdLength == 128).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -89,9 +107,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxQueryLengthSucTest', 0, function () {
-        var maxQueryLength = factory.Constants.MAX_QUERY_LENGTH;
-        console.info('maxQueryLength = ' + maxQueryLength);
-        expect(maxQueryLength == 512000).assertTrue()
+
+        try {
+            var maxQueryLength = factory.Constants.MAX_QUERY_LENGTH;
+            console.info('maxQueryLength = ' + maxQueryLength);
+            expect(maxQueryLength == 512000).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -101,9 +124,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumConstantsMaxBatchSizeSucTest', 0, function () {
-        var maxBatchSize = factory.Constants.MAX_BATCH_SIZE;
-        console.info('maxBatchSize = ' + maxBatchSize);
-        expect(maxBatchSize == 128).assertTrue()
+
+        try {
+            var maxBatchSize = factory.Constants.MAX_BATCH_SIZE;
+            console.info('maxBatchSize = ' + maxBatchSize);
+            expect(maxBatchSize == 128).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -113,9 +141,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeStringSucTest', 0, function () {
-        var string = factory.ValueType.STRING;
-        console.info('string = ' + string);
-        expect(string == 0).assertTrue()
+
+        try {
+            var string = factory.ValueType.STRING;
+            console.info('string = ' + string);
+            expect(string == 0).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -125,9 +158,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeIntegerSucTest', 0, function () {
-        var integer = factory.ValueType.INTEGER;
-        console.info('integer = ' + integer);
-        expect(integer == 1).assertTrue()
+
+        try {
+            var integer = factory.ValueType.INTEGER;
+            console.info('integer = ' + integer);
+            expect(integer == 1).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -137,9 +175,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeFloatSucTest', 0, function () {
-        var float = factory.ValueType.FLOAT;
-        console.info('float = ' + float);
-        expect(float == 2).assertTrue()
+
+        try {
+            var float = factory.ValueType.FLOAT;
+            console.info('float = ' + float);
+            expect(float == 2).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -149,9 +192,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeByteArraySucTest', 0, function () {
-        var byteArray = factory.ValueType.BYTE_ARRAY;
-        console.info('byteArray = ' + byteArray);
-        expect(byteArray == 3).assertTrue()
+
+        try {
+            var byteArray = factory.ValueType.BYTE_ARRAY;
+            console.info('byteArray = ' + byteArray);
+            expect(byteArray == 3).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -161,9 +209,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeBooleanSucTest', 0, function () {
-        var boolean = factory.ValueType.BOOLEAN;
-        console.info('boolean = ' + boolean);
-        expect(boolean == 4).assertTrue()
+
+        try {
+            var boolean = factory.ValueType.BOOLEAN;
+            console.info('boolean = ' + boolean);
+            expect(boolean == 4).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -173,9 +226,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumValuetypeDoubleSucTest', 0, function () {
-        var double = factory.ValueType.DOUBLE;
-        console.info('double = ' + double);
-        expect(double == 5).assertTrue()
+
+        try {
+            var double = factory.ValueType.DOUBLE;
+            console.info('double = ' + double);
+            expect(double == 5).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -185,9 +243,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSyncmodePullOnlySucTest', 0, function () {
-        var pullonly = factory.SyncMode.PULL_ONLY;
-        console.info('pullonly = ' + pullonly);
-        expect(pullonly == 0).assertTrue()
+
+        try {
+            var pullonly = factory.SyncMode.PULL_ONLY;
+            console.info('pullonly = ' + pullonly);
+            expect(pullonly == 0).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -197,9 +260,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSyncmodePushOnlySucTest', 0, function () {
-        var pushonly = factory.SyncMode.PUSH_ONLY;
-        console.info('pushonly = ' + pushonly);
-        expect(pushonly == 1).assertTrue()
+
+        try {
+            var pushonly = factory.SyncMode.PUSH_ONLY;
+            console.info('pushonly = ' + pushonly);
+            expect(pushonly == 1).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -209,9 +277,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSyncmodePushPullSucTest', 0, function () {
-        var pushpull = factory.SyncMode.PUSH_PULL;
-        console.info('pushpull = ' + pushpull);
-        expect(pushpull == 2).assertTrue()
+
+        try {
+            var pushpull = factory.SyncMode.PUSH_PULL;
+            console.info('pushpull = ' + pushpull);
+            expect(pushpull == 2).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -221,9 +294,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSubscribetypeSubscribeTypeLocalSucTest', 0, function () {
-        var local = factory.SubscribeType.SUBSCRIBE_TYPE_LOCAL;
-        console.info('local = ' + local);
-        expect(local == 0).assertTrue()
+
+        try {
+            var local = factory.SubscribeType.SUBSCRIBE_TYPE_LOCAL;
+            console.info('local = ' + local);
+            expect(local == 0).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -233,9 +311,14 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSubscribetypeSubscribeTypeRemoteSucTest', 0, function () {
-        var remote = factory.SubscribeType.SUBSCRIBE_TYPE_REMOTE;
-        console.info('remote = ' + remote);
-        expect(remote == 1).assertTrue()
+
+        try {
+            var remote = factory.SubscribeType.SUBSCRIBE_TYPE_REMOTE;
+            console.info('remote = ' + remote);
+            expect(remote == 1).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -245,9 +328,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSubscribetypeSubscribeTypeAllSucTest', 0, function () {
-        var all = factory.SubscribeType.SUBSCRIBE_TYPE_ALL;
-        console.info('all = ' + all);
-        expect(all == 2).assertTrue()
+        try {
+            var all = factory.SubscribeType.SUBSCRIBE_TYPE_ALL;
+            console.info('all = ' + all);
+            expect(all == 2).assertTrue();
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -257,9 +344,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumKvstoretypeDeviceCollaborationSucTest', 0, function () {
-        var collaboration = factory.KVStoreType.DEVICE_COLLABORATION;
-        console.info('collaboration = ' + collaboration);
-        expect(collaboration == 0).assertTrue()
+        try {
+            var collaboration = factory.KVStoreType.DEVICE_COLLABORATION;
+            console.info('collaboration = ' + collaboration);
+            expect(collaboration == 0).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -269,9 +360,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumKvstoretypeSingleVersionSucTest', 0, function () {
-        var single = factory.KVStoreType.SINGLE_VERSION;
-        console.info('single = ' + single);
-        expect(single == 1).assertTrue()
+        try {
+            var single = factory.KVStoreType.SINGLE_VERSION;
+            console.info('single = ' + single);
+            expect(single == 1).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -281,9 +376,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSecuritylevelS1SucTest', 0, function () {
-        var s1 = factory.SecurityLevel.S1;
-        console.info('s1 = ' + s1);
-        expect(s1 == 2).assertTrue()
+        try {
+            var s1 = factory.SecurityLevel.S1;
+            console.info('s1 = ' + s1);
+            expect(s1 == 2).assertTrue();
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -293,9 +392,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSecuritylevelS2SucTest', 0, function () {
-        var s2 = factory.SecurityLevel.S2;
-        console.info('s2 = ' + s2);
-        expect(s2 == 3).assertTrue()
+        try {
+            var s2 = factory.SecurityLevel.S2;
+            console.info('s2 = ' + s2);
+            expect(s2 == 3).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -305,9 +408,13 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSecuritylevelS3SucTest', 0, function () {
-        var s3 = factory.SecurityLevel.S3;
-        console.info('s3 = ' + s3);
-        expect(s3 == 5).assertTrue()
+        try {
+            var s3 = factory.SecurityLevel.S3;
+            console.info('s3 = ' + s3);
+            expect(s3 == 5).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 
     /**
@@ -317,8 +424,12 @@ describe('SingleKvStoreEnumSucTestfunction',function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreEnumSecuritylevelS4SucTest', 0, function () {
-        var s4 = factory.SecurityLevel.S4;
-        console.info('s4 = ' + s4);
-        expect(s4 == 6).assertTrue()
+        try {
+            var s4 = factory.SecurityLevel.S4;
+            console.info('s4 = ' + s4);
+            expect(s4 == 6).assertTrue()
+        } catch (e) {
+            expect(null).assertFailed();
+        }
     })
 })
