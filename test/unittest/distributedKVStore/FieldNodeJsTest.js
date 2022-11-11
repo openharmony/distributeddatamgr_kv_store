@@ -17,6 +17,22 @@ import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from '
 import ddm from '@ohos.data.distributedKVStore';
 
 describe('FieldNodeTest', function () {
+    /**
+     * @tc.name FieldNodeConstructorInvalidArgsTest
+     * @tc.desc  Test Js Api FieldNode.AppendChild() with invalid child node
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('FieldNodeConstructorInvalidArgsTest', 0, async function (done) {
+        try {
+            let node = new ddm.FieldNode();
+            expect(null).assertFail();
+        } catch (e) {
+            console.info("FieldNodeConstructorInvalidArgsTest throws exception successfully :" + e);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
 
     /**
      * @tc.name FieldNodeAppendChildSucTest
@@ -45,52 +61,15 @@ describe('FieldNodeTest', function () {
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('FieldNodeAppendChildTest003', 0, async function (done) {
+    it('FieldNodeAppendChildInvalidChildTest', 0, async function (done) {
         try {
             let node = new ddm.FieldNode("root");
-            let child = new ddm.FieldNode();
+            let child = new ddm.FieldNode(null);
             node.appendChild(child);
             expect(null).assertFail();
         } catch (e) {
             console.info("FieldNodeAppendChildInvalidChildTest throws exception successfully :" + e);
-            expect(e != undefined).assertTrue();
-        }
-        done();
-    })
-    /**
-     * @tc.name FieldNodeAppendChildNullTest
-     * @tc.desc  Test Js Api FieldNode.AppendChild() append null
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('FieldNodeAppendChildNullTest', 0, async function (done) {
-        try {
-            let node = new ddm.FieldNode("root");
-            let child = new ddm.FieldNode("abc");
-            node.appendChild(null);
-            expect(null).assertFail();
-        } catch (e) {
-            console.info("FieldNodeAppendChildNullTest throws exception successfully :" + e);
-            expect(e != undefined).assertTrue();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name FieldNodeAppendChildBothInvalidTest
-     * @tc.desc  Test Js Api FieldNode.ToJson() node and child both invalid
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('FieldNodeAppendChildBothInvalidTest', 0, async function (done) {
-        try {
-            let node = new ddm.FieldNode();
-            let child = new ddm.FieldNode();
-            node.appendChild(child);
-            expect(null).assertFail();
-        } catch (e) {
-            console.info("FieldNodeAppendChildBothInvalidTest is ok: " + e);
-            expect(e != undefined).assertTrue();
+            expect(e.code == 401).assertTrue();
         }
         done();
     })

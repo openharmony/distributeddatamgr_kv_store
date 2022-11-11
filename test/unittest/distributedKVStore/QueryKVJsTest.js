@@ -19,37 +19,12 @@ import ddm from '@ohos.data.distributedKVStore';
 describe('queryTest', function () {
 
     /**
-     * @tc.name: QueryResetOneSucTest
-     * @tc.desc: Test Js Api Query.reset() reset one calls successfully
+     * @tc.name: QueryResetSucTest
+     * @tc.desc: Test Js Api Query.reset() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryResetOneSucTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.equalTo("test", 3);
-            console.info("query is " + query.getSqlLike());
-            expect(query.getSqlLike() !== "").assertTrue();
-            query.reset();
-            expect("").assertEqual(query.getSqlLike());
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("simply calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryResetDumpSucTest
-     * @tc.desc: Test Js Api Query.reset() reset dumplicated calls successfully
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryResetDumpSucTest', 0, async function (done) {
+    it('QueryResetSucTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -60,8 +35,8 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
             expect(query.getSqlLike() !== "").assertTrue();
             query.reset();
-            query.reset();
-            query.reset();
+            // query.reset();
+            // query.reset();
             expect("").assertEqual(query.getSqlLike());
             console.info("sql after  reset: " + query.getSqlLike());
             console.info("query is " + query.getSqlLike());
@@ -72,7 +47,6 @@ describe('queryTest', function () {
         query = null;
         done();
     })
-
 
     /**
      * @tc.name: QueryResetCalAfterResetTest
@@ -149,28 +123,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryEqualToMChainCallsTest
-     * @tc.desc: Test Js Api Query.equalTo() with chaining calls successfully
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryEqualToMChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.equalTo("key1", 1).equalTo("key2", 2).equalTo("key3", 3);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryEqualToNanTest
      * @tc.desc: Test Js Api Query.equalTo() with value Nan
      * @tc.type: FUNC
@@ -192,8 +144,8 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryEqualToInvalidArgTest
-     * @tc.desc: Test Js Api Query.equalTo() with invalid arguments
+     * @tc.name: QueryEqualToInvalidMoreArgTest
+     * @tc.desc: Test Js Api Query.equalTo() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -208,6 +160,27 @@ describe('queryTest', function () {
         } catch (e) {
             console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryEqualToInvalidLessArgTest
+     * @tc.desc: Test Js Api Query.equalTo() with invalid less arguments
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryEqualToInvalidArgTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.equalTo();
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -229,32 +202,8 @@ describe('queryTest', function () {
             query.notEqualTo("key3", false);
             query.notEqualTo("key4", "string");
             expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryNotEqualToChainCallsTest
-     * @tc.desc: Test Js Api Query.equalTo() with chaining calls successfully
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryNotEqualToChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", 5);
-            query.reset();
-            query.notEqualTo("key0", 5).equalTo("key1", 5).notEqualTo("key2", "str").notEqualTo("key3", false);
-            expect(query.getSqlLike() !== "").assertTrue();
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -282,21 +231,44 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryNotEqualToInvalidArgTest
-     * @tc.desc: Test Js Api Query.equalTo() with invalid arguments
+     * @tc.name: QueryNotEqualToInvalidMoreArgTest
+     * @tc.desc: Test Js Api Query.equalTo() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryNotEqualToInvalidArgTest', 0, async function (done) {
+    it('QueryNotEqualToInvalidMoreArgTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
             query.notEqualTo("key1", "value", "too more", 4);
             console.info("should not throw exception on invalid arguments");
+            expect(true).assertTrue();
         } catch (e) {
             console.log("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryNotEqualToInvalidLessArgTest
+     * @tc.desc: Test Js Api Query.equalTo() with invalid less arguments
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryNotEqualToInvalidLessArgTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.notEqualTo();
+            console.info("should throw exception on invalid arguments");
+            expect(null).assertFail();
+        } catch (e) {
+            console.log("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -328,30 +300,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryGreatThanChainCallsTest
-     * @tc.desc: Test Js Api Query.GreatThan() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryGreatThanChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.greaterThan("key", 5);
-            query.reset();
-            query.greaterThan("key0", 5).greaterThan("key1", "v5").greaterThan("key3", false);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryGreatThanNanTest
      * @tc.desc: Test Js Api Query.GreatThan() with value nan
      * @tc.type: FUNC
@@ -363,8 +311,8 @@ describe('queryTest', function () {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
             query.greaterThan("key2", NaN);
-            console.info("should throw exception on invalid arguments");
-            console.info("query is " + query.getSqlLike());
+            console.info("should not throw exception on invalid arguments");
+            expect(true).assertTrue();
         } catch (e) {
             expect(null).assertFail();
         }
@@ -373,22 +321,44 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryGreatThanInvalidArgsTest
-     * @tc.desc: Test Js Api Query.GreatThan() with invalid arguments
+     * @tc.name: QueryGreatThanInvalidMoreArgsTest
+     * @tc.desc: Test Js Api Query.GreatThan() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      **/
-    it('QueryGreatThanInvalidArgsTest', 0, async function (done) {
+    it('QueryGreatThanInvalidMoreArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
             query.greaterThan("key1", "value", "too more", 4);
-            console.info("should throw exception on invalid arguments");
+            console.info("should not throw exception on invalid arguments");
             expect(query.getSqlLike() !== "").assertTrue();
         } catch (e) {
             console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryGreatThanInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.GreatThan() with invalid less arguments
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     **/
+    it('QueryGreatThanInvalidLessArgsTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.greaterThan();
+            console.info("should throw exception on invalid arguments");
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -419,30 +389,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryLessThanChainCallsTest
-     * @tc.desc: Test Js Api Query.LessThan() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryLessThanChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.lessThan("key", 5);
-            query.reset();
-            query.lessThan("key0", 5).lessThan("key1", "v5").lessThan("key3", false);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryLessThanNanTest
      * @tc.desc: Test Js Api Query.LessThan() with value nan
      * @tc.type: FUNC
@@ -455,6 +401,7 @@ describe('queryTest', function () {
             expect("").assertEqual(query.getSqlLike());
             query.lessThan("key2", NaN);
             console.info("query is " + query.getSqlLike());
+            expect(true).assertTrue();
         } catch (e) {
             expect(null).assertFail();
         }
@@ -463,12 +410,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryLessThanInvalidArgsTest
-     * @tc.desc: Test Js Api Query.LessThan() with invalid arguments
+     * @tc.name: QueryLessThanInvalidMoreArgsTest
+     * @tc.desc: Test Js Api Query.LessThan() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryLessThanInvalidArgsTest', 0, async function (done) {
+    it('QueryLessThanInvalidMoreArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -479,6 +426,28 @@ describe('queryTest', function () {
         } catch (e) {
             console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryLessThanInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.LessThan() with invalid less arguments
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryLessThanInvalidLessArgsTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.lessThan();
+            console.info("query is " + query.getSqlLike());
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -510,32 +479,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryGreaterThanOrEqualToChainCallsTest
-     * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryGreaterThanOrEqualToChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.greaterThanOrEqualTo("key", 5);
-            query.reset();
-            query.greaterThanOrEqualTo("key0", 5)
-                .greaterThanOrEqualTo("key1", "v5")
-                .greaterThanOrEqualTo("key3", false);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryGreaterThanOrEqualToNanTest
      * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with value nan
      * @tc.type: FUNC
@@ -557,12 +500,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryGreaterThanOrEqualToInvalidArgsTest
-     * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with invalid arguments
+     * @tc.name: QueryGreaterThanOrEqualToInvalidMoreArgsTest
+     * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with invalid more arguments
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryGreaterThanOrEqualToInvalidArgsTest', 0, async function (done) {
+    it('QueryGreaterThanOrEqualToInvalidMoreArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -573,6 +516,28 @@ describe('queryTest', function () {
         } catch (e) {
             console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryGreaterThanOrEqualToInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.GreaterThanOrEqualTo() with invalid less arguments
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryGreaterThanOrEqualToInvalidLessArgsTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.greaterThanOrEqualTo();
+            console.info("should not throw exception on invalid arguments");
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -604,30 +569,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryLessThanOrEqualToChainCallsTest
-     * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryLessThanOrEqualToChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.lessThanOrEqualTo("key", 5);
-            query.reset();
-            query.lessThanOrEqualTo("key0", 5).lessThanOrEqualTo("key1", "v5").lessThanOrEqualTo("key3", false);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryLessThanOrEqualToNanTest
      * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with value nan
      * @tc.type: FUNC
@@ -640,6 +581,7 @@ describe('queryTest', function () {
             expect("").assertEqual(query.getSqlLike());
             query.lessThanOrEqualTo("key2", NaN);
             console.info("query is " + query.getSqlLike());
+            expect(true).assertTrue();
         } catch (e) {
             expect(null).assertFail();
         }
@@ -670,6 +612,28 @@ describe('queryTest', function () {
     })
 
     /**
+     * @tc.name: QueryLessThanOrEqualToInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.LessThanOrEqualTo() with invalid less args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryLessThanOrEqualToInvalidLessArgsTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.lessThanOrEqualTo();
+            console.info("should not throw exception on invalid arguments");
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception: " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        query = null;
+        done();
+    })
+
+    /**
      * @tc.name: QueryIsNullSucTest
      * @tc.desc: Test Js Api Query.IsNull() successfully
      * @tc.type: FUNC
@@ -686,28 +650,6 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryIsNullChainCallsTest
-     * @tc.desc: Test Js Api Query.IsNull() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryIsNullChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.isNull("key").notEqualTo("key1", 4).isNull("key2");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -735,6 +677,7 @@ describe('queryTest', function () {
         query = null;
         done();
     })
+
     /**
      * @tc.name: QueryIsNullInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.IsNull() with invalid type args
@@ -751,6 +694,29 @@ describe('queryTest', function () {
             expect(null).assertFail();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        query = null;
+        done();
+    })
+
+    /**
+     * @tc.name: QueryIsNullInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.IsNull() with invalid less args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryIsNullInvalidLessArgsTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.isNull();
+            console.info("should throw exception on invalid arguments");
+            expect(null).assertFail();
+        } catch (e) {
+            console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         query = null;
         done();
@@ -767,7 +733,6 @@ describe('queryTest', function () {
         try {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
-            console.info("QueryInNumberSucTest start ");
             var i8 = new Int8Array([-21, 31]);
             query.reset().inNumber("key", i8);
             console.info("inNumber(Int8Array([-21,31])  => " + query.getSqlLike());
@@ -799,30 +764,9 @@ describe('queryTest', function () {
             query.reset().inNumber("key", f64);
             console.info("inNumber(Float64Array([-21,31])  => " + query.getSqlLike());
             query.reset();
+            expect(true).assertTrue();
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryInNumberChainCallsTest
-     * @tc.desc: Test Js Api Query.InNumber() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryInNumberChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.inNumber("key", [1, 2.3, 987654]).inNumber("key2", [0x10abcdef]).inNumber("key2", [0xf0123456]).inNumber("key2", [0b10101]);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -852,8 +796,8 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryInNumberInvalidTypeArgsTest
-     * @tc.desc: Test Js Api Query.InNumber() with invalid type args
+     * @tc.name: QueryInNumberInvalidLessArgsTest
+     * @tc.desc: Test Js Api Query.InNumber() with invalid less args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
@@ -874,37 +818,37 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryInNumberInvalidArrayArgsTest
-     * @tc.desc: Test Js Api Query.InNumber() with invalid array args
+     * @tc.name: QueryInNumberInvalidBigArrayArgsTest
+     * @tc.desc: Test Js Api Query.InNumber() with invalid big array args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryInNumberInvalidArrayArgsTest', 0, async function (done) {
+    it('QueryInNumberInvalidBigArrayArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
-            var u64 = new BigUint64Array([21, 31]);
+            var u64 = new BigUint64Array([21n, 31n]);
             query.inNumber("key", u64);
-            var b64 = new BigInt64Array([21, 31]);
+            var b64 = new BigInt64Array([21n, 31n]);
             query.inNumber("key", b64);
-            console.info("should throw exception on invalid arguments");
-            expect(null).assertFail();
+            console.info("should not throw exception on invalid arguments");
+            expect(true).assertTrue();
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(true).assertTrue();
+            expect(null).assertFail();
         }
         query = null;
         done();
     })
 
     /**
-     * @tc.name: QueryInNumberDumpCallsTest
-     * @tc.desc: Test Js Api Query.InNumber() dumplicated calls
+     * @tc.name: QueryInNumberBoundaryCallsTest
+     * @tc.desc: Test Js Api Query.InNumber() boundary calls
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryInNumberDumpCallsTest', 0, async function (done) {
+    it('QueryInNumberBoundaryCallsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -959,23 +903,21 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryInStringChainCallsTest
-     * @tc.desc: Test Js Api Query.InString() with chaining calls
+     * @tc.name: QueryInStringInvalidMoreArgsTest
+     * @tc.desc: Test Js Api Query.InString() with invalid more args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryInStringChainCallsTest', 0, async function (done) {
+    it('QueryInStringInvalidMoreArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
-            query.inString("key", ["a2z", 'z2a'])
-                .inString("key2", ["AAA"])
-                .inString("key2", ["AAA", "AAABBB", "CCCAAA"]);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
+            query.inString("key", ["a2z", 'z2a'], ["AAA"]);
+            console.info("should throw exception on invalid arguments");
+            expect(true).assertTrue();
         } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
+            console.error("throw exception : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -983,12 +925,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryInStringInvalidMoreArgsTest
-     * @tc.desc: Test Js Api Query.InString() with invalid more args
+     * @tc.name: QueryInStringInvalidTypeArgsTest
+     * @tc.desc: Test Js Api Query.InString() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryInStringInvalidMoreArgsTest', 0, async function (done) {
+    it('QueryInStringInvalidTypeArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1005,12 +947,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryInStringInvalidTypeArgsTest
-     * @tc.desc: Test Js Api Query.InString() with invalid type args
+     * @tc.name: QueryInStringInvalidListArgsTest
+     * @tc.desc: Test Js Api Query.InString() with invalid list args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryInStringInvalidTypeArgsTest', 0, async function (done) {
+    it('QueryInStringInvalidListArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1043,28 +985,6 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryNotInNumberChainCallsTest
-     * @tc.desc: Test Js Api Query.NotInNumber() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryNotInNumberChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notInNumber("key", [1, 2, 3]).notInNumber("key", [1, 7, 8]).notEqualTo("kkk", 5);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -1140,28 +1060,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryNotInStringChainCallsTest
-     * @tc.desc: Test Js Api Query.NotInString() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryNotInStringChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notInString("key", ["v1", "v2", "v3"]).notEqualTo("kkk", "v3");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryNotInStringInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.NotInString() with invalid more args
      * @tc.type: FUNC
@@ -1229,28 +1127,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryLikeChainCallsTest
-     * @tc.desc: Test Js Api Query.Like() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryLikeChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.like("key", "v1").like("key", "v3").like("key", "v2");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryLikeInvalidArgsTypeTest
      * @tc.desc: Test Js Api Query.Like() with invalid type args
      * @tc.type: FUNC
@@ -1310,28 +1186,6 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryUnlikeChainCallsTest
-     * @tc.desc: Test Js Api Query.Unlike() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryUnlikeChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.unlike("key", "v1").unlike("key", "v3").unlike("key", "v2");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -1407,56 +1261,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryAndEqualToTest
-     * @tc.desc: Test Js Api Query.And() equalto
+     * @tc.name: QueryAndInvalidArgsTest
+     * @tc.desc: Test Js Api Query.And() invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryAndEqualToTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.equalTo("key1", 0).and().equalTo("key2", "v1");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryAndNotEqualToTest
-     * @tc.desc: Test Js Api Query.And() notEqualTo
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryAndNotEqualToTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", 0).and().notEqualTo("key", 1).and();
-            expect(query.getSqlLike() !== "").assertTrue();
-            query.reset();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryAndDiffTest
-     * @tc.desc: Test Js Api Query.And() different calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryAndDiffTest', 0, async function (done) {
+    it('QueryAndInvalidArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1497,59 +1307,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryOrEqualToTest
-     * @tc.desc: Test Js Api Query.Or() equalto
+     * @tc.name: QueryOrInvalidArgsTest
+     * @tc.desc: Test Js Api Query.Or() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryOrEqualToTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.equalTo("key1", 0).or().equalTo("key2", "v1");
-            expect(query.getSqlLike() !== "").assertTrue();
-            query.reset();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryOrNotEqualToTest
-     * @tc.desc: Test Js Api Query.Or() notequalto
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryOrNotEqualToTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", 0).or();
-            console.info("or ... sql:" + query.getSqlLike());
-            expect(query.getSqlLike() !== "").assertTrue();
-            query.reset();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryOrDiffTest
-     * @tc.desc: Test Js Api Query.Or() with diff calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryOrDiffTest', 0, async function (done) {
+    it('QueryOrInvalidArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1589,34 +1352,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryOrderByAscChainCallsTest
-     * @tc.desc: Test Js Api Query.OrderByAsc() with chaining calls
+     * @tc.name: QueryOrderByAscInvalidTypeArgsTest
+     * @tc.desc: Test Js Api Query.OrderByAsc() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryOrderByAscChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", "V0").orderByAsc("sortbykey1").orderByAsc("sortbykey2");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryOrderByAscInvalidArgsTest
-     * @tc.desc: Test Js Api Query.OrderByAsc() with invalid args
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryOrderByAscInvalidArgsTest', 0, async function (done) {
+    it('QueryOrderByAscInvalidTypeArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1678,34 +1419,12 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryOrderByDescChainCallsTest
-     * @tc.desc: Test Js Api Query.OrderByDesc() with chaining calls
+     * @tc.name: QueryOrderByDescInvalidTypeArgsTest
+     * @tc.desc: Test Js Api Query.OrderByDesc() with invalid type args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('QueryOrderByDescChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", "V0").orderByDesc("sortbykey1").orderByDesc("sortbykey2");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryOrderByDescInvalidArgsTest
-     * @tc.desc: Test Js Api Query.OrderByDesc() with invalid args
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryOrderByDescInvalidArgsTest', 0, async function (done) {
+    it('QueryOrderByDescInvalidTypeArgsTest', 0, async function (done) {
         var query = null;
         try {
             query = new ddm.Query();
@@ -1755,34 +1474,12 @@ describe('queryTest', function () {
             query = new ddm.Query();
             expect("").assertEqual(query.getSqlLike());
             query.notEqualTo("key", "vx");
+            expect(query.getSqlLike() !== "").assertTrue();
             query.limit(10, 2);
             expect(query.getSqlLike() !== "").assertTrue();
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryLimitChainCallsTest
-     * @tc.desc: Test Js Api Query.Limit() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryLimitChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.notEqualTo("key", "vx").limit(10, 2)
-                .equalTo("key2", 2).limit(10, 2);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;
@@ -1803,7 +1500,6 @@ describe('queryTest', function () {
             query.notEqualTo("key", false).limit(10, 2, "any");
             console.info("should not throw exception on invalid arguments");
             expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("throw exception: " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
@@ -1880,28 +1576,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryIsNotNullChainCallsTest
-     * @tc.desc: Test Js Api Query.IsNotNull() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryIsNotNullChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.isNotNull("key1").and().notEqualTo("key1", 123);
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryIsNotNullMoreArgsTest
      * @tc.desc: Test Js Api Query.IsNotNull() with invalid more args
      * @tc.type: FUNC
@@ -1970,32 +1644,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryBeginGroupChainCallsTest
-     * @tc.desc: Test Js Api Query.BeginGroup() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryBeginGroupChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.beginGroup();
-            query.beginGroup();
-            query.notEqualTo("$.name", 0);
-            query.endGroup();
-            query.beginGroup();
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryBeginGroupInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.BeginGroup() with invalid type args
      * @tc.type: FUNC
@@ -2039,6 +1687,30 @@ describe('queryTest', function () {
         done();
     })
 
+
+    /**
+     * @tc.name: QueryEndGroupSucTest
+     * @tc.desc: Test Js Api Query.EndGroup() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('QueryEndGroupSucTest', 0, async function (done) {
+        var query = null;
+        try {
+            query = new ddm.Query();
+            expect("").assertEqual(query.getSqlLike());
+            query.beginGroup();
+            query.isNotNull("name");
+            query.endGroup();
+            expect(query.getSqlLike() !== "").assertTrue();
+        } catch (e) {
+            console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        query = null;
+        done();
+    })
+
     /**
      * @tc.name: QueryEndGroupInvalidTypeArgsTest
      * @tc.desc: Test Js Api Query.EndGroup() with invalid type args
@@ -2074,27 +1746,6 @@ describe('queryTest', function () {
             expect("").assertEqual(query.getSqlLike());
             query.prefixKey("$.name");
             query.prefixKey("0");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryPrefixKeyChainCallsTest
-     * @tc.desc: Test Js Api Query.PrefixKey() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryPrefixKeyChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.prefixKey("kx1").or().prefixKey("kx2").or().prefixKey("kx3");
             expect(query.getSqlLike() !== "").assertTrue();
             console.info("query is " + query.getSqlLike());
         } catch (e) {
@@ -2161,27 +1812,6 @@ describe('queryTest', function () {
             expect("").assertEqual(query.getSqlLike());
             query.setSuggestIndex("$.name");
             query.setSuggestIndex("0");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QuerySetSuggestIndexChainCallsTest
-     * @tc.desc: Test Js Api Query.SetSuggestIndex() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QuerySetSuggestIndexChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.setSuggestIndex("kxx").or().equalTo("key2", "v1");
             expect(query.getSqlLike() !== "").assertTrue();
             console.info("query is " + query.getSqlLike());
         } catch (e) {
@@ -2259,28 +1889,6 @@ describe('queryTest', function () {
     })
 
     /**
-     * @tc.name: QueryDeviceIdChainCallsTest
-     * @tc.desc: Test Js Api Query.DeviceId() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryDeviceIdChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            query.deviceId("kxx").equalTo("key2", "v1");
-            expect(query.getSqlLike() !== "").assertTrue();
-            console.info("query is " + query.getSqlLike());
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
      * @tc.name: QueryDeviceIdInvalidMoreArgsTest
      * @tc.desc: Test Js Api Query.DeviceId() with invalid more args
      * @tc.type: FUNC
@@ -2342,34 +1950,6 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryGetSqlLikeChainCallsTest
-     * @tc.desc: Test Js Api Query.GetSqlLike() with chaining calls
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryGetSqlLikeChainCallsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            let sql1 = query.getSqlLike();
-            console.info("QueryGetSqlLikeChainCallsTest sql=" + sql1);
-            query.inString("key1", ["AAA", "BBB"])
-                .or()
-                .notEqualTo("key2", 0);
-            let sql2 = query.getSqlLike();
-            console.info("QueryGetSqlLikeChainCallsTest sql=" + sql2);
-            console.info("query is " + query.getSqlLike());
-            expect(sql1 !== sql2).assertTrue();
-        } catch (e) {
-            console.error("should be ok on Method Chaining : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         query = null;

@@ -23,13 +23,13 @@ const KEY_TEST_INT_ELEMENT = 'key_test_int_2';
 const KEY_TEST_FLOAT_ELEMENT = 'key_test_float_2';
 const KEY_TEST_BOOLEAN_ELEMENT = 'key_test_boolean_2';
 const KEY_TEST_STRING_ELEMENT = 'key_test_string_2';
-const KEY_TEST_SYNC_ELEMENT = 'key_test_sync';
+const file = "";
+const files = [file];
 
 const VALUE_TEST_INT_ELEMENT = 1234;
 const VALUE_TEST_FLOAT_ELEMENT = 4321.12;
 const VALUE_TEST_BOOLEAN_ELEMENT = true;
 const VALUE_TEST_STRING_ELEMENT = 'value-string-002';
-const VALUE_TEST_SYNC_ELEMENT = 'value-string-001';
 
 const TEST_BUNDLE_NAME = 'com.example.myapplication';
 const TEST_STORE_ID = 'storeId';
@@ -37,7 +37,6 @@ var kvManager = null;
 var kvStore = null;
 const USED_DEVICE_IDS = ['A12C1F9261528B21F95778D2FDC0B2E33943E6251AC5487F4473D005758905DB'];
 const UNUSED_DEVICE_IDS = [];  /* add you test device-ids here */
-var syncDeviceIds = USED_DEVICE_IDS.concat(UNUSED_DEVICE_IDS);
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -67,7 +66,7 @@ describe('SingleKvStoreCallbackTest', function () {
     const options = {
         createIfMissing: true,
         encrypt: false,
-        backup: false,
+        backup: true,
         autoSync: true,
         kvStoreType: factory.KVStoreType.SINGLE_VERSION,
         schema: '',
@@ -102,7 +101,7 @@ describe('SingleKvStoreCallbackTest', function () {
     afterEach(async function (done) {
         console.info('afterEach');
         try {
-            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore, async function (err, data) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err, data) {
                 console.info('afterEach closeKVStore success: err is: ' + err);
                 await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err, data) {
                     console.info('afterEach deleteKVStore success err is: ' + err);
@@ -141,58 +140,56 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStorePutStringCallbackLongStringTest
-     * @tc.desc Test Js Api SingleKvStore.Put(String) with a long string
+     * @tc.name SingleKvStorePutStringCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.Put(String) with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStorePutStringCallbackTest', 0, async function (done) {
-        console.info('SingleKvStorePutStringCallbackTest');
+    it('SingleKvStorePutStringCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStorePutStringCallbackInvalidArgsTest');
         try {
-            var str = '';
-            for (var i = 0; i < 4095; i++) {
-                str += 'x';
-            }
-            await kvStore.put(KEY_TEST_STRING_ELEMENT + '102', str, async function (err) {
-                console.info('SingleKvStorePutStringCallbackTest put success');
-                expect(err == undefined).assertTrue();
-                await kvStore.get(KEY_TEST_STRING_ELEMENT + '102', function (err, data) {
-                    console.info('SingleKvStorePutStringCallbackTest get success');
-                    expect(str == data).assertTrue();
-                    done();
-                });
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, function (err, data) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                    console.info('SingleKvStorePutStringCallbackInvalidArgsTest put success');
+                } else {
+                    console.error('SingleKvStorePutStringCallbackInvalidArgsTest put fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                }
             });
         } catch (e) {
-            console.error('SingleKvStorePutStringCallbackTest put e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
+            console.error('SingleKvStorePutStringCallbackInvalidArgsTest put e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
+        done();
     })
 
     /**
-     * @tc.name SingleKvStoreGetStringCallbackWrongArgsTest
-     * @tc.desc Test Js Api SingleKvStore.GetString() with wrong args
+     * @tc.name SingleKvStorePutStringCallbackClosedKvStoreTest
+     * @tc.desc Test Js Api SingleKvStore.Put(String) with closed database
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreGetStringCallbackTest', 0, async function (done) {
-        console.info('SingleKvStoreGetStringCallbackTest');
+    it('SingleKvStorePutStringCallbackClosedKvStoreTest', 0, async function (done) {
+        console.info('SingleKvStorePutStringCallbackClosedKvStoreTest');
         try {
-            await kvStore.get(KEY_TEST_STRING_ELEMENT, function (err) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreGetStringCallbackTest get success');
-                    expect(true).assertTrue();
-                } else {
-                    console.info('SingleKvStoreGetStringCallbackTest get fail');
                     expect(null).assertFail();
+                    console.info('SingleKvStorePutStringCallbackClosedKvStoreTest put success');
+                } else {
+                    console.error('SingleKvStorePutStringCallbackClosedKvStoreTest put fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(err.code == 15100006).assertTrue();
                 }
-                done();
             });
         } catch (e) {
-            console.error('SingleKvStoreGetStringCallbackTest get e' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStorePutStringCallbackClosedKvStoreTest put e' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
-            done();
         }
+        done();
     })
 
     /**
@@ -218,6 +215,60 @@ describe('SingleKvStoreCallbackTest', function () {
             expect(null).assertFail();
             done();
         }
+    })
+
+    /**
+     * @tc.name SingleKvStoreGetStringCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetString() from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreGetStringCallbackClosedKVStoreTest', 0, async function (done) {
+        try {
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, async function (err) {
+                expect(err == undefined).assertTrue();
+            })
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.get(KEY_TEST_STRING_ELEMENT, function (err) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(err.code == 15100006).assertTrue();
+                }
+            });
+        } catch (e) {
+            console.error('SingleKvStoreGetStringCallbackClosedKVStoreTest get e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreGetStringCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.GetString() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreGetStringCallbackInvalidArgsTest', 0, async function (done) {
+        try {
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, async function (err) {
+                console.info('SingleKvStoreGetStringCallbackInvalidArgsTest put success');
+                expect(err == undefined).assertTrue();
+                await kvStore.get(1, function (err, data) {
+                    if (err == undefined) {
+                        expect(null).assertFail();
+                    } else {
+                        expect(null).assertFail();
+                    }
+                });
+            })
+        } catch (e) {
+            console.error('SingleKvStoreGetStringCallbackInvalidArgsTest get e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
     })
 
     /**
@@ -309,10 +360,10 @@ describe('SingleKvStoreCallbackTest', function () {
             await kvStore.get(KEY_TEST_INT_ELEMENT, function (err) {
                 if (err == undefined) {
                     console.info('SingleKvStoreGetIntCallbackTest get success');
-                    expect(true).assertTrue();
+                    expect(null).assertFail();
                 } else {
                     console.info('SingleKvStoreGetIntCallbackTest get fail');
-                    expect(null).assertFail();
+                    expect(err.code == 15100004).assertTrue();
                 }
                 done();
             })
@@ -339,32 +390,6 @@ describe('SingleKvStoreCallbackTest', function () {
             });
         } catch (e) {
             console.error('SingleKvStorePutBoolCallbackTest e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
-     * @tc.name SingleKvStoreGetBoolCallbackNonExistTest
-     * @tc.desc Test Js Api SingleKvStore.GetBool() get non-existing bool
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreGetBoolCallbackNonExistTest', 0, async function (done) {
-        console.info('SingleKvStoreGetBoolCallbackNonExistTest');
-        try {
-            await kvStore.get(KEY_TEST_BOOLEAN_ELEMENT, function (err) {
-                if (err == undefined) {
-                    console.info('SingleKvStoreGetBoolCallbackNonExistTest get success');
-                    expect(true).assertTrue();
-                } else {
-                    console.error('SingleKvStoreGetBoolCallbackNonExistTest get fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                }
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreGetBoolCallbackNonExistTest e' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
@@ -448,32 +473,6 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreDeleteStringCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteString() delete without put
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreDeleteStringCallbackNoPutTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteStringCallbackNoPutTest');
-        try {
-            await kvStore.delete(KEY_TEST_STRING_ELEMENT, function (err, data) {
-                if (err == undefined) {
-                    console.info('SingleKvStoreDeleteStringCallbackNoPutTest delete success');
-                    expect(true).assertTrue();
-                } else {
-                    console.error('SingleKvStoreDeleteStringCallbackNoPutTest delete fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                }
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreDeleteStringCallbackNoPutTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
      * @tc.name SingleKvStoreDeleteStringCallbackSucTest
      * @tc.desc Test Js Api SingleKvStore.DeleteString() successfully
      * @tc.type: FUNC
@@ -499,29 +498,65 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreDeleteIntCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteInt() without put
+     * @tc.name SingleKvStoreDeleteStringCallbackInvalid ArgsTest
+     * @tc.desc Test Js Api SingleKvStore.DeleteString() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreDeleteIntCallbackNoPutTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteIntCallbackNoPutTest');
+    it('SingleKvStoreDeleteStringCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreDeleteStringCallbackInvalidArgsTest');
         try {
-            await kvStore.delete(KEY_TEST_INT_ELEMENT, function (err, data) {
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, async function (err, data) {
+                console.info('SingleKvStoreDeleteStringCallbackInvalidArgsTest put success');
+                expect(err == undefined).assertTrue();
+                await kvStore.delete(function (err) {
+                    console.info('SingleKvStoreDeleteStringCallbackInvalidArgsTest delete success');
+                    expect(null).assertFail();
+                });
+            })
+        } catch (e) {
+            console.error('SingleKvStoreDeleteStringCallbackInvalidArgsTest e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreDeleteCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.Delete() into a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreDeleteCallbackClosedKVStoreTest', 0, async function (done) {
+        try {
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreDeleteIntCallbackNoPutTest get success');
                     expect(true).assertTrue();
+                    console.info('SingleKvStorePutStringCallbackClosedKvStoreTest put success');
                 } else {
-                    console.error('SingleKvStoreDeleteIntCallbackNoPutTest get fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('SingleKvStorePutStringCallbackClosedKvStoreTest put fail' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 }
-                done();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                if (err == undefined) {
+                    expect(err == undefined).assertTrue();
+                } else {
+                    expect(null).assertFail();
+                }
+            });
+            await kvStore.delete(KEY_TEST_STRING_ELEMENT, function (err) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(err.code == 15100006).assertTrue();
+                }
             });
         } catch (e) {
-            console.error('SingleKvStoreDeleteIntCallbackNoPutTest e' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStorePutStringCallbackClosedKvStoreTest put e' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
-            done();
         }
+        done();
     })
 
     /**
@@ -544,32 +579,6 @@ describe('SingleKvStoreCallbackTest', function () {
             })
         } catch (e) {
             console.error('SingleKvStoreDeleteIntCallbackSucTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
-     * @tc.name SingleKvStoreDeleteFloatCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteFloat() without put
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreDeleteFloatCallbackNoPutTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteFloatCallbackNoPutTest');
-        try {
-            await kvStore.delete(KEY_TEST_FLOAT_ELEMENT, function (err, data) {
-                if (err == undefined) {
-                    console.info('SingleKvStoreDeleteFloatCallbackNoPutTest get success');
-                    expect(true).assertTrue();
-                } else {
-                    console.error('SingleKvStoreDeleteFloatCallbackNoPutTest get fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                }
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreDeleteFloatCallbackNoPutTest e' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
@@ -601,32 +610,6 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreDeleteBoolCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteBool() wihtout put
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreDeleteBoolCallbackNoPutTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteBoolCallbackNoPutTest');
-        try {
-            await kvStore.delete(KEY_TEST_BOOLEAN_ELEMENT, function (err, data) {
-                if (err == undefined) {
-                    console.info('SingleKvStoreDeleteBoolCallbackNoPutTest get success');
-                    expect(true).assertTrue();
-                } else {
-                    console.error('SingleKvStoreDeleteBoolCallbackNoPutTest get fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                }
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreDeleteBoolCallbackNoPutTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
      * @tc.name SingleKvStoreDeleteBoolCallbackSucTest
      * @tc.desc Test Js Api SingleKvStore.DeleteBool() successfully
      * @tc.type: FUNC
@@ -647,33 +630,6 @@ describe('SingleKvStoreCallbackTest', function () {
         } catch (e) {
             console.error('SingleKvStoreDeleteBoolCallbackSucTest e' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
-     * @tc.name SingleKvStoreDeletePredicatesCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.Delete() without put
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreDeletePredicatesCallbackTest', 0, async function (done) {
-        console.log('SingleKvStoreDeletePredicatesCallbackTest');
-        try {
-            let predicates = new dataShare.DataSharePredicates();
-            await kvStore.delete(predicates, function (err, data) {
-                if (err == undefined) {
-                    console.log('SingleKvStoreDeletePredicatesCallbackTest delete success');
-                    expect(null).assertFail();
-                } else {
-                    console.error('SingleKvStoreDeletePredicatesCallbackTest delete fail' + err`, error code is ${err.code}, message is ${err.message}`);
-                    expect(err != undefined).assertTrue();
-                }
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreDeletePredicatesCallbackTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 401).assertTrue();
             done();
         }
     })
@@ -707,32 +663,150 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreDeletePredicatesCallbackNullInkeysTest
-     * @tc.desc Test Js Api SingleKvStore.Delete() with null inkeys
+     * @tc.name SingleKvStoreBackupCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStore.backup() successfully
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreDeletePredicatesCallbackNullInkeysTest', 0, async function (done) {
-        console.log('SingleKvStoreDeletePredicatesCallbackNullInkeysTest');
+    it('SingleKvStoreBackupCallbackSucTest ', 0, async function (done) {
         try {
-            let predicates = new dataShare.DataSharePredicates();
-            let arr = [null];
-            predicates.inKeys(arr);
-            await kvStore.put("name", "Bob", async function (err, data) {
-                console.log('SingleKvStoreDeletePredicatesCallbackNullInkeysTest put success');
-                expect(err == undefined).assertTrue();
-                await kvStore.delete(predicates, function (err, data) {
-                    console.log('SingleKvStoreDeletePredicatesCallbackNullInkeysTest delete success: ' + err);
-                    expect(err == undefined).assertTrue();
-                    done();
-                });
+            await kvStore.backup(file, function (error) {
+                expect(error == undefined).assertTrue();
+            });
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    });
+    /**
+     * @tc.name SingleKvStoreBackupCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.backup() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreBackupCallbackInvalidArgsTest ', 0, async function (done) {
+        try {
+            kvStore.backup(function () {
+                expect(null).assertFail();
             })
         } catch (e) {
-            console.error('SingleKvStoreDeletePredicatesCallbackNullInkeysTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
+            expect(e.code == 401).assertTrue();
         }
-    })
+        done();
+    });
+
+    /**
+     * @tc.name SingleKvStoreBackupCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.backup() with closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreBackupCallbackClosedKVStoreTest ', 0, async function (done) {
+        try {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err) {
+                expect(err == undefined).assertTrue();
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (error) {
+                    expect(error == undefined).assertTrue();
+                });
+            });
+            await kvStore.backup(file, function (ee) {
+                expect(ee.code == 15100006).assertTrue();
+            });
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    });
+    /**
+     * @tc.name SingleKvStoreRestoreCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStore.restore() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreRestoreCallbackSucTest ', 0, async function (done) {
+        try {
+
+            await kvStore.restore(file, function (error) {
+                expect(error == undefined).assertTrue();
+            });
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    });
+    /**
+     * @tc.name SingleKvStoreRestoreCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.restore() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreRestoreCallbackInvalidArgsTest ', 0, async function (done) {
+        try {
+            kvStore.restore(function () {
+                expect(null).assertFail();
+            })
+        } catch (e) {
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    });
+
+    /**
+     * @tc.name SingleKvStoreRestoreCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.restore() with closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreRestoreCallbackClosedKVStoreTest ', 0, async function (done) {
+        try {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err) {
+                expect(err == undefined).assertTrue();
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (error) {
+                    expect(error == undefined).assertTrue();
+                });
+            });
+            await kvStore.restore(file, function (error) {
+                expect(error.code == 15100006).assertTrue();
+            });
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    });
+
+    /**
+     * @tc.name SingleKvStoreDeleteBackupCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStore.DeleteBackup() successfully
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreDeleteBackupCallbackSucTest ', 0, async function (done) {
+        try {
+            await kvStore.deleteBackup(files, function (error) {
+                expect(error == undefined).assertTrue();
+            });
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    });
+
+    /**
+     * @tc.name SingleKvStoreDeleteBackupCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.DeleteBackup() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreDeleteBackupCallbackInvalidArgsTest ', 0, async function (done) {
+        try {
+            kvStore.deleteBackup(function () {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    });
 
     /**
      * @tc.name SingleKvStoreOnChangeCallbackType0Test
@@ -810,94 +884,156 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreOnSyncCompleteCallbackTestPullOnly001
-     * @tc.desc Test Js Api SingleKvStore.OnSyncComplete() with mode type only
+     * @tc.name SingleKvStoreOnChangeCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.OnChange() subscribe a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreOnSyncCompleteCallbackTestPullOnly001', 0, async function (done) {
+    it('SingleKvStoreOnChangeCallbackClosedKVStoreTest', 0, async function (done) {
+        console.info('SingleKvStoreOnChangeCallbackClosedKVStoreTest');
         try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPullOnly001 dataChange');
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT + 'Sync1Test', VALUE_TEST_SYNC_ELEMENT, function (err, data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPullOnly001 put success');
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
                 expect(err == undefined).assertTrue();
             });
-            try {
-                var mode = factory.SyncMode.PULL_ONLY;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode, 10);
-            } catch (e) {
-                console.error('SingleKvStoreOnSyncCompleteCallbackTestPullOnly001 sync no peer device :e:' + `, error code is ${e.code}, message is ${e.message}`);
+            kvStore.on('dataChange', 2, function () {
                 expect(null).assertFail();
-            }
+            });
         } catch (e) {
-            console.error('SingleKvStoreOnSyncCompleteCallbackTestPullOnly001 e' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreOnChangeCallbackClosedKVStoreTest e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 15100006).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreOnChangeCallbackPassMaxTest
+     * @tc.desc Test Js Api SingleKvStore.OnChange() pass max subscription time
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreOnChangeCallbackPassMaxTest', 0, async function (done) {
+        console.info('SingleKvStoreOnChangeCallbackPassMaxTest');
+        try {
+            for (let i = 0; i < 8; i++) {
+                kvStore.on('dataChange', 0, function (data) {
+                    console.info('SingleKvStoreOnChangeCallbackPassMaxTest dataChange');
+                    expect(data != null).assertTrue();
+                });
+            }
+            kvStore.on('dataChange', 0, function (err) {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('SingleKvStoreOnChangeCallbackPassMaxTest e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 15100001).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreOnChangeCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.OnChange() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreOnChangeCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreOnChangeCallbackInvalidArgsTest');
+        try {
+            kvStore.on('dataChange', function () {
+                console.info('SingleKvStoreOnChangeCallbackInvalidArgsTest dataChange');
+                expect(null).assertFail();
+            });
+
+        } catch (e) {
+            console.error('SingleKvStoreOnChangeCallbackInvalidArgsTest e' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+            done();
+        }
+    })
+
+    /**
+     * @tc.name SingleKvStoreOffChangeCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStoreOffChange success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreOffChangeCallbackSucTest', 0, async function (done) {
+        console.info('SingleKvStoreOffChangePromiseSucTest');
+        try {
+            var func = function (data) {
+                console.info('SingleKvStoreOffChangeCallbackSucTest ' + JSON.stringify(data));
+            };
+            kvStore.on('dataChange', 0, func);
+            kvStore.off('dataChange', func);
+        } catch (e) {
+            console.error('SingleKvStoreOffChangeCallbackSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name SingleKvStoreOnSyncCompleteCallbackTestPushOnly001
-     * @tc.desc Test Js Api SingleKvStore.OnSyncComplete() with mode push only
+     * @tc.name SingleKvStoreOffChangeCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStoreOffChange with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreOnSyncCompleteCallbackTestPushOnly001', 0, async function (done) {
+    it('SingleKvStoreOffChangeCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreOffChangeCallbackInvalidArgsTest');
         try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPushOnly001 dataChange');
-                expect(data != null).assertTrue();
+            kvStore.on('dataChange', 0, function (data) {
+                console.info('SingleKvStoreOffChangeCallbackInvalidArgsTest ' + JSON.stringify(data));
             });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT + 'Sync1Test', VALUE_TEST_SYNC_ELEMENT, function (err, data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPushOnly001 put success');
-                expect(err == undefined).assertTrue();
-            });
-            try {
-                var mode = factory.SyncMode.PUSH_ONLY;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode, 10);
-            } catch (e) {
-                console.error('SingleKvStoreOnSyncCompleteCallbackTestPushOnly001 sync no peer device :e:' + `, error code is ${e.code}, message is ${e.message}`);
+            kvStore.off('dataChange', 1, function (err) {
                 expect(null).assertFail();
-            }
+            });
         } catch (e) {
-            console.error('SingleKvStoreOnSyncCompleteCallbackTestPushOnly001 e' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreOffChangeCallbackSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreOffSyncCompleteCallbackSucTest
+     * @tc.desc Test Js Api SingleKvStoreOffSyncComplete success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreOffSyncCompleteCallbackSucTest', 0, async function (done) {
+        console.info('SingleKvStoreOffSyncCompleteCallbackSucTest');
+        try {
+            var func = function (data) {
+                console.info('SingleKvStoreOffSyncCompleteCallbackSucTest 0' + data)
+            };
+            kvStore.off('syncComplete', func);
+            expect(true).assertTrue();
+        } catch (e) {
+            console.error('SingleKvStoreOffSyncCompleteCallbackSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name SingleKvStoreOnSyncCompleteCallbackTestPushPull001
-     * @tc.desc Test Js Api SingleKvStore.OnSyncComplete() with mode push_pull
+     * @tc.name SingleKvStoreOffSyncCompleteCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStoreOffSyncComplete with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreOnSyncCompleteCallbackTestPushPull001', 0, async function (done) {
+    it('SingleKvStoreOffSyncCompleteCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreOffSyncCompleteCallbackInvalidArgsTest');
         try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPushPull001 dataChange');
-                expect(data != null).assertTrue();
+            kvStore.off(function (err) {
+                if (err = undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(null).assertFail();
+                }
             });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT + 'Sync1Test', VALUE_TEST_SYNC_ELEMENT, function (err, data) {
-                console.info('SingleKvStoreOnSyncCompleteCallbackTestPushPull001 put success');
-                expect(err == undefined).assertTrue();
-            });
-            try {
-                var mode = factory.SyncMode.PUSH_PULL;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode, 10);
-            } catch (e) {
-                console.error('SingleKvStoreOnSyncCompleteCallbackTestPushPull001 sync no peer device :e:' + `, error code is ${e.code}, message is ${e.message}`);
-                expect(null).assertFail();
-            }
         } catch (e) {
-            console.error('SingleKvStoreOnSyncCompleteCallbackTestPushPull001 e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            console.error('SingleKvStoreOffSyncCompleteCallbackInvalidArgsTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
@@ -969,6 +1105,26 @@ describe('SingleKvStoreCallbackTest', function () {
             expect(null).assertFail();
             done();
         }
+    })
+
+    /**
+     * @tc.name SingleKvStoreSetSyncRangeCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.SetSyncRange() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it(' SingleKvStoreSetSyncRangeCallbackSameTest', 0, async function (done) {
+        console.info(' SingleKvStoreSetSyncRangeCallbackSameTest');
+        try {
+            var remoteSupportLabels = ['A', 'B'];
+            await kvStore.setSyncRange(remoteSupportLabels, function (err) {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error(' SingleKvStoreSetSyncRangeCallbackSameTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
     })
 
     /**
@@ -1211,30 +1367,81 @@ describe('SingleKvStoreCallbackTest', function () {
         console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001');
         try {
             let values = [];
-            let arr1 = new Uint8Array([4,5,6,7]);
-            let arr2 = new Uint8Array([4,5,6,7,8]);
-            let vb1 = {key : "name_1", value : arr1};
-            let vb2 = {key : "name_2", value : arr2};
+            let arr1 = new Uint8Array([4, 5, 6, 7]);
+            let arr2 = new Uint8Array([4, 5, 6, 7, 8]);
+            let vb1 = {key: "name_1", value: arr1};
+            let vb2 = {key: "name_2", value: arr2};
             values.push(vb1);
             values.push(vb2);
             console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 values: ' + JSON.stringify(values));
-            await kvStore.putBatch(values, async function (err,data) {
+            await kvStore.putBatch(values, async function (err, data) {
                 console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 putBatch success');
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                kvStore.getEntries(query, function (err,entrys) {
+                kvStore.getEntries(query, function (err, entrys) {
                     expect(entrys.length == 2).assertTrue();
                     done();
                 });
             });
-        }catch(e) {
+        } catch (e) {
             console.error('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
     })
 
+    /**
+     * @tc.name SingleKvStorePutBatchCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.PutBatch() put invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStorePutBatchCallbackInvalidArgsTest', 0, async function (done) {
+        try {
+            await kvStore.putBatch(async function (err) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(null).assertFail();
+                }
+            });
+        } catch (e) {
+            console.error('SingleKvStorePutBatchCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStorePutBatchCallbackClosedKvstoreTest
+     * @tc.desc Test Js Api SingleKvStore.PutBatch() put into closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStorePutBatchCallbackClosedKvstoreTest', 0, async function (done) {
+        try {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            let values = [];
+            let vb1 = {key: "name_1", value: null};
+            let vb2 = {key: "name_2", value: null};
+            values.push(vb1);
+            values.push(vb2);
+            await kvStore.putBatch(values, async function (err) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(err.code == 15100006).assertFail();
+                }
+            });
+        } catch (e) {
+            console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
 
     /**
      * @tc.name SingleKvStoreDeleteBatchCallbackSucTest
@@ -1277,38 +1484,17 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreDeleteBatchCallbackNoPutTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteBatch() with no putbatch
+     * @tc.name SingleKvStoreDeleteBatchCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStore.DeleteBatch() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreDeleteBatchCallbackNoPutTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteBatchCallbackNoPutTest');
-        try {
-            let keys = ['batch_test_string_key1', 'batch_test_string_key2'];
-            await kvStore.deleteBatch(keys, function (err, data) {
-                console.info('SingleKvStoreDeleteBatchCallbackNoPutTest deleteBatch success');
-                expect(err == undefined).assertTrue();
-                done();
-            });
-        } catch (e) {
-            console.error('SingleKvStoreDeleteBatchCallbackNoPutTest e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
-     * @tc.name SingleKvStoreDeleteBatchCallbackWrongKeysTest
-     * @tc.desc Test Js Api SingleKvStore.DeleteBatch() with wrong keys
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreDeleteBatchCallbackWrongKeysTest', 0, async function (done) {
-        console.info('SingleKvStoreDeleteBatchCallbackWrongKeysTest');
+    it('SingleKvStoreDeleteBatchCallbackInvalidArgsTest', 0, async function (done) {
+        console.info('SingleKvStoreDeleteBatchCallbackInvalidArgsTest');
         try {
             let entries = [];
-            for (var i = 0; i < 10; i++) {
+            let keys = [];
+            for (var i = 0; i < 5; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
                     key: key + i,
@@ -1318,24 +1504,286 @@ describe('SingleKvStoreCallbackTest', function () {
                     }
                 }
                 entries.push(entry);
+                keys.push(key + i);
             }
-            console.info('SingleKvStoreDeleteBatchCallbackWrongKeysTest entries: ' + JSON.stringify(entries));
-            await kvStore.putBatch(entries, async function (err, data) {
-                console.info('SingleKvStoreDeleteBatchCallbackWrongKeysTest putBatch success');
+            await kvStore.putBatch(entries, async function (err) {
                 expect(err == undefined).assertTrue();
-                let keys = ['batch_test_string_key1', 'batch_test_string_keya'];
-                await kvStore.deleteBatch(keys, async function (err, data) {
-                    console.info('SingleKvStoreDeleteBatchCallbackWrongKeysTest deleteBatch success');
+                await kvStore.deleteBatch(1, async function (err) {
+                    if (err == undefined) {
+                        expect(null).assertFail();
+                    } else {
+                        expect(null).assertFail();
+                    }
+                });
+            });
+        } catch (e) {
+            console.error('SingleKvStoreDeleteBatchCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreDeleteBatchCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.DeleteBatch() with closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreDeleteBatchCallbackClosedKVStoreTest', 0, async function (done) {
+        console.info('SingleKvStoreDeleteBatchCallbackClosedKVStoreTest');
+        try {
+            let entries = [];
+            let keys = [];
+            for (var i = 0; i < 5; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+                keys.push(key + i);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err) {
                     expect(err == undefined).assertTrue();
+                    await kvStore.deleteBatch(keys, async function (err) {
+                        if (err == undefined) {
+                            expect(null).assertFail();
+                        } else {
+                            expect(e.code == 15100006).assertTrue();
+                        }
+                    });
+                });
+            });
+        } catch (e) {
+            console.error('SingleKvStoreDeleteBatchCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesCallbackQueryTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with query
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesCallbackQueryTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                let query = new factory.Query();
+                query.prefixKey("batch_test");
+                kvStore.getEntries(query, function (err, entrys) {
+                    expect(entrys.length == 10).assertTrue();
+                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
                     done();
                 });
             });
         } catch (e) {
-            console.error('SingleKvStoreDeleteBatchCallbackWrongKeysTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreGetEntriesCallbackQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
-            done();
         }
+        done();
     })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() query from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (let i = 0; i < 10; i++) {
+                let key = 'batch_test_bool_key';
+                let entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                    expect(err == undefined).assertTrue();
+                    let query = new factory.Query();
+                    query.prefixKey("batch_test");
+                    kvStore.getEntries(query, function (err) {
+                        if (err == undefined) {
+                            expect(null).assertFail();
+                        } else {
+                            expect(err.code == 15100006).assertTrue();
+                        }
+                    });
+                });
+            });
+            // await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+            //     expect(err == undefined).assertTrue();
+            // });
+            // let query = new factory.Query();
+            // query.prefixKey("batch_test");
+            // kvStore.getEntries(query, function (err) {
+            //     if (err == undefined) {
+            //         expect(null).assertFail();
+            //     } else {
+            //         expect(err.code == 15100006);
+            //     }
+            // });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesCallbackQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesCallbackSucTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesCallbackSucTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                kvStore.getEntries("batch_test", function (err, entrys) {
+                    expect(entrys.length == 10).assertTrue();
+                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
+                    done();
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesCallbackSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesCallbackClosedKVStoreTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                    expect(err == undefined).assertTrue();
+                    kvStore.getEntries("batch_test", function (err) {
+                        if (err == undefined) {
+                            expect(null).assertFail();
+                        } else {
+                            expect(err.code == 15100006).assertTrue();
+                        }
+                    });
+                });
+            });
+            // await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+            //     expect(err == undefined).assertTrue();
+            // });
+            // kvStore.getEntries("batch_test", function (err) {
+            //     if (err == undefined) {
+            //         expect(null).assertFail();
+            //     } else {
+            //         expect(err.code == 15100006);
+            //     }
+            // });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesCallbackInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesCallbackInvalidArgsTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+                kvStore.getEntries("batch_test", function (err, entrys) {
+                    if (err == undefined) {
+                        expect(null).assertFail();
+                    } else {
+                        expect(null).assertFail();
+                    }
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
 
     /**
      * @tc.name SingleKvstoreStartTransactionCallbackCommitTest
@@ -1352,19 +1800,14 @@ describe('SingleKvStoreCallbackTest', function () {
                 count++;
             });
             await kvStore.startTransaction(async function (err, data) {
-                console.info('SingleKvstoreStartTransactionCallbackCommitTest startTransaction success');
                 expect(err == undefined).assertTrue();
                 let entries = putBatchString(10, 'batch_test_string_key');
-                console.info('SingleKvstoreStartTransactionCallbackCommitTest entries: ' + JSON.stringify(entries));
                 await kvStore.putBatch(entries, async function (err, data) {
-                    console.info('SingleKvstoreStartTransactionCallbackCommitTest putBatch success');
                     expect(err == undefined).assertTrue();
                     let keys = Object.keys(entries).slice(5);
                     await kvStore.deleteBatch(keys, async function (err, data) {
-                        console.info('SingleKvstoreStartTransactionCallbackCommitTest deleteBatch success');
                         expect(err == undefined).assertTrue();
                         await kvStore.commit(async function (err, data) {
-                            console.info('SingleKvstoreStartTransactionCallbackCommitTest commit success');
                             expect(err == undefined).assertTrue();
                             await sleep(2000);
                             expect(count == 1).assertTrue();
@@ -1387,27 +1830,20 @@ describe('SingleKvStoreCallbackTest', function () {
      * @tc.require: issueNumber
      */
     it('SingleKvstoreStartTransactionCallbackRollbackTest', 0, async function (done) {
-        console.info('SingleKvstoreStartTransactionCallbackRollbackTest');
         try {
             var count = 0;
             kvStore.on('dataChange', 0, function (data) {
-                console.info('SingleKvstoreStartTransactionCallbackRollbackTest 0' + data)
                 count++;
             });
             await kvStore.startTransaction(async function (err, data) {
-                console.info('SingleKvstoreStartTransactionCallbackRollbackTest startTransaction success');
                 expect(err == undefined).assertTrue();
                 let entries = putBatchString(10, 'batch_test_string_key');
-                console.info('SingleKvstoreStartTransactionCallbackRollbackTest entries: ' + JSON.stringify(entries));
                 await kvStore.putBatch(entries, async function (err, data) {
-                    console.info('SingleKvstoreStartTransactionCallbackRollbackTest putBatch success');
                     expect(err == undefined).assertTrue();
                     let keys = Object.keys(entries).slice(5);
                     await kvStore.deleteBatch(keys, async function (err, data) {
-                        console.info('SingleKvstoreStartTransactionCallbackRollbackTest deleteBatch success');
                         expect(err == undefined).assertTrue();
                         await kvStore.rollback(async function (err, data) {
-                            console.info('SingleKvstoreStartTransactionCallbackRollbackTest rollback success');
                             expect(err == undefined).assertTrue();
                             await sleep(2000);
                             expect(count == 0).assertTrue();
@@ -1424,78 +1860,80 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvstoreStartTransactionCallbackWrongArgsTest
-     * @tc.desc Test Js Api SingleKvStore.startTransaction() with wrong arguments
+     * @tc.name SingleKvstoreStartTransactionCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.startTransaction() with closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvstoreStartTransactionCallbackWrongArgsTest', 0, async function (done) {
-        console.info('SingleKvstoreStartTransactionCallbackWrongArgsTest');
+    it('SingleKvstoreStartTransactionCallbackClosedKVStoreTest', 0, async function (done) {
         try {
-            await kvStore.startTransaction(1, function (err, data) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.startTransaction(function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvstoreStartTransactionCallbackWrongArgsTest startTransaction success');
                     expect(null).assertFail();
                 } else {
-                    console.info('SingleKvstoreStartTransactionCallbackWrongArgsTest startTransaction fail');
-                    expect(true).assertTrue();
+                    expect(err.code == 15100006).assertTrue();
                 }
                 done();
             });
         } catch (e) {
-            console.error('SingleKvstoreStartTransactionCallbackWrongArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvstoreStartTransactionCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
     })
 
     /**
-     * @tc.name SingleKvStoreCommitCallbackWrongArgsTest
-     * @tc.desc Test Js Api SingleKvStore.Commit() with wrong args
+     * @tc.name SingleKvStoreCommitCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.Commit() with closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreCommitCallbackWrongArgsTest', 0, async function (done) {
-        console.info('SingleKvStoreCommitCallbackWrongArgsTest');
+    it('SingleKvStoreCommitCallbackClosedKVStoreTest', 0, async function (done) {
+        console.info('SingleKvStoreCommitCallbackClosedKVStoreTest');
         try {
-            await kvStore.commit(1, function (err, data) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.commit(function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreCommitCallbackWrongArgsTest commit success');
                     expect(null).assertFail();
                 } else {
-                    console.info('SingleKvStoreCommitCallbackWrongArgsTest commit fail');
-                    expect(true).assertTrue();
+                    expect(err.code == 15100006).assertTrue();
                 }
                 done();
             });
         } catch (e) {
-            console.error('SingleKvStoreCommitCallbackWrongArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreCommitCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
     })
 
     /**
-     * @tc.name SingleKvStoreRollbackCallbackWrongArgsTest
-     * @tc.desc Test Js Api SingleKvStore.Rollback() with wrong args
+     * @tc.name SingleKvStoreRollbackCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.Rollback() with closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreRollbackCallbackWrongArgsTest', 0, async function (done) {
-        console.info('SingleKvStoreRollbackCallbackWrongArgsTest');
+    it('SingleKvStoreRollbackCallbackClosedKVStoreTest', 0, async function (done) {
+        console.info('SingleKvStoreRollbackCallbackClosedKVStoreTest');
         try {
-            await kvStore.rollback(1, function (err, data) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.rollback(function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreRollbackCallbackWrongArgsTest commit success');
                     expect(null).assertFail();
                 } else {
-                    console.info('SingleKvStoreRollbackCallbackWrongArgsTest commit fail');
-                    expect(true).assertTrue();
+                    expect(err.code == 15100006).assertTrue();
                 }
                 done();
             });
         } catch (e) {
-            console.error('SingleKvStoreRollbackCallbackWrongArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreRollbackCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
@@ -1580,64 +2018,33 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreRemoveDeviceDataCallbackNonExistTest
-     * @tc.desc Test Js Api SingleKvStore.RemoveDeviceData() with non-exsiting device id
+     * @tc.name SingleKvStoreRemoveDeviceDataCallbackClosedKvstoreTest
+     * @tc.desc Test Js Api SingleKvStore.RemoveDeviceData() in a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreRemoveDeviceDataCallbackNonExistTest', 0, async function (done) {
-        console.info('SingleKvStoreRemoveDeviceDataCallbackNonExistTest');
+    it('SingleKvStoreRemoveDeviceDataCallbackClosedKvstoreTest', 0, async function (done) {
         try {
             await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, async function (err, data) {
-                console.info('SingleKvStoreRemoveDeviceDataCallbackNonExistTest put success');
                 expect(err == undefined).assertTrue();
-                var deviceid = 'no_exist_device_id';
-                await kvStore.removeDeviceData(deviceid, async function (err, data) {
-                    if (err == undefined) {
-                        console.info('SingleKvStoreRemoveDeviceDataCallbackNonExistTest removeDeviceData success');
-                        expect(null).assertFail();
-                        done();
-                    } else {
-                        console.info('SingleKvStoreRemoveDeviceDataCallbackNonExistTest removeDeviceData fail');
-                        await kvStore.get(KEY_TEST_STRING_ELEMENT, async function (err, data) {
-                            console.info('SingleKvStoreRemoveDeviceDataCallbackNonExistTest get success');
-                            expect(data == VALUE_TEST_STRING_ELEMENT).assertTrue();
-                            done();
-                        });
-                    }
-                });
             });
-        } catch (e) {
-            console.error('SingleKvStoreRemoveDeviceDataCallbackNonExistTest e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })
-
-    /**
-     * @tc.name SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002
-     * @tc.desc Test Js Api SingleKvStore.RemoveDeviceData() with no args
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002', 0, async function (done) {
-        console.info('SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002');
-        try {
-            await kvStore.removeDeviceData(function (err, data) {
+            var deviceid = 'no_exist_device_id';
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.removeDeviceData(deviceid, async function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002 removeDeviceData success');
                     expect(null).assertFail();
+                    done();
                 } else {
-                    console.info('SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002 removeDeviceData fail');
-                    expect(null).assertFail();
+                    expect(err.code == 15100006).assertTrue();
                 }
-                done();
             });
         } catch (e) {
-            console.error('SingleKvStoreRemoveDeviceDataCallbackTestNoArgs002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 401).assertTrue();
-            done();
+            console.error('SingleKvStoreRemoveDeviceDataCallbackClosedKvstoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
+        done();
     })
 
     /**
@@ -1647,14 +2054,11 @@ describe('SingleKvStoreCallbackTest', function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStoreRemoveDeviceDataCallbackInvalidArgsTest', 0, async function (done) {
-        console.info('SingleKvStoreRemoveDeviceDataCallbackInvalidArgsTest');
         try {
-            await kvStore.removeDeviceData('', function (err, data) {
+            await kvStore.removeDeviceData(function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreRemoveDeviceDataCallbackInvalidArgsTest removeDeviceData success');
                     expect(null).assertFail();
                 } else {
-                    console.info('SingleKvStoreRemoveDeviceDataCallbackInvalidArgsTest removeDeviceData fail');
                     expect(null).assertFail();
                 }
                 done();
@@ -1735,26 +2139,29 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest
-     * @tc.desc Test Js Api SingleKvStore.GetSecurityLevel() with invalid args
+     * @tc.name SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStore.GetSecurityLevel() from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest', 0, async function (done) {
-        console.info('SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest');
+    it('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest', 0, async function (done) {
+        console.info('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest');
         try {
-            await kvStore.getSecurityLevel(1, function (err, data) {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.getSecurityLevel(function (err) {
                 if (err == undefined) {
-                    console.info('SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest getSecurityLevel success');
+                    console.info('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest getSecurityLevel success');
                     expect(null).assertFail();
                 } else {
-                    console.error('SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest getSecurityLevel fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(true).assertTrue();
+                    console.error('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest getSecurityLevel fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(err.code == 15100006).assertTrue();
                 }
                 done();
             });
         } catch (e) {
-            console.error('SingleKvStoreGetSecurityLevelCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
             done();
         }
@@ -1850,29 +2257,42 @@ describe('SingleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreCloseResultSetCallbackNullTest
-     * @tc.desc Test Js Api SingleKvStore.CloseResultSet() close null resultset
+     * @tc.name SingleKvStoreGetResultSetQueryCallbackTest
+     * @tc.desc Test Js Api SingleKvStore.GetResultSet() with query
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('SingleKvStoreCloseResultSetCallbackNullTest', 0, async function (done) {
-        console.info('SingleKvStoreCloseResultSetCallbackNullTest');
+    it('SingleKvStoreGetResultSetQueryCallbackTest', 0, async function (done) {
         try {
-            console.info('SingleKvStoreCloseResultSetCallbackNullTest success');
-            let resultSet = null;
-            await kvStore.closeResultSet(resultSet, function (err, data) {
-                if (err == undefined) {
-                    console.info('SingleKvStoreCloseResultSetCallbackNullTest closeResultSet success');
-                    expect(null).assertFail();
-                } else {
-                    console.info('SingleKvStoreCloseResultSetCallbackNullTest closeResultSet fail');
-                    expect(null).assertFail();
+            let resultSet;
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
                 }
-                done();
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err, data) {
+                expect(err == undefined).assertTrue();
+                let query = new factory.Query();
+                query.prefixKey("batch_test");
+                await kvStore.getResultSet(query, async function (err, result) {
+                    resultSet = result;
+                    expect(resultSet.getCount() == 10).assertTrue();
+                    await kvStore.closeResultSet(resultSet, function (err, data) {
+                        expect(err == undefined).assertTrue();
+                        done();
+                    })
+                });
             });
         } catch (e) {
-            console.error('SingleKvStoreCloseResultSetCallbackNullTest e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 401).assertTrue();
+            console.error('SingleKvStoreGetResultSetQueryCallbackTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
             done();
         }
     })
@@ -1933,6 +2353,117 @@ describe('SingleKvStoreCallbackTest', function () {
             expect(e.code == 401).assertTrue();
             done();
         }
+    })
+
+    /**
+     * @tc.name SingleKvStoreGetResultSizeCallbackQueryTest
+     * @tc.desc Test Js Api SingleKvStoreGetResultSize with query
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreGetResultSizeCallbackQueryTest', 0, async function (done) {
+        try {
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            var query = new factory.Query();
+            query.prefixKey("batch_test");
+            await kvStore.getResultSize(query, async function (resultSize, err) {
+                expect(err == undefined).assertTrue();
+                expect(resultSize == 10).assertTrue();
+            })
+        } catch (e) {
+            console.error('SingleKvStoreGetResultSizePromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreGetResultSizeCallbackInvalidArgsTest
+     * @tc.desc Test Js Api SingleKvStoreGetResultSize with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreGetResultSizeCallbackInvalidArgsTest', 0, async function (done) {
+        try {
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvStore.getResultSize(async function (err) {
+                expect(null).assertFail();
+            })
+        } catch (e) {
+            console.error('SingleKvStoreGetResultSizeCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name SingleKvStoreGetResultSizeCallbackClosedKVStoreTest
+     * @tc.desc Test Js Api SingleKvStoreGetResultSize from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('SingleKvStoreGetResultSizeCallbackClosedKVStoreTest', 0, async function (done) {
+        try {
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries, async function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
+                expect(err == undefined).assertTrue();
+            });
+            var query = new factory.Query();
+            query.prefixKey("batch_test");
+            await kvStore.getResultSize(query, function (err) {
+                if (err == undefined) {
+                    expect(null).assertFail();
+                } else {
+                    expect(err.code == 15100006).assertTrue();
+                }
+            });
+        } catch (e) {
+            console.error('SingleKvStoreGetResultSizeCallbackClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
     })
 
     /**
