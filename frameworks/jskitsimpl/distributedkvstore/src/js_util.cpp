@@ -1106,7 +1106,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
     OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr), "invalid type", napi_invalid_arg);
+    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
     std::vector<OHOS::DistributedKv::Key> keys;
     nstatus = napi_invalid_arg;
     Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(jsProxy->predicates_), keys);
@@ -1126,7 +1126,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
     OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr), "invalid type", napi_invalid_arg);
+    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
     Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(jsProxy->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
