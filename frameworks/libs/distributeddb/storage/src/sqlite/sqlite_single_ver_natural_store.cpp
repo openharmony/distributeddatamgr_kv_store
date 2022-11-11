@@ -1501,7 +1501,10 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
     // Save create db time.
     storageEngine_->Enable(OperatePerm::IMPORT_MONOPOLIZE_PERM);
-    errCode = SaveCreateDBTime();
+
+    // Get current max timestamp after import and before start syncer, reflash local time offset
+    InitCurrentMaxStamp();
+    errCode = SaveCreateDBTime(); // This step will start syncer
 
 END:
     // restore the storage engine and the syncer.
