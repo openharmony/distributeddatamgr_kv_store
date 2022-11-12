@@ -51,6 +51,7 @@ public:
 
     uint32_t GetTimeout() const override;
     uint32_t GetTimeout(const std::string &target) const override;
+    void SetTimeout(uint32_t timeout);
     int GetLocalIdentity(std::string &outTarget) const override;
 
     int SendMessage(const std::string &dstTarget, const Message *inMsg, const SendConfig &config) override;
