@@ -373,6 +373,14 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
         delete sqliteStorageEngine_;
         sqliteStorageEngine_ = nullptr;
     }
+    {
+        if (storageEngine_ != nullptr) {
+            storageEngine_->RegisterHeartBeatListener(nullptr);
+        }
+        std::lock_guard<std::mutex> lock(lifeCycleMutex_);
+        StopLifeCycleTimer();
+        lifeCycleNotifier_ = nullptr;
+    }
     // close will dec sync ref of storageEngine_
     DecObjRef(storageEngine_);
 }
