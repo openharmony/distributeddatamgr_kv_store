@@ -178,9 +178,11 @@ protected:
 
     int InitTimeChangedListener();
 
-    void ReleaseInnerResourceWithNoLock();
+    void ReleaseInnerResource();
 
     void RecordTimeChangeOffset(void *changedOffset);
+
+    int CloseInner(bool isClosedOperation);
 
     static int SyncModuleInit();
 

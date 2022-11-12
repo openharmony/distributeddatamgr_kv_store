@@ -68,8 +68,8 @@ GenericSyncer::~GenericSyncer()
         }
         syncEngine_ = nullptr;
     }
+    ReleaseInnerResource();
     std::lock_guard<std::mutex> lock(syncerLock_);
-    ReleaseInnerResourceWithNoLock();
     syncInterface_ = nullptr;
 }
 
@@ -138,34 +138,11 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
 
 int GenericSyncer::Close(bool isClosedOperation)
 {
-    {
-        std::lock_guard<std::mutex> lock(syncerLock_);
-        if (!initialized_) {
-            if (isClosedOperation) {
-                ReleaseInnerResourceWithNoLock();
-            }
-            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
-            return -E_NOT_INIT;
-        }
-        initialized_ = false;
-        if (closing_) {
-            LOGE("[Syncer] Syncer is closing, return!");
-            return -E_BUSY;
-        }
-        closing_ = true;
+    int errCode = CloseInner(isClosedOperation);
+    if (errCode != -E_BUSY && isClosedOperation) {
+        ReleaseInnerResource();
     }
-    ClearSyncOperations(isClosedOperation);
-    if (syncEngine_ != nullptr) {
-        syncEngine_->Close();
-        LOGD("[Syncer] Close SyncEngine!");
-        std::lock_guard<std::mutex> lock(syncerLock_);
-        closing_ = false;
-    }
-    if (isClosedOperation) {
-        std::lock_guard<std::mutex> lock(syncerLock_);
-        ReleaseInnerResourceWithNoLock();
-    }
-    return E_OK;
+    return errCode;
 }
 
 int GenericSyncer::Sync(const std::vector<std::string> &devices, int mode,
@@ -880,14 +857,21 @@ int GenericSyncer::InitTimeChangedListener()
     return E_OK;
 }
 
-void GenericSyncer::ReleaseInnerResourceWithNoLock()
+void GenericSyncer::ReleaseInnerResource()
 {
-    if (timeChangedListener_ != nullptr) {
-        timeChangedListener_->Drop(true);
-        timeChangedListener_ = nullptr;
+    NotificationChain::Listener *timeChangedListener = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (timeChangedListener_ != nullptr) {
+            timeChangedListener = timeChangedListener_;
+            timeChangedListener_ = nullptr;
+        }
+        timeHelper_ = nullptr;
+        metadata_ = nullptr;
     }
-    timeHelper_ = nullptr;
-    metadata_ = nullptr;
+    if (timeChangedListener != nullptr) {
+        timeChangedListener->Drop(true);
+    }
 }
 
 void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
@@ -918,5 +902,30 @@ void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
     }
     metadata->SaveLocalTimeOffset(orgOffset);
     storage->DecRefCount();
+}
+
+int GenericSyncer::CloseInner(bool isClosedOperation)
+{
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (!initialized_) {
+            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
+            return -E_NOT_INIT;
+        }
+        initialized_ = false;
+        if (closing_) {
+            LOGE("[Syncer] Syncer is closing, return!");
+            return -E_BUSY;
+        }
+        closing_ = true;
+    }
+    ClearSyncOperations(isClosedOperation);
+    if (syncEngine_ != nullptr) {
+        syncEngine_->Close();
+        LOGD("[Syncer] Close SyncEngine!");
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        closing_ = false;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB
