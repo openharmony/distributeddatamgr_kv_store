@@ -127,6 +127,7 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     SingleVerSyncer::RemoteDataChanged(device);
     if (autoSyncEnable_) {
         RefObject::IncObjRef(syncEngine_);
+        syncInterface_->IncRefCount();
         int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, device] {
             std::vector<std::string> devices;
             devices.push_back(device);
@@ -135,10 +136,12 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
                 LOGE("[SingleVerKVSyncer] sync start by RemoteDataChanged failed err %d", errCode);
             }
             RefObject::DecObjRef(syncEngine_);
+            syncInterface_->DecRefCount();
         });
         if (retCode != E_OK) {
             LOGE("[AutoLaunch] RemoteDataChanged triggler sync retCode:%d", retCode);
             RefObject::DecObjRef(syncEngine_);
+            syncInterface_->DecRefCount();
         }
     }
     // db online again ,trigger subscribe
