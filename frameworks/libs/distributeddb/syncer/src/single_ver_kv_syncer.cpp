@@ -265,9 +265,16 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         static_cast<SingleVerSyncEngine *>(syncEngine_)->GetRemoteSubscribeQueries(device, queries);
         for (auto &query : queries) {
             std::string queryId = query.GetIdentify();
-            uint64_t lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
             WaterMark queryWaterMark = 0;
-            errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
+            uint64_t lastTimestamp = 0;
+            {
+                std::lock_guard<std::mutex> lock(syncerLock_);
+                if (metadata_ == nullptr) {
+                    return;
+                }
+                lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
+                errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
+            }
             if (errCode != E_OK) {
                 LOGE("[Syncer] get queryId=%s,dev=%s watermark failed", STR_MASK(queryId), STR_MASK(device));
                 continue;

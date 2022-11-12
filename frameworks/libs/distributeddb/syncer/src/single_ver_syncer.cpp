@@ -45,6 +45,7 @@ int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNe
 int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
     const std::string &tableName)
 {
+    std::lock_guard<std::mutex> lock(syncerLock_);
     if (metadata_ == nullptr) {
         return -E_NOT_INIT;
     }

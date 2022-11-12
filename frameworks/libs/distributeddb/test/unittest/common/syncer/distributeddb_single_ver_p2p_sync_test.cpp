@@ -2751,6 +2751,50 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Le
 }
 
 /**
+  * @tc.name: RemoveDeviceData001
+  * @tc.desc: call rekey and removeDeviceData Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000D487B
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RemoveDeviceData001, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Value value = {'1'};
+    g_deviceB->PutData(key1, value, 1, 0);
+    g_deviceB->PutData(key2, value, 2, 0);
+    g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true);
+
+    Value actualValue;
+    g_kvDelegatePtr->Get(key1, actualValue);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    g_kvDelegatePtr->Get(key2, actualValue);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step2. call Rekey and RemoveDeviceData Concurrently
+     * * @tc.expected: step2. interface return ok
+    */
+    std::thread thread1([]() {
+        CipherPassword passwd3;
+        std::vector<uint8_t> passwdVect = {'p', 's', 'd', 'z'};
+        passwd3.SetValue(passwdVect.data(), passwdVect.size());
+        g_kvDelegatePtr->Rekey(passwd3);
+    });
+    std::thread thread2([]() {
+        g_kvDelegatePtr->RemoveDeviceData(g_deviceB->GetDeviceId());
+    });
+    thread1.join();
+    thread2.join();
+}
+
+/**
   * @tc.name: CalculateSyncData001
   * @tc.desc: Test sync data whose device never synced before
   * @tc.type: FUNC

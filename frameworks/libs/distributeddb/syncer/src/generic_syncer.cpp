@@ -203,7 +203,6 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         SubQueuedSyncSize();
         return -E_OUT_OF_MEMORY;
     }
-    operation->SetIdentifier(syncInterface_->GetIdentifier());
     {
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
@@ -680,18 +679,22 @@ int GenericSyncer::GetLocalIdentity(std::string &outTarget) const
 
 void GenericSyncer::GetOnlineDevices(std::vector<std::string> &devices) const
 {
-    // Get devices from AutoLaunch first.
-    if (syncInterface_ == nullptr) {
-        LOGI("[Syncer] GetOnlineDevices syncInterface_ is nullptr");
-        return;
-    }
-    bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
-        false);
     std::string identifier;
-    if (isSyncDualTupleMode) {
-        identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-    } else {
-        identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        // Get devices from AutoLaunch first.
+        if (syncInterface_ == nullptr) {
+            LOGI("[Syncer] GetOnlineDevices syncInterface_ is nullptr");
+            return;
+        }
+        bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
+            false);
+        if (isSyncDualTupleMode) {
+            identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA,
+                "");
+        } else {
+            identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+        }
     }
     RuntimeContext::GetInstance()->GetAutoLaunchSyncDevices(identifier, devices);
     if (!devices.empty()) {
