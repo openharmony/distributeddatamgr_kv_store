@@ -99,7 +99,7 @@ private:
     std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
     RelationalSyncAbleStorage *storageEngine_ = nullptr; // For storage operate data
-    SQLiteSingleRelationalStorageEngine *sqliteStorageEngine_ = nullptr;
+    std::shared_ptr<SQLiteSingleRelationalStorageEngine> sqliteStorageEngine_;
 
     std::mutex connectMutex_;
     std::atomic<int> connectionCount_ = 0;

@@ -32,7 +32,6 @@ namespace {
 
 SQLiteRelationalStore::~SQLiteRelationalStore()
 {
-    delete sqliteStorageEngine_;
     sqliteStorageEngine_ = nullptr;
 }
 
@@ -87,7 +86,7 @@ void SQLiteRelationalStore::ReleaseResources()
 {
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_->ClearEnginePasswd();
-        (void)StorageEngineManager::ReleaseStorageEngine(sqliteStorageEngine_);
+        sqliteStorageEngine_ = nullptr;
     }
     RefObject::DecObjRef(storageEngine_);
 }
@@ -255,7 +254,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         return E_OK;
     }
 
-    sqliteStorageEngine_ = new (std::nothrow) SQLiteSingleRelationalStorageEngine(properties);
+    sqliteStorageEngine_ = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
     if (sqliteStorageEngine_ == nullptr) {
         LOGE("[RelationalStore][Open] Create storage engine failed");
         return -E_OUT_OF_MEMORY;
@@ -370,7 +369,6 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     syncAbleEngine_->Close();
 
     if (sqliteStorageEngine_ != nullptr) {
-        delete sqliteStorageEngine_;
         sqliteStorageEngine_ = nullptr;
     }
     // close will dec sync ref of storageEngine_

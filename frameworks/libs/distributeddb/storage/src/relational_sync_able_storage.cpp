@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include "relational_sync_able_storage.h"
 
+#include <utility>
+
 #include "data_compression.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
@@ -42,8 +44,8 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
     } \
 } while (0)
 
-RelationalSyncAbleStorage::RelationalSyncAbleStorage(StorageEngine *engine)
-    : storageEngine_(static_cast<SQLiteSingleRelationalStorageEngine *>(engine)),
+RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)
+    : storageEngine_(std::move(engine)),
       isCachedOption_(false)
 {}
 
@@ -444,7 +446,7 @@ int RelationalSyncAbleStorage::PutSyncDataWithQuery(const QueryObject &object,
 }
 
 namespace {
-inline bool IsCollaborationMode(const SQLiteSingleRelationalStorageEngine *engine)
+inline bool IsCollaborationMode(const std::shared_ptr<SQLiteSingleRelationalStorageEngine> &engine)
 {
     return engine->GetProperties().GetIntProp(RelationalDBProperties::DISTRIBUTED_TABLE_MODE,
         DistributedTableMode::SPLIT_BY_DEVICE) == DistributedTableMode::COLLABORATION;
