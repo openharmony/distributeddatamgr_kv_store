@@ -105,10 +105,10 @@ group("unittest") {
   testonly = true
 
   deps = []
-   deps += [
-   ":BackupManagerTest",
-   ":SingleStoreImplTest",
-   ":StoreUtilTest",
-   ]
+  deps += [
+    ":BackupManagerTest",
+    ":SingleStoreImplTest",
+    ":StoreUtilTest",
+  ]
 }
 ###############################################################################
