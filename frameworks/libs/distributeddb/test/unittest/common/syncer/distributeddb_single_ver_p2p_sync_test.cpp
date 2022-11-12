@@ -2949,7 +2949,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, ReSetWaterDogTest001, TestSize.Level
         EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
     }
     /**
-     * @tc.steps: step1. SetDeviceMtuSize 
+     * @tc.steps: step1. SetDeviceMtuSize
      * @tc.expected: step1, return OK.
      */
     g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 4k
