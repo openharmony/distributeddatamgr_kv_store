@@ -147,7 +147,13 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->PutBatch(tmp);
     if (!keys.empty()) {
         /* random deletePublic updateTimestamp 2 */
-        kvNbDelegatePtr->UnpublishToLocal(keys[0], (data[0] > data[1]), (data[2] > data[1]));
+        bool deletePublic = true;
+        bool updateTimestamp = true;
+        if (size > 3u) {
+            deletePublic = (data[0] > data[1]);
+            updateTimestamp = (data[2] > data[1]);
+        }
+        kvNbDelegatePtr->UnpublishToLocal(keys[0], deletePublic, updateTimestamp);
     }
     kvNbDelegatePtr->DeleteBatch(keys);
     kvNbDelegatePtr->UnRegisterObserver(observer);
@@ -177,8 +183,14 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     );
     
     if (!keys.empty()) {
+        bool deleteLocal = true;
+        bool updateTimestamp = true;
+        if (size > 3u) {
+            deleteLocal = (data[0] > data[1]);
+            updateTimestamp = (data[2] > data[1]);
+        }
         /* random deletePublic updateTimestamp 2 */
-        kvNbDelegatePtr->PublishLocal(keys[0], (data[0] > data[1]), (data[2] > data[1]), nullptr);
+        kvNbDelegatePtr->PublishLocal(keys[0], deleteLocal, updateTimestamp, nullptr);
     }
     kvNbDelegatePtr->DeleteBatch(keys);
     std::string rawString(reinterpret_cast<const char *>(data), size);
