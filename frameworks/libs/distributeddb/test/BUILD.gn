@@ -518,8 +518,9 @@ distributeddb_unittest("DistributedDBMultiVerP2PSyncTest") {
 }
 
 distributeddb_unittest("DistributedDBRelationalVerP2PSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_relational_ver_p2p_sync_test.cpp" ]
+  sources = [
+    "unittest/common/syncer/distributeddb_relational_ver_p2p_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBStorageSQLiteSingleVerNaturalStoreTest") {
@@ -778,6 +779,7 @@ group("unittest") {
     ":DistributedDBRelationalRemoteQueryTest",
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
+    ":DistributedDBRelationalVerP2PSyncTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",
     ":DistributedDBSingleVerDLPTest",
