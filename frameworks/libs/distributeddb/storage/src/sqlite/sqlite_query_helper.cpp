@@ -848,7 +848,8 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
         conditionStr += " (1 = 1) ";
         return E_OK;
     }
-    conditionStr += "(";
+    // json_extract_by_path function will return error when value is empty, check it before
+    conditionStr += "((length(" + accessStr + "value) != 0 AND " + accessStr + "value IS NOT NULL) AND ";
     if (hasPrefixKey_) {
         conditionStr += "(hex(" + accessStr + "key) LIKE '" + DBCommon::VectorToHexString(prefixKey_) + "%')";
     }
