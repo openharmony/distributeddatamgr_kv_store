@@ -1031,7 +1031,9 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     /**
      * @tc.steps: step3. abort machine and both context will be released
      */
+    syncInterfaceRefCount = 0;
     enginePtr->AbortMachineIfNeed(syncId);
+    EXPECT_EQ(syncInterfaceRefCount, 0);
     enginePtr->Close();
 
     RefObject::KillAndDecObjRef(enginePtr);
@@ -1039,7 +1041,6 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     metaData = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     virtualCommunicatorAggregator = nullptr;
-    EXPECT_EQ(syncInterfaceRefCount, 0);
     std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
