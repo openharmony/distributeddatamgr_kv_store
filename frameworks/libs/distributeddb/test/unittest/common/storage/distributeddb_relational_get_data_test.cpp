@@ -31,6 +31,7 @@
 #include "relational_store_manager.h"
 #include "relational_store_sqlite_ext.h"
 #include "relational_sync_able_storage.h"
+#include "runtime_config.h"
 #include "sqlite_relational_store.h"
 #include "sqlite_utils.h"
 #include "virtual_communicator_aggregator.h"
@@ -1581,5 +1582,45 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
     Timestamp maxTimestamp = 0u;
     syncInterface->GetMaxTimestamp(maxTimestamp);
     RefObject::DecObjRef(syncInterface);
+}
+
+/**
+ * @tc.name: StopSync001
+ * @tc.desc: Test Relational Stop Sync Action.
+ * @tc.type: FUNC
+ * @tc.require: AR000H2QPN
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
+{
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    properties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    const int loopCount = 1000;
+    std::thread userChangeThread([]() {
+        for (int i = 0; i < loopCount; ++i) {
+            RuntimeConfig::NotifyUserChanged();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    });
+    std::string hashIdentifier = properties.GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
+    properties.SetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, hashIdentifier);
+    OpenDbProperties option;
+    option.uri = properties.GetStringProp(DBProperties::DATA_DIR, "");
+    option.createIfNecessary = true;
+    for (int i = 0; i < loopCount; ++i) {
+        auto sqliteStorageEngine = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
+        ASSERT_NE(sqliteStorageEngine, nullptr);
+        StorageEngineAttr poolSize = {1, 1, 0, 16}; // at most 1 write 16 read.
+        int errCode = sqliteStorageEngine->InitSQLiteStorageEngine(poolSize, option, hashIdentifier);
+        auto storageEngine = new (std::nothrow) RelationalSyncAbleStorage(sqliteStorageEngine);
+        ASSERT_NE(storageEngine, nullptr);
+        auto syncAbleEngine = std::make_unique<SyncAbleEngine>(storageEngine);
+        ASSERT_NE(syncAbleEngine, nullptr);
+        syncAbleEngine->WakeUpSyncer();
+        syncAbleEngine->Close();
+        RefObject::KillAndDecObjRef(storageEngine);
+    }
+    userChangeThread.join();
 }
 #endif
