@@ -120,34 +120,6 @@ HWTEST_F(BackupManagerTest, BackUp002, TestSize.Level0)
     auto status5 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir1);
     ASSERT_EQ(status5, SUCCESS);
 }
-///**
-// * @tc.name: BackUp003
-// * @tc.desc: the kvstore backup
-// * @tc.type: FUNC
-// * @tc.require:
-// * @tc.author: Wang Kai
-// */
-//HWTEST_F(BackupManagerTest, BackUp003, TestSize.Level0)
-//{
-//    ASSERT_NE(kvStore_, nullptr);
-//    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
-//    auto status1 = kvStore_->Backup("testbackup1", baseDir);
-//    auto status2 = kvStore_->Backup("testbackup2", baseDir);
-//    auto status3 = kvStore_->Backup("testbackup3", baseDir);
-//    auto status4 = kvStore_->Backup("testbackup4", baseDir);
-//    auto status5 = kvStore_->Backup("testbackup5", baseDir);
-//    ASSERT_EQ(status1, SUCCESS);
-//    ASSERT_EQ(status2, SUCCESS);
-//    ASSERT_EQ(status3, SUCCESS);
-//    ASSERT_EQ(status4, SUCCESS);
-//    ASSERT_EQ(status5, ERROR);
-//    std::map<std::string, OHOS::DistributedKv::Status> results;
-//    auto status6 = kvStore_->DeleteBackup({ "testbackup1", "testbackup2", "testbackup3", "testbackup4", "autoBackup" },
-//        baseDir, results);
-//    ASSERT_EQ(status6, SUCCESS);
-//    auto status7 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
-//    ASSERT_EQ(status7, SUCCESS);
-//}
 /**
  * @tc.name: BackUp003
  * @tc.desc: the kvstore backup file name is the same
