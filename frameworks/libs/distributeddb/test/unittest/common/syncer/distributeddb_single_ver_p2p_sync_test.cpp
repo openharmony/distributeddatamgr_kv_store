@@ -60,6 +60,8 @@ namespace {
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
     KvVirtualDevice *g_deviceB = nullptr;
     KvVirtualDevice *g_deviceC = nullptr;
+    std::mutex g_syncLock;
+    std::condition_variable g_syncCondVar;
 
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
@@ -167,6 +169,7 @@ void DistributedDBSingleVerP2PSyncTest::SetUpTestCase(void)
     g_mgr.SetKvStoreConfig(g_config);
 
     string dir = g_testDir + "/single_ver";
+    LOGI("====db file path=%s", dir.c_str());
     DIR* dirTmp = opendir(dir.c_str());
     if (dirTmp == nullptr) {
         OS::MakeDBDirectory(dir);
@@ -2922,4 +2925,67 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level
     });
     thread1.join();
     thread2.join();
+}
+
+/**
+  * @tc.name: DeviceOfflineSyncTask001
+  * @tc.desc: Test sync task when device offline and close db Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask001, TestSize.Level3)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA call sync and 
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    DBStatus callStatus = g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY,
+        [&result](const std::map<std::string, DBStatus>& statusMap) {
+            LOGI("====into here");
+            result = statusMap;
+            LOGI("====begin to notify_one");
+            g_syncCondVar.notify_one();
+        }, false);
+    // status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_TRUE(callStatus == OK);
+
+    for (int i = 0; i < DBConstant::QUEUED_SYNC_LIMIT_DEFAULT / 4; i++) {
+        status = g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY, 
+            [i](const std::map<std::string, DBStatus>& statusMap) {
+                LOGI("sync times=%d finished", i);
+            }, false);
+        ASSERT_TRUE(status == OK);
+    }
+    std::thread thread1([]() {
+        if (g_kvDelegatePtr != nullptr) {
+            g_mgr.CloseKvStore(g_kvDelegatePtr);
+            g_kvDelegatePtr = nullptr;
+        }
+    });
+    std::thread thread2([]() {
+        g_deviceB->Offline();
+    });
+    {
+        std::unique_lock<std::mutex> lock(g_syncLock);
+        LOGI("====begin to wait");
+        g_syncCondVar.wait(lock);
+    }
+    thread1.join();
+    thread2.join();
+    status = g_mgr.DeleteKvStore(STORE_ID);
+    LOGD("delete kv store status %d", status);
+    ASSERT_TRUE(status == OK);
 }
