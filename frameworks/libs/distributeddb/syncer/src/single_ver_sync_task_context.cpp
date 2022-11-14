@@ -249,6 +249,9 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
             responseTargetQueue_.size());
         while (!requestTargetQueue_.empty()) {
             ISyncTarget *tmpTarget = requestTargetQueue_.front();
+            SyncOperation *tmpInfOperation = nullptr;
+            tmpTarget->GetSyncOperation(tmpInfOperation);
+            RefObject::IncObjRef(tmpInfOperation);
             requestTargetQueue_.pop_front();
             targetQueue.push_back(tmpTarget);
         }
@@ -279,6 +282,7 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
         }
         delete target;
         target = nullptr;
+        RefObject::DecObjRef(tmpInfOperation);
     }
     if (GetTaskExecStatus() == SyncTaskContext::RUNNING) {
         // clear syncing task.
