@@ -341,9 +341,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest001, TestSize.Level1)
     int errCode;
     EXPECT_EQ(errStore->GetHandle(false, errCode), nullptr);
     std::string deviceName;
-    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false, false), -E_INVALID_ARGS);
-    deviceName = "Mobile";
-    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false, false), -E_INVALID_DB);
+    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false), -E_INVALID_ARGS);
     std::vector<Key> keys;
     EXPECT_EQ(errStore->GetAllMetaKeys(keys), -E_INVALID_DB);
     Key key;
