@@ -1543,6 +1543,9 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
 {
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
     auto store = GetRelationalStore();
     ASSERT_NE(store, nullptr);
     Query query = Query::Select().OrderBy("errDevice", false);
@@ -1559,5 +1562,6 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
     EXPECT_EQ(errorNo, E_OK);
     errorNo = queryObj2.Init();
     EXPECT_EQ(errorNo, -E_INVALID_QUERY_FIELD);
+    RefObject::DecObjRef(g_store);
 }
 #endif
