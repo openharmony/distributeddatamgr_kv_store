@@ -1613,6 +1613,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
         ASSERT_NE(sqliteStorageEngine, nullptr);
         StorageEngineAttr poolSize = {1, 1, 0, 16}; // at most 1 write 16 read.
         int errCode = sqliteStorageEngine->InitSQLiteStorageEngine(poolSize, option, hashIdentifier);
+        EXPECT_EQ(errCode, E_OK);
         auto storageEngine = new (std::nothrow) RelationalSyncAbleStorage(sqliteStorageEngine);
         ASSERT_NE(storageEngine, nullptr);
         auto syncAbleEngine = std::make_unique<SyncAbleEngine>(storageEngine);

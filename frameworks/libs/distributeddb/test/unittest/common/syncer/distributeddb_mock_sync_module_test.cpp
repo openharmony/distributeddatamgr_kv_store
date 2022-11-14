@@ -888,6 +888,36 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
 }
 
 /**
+ * @tc.name: SyncLifeTest004
+ * @tc.desc: Test syncer remote data change.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    auto syncDBInterface = new MockKvSyncInterface();
+    int incRefCount = 0;
+    EXPECT_CALL(*syncDBInterface, IncRefCount()).WillRepeatedly([&incRefCount]() {
+        incRefCount++;
+    });
+    EXPECT_CALL(*syncDBInterface, DecRefCount()).WillRepeatedly(Return());
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface->SetIdentifier(identifier);
+    syncer->Initialize(syncDBInterface, true);
+    syncer->EnableAutoSync(true);
+    syncer->RemoteDataChanged("");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+    EXPECT_EQ(incRefCount, 2); // refCount is 2
+}
+
+/**
  * @tc.name: MessageScheduleTest001
  * @tc.desc: Test MessageSchedule stop timer when no message.
  * @tc.type: FUNC
@@ -1010,7 +1040,9 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     /**
      * @tc.steps: step3. abort machine and both context will be released
      */
+    syncInterfaceRefCount = 0;
     enginePtr->AbortMachineIfNeed(syncId);
+    EXPECT_EQ(syncInterfaceRefCount, 0);
     enginePtr->Close();
 
     RefObject::KillAndDecObjRef(enginePtr);
@@ -1018,8 +1050,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     metaData = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     virtualCommunicatorAggregator = nullptr;
-    EXPECT_EQ(syncInterfaceRefCount, 0);
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**
