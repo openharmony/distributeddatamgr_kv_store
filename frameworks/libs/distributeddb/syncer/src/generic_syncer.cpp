@@ -894,14 +894,14 @@ void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
     TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
         static_cast<TimeOffset>(TimeHelper::TO_100_NS);
     TimeOffset orgOffset = metadata->GetLocalTimeOffset() - changedTimeOffset;
-    Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
+    TimeOffset currentSysTime = static_cast<TimeOffset>(TimeHelper::GetSysCurrentTime());
     Timestamp maxItemTime = 0;
     storage->GetMaxTimestamp(maxItemTime);
     if ((orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
-        orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
-            currentSysTime + TimeHelper::MS_TO_100_NS;
+        orgOffset = TimeHelper::BUFFER_VALID_TIME -
+            currentSysTime + static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS);
     }
-    if ((currentSysTime + orgOffset) <= maxItemTime) {
+    if ((currentSysTime + orgOffset) <= static_cast<TimeOffset>(maxItemTime)) {
         orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
     }
     metadata->SaveLocalTimeOffset(orgOffset);
