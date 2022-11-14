@@ -127,6 +127,8 @@ public:
     virtual int GetSecurityOption(int &securityLabel, int &securityFlag) const = 0;
 
     virtual int CheckIntegrity() const = 0;
+
+    virtual int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const = 0;
 };
 } // namespace DistributedDB
 

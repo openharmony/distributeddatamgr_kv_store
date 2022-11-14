@@ -218,6 +218,10 @@ public:
 
     // Remove all other device data synced from other remote devices.
     DB_API virtual DBStatus RemoveDeviceData() = 0;
+
+    // Get keys from the public zone of this store by key prefix.
+    // If 'keyPrefix' is empty, It would return all the keys in the zone.
+    DB_API virtual DBStatus GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const = 0;
 };
 } // namespace DistributedDB
 

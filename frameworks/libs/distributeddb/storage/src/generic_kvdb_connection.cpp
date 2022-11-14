@@ -346,4 +346,9 @@ int GenericKvDBConnection::CheckIntegrity() const
 {
     return E_OK;
 }
+
+int GenericKvDBConnection::GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const
+{
+    return -E_NOT_SUPPORT;
+}
 }

@@ -939,4 +939,20 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
     }
     return TransferDBErrno(errCode);
 }
+
+DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION.c_str());
+        return DB_ERROR;
+    }
+    IOption option;
+    option.dataType = IOption::SYNC_DATA;
+    int errCode = conn_->GetKeys(option, keyPrefix, keys);
+    if (errCode == E_OK) {
+        return OK;
+    }
+    LOGW("[KvStoreNbDelegate] Get the keys failed:%d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

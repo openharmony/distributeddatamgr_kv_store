@@ -147,47 +147,7 @@ int SQLiteSingleVerNaturalStoreConnection::Clear(const IOption &option)
 int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Key &keyPrefix,
     std::vector<Entry> &entries) const
 {
-    if (keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
-        return -E_INVALID_ARGS;
-    }
-
-    SingleVerDataType type;
-    if (option.dataType == IOption::LOCAL_DATA) {
-        type = SingleVerDataType::LOCAL_TYPE;
-    } else if (option.dataType == IOption::SYNC_DATA) {
-        type = SingleVerDataType::SYNC_TYPE;
-    } else {
-        return -E_INVALID_ARGS;
-    }
-
-    int errCode = CheckReadDataControlled();
-    if (errCode != E_OK) {
-        LOGE("[GetEntries] Existed cache database can not read data, errCode = [%d]!", errCode);
-        return errCode;
-    }
-
-    DBDfxAdapter::StartTraceSQL();
-    {
-        std::lock_guard<std::mutex> lock(transactionMutex_);
-        if (writeHandle_ != nullptr) {
-            LOGD("Transaction started already.");
-            errCode = writeHandle_->GetEntries(type, keyPrefix, entries);
-            DBDfxAdapter::FinishTraceSQL();
-            return errCode;
-        }
-    }
-
-    SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
-    if (handle == nullptr) {
-        LOGE("[Connection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
-        DBDfxAdapter::FinishTraceSQL();
-        return errCode;
-    }
-
-    errCode = handle->GetEntries(type, keyPrefix, entries);
-    ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
-    return errCode;
+    return GetEntriesInner(true, option, keyPrefix, entries);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
@@ -1803,6 +1763,67 @@ int SQLiteSingleVerNaturalStoreConnection::CalcHashDevID(PragmaDeviceIdentifier 
     }
     pragmaDev.deviceIdentifier = DBCommon::TransferHashString(pragmaDev.deviceID);
     return E_OK;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::GetKeys(const IOption &option,
+    const Key &keyPrefix, std::vector<Key> &keys) const
+{
+    keys.clear();
+    std::vector<Entry> entries;
+    int errCode = GetEntriesInner(false, option, keyPrefix, entries);
+    if (errCode == E_OK) {
+        for (auto &entry : entries) {
+            keys.push_back(std::move(entry.key));
+        }
+    }
+    keys.shrink_to_fit();
+    return errCode;
+}
+
+int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IOption &option,
+    const Key &keyPrefix, std::vector<Entry> &entries) const
+{
+    if (keyPrefix.size() > DBConstant::MAX_KEY_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+
+    SingleVerDataType type;
+    if (option.dataType == IOption::LOCAL_DATA) {
+        type = SingleVerDataType::LOCAL_TYPE;
+    } else if (option.dataType == IOption::SYNC_DATA) {
+        type = SingleVerDataType::SYNC_TYPE;
+    } else {
+        return -E_INVALID_ARGS;
+    }
+
+    int errCode = CheckReadDataControlled();
+    if (errCode != E_OK) {
+        LOGE("[GetEntries] Existed cache database can not read data, errCode = [%d]!", errCode);
+        return errCode;
+    }
+
+    DBDfxAdapter::StartTraceSQL();
+    {
+        std::lock_guard<std::mutex> lock(transactionMutex_);
+        if (writeHandle_ != nullptr) {
+            LOGD("Transaction started already.");
+            errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
+            DBDfxAdapter::FinishTraceSQL();
+            return errCode;
+        }
+    }
+
+    SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[Connection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
+        DBDfxAdapter::FinishTraceSQL();
+        return errCode;
+    }
+
+    errCode = handle->GetEntries(isGetValue, type, keyPrefix, entries);
+    ReleaseExecutor(handle);
+    DBDfxAdapter::FinishTraceSQL();
+    return errCode;
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)

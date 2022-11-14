@@ -1887,6 +1887,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
     DistributedDBToolsUnitTest::GetRandomKeyValue(key, 40); // for 40B random key
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
+
     DistributedDBToolsUnitTest::GetRandomKeyValue(key, 20); // for 20B random key
     DistributedDBToolsUnitTest::GetRandomKeyValue(value, 1 * 1024 * 1024); // 1M value
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
@@ -2089,6 +2090,67 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     sqlite3_close_v2(db);
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+
+/**
+ * @tc.name: GetKeys001
+ * @tc.desc: Test get keys from the database.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, GetKeys001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("GetKeys001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step2. Put the all keys into the database.
+     * @tc.expected: step2. Returns OK.
+     */
+    std::vector<Key> expectKeys = {
+        {'k', '1', '1'},
+        {'k', '2'},
+        {'k', '3'},
+        {'k', '4'}
+    };
+    for (const auto &key : expectKeys) {
+        EXPECT_EQ(g_kvNbDelegatePtr->Put(key, {}), OK);
+    }
+    EXPECT_EQ(g_kvNbDelegatePtr->Put({'k', '2'}, {}), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete({'k', '4'}), OK);
+
+    /**
+     * @tc.steps:step3. Get the all keys.
+     * @tc.expected: step3. Returns OK.
+     */
+    Key keyPrefix = {'k', '1'};
+    std::vector<Key> actualKeys;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), OK);
+    EXPECT_EQ(actualKeys.size(), 1u); // get the k11
+    for (const auto &key : actualKeys) {
+        EXPECT_EQ(key, expectKeys[0]);
+    }
+    keyPrefix.clear();
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), OK);
+    EXPECT_EQ(actualKeys.size(), 3u); // size of all the key is 3
+
+    keyPrefix = {'k', '4'};
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), NOT_FOUND);
+    EXPECT_EQ(actualKeys.size(), 0u); // not found key and size is 0
+
+    DistributedDBToolsUnitTest::GetRandomKeyValue(keyPrefix, 2048); // for 2048B random key
+    EXPECT_EQ(g_kvNbDelegatePtr->GetKeys(keyPrefix, actualKeys), INVALID_ARGS);
+    EXPECT_EQ(actualKeys.size(), 0u); // invalid prefix key and size is 0
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("GetKeys001"), OK);
 }
 
 namespace {

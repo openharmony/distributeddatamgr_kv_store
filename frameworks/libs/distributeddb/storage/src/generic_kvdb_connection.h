@@ -74,6 +74,8 @@ public:
     int GetSecurityOption(int &securityLabel, int &securityFlag) const override;
 
     int CheckIntegrity() const override;
+
+    int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>
