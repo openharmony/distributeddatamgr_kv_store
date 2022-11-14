@@ -1534,4 +1534,52 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1
     ExpectCount(db, getLogSql, 3u);  // 3 means all deleted data.
     sqlite3_close(db);
 }
+
+/**
+ * @tc.name: CloseStore001
+ * @tc.desc: Test Relational Store Close Action.
+ * @tc.type: FUNC
+ * @tc.require: AR000H2QPN
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. new store and get connection now ref count is 2.
+     * @tc.expected: Succeed.
+     */
+    auto store = new (std::nothrow) SQLiteRelationalStore();
+    ASSERT_NE(store, nullptr);
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    EXPECT_EQ(store->Open(properties), E_OK);
+    int errCode = E_OK;
+    auto connection = store->GetDBConnection(errCode);
+    EXPECT_EQ(errCode, E_OK);
+    ASSERT_NE(connection, nullptr);
+    errCode = store->RegisterLifeCycleCallback([](const std::string &, const std::string &) {
+    });
+    EXPECT_EQ(errCode, E_OK);
+    errCode = store->RegisterLifeCycleCallback(nullptr);
+    EXPECT_EQ(errCode, E_OK);
+    auto syncInterface = store->GetStorageEngine();
+    ASSERT_NE(syncInterface, nullptr);
+    RefObject::IncObjRef(syncInterface);
+    /**
+     * @tc.steps: step2. release store.
+     * @tc.expected: Succeed.
+     */
+    store->ReleaseDBConnection(connection);
+    RefObject::DecObjRef(store);
+    store = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    /**
+     * @tc.steps: step3. try trigger heart beat after store release.
+     * @tc.expected: No crash.
+     */
+    Timestamp maxTimestamp = 0u;
+    syncInterface->GetMaxTimestamp(maxTimestamp);
+    RefObject::DecObjRef(syncInterface);
+}
 #endif
