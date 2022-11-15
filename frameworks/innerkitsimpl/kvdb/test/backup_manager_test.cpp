@@ -34,7 +34,7 @@ public:
     void SetUp();
     void TearDown();
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type);
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
@@ -56,25 +56,36 @@ void BackupManagerTest::TearDownTestCase(void)
 
 void BackupManagerTest::SetUp(void)
 {
-    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION);
+    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false);
     if (kvStore_ == nullptr) {
-        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION);
+        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false);
     }
     ASSERT_NE(kvStore_, nullptr);
 }
 
-void BackupManagerTest::TearDown(void) {}
+void BackupManagerTest::TearDown(void)
+{
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "SingleKVStore" };
+    auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    status = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
 
-std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(std::string storeIdTest, KvStoreType type)
+std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt)
 {
     Options options;
     options.kvStoreType = type;
     options.securityLevel = S1;
+    options.encrypt = encrypt;
     options.area = EL1;
     options.baseDir = "/data/service/el1/public/database/BackupManagerTest";
     SyncPolicy policy;
     policy.type = PolicyType::IMMEDIATE_SYNC_ON_ONLINE;
-    policy.value.emplace<1>(100);
+    int value = 100;
+    policy.value.emplace<1>(value);
     options.policies.emplace_back(policy);
 
     AppId appId = { "BackupManagerTest" };
@@ -89,10 +100,8 @@ HWTEST_F(BackupManagerTest, BackUp001, TestSize.Level0)
     auto status = kvStore_->Backup("testbackup", baseDir);
     ASSERT_EQ(status, SUCCESS);
     std::map<std::string, OHOS::DistributedKv::Status> results;
-    auto status1 = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
-    ASSERT_EQ(status1, SUCCESS);
-    auto status2 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
-    ASSERT_EQ(status2, SUCCESS);
+    status = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
+    ASSERT_EQ(status, SUCCESS);
 }
 /**
  * @tc.name: BackUp002
@@ -107,18 +116,16 @@ HWTEST_F(BackupManagerTest, BackUp002, TestSize.Level0)
     auto baseDir = "";
     auto baseDir1 = "/data/service/el1/public/database/BackupManagerTest";
     auto status = kvStore_->Backup("testbackup", baseDir);
-    auto status1 = kvStore_->Backup("", baseDir);
-    auto status2 = kvStore_->Backup("autoBackup", baseDir1);
     ASSERT_EQ(status, INVALID_ARGUMENT);
-    ASSERT_EQ(status1, INVALID_ARGUMENT);
-    ASSERT_EQ(status2, INVALID_ARGUMENT);
+    status = kvStore_->Backup("", baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore_->Backup("autoBackup", baseDir1);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
     std::map<std::string, OHOS::DistributedKv::Status> results;
-    auto status3 = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
-    ASSERT_EQ(status3, INVALID_ARGUMENT);
-    auto status4 = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir1, results);
-    ASSERT_EQ(status4, SUCCESS);
-    auto status5 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir1);
-    ASSERT_EQ(status5, SUCCESS);
+    status = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir1, results);
+    ASSERT_EQ(status, SUCCESS);
 }
 ///**
 // * @tc.name: BackUp003
@@ -160,17 +167,15 @@ HWTEST_F(BackupManagerTest, BackUp003, TestSize.Level0)
     ASSERT_NE(kvStore_, nullptr);
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     auto status = kvStore_->Backup("testbackup", baseDir);
-    auto status1 = kvStore_->Backup("testbackup", baseDir);
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(status1, SUCCESS);
+    status = kvStore_->Backup("testbackup", baseDir);
+    ASSERT_EQ(status, SUCCESS);
     std::string path = { "/data/service/el1/public/database/BackupManagerTest/kvdb/backup/SingleKVStore/"
-                         "testbackup.bk" };
+                         "testbackup.bak.bk" };
     OHOS::DistributedKv::StoreUtil::CreateFile(path);
-    auto status2 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
-    ASSERT_EQ(status2, SUCCESS);
     std::map<std::string, OHOS::DistributedKv::Status> results;
-    auto status3 = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
-    ASSERT_EQ(status3, SUCCESS);
+    status = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
+    ASSERT_EQ(status, SUCCESS);
 }
 /**
  * @tc.name: ReStore
@@ -185,16 +190,14 @@ HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     auto baseDir1 = "";
     auto status = kvStore_->Backup("testbackup", baseDir);
-    auto status1 = kvStore_->Restore("testbackup", baseDir);
-    auto status2 = kvStore_->Restore("testbackup", baseDir1);
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(status1, SUCCESS);
-    ASSERT_EQ(status2, INVALID_ARGUMENT);
+    status = kvStore_->Restore("testbackup", baseDir);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->Restore("testbackup", baseDir1);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
     std::map<std::string, OHOS::DistributedKv::Status> results;
-    auto status3 = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
-    ASSERT_EQ(status3, SUCCESS);
-    auto status4 = StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
-    ASSERT_EQ(status4, SUCCESS);
+    status = kvStore_->DeleteBackup({ "testbackup", "autoBackup" }, baseDir, results);
+    ASSERT_EQ(status, SUCCESS);
 }
 /**
  * @tc.name: DeleteBackup
@@ -217,5 +220,31 @@ HWTEST_F(BackupManagerTest, DeleteBackup, TestSize.Level0)
     vector<std::string> files = { file1, file2, file3, file4 };
     std::map<std::string, OHOS::DistributedKv::Status> results;
     auto status = kvStore_->DeleteBackup(files, baseDir, results);
+    ASSERT_EQ(status, SUCCESS);
+}
+/**
+* @tc.name: HaveResidueKey
+* @tc.desc: creat encrypted kvstore and have residue key
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: Wang Kai
+*/
+HWTEST_F(BackupManagerTest, HaveResidueKey, TestSize.Level0)
+{
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "SingleKVStoreEncrypt" };
+    std::shared_ptr<SingleKvStore> kvStoreEncrypt_;
+    kvStoreEncrypt_ = CreateKVStore(storeId, SINGLE_VERSION, true);
+    ASSERT_NE(kvStoreEncrypt_, nullptr);
+
+    auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
+    std::string path = { "/data/service/el1/public/database/StoreUtilTest/key/Prefix_backup_SingleKVStore.key.bk" };
+    OHOS::DistributedKv::StoreUtil::CreateFile(path);
+    std::map<std::string, OHOS::DistributedKv::Status> results;
+    auto status = kvStoreEncrypt_->DeleteBackup({ "autoBackup" }, baseDir, results);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
 }
