@@ -316,52 +316,182 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, DeviceIdentifier008, TestSize.Level1
 
 /**
   * @tc.name: ErrDbTest001
-  * @tc.desc: Test invalid parameters of sqlite_single_ver_natural_store.cpp
+  * @tc.desc: Initialize check when the database is not opened
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest001, TestSize.Level1)
 {
+    /**
+     * @tc.steps: step1. Initialize an empty db and register nullptr callback
+     * @tc.expected: step1. Expect return not nullptr
+     */
     SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(errStore, nullptr);
-    DatabaseLifeCycleNotifier notifier = nullptr;
-    EXPECT_EQ(errStore->RegisterLifeCycleCallback(notifier), E_OK);
-    EXPECT_FALSE(errStore->IsCacheDBMode());
-    EXPECT_FALSE(errStore->IsExtendedCacheDBMode());
-    EXPECT_EQ(errStore->CheckIntegrity(), -E_INVALID_DB);
-    EXPECT_EQ(errStore->GetCacheRecordVersion(), (uint64_t) 0);
-    RegisterFuncType funcType = OBSERVER_SINGLE_VERSION_NS_PUT_EVENT;
-    EXPECT_EQ(errStore->TransConflictTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
-    EXPECT_EQ(errStore->TransObserverTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
-    CipherPassword passwd;
-    EXPECT_EQ(errStore->Export(g_testDir, passwd), -E_INVALID_DB);
-    EXPECT_EQ(errStore->Import(g_testDir, passwd), -E_INVALID_DB);
-    EXPECT_EQ(errStore->Rekey(passwd), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step2. Get db handle
+     * @tc.expected: step2. Expect return nullptr
+     */
     int errCode;
     EXPECT_EQ(errStore->GetHandle(false, errCode), nullptr);
-    std::string deviceName;
-    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false), -E_INVALID_ARGS);
-    std::vector<Key> keys;
-    EXPECT_EQ(errStore->GetAllMetaKeys(keys), -E_INVALID_DB);
-    Key key;
-    keys.push_back(key);
-    EXPECT_EQ(errStore->DeleteMetaData(keys), -E_INVALID_ARGS);
-    keys.front().push_back('A');
-    EXPECT_EQ(errStore->DeleteMetaData(keys), -E_INVALID_DB);
-    Value values;
-    EXPECT_EQ(errStore->PutMetaData(keys.front(), values), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step3. Check db integrity
+     * @tc.expected: step3. Expect return -E_INVALID_DB
+     */
+    EXPECT_EQ(errStore->CheckIntegrity(), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step4. Check cache db mode
+     * @tc.expected: step4. Expect return false
+     */
+    EXPECT_FALSE(errStore->IsCacheDBMode());
+    EXPECT_FALSE(errStore->IsExtendedCacheDBMode());
+
     errStore->DecObjRef(errStore);
 }
 
 /**
   * @tc.name: ErrDbTest002
-  * @tc.desc: Test invalid parameters of sqlite_single_ver_natural_store.cpp
+  * @tc.desc: Register check when the database is not opened
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Initialize an empty db
+     * @tc.expected: step1. Expect return not nullptr
+     */
+    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(errStore, nullptr);
+
+    /**
+     * @tc.steps: step2. Check register nullptr callback
+     * @tc.expected: step2. Expect return E_OK
+     */
+    EXPECT_EQ(errStore->RegisterLifeCycleCallback(nullptr), E_OK);
+
+    /**
+     * @tc.steps: step3. Check register Conflict type
+     * @tc.expected: step3. Expect return -E_NOT_SUPPORT
+     */
+    RegisterFuncType funcType = OBSERVER_SINGLE_VERSION_NS_PUT_EVENT;
+    EXPECT_EQ(errStore->TransConflictTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps: step4. Check register Observer type
+     * @tc.expected: step4. Expect return -E_NOT_SUPPORT
+     */
+    EXPECT_EQ(errStore->TransObserverTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
+
+    errStore->DecObjRef(errStore);
+}
+
+/**
+  * @tc.name: ErrDbTest003
+  * @tc.desc: Export and Import check when the database is not opened
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Initialize an empty db
+     * @tc.expected: step1. Expect return not nullptr
+     */
+    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(errStore, nullptr);
+
+    /**
+     * @tc.steps: step2. Export
+     * @tc.expected: step2. Expect return -E_INVALID_DB
+     */
+    CipherPassword passwd;
+    EXPECT_EQ(errStore->Export(g_testDir, passwd), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step3. Import
+     * @tc.expected: step3. Expect return -E_INVALID_DB
+     */
+    EXPECT_EQ(errStore->Import(g_testDir, passwd), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step4. Reset key
+     * @tc.expected: step4. Expect return -E_INVALID_DB
+     */
+    EXPECT_EQ(errStore->Rekey(passwd), -E_INVALID_DB);
+
+    errStore->DecObjRef(errStore);
+}
+
+/**
+  * @tc.name: ErrDbTest004
+  * @tc.desc: Check the interface of operation data when the database is not opened
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Initialize an empty db
+     * @tc.expected: step1. Expect return not nullptr
+     */
+    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(errStore, nullptr);
+
+    /**
+     * @tc.steps: step2. Get all meta keys
+     * @tc.expected: step2. Expect return -E_INVALID_DB
+     */
+    std::vector<Key> keys;
+    EXPECT_EQ(errStore->GetAllMetaKeys(keys), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step3. Delete meta data if the Key is empty
+     * @tc.expected: step3. Expect return -E_INVALID_ARGS
+     */
+    Key key;
+    keys.push_back(key);
+    EXPECT_EQ(errStore->DeleteMetaData(keys), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step4. Delete meta data if the Key is not empty
+     * @tc.expected: step4. Expect return -E_INVALID_DB
+     */
+    keys.front().push_back('A');
+    EXPECT_EQ(errStore->DeleteMetaData(keys), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step5. put meta data
+     * @tc.expected: step5. Expect return -E_INVALID_DB
+     */
+    Value values;
+    EXPECT_EQ(errStore->PutMetaData(keys.front(), values), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step6. Test remove device data
+     * @tc.expected: step6. Expect return -E_INVALID_ARGS
+     */
+    std::string deviceName;
+    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false), -E_INVALID_ARGS);
+
+    errStore->DecObjRef(errStore);
+}
+
+/**
+  * @tc.name: ErrDbTest005
+  * @tc.desc: Test sync data when the database is not opened
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest005, TestSize.Level1)
 {
     SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(errStore, nullptr);
@@ -389,10 +519,10 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
     property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
     property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     int errCode = E_OK;
-    SQLiteSingleVerStorageEngine *storageEngine_ =
+    SQLiteSingleVerStorageEngine *storageEngine =
         static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
     ASSERT_EQ(errCode, E_OK);
-    ASSERT_NE(storageEngine_, nullptr);
+    ASSERT_NE(storageEngine, nullptr);
 }
 
 /**
