@@ -324,12 +324,12 @@ int SyncAbleKvDBConnection::SetPushDataInterceptor(const PushDataInterceptor &in
     return E_OK;
 }
 
-int SyncAbleKvDBConnection::CalculateSyncDataSize(const std::string &device, uint32_t &size) const
+int SyncAbleKvDBConnection::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     SyncAbleKvDB *kvDB = GetDB<SyncAbleKvDB>();
     if (kvDB == nullptr) {
         return -E_INVALID_CONNECTION;
     }
-    return kvDB->CalculateSyncDataSize(device, size);
+    return kvDB->GetSyncDataSize(device, size);
 }
 }
