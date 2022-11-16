@@ -142,6 +142,12 @@ uint32_t VirtualCommunicator::GetTimeout(const std::string &target) const
     return GetTimeout();
 }
 
+void VirtualCommunicator::SetTimeout(uint32_t timeout)
+{
+    timeout_ = timeout;
+}
+
+
 int VirtualCommunicator::GetLocalIdentity(std::string &outTarget) const
 {
     outTarget = deviceId_;

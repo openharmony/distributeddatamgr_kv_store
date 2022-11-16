@@ -143,7 +143,7 @@ ICommunicator *VirtualCommunicatorAggregator::AllocCommunicator(const std::strin
     }
     {
         std::lock_guard<std::mutex> lock(communicatorsLock_);
-        communicators_.insert(std::pair<std::string, ICommunicator *>(deviceId, communicator));
+        communicators_.insert(std::pair<std::string, VirtualCommunicator *>(deviceId, communicator));
     }
     OnlineDevice(deviceId);
     return communicator;

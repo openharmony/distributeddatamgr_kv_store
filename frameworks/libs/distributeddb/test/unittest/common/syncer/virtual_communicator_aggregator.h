@@ -83,7 +83,7 @@ private:
     void CallSendEnd(int errCode, const OnSendEnd &onEnd);
 
     mutable std::mutex communicatorsLock_;
-    std::map<std::string, ICommunicator *> communicators_;
+    std::map<std::string, VirtualCommunicator *> communicators_;
     std::string remoteDeviceId_ = "real_device";
     std::mutex blockLock_;
     std::condition_variable conditionVar_;
