@@ -119,6 +119,31 @@ std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<K
     return entries;
 }
 
+void FuzzSetInterceptorTest(KvStoreNbDelegate *kvNbDelegatePtr)
+{
+    if (kvNbDelegatePtr == nullptr) {
+        return;
+    }
+    kvNbDelegatePtr->SetPushDataInterceptor(
+        [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
+            int errCode = OK;
+            auto entries = data.GetEntries();
+            for (size_t i = 0; i < entries.size(); i++) {
+                if (entries[i].key.empty() || entries[i].key.at(0) != 'A') {
+                    continue;
+                }
+                auto newKey = entries[i].key;
+                newKey[0] = 'B';
+                errCode = data.ModifyKey(i, newKey);
+                if (errCode != OK) {
+                    break;
+                }
+            }
+            return errCode;
+        }
+    );
+}
+
 void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
 {
     auto observer = new (std::nothrow) KvStoreObserverFuzzTest;
@@ -147,12 +172,8 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->PutBatch(tmp);
     if (!keys.empty()) {
         /* random deletePublic updateTimestamp 2 */
-        bool deletePublic = true;
-        bool updateTimestamp = true;
-        if (size > 3u) {
-            deletePublic = (data[0] > data[1]);
-            updateTimestamp = (data[2] > data[1]);
-        }
+        bool deletePublic = (size > 3u) ? (data[0] > data[1]) : true; // use index 0 and 1
+        bool updateTimestamp = (size > 3u) ? (data[2] > data[1]) : true; // use index 2 and 1
         kvNbDelegatePtr->UnpublishToLocal(keys[0], deletePublic, updateTimestamp);
     }
     kvNbDelegatePtr->DeleteBatch(keys);
@@ -163,32 +184,10 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     SecurityOption secOption;
     kvNbDelegatePtr->GetSecurityOption(secOption);
     kvNbDelegatePtr->CheckIntegrity();
-    kvNbDelegatePtr->SetPushDataInterceptor(
-        [](InterceptedData &data, const std::string &sourceID, const std::string &targetID) {
-            int errCode = OK;
-            auto entries = data.GetEntries();
-            for (size_t i = 0; i < entries.size(); i++) {
-                if (entries[i].key.empty() || entries[i].key.at(0) != 'A') {
-                    continue;
-                }
-                auto newKey = entries[i].key;
-                newKey[0] = 'B';
-                errCode = data.ModifyKey(i, newKey);
-                if (errCode != OK) {
-                    break;
-                }
-            }
-            return errCode;
-        }
-    );
-    
+    FuzzSetInterceptorTest(kvNbDelegatePtr);
     if (!keys.empty()) {
-        bool deleteLocal = true;
-        bool updateTimestamp = true;
-        if (size > 3u) {
-            deleteLocal = (data[0] > data[1]);
-            updateTimestamp = (data[2] > data[1]);
-        }
+        bool deleteLocal = (size > 3u) ? (data[0] > data[1]) : true; // use index 0 and 1
+        bool updateTimestamp = (size > 3u) ? (data[2] > data[1]) : true; // use index 2 and 1
         /* random deletePublic updateTimestamp 2 */
         kvNbDelegatePtr->PublishLocal(keys[0], deleteLocal, updateTimestamp, nullptr);
     }
