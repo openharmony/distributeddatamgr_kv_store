@@ -35,8 +35,6 @@ describe('queryTest', function () {
             console.info("query is " + query.getSqlLike());
             expect(query.getSqlLike() !== "").assertTrue();
             query.reset();
-            // query.reset();
-            // query.reset();
             expect("").assertEqual(query.getSqlLike());
             console.info("sql after  reset: " + query.getSqlLike());
             console.info("query is " + query.getSqlLike());
@@ -764,6 +762,10 @@ describe('queryTest', function () {
             query.reset().inNumber("key", f64);
             console.info("inNumber(Float64Array([-21,31])  => " + query.getSqlLike());
             query.reset();
+            var u64 = new BigUint64Array([21n, 31n]);
+            query.reset().inNumber("key", u64);
+            var b64 = new BigInt64Array([21n, 31n]);
+            query.reset().inNumber("key", b64);
             expect(true).assertTrue();
         } catch (e) {
             console.error("dumplicated calls should be ok : " + `, error code is ${e.code}, message is ${e.message}`);
@@ -812,31 +814,6 @@ describe('queryTest', function () {
         } catch (e) {
             console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
-        }
-        query = null;
-        done();
-    })
-
-    /**
-     * @tc.name: QueryInNumberInvalidBigArrayArgsTest
-     * @tc.desc: Test Js Api Query.InNumber() with invalid big array args
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('QueryInNumberInvalidBigArrayArgsTest', 0, async function (done) {
-        var query = null;
-        try {
-            query = new ddm.Query();
-            expect("").assertEqual(query.getSqlLike());
-            var u64 = new BigUint64Array([21n, 31n]);
-            query.inNumber("key", u64);
-            var b64 = new BigInt64Array([21n, 31n]);
-            query.inNumber("key", b64);
-            console.info("should not throw exception on invalid arguments");
-            expect(true).assertTrue();
-        } catch (e) {
-            console.error("throw exception is ok : " + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
         }
         query = null;
         done();

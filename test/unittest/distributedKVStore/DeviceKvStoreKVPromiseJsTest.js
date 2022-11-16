@@ -2510,7 +2510,6 @@ describe('DeviceKvStorePromiseTest', function () {
         await getInsertEntries.then(function (insertEntries) {
             console.info('DeviceKvStoreChangeNotificationPromiseTest getInsertEntries' + JSON.stringify(insertEntries));
             expect(insertEntries != null).assertTrue();
-            // expect(insertEntries).assertNotNull();
         }).catch((error) => {
             console.error('DeviceKvStoreChangeNotificationPromiseTest can NOT getInsertEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
@@ -2539,7 +2538,6 @@ describe('DeviceKvStorePromiseTest', function () {
         await getUpdateEntries.then(function (updateEntries) {
             console.info('DeviceKvStoreChangeNotificationPromisePutTest getUpdateEntries' + JSON.stringify(updateEntries));
             expect(updateEntries != null).assertTrue();
-            // expect(updateEntries).assertNotNull();
         }).catch((error) => {
             console.error('DeviceKvStoreChangeNotificationPromisePutTest can NOT getUpdateEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
@@ -2568,7 +2566,6 @@ describe('DeviceKvStorePromiseTest', function () {
         await getdeleteEntries.then(function (deleteEntries) {
             console.info('DeviceKvStoreChangeNotificationPromiseDeleteTest deleteEntries' + JSON.stringify(getdeleteEntries));
             expect(deleteEntries != null).assertTrue();
-            // expect(deleteEntries).assertNotNull();
         }).catch((error) => {
             console.error('DeviceKvStoreChangeNotificationPromiseDeleteTest can NOT getdeleteEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();

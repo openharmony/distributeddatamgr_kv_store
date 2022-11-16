@@ -132,28 +132,6 @@ describe('schemaTest', function () {
     })
 
     /**
-     * @tc.name SchemaToJsonStringInvalidIndexesTest
-     * @tc.desc  Test Js Api Schema.ToJsonString() with invalid indexes
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('SchemaToJsonStringInvalidIndexesTest', 0, async function (done) {
-        try {
-            let english = new ddm.FieldNode('english');
-            english.type = ddm.ValueType.STRING;
-
-            let schema = new ddm.Schema();
-            schema.root.appendChild(english);
-            schema.indexes = [];
-            expect(null).assertFail();
-        } catch (e) {
-            console.info("schema exception fail on exception: " + e);
-            expect(e != null).assertTrue();
-        }
-        done();
-    })
-
-    /**
      * @tc.name SchemaRootTest
      * @tc.desc  Test Js Api Schema.root successfully
      * @tc.type: FUNC

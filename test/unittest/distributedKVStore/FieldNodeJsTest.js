@@ -64,8 +64,7 @@ describe('FieldNodeTest', function () {
     it('FieldNodeAppendChildInvalidChildTest', 0, async function (done) {
         try {
             let node = new ddm.FieldNode("root");
-            let child = new ddm.FieldNode(null);
-            node.appendChild(child);
+            node.appendChild(null);
             expect(null).assertFail();
         } catch (e) {
             console.info("FieldNodeAppendChildInvalidChildTest throws exception successfully :" + e);
