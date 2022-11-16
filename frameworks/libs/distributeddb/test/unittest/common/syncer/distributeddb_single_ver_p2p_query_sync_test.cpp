@@ -605,6 +605,45 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryRequestPacketTest001, Test
     EXPECT_EQ(outPacket->GetData()[0]->GetTimestamp(), 1u);
 }
 
+/**
+ * @tc.name: QueryRequestPacketTest002
+ * @tc.desc: Test exception branch of serialization.
+ * @tc.type: FUNC
+ * @tc.require: 
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, SerializationManager001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. call SingleVerSerializeManager::Serialization with buffer = nullptr or msg = nullptr
+     * @tc.expected:step1 return -E_MESSAGE_ID_ERROR
+     */
+    Message msg;
+    msg.SetMessageType(TYPE_INVALID);
+    vector<uint8_t> buffer(10); // 10 is test buffer len
+    EXPECT_EQ(SingleVerSerializeManager::Serialization(nullptr, buffer.size(), &msg), -E_MESSAGE_ID_ERROR);
+    EXPECT_EQ(SingleVerSerializeManager::Serialization(buffer.data(), buffer.size(), nullptr), -E_MESSAGE_ID_ERROR);
+
+    /**
+     * @tc.steps: step2. call SingleVerSerializeManager::Serialization with invalid type message
+     * @tc.expected:step2 return -E_MESSAGE_ID_ERROR
+     */
+    EXPECT_EQ(SingleVerSerializeManager::Serialization(buffer.data(), buffer.size(), &msg), -E_MESSAGE_ID_ERROR);
+
+    /**
+     * @tc.steps: step3. call SingleVerSerializeManager::DeSerialization with buffer = nullptr or msg = nullptr
+     * @tc.expected:step3 return -E_MESSAGE_ID_ERROR
+     */
+    EXPECT_EQ(SingleVerSerializeManager::DeSerialization(nullptr, buffer.size(), &msg), -E_MESSAGE_ID_ERROR);
+    EXPECT_EQ(SingleVerSerializeManager::DeSerialization(buffer.data(), buffer.size(), nullptr), -E_MESSAGE_ID_ERROR);
+
+    /**
+     * @tc.steps: step4. call SingleVerSerializeManager::DeSerialization with invalid type message
+     * @tc.expected:step4 return -E_MESSAGE_ID_ERROR
+     */
+    EXPECT_EQ(SingleVerSerializeManager::DeSerialization(buffer.data(), buffer.size(), &msg), -E_MESSAGE_ID_ERROR);
+}
+
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryAckPacketTest001, TestSize.Level1)
 {
     /**
