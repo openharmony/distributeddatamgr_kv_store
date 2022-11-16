@@ -91,7 +91,7 @@ describe('KVManagerPromiseTest', function () {
         try {
             await kvManager.getKVStore(TEST_STORE_ID, options).then((err, store) => {
                 console.info('KVManagerGetKVStorePromiseSucTest getKVStore success');
-                kvStore = store;
+                expect(store != undefine && store != null).assertTrue();
                 done();
             })
         } catch (e) {
@@ -185,6 +185,7 @@ describe('KVManagerPromiseTest', function () {
                 expect(true).assertTrue();
             }).catch((err) => {
                 console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         })
         done();
@@ -207,14 +208,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S1,
         };
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseSingleS1Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseSingleS1Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseSingleS1Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseSingleS1Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -235,14 +239,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S2,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseSingleS2Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseSingleS2Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseSingleS2Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseSingleS2Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -263,14 +270,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S3,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseSingleS3Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseSingleS3Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseSingleS3Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseSingleS3Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -291,14 +301,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S4,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseSingleS4Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseSingleS4Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseSingleS4Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseSingleS4Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -319,14 +332,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S1,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseDeviceS1Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseDeviceS1Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseDeviceS1Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseDeviceS1Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -347,14 +363,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S2,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseDeviceS2Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseDeviceS2Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseDeviceS2Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseDeviceS2Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -375,14 +394,17 @@ describe('KVManagerPromiseTest', function () {
             schema: '',
             securityLevel: factory.SecurityLevel.S3,
         }
-        await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
-            console.info('KVManagerGetKVStorePromiseDeviceS3Test getKVStore success');
-            kvStore = store;
-            expect(store != null).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetKVStorePromiseDeviceS3Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
+                console.info('KVManagerGetKVStorePromiseDeviceS3Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseDeviceS3Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -406,12 +428,13 @@ describe('KVManagerPromiseTest', function () {
         try {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo).then((store) => {
                 console.info('KVManagerGetKVStorePromiseDeviceS4Test getKVStore success');
+                expect(store != null && store != undefined).assertTrue();
             }).catch((err) => {
                 console.error('KVManagerGetKVStorePromiseDeviceS4Test getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('KVManagerGetKVStorePromiseDeviceS4Test getKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
@@ -521,6 +544,7 @@ describe('KVManagerPromiseTest', function () {
         try {
             await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
                 console.info('KVManagerDeleteKVStorePromiseNoGetTest deleteKVStore success');
+                expect(null).assertFail();
             }).catch((err) => {
                 console.info('KVManagerDeleteKVStoreCallbackNotGetTest deleteKVStore fail');
                 expect(err.code == 15100004).assertTrue();
@@ -539,12 +563,16 @@ describe('KVManagerPromiseTest', function () {
      */
     it('KVManagerGetAllKVStoreIdPromiseSucTest', 0, async function (done) {
         console.info('KVManagerGetAllKVStoreIdPromiseSucTest');
-        await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME).then((data) => {
-            expect(0 == data.length).assertTrue();
-        }).catch((err) => {
-            console.error('KVManagerGetAllKVStoreIdPromiseSucTest getAllKVStoreId err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME).then((data) => {
+                expect(0 == data.length).assertTrue();
+            }).catch((err) => {
+                console.error('KVManagerGetAllKVStoreIdPromiseSucTest getAllKVStoreId err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
             expect(null).assertFail();
-        });
+        }
         done();
     })
 
@@ -599,13 +627,8 @@ describe('KVManagerPromiseTest', function () {
      */
     it('KVManagerOnPromiseInvalidArgsTest', 0, function (done) {
         console.info('KVManagerOnPromiseInvalidArgsTest');
-        var deathCallback = function () {
-            console.info('death callback call');
-        }
         try {
             kvManager.on('distributedDataServiceDie');
-            kvManager.on(deathCallback);
-            kvManager.off('distributedDataServiceDie', deathCallback);
             expect(null).assertFail();
         } catch (e) {
             console.error(`KVManagerOnPromiseInvalidArgsTest failed, error code is ${e.code}, message is ${e.message}`);
@@ -643,11 +666,7 @@ describe('KVManagerPromiseTest', function () {
      */
     it('KVManagerOffPromiseInvalidArgsTest', 0, function (done) {
         console.info('KVManagerOffPromiseInvalidArgsTest');
-        var deathCallback = function () {
-            console.info('death callback call');
-        }
         try {
-            kvManager.on('distributedDataServiceDie', deathCallback);
             kvManager.off();
             expect(false).assertFail();
         } catch (e) {
@@ -713,6 +732,26 @@ describe('KVManagerPromiseTest', function () {
             await factory.createKVManager().then(() => {
                 expect(null).assertFail();
             }).catch(() => {
+                expect(null).assertFail();
+            })
+        } catch (e) {
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name: CreateKVManagerPromiseInvalidConfigTest
+     * @tc.desc: Test Js Api createKVManager with invalid config
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('CreateKVManagerPromiseInvalidConfigTest', 0, async function (done) {
+        try {
+            const config1  = {
+                bundleName : TEST_BUNDLE_NAME
+            }
+            await factory.createKVManager(config1).then(() => {
                 expect(null).assertFail();
             })
         } catch (e) {

@@ -116,6 +116,7 @@ describe('KvStoreResultSetTest', function () {
         }).catch((err) => {
             console.error('afterEach closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
         });
+        resultSet = null;
         await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
             console.info('afterEach closeKVStore success');
             await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
@@ -127,7 +128,6 @@ describe('KvStoreResultSetTest', function () {
             console.error('afterEach closeKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
         });
         kvStore = null;
-        resultSet = null;
         done();
     })
 

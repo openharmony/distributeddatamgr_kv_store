@@ -104,7 +104,7 @@ describe('kvManagerCallbackTest', function () {
         try {
             await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackSucTest11 getKVStore success');
-                expect(store != undefined).assertTrue();
+                expect((err == undefined) && (store != null)).assertTrue();
             });
             const optionsInfo = {
                 createIfMissing: true,
@@ -140,15 +140,8 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerGetKVStoreCallbackParameterErrorTest', 0, async function (done) {
         console.info('KVManagerGetKVStoreCallbackParameterErrorTest');
         try {
-            await kvManager.getKVStore(options, function (err) {
-                if (err == undefined) {
-                    console.info('KVManagerGetKVStoreCallbackParameterErrorTest getKVStore success');
-                    expect(null).assertFail();
-                } else {
-                    console.info('KVManagerGetKVStoreCallbackParameterErrorTest getKVStore fail');
-                    expect(null).assertFail();
-                }
-                done();
+            await kvManager.getKVStore(options, function () {
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('KVManagerGetKVStoreCallbackParameterErrorTest getKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -178,7 +171,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackDeviceS1SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -209,7 +201,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackDeviceS2SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -271,7 +262,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackDeviceS4SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -302,7 +292,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackSingleS1SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -333,7 +322,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackSingleS2SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -362,13 +350,8 @@ describe('kvManagerCallbackTest', function () {
         }
         try {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
-                if (err == undefined) {
-                    console.info('KVManagerGetKVStoreCallbackSingleS3SucTest getKVStore success');
-                    expect((err == undefined) && (store != null)).assertTrue();
-                } else {
-                    console.info('KVManagerGetKVStoreCallbackSingleS3SucTest getKVStore fail');
-                    expect(null).assertFail();
-                }
+                console.info('KVManagerGetKVStoreCallbackSingleS3SucTest getKVStore success');
+                expect((err == undefined) && (store != null)).assertTrue();
                 done();
             });
         } catch (e) {
@@ -398,7 +381,6 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, optionsInfo, function (err, store) {
                 console.info('KVManagerGetKVStoreCallbackSingleS4SucTest getKVStore success');
                 expect((err == undefined) && (store != null)).assertTrue();
-                kvStore = store;
                 done();
             });
         } catch (e) {
@@ -420,14 +402,8 @@ describe('kvManagerCallbackTest', function () {
                 console.info('KVManagerCloseKVStoreCallbackParaErrorTest getKVStore success');
                 kvStore = store;
                 try {
-                    await kvManager.closeKVStore(TEST_BUNDLE_NAME, function (err, data) {
-                        if (err == undefined) {
-                            console.info('KVManagerCloseKVStoreCallbackParaErrorTest closeKVStore success');
-                            expect(null).assertFail();
-                        } else {
-                            console.info('KVManagerCloseKVStoreCallbackParaErrorTest closeKVStore fail');
-                            expect(null).assertFail();
-                        }
+                    await kvManager.closeKVStore(TEST_BUNDLE_NAME, function () {
+                        expect(null).assertFail();
                         done();
                     });
                 } catch (e) {
@@ -452,17 +428,12 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerCloseKVStoreCallbackSucTest', 0, async function (done) {
         console.info('KVManagerCloseKVStoreCallbackSucTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options, async function (err) {
+            await kvManager.getKVStore(TEST_STORE_ID, options, async function (error, store) {
+                expect((error == undefined) && (store != null)).assertTrue();
                 console.info('KVManagerCloseKVStoreCallbackSucTest getKVStore success');
                 try {
                     await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
-                        if (err == undefined) {
-                            console.info('KVManagerCloseKVStoreCallbackSucTest closeKVStore success');
-                            expect(true).assertTrue();
-                        } else {
-                            console.info('KVManagerCloseKVStoreCallbackSucTest closeKVStore fail');
-                            expect(null).assertFail();
-                        }
+                        expect(err == undefined).assertTrue();
                         done();
                     });
                 } catch (e) {
@@ -487,14 +458,11 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerCloseKVStoreCallbackCloseTwiceFailTest', 0, async function (done) {
         console.info('KVManagerCloseKVStoreCallbackCloseTwiceFailTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
-                console.info('KVManagerCloseKVStoreCallbackCloseTwiceFailTest getKVStore success');
-                kvStore = store;
+            await kvManager.getKVStore(TEST_STORE_ID, options, async function (error, store) {
+                expect((error == undefined) && (store != null)).assertTrue();
             });
-            await kvManager.closeKVStore(TEST_BUNDLE_NAME, function (err) {
-                if (err == undefined) {
-                    expect(null).assertFail();
-                }
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, function () {
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('KVManagerCloseKVStoreCallbackCloseTwiceFailTest closeKVStore twice e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -512,12 +480,11 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerDeleteKVStoreCallbackSucTest', 0, async function (done) {
         console.info('KVManagerDeleteKVStoreCallbackSucTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
-                console.info('KVManagerDeleteKVStoreCallbackSucTest getKVStore success');
-                kvStore = store;
-                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err, data) {
+            await kvManager.getKVStore(TEST_STORE_ID, options, async function (error, store) {
+                expect((error == undefined) && (store != null)).assertTrue();
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
                     console.info('KVManagerDeleteKVStoreCallbackSucTest deleteKVStore success');
-                    expect((err == undefined) && (data == undefined)).assertTrue();
+                    expect(err == undefined).assertTrue();
                     done();
                 });
             });
@@ -537,17 +504,12 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerDeleteKVStoreCallbackParaErrorTest', 0, async function (done) {
         console.info('KVManagerDeleteKVStoreCallbackParaErrorTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
+            await kvManager.getKVStore(TEST_STORE_ID, options, async function (error, store) {
+                expect((error == undefined) && (store != null)).assertTrue();
                 console.info('KVManagerDeleteKVStoreCallbackParaErrorTest getKVStore success');
-                kvStore = store;
                 try {
-                    await kvManager.deleteKVStore(TEST_BUNDLE_NAME, function (err) {
-                        if (err == undefined) {
-                            console.info('KVManagerDeleteKVStoreCallbackParaErrorTest deleteKVStore success');
-                            expect(null).assertFail();
-                        } else {
-                            console.info('KVManagerDeleteKVStoreCallbackParaErrorTest deleteKVStore fail');
-                        }
+                    await kvManager.deleteKVStore(TEST_BUNDLE_NAME, function () {
+                        expect(null).assertFail();
                         done();
                     });
                 } catch (e) {
@@ -572,7 +534,7 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerDeleteKVStoreCallbackNotGetTest', 0, async function (done) {
         console.info('KVManagerDeleteKVStoreCallbackNotGetTest');
         try {
-            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err, data) {
+            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
                 if (err == undefined) {
                     console.info('KVManagerDeleteKVStoreCallbackNotGetTest deleteKVStore success');
                     expect(null).assertFail();
@@ -597,8 +559,8 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerGetAllKVStoreIdCallbackSucTest', 0, async function (done) {
         console.info('KVManagerGetAllKVStoreIdCallbackEqual0Test');
         try {
-            await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME, function (err, data) {
-                expect(0 == data.length).assertTrue();
+            kvManager.getAllKVStoreId(TEST_BUNDLE_NAME, function (err, data) {
+                expect(data.length == 0).assertTrue();
                 done();
             });
         } catch (e) {
@@ -617,12 +579,8 @@ describe('kvManagerCallbackTest', function () {
     it('KVManagerGetAllKVStoreIdCallbackInvalidArgsTest', 0, async function (done) {
         console.info('KVManagerGetAllKVStoreIdCallbackInvalidArgsTest');
         try {
-            await kvManager.getAllKVStoreId(function (err) {
-                if (err == undefined) {
-                    expect(null).assertFail();
-                } else {
-                    expect(null).assertFail();
-                }
+            await kvManager.getAllKVStoreId(function (err, storeIds) {
+                expect(null).assertFail();
             });
         } catch (e) {
             console.error('KVManagerGetAllKVStoreIdCallbackInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
@@ -644,13 +602,7 @@ describe('kvManagerCallbackTest', function () {
                 console.info('KVStorePutCallbackTest getKVStore success');
                 kvStore = store;
                 await kvStore.put(STORE_KEY, STORE_VALUE, function (err, data) {
-                    if (err != undefined) {
-                        console.info('KVStorePutCallbackTest put callback fail');
-                        expect(null).assertFail();
-                    } else {
-                        console.info('KVStorePutCallbackTest put callback success');
-                        expect(true).assertTrue();
-                    }
+                    expect(data != undefined && data != null).assertTrue();
                     done();
                 });
             });
