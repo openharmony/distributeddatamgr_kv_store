@@ -902,7 +902,7 @@ int GenericSyncer::InitTimeChangedListener()
     return E_OK;
 }
 
-int GenericSyncer::CalculateSyncDataSize(const std::string &device, uint32_t &size) const
+int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     uint64_t localWaterMark = 0;
     {

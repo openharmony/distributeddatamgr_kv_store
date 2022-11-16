@@ -224,11 +224,11 @@ int SyncerProxy::RemoteQuery(const std::string &device, const RemoteCondition &c
     return syncer_->RemoteQuery(device, condition, timeout, connectionId, result);
 }
 
-int SyncerProxy::CalculateSyncDataSize(const std::string &device, uint32_t &size) const
+int SyncerProxy::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     if (syncer_ == nullptr) {
         return -E_NOT_INIT;
     }
-    return syncer_->CalculateSyncDataSize(device, size);
+    return syncer_->GetSyncDataSize(device, size);
 }
 } // namespace DistributedDB

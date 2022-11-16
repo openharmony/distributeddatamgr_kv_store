@@ -224,7 +224,7 @@ public:
     DB_API virtual DBStatus GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const = 0;
     // calculate full sync sync data size after Serialize;
     // return 1M while sync data size is larger than 1M, otherwise return actualy size
-    DB_API virtual DBStatus CalculateSyncDataSize(const std::string &device, uint32_t &size) const = 0;
+    DB_API virtual size_t GetSyncDataSize(const std::string &device) const = 0;
 };
 } // namespace DistributedDB
 

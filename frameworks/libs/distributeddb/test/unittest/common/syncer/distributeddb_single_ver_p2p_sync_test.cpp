@@ -139,19 +139,18 @@ namespace {
             DistributedDBToolsUnitTest::GetRandomKeyValue(value, valueSize);
             EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
         }
-        uint32_t dataSize = 0;
-        EXPECT_EQ(g_kvDelegatePtr->CalculateSyncDataSize(DEVICE_B, dataSize), OK);
+        size_t dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
         uint32_t expectedDataSize = (valueSize + keySize);
         uint32_t externalSize = 70u;
         uint32_t serialHeadLen = 8u;
         LOGI("expectedDataSize=%u, v=%u", expectedDataSize, externalSize);
         uint32_t maxDataSize = 1024u * 1024u;
         if (itemCount * expectedDataSize >= maxDataSize) {
-            EXPECT_EQ(dataSize, maxDataSize);
+            EXPECT_EQ(static_cast<uint32_t>(dataSize), maxDataSize);
             return;
         }
-        ASSERT_GE(dataSize, itemCount * expectedDataSize);
-        ASSERT_LE(dataSize, serialHeadLen + itemCount * (expectedDataSize + externalSize));
+        ASSERT_GE(static_cast<uint32_t>(dataSize), itemCount * expectedDataSize);
+        ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + itemCount * (expectedDataSize + externalSize));
     }
 }
 
@@ -3149,17 +3148,16 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, ReSetWaterDogTest001, TestSize.Level
 /**
   * @tc.name: CalculateSyncData001
   * @tc.desc: Test sync data whose device never synced before
->>>>>>> 146feb6b (add calculate sync data size feature)
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
+ */
 HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData001, TestSize.Level3)
 {
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    uint32_t dataSize = 0;
+    size_t dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
     uint32_t serialHeadLen = 8u;
-    EXPECT_EQ(g_kvDelegatePtr->CalculateSyncDataSize(DEVICE_B, dataSize), OK);
-    EXPECT_EQ(dataSize, 0u + serialHeadLen);
+    EXPECT_EQ(static_cast<uint32_t>(dataSize), 0u + serialHeadLen);
     uint32_t keySize = 256u;
     uint32_t valuesize = 1024u;
     uint32_t itemCount = 10u;
@@ -3227,7 +3225,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData003, TestSize.Level
 
 /**
   * @tc.name: CalculateSyncData004
-  * @tc.desc: Test invalid device when call CalculateSyncDataSize interface
+  * @tc.desc: Test invalid device when call GetSyncDataSize interface
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
@@ -3235,10 +3233,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData003, TestSize.Level
 HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData004, TestSize.Level3)
 {
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    uint32_t dataSize = 0;
     std::string device;
-    EXPECT_EQ(g_kvDelegatePtr->CalculateSyncDataSize(device, dataSize), INVALID_ARGS);
-    EXPECT_EQ(dataSize, 0u);
+    EXPECT_EQ(g_kvDelegatePtr->GetSyncDataSize(device), 0u);
 }
 
 /**
@@ -3251,7 +3247,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData004, TestSize.Level
 HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level3)
 {
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    uint32_t dataSize = 0;
+    size_t dataSize = 0;
     Key key1 = {'1'};
     Value value1 = {'1'};
     EXPECT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
@@ -3264,13 +3260,13 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level
     });
     std::thread thread2([&dataSize, &key1, &value1]() {
         if (g_kvDelegatePtr != nullptr) {
-            EXPECT_EQ(g_kvDelegatePtr->CalculateSyncDataSize(DEVICE_B, dataSize), OK);
+            dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
         }
         uint32_t expectedDataSize = (key1.size() + value1.size());
         uint32_t externalSize = 70u;
         uint32_t serialHeadLen = 8u;
-        ASSERT_GE(dataSize, expectedDataSize);
-        ASSERT_LE(dataSize, serialHeadLen + expectedDataSize + externalSize);
+        ASSERT_GE(static_cast<uint32_t>(dataSize), expectedDataSize);
+        ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + expectedDataSize + externalSize);
     });
     thread1.join();
     thread2.join();

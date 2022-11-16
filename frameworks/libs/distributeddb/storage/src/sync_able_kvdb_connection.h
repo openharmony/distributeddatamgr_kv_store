@@ -68,7 +68,7 @@ private:
 
     int SetPushDataInterceptor(const PushDataInterceptor &interceptor);
 
-    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
     std::mutex remotePushFinishedListenerLock_;
     NotificationChain::Listener *remotePushFinishedListener_;

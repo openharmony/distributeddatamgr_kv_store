@@ -77,7 +77,7 @@ public:
 
     int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const override;
 
-    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
 protected:
     // Get the stashed 'KvDB_ pointer' without ref.
     template<typename DerivedDBType>

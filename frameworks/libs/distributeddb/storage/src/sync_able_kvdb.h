@@ -85,7 +85,7 @@ public:
 
     void Dump(int fd) override;
 
-    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const;
+    int GetSyncDataSize(const std::string &device, size_t &size) const;
 
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;

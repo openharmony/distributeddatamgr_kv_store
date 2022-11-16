@@ -105,7 +105,7 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) override;
 
-    int CalculateSyncDataSize(const std::string &device, uint32_t &size) const override;
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
 private:
     std::mutex syncerLock_;
