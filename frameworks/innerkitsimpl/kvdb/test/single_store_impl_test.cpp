@@ -40,6 +40,8 @@ public:
             deviceId_ = notification.GetDeviceId();
             bool value = true;
             data_->SetValue(value);
+            ZLOGI("arrived insert:%{public}zu update:%{public}zu delete:%{public}zu", insert_.size(), update_.size(),
+                delete_.size());
         }
         std::vector<Entry> insert_;
         std::vector<Entry> update_;
@@ -54,7 +56,8 @@ public:
     void SetUp();
     void TearDown();
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type);
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt,
+        PolicyType policyType, bool backup);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
@@ -76,24 +79,39 @@ void SingleStoreImplTest::TearDownTestCase(void)
 
 void SingleStoreImplTest::SetUp(void)
 {
-    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION);
+    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
+    if (kvStore_ == nullptr) {
+        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, IMMEDIATE_SYNC_ON_ONLINE ,true);
+    }
     ASSERT_NE(kvStore_, nullptr);
 }
 
 void SingleStoreImplTest::TearDown(void)
 {
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStore" };
+    kvStore_ = nullptr;
+    auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    status = StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 }
 
-std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type)
+std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type,
+    bool encrypt, PolicyType policyType, bool backup)
 {
     Options options;
     options.kvStoreType = type;
     options.securityLevel = S1;
+    options.encrypt = encrypt;
     options.area = EL1;
+    options.backup = backup;
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     SyncPolicy policy;
-    policy.type = PolicyType::IMMEDIATE_SYNC_ON_ONLINE;
-    policy.value.emplace<1>(100);
+    policy.type = policyType;
+    int value = 100;
+    policy.value.emplace<1>(value);
     options.policies.emplace_back(policy);
 
     AppId appId = { "SingleStoreImplTest" };
@@ -604,7 +622,7 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
 {
-    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION);
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
@@ -689,5 +707,146 @@ HWTEST_F(SingleStoreImplTest, UnRegisterSyncCallback, TestSize.Level0)
     auto status = kvStore_->RegisterSyncCallback(callback);
     ASSERT_EQ(status, SUCCESS);
     status = kvStore_->UnRegisterSyncCallback();
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+* @tc.name: disableBackup
+* @tc.desc: Disable backup
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: Wang Kai
+*/
+HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreNoBackup" };
+    std::shared_ptr<SingleKvStore> kvStoreNoBackup_;
+    kvStoreNoBackup_ = CreateKVStore(storeId, SINGLE_VERSION, true, TERM_OF_SYNC_VALIDITY, false);
+    ASSERT_NE(kvStoreNoBackup_, nullptr);
+    auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: PutOverMaxValue
+ * @tc.desc: put key-value data to the kv store and the value size  over the limits
+ * @tc.type: FUNC
+ * @tc.require: I605H3
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, PutOverMaxValue, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string value;
+    int maxsize = 1024 * 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        value += "test";
+    }
+    Value valuePut(value);
+    auto status = kvStore_->Put({ "Put Test" }, valuePut);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+/**
+ * @tc.name: DeleteOverMaxKey
+ * @tc.desc: delete the values of the keys and the key size  over the limits
+ * @tc.type: FUNC
+ * @tc.require: I605H3
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, DeleteOverMaxKey, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    Key key(str);
+    auto status = kvStore_->Put(key, "Put Test");
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    Value value;
+    status = kvStore_->Get(key, value);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+    status = kvStore_->Delete(key);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetEntriesOverMaxKey
+ * @tc.desc: get entries the by prefix and the prefix size  over the limits
+ * @tc.type: FUNC
+ * @tc.require: I605H3
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetEntriesOverMaxPrefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    const Key prefix(str);
+    std::vector<Entry> output;
+    auto status = kvStore_->GetEntries(prefix, output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetResultSetOverMaxPrefix
+ * @tc.desc: get result set the by prefix and the prefix size  over the limits
+ * @tc.type: FUNC
+ * @tc.require: I605H3
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetResultSetOverMaxPrefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    std::string str;
+    int maxsize = 1024;
+    for (int i = 0; i <= maxsize; i++) {
+        str += "key";
+    }
+    const Key prefix(str);
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet(prefix, output);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: RemoveNullDeviceData
+ * @tc.desc: remove local device data and the device is null
+ * @tc.type: FUNC
+ * @tc.require: I605H3
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
+{
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
+    ASSERT_NE(store, nullptr);
+    std::vector<Entry> input;
+    auto cmp = [](const Key &entry, const Key &sentry) {
+        return entry.Data() < sentry.Data();
+    };
+    std::map<Key, Value, decltype(cmp)> dictionary(cmp);
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = std::to_string(i).append("_k");
+        entry.value = std::to_string(i).append("_v");
+        dictionary[entry.key] = entry.value;
+        input.push_back(entry);
+    }
+    auto status = store->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    int count = 0;
+    status = store->GetCount({}, count);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(count, 10);
+    const string device = { "" };
+    status = store->RemoveDeviceData(device);
     ASSERT_EQ(status, SUCCESS);
 }

@@ -120,11 +120,11 @@ HWTEST_F(StoreUtilTest, GetObserverMode, TestSize.Level1)
 {
     StoreUtil storeUtil_;
     uint32_t mode = storeUtil_.GetObserverMode(SubscribeType::SUBSCRIBE_TYPE_LOCAL);
-    ASSERT_EQ(mode, StoreUtil::DBMode::SYNC_MODE_PUSH_ONLY);
+    ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_NATIVE);
 
     mode = storeUtil_.GetObserverMode(SubscribeType::SUBSCRIBE_TYPE_REMOTE);
-    ASSERT_EQ(mode, StoreUtil::DBMode::SYNC_MODE_PULL_ONLY);
+    ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_FOREIGN);
 
     mode = storeUtil_.GetObserverMode(SUBSCRIBE_TYPE_ALL);
-    ASSERT_EQ(mode, StoreUtil::DBMode::SYNC_MODE_PUSH_PULL);
+    ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_FOREIGN | DistributedDB::OBSERVER_CHANGES_NATIVE);
 }

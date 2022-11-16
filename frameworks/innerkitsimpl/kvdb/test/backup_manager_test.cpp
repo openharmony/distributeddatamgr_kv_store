@@ -67,6 +67,7 @@ void BackupManagerTest::TearDown(void)
 {
     AppId appId = { "BackupManagerTest" };
     StoreId storeId = { "SingleKVStore" };
+    kvStore_ = nullptr;
     auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
@@ -83,7 +84,7 @@ std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(std::string stor
     options.area = EL1;
     options.baseDir = "/data/service/el1/public/database/BackupManagerTest";
     SyncPolicy policy;
-    policy.type = PolicyType::IMMEDIATE_SYNC_ON_ONLINE;
+    policy.type = PolicyType::TERM_OF_SYNC_VALIDITY;
     int value = 100;
     policy.value.emplace<1>(value);
     options.policies.emplace_back(policy);
@@ -93,7 +94,15 @@ std::shared_ptr<SingleKvStore> BackupManagerTest::CreateKVStore(std::string stor
     Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
     return StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
 }
-HWTEST_F(BackupManagerTest, BackUp001, TestSize.Level0)
+
+/**
+ * @tc.name: BackUp
+ * @tc.desc: the kvstore back up
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(BackupManagerTest, BackUp, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
@@ -104,13 +113,13 @@ HWTEST_F(BackupManagerTest, BackUp001, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
 }
 /**
- * @tc.name: BackUp002
- * @tc.desc: the kvstore backup is INVALID_ARGUMENT
+ * @tc.name: BackUp
+ * @tc.desc: the kvstore back up and the arguments is invalid
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: Wang Kai
  */
-HWTEST_F(BackupManagerTest, BackUp002, TestSize.Level0)
+HWTEST_F(BackupManagerTest, BackUpInvalidArguments, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     auto baseDir = "";
@@ -129,12 +138,12 @@ HWTEST_F(BackupManagerTest, BackUp002, TestSize.Level0)
 }
 /**
  * @tc.name: BackUp003
- * @tc.desc: the kvstore backup file name is the same
+ * @tc.desc: the kvstore back up the same file
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: Wang Kai
  */
-HWTEST_F(BackupManagerTest, BackUp003, TestSize.Level0)
+HWTEST_F(BackupManagerTest, BackUpSameFile, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
@@ -159,12 +168,25 @@ HWTEST_F(BackupManagerTest, BackUp003, TestSize.Level0)
 HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
 {
     ASSERT_NE(kvStore_, nullptr);
+    auto status = kvStore_->Put({ "Put Test" }, { "Put Value" });
+    ASSERT_EQ(status, SUCCESS);
+    Value value;
+    status = kvStore_->Get({ "Put Test" }, value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(std::string("Put Value"), value.ToString());
+
     auto baseDir = "/data/service/el1/public/database/BackupManagerTest";
     auto baseDir1 = "";
-    auto status = kvStore_->Backup("testbackup", baseDir);
+    status = kvStore_->Backup("testbackup", baseDir);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->Delete("Put Test");
     ASSERT_EQ(status, SUCCESS);
     status = kvStore_->Restore("testbackup", baseDir);
     ASSERT_EQ(status, SUCCESS);
+    value = {};
+    status = kvStore_->Get("Put Test", value);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(std::string ("Put Value"),value.ToString());
     status = kvStore_->Restore("testbackup", baseDir1);
     ASSERT_EQ(status, INVALID_ARGUMENT);
     std::map<std::string, OHOS::DistributedKv::Status> results;
