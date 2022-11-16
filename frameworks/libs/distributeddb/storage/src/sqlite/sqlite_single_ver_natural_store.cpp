@@ -1053,10 +1053,10 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataNormally(const std::string &dev
 
     LOGI("Remove device data:%d", isNeedNotify);
     errCode = handle->RemoveDeviceData(deviceName);
+    ReleaseHandle(handle);
     if (errCode == E_OK && isNeedNotify) {
         NotifyRemovedData(entries);
     }
-    ReleaseHandle(handle);
     return errCode;
 }
 
