@@ -1132,15 +1132,15 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
 
 
 /**
-* @tc.name: DeviceSync003
-* @tc.desc: Test sync enable and the enable is false.
+* @tc.name: DisableCapability
+* @tc.desc: disable capability
 * @tc.type: FUNC
-* @tc.require:AR000EPAM8 AR000EPAMD
-* @tc.author: HongBo
+* @tc.require: I605H3
+* @tc.author: WangKai
 */
-HWTEST_F(SingleKvStoreClientTest, DeviceSync003, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientTest, DisableCapability, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemaSingleKvStorePtr;
+    std::shared_ptr<SingleKvStore> singleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -1149,12 +1149,12 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync003, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id001" };
-    manager.GetSingleKvStore(options, appId, storeId, schemaSingleKvStorePtr);
-    ASSERT_NE(schemaSingleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    auto result = schemaSingleKvStorePtr->GetStoreId();
+    manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    ASSERT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = singleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id001");
 
-    auto testStatus = schemaSingleKvStorePtr->SetCapabilityEnabled(false);
+    auto testStatus = singleKvStore->SetCapabilityEnabled(false);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set success";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
