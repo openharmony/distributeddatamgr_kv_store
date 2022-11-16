@@ -33,6 +33,10 @@ using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
+    class TestSingleVerKvSyncTaskContext : public SingleVerKvSyncTaskContext {
+    public:
+        TestSingleVerKvSyncTaskContext() = default;
+    };
     string g_testDir;
     const string STORE_ID = "kv_stroe_sync_test";
     const int64_t TIME_OFFSET = 5000000;
@@ -2733,7 +2737,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Le
 
 /**
   * @tc.name: DataSync001
-  * @tc.desc: Test Data Sync Class invalid param
+  * @tc.desc: Test Data Sync when Initialize
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
@@ -2741,32 +2745,105 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Le
 HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync001, TestSize.Level1)
 {
     SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
-    if (dataSync == nullptr) {
-        return;
-    }
+    ASSERT_TRUE(dataSync != nullptr);
     std::shared_ptr<Metadata> inMetadata = nullptr;
     std::string deviceId;
     Message message;
-    class TestSingleVerKvSyncTaskContext : public SingleVerKvSyncTaskContext {
-    public:
-        TestSingleVerKvSyncTaskContext() = default;
-    };
-    TestSingleVerKvSyncTaskContext tmpContext;
+    VirtualSingleVerSyncDBInterface tmpInterface;
+    VirtualCommunicator tmpCommunicator(deviceId, g_communicatorAggregator);
     EXPECT_EQ(dataSync->Initialize(nullptr, nullptr, inMetadata, deviceId), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->Initialize(&tmpInterface, nullptr, inMetadata, deviceId), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->Initialize(&tmpInterface, &tmpCommunicator, inMetadata, deviceId), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync002
+  * @tc.desc: Test active sync with invalid param in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync002, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
     EXPECT_EQ(dataSync->TryContinueSync(nullptr, &message), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->TryContinueSync(nullptr, nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->PushStart(nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->PushPullStart(nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->PullRequestStart(nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->PullResponseStart(nullptr), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync003
+  * @tc.desc: Test receive invalid request data packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync003, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
     uint64_t tmpMark = 0;
+    Message message;
     EXPECT_EQ(dataSync->DataRequestRecv(nullptr, nullptr, tmpMark), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->DataRequestRecv(nullptr, &message, tmpMark), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync004
+  * @tc.desc: Test receive invalid ack packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync004, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
+    TestSingleVerKvSyncTaskContext tmpContext;
     EXPECT_EQ(dataSync->AckPacketIdCheck(nullptr), false);
     EXPECT_EQ(dataSync->AckPacketIdCheck(&message), false);
+    EXPECT_EQ(dataSync->AckRecv(&tmpContext, nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->AckRecv(nullptr, nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->AckRecv(nullptr, &message), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync005
+  * @tc.desc: Test receive invalid notify packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync005, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
     dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync006
+  * @tc.desc: Test control start with invalid param in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync006, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    TestSingleVerKvSyncTaskContext tmpContext;
     EXPECT_EQ(dataSync->ControlCmdStart(nullptr), -E_INVALID_ARGS);
     EXPECT_EQ(dataSync->ControlCmdStart(&tmpContext), -E_INVALID_ARGS);
     std::shared_ptr<SubscribeManager> subManager = std::make_shared<SubscribeManager>();
@@ -2779,13 +2856,43 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync001, TestSize.Level1)
     tmpContext.SetQuery(innerQuery);
     tmpContext.SetMode(SyncModeType::SUBSCRIBE_QUERY);
     EXPECT_EQ(dataSync->ControlCmdStart(&tmpContext), -E_NOT_SUPPORT);
+    delete dataSync;
+    subManager = nullptr;
+}
+
+/**
+  * @tc.name: DataSync007
+  * @tc.desc: Test receive invalid control packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync007, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
     ControlRequestPacket packet;
+    TestSingleVerKvSyncTaskContext tmpContext;
     EXPECT_EQ(dataSync->ControlCmdRequestRecv(nullptr, &message), -E_INVALID_ARGS);
     message.SetCopiedObject(packet);
     EXPECT_EQ(dataSync->ControlCmdRequestRecv(nullptr, &message), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync008
+  * @tc.desc: Test pull null msg in dataQueue in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync008, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
     dataSync->PutDataMsg(nullptr);
     delete dataSync;
-    subManager = nullptr;
 }
 
 /**
