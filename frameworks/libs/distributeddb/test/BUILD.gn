@@ -721,6 +721,10 @@ distributeddb_unittest("DistributedDBInterfacesRelationalRoutinesTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_routines_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
+  sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -773,6 +777,7 @@ group("unittest") {
     ":DistributedDBRelationalRemoteQueryTest",
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
+    ":DistributedDBRelationalSyncableStorageTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",
     ":DistributedDBSingleVerDLPTest",
@@ -819,10 +824,10 @@ group("distributeddatamgr_fuzztest") {
     "fuzztest/parseckeck_fuzzer:fuzztest",
     "fuzztest/query_fuzzer:fuzztest",
     "fuzztest/rekey_fuzzer:fuzztest",
-    "fuzztest/schemadelegate_fuzzer:fuzztest",
-    "fuzztest/sync_fuzzer:fuzztest",
     "fuzztest/relationalstoredelegate_fuzzer:fuzztest",
     "fuzztest/relationalstoremanager_fuzzer:fuzztest",
+    "fuzztest/schemadelegate_fuzzer:fuzztest",
+    "fuzztest/sync_fuzzer:fuzztest",
   ]
 }
 ###############################################################################

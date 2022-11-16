@@ -114,7 +114,7 @@ void SQLiteSingleRelationalStorageEngine::SetSchema(const RelationalSchemaObject
     schema_ = schema;
 }
 
-const RelationalSchemaObject &SQLiteSingleRelationalStorageEngine::GetSchemaRef() const
+RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetSchema() const
 {
     std::lock_guard lock(schemaMutex_);
     return schema_;
