@@ -902,7 +902,8 @@ void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
             currentSysTime + static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS);
     }
     if ((currentSysTime + orgOffset) <= static_cast<TimeOffset>(maxItemTime)) {
-        orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
+        orgOffset = static_cast<TimeOffset>(maxItemTime) - currentSysTime +
+            static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS); // 1ms
     }
     metadata->SaveLocalTimeOffset(orgOffset);
     storage->DecRefCount();
