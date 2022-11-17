@@ -40,8 +40,6 @@ public:
             deviceId_ = notification.GetDeviceId();
             bool value = true;
             data_->SetValue(value);
-            ZLOGI("arrived insert:%{public}zu update:%{public}zu delete:%{public}zu", insert_.size(), update_.size(),
-                delete_.size());
         }
         std::vector<Entry> insert_;
         std::vector<Entry> update_;
