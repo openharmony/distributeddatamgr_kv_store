@@ -138,14 +138,14 @@ Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject> &
     } else if (auto *val = std::get_if<int64_t>(&it->second.value)) {
         ZLOGD("Value bucket type int");
         int64_t data = *val;
-        uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
+        uint64_t data64 = *reinterpret_cast<uint64_t*>(&data);
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::INTEGER);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(int64_t) / sizeof(uint8_t));
     } else if (auto *val = std::get_if<double>(&it->second.value)) {
         ZLOGD("Value bucket type double");
         double data = *val;
-        uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
+        uint64_t data64 = *reinterpret_cast<uint64_t*>(&data);
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::DOUBLE);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(double) / sizeof(uint8_t));
