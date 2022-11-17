@@ -282,7 +282,7 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
         }
         delete target;
         target = nullptr;
-        RefObject::DecObjRef(tmpInfOperation);
+        RefObject::DecObjRef(tmpOperation);
     }
     if (GetTaskExecStatus() == SyncTaskContext::RUNNING) {
         // clear syncing task.
