@@ -132,7 +132,7 @@ Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject> &
         return Status::ERROR;
     }
     std::vector<uint8_t> uData;
-    if (auto *val = std::get_if<std::vector<uint8_t>>(&it->second.value) {
+    if (auto *val = std::get_if<std::vector<uint8_t>>(&it->second.value)) {
         ZLOGD("Value bucket type blob");
         std::vector<uint8_t> data = *val;
         uData.push_back(KvUtils::BYTE_ARRAY);
