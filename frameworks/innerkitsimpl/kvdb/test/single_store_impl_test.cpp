@@ -719,9 +719,9 @@ HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
 {
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreNoBackup" };
-    std::shared_ptr<SingleKvStore> kvStoreNoBackup_;
-    kvStoreNoBackup_ = CreateKVStore(storeId, SINGLE_VERSION, true, TERM_OF_SYNC_VALIDITY, false);
-    ASSERT_NE(kvStoreNoBackup_, nullptr);
+    std::shared_ptr<SingleKvStore> kvStoreNoBackup;
+    kvStoreNoBackup = CreateKVStore(storeId, SINGLE_VERSION, true, TERM_OF_SYNC_VALIDITY, false);
+    ASSERT_NE(kvStoreNoBackup, nullptr);
     auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
