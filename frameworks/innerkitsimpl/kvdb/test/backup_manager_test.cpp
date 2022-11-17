@@ -168,7 +168,7 @@ HWTEST_F(BackupManagerTest, ReStore, TestSize.Level0)
     value = {};
     status = kvStore_->Get("Put Test", value);
     ASSERT_EQ(status, SUCCESS);
-    ASSERT_EQ(std::string ("Put Value"),value.ToString());
+    ASSERT_EQ(std::string ("Put Value"), value.ToString());
     status = kvStore_->Restore("testbackup", baseDir1);
     ASSERT_EQ(status, INVALID_ARGUMENT);
 }
