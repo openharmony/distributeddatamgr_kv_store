@@ -515,7 +515,6 @@ int SQLiteSingleVerStorageExecutor::GetSyncDataItems(std::vector<DataItem> &data
 {
     int errCode;
     size_t dataTotalSize = 0;
-
     do {
         DataItem dataItem;
         errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
@@ -1886,7 +1885,6 @@ size_t SQLiteSingleVerStorageExecutor::GetDataItemSerialSize(const DataItem &ite
     size_t devLength = std::max(maxOrigDevLength, item.origDev.size());
     size_t dataSize = (Parcel::GetUInt64Len() * 3 + Parcel::GetUInt32Len() + Parcel::GetVectorCharLen(item.key) +
         Parcel::GetVectorCharLen(item.value) + devLength + appendLen);
-
     return dataSize;
 }
 

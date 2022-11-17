@@ -387,4 +387,9 @@ void SyncAbleKvDB::Dump(int fd)
         syncer_.Dump(fd);
     }
 }
+
+int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    return syncer_.GetSyncDataSize(device, size);
+}
 }
