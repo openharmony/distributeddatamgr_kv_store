@@ -54,8 +54,7 @@ public:
     void SetUp();
     void TearDown();
 
-    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt,
-        PolicyType policyType, bool backup);
+    std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     std::shared_ptr<SingleKvStore> kvStore_;
 };
 
@@ -77,9 +76,9 @@ void SingleStoreImplTest::TearDownTestCase(void)
 
 void SingleStoreImplTest::SetUp(void)
 {
-    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
+    kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, true);
     if (kvStore_ == nullptr) {
-        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, IMMEDIATE_SYNC_ON_ONLINE ,true);
+        kvStore_ = CreateKVStore("SingleKVStore", SINGLE_VERSION, false, true);
     }
     ASSERT_NE(kvStore_, nullptr);
 }
@@ -620,7 +619,7 @@ HWTEST_F(SingleStoreImplTest, GetCount, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
 {
-    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
@@ -720,7 +719,7 @@ HWTEST_F(SingleStoreImplTest, disableBackup, TestSize.Level0)
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreNoBackup" };
     std::shared_ptr<SingleKvStore> kvStoreNoBackup;
-    kvStoreNoBackup = CreateKVStore(storeId, SINGLE_VERSION, true, TERM_OF_SYNC_VALIDITY, false);
+    kvStoreNoBackup = CreateKVStore(storeId, SINGLE_VERSION, true, false);
     ASSERT_NE(kvStoreNoBackup, nullptr);
     auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
@@ -824,7 +823,7 @@ HWTEST_F(SingleStoreImplTest, GetResultSetOverMaxPrefix, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
 {
-    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, IMMEDIATE_SYNC_ON_ONLINE, true);
+    auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) {
