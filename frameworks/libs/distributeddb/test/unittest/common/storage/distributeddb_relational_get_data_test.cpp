@@ -1533,4 +1533,35 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1
     ExpectCount(db, getLogSql, 3u);  // 3 means all deleted data.
     sqlite3_close(db);
 }
+
+/**
+  * @tc.name: SetSchema1
+  * @tc.desc: Test invalid parameters of query_object.cpp
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
+{
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
+    auto store = GetRelationalStore();
+    ASSERT_NE(store, nullptr);
+    Query query = Query::Select().OrderBy("errDevice", false);
+    QueryObject queryObj1(query);
+    int errorNo = E_OK;
+    errorNo = queryObj1.SetSchema(store->GetSchemaInfo());
+    EXPECT_EQ(errorNo, -E_INVALID_ARGS);
+    EXPECT_FALSE(queryObj1.IsQueryForRelationalDB());
+    errorNo = queryObj1.Init();
+    EXPECT_EQ(errorNo, -E_NOT_SUPPORT);
+    QueryObject queryObj2(query);
+    queryObj2.SetTableName(g_tableName);
+    errorNo = queryObj2.SetSchema(store->GetSchemaInfo());
+    EXPECT_EQ(errorNo, E_OK);
+    errorNo = queryObj2.Init();
+    EXPECT_EQ(errorNo, -E_INVALID_QUERY_FIELD);
+    RefObject::DecObjRef(g_store);
+}
 #endif
