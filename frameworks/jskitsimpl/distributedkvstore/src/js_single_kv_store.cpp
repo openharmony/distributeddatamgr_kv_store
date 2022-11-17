@@ -1268,7 +1268,7 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
-        ZLOGD("singleKVStore finalize.");
+        ZLOGI("singleKVStore finalize.");
         auto* kvStore = reinterpret_cast<JsSingleKVStore*>(data);
         ASSERT_VOID(kvStore != nullptr, "finalize null!");
         delete kvStore;
