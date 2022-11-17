@@ -25,7 +25,7 @@ namespace OHOS {
 namespace DistributedKv {
 // note: Blob derives from Parcelable, so hiding inner a interface using blob is not possible unless Parcelable
 // declared its interface as visible.
-class Blob{
+class Blob {
 public:
     API_EXPORT Blob();
 
