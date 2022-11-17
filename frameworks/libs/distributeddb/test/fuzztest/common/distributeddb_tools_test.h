@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "db_types.h"
+#include "store_types.h"
 #include "kv_store_changed_data.h"
 #include "kv_store_delegate_impl.h"
 #include "kv_store_delegate_manager.h"
@@ -33,7 +34,11 @@
 #include "message.h"
 #include "query.h"
 
+#include "sqlite_utils.h"
+
 namespace DistributedDBTest {
+using namespace DistributedDB;
+
 class DistributedDBToolsTest final {
 public:
     DistributedDBToolsTest() {}
@@ -44,6 +49,10 @@ public:
     static int RemoveTestDbFiles(const std::string &dir);
     static int GetCurrentDir(std::string& dir);
     static void GetRandomKeyValue(std::vector<uint8_t> &value, uint32_t defaultSize = 0);
+    static DBStatus SyncTestWithQuery(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices,
+        SyncMode mode, std::map<std::string, DBStatus>& statuses, const Query &query);
+    static DBStatus SyncTest(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices, SyncMode mode,
+            std::map<std::string, DBStatus>& statuses);
 };
 
 class KvStoreObserverTest : public DistributedDB::KvStoreObserver {
@@ -60,6 +69,13 @@ private:
     std::list<DistributedDB::Entry> inserted_;
     std::list<DistributedDB::Entry> updated_;
     std::list<DistributedDB::Entry> deleted_;
+};
+
+class RdbTestUtils {
+public:
+    static sqlite3 *CreateDataBase(const std::string &dbUri);
+    static int ExecSql(sqlite3 *db, const std::string &sql);
+    static int CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device);
 };
 } // namespace DistributedDBTest
 #endif // DISTRIBUTEDDB_TOOLS_TEST_H

@@ -16,7 +16,7 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 
 ##############################fuzztest##########################################
-ohos_fuzztest("NbDelegateFuzzTest") {
+ohos_fuzztest("RelationalstoredelegateFuzzTest") {
   module_out_path = "kv_store/distributeddb"
 
   include_dirs = [
@@ -25,6 +25,7 @@ ohos_fuzztest("NbDelegateFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include/distributeddb",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
@@ -54,14 +55,18 @@ ohos_fuzztest("NbDelegateFuzzTest") {
     "-fno-omit-frame-pointer",
   ]
 
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/nbdelegate_fuzzer"
+  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/relationalstoredelegate_fuzzer"
 
   sources = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/platform_specific.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
-    "nbdelegate_fuzzer.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/fuzzer_data.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/relationalstoredelegate_fuzzer/relationalstoredelegate_fuzzer.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator_aggregator.cpp",
   ]
 
   defines = [
@@ -78,12 +83,14 @@ ohos_fuzztest("NbDelegateFuzzTest") {
     "OMIT_FLATBUFFER",
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
+    "SQLITE_EXPORT_SYMBOLS",
   ]
 
   deps = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
+    "//third_party/sqlite:sqlite",
   ]
 
   external_deps = [
@@ -99,6 +106,6 @@ group("fuzztest") {
   deps = []
   deps += [
     # deps file
-    ":NbDelegateFuzzTest",
+    ":RelationalstoredelegateFuzzTest",
   ]
 }

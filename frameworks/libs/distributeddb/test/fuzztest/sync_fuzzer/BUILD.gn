@@ -16,7 +16,7 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 
 ##############################fuzztest##########################################
-ohos_fuzztest("NbDelegateFuzzTest") {
+ohos_fuzztest("SyncFuzzTest") {
   module_out_path = "kv_store/distributeddb"
 
   include_dirs = [
@@ -54,14 +54,19 @@ ohos_fuzztest("NbDelegateFuzzTest") {
     "-fno-omit-frame-pointer",
   ]
 
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/nbdelegate_fuzzer"
+  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/sync_fuzzer"
 
   sources = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/platform_specific.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
-    "nbdelegate_fuzzer.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/generic_virtual_device.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/kv_virtual_device.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_communicator_aggregator.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/virtual_single_ver_sync_db_Interface.cpp",
+    "sync_fuzzer.cpp",
   ]
 
   defines = [
@@ -99,6 +104,6 @@ group("fuzztest") {
   deps = []
   deps += [
     # deps file
-    ":NbDelegateFuzzTest",
+    ":SyncFuzzTest",
   ]
 }

@@ -130,6 +130,51 @@ void DistributedDBToolsTest::GetRandomKeyValue(std::vector<uint8_t> &value, uint
     RAND_bytes(value.data(), randSize);
 }
 
+DBStatus DistributedDBToolsTest::SyncTestWithQuery(KvStoreNbDelegate* delegate,
+    const std::vector<std::string>& devices, SyncMode mode,
+    std::map<std::string, DBStatus>& statuses, const Query &query)
+{
+    std::mutex syncLock;
+    std::condition_variable syncCondVar;
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses, &syncLock, &syncCondVar](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(syncLock);
+            syncCondVar.notify_one();
+        }, query, false);
+    std::unique_lock<std::mutex> lock(syncLock);
+    syncCondVar.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            return !statuses.empty();
+        });
+    return callStatus;
+}
+
+DBStatus DistributedDBToolsTest::SyncTest(KvStoreNbDelegate* delegate, const std::vector<std::string>& devices,
+    SyncMode mode, std::map<std::string, DBStatus>& statuses)
+{
+    std::mutex syncLock;
+    std::condition_variable syncCondVar;
+    statuses.clear();
+    DBStatus callStatus = delegate->Sync(devices, mode,
+        [&statuses,  &syncLock, &syncCondVar](const std::map<std::string, DBStatus>& statusMap) {
+            statuses = statusMap;
+            std::unique_lock<std::mutex> innerlock(syncLock);
+            syncCondVar.notify_one();
+        }, false);
+    std::unique_lock<std::mutex> lock(syncLock);
+    syncCondVar.wait(lock, [callStatus, &statuses]() {
+            if (callStatus != OK) {
+                return true;
+            }
+            return !statuses.empty();
+        });
+    return callStatus;   
+}
+
 KvStoreObserverTest::KvStoreObserverTest() : callCount_(0), isCleared_(false)
 {}
 
@@ -142,5 +187,47 @@ void KvStoreObserverTest::OnChange(const KvStoreChangedData& data)
     isCleared_ = data.IsCleared();
     LOGD("Onchangedata :%zu -- %zu -- %zu -- %d", inserted_.size(), updated_.size(), deleted_.size(), isCleared_);
     LOGD("Onchange() called success!");
+}
+
+sqlite3 *RdbTestUtils::CreateDataBase(const std::string &dbUri)
+{
+    sqlite3 *db = nullptr;
+    if (int r = sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+        if (db != nullptr) {
+            (void)sqlite3_close_v2(db);
+            db = nullptr;
+        }
+    }
+    return db;
+}
+
+int RdbTestUtils::ExecSql(sqlite3 *db, const std::string &sql)
+{
+    if (db == nullptr || sql.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    char *errMsg = nullptr;
+    int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg);
+    if (errCode != SQLITE_OK && errMsg != nullptr) {
+        LOGE("Execute sql failed. %d err: %s", errCode, errMsg);
+    }
+    sqlite3_free(errMsg);
+    return errCode;
+}
+
+int RdbTestUtils::CreateDeviceTable(sqlite3 *db, const std::string &table, const std::string &device)
+{
+    std::string deviceTable = DBCommon::GetDistributedTableName(device, table);
+    TableInfo baseTbl;
+    if (SQLiteUtils::AnalysisSchema(db, table, baseTbl) != E_OK) {
+        return -1;
+    }
+    if (SQLiteUtils::CreateSameStuTable(db, baseTbl, deviceTable) != E_OK) {
+        return -1;
+    }
+    if (SQLiteUtils::CloneIndexes(db, table, deviceTable) != E_OK) {
+        return -1;
+    }
+    return 0;
 }
 }
