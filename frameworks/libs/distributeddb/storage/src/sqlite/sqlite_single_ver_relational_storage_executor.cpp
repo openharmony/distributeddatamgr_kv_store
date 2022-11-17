@@ -766,7 +766,7 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncLog(sqlite3_stmt *statemen
 int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncDataItem(const DataItem &dataItem, sqlite3_stmt *&stmt)
 {
     if (stmt == nullptr) {
-        std::string sql = "DELETE FROM " + table_.GetTableName() + " WHERE rowid IN ("
+        std::string sql = "DELETE FROM '" + table_.GetTableName() + "' WHERE rowid IN ("
             "SELECT data_key FROM " + DBConstant::RELATIONAL_PREFIX + baseTblName_ + "_log ";
         if (mode_ == DistributedTableMode::COLLABORATION) {
             sql += "WHERE hash_key=?);";
