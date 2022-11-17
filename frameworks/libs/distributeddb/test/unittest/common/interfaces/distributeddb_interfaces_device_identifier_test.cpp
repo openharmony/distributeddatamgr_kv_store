@@ -22,6 +22,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "kv_store_nb_delegate_impl.h"
 #include "platform_specific.h"
+#include "process_system_api_adapter_impl.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_natural_store_connection.h"
 #include "storage_engine_manager.h"
@@ -35,6 +36,7 @@ namespace {
     string g_testDir;
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
+    KvDBProperties g_property;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
     SQLiteSingleVerNaturalStore *g_store = nullptr;
@@ -67,6 +69,9 @@ void DistributedDBDeviceIdentifierTest::SetUpTestCase(void)
     } else {
         closedir(dirTmp);
     }
+    g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    g_property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
+    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
 }
 
 void DistributedDBDeviceIdentifierTest::TearDownTestCase(void)
@@ -74,6 +79,7 @@ void DistributedDBDeviceIdentifierTest::TearDownTestCase(void)
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + STORE_ID + "/" + DBConstant::SINGLE_SUB_DIR) != 0) {
         LOGE("rm test db files error!");
     }
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
     std::this_thread::sleep_for(std::chrono::milliseconds(TIME_LAG));
 }
 
@@ -85,14 +91,9 @@ void DistributedDBDeviceIdentifierTest::SetUp(void)
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
 
-    KvDBProperties property;
-    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
-    property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
-
     g_store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_store, nullptr);
-    ASSERT_EQ(g_store->Open(property), E_OK);
+    ASSERT_EQ(g_store->Open(g_property), E_OK);
 
     int erroCode = E_OK;
     g_connection = static_cast<SQLiteSingleVerNaturalStoreConnection *>(g_store->GetDBConnection(erroCode));
@@ -350,7 +351,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest001, TestSize.Level1)
     EXPECT_FALSE(errStore->IsCacheDBMode());
     EXPECT_FALSE(errStore->IsExtendedCacheDBMode());
 
-    errStore->DecObjRef(errStore);
+    errStore->KillAndDecObjRef(errStore);
 }
 
 /**
@@ -366,7 +367,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest002, TestSize.Level1)
      * @tc.steps: step1. Initialize an empty db
      * @tc.expected: step1. Expect return not nullptr
      */
-    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
     ASSERT_NE(errStore, nullptr);
 
     /**
@@ -387,8 +388,6 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest002, TestSize.Level1)
      * @tc.expected: step4. Expect return -E_NOT_SUPPORT
      */
     EXPECT_EQ(errStore->TransObserverTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
-
-    errStore->DecObjRef(errStore);
 }
 
 /**
@@ -404,7 +403,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest003, TestSize.Level1)
      * @tc.steps: step1. Initialize an empty db
      * @tc.expected: step1. Expect return not nullptr
      */
-    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
     ASSERT_NE(errStore, nullptr);
 
     /**
@@ -425,8 +424,6 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest003, TestSize.Level1)
      * @tc.expected: step4. Expect return -E_INVALID_DB
      */
     EXPECT_EQ(errStore->Rekey(passwd), -E_INVALID_DB);
-
-    errStore->DecObjRef(errStore);
 }
 
 /**
@@ -442,7 +439,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
      * @tc.steps: step1. Initialize an empty db
      * @tc.expected: step1. Expect return not nullptr
      */
-    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
     ASSERT_NE(errStore, nullptr);
 
     /**
@@ -480,8 +477,6 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
      */
     std::string deviceName;
     EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false), -E_INVALID_ARGS);
-
-    errStore->DecObjRef(errStore);
 }
 
 /**
@@ -493,7 +488,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest005, TestSize.Level1)
 {
-    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
     ASSERT_NE(errStore, nullptr);
     ContinueToken token = nullptr;
     std::vector<DataItem> dataItems;
@@ -502,7 +497,6 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest005, TestSize.Level1)
     info.blockSize = 0;
     EXPECT_EQ(errStore->GetSyncDataNext(dataItems, token, info), -E_INVALID_ARGS);
     errStore->ReleaseContinueToken(token);
-    errStore->DecObjRef(errStore);
 }
 
 /**
@@ -514,13 +508,9 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest005, TestSize.Level1)
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level1)
 {
-    KvDBProperties property;
-    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
-    property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     int errCode = E_OK;
     SQLiteSingleVerStorageEngine *storageEngine =
-        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
 }
@@ -558,10 +548,127 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest003, TestSize.Level
     EXPECT_EQ(g_store->GetCacheRecordVersion(), curVersion + 2);
 
     curVersion = 0;
-    SQLiteSingleVerNaturalStore *store2 = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    std::unique_ptr<SQLiteSingleVerNaturalStore> store2 = std::make_unique<SQLiteSingleVerNaturalStore>();
     ASSERT_NE(store2, nullptr);
     EXPECT_EQ(store2->GetCacheRecordVersion(), curVersion);
     store2->IncreaseCacheRecordVersion();
     EXPECT_EQ(store2->GetCacheRecordVersion(), curVersion);
-    store2->DecObjRef(store2);
+}
+
+/**
+  * @tc.name: StorageEngineTest004
+  * @tc.desc: Modify parameter initialization StorageEngine
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get storageEngine
+     * @tc.expected: step1. Expect return E_OK
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+
+    /**
+     * @tc.steps: step2. Set the wrong min write num
+     * @tc.expected: step2. Expect -E_INVALID_ARGS
+     */
+    StorageEngineAttr poolSize = {17, 1, 1, 1};  // 17 means the maximum value is exceeded, 1 is the normal value
+    OpenDbProperties option = storageEngine->GetOpenOption();
+    EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Set the correct min write num
+     * @tc.expected: step3. Expect E_OK
+     */
+    poolSize.minWriteNum = 1;
+    EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
+
+    /**
+     * @tc.steps: step4. Change the Engine State
+     * @tc.expected: step4. Expect E_OK
+     */
+    EngineState engineState = {CACHEDB};
+    storageEngine->SetEngineState(engineState);
+    EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
+
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: StorageEngineTest005
+  * @tc.desc: Set adapter to check engine
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest005, TestSize.Level1)
+{
+    std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    EXPECT_TRUE(adapter != nullptr);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_NE(storageEngine, nullptr);
+    EXPECT_EQ(storageEngine->CheckEngineOption(g_property), E_OK);
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+}
+
+/**
+  * @tc.name: StorageEngineTest006
+  * @tc.desc: Check the engine Option after setting the schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. First parse the schema, then set the KvDBProperties
+     * @tc.expected: step1. Expect return -E_SCHEMA_MISMATCH
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_NE(storageEngine, nullptr);
+    KvDBProperties prop;
+    prop.SetStringProp(KvDBProperties::DATA_DIR, g_property.GetStringProp(KvDBProperties::DATA_DIR, ""));
+    prop.SetStringProp(KvDBProperties::STORE_ID, g_property.GetStringProp(KvDBProperties::STORE_ID, ""));
+    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, g_property.GetIntProp(KvDBProperties::DATABASE_TYPE, 0));
+    string SCHEMA_STRING =
+        "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"STRICT\","
+        "\"SCHEMA_DEFINE\":{"
+        "\"field_name1\":\"BOOL\"},"
+        "\"SCHEMA_INDEXES\":[\"$.field_name1\"]}";
+    SchemaObject schema;
+    schema.ParseFromSchemaString(SCHEMA_STRING);
+    prop.SetSchema(schema);
+    EXPECT_EQ(storageEngine->CheckEngineOption(prop), -E_SCHEMA_MISMATCH);
+
+    /**
+     * @tc.steps: step2. Set the error Schema for the option
+     * @tc.expected: step2. Expect return -E_SCHEMA_MISMATCH
+     */
+    OpenDbProperties option = storageEngine->GetOpenOption();
+    option.schema = "errorSchema";
+    StorageEngineAttr poolSize = {1, 1, 1, 1};  // 1 is the valid size
+    EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
+    EXPECT_EQ(storageEngine->CheckEngineOption(prop), -E_SCHEMA_MISMATCH);
+
+    /**
+     * @tc.steps: step3. Set the correct Schema for the option
+     * @tc.expected: step3. Expect return E_OK
+     */
+    option.schema = SCHEMA_STRING;
+    EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
+    EXPECT_EQ(storageEngine->CheckEngineOption(prop), E_OK);
+
+    storageEngine->Release();
 }
