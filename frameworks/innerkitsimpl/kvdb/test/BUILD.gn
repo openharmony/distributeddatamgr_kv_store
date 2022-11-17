@@ -160,6 +160,13 @@ ohos_unittest("SingleStoreImplGetTopTest") {
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
+
+    deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
 }
 
 ###############################################################################
