@@ -1342,7 +1342,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify001, TestSize.Leve
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result, true);
     EXPECT_EQ(status, OK);
     EXPECT_EQ(result.size(), devices.size());
-    EXPECT_EQ(result[DEVICE_B], TIME_OUT);
+    EXPECT_TRUE(result[DEVICE_B] == TIME_OUT || result[DEVICE_B] == OK);
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
     Query query = Query::Select();
     g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, query, [&virtualRes](std::map<std::string, int> resMap) {
