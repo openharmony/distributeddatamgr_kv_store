@@ -96,7 +96,7 @@ void SingleStoreImplTest::TearDown(void)
 }
 
 std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string storeIdTest, KvStoreType type,
-    bool encrypt, PolicyType policyType, bool backup)
+    bool encrypt, bool backup)
 {
     Options options;
     options.kvStoreType = type;
@@ -105,11 +105,6 @@ std::shared_ptr<SingleKvStore> SingleStoreImplTest::CreateKVStore(std::string st
     options.area = EL1;
     options.backup = backup;
     options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    SyncPolicy policy;
-    policy.type = policyType;
-    int value = 100;
-    policy.value.emplace<1>(value);
-    options.policies.emplace_back(policy);
 
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { storeIdTest };
