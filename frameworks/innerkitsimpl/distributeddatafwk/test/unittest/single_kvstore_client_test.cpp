@@ -420,7 +420,7 @@ HWTEST_F(SingleKvStoreClientTest, SyncData001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemasingleKvStore;
+    std::shared_ptr<SingleKvStore> singleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -430,17 +430,17 @@ HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
     options.schema = VALID_SCHEMA_STRICT_DEFINE;
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id" };
-    (void)manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
-    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
-    auto result = schemasingleKvStore->GetStoreId();
+    (void)manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    ASSERT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = singleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id");
 
     Key testKey = {"TestSchemaStoreC001_key"};
     Value testValue = {"{\"age\":10}"};
-    auto testStatus = schemasingleKvStore->Put(testKey, testValue);
+    auto testStatus = singleKvStore->Put(testKey, testValue);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "putting data failed";
     Value resultValue;
-    auto getRet = schemasingleKvStore->Get(testKey, resultValue);
+    auto getRet = singleKvStore->Get(testKey, resultValue);
     EXPECT_EQ(getRet, Status::SUCCESS) << "get value failed.";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
@@ -1081,7 +1081,7 @@ HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemasingleKvStore;
+    std::shared_ptr<SingleKvStore> singleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -1090,12 +1090,12 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id001" };
-    manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
-    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
-    auto result = schemasingleKvStore->GetStoreId();
+    manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    ASSERT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = singleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id001");
 
-    auto testStatus = schemasingleKvStore->SetCapabilityEnabled(true);
+    auto testStatus = singleKvStore->SetCapabilityEnabled(true);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set fail";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
@@ -1109,7 +1109,7 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemasingleKvStore;
+    std::shared_ptr<SingleKvStore> singleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -1118,14 +1118,14 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id002" };
-    manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
-    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
-    auto result = schemasingleKvStore->GetStoreId();
+    manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    ASSERT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = singleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id002");
 
     std::vector<std::string> local = {"A", "B"};
     std::vector<std::string> remote = {"C", "D"};
-    auto testStatus = schemasingleKvStore->SetCapabilityRange(local, remote);
+    auto testStatus = singleKvStore->SetCapabilityRange(local, remote);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set range fail";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
