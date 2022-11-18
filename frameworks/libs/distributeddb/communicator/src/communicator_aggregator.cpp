@@ -16,12 +16,11 @@
 #include "communicator_aggregator.h"
 
 #include <sstream>
-
-#include "hash.h"
 #include "communicator.h"
 #include "communicator_linker.h"
 #include "db_common.h"
 #include "endian_convert.h"
+#include "hash.h"
 #include "log_print.h"
 #include "protocol_proto.h"
 
@@ -280,7 +279,7 @@ void DoOnSendEndByTaskIfNeed(const OnSendEnd &onEnd, int result)
 }
 }
 
-int CommunicatorAggregator::CreateSendTask(const std::string &dstTarget, SerialBuffer *inBuff,
+int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, SerialBuffer *inBuff,
     FrameType inType, const TaskConfig &inConfig, const OnSendEnd &onEnd)
 {
     if (inBuff == nullptr) {
@@ -318,7 +317,7 @@ int CommunicatorAggregator::CreateSendTask(const std::string &dstTarget, SerialB
     std::lock_guard<std::mutex> wakingLockGuard(wakingMutex_);
     wakingSignal_ = true;
     wakingCv_.notify_one();
-    LOGI("[CommAggr][Create] Exit ok, thread=%s, frameId=%u", GetThreadId().c_str(), info.frameId); // Delete In Future
+    LOGI("[CommAggr][Create] Exit ok, thread=%s, frameId=%u", GetThreadId().c_str(), info.frameId);
     return E_OK;
 }
 
@@ -343,9 +342,9 @@ void CommunicatorAggregator::SendDataRoutine()
     while (!shutdown_) {
         if (scheduler_.GetNoDelayTaskCount() == 0) {
             std::unique_lock<std::mutex> wakingUniqueLock(wakingMutex_);
-            LOGI("[CommAggr][Routine] Send done and sleep."); // Delete In Future
+            LOGI("[CommAggr][Routine] Send done and sleep.");
             wakingCv_.wait(wakingUniqueLock, [this] { return this->wakingSignal_; });
-            LOGI("[CommAggr][Routine] Send continue."); // Delete In Future
+            LOGI("[CommAggr][Routine] Send continue.");
             wakingSignal_ = false;
             continue;
         }
@@ -366,7 +365,7 @@ void CommunicatorAggregator::SendDataRoutine()
         }
         // <addr, <extendHeadSize, totalLen>>
         std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> eachPacket;
-        if (piecePackets.size() == 0) {
+        if (piecePackets.empty()) {
             // Case that no need to split a frame, just use original buffer as a packet
             std::pair<const uint8_t *, uint32_t> tmpEntry = taskToSend.buffer->GetReadOnlyBytesForEntireBuffer();
             std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> entry;
@@ -392,8 +391,8 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask,
     bool taskNeedFinalize = true;
     int errCode = E_OK;
     for (auto &entry : eachPacket) {
-        LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%u, totalLength=%u.",
-            inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
+        LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
+            ", totalLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
         ProtocolProto::DisplayPacketInformation(entry.first + entry.second.first, entry.second.second);
         errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second);
         if (errCode == -E_WAIT_RETRY) {
@@ -479,7 +478,7 @@ void CommunicatorAggregator::NotifySendableToAllCommunicator()
 void CommunicatorAggregator::OnBytesReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
     const std::string &userId)
 {
-    ProtocolProto::DisplayPacketInformation(bytes, length); // For debug, delete in the future
+    ProtocolProto::DisplayPacketInformation(bytes, length);
     ParseResult packetResult;
     int errCode = ProtocolProto::CheckAndParsePacket(srcTarget, bytes, length, packetResult);
     if (errCode != E_OK) {
@@ -536,10 +535,7 @@ void CommunicatorAggregator::OnTargetChange(const std::string &target, bool isCo
             LOGE("[CommAggr][OnTarget] TargetOnline fail, target=%s{private}, errCode=%d.", target.c_str(), errCode);
         }
     } else {
-        int errCode = commLinker_->TargetOffline(target, relatedLabels);
-        if (errCode != E_OK) {
-            LOGE("[CommAggr][OnTarget] TargetOffline fail, target=%s{private}, errCode=%d.", target.c_str(), errCode);
-        }
+        commLinker_->TargetOffline(target, relatedLabels);
     }
     // All related communicator online or offline this target, no matter TargetOnline or TargetOffline fail or not
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
@@ -782,7 +778,7 @@ void CommunicatorAggregator::GenerateLocalSourceId()
     // The localSourceId is std::atomic<uint64_t>, so there is no concurrency risk
     uint64_t identityHash = Hash::HashFunc(identity);
     if (identityHash != localSourceId_) {
-        LOGI("[CommAggr][GenSrcId] identity=%s{private}, localSourceId=%llu.", identity.c_str(), ULL(identityHash));
+        LOGI("[CommAggr][GenSrcId] identity=%s{private}, localSourceId=%" PRIu64, identity.c_str(), ULL(identityHash));
     }
     localSourceId_ = identityHash;
 }
@@ -808,7 +804,7 @@ void CommunicatorAggregator::TriggerVersionNegotiation(const std::string &dstTar
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = CreateSendTask(dstTarget, buffer, FrameType::EMPTY, config);
+    errCode = ScheduleSendTask(dstTarget, buffer, FrameType::EMPTY, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigVer] Send empty frame fail, errCode=%d", errCode);
         // if send fails, free buffer, otherwise buffer will be taked over by SendTaskScheduler
@@ -860,10 +856,10 @@ void CommunicatorAggregator::TriggerCommunicatorNotFoundFeedback(const std::stri
     }
 
     TaskConfig config{true, 0, Priority::HIGH};
-    errCode = CreateSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
+    errCode = ScheduleSendTask(dstTarget, buffer, FrameType::APPLICATION_MESSAGE, config);
     if (errCode != E_OK) {
         LOGE("[CommAggr][TrigNotFound] Send communicator not found feedback frame fail, errCode=%d", errCode);
-        // if send fails, free buffer, otherwise buffer will be taked over by CreateSendTask
+        // if send fails, free buffer, otherwise buffer will be taked over by ScheduleSendTask
         delete buffer;
         buffer = nullptr;
     }

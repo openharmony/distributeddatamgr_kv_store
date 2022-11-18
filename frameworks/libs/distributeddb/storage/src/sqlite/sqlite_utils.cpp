@@ -697,7 +697,7 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
 int GetSchemaIndexList(sqlite3 *db, const std::string &tableName, std::vector<std::string> &indexList,
     std::vector<std::string> &uniqueList)
 {
-    std::string sql = "pragma index_list(" + tableName + ")";
+    std::string sql = "pragma index_list('" + tableName + "')";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -731,7 +731,7 @@ int GetSchemaIndexList(sqlite3 *db, const std::string &tableName, std::vector<st
 
 int AnalysisSchemaIndexDefine(sqlite3 *db, const std::string &indexName, CompositeFields &indexDefine)
 {
-    auto sql = "pragma index_info(" + indexName + ")";
+    auto sql = "pragma index_info('" + indexName + "')";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -825,7 +825,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 
 int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table)
 {
-    std::string sql = "pragma table_info(" + tableName + ")";
+    std::string sql = "pragma table_info('" + tableName + "')";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -1407,11 +1407,11 @@ int SQLiteUtils::CreateRelationalMetaTable(sqlite3 *db)
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
 {
-    std::string sql = "CREATE TABLE IF NOT EXISTS " + newTableName + "(";
+    std::string sql = "CREATE TABLE IF NOT EXISTS '" + newTableName + "' (";
     const std::map<FieldName, FieldInfo> &fields = baseTbl.GetFields();
     for (uint32_t cid = 0; cid < fields.size(); ++cid) {
         std::string fieldName = baseTbl.GetFieldName(cid);
-        sql += fieldName + " " + fields.at(fieldName).GetDataType();
+        sql += "'" + fieldName + "' '" + fields.at(fieldName).GetDataType() + "'";
         if (fields.at(fieldName).IsNotNull()) {
             sql += " NOT NULL";
         }
@@ -1424,7 +1424,7 @@ int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const
     if (!(baseTbl.GetPrimaryKey().size() == 1 && baseTbl.GetPrimaryKey().at(0) == "rowid")) {
         sql += " PRIMARY KEY (";
         for (const auto &it : baseTbl.GetPrimaryKey()) {
-            sql += it.second + ",";
+            sql += "'" + it.second + "',";
         }
         sql.pop_back();
         sql += "),";
@@ -2144,7 +2144,7 @@ int SQLiteUtils::CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool
         return -E_INVALID_ARGS;
     }
 
-    std::string cntSql = "SELECT min(rowid) FROM " + tableName + ";";
+    std::string cntSql = "SELECT min(rowid) FROM '" + tableName + "';";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, cntSql, stmt);
     if (errCode != E_OK) {

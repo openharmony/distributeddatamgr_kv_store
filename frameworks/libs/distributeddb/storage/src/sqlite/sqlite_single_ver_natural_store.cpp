@@ -771,6 +771,12 @@ int SQLiteSingleVerNaturalStore::GetSyncDataForQuerySync(std::vector<DataItem> &
         goto ERROR;
     }
 
+    errCode = handle->StartTransaction(TransactType::DEFERRED);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] Start transaction for get sync data failed. err=%d", errCode);
+        goto ERROR;
+    }
+
     // Get query data.
     if (!continueStmtToken->IsGetQueryDataFinished()) {
         LOGD("[SingleVerNStore] Get query data between %" PRIu64 " and %" PRIu64 ".",
@@ -795,6 +801,7 @@ int SQLiteSingleVerNaturalStore::GetSyncDataForQuerySync(std::vector<DataItem> &
         }
     }
 
+    (void)handle->Rollback(); // roll back query statement
     if (errCode == -E_FINISHED) {
         errCode = E_OK;
     }
@@ -1046,10 +1053,10 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataNormally(const std::string &dev
 
     LOGI("Remove device data:%d", isNeedNotify);
     errCode = handle->RemoveDeviceData(deviceName);
+    ReleaseHandle(handle);
     if (errCode == E_OK && isNeedNotify) {
         NotifyRemovedData(entries);
     }
-    ReleaseHandle(handle);
     return errCode;
 }
 
@@ -1512,7 +1519,10 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
     // Save create db time.
     storageEngine_->Enable(OperatePerm::IMPORT_MONOPOLIZE_PERM);
-    errCode = SaveCreateDBTime();
+
+    // Get current max timestamp after import and before start syncer, reflash local time offset
+    InitCurrentMaxStamp();
+    errCode = SaveCreateDBTime(); // This step will start syncer
 
 END:
     // restore the storage engine and the syncer.

@@ -32,7 +32,6 @@ namespace {
 
 SQLiteRelationalStore::~SQLiteRelationalStore()
 {
-    delete sqliteStorageEngine_;
     sqliteStorageEngine_ = nullptr;
 }
 
@@ -87,7 +86,7 @@ void SQLiteRelationalStore::ReleaseResources()
 {
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_->ClearEnginePasswd();
-        (void)StorageEngineManager::ReleaseStorageEngine(sqliteStorageEngine_);
+        sqliteStorageEngine_ = nullptr;
     }
     RefObject::DecObjRef(storageEngine_);
 }
@@ -255,7 +254,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         return E_OK;
     }
 
-    sqliteStorageEngine_ = new (std::nothrow) SQLiteSingleRelationalStorageEngine(properties);
+    sqliteStorageEngine_ = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
     if (sqliteStorageEngine_ == nullptr) {
         LOGE("[RelationalStore][Open] Create storage engine failed");
         return -E_OUT_OF_MEMORY;
@@ -370,8 +369,15 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     syncAbleEngine_->Close();
 
     if (sqliteStorageEngine_ != nullptr) {
-        delete sqliteStorageEngine_;
         sqliteStorageEngine_ = nullptr;
+    }
+    {
+        if (storageEngine_ != nullptr) {
+            storageEngine_->RegisterHeartBeatListener(nullptr);
+        }
+        std::lock_guard<std::mutex> lock(lifeCycleMutex_);
+        StopLifeCycleTimer();
+        lifeCycleNotifier_ = nullptr;
     }
     // close will dec sync ref of storageEngine_
     DecObjRef(storageEngine_);
@@ -621,6 +627,10 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
 {
     if (sqliteStorageEngine_ == nullptr) {
         return -E_INVALID_DB;
+    }
+    if (condition.sql.size() > DBConstant::REMOTE_QUERY_MAX_SQL_LEN) {
+        LOGE("remote query sql len is larger than %" PRIu32, DBConstant::REMOTE_QUERY_MAX_SQL_LEN);
+        return -E_MAX_LIMITS;
     }
 
     if (!sqliteStorageEngine_->GetSchemaRef().IsSchemaValid()) {

@@ -17,9 +17,9 @@
 #define ICOMMUNICATORAGGREGATOR_H
 
 #include <cstdint>
+#include "communicator_type_define.h"
 #include "iadapter.h"
 #include "ref_object.h"
-#include "communicator_type_define.h"
 
 namespace DistributedDB {
 class ICommunicator; // Forward Declaration

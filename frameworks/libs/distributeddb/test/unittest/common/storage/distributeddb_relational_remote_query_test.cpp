@@ -205,6 +205,25 @@ HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery1, TestSize.Level1)
 }
 
 /**
+ * @tc.name: NormalQuery1
+ * @tc.desc: test sql len is larger than 100,0000
+ * @tc.type: FUNC
+ * @tc.require: AR000GK58G
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBRelationalRemoteQueryTest, NormalQuery2, TestSize.Level1)
+{
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
+    std::string device = "deviceB";
+    RemoteCondition sqlCondition;
+    sqlCondition.sql.resize(1000001, 'a');
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_delegate->RemoteQuery(device, sqlCondition, 5000, result), OVER_MAX_LIMITS);
+}
+
+/**
  * @tc.name: BoolQuery1
  * @tc.desc: Query bool.
  * @tc.type: FUNC

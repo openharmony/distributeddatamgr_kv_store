@@ -259,7 +259,14 @@ int RemoteExecutorAckPacket::DeSerialization(Parcel &parcel)
     (void) parcel.ReadInt(ackCode_);
     (void) parcel.ReadUInt32(flag_);
     parcel.EightByteAlign();
-    (void) rowDataSet_.DeSerialize(parcel);
+    if (parcel.IsError()) {
+        LOGE("[RemoteExecutorAckPacket] DeSerialization failed");
+        return -E_INVALID_ARGS;
+    }
+    int errCode = rowDataSet_.DeSerialize(parcel);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     if ((flag_ & ACK_FLAG_SECURITY_OPTION) != 0) {
         (void) parcel.ReadInt(secLabel_);
         (void) parcel.ReadInt(secFlag_);

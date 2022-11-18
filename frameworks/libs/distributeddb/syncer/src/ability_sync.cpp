@@ -131,12 +131,12 @@ uint32_t AbilitySyncRequestPacket::CalculateLen() const
     len += Parcel::GetUInt32Len(); // protocolVersion_
     len += Parcel::GetIntLen(); // sendCode_
     len += Parcel::GetUInt32Len(); // softwareVersion_
-    uint32_t schemLen = Parcel::GetStringLen(schema_);
-    if (schemLen == 0) {
-        LOGE("[AbilitySyncRequestPacket][CalculateLen] schemLen err!");
+    uint32_t schemaLen = Parcel::GetStringLen(schema_);
+    if (schemaLen == 0) {
+        LOGE("[AbilitySyncRequestPacket][CalculateLen] schemaLen err!");
         return 0;
     }
-    len += schemLen;
+    len += schemaLen;
     len += Parcel::GetIntLen(); // secLabel_
     len += Parcel::GetIntLen(); // secFlag_
     len += Parcel::GetUInt32Len(); // schemaType_
@@ -145,7 +145,7 @@ uint32_t AbilitySyncRequestPacket::CalculateLen() const
     // the reason why not 8-byte align is that old version is not 8-byte align
     // so it is not possible to set 8-byte align for high version.
     if (len > INT32_MAX) {
-        LOGE("[AbilitySyncRequestPacket][CalculateLen]  err len:%" PRIu64, len);
+        LOGE("[AbilitySyncRequestPacket][CalculateLen] err len:%" PRIu64, len);
         return 0;
     }
     return len;
@@ -284,12 +284,12 @@ uint32_t AbilitySyncAckPacket::CalculateLen() const
     len += Parcel::GetUInt32Len();
     len += Parcel::GetUInt32Len();
     len += Parcel::GetIntLen();
-    uint32_t schemLen = Parcel::GetStringLen(schema_);
-    if (schemLen == 0) {
-        LOGE("[AbilitySyncAckPacket][CalculateLen] schemLen err!");
+    uint32_t schemaLen = Parcel::GetStringLen(schema_);
+    if (schemaLen == 0) {
+        LOGE("[AbilitySyncAckPacket][CalculateLen] schemaLen err!");
         return 0;
     }
-    len += schemLen;
+    len += schemaLen;
     len += Parcel::GetIntLen(); // secLabel_
     len += Parcel::GetIntLen(); // secFlag_
     len += Parcel::GetUInt32Len(); // schemaType_
@@ -299,7 +299,7 @@ uint32_t AbilitySyncAckPacket::CalculateLen() const
     len += DbAbility::CalculateLen(dbAbility_); // dbAbility_
     len += SchemaNegotiate::CalculateParcelLen(relationalSyncOpinion_);
     if (len > INT32_MAX) {
-        LOGE("[AbilitySyncAckPacket][CalculateLen]  err len:%" PRIu64, len);
+        LOGE("[AbilitySyncAckPacket][CalculateLen] err len:%" PRIu64, len);
         return 0;
     }
     return len;
@@ -471,7 +471,6 @@ int AbilitySync::AckNotifyRecv(const Message *message, ISyncTaskContext *context
     LOGI("[AckNotifyRecv] receive dev = %s ack notify, remoteSoftwareVersion = %u, ackCode = %d",
         STR_MASK(deviceId_), remoteSoftwareVersion, errCode);
     if (errCode == E_OK) {
-        (static_cast<SingleVerSyncTaskContext *>(context))->SetIsSchemaSync(true);
         ackCode = AbilitySync::LAST_NOTIFY;
     }
     (void)SendAckWithEmptySchema(message, ackCode, true);
@@ -1145,7 +1144,7 @@ void AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
     SyncOpinion syncOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
     SyncStrategy localStrategy = SchemaNegotiate::ConcludeSyncStrategy(syncOpinion, remoteOpinion);
     SetAbilityAckSyncOpinionInfo(sendPacket, syncOpinion);
-    (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy);
+    (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy, true);
 }
 
 int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket, AbilitySyncAckPacket &sendPacket,
@@ -1157,7 +1156,7 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     auto localOpinion = SchemaNegotiate::MakeLocalSyncOpinion(localSchema, remoteSchema, remoteSchemaType);
     auto localStrategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion,
         recvPacket->GetRelationalSyncOpinion());
-    (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy);
+    (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy, true);
     int errCode = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->
         CreateDistributedDeviceTable(context->GetDeviceId(), localStrategy);
     if (errCode != E_OK) {
@@ -1181,9 +1180,9 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     }
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
     auto query = singleVerContext->GetQuery();
-    bool permitSync = (singleVerContext->GetSyncStrategy(query)).permitSync;
-    if (!permitSync) {
-        (static_cast<SingleVerSyncTaskContext *>(context))->SetTaskErrCode(-E_SCHEMA_MISMATCH);
+    std::pair<bool, bool> schemaSyncStatus = (singleVerContext->GetSchemaSyncStatus(query));
+    if (!schemaSyncStatus.first) {
+        singleVerContext->SetTaskErrCode(-E_SCHEMA_MISMATCH);
         LOGE("[AbilitySync][AckRecv] scheme check failed");
         return -E_SCHEMA_MISMATCH;
     }
@@ -1196,9 +1195,8 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
         }
     }
     DbAbility remoteDbAbility = packet->GetDbAbility();
-    (static_cast<SingleVerSyncTaskContext *>(context))->SetDbAbility(remoteDbAbility);
+    singleVerContext->SetDbAbility(remoteDbAbility);
     (void)SendAck(message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
-    (static_cast<SingleVerSyncTaskContext *>(context))->SetIsSchemaSync(true);
     return E_OK;
 }
 } // namespace DistributedDB

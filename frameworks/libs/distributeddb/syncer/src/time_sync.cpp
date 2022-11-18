@@ -273,7 +273,9 @@ int TimeSync::Serialization(uint8_t *buffer, uint32_t length, const Message *inM
         return -E_SECUREC_ERROR;
     }
     parcel.EightByteAlign();
-
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return errCode;
 }
 

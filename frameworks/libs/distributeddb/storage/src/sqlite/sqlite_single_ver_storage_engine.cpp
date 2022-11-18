@@ -165,15 +165,13 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
         return errCode;
     }
 
-    CommitNotifyForMigrateCache(syncData);
-
     Timestamp timestamp = 0;
     errCode = handle->GetMaxTimestampDuringMigrating(timestamp);
     if (errCode == E_OK) {
         SetMaxTimestamp(timestamp);
     }
 
-    errCode = ReleaseHandleTransiently(handle, 2ull); // temporary release handle 2ms
+    errCode = ReleaseHandleTransiently(handle, 2ull, syncData); // temporary release handle 2ms
     if (errCode != E_OK) {
         return errCode;
     }
@@ -182,13 +180,16 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
 }
 
 // Temporary release handle for idleTime ms, avoid long-term blocking
-int SQLiteSingleVerStorageEngine::ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime)
+int SQLiteSingleVerStorageEngine::ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,
+    NotifyMigrateSyncData &syncData)
 {
     int errCode = ReleaseExecutor(handle);
     if (errCode != E_OK) {
         LOGE("release executor for reopen database! errCode = [%d]", errCode);
         return errCode;
     }
+
+    CommitNotifyForMigrateCache(syncData); // Trigger sync after release handle
 
     std::this_thread::sleep_for(std::chrono::milliseconds(idleTime)); // Wait 2 ms to free this handle for put data
     handle = static_cast<SQLiteSingleVerStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));

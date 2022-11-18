@@ -180,6 +180,12 @@ protected:
 
     int InitTimeChangedListener();
 
+    void ReleaseInnerResource();
+
+    void RecordTimeChangeOffset(void *changedOffset);
+
+    int CloseInner(bool isClosedOperation);
+
     static int SyncModuleInit();
 
     static int SyncResourceInit();

@@ -33,7 +33,7 @@ struct ReportTask {
     std::string storeId;
     int errCode = 0;
 };
-class DBDfxAdapter {
+class DBDfxAdapter final {
 public:
     static void Dump(int fd, const std::vector<std::u16string> &args);
 

@@ -27,7 +27,6 @@ class SyncAbleEngine final {
 public:
     explicit SyncAbleEngine(ISyncInterface *store);
     ~SyncAbleEngine();
-    void TriggerSync(int notifyEvent);
 
     // Start a sync action.
     int Sync(const ISyncer::SyncParma &parm, uint64_t connectionId);
@@ -62,7 +61,7 @@ private:
     int StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActive);
 
     // Stop syncer
-    void StopSyncer(bool isClosedOperation = false);
+    void StopSyncer();
 
     void StopSyncerWithNoLock(bool isClosedOperation = false);
 

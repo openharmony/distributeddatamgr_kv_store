@@ -172,7 +172,7 @@ DBStatus DistributedDBToolsTest::SyncTest(KvStoreNbDelegate* delegate, const std
             }
             return !statuses.empty();
         });
-    return callStatus;   
+    return callStatus;
 }
 
 KvStoreObserverTest::KvStoreObserverTest() : callCount_(0), isCleared_(false)
@@ -192,7 +192,7 @@ void KvStoreObserverTest::OnChange(const KvStoreChangedData& data)
 sqlite3 *RdbTestUtils::CreateDataBase(const std::string &dbUri)
 {
     sqlite3 *db = nullptr;
-    if (int r = sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+    if (sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
         if (db != nullptr) {
             (void)sqlite3_close_v2(db);
             db = nullptr;

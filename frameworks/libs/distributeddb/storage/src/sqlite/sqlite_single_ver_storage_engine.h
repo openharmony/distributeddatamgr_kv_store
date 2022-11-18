@@ -73,7 +73,8 @@ private:
     int EndCreateExecutor(bool isWrite);
     int ReInit() override;
     int ReleaseExecutor(SQLiteSingleVerStorageExecutor *&handle);
-    int ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime);
+    int ReleaseHandleTransiently(SQLiteSingleVerStorageExecutor *&handle, uint64_t idleTime,
+        NotifyMigrateSyncData &syncData);
 
     // For migrate.
     int MigrateLocalData(SQLiteSingleVerStorageExecutor *handle) const;

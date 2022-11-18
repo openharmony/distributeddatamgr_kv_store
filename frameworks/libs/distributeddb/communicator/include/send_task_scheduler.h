@@ -16,14 +16,14 @@
 #ifndef SEND_TASK_SCHEDULER_H
 #define SEND_TASK_SCHEDULER_H
 
-#include <map>
-#include <list>
-#include <mutex>
-#include <vector>
-#include <string>
 #include <cstdint>
-#include "macro_utils.h"
+#include <list>
+#include <map>
+#include <mutex>
+#include <string>
+#include <vector>
 #include "communicator_type_define.h"
+#include "macro_utils.h"
 
 namespace DistributedDB {
 enum class TargetPolicy {
@@ -34,14 +34,14 @@ enum class TargetPolicy {
 class SerialBuffer; // Forward Declaration
 
 struct SendTask {
-    SerialBuffer *buffer;
+    SerialBuffer *buffer = nullptr;
     std::string dstTarget;
     OnSendEnd onEnd;
 };
 
 struct SendTaskInfo {
-    bool delayFlag;
-    Priority taskPrio;
+    bool delayFlag = false;
+    Priority taskPrio = Priority::LOW;
 };
 
 using TaskListByTarget = std::map<std::string, std::list<SendTask>>;

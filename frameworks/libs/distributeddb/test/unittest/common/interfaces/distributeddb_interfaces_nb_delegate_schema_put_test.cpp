@@ -42,6 +42,13 @@ namespace {
             "\"field_name2\":\"INTEGER, NOT NULL\""
         "},"
         "\"SCHEMA_INDEXES\":[\"$.field_name1\"]}";
+    const std::string VALID_SCHEMA_COMPA_WITH_SQL_KEYWORD_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
+        "\"SCHEMA_MODE\":\"COMPATIBLE\","
+        "\"SCHEMA_DEFINE\":{"
+            "\"create\":\"BOOL\","
+            "\"default\":\"INTEGER, NOT NULL\""
+        "},"
+        "\"SCHEMA_INDEXES\":[\"create\"]}";
     // define some variables to init a KvStoreDelegateManager object.
     KvStoreDelegateManager g_mgr("app0", "user0");
     std::string g_testDir;
@@ -371,4 +378,35 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, QueryDeleted001, TestSi
     EXPECT_EQ(resultSet->GetCount(), 0);
     EXPECT_EQ(g_kvStore->CloseResultSet(resultSet), OK);
 }
-#endif
+
+/**
+  * @tc.name: SqliteKeyWord001
+  * @tc.desc: Test kv schema with sqlite key world.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, SqliteKeyWord001, TestSize.Level1)
+{
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.schema = VALID_SCHEMA_COMPA_WITH_SQL_KEYWORD_DEFINE;
+    g_mgr.GetKvStore(g_storeName, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvStore != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step1. Put one data whose value has more fields than the schema.
+     * @tc.expected: step1. return INVALID_VALUE_FIELDS.
+     */
+    Key key;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(key);
+    std::string moreData = "{\"create\":true,\"default\":10,\"field_name3\":10}";
+    Value value(moreData.begin(), moreData.end());
+    EXPECT_EQ(g_kvStore->Put(key, value), OK);
+
+    std::vector<Entry> entries;
+    Query query = Query::Select().EqualTo("create", true);
+    EXPECT_EQ(g_kvStore->GetEntries(query, entries), OK);
+    EXPECT_EQ(entries.size(), 1U);
+}
+#endif // OMIT_JSON

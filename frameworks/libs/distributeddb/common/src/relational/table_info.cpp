@@ -418,7 +418,6 @@ int TableInfo::CompareWithTableFields(const std::map<std::string, FieldInfo> &in
     auto itInTable = inTableFields.begin();
     int errCode = -E_RELATIONAL_TABLE_EQUAL;
     while (itLocal != fields_.end() && itInTable != inTableFields.end()) {
-        LOGD("--> field name %s", itLocal->first.c_str());
         if (itLocal->first == itInTable->first) { // Same field
             if (!itLocal->second.CompareWithField(itInTable->second, isLite)) { // Compare field
                 LOGW("[Relational][Compare] Table field is incompatible"); // not compatible
@@ -560,8 +559,6 @@ int TableInfo::CompareWithLiteTableFields(const std::map<std::string, FieldInfo>
 
 int TableInfo::CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const
 {
-    LOGE("--> check table primary key, %d %d %d", primaryKey_.empty(), liteTableInfo.GetPrimaryKey().empty(), autoInc_);
-
     if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") &&
         liteTableInfo.GetPrimaryKey() != primaryKey_) {
         LOGE("[Relational][Compare] Table primary key is not same");

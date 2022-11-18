@@ -20,29 +20,38 @@
 #include "log_print.h"
 #include "message.h"
 namespace DistributedDB {
-bool SingleVerDataSyncUtils::QuerySyncCheck(const SingleVerSyncTaskContext *context)
+int SingleVerDataSyncUtils::QuerySyncCheck(const SingleVerSyncTaskContext *context, bool &isCheckStatus)
 {
+    if (context == nullptr) {
+        isCheckStatus = false;
+        return -E_INVALID_ARGS;
+    }
     if (!context->IsQuerySync()) {
-        return true;
+        isCheckStatus = true;
+        return E_OK;
     }
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     // for 101 version, no need to do abilitySync, just send request to remote
     if (version <= SOFTWARE_VERSION_RELEASE_1_0) {
-        return true;
+        isCheckStatus = true;
+        return E_OK;
     }
     if (version < SOFTWARE_VERSION_RELEASE_4_0) {
         LOGE("[SingleVerDataSync] not support query sync when remote ver lower than 104");
-        return false;
+        isCheckStatus = false;
+        return E_OK;
     }
     if (version < SOFTWARE_VERSION_RELEASE_5_0 && !(context->GetQuery().IsQueryOnlyByKey())) {
         LOGE("[SingleVerDataSync] remote version only support prefix key");
-        return false;
+        isCheckStatus = false;
+        return E_OK;
     }
-    if (context->GetQuery().HasInKeys() &&
-        context->IsNotSupportAbility(SyncConfig::INKEYS_QUERY)) {
-        return false;
+    if (context->GetQuery().HasInKeys() && context->IsNotSupportAbility(SyncConfig::INKEYS_QUERY)) {
+        isCheckStatus = false;
+        return E_OK;
     }
-    return true;
+    isCheckStatus = true;
+    return E_OK;
 }
 
 int SingleVerDataSyncUtils::AckMsgErrnoCheck(const SingleVerSyncTaskContext *context, const Message *message)

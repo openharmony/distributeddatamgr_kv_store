@@ -160,8 +160,8 @@ protected:
     std::shared_ptr<Metadata> metadata_;
     std::mutex stateMachineLock_;
     uint8_t currentState_;
-    bool watchDogStarted_;
-    uint32_t currentSyncProctolVersion_;
+    volatile bool watchDogStarted_;
+    volatile uint32_t currentSyncProctolVersion_;
 
     // For save data notify
     static const int DATA_NOTIFY_INTERVAL = 2000; // 2s for save/get data notify
@@ -169,13 +169,13 @@ protected:
     static const int SYNC_DIRECTION_NUM = 2; // send receive
     std::mutex saveDataNotifyLock_;
     TimerId saveDataNotifyTimerId_;
-    uint8_t saveDataNotifyCount_;
-    bool waitingResetLockBySaveData_;
-    int32_t saveDataNotifyRefCount_;
+    volatile uint8_t saveDataNotifyCount_;
+    volatile bool waitingResetLockBySaveData_;
+    volatile uint32_t saveDataNotifyRefCount_;
 
     std::mutex getDataNotifyLock_;
     TimerId getDataNotifyTimerId_;
-    uint8_t getDataNotifyCount_;
+    volatile uint8_t getDataNotifyCount_;
 
     // used for one (key,value) bigger than mtu size, in this case, send packet need more longger time
     std::mutex feedDogLock_[SYNC_DIRECTION_NUM];

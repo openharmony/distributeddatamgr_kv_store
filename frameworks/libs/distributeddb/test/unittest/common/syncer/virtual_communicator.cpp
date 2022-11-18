@@ -211,7 +211,7 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
 {
     int errCode = E_OK;
     std::shared_ptr<ExtendHeaderHandle> extendHandle = nullptr;
-    auto buffer = ProtocolProto::ToSerialBuffer(inMsg, errCode, extendHandle);
+    auto buffer = ProtocolProto::ToSerialBuffer(inMsg, extendHandle, false, errCode);
     if (errCode != E_OK) {
         return errCode;
     }

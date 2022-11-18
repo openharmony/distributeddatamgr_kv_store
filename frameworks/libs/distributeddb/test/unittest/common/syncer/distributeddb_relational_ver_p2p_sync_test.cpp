@@ -904,6 +904,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync001, TestSize.Level0)
     BlockSync(SyncMode::SYNC_MODE_PUSH_ONLY, OK, {DEVICE_B});
 
     CheckVirtualData(dataMap);
+    DistributedDBToolsUnitTest::Dump();
 }
 
 /**
@@ -1537,7 +1538,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer001, TestSize.Level0)
 * @tc.require: AR000GK58N
 * @tc.author: zhuwentao
 */
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, observer002, TestSize.Level3)
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer002, TestSize.Level3)
 {
     /**
      * @tc.steps: step1. open rdb store, create distribute table and insert data
@@ -1589,6 +1590,56 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, observer002, TestSize.Level3)
     CheckIdentify(observer);
     std::this_thread::sleep_for(std::chrono::minutes(1));
     delete observer;
+}
+
+/*
+* @tc.name: relation observer 003
+* @tc.desc: Test relation observer without manager
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
+     * @tc.expected: step1. create and insert ok
+     */
+    g_observer->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB, g_deviceC});
+    std::shared_ptr<RelationalStoreManager> mgr = std::make_shared<RelationalStoreManager>(APP_ID, USER_ID);
+    ASSERT_NE(mgr, nullptr);
+    RelationalStoreDelegate::Option option;
+    option.observer = g_observer;
+#ifndef OMIT_ENCRYPT
+    option.isEncryptedDb = true;
+    option.iterateTimes = DEFAULT_ITER;
+    option.passwd = g_isAfterRekey ? g_rekeyPasswd : g_correctPasswd;
+    option.cipher = CipherType::DEFAULT;
+#endif
+    RelationalStoreDelegate *rdbDelegatePtr = nullptr;
+    mgr->OpenStore(g_dbDir, STORE_ID_1, option, rdbDelegatePtr);
+    mgr = nullptr;
+    /**
+     * @tc.steps: step2. device A pull sync mode
+     * @tc.expected: step2. sync ok
+     */
+    Query query = Query::Select(g_tableName);
+    DBStatus callStatus = rdbDelegatePtr->Sync({DEVICE_B, DEVICE_C}, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        nullptr, true);
+    EXPECT_EQ(callStatus, OK);
+    /**
+     * @tc.steps: step3. device A check observer
+     * @tc.expected: step2. data change device is deviceB
+     */
+    EXPECT_EQ(g_observer->GetCallCount(), 1u);
+    EXPECT_EQ(g_observer->GetDataChangeDevice(), DEVICE_B);
+    CheckIdentify(g_observer);
+    mgr = std::make_shared<RelationalStoreManager>(APP_ID, USER_ID);
+    ASSERT_NE(mgr, nullptr);
+    mgr->CloseStore(rdbDelegatePtr);
+    mgr = nullptr;
 }
 
 /**

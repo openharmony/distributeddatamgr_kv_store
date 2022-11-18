@@ -79,7 +79,7 @@ int CheckTableConstraint(const TableInfo &table, DistributedTableMode mode)
 namespace {
 int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isMem, int64_t &timeOffset)
 {
-    std::string sql = "SELECT get_sys_time(0) - max(rowid) - 1 FROM " + tableName;
+    std::string sql = "SELECT get_sys_time(0) - max(rowid) - 1 FROM '" + tableName + "';";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
@@ -107,7 +107,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "INSERT INTO " + logTable +
         " SELECT rowid, '', '', " + timeOffsetStr + " + rowid, " + timeOffsetStr + " + rowid, 0x2, " +
-        calPrimaryKeyHash + " FROM " + tableName + " WHERE 1=1;";
+        calPrimaryKeyHash + " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
@@ -118,19 +118,19 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
         return -E_INVALID_DB;
     }
 
-    if (mode == DistributedTableMode::SPLIT_BY_DEVICE && !isUpgraded) {
-        bool isEmpty = false;
-        int errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, tableName, isEmpty);
-        if (errCode != E_OK || !isEmpty) {
-            LOGE("[CreateDistributedTable] check table empty failed. error=%d, isEmpty=%d", errCode, isEmpty);
-            return -E_NOT_SUPPORT;
-        }
-    }
-
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] analysis table schema failed. %d", errCode);
         return errCode;
+    }
+
+    if (mode == DistributedTableMode::SPLIT_BY_DEVICE && !isUpgraded) {
+        bool isEmpty = false;
+        errCode = SQLiteUtils::CheckTableEmpty(dbHandle_, tableName, isEmpty);
+        if (errCode != E_OK || !isEmpty) {
+            LOGE("[CreateDistributedTable] check table empty failed. error=%d, isEmpty=%d", errCode, isEmpty);
+            return -E_NOT_SUPPORT;
+        }
     }
 
     errCode = CheckTableConstraint(table, mode);
@@ -148,7 +148,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
     }
 
     if (!isUpgraded) {
-        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("", table, identity);
+        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, table, calPrimaryKeyHash);
         if (errCode != E_OK) {
             return errCode;
@@ -271,7 +271,8 @@ int UpgradeFields(sqlite3 *db, const std::vector<std::string> &tables, std::vect
     int errCode = E_OK;
     for (const auto &table : tables) {
         for (const auto &field : fields) {
-            std::string alterSql = "ALTER TABLE " + table + " ADD " + field.GetFieldName() + " " + field.GetDataType();
+            std::string alterSql = "ALTER TABLE " + table + " ADD '" + field.GetFieldName() + "' ";
+            alterSql += "'" + field.GetDataType() + "'";
             alterSql += field.IsNotNull() ? " NOT NULL" : "";
             alterSql += field.HasDefaultValue() ? " DEFAULT " + field.GetDefaultValue() : "";
             alterSql += ";";
@@ -695,7 +696,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PrepareForSavingData(const QueryOb
     std::string colName;
     std::string dataFormat;
     for (size_t colId = 0; colId < table_.GetFields().size(); ++colId) {
-        colName += table_.GetFieldName(colId) + ",";
+        colName += "'" + table_.GetFieldName(colId) + "',";
         dataFormat += "?,";
     }
     colName.pop_back();
