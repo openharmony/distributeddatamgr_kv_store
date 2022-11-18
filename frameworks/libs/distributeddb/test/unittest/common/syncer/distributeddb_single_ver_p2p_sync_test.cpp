@@ -24,6 +24,8 @@
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
+#include "single_ver_data_sync.h"
+#include "single_ver_kv_sync_task_context.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -31,6 +33,10 @@ using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
+    class TestSingleVerKvSyncTaskContext : public SingleVerKvSyncTaskContext {
+    public:
+        TestSingleVerKvSyncTaskContext() = default;
+    };
     string g_testDir;
     const string STORE_ID = "kv_stroe_sync_test";
     const int64_t TIME_OFFSET = 5000000;
@@ -1095,6 +1101,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, AutoSync002, TestSize.Level1)
     PragmaData data = static_cast<PragmaData>(&autoSync);
     DBStatus status = g_kvDelegatePtr->Pragma(AUTO_SYNC, data);
     ASSERT_EQ(status, OK);
+
 
     /**
      * @tc.steps: step2. deviceB put {k1, v1}, deviceC put {k2, v2}
@@ -2674,4 +2681,391 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Le
      * * @tc.expected: step5. interface return ok
     */
     CrudTest();
+}
+
+/**
+  * @tc.name: DataSync001
+  * @tc.desc: Test Data Sync when Initialize
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync001, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    std::shared_ptr<Metadata> inMetadata = nullptr;
+    std::string deviceId;
+    Message message;
+    VirtualSingleVerSyncDBInterface tmpInterface;
+    VirtualCommunicator tmpCommunicator(deviceId, g_communicatorAggregator);
+    EXPECT_EQ(dataSync->Initialize(nullptr, nullptr, inMetadata, deviceId), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->Initialize(&tmpInterface, nullptr, inMetadata, deviceId), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->Initialize(&tmpInterface, &tmpCommunicator, inMetadata, deviceId), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync002
+  * @tc.desc: Test active sync with invalid param in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync002, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
+    EXPECT_EQ(dataSync->TryContinueSync(nullptr, &message), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->TryContinueSync(nullptr, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->PushStart(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->PushPullStart(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->PullRequestStart(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->PullResponseStart(nullptr), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync003
+  * @tc.desc: Test receive invalid request data packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync003, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    uint64_t tmpMark = 0;
+    Message message;
+    EXPECT_EQ(dataSync->DataRequestRecv(nullptr, nullptr, tmpMark), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->DataRequestRecv(nullptr, &message, tmpMark), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync004
+  * @tc.desc: Test receive invalid ack packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync004, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
+    TestSingleVerKvSyncTaskContext tmpContext;
+    EXPECT_EQ(dataSync->AckPacketIdCheck(nullptr), false);
+    EXPECT_EQ(dataSync->AckPacketIdCheck(&message), false);
+    EXPECT_EQ(dataSync->AckRecv(&tmpContext, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->AckRecv(nullptr, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->AckRecv(nullptr, &message), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync005
+  * @tc.desc: Test receive invalid notify packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync005, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync006
+  * @tc.desc: Test control start with invalid param in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync006, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    TestSingleVerKvSyncTaskContext tmpContext;
+    EXPECT_EQ(dataSync->ControlCmdStart(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(dataSync->ControlCmdStart(&tmpContext), -E_INVALID_ARGS);
+    std::shared_ptr<SubscribeManager> subManager = std::make_shared<SubscribeManager>();
+    tmpContext.SetSubscribeManager(subManager);
+    tmpContext.SetMode(SyncModeType::INVALID_MODE);
+    EXPECT_EQ(dataSync->ControlCmdStart(&tmpContext), -E_INVALID_ARGS);
+    std::set<Key> Keys = {{'a'}, {'b'}};
+    Query query = Query::Select().InKeys(Keys);
+    QuerySyncObject innerQuery(query);
+    tmpContext.SetQuery(innerQuery);
+    tmpContext.SetMode(SyncModeType::SUBSCRIBE_QUERY);
+    EXPECT_EQ(dataSync->ControlCmdStart(&tmpContext), -E_NOT_SUPPORT);
+    delete dataSync;
+    subManager = nullptr;
+}
+
+/**
+  * @tc.name: DataSync007
+  * @tc.desc: Test receive invalid control packet in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync007, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    Message message;
+    ControlRequestPacket packet;
+    TestSingleVerKvSyncTaskContext tmpContext;
+    EXPECT_EQ(dataSync->ControlCmdRequestRecv(nullptr, &message), -E_INVALID_ARGS);
+    message.SetCopiedObject(packet);
+    EXPECT_EQ(dataSync->ControlCmdRequestRecv(nullptr, &message), -E_INVALID_ARGS);
+    delete dataSync;
+}
+
+/**
+  * @tc.name: DataSync008
+  * @tc.desc: Test pull null msg in dataQueue in DataSync Class
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DataSync008, TestSize.Level1)
+{
+    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+    ASSERT_TRUE(dataSync != nullptr);
+    dataSync->PutDataMsg(nullptr);
+    delete dataSync;
+}
+
+/**
+ * @tc.name: SyncRetry001
+ * @tc.desc: use sync retry sync use push
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, SyncRetry001, TestSize.Level3)
+{
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. set sync retry
+     * @tc.expected: step1, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA put {k1, v1}, {k2, v2}
+     */
+    ASSERT_TRUE(g_kvDelegatePtr->Put(KEY_1, VALUE_1) == OK);
+
+    /**
+     * @tc.steps: step3. deviceA call sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result) == OK);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
+ * @tc.name: SyncRetry002
+ * @tc.desc: use sync retry sync use pull
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, SyncRetry002, TestSize.Level3)
+{
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE, 4u);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. set sync retry
+     * @tc.expected: step1, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
+
+    /**
+     * @tc.expected: step3. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == TIME_OUT);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
+ * @tc.name: SyncRetry003
+ * @tc.desc: use sync retry sync use push by compress
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, SyncRetry003, TestSize.Level3)
+{
+    if (g_kvDelegatePtr != nullptr) {
+        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+        g_kvDelegatePtr = nullptr;
+    }
+    /**
+     * @tc.steps: step1. open db use Compress
+     * @tc.expected: step1, Pragma return OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.isNeedCompressOnSync = true;
+    option.compressionRate = 70;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step2. set sync retry
+     * @tc.expected: step2, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step3. deviceA put {k1, v1}, {k2, v2}
+     */
+    ASSERT_TRUE(g_kvDelegatePtr->Put(KEY_1, VALUE_1) == OK);
+
+    /**
+     * @tc.steps: step4. deviceA call sync and wait
+     * @tc.expected: step4. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result) == OK);
+
+    /**
+     * @tc.expected: step5. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
+ * @tc.name: SyncRetry004
+ * @tc.desc: use query sync retry sync use push
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, SyncRetry004, TestSize.Level3)
+{
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. set sync retry
+     * @tc.expected: step1, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA put {k1, v1}, {k2, v2}
+     */
+    for (int i = 0; i < 5; i++) {
+        Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 128); // rand num 1024 for test
+        Value value;
+        DistributedDBToolsUnitTest::GetRandomKeyValue(value, 256u);
+        EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+    }
+
+    /**
+     * @tc.steps: step3. deviceA call sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    std::vector<uint8_t> prefixKey({'a', 'b'});
+    Query query = Query::Select().PrefixKey(prefixKey);
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, query) == OK);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
+ * @tc.name: ReSetWatchDogTest001
+ * @tc.desc: trigger resetWatchDog while pull
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, ReSetWaterDogTest001, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. put 10 key/value
+     * @tc.expected: step1, put return OK.
+     */
+    for (int i = 0; i < 5; i++) {
+        Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 1024); // rand num 1024 for test
+        Value value;
+        DistributedDBToolsUnitTest::GetRandomKeyValue(value, 10 * 50 * 1024u);
+        EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+    }
+    /**
+     * @tc.steps: step1. SetDeviceMtuSize
+     * @tc.expected: step1, return OK.
+     */
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 4k
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 50 * 1024u); // 4k
+    /**
+     * @tc.steps: step2. deviceA,deviceB sync to each other at same time
+     * @tc.expected: step2. sync should return OK.
+     */
+    g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 4k
+    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 4k
 }

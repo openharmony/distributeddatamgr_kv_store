@@ -49,7 +49,6 @@ namespace {
     const string INCORRECT_KEY = "a incorrect key";
     CipherPassword g_incorrectPasswd;
     const int DEFAULT_ITER = 5000;
-    const int CUSTOMIZED_ITER = 10000;
 #endif
 
     const int ONE_HUNDERED = 100;
