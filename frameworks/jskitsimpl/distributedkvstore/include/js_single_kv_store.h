@@ -99,8 +99,8 @@ private:
     static void OffSyncComplete(napi_env env, size_t argc, napi_value* argv, std::shared_ptr<ContextBase> ctxt);
 
     /* private non-static members */
-    napi_status Subscribe(uint8_t type, std::shared_ptr<DataObserver> observer);
-    napi_status UnSubscribe(uint8_t type, std::shared_ptr<DataObserver> observer);
+    napi_status Subscribe(uint8_t type, std::shared_ptr<DataObserver> observer, DistributedKv::Status &outStatus);
+    napi_status UnSubscribe(uint8_t type, std::shared_ptr<DataObserver> observer, DistributedKv::Status &outStatus);
 
     napi_status RegisterSyncCallback(std::shared_ptr<SyncObserver> sync);
     napi_status UnRegisterSyncCallback();
