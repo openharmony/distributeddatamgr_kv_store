@@ -57,7 +57,10 @@ uint64_t FuzzerData::GetUInt64()
 
 std::vector<uint8_t> FuzzerData::GetSequence(size_t size, uint32_t mod)
 {
-    size = size % MOD;
+    if (mod == 0) {
+        return {};
+    }
+    size = size % mod;
     if (curr_ + size > data_ + size_) {
         return {};
     }
