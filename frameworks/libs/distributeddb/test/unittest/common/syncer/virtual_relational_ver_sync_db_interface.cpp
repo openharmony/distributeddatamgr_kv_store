@@ -129,7 +129,7 @@ int VirtualRelationalVerSyncDBInterface::GetSyncData(QueryObject &query,
     for (const auto &[hashKey, virtualData] : localData_[query.GetTableName()]) {
         if (virtualData.logInfo.timestamp < timeRange.beginTime ||
             virtualData.logInfo.timestamp >= timeRange.endTime) {
-            LOGD("ignore hashkey %s", hashKey.c_str());
+            LOGD("ignore hashkey %s", DBCommon::TransferStringToHex(hashKey));
             continue;
         }
         RowDataWithLog rowData;
