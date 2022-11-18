@@ -601,8 +601,8 @@ describe('kvManagerCallbackTest', function () {
             await kvManager.getKVStore(TEST_STORE_ID, options, async function (err, store) {
                 console.info('KVStorePutCallbackTest getKVStore success');
                 kvStore = store;
-                await kvStore.put(STORE_KEY, STORE_VALUE, function (err, data) {
-                    expect(data != undefined && data != null).assertTrue();
+                await kvStore.put(STORE_KEY, STORE_VALUE, function (err) {
+                    expect(true).assertTrue();
                     done();
                 });
             });
