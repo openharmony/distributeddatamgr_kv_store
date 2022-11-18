@@ -34,7 +34,7 @@ public:
 
     void TearDown();
 
-    static std::shared_ptr<SingleKvStore> singleKvStorePtr; // declare kvstore instance.
+    static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status status_;
     static int MAX_VALUE_SIZE;
 };
@@ -47,7 +47,7 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
         "},"
         "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
-std::shared_ptr<SingleKvStore> SingleKvStoreClientTest::singleKvStorePtr = nullptr;
+std::shared_ptr<SingleKvStore> SingleKvStoreClientTest::singleKvStore = nullptr;
 Status SingleKvStoreClientTest::status_ = Status::ERROR;
 int SingleKvStoreClientTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
@@ -62,7 +62,7 @@ void SingleKvStoreClientTest::SetUpTestCase(void)
     StoreId storeId = { "student_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     // [create and] open and initialize kvstore instance.
-    status_ = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
+    status_ = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
 }
 
 void SingleKvStoreClientTest::TearDownTestCase(void)
@@ -164,9 +164,9 @@ void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Stat
 */
 HWTEST_F(SingleKvStoreClientTest, GetStoreId001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
-    auto storID = singleKvStorePtr->GetStoreId();
+    auto storID = singleKvStore->GetStoreId();
     EXPECT_EQ(storID.storeId, "student_single");
 }
 
@@ -179,30 +179,30 @@ HWTEST_F(SingleKvStoreClientTest, GetStoreId001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, PutGetDelete001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
     Key skey = {"single_001"};
     Value sval = {"value_001"};
-    auto status = singleKvStorePtr->Put(skey, sval);
+    auto status = singleKvStore->Put(skey, sval);
     EXPECT_EQ(status, Status::SUCCESS) << "putting data failed";
 
-    auto delStatus = singleKvStorePtr->Delete(skey);
+    auto delStatus = singleKvStore->Delete(skey);
     EXPECT_EQ(delStatus, Status::SUCCESS) << "deleting data failed";
 
-    auto notExistStatus = singleKvStorePtr->Delete(skey);
+    auto notExistStatus = singleKvStore->Delete(skey);
     EXPECT_EQ(notExistStatus, Status::SUCCESS) << "deleting non-existing data failed";
 
-    auto spaceStatus = singleKvStorePtr->Put(skey, {""});
+    auto spaceStatus = singleKvStore->Put(skey, {""});
     EXPECT_EQ(spaceStatus, Status::SUCCESS) << "putting space failed";
 
-    auto spaceKeyStatus = singleKvStorePtr->Put({""}, {""});
+    auto spaceKeyStatus = singleKvStore->Put({""}, {""});
     EXPECT_NE(spaceKeyStatus, Status::SUCCESS) << "putting space keys failed";
 
-    Status validStatus = singleKvStorePtr->Put(skey, sval);
+    Status validStatus = singleKvStore->Put(skey, sval);
     EXPECT_EQ(validStatus, Status::SUCCESS) << "putting valid keys and values failed";
 
     Value rVal;
-    auto validPutStatus = singleKvStorePtr->Get(skey, rVal);
+    auto validPutStatus = singleKvStore->Get(skey, rVal);
     EXPECT_EQ(validPutStatus, Status::SUCCESS) << "Getting value failed";
     EXPECT_EQ(sval, rVal) << "Got and put values not equal";
 }
@@ -216,22 +216,22 @@ HWTEST_F(SingleKvStoreClientTest, PutGetDelete001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
     // prepare 10
     size_t sum = 10;
     int sum_1 = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        singleKvStorePtr->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        singleKvStore->Put({prefix + std::to_string(i)}, {std::to_string(i)});
     }
 
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries({prefix}, results);
+    singleKvStore->GetEntries({prefix}, results);
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 10.";
 
     std::shared_ptr<KvStoreResultSet> resultSet;
-    Status status = singleKvStorePtr->GetResultSet({prefix}, resultSet);
+    Status status = singleKvStore->GetResultSet({prefix}, resultSet);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(resultSet->GetCount(), sum_1) << "resultSet size is not equal 10.";
     resultSet->IsFirst();
@@ -248,10 +248,10 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        singleKvStorePtr->Delete({prefix + std::to_string(i)});
+        singleKvStore->Delete({prefix + std::to_string(i)});
     }
 
-    auto closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    auto closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     EXPECT_EQ(closeResultSetStatus, Status::SUCCESS) << "close resultSet failed.";
 }
 
@@ -264,24 +264,24 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, GetEntriesByDataQuery, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
     // prepare 10
     size_t sum = 10;
     int sum_1 = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
-        singleKvStorePtr->Put({prefix + std::to_string(i)}, {std::to_string(i)});
+        singleKvStore->Put({prefix + std::to_string(i)}, {std::to_string(i)});
     }
 
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries({ prefix }, results);
+    singleKvStore->GetEntries({ prefix }, results);
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 10.";
     DataQuery dataQuery;
     dataQuery.KeyPrefix(prefix);
     dataQuery.Limit(10, 0);
     std::shared_ptr<KvStoreResultSet> resultSet;
-    Status status = singleKvStorePtr->GetResultSet(dataQuery, resultSet);
+    Status status = singleKvStore->GetResultSet(dataQuery, resultSet);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(resultSet->GetCount(), sum_1) << "resultSet size is not equal 10.";
     resultSet->IsFirst();
@@ -298,10 +298,10 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesByDataQuery, TestSize.Level1)
     resultSet->GetEntry(entry);
 
     for (size_t i = 0; i < sum; i++) {
-        singleKvStorePtr->Delete({prefix + std::to_string(i)});
+        singleKvStore->Delete({prefix + std::to_string(i)});
     }
 
-    auto closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    auto closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     EXPECT_EQ(closeResultSetStatus, Status::SUCCESS) << "close resultSet failed.";
 }
 
@@ -315,9 +315,9 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesByDataQuery, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, GetEmptyEntries, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::vector<Entry> results;
-    auto status = singleKvStorePtr->GetEntries({ "SUCCESS_TEST" }, results);
+    auto status = singleKvStore->GetEntries({ "SUCCESS_TEST" }, results);
     EXPECT_EQ(status, Status::SUCCESS) << "status is not SUCCESS.";
     EXPECT_EQ(results.size(), 0) << "entries size is not empty.";
 }
@@ -332,13 +332,13 @@ HWTEST_F(SingleKvStoreClientTest, GetEmptyEntries, TestSize.Level1)
 HWTEST_F(SingleKvStoreClientTest, Subscribe001, TestSize.Level1)
 {
     auto observer = std::make_shared<KvStoreObserverTestImpl>();
-    auto subStatus = singleKvStorePtr->SubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
+    auto subStatus = singleKvStore->SubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
     EXPECT_EQ(subStatus, Status::SUCCESS) << "subscribe kvStore observer failed.";
     // subscribe repeated observer;
-    auto repeatedSubStatus = singleKvStorePtr->SubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
+    auto repeatedSubStatus = singleKvStore->SubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
     EXPECT_NE(repeatedSubStatus, Status::SUCCESS) << "repeat subscribe kvStore observer failed.";
 
-    auto unSubStatus = singleKvStorePtr->UnSubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
+    auto unSubStatus = singleKvStore->UnSubscribeKvStore(SubscribeType::SUBSCRIBE_TYPE_ALL, observer);
     EXPECT_EQ(unSubStatus, Status::SUCCESS) << "unsubscribe kvStore observer failed.";
 }
 
@@ -351,19 +351,19 @@ HWTEST_F(SingleKvStoreClientTest, Subscribe001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SyncCallback001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
     auto syncCallback = std::make_shared<KvStoreSyncCallbackTestImpl>();
-    auto syncStatus = singleKvStorePtr->RegisterSyncCallback(syncCallback);
+    auto syncStatus = singleKvStore->RegisterSyncCallback(syncCallback);
     EXPECT_EQ(syncStatus, Status::SUCCESS) << "register sync callback failed.";
 
-    auto unRegStatus = singleKvStorePtr->UnRegisterSyncCallback();
+    auto unRegStatus = singleKvStore->UnRegisterSyncCallback();
     EXPECT_EQ(unRegStatus, Status::SUCCESS) << "un register sync callback failed.";
 
     Key skey = {"single_001"};
     Value sval = {"value_001"};
-    singleKvStorePtr->Put(skey, sval);
-    singleKvStorePtr->Delete(skey);
+    singleKvStore->Put(skey, sval);
+    singleKvStore->Delete(skey);
 
     std::map<std::string, Status> results;
     results.insert({"aaa", Status::INVALID_ARGUMENT});
@@ -379,18 +379,18 @@ HWTEST_F(SingleKvStoreClientTest, SyncCallback001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, RemoveDeviceData001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
 
     Key skey = {"single_001"};
     Value sval = {"value_001"};
-    singleKvStorePtr->Put(skey, sval);
+    singleKvStore->Put(skey, sval);
 
     std::string deviceId = "no_exist_device_id";
-    auto removeStatus = singleKvStorePtr->RemoveDeviceData(deviceId);
+    auto removeStatus = singleKvStore->RemoveDeviceData(deviceId);
     EXPECT_NE(removeStatus, Status::SUCCESS) << "remove device should not return success";
 
     Value retVal;
-    auto getRet = singleKvStorePtr->Get(skey, retVal);
+    auto getRet = singleKvStore->Get(skey, retVal);
     EXPECT_EQ(getRet, Status::SUCCESS) << "get value failed.";
     EXPECT_EQ(retVal.Size(), sval.Size()) << "data base should be null.";
 }
@@ -404,10 +404,10 @@ HWTEST_F(SingleKvStoreClientTest, RemoveDeviceData001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SyncData001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::string deviceId = "no_exist_device_id";
     std::vector<std::string> deviceIds = { deviceId };
-    auto syncStatus = singleKvStorePtr->Sync(deviceIds, SyncMode::PUSH);
+    auto syncStatus = singleKvStore->Sync(deviceIds, SyncMode::PUSH);
     EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should not return success";
 }
 
@@ -416,11 +416,11 @@ HWTEST_F(SingleKvStoreClientTest, SyncData001, TestSize.Level1)
 * @tc.desc: Test schema single store.
 * @tc.type: FUNC
 * @tc.require: AR000DPSF1
-* @tc.author: YangLeda
+* @tc.author: zuojiangjiang
 */
 HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemaSingleKvStorePtr;
+    std::shared_ptr<SingleKvStore> schemasingleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -430,17 +430,17 @@ HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
     options.schema = VALID_SCHEMA_STRICT_DEFINE;
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id" };
-    (void)manager.GetSingleKvStore(options, appId, storeId, schemaSingleKvStorePtr);
-    ASSERT_NE(schemaSingleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    auto result = schemaSingleKvStorePtr->GetStoreId();
+    (void)manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
+    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = schemasingleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id");
 
     Key testKey = {"TestSchemaStoreC001_key"};
     Value testValue = {"{\"age\":10}"};
-    auto testStatus = schemaSingleKvStorePtr->Put(testKey, testValue);
+    auto testStatus = schemasingleKvStore->Put(testKey, testValue);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "putting data failed";
     Value resultValue;
-    auto getRet = schemaSingleKvStorePtr->Get(testKey, resultValue);
+    auto getRet = schemasingleKvStore->Get(testKey, resultValue);
     EXPECT_EQ(getRet, Status::SUCCESS) << "get value failed.";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
@@ -454,11 +454,11 @@ HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SyncData002, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::string deviceId = "no_exist_device_id";
     std::vector<std::string> deviceIds = { deviceId };
     uint32_t allowedDelayMs = 200;
-    auto syncStatus = singleKvStorePtr->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
+    auto syncStatus = singleKvStore->Sync(deviceIds, SyncMode::PUSH, allowedDelayMs);
     EXPECT_EQ(syncStatus, Status::SUCCESS) << "sync device should return success";
 }
 
@@ -471,13 +471,13 @@ HWTEST_F(SingleKvStoreClientTest, SyncData002, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SetSync001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     KvSyncParam syncParam{ 500 }; // 500ms
-    auto ret = singleKvStorePtr->SetSyncParam(syncParam);
+    auto ret = singleKvStore->SetSyncParam(syncParam);
     EXPECT_EQ(ret, Status::SUCCESS) << "set sync param should return success";
 
     KvSyncParam syncParamRet;
-    singleKvStorePtr->GetSyncParam(syncParamRet);
+    singleKvStore->GetSyncParam(syncParamRet);
     EXPECT_EQ(syncParamRet.allowedDelayMs, syncParam.allowedDelayMs);
 }
 
@@ -490,13 +490,13 @@ HWTEST_F(SingleKvStoreClientTest, SetSync001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SetSync002, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     KvSyncParam syncParam2{ 50 }; // 50ms
-    auto ret = singleKvStorePtr->SetSyncParam(syncParam2);
+    auto ret = singleKvStore->SetSyncParam(syncParam2);
     EXPECT_NE(ret, Status::SUCCESS) << "set sync param should not return success";
 
     KvSyncParam syncParamRet2;
-    ret = singleKvStorePtr->GetSyncParam(syncParamRet2);
+    ret = singleKvStore->GetSyncParam(syncParamRet2);
     EXPECT_NE(syncParamRet2.allowedDelayMs, syncParam2.allowedDelayMs);
 }
 
@@ -509,7 +509,7 @@ HWTEST_F(SingleKvStoreClientTest, SetSync002, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch001, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // store entries to kvstore.
     std::vector<Entry> entries;
@@ -524,21 +524,21 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch001, TestSize.Level2)
     entries.push_back(entry2);
     entries.push_back(entry3);
 
-    Status status = singleKvStorePtr->PutBatch(entries);
+    Status status = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status) << "KvStore putbatch data return wrong status";
     // get value from kvstore.
     Value valueRet1;
-    Status statusRet1 = singleKvStorePtr->Get(entry1.key, valueRet1);
+    Status statusRet1 = singleKvStore->Get(entry1.key, valueRet1);
     EXPECT_EQ(Status::SUCCESS, statusRet1) << "KvStoreSnapshot get data return wrong status";
     EXPECT_EQ(entry1.value, valueRet1) << "value and valueRet are not equal";
 
     Value valueRet2;
-    Status statusRet2 = singleKvStorePtr->Get(entry2.key, valueRet2);
+    Status statusRet2 = singleKvStore->Get(entry2.key, valueRet2);
     EXPECT_EQ(Status::SUCCESS, statusRet2) << "KvStoreSnapshot get data return wrong status";
     EXPECT_EQ(entry2.value, valueRet2) << "value and valueRet are not equal";
 
     Value valueRet3;
-    Status statusRet3 = singleKvStorePtr->Get(entry3.key, valueRet3);
+    Status statusRet3 = singleKvStore->Get(entry3.key, valueRet3);
     EXPECT_EQ(Status::SUCCESS, statusRet3) << "KvStoreSnapshot get data return wrong status";
     EXPECT_EQ(entry3.value, valueRet3) << "value and valueRet are not equal";
 }
@@ -552,7 +552,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch001, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "SinglekvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // before update.
     std::vector<Entry> entriesBefore;
@@ -567,7 +567,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
     entriesBefore.push_back(entry2);
     entriesBefore.push_back(entry3);
 
-    Status status = singleKvStorePtr->PutBatch(entriesBefore);
+    Status status = singleKvStore->PutBatch(entriesBefore);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore putbatch data return wrong status";
 
     // after update.
@@ -583,22 +583,22 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
     entriesAfter.push_back(entry5);
     entriesAfter.push_back(entry6);
 
-    status = singleKvStorePtr->PutBatch(entriesAfter);
+    status = singleKvStore->PutBatch(entriesAfter);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore putbatch failed, wrong status";
 
     // get value from kvstore.
     Value valueRet1;
-    Status statusRet1 = singleKvStorePtr->Get(entry4.key, valueRet1);
+    Status statusRet1 = singleKvStore->Get(entry4.key, valueRet1);
     EXPECT_EQ(Status::SUCCESS, statusRet1) << "SingleKvStore getting data failed, wrong status";
     EXPECT_EQ(entry4.value, valueRet1) << "value and valueRet are not equal";
 
     Value valueRet2;
-    Status statusRet2 = singleKvStorePtr->Get(entry5.key, valueRet2);
+    Status statusRet2 = singleKvStore->Get(entry5.key, valueRet2);
     EXPECT_EQ(Status::SUCCESS, statusRet2) << "SingleKvStore getting data failed, wrong status";
     EXPECT_EQ(entry5.value, valueRet2) << "value and valueRet are not equal";
 
     Value valueRet3;
-    Status statusRet3 = singleKvStorePtr->Get(entry6.key, valueRet3);
+    Status statusRet3 = singleKvStore->Get(entry6.key, valueRet3);
     EXPECT_EQ(Status::SUCCESS, statusRet3) << "SingleKvStore get data return wrong status";
     EXPECT_EQ(entry6.value, valueRet3) << "value and valueRet are not equal";
 }
@@ -612,7 +612,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch002, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch003, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     std::vector<Entry> entries;
     Entry entry1, entry2, entry3;
@@ -626,8 +626,8 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch003, TestSize.Level2)
     entries.push_back(entry2);
     entries.push_back(entry3);
 
-    Status status = singleKvStorePtr->PutBatch(entries);
-    EXPECT_EQ(Status::INVALID_ARGUMENT, status) << "singleKvStorePtr putbatch data return wrong status";
+    Status status = singleKvStore->PutBatch(entries);
+    EXPECT_EQ(Status::INVALID_ARGUMENT, status) << "singleKvStore putbatch data return wrong status";
 }
 
 /**
@@ -639,7 +639,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch003, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch004, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     std::vector<Entry> entries;
     Entry entry1, entry2, entry3;
@@ -653,8 +653,8 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch004, TestSize.Level2)
     entries.push_back(entry2);
     entries.push_back(entry3);
 
-    Status status = singleKvStorePtr->PutBatch(entries);
-    EXPECT_EQ(Status::INVALID_ARGUMENT, status) << "singleKvStorePtr putbatch data return wrong status";
+    Status status = singleKvStore->PutBatch(entries);
+    EXPECT_EQ(Status::INVALID_ARGUMENT, status) << "singleKvStore putbatch data return wrong status";
 }
 
 static std::string SingleGenerate1025KeyLen()
@@ -676,7 +676,7 @@ static std::string SingleGenerate1025KeyLen()
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
 {
 
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     std::vector<Entry> entries;
     Entry entry1, entry2, entry3;
@@ -690,7 +690,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
     entries.push_back(entry2);
     entries.push_back(entry3);
 
-    Status status = singleKvStorePtr->PutBatch(entries);
+    Status status = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::INVALID_ARGUMENT, status) << "KvStore putbatch data return wrong status";
 }
 
@@ -703,7 +703,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch005, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     std::vector<uint8_t> val(MAX_VALUE_SIZE);
     for (int i = 0; i < MAX_VALUE_SIZE; i++) {
@@ -722,23 +722,23 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
     entries.push_back(entry1);
     entries.push_back(entry2);
     entries.push_back(entry3);
-    Status status = singleKvStorePtr->PutBatch(entries);
-    EXPECT_EQ(Status::SUCCESS, status) << "singleKvStorePtr putbatch data return wrong status";
+    Status status = singleKvStore->PutBatch(entries);
+    EXPECT_EQ(Status::SUCCESS, status) << "singleKvStore putbatch data return wrong status";
 
     // get value from kvstore.
     Value valueRet1;
-    Status statusRet1 = singleKvStorePtr->Get(entry1.key, valueRet1);
-    EXPECT_EQ(Status::SUCCESS, statusRet1) << "singleKvStorePtr get data return wrong status";
+    Status statusRet1 = singleKvStore->Get(entry1.key, valueRet1);
+    EXPECT_EQ(Status::SUCCESS, statusRet1) << "singleKvStore get data return wrong status";
     EXPECT_EQ(entry1.value, valueRet1) << "value and valueRet are not equal";
 
     Value valueRet2;
-    Status statusRet2 = singleKvStorePtr->Get(entry2.key, valueRet2);
-    EXPECT_EQ(Status::SUCCESS, statusRet2) << "singleKvStorePtr get data return wrong status";
+    Status statusRet2 = singleKvStore->Get(entry2.key, valueRet2);
+    EXPECT_EQ(Status::SUCCESS, statusRet2) << "singleKvStore get data return wrong status";
     EXPECT_EQ(entry2.value, valueRet2) << "value and valueRet are not equal";
 
     Value valueRet3;
-    Status statusRet3 = singleKvStorePtr->Get(entry3.key, valueRet3);
-    EXPECT_EQ(Status::SUCCESS, statusRet3) << "singleKvStorePtr get data return wrong status";
+    Status statusRet3 = singleKvStore->Get(entry3.key, valueRet3);
+    EXPECT_EQ(Status::SUCCESS, statusRet3) << "singleKvStore get data return wrong status";
     EXPECT_EQ(entry3.value, valueRet3) << "value and valueRet are not equal";
 }
 
@@ -751,7 +751,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch001, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // store entries to kvstore.
     std::vector<Entry> entries;
@@ -771,13 +771,13 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch001, TestSize.Level2)
     keys.push_back("SingleKvStoreDdmDeleteBatch001_2");
     keys.push_back("SingleKvStoreDdmDeleteBatch001_3");
 
-    Status status1 = singleKvStorePtr->PutBatch(entries);
+    Status status1 = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status1) << "singleKvStore putbatch data return wrong status";
 
-    Status status2 = singleKvStorePtr->DeleteBatch(keys);
+    Status status2 = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::SUCCESS, status2) << "singleKvStore deletebatch data return wrong status";
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch001_", results);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch001_", results);
     size_t sum = 0;
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 0.";
 }
@@ -791,7 +791,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch001, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch002, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // store entries to kvstore.
     std::vector<Entry> entries;
@@ -812,13 +812,13 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch002, TestSize.Level2)
     keys.push_back("SingleKvStoreDdmDeleteBatch002_3");
     keys.push_back("SingleKvStoreDdmDeleteBatch002_4");
 
-    Status status1 = singleKvStorePtr->PutBatch(entries);
+    Status status1 = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status1) << "KvStore putbatch data return wrong status";
 
-    Status status2 = singleKvStorePtr->DeleteBatch(keys);
+    Status status2 = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::SUCCESS, status2) << "KvStore deletebatch data return wrong status";
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch002_", results);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch002_", results);
     size_t sum = 0;
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 0.";
 }
@@ -832,7 +832,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch002, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch003, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "SinglekvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // Store entries to KvStore. 
     std::vector<Entry> entries;
@@ -852,13 +852,13 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch003, TestSize.Level2)
     keys.push_back("SingleKvStoreDdmDeleteBatch003_2");
     keys.push_back("");
 
-    Status status1 = singleKvStorePtr->PutBatch(entries);
+    Status status1 = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status1) << "SingleKvStore putbatch data return wrong status";
 
-    Status status2 = singleKvStorePtr->DeleteBatch(keys);
+    Status status2 = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::INVALID_ARGUMENT, status2) << "KvStore deletebatch data return wrong status";
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch003_", results);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch003_", results);
     size_t sum = 3;
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 3.";
 }
@@ -872,7 +872,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch003, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch004, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // store entries to kvstore.
     std::vector<Entry> entries;
@@ -892,18 +892,18 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch004, TestSize.Level2)
     keys.push_back("SingleKvStoreDdmDeleteBatch004_2");
     keys.push_back("          ");
 
-    Status status1 = singleKvStorePtr->PutBatch(entries);
+    Status status1 = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status1) << "SingleKvStore putbatch data return wrong status";
 
     std::vector<Entry> results1;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch004_", results1);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch004_", results1);
     size_t sum1 = 3;
     EXPECT_EQ(results1.size(), sum1) << "entries size1111 is not equal 3.";
 
-    Status status2 = singleKvStorePtr->DeleteBatch(keys);
+    Status status2 = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::INVALID_ARGUMENT, status2) << "SingleKvStore deletebatch data return wrong status";
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch004_", results);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch004_", results);
     size_t sum = 3;
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 3.";
 }
@@ -917,7 +917,7 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch004, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch005, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
     // store entries to kvstore.
     std::vector<Entry> entries;
@@ -938,18 +938,18 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch005, TestSize.Level2)
     Key keyTmp = SingleGenerate1025KeyLen();
     keys.push_back(keyTmp);
 
-    Status status1 = singleKvStorePtr->PutBatch(entries);
+    Status status1 = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status1) << "SingleKvStore putbatch data return wrong status";
 
     std::vector<Entry> results1;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch005_", results1);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch005_", results1);
     size_t sum1 = 3;
     EXPECT_EQ(results1.size(), sum1) << "entries111 size is not equal 3.";
 
-    Status status2 = singleKvStorePtr->DeleteBatch(keys);
+    Status status2 = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::INVALID_ARGUMENT, status2) << "SingleKvStore deletebatch data return wrong status";
     std::vector<Entry> results;
-    singleKvStorePtr->GetEntries("SingleKvStoreDdmDeleteBatch005_", results);
+    singleKvStore->GetEntries("SingleKvStoreDdmDeleteBatch005_", results);
     size_t sum = 3;
     EXPECT_EQ(results.size(), sum) << "entries size is not equal 3.";
 }
@@ -963,12 +963,12 @@ HWTEST_F(SingleKvStoreClientTest, DdmDeleteBatch005, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, Transaction001, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
     std::shared_ptr<KvStoreObserverTestImpl> observer = std::make_shared<KvStoreObserverTestImpl>();
     observer->ResetToZero();
 
     SubscribeType subscribeType = SubscribeType::SUBSCRIBE_TYPE_ALL;
-    Status status = singleKvStorePtr->SubscribeKvStore(subscribeType, observer);
+    Status status = singleKvStore->SubscribeKvStore(subscribeType, observer);
     EXPECT_EQ(Status::SUCCESS, status) << "SubscribeKvStore return wrong status";
 
     Key key1 = "SingleKvStoreTransaction001_1";
@@ -990,24 +990,24 @@ HWTEST_F(SingleKvStoreClientTest, Transaction001, TestSize.Level2)
     keys.push_back("SingleKvStoreTransaction001_2");
     keys.push_back("ISingleKvStoreTransaction001_3");
 
-    status = singleKvStorePtr->StartTransaction();
+    status = singleKvStore->StartTransaction();
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore startTransaction return wrong status";
 
-    status = singleKvStorePtr->Put(key1, value1);  // insert or update key-value
+    status = singleKvStore->Put(key1, value1);  // insert or update key-value
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore put data return wrong status";
-    status = singleKvStorePtr->PutBatch(entries);
+    status = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore putbatch data return wrong status";
-    status = singleKvStorePtr->Delete(key1);
+    status = singleKvStore->Delete(key1);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore delete data return wrong status";
-    status = singleKvStorePtr->DeleteBatch(keys);
+    status = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore DeleteBatch data return wrong status";
-    status = singleKvStorePtr->Commit();
+    status = singleKvStore->Commit();
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore Commit return wrong status";
 
     usleep(200000);
     EXPECT_EQ(static_cast<int>(observer->GetCallCount()), 1);
 
-    status = singleKvStorePtr->UnSubscribeKvStore(subscribeType, observer);
+    status = singleKvStore->UnSubscribeKvStore(subscribeType, observer);
     EXPECT_EQ(Status::SUCCESS, status) << "UnSubscribeKvStore return wrong status";
 }
 
@@ -1020,12 +1020,12 @@ HWTEST_F(SingleKvStoreClientTest, Transaction001, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
 {
-    EXPECT_NE(nullptr, singleKvStorePtr) << "singleKvStorePtr is nullptr";
+    EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
     std::shared_ptr<KvStoreObserverTestImpl> observer = std::make_shared<KvStoreObserverTestImpl>();
     observer->ResetToZero();
 
     SubscribeType subscribeType = SubscribeType::SUBSCRIBE_TYPE_ALL;
-    Status status = singleKvStorePtr->SubscribeKvStore(subscribeType, observer);
+    Status status = singleKvStore->SubscribeKvStore(subscribeType, observer);
     EXPECT_EQ(Status::SUCCESS, status) << "SubscribeKvStore return wrong status";
 
     Key key1 = "SingleKvStoreTransaction002_1";
@@ -1047,18 +1047,18 @@ HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
     keys.push_back("SingleKvStoreTransaction002_2");
     keys.push_back("SingleKvStoreTransaction002_3");
 
-    status = singleKvStorePtr->StartTransaction();
+    status = singleKvStore->StartTransaction();
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore startTransaction return wrong status";
 
-    status = singleKvStorePtr->Put(key1, value1);  // insert or update key-value
+    status = singleKvStore->Put(key1, value1);  // insert or update key-value
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore put data return wrong status";
-    status = singleKvStorePtr->PutBatch(entries);
+    status = singleKvStore->PutBatch(entries);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore putbatch data return wrong status";
-    status = singleKvStorePtr->Delete(key1);
+    status = singleKvStore->Delete(key1);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore delete data return wrong status";
-    status = singleKvStorePtr->DeleteBatch(keys);
+    status = singleKvStore->DeleteBatch(keys);
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore DeleteBatch data return wrong status";
-    status = singleKvStorePtr->Rollback();
+    status = singleKvStore->Rollback();
     EXPECT_EQ(Status::SUCCESS, status) << "SingleKvStore Commit return wrong status";
 
     usleep(200000);
@@ -1067,7 +1067,7 @@ HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
     EXPECT_EQ(static_cast<int>(observer->updateEntries_.size()), 0);
     EXPECT_EQ(static_cast<int>(observer->deleteEntries_.size()), 0);
 
-    status = singleKvStorePtr->UnSubscribeKvStore(subscribeType, observer);
+    status = singleKvStore->UnSubscribeKvStore(subscribeType, observer);
     EXPECT_EQ(Status::SUCCESS, status) << "UnSubscribeKvStore return wrong status";
     observer = nullptr;
 }
@@ -1081,7 +1081,7 @@ HWTEST_F(SingleKvStoreClientTest, Transaction002, TestSize.Level2)
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemaSingleKvStorePtr;
+    std::shared_ptr<SingleKvStore> schemasingleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -1090,12 +1090,12 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id001" };
-    manager.GetSingleKvStore(options, appId, storeId, schemaSingleKvStorePtr);
-    ASSERT_NE(schemaSingleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    auto result = schemaSingleKvStorePtr->GetStoreId();
+    manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
+    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = schemasingleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id001");
 
-    auto testStatus = schemaSingleKvStorePtr->SetCapabilityEnabled(true);
+    auto testStatus = schemasingleKvStore->SetCapabilityEnabled(true);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set fail";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
@@ -1109,7 +1109,7 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
 {
-    std::shared_ptr<SingleKvStore> schemaSingleKvStorePtr;
+    std::shared_ptr<SingleKvStore> schemasingleKvStore;
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
@@ -1118,14 +1118,14 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
     options.baseDir = "/data/service/el1/public/database/odmf";
     AppId appId = { "odmf" };
     StoreId storeId = { "schema_store_id002" };
-    manager.GetSingleKvStore(options, appId, storeId, schemaSingleKvStorePtr);
-    ASSERT_NE(schemaSingleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    auto result = schemaSingleKvStorePtr->GetStoreId();
+    manager.GetSingleKvStore(options, appId, storeId, schemasingleKvStore);
+    ASSERT_NE(schemasingleKvStore, nullptr) << "kvStorePtr is null.";
+    auto result = schemasingleKvStore->GetStoreId();
     EXPECT_EQ(result.storeId, "schema_store_id002");
 
     std::vector<std::string> local = {"A", "B"};
     std::vector<std::string> remote = {"C", "D"};
-    auto testStatus = schemaSingleKvStorePtr->SetCapabilityRange(local, remote);
+    auto testStatus = schemasingleKvStore->SetCapabilityRange(local, remote);
     EXPECT_EQ(testStatus, Status::SUCCESS) << "set range fail";
     manager.DeleteKvStore(appId, storeId, options.baseDir);
 }
@@ -1168,11 +1168,11 @@ HWTEST_F(SingleKvStoreClientTest, DisableCapability, TestSize.Level1)
 */
 HWTEST_F(SingleKvStoreClientTest, SyncWithCondition001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
-    auto syncStatus = singleKvStorePtr->Sync(deviceIds, SyncMode::PUSH, dataQuery, nullptr);
+    auto syncStatus = singleKvStore->Sync(deviceIds, SyncMode::PUSH, dataQuery, nullptr);
     EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should not return success";
 }
 
@@ -1185,11 +1185,11 @@ HWTEST_F(SingleKvStoreClientTest, SyncWithCondition001, TestSize.Level1)
  */
 HWTEST_F(SingleKvStoreClientTest, SubscribeWithQuery001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
-    auto syncStatus = singleKvStorePtr->SubscribeWithQuery(deviceIds, dataQuery);
+    auto syncStatus = singleKvStore->SubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(syncStatus, Status::SUCCESS) << "sync device should not return success";
 }
 
@@ -1202,10 +1202,10 @@ HWTEST_F(SingleKvStoreClientTest, SubscribeWithQuery001, TestSize.Level1)
  */
 HWTEST_F(SingleKvStoreClientTest, UnSubscribeWithQuery001, TestSize.Level1)
 {
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
     std::vector<std::string> deviceIds = {"invalid_device_id1", "invalid_device_id2"};
     DataQuery dataQuery;
     dataQuery.KeyPrefix("name");
-    auto unSubscribeStatus = singleKvStorePtr->UnsubscribeWithQuery(deviceIds, dataQuery);
+    auto unSubscribeStatus = singleKvStore->UnsubscribeWithQuery(deviceIds, dataQuery);
     EXPECT_NE(unSubscribeStatus, Status::SUCCESS) << "sync device should not return success";
 }
