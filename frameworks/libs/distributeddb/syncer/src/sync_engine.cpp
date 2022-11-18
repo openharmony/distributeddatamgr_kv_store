@@ -462,7 +462,7 @@ int SyncEngine::ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg)
         return E_OK;
     }
     CommunicatorProxy *comProxy = nullptr;
-    {   
+    {
         std::lock_guard<std::mutex> lock(communicatorProxyLock_);
         comProxy = communicatorProxy_;
         RefObject::IncObjRef(comProxy);
