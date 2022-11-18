@@ -87,12 +87,17 @@ int VirtualCommunicator::GetRemoteCommunicatorVersion(const std::string &deviceI
     return E_OK;
 }
 
-void VirtualCommunicator::CallbackOnMessage(const std::string &srcTarget, Message *inMsg) const
+void VirtualCommunicator::CallbackOnMessage(const std::string &srcTarget, Message *inMsg)
 {
     std::lock_guard<std::mutex> lock(onMessageLock_);
-    if (isEnable_ && onMessage_ && (srcTarget != deviceId_)) {
+    if (isEnable_ && onMessage_ && (srcTarget != deviceId_) && ((inMsg->GetMessageId() != dropMsgId_) ||
+        ((inMsg->GetMessageId() == dropMsgId_) && (dropMsgTimes_ == 0)))) {
         onMessage_(srcTarget, inMsg);
     } else {
+        LOGD("drop msg from dev=%s, localDev=%s", srcTarget.c_str(), deviceId_.c_str());
+        if (dropMsgTimes_ > 0) {
+            dropMsgTimes_--;
+        }
         delete inMsg;
         inMsg = nullptr;
     }
@@ -114,12 +119,17 @@ void VirtualCommunicator::CallbackOnConnect(const std::string &target, bool isCo
 
 uint32_t VirtualCommunicator::GetCommunicatorMtuSize() const
 {
-    return 5 * 1024 * 1024; // 5 * 1024 * 1024B
+    return mtuSize_;
 }
 
 uint32_t VirtualCommunicator::GetCommunicatorMtuSize(const std::string &target) const
 {
     return GetCommunicatorMtuSize();
+}
+
+void VirtualCommunicator::SetCommunicatorMtuSize(uint32_t mtuSize)
+{
+    mtuSize_ = mtuSize;
 }
 
 uint32_t VirtualCommunicator::GetTimeout() const
@@ -131,6 +141,12 @@ uint32_t VirtualCommunicator::GetTimeout(const std::string &target) const
 {
     return GetTimeout();
 }
+
+void VirtualCommunicator::SetTimeout(uint32_t timeout)
+{
+    timeout_ = timeout;
+}
+
 
 int VirtualCommunicator::GetLocalIdentity(std::string &outTarget) const
 {
@@ -207,5 +223,14 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
         buffer = nullptr;
     }
     return errCode;
+}
+
+void VirtualCommunicator::SetDropMessageTypeByDevice(MessageId msgid, uint32_t dropTimes)
+{
+    dropMsgId_ = msgid;
+    dropMsgTimes_ = dropTimes;
+    if (msgid == UNKNOW_MESSAGE) {
+        dropMsgTimes_ = 0;
+    }
 }
 } // namespace DistributedDB

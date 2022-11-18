@@ -21,7 +21,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class ChangeNotification final{
+class ChangeNotification final {
 public:
     // Constructor of ChangeNotification.
     ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
