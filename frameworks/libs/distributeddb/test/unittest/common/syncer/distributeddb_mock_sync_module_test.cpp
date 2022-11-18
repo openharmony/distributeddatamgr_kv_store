@@ -892,16 +892,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->TestSetIdentifier(identifierVec);
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
-    std::thread writeThread([&syncDBInterface] {
-        syncDBInterface->TestLocalChange();
-    });
-    std::thread deleteThread([&syncDBInterface] {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        delete syncDBInterface;
-    });
-    deleteThread.join();
-    writeThread.join();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    syncDBInterface->TestLocalChange();
+    delete syncDBInterface;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
