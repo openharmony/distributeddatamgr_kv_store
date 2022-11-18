@@ -137,31 +137,31 @@ Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject::T
 
     std::vector<uint8_t> uData;
     if (auto *val = std::get_if<std::vector<uint8_t>>(&it->second)) {
-        ZLOGI("Value bucket type blob");
+        ZLOGD("Value bucket type blob");
         std::vector<uint8_t> data = *val;
         uData.push_back(KvUtils::BYTE_ARRAY);
         uData.insert(uData.end(), data.begin(), data.end());
     } else if (auto *val = std::get_if<int64_t>(&it->second)) {
-        ZLOGI("Value bucket type int");
+        ZLOGD("Value bucket type int");
         int64_t data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::INTEGER);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(int64_t) / sizeof(uint8_t));
     } else if (auto *val = std::get_if<double>(&it->second)) {
-        ZLOGI("Value bucket type double");
+        ZLOGD("Value bucket type double");
         double data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::DOUBLE);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(double) / sizeof(uint8_t));
     } else if (auto *val = std::get_if<bool>(&it->second)) {
-        ZLOGI("Value bucket type bool");
+        ZLOGD("Value bucket type bool");
         bool data = *val;
         uData.push_back(KvUtils::BOOLEAN);
         uData.push_back(static_cast<uint8_t>(data));
     } else if (auto *val = std::get_if<std::string>(&it->second)) {
-        ZLOGI("Value bucket type string");
+        ZLOGD("Value bucket type string");
         std::string data = *val;
         uData.push_back(KvUtils::STRING);
         uData.insert(uData.end(), data.begin(), data.end());
