@@ -215,7 +215,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                     console.info('DeviceKvStorePutStringCallbackClosedKvStoreTest put success');
                 } else {
                     console.error('DeviceKvStorePutStringCallbackClosedKvStoreTest put fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -292,7 +292,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -601,7 +601,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -806,7 +806,7 @@ describe('DeviceKvStoreCallbackTest', function () {
             });
         } catch (e) {
             console.error('DeviceKvStoreOnChangeCallbackClosedKVStoreTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 15100006).assertTrue();
+            expect(e.code == 15100005).assertTrue();
         }
         done();
     })
@@ -1339,7 +1339,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertFail();
+                    expect(err.code == 15100005).assertFail();
                 }
             });
         } catch (e) {
@@ -1460,7 +1460,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(e.code == 15100006).assertTrue();
+                            expect(e.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1541,7 +1541,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(err.code == 15100006).assertTrue();
+                            expect(err.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1618,7 +1618,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(err.code == 15100006).assertTrue();
+                            expect(err.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1758,7 +1758,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -1785,7 +1785,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -1812,7 +1812,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -1921,7 +1921,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                     expect(null).assertFail();
                     done();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -2246,7 +2246,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {

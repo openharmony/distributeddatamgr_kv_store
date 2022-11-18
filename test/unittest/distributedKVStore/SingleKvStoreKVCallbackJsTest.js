@@ -182,7 +182,7 @@ describe('SingleKvStoreCallbackTest', function () {
                     console.info('SingleKvStorePutStringCallbackClosedKvStoreTest put success');
                 } else {
                     console.error('SingleKvStorePutStringCallbackClosedKvStoreTest put fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -235,7 +235,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -549,7 +549,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -710,7 +710,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 });
             });
             await kvStore.backup(file, function (ee) {
-                expect(ee.code == 15100006).assertTrue();
+                expect(ee.code == 15100005).assertTrue();
             });
         } catch (e) {
             expect(null).assertFail();
@@ -766,7 +766,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 });
             });
             await kvStore.restore(file, function (error) {
-                expect(error.code == 15100006).assertTrue();
+                expect(error.code == 15100005).assertTrue();
             });
         } catch (e) {
             expect(null).assertFail();
@@ -900,7 +900,7 @@ describe('SingleKvStoreCallbackTest', function () {
             });
         } catch (e) {
             console.error('SingleKvStoreOnChangeCallbackClosedKVStoreTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 15100006).assertTrue();
+            expect(e.code == 15100005).assertTrue();
         }
         done();
     })
@@ -1433,7 +1433,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertFail();
+                    expect(err.code == 15100005).assertFail();
                 }
             });
         } catch (e) {
@@ -1554,7 +1554,7 @@ describe('SingleKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(e.code == 15100006).assertTrue();
+                            expect(e.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1635,7 +1635,7 @@ describe('SingleKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(err.code == 15100006).assertTrue();
+                            expect(err.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1712,7 +1712,7 @@ describe('SingleKvStoreCallbackTest', function () {
                         if (err == undefined) {
                             expect(null).assertFail();
                         } else {
-                            expect(err.code == 15100006).assertTrue();
+                            expect(err.code == 15100005).assertTrue();
                         }
                     });
                 });
@@ -1852,7 +1852,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -1879,7 +1879,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -1906,7 +1906,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -2015,7 +2015,7 @@ describe('SingleKvStoreCallbackTest', function () {
                     expect(null).assertFail();
                     done();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
@@ -2134,7 +2134,7 @@ describe('SingleKvStoreCallbackTest', function () {
                     expect(null).assertFail();
                 } else {
                     console.error('SingleKvStoreGetSecurityLevelCallbackClosedKVStoreTest getSecurityLevel fail' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
                 done();
             });
@@ -2434,7 +2434,7 @@ describe('SingleKvStoreCallbackTest', function () {
                 if (err == undefined) {
                     expect(null).assertFail();
                 } else {
-                    expect(err.code == 15100006).assertTrue();
+                    expect(err.code == 15100005).assertTrue();
                 }
             });
         } catch (e) {
