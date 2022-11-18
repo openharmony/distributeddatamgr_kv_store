@@ -1227,6 +1227,35 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTable(const
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTableLog(const std::string &device,
+    const std::string &tableName)
+{
+    std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE device = ?";
+    sqlite3_stmt *deleteLogStmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, deleteLogSql, deleteLogStmt);
+    if (errCode != E_OK) {
+        LOGE("Get delete device data log statement failed. %d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindTextToStatement(deleteLogStmt, 1, device);
+    if (errCode != E_OK) {
+        LOGE("Bind device to delete data log statement failed. %d", errCode);
+        SQLiteUtils::ResetStatement(deleteLogStmt, true, errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(deleteLogStmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("Delete data log failed. %d", errCode);
+    }
+
+    SQLiteUtils::ResetStatement(deleteLogStmt, true, errCode);
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedLogTable(const std::string &tableName)
 {
     if (tableName.empty()) {
