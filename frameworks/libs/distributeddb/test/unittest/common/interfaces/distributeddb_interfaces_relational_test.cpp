@@ -889,7 +889,7 @@ void ProcessSync(RelationalStoreDelegate *delegate)
 
     VirtualRowData virtualRowData;
     DataValue d1;
-    d1 = (int64_t)2;
+    d1 = static_cast<int64_t>(2); // 2: test data
     virtualRowData.objectData.PutDataValue("create", d1);
     DataValue d2;
     d2.SetText("hello");

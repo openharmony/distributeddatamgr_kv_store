@@ -759,3 +759,59 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, GetSyncDataTransTest001, TestSi
     RefObject::KillAndDecObjRef(store);
     KvDBManager::ReleaseDatabaseConnection(conn);
 }
+
+/**
+  * @tc.name: AddSubscribeTest003
+  * @tc.desc: Test put sync data with subscribe trigger
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("AddSubscribeErrTest002", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().EqualTo("field_name2", false);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step3. Reput same data with delete flag
+     * @tc.expected: step3. put data success
+     */
+    Key key ;
+    Value value;
+    std::string validJsonData(R"({"field_name1":false,"field_name2":false,"field_name3":100})");
+    DBCommon::StringToVector(validJsonData, value);
+    Timestamp now = store->GetCurrentTimestamp();
+    std::vector<DataItem> data;
+    data.push_back({{'K', '0'}, value, now, 0, REMOTE_DEVICE_ID, now});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    data.clear();
+    Key hashKey;
+    DBCommon::CalcValueHash({'K', '0'}, hashKey);
+    data.push_back({hashKey, {}, now + 1, 1, REMOTE_DEVICE_ID, now + 1});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    // repeat put with delete flag
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    /**
+     * @tc.steps:step4. Close natural store
+     * @tc.expected: step4. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}

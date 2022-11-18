@@ -834,7 +834,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser012, TestSize.Level1)
     /**
      * @tc.steps: step4. SetEqualIdentifier and NotifyUserChanged concurrently called
      */
-    thread subThread([&]() {
+    thread subThread([]() {
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
     std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier("default", APP_ID, STORE_ID);
