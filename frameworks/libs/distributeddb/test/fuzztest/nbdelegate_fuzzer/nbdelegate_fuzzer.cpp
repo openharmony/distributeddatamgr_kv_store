@@ -207,7 +207,7 @@ void EncryptOperation(const uint8_t* data, size_t size, std::string &DirPath, Kv
     int len = static_cast<int>(std::min(size, size_t(20)));
     passwd.SetValue(data, len);
     kvNbDelegatePtr->Rekey(passwd);
-    len = static_cast<int>(std::min(size, size_t(100)));
+    len = static_cast<int>(std::min(size, size_t(100))); // set min 100
     std::string fileName(data, data + len);
     std::string mulitExportFileName = DirPath + "/" + fileName + ".db";
     kvNbDelegatePtr->Export(mulitExportFileName, passwd);
