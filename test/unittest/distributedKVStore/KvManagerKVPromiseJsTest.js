@@ -100,7 +100,7 @@ describe('KVManagerPromiseTest', function () {
             console.error('KVManagerGetKVStorePromiseSucTest getKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
-		done();
+        done();
     })
 
     /**
