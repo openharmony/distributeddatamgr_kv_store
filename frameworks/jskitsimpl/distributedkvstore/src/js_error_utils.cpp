@@ -61,6 +61,9 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
 void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
 {
     ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
+    if (status == Status::SUCCESS) {
+        return;
+    }
     auto errormsg = GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errormsg.has_value()) {
