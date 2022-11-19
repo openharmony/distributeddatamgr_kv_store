@@ -89,7 +89,7 @@ describe('KVManagerPromiseTest', function () {
     it('KVManagerGetKVStorePromiseSucTest', 0, async function (done) {
         console.info('KVManagerGetKVStorePromiseSucTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options).then((err, store) => {
+            await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
                 console.info('KVManagerGetKVStorePromiseSucTest getKVStore success');
                 expect(store != undefined && store != null).assertTrue();
                 done();
