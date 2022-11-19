@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include <endian.h>
 #include <vector>
 #include <map>
 #include "datashare_predicates.h"
