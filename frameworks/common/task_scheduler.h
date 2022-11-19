@@ -131,21 +131,17 @@ private:
             std::function<void()> exec;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                if ((!tasks_.empty()) && (tasks_.begin()->first <= std::chrono::system_clock::now())) {
-                    exec = tasks_.begin()->second;
-                    tasks_.erase(tasks_.begin());
+                condition_.wait(lock, [this] { return !tasks_.empty(); });
+                if (tasks_.begin()->first > std::chrono::system_clock::now()) {
+                    condition_.wait_until(lock, tasks_.begin()->first);
+                    continue;
                 }
+                exec = tasks_.begin()->second;
+                tasks_.erase(tasks_.begin());
             }
 
             if (exec) {
                 exec();
-            }
-
-            std::unique_lock<std::mutex> lock(mutex_);
-            if (tasks_.empty()) {
-                condition_.wait(lock);
-            } else {
-                condition_.wait_until(lock, tasks_.begin()->first);
             }
         }
     }
