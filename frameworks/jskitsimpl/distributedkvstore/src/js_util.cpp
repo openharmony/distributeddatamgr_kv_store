@@ -14,7 +14,6 @@
  */
 #define LOG_TAG "JSUtil"
 #include "js_util.h"
-#include "endian_converter.h"
 #include "ability.h"
 #include "hap_module_info.h"
 #include "napi_base_context.h"

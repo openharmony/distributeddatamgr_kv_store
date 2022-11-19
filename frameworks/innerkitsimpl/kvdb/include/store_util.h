@@ -15,6 +15,7 @@
 
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_UTIL_H
+#include <atomic>
 #include "kv_store_delegate_manager.h"
 #include "store_errno.h"
 #include "store_types.h"

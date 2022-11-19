@@ -45,8 +45,6 @@ ohos_shared_library("distributedkvstore") {
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter/include/log",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/framework/include/utils",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributedkvstore/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include/autils",
     "${datashare_innerapi_path}/common/include",

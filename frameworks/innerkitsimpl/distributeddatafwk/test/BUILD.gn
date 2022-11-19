@@ -20,10 +20,8 @@ config("module_private_config") {
 
   include_dirs = [
     "../include/",
+    "../../kvdb/include/",
     "../../../../interfaces/innerkits/distributeddata/",
-
-    # TEMP MODIFICATION FOR PMS
-    "../../../../services/distributeddataservice/app/include",
 
     # for ipc_core interfaces.
     "//commonlibrary/c_utils/base/include",

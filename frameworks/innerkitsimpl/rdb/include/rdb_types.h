@@ -44,7 +44,7 @@ struct RdbSyncerParam {
     std::vector<uint8_t> password_;
 };
 
-enum SyncMode {
+enum SyncMode : int32_t {
     PUSH,
     PULL,
 };

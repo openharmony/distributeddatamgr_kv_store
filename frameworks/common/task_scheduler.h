@@ -15,12 +15,13 @@
 
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TASK_SCHEDULER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TASK_SCHEDULER_H
-#include <memory>
-#include <thread>
-#include <limits>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
+#include <limits>
+#include <memory>
 #include <mutex>
+#include <thread>
 #include "visibility.h"
 namespace OHOS {
 class API_LOCAL TaskScheduler {
