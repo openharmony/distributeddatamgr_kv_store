@@ -20,20 +20,14 @@ using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
 static const std::map<int32_t, JsErrorCode> jsErrCodeMsgMap {
     {Status::INVALID_ARGUMENT,               {401, "Parameter error."}},
-    {Status::ILLEGAL_STATE,                  {-1, ""}},
-    {Status::ERROR,                          {-1, ""}},
-    {Status::SERVER_UNAVAILABLE,             {-1, ""}},
-    {Status::DB_ERROR,                       {-1, ""}},
     {Status::OVER_MAX_SUBSCRIBE_LIMITS,      {15100001, "Over max subscribe limits."}},
     {Status::STORE_META_CHANGED,             {15100002, "Open existed database with changed options."}},
     {Status::CRYPT_ERROR,                    {15100003, "Database corrupted."}},
     {Status::NOT_FOUND,                      {15100004, "Not found."}},
-    {Status::NOT_SUPPORT,                    {15100005, "Not support the operation."}},
-    {Status::ALREADY_CLOSED,                 {15100006, "Database or result set already closed."}},
+    {Status::ALREADY_CLOSED,                 {15100005, "Database or result set already closed."}},
     {Status::STORE_ALREADY_SUBSCRIBE,        {0, ""}},
     {Status::STORE_NOT_OPEN,                 {0, ""}},
     {Status::STORE_NOT_SUBSCRIBE,            {0, ""}},
-    {Status::SECURITY_LEVEL_ERROR,           {0, ""}},
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
@@ -52,6 +46,10 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
         auto napiError = errormsg.value();
         errCode = napiError.jsCode;
         errMessage = napiError.message;
+    } else {
+        // unmatched status return unified error code
+        errCode = -1;
+        errMessage = "";
     }
     ZLOGD("GenerateNapiError errCode is %{public}d", errCode);
     if (errCode == 0) {
@@ -63,15 +61,29 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
 void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
 {
     ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
+    if (status == Status::SUCCESS) {
+        return;
+    }
     auto errormsg = GetJsErrorCode(status);
     JsErrorCode napiError;
     if (errormsg.has_value()) {
         napiError = errormsg.value();
+    } else {
+        napiError.jsCode = -1;
+        napiError.message = "";
     }
+
     if (isParamsCheck) {
         napiError.message += errMessage;
         napiError.jsCode = 401;
     }
-    napi_throw_error(env, std::to_string(napiError.jsCode).c_str(), napiError.message.c_str());
+
+    std::string jsCode;
+    if (napiError.jsCode == -1) {
+        jsCode = "";
+    } else {
+        jsCode = std::to_string(napiError.jsCode);
+    }
+    napi_throw_error(env, jsCode.c_str(), napiError.message.c_str());
 }
 }  // namespace OHOS::DistributedKVStore
