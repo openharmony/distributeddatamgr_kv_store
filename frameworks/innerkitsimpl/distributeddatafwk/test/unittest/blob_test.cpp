@@ -335,4 +335,3 @@ HWTEST_F(BlobTest, WriteToBuffer001, TestSize.Level1)
     ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outUpdates));
     ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outDeletes));
 }
-} // namespace
