@@ -269,6 +269,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
+    "unittest/common/common/system_timer.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
     "unittest/common/syncer/generic_virtual_device.cpp",
     "unittest/common/syncer/kv_virtual_device.cpp",

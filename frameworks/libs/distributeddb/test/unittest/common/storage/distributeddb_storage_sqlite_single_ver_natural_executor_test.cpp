@@ -115,8 +115,6 @@ void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::TearDown(void)
 HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, Destructor001, TestSize.Level1)
 {
     g_handle->StartTransaction(TransactType::DEFERRED);
-    delete g_handle;
-    g_handle = nullptr;
 }
 
 /**

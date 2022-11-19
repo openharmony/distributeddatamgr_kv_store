@@ -405,10 +405,13 @@ int SQLiteSingleVerNaturalStore::CheckDatabaseRecovery(const KvDBProperties &kvD
 int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &kvDBProp)
 {
     int errCode = E_OK;
-    storageEngine_ =
-        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(kvDBProp, errCode));
-    if (storageEngine_ == nullptr) {
-        return errCode;
+    {
+        std::unique_lock<std::shared_mutex> lock(engineMutex_);
+        storageEngine_ =
+            static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(kvDBProp, errCode));
+        if (storageEngine_ == nullptr) {
+            return errCode;
+        }
     }
 
     if (storageEngine_->IsEngineCorrupted()) {
@@ -1067,18 +1070,26 @@ void SQLiteSingleVerNaturalStore::NotifyRemovedData(std::vector<Entry> &entries)
 SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStore::GetHandle(bool isWrite, int &errCode,
     OperatePerm perm) const
 {
+    engineMutex_.lock_shared();
     if (storageEngine_ == nullptr) {
         errCode = -E_INVALID_DB;
+        engineMutex_.unlock_shared(); // unlock when get handle failed.
         return nullptr;
     }
     // Use for check database corrupted in Asynchronous task, like cache data migrate to main database
     if (storageEngine_->IsEngineCorrupted()) {
         CorruptNotify();
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+        engineMutex_.unlock_shared(); // unlock when get handle failed.
         LOGI("Handle is corrupted can not to get! errCode = [%d]", errCode);
         return nullptr;
     }
-    return static_cast<SQLiteSingleVerStorageExecutor *>(storageEngine_->FindExecutor(isWrite, perm, errCode));
+
+    auto handle = storageEngine_->FindExecutor(isWrite, perm, errCode);
+    if (handle == nullptr) {
+        engineMutex_.unlock_shared(); // unlock when get handle failed.
+    }
+    return static_cast<SQLiteSingleVerStorageExecutor *>(handle);
 }
 
 void SQLiteSingleVerNaturalStore::ReleaseHandle(SQLiteSingleVerStorageExecutor *&handle) const
@@ -1096,6 +1107,7 @@ void SQLiteSingleVerNaturalStore::ReleaseHandle(SQLiteSingleVerStorageExecutor *
             CorruptNotify();
         }
     }
+    engineMutex_.unlock_shared(); // unlock after handle used up
 }
 
 int SQLiteSingleVerNaturalStore::RegisterNotification()
@@ -1139,7 +1151,7 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
         notificationConflictEventsRegistered_ = false;
     }
     {
-        std::lock_guard<std::mutex> lock(syncerMutex_);
+        std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
             storageEngine_->ClearEnginePasswd();
             (void)StorageEngineManager::ReleaseStorageEngine(storageEngine_);
@@ -2014,8 +2026,8 @@ int SQLiteSingleVerNaturalStore::SaveSyncItemsInCacheMode(SQLiteSingleVerStorage
     }
 END:
     if (errCode == E_OK) {
+        storageEngine_->IncreaseCacheRecordVersion(); // use engine wihtin shard lock by handle
         errCode = handle->Commit();
-        storageEngine_->IncreaseCacheRecordVersion();
     } else {
         (void)handle->Rollback(); // Keep the error code of the first scene
     }
