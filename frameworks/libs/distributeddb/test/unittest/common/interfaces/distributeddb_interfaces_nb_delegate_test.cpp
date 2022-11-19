@@ -2167,6 +2167,7 @@ void InitVirtualDevice(const std::string &devId, KvVirtualDevice *&devices,
 void FreeVirtualDevice(KvVirtualDevice *&devices)
 {
     if (devices != nullptr) {
+        delete devices;
         devices = nullptr;
     }
 }

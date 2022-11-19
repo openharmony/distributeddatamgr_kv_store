@@ -167,7 +167,7 @@ int EventLoopImpl::Run()
         loopThread_ = std::this_thread::get_id();
     }
 
-    int errCode;
+    int errCode = E_OK;
     IncObjRef(this);
 
     while (running_) {
