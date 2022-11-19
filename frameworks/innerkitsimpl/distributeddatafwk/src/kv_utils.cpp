@@ -70,12 +70,12 @@ Entry KvUtils::ToEntry(const DataShareValuesBucket &valueBucket)
         return {};
     }
     Entry entry;
-    Status status = ToEntryData(values, KEY, entry.key);
+    Status status = ToEntryKey(values, entry.key);
     if (status != Status::SUCCESS) {
         ZLOGE("GetEntry key failed: %{public}d", status);
         return {};
     }
-    status = ToEntryData(values, VALUE, entry.value);
+    status = ToEntryValue(values, entry.value);
     if (status != Status::SUCCESS) {
         ZLOGE("GetEntry value failed: %{public}d", status);
         return {};
@@ -109,10 +109,27 @@ Status KvUtils::GetKeys(const DataShareAbsPredicates &predicates, std::vector<Ke
     return Status::SUCCESS;
 }
 
-Status KvUtils::ToEntryData(const std::map<std::string, DataShareValueObject::Type> &values,
-    const std::string &field, Blob &blob)
+Status KvUtils::ToEntryKey(const std::map<std::string, DataShareValueObject::Type> &values, Blob &blob)
 {
-    auto it = values.find(field);
+    auto it = values.find(KEY);
+    if (it == values.end()) {
+        ZLOGE("field is not find!");
+        return Status::ERROR;
+    }
+    if (auto *val = std::get_if<std::string>(&it->second)) {
+        std::vector<uint8_t> uData;
+        std::string data = *val;
+        uData.insert(uData.end(), data.begin(), data.end());
+        blob = Blob(uData);
+        return Status::SUCCESS;
+    }
+    ZLOGE("value bucket type is not string");
+    return Status::ERROR;
+}
+
+Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject::Type> &values, Blob &blob)
+{
+    auto it = values.find(VALUE);
     if (it == values.end()) {
         ZLOGE("field is not find!");
         return Status::ERROR;
@@ -120,31 +137,31 @@ Status KvUtils::ToEntryData(const std::map<std::string, DataShareValueObject::Ty
 
     std::vector<uint8_t> uData;
     if (auto *val = std::get_if<std::vector<uint8_t>>(&it->second)) {
-        ZLOGE("Value bucket type blob");
+        ZLOGD("Value bucket type blob");
         std::vector<uint8_t> data = *val;
         uData.push_back(KvUtils::BYTE_ARRAY);
         uData.insert(uData.end(), data.begin(), data.end());
     } else if (auto *val = std::get_if<int64_t>(&it->second)) {
-        ZLOGE("Value bucket type int");
+        ZLOGD("Value bucket type int");
         int64_t data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::INTEGER);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(int64_t) / sizeof(uint8_t));
     } else if (auto *val = std::get_if<double>(&it->second)) {
-        ZLOGE("Value bucket type double");
+        ZLOGD("Value bucket type double");
         double data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::DOUBLE);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(double) / sizeof(uint8_t));
     } else if (auto *val = std::get_if<bool>(&it->second)) {
-        ZLOGE("Value bucket type bool");
+        ZLOGD("Value bucket type bool");
         bool data = *val;
         uData.push_back(KvUtils::BOOLEAN);
         uData.push_back(static_cast<uint8_t>(data));
     } else if (auto *val = std::get_if<std::string>(&it->second)) {
-        ZLOGE("Value bucket type string");
+        ZLOGD("Value bucket type string");
         std::string data = *val;
         uData.push_back(KvUtils::STRING);
         uData.insert(uData.end(), data.begin(), data.end());

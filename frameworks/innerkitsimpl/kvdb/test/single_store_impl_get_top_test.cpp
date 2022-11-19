@@ -34,7 +34,7 @@ public:
 
     void TearDown();
 
-    static std::shared_ptr<SingleKvStore> singleKvStorePtr; // declare kvstore instance.
+    static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status initStatus;
     static int MAX_VALUE_SIZE;
 };
@@ -47,7 +47,7 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
                                                "},"
                                                "\"SCHEMA_INDEXES\":[\"$.age\"]}";
 
-std::shared_ptr<SingleKvStore> SingleStoreImplGetTopTest::singleKvStorePtr = nullptr;
+std::shared_ptr<SingleKvStore> SingleStoreImplGetTopTest::singleKvStore = nullptr;
 Status SingleStoreImplGetTopTest::initStatus = Status::ERROR;
 int SingleStoreImplGetTopTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
@@ -62,7 +62,7 @@ void SingleStoreImplGetTopTest::SetUpTestCase(void)
     StoreId storeId = { "test_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     // [create and] open and initialize kvstore instance.
-    initStatus = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
+    initStatus = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
 }
 
 void SingleStoreImplGetTopTest::TearDownTestCase(void)
@@ -87,14 +87,14 @@ void SingleStoreImplGetTopTest::TearDown(void)
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
@@ -102,7 +102,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
     query.KeyPrefix("1");
     query.OrderByWriteTime(true);
     std::vector<Entry> output;
-    auto status = singleKvStorePtr->GetEntries(query, output);
+    auto status = singleKvStore->GetEntries(query, output);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(output.size(), 10);
     for (size_t i = 0; i < output.size(); ++i) {
@@ -120,14 +120,14 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeAsc, TestSize.Leve
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
@@ -135,7 +135,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
     query.KeyPrefix("1");
     query.OrderByWriteTime(false);
     std::vector<Entry> output;
-    auto status = singleKvStorePtr->GetEntries(query, output);
+    auto status = singleKvStore->GetEntries(query, output);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(output.size(), 10);
     for (size_t i = 0; i < output.size(); ++i) {
@@ -153,23 +153,23 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeDesc, TestSize.Lev
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
-    singleKvStorePtr->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
     DataQuery query;
     query.OrderByWriteTime(true);
     query.EqualTo("$.name",1);
     std::vector<Entry> output;
-    auto status = singleKvStorePtr->GetEntries(query, output);
+    auto status = singleKvStore->GetEntries(query, output);
     ASSERT_EQ(status, NOT_SUPPORT);
     ASSERT_EQ(output.size(), 0);
 }
@@ -183,14 +183,14 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     for (size_t i = 10; i < 30; ++i) {
         Entry entry;
         entry.key = std::to_string(i).append("_k");
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
@@ -198,7 +198,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
     query.InKeys({"10_k", "11_k"});
     query.OrderByWriteTime(true);
     std::shared_ptr<KvStoreResultSet> output;
-    auto status = singleKvStorePtr->GetResultSet(query, output);
+    auto status = singleKvStore->GetResultSet(query, output);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_NE(output, nullptr);
     ASSERT_EQ(output->GetCount(), 2);
@@ -221,7 +221,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeAsc, TestSize.Le
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
@@ -231,7 +231,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
@@ -239,7 +239,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
     query.KeyPrefix("1");
     query.OrderByWriteTime(false);
     std::shared_ptr<KvStoreResultSet> output;
-    auto status = singleKvStorePtr->GetResultSet(query, output);
+    auto status = singleKvStore->GetResultSet(query, output);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_NE(output, nullptr);
     ASSERT_EQ(output->GetCount(), 10);
@@ -261,7 +261,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeDesc, TestSize.L
 */
 HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSize.Level0)
 {
-    ASSERT_NE(singleKvStorePtr, nullptr);
+    ASSERT_NE(singleKvStore, nullptr);
     std::vector<Entry> input;
     auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
@@ -271,16 +271,16 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
         entry.value = std::to_string(i).append("_v");
         input.push_back(entry);
         dictionary[entry.key] = entry.value;
-        auto status =singleKvStorePtr->Put(
+        auto status =singleKvStore->Put(
             entry.key, entry.value);
         ASSERT_EQ(status, SUCCESS);
     }
-    singleKvStorePtr->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
     DataQuery query;
     query.OrderByWriteTime(true);
     query.EqualTo("$.name", 1);
     std::shared_ptr<KvStoreResultSet> output;
-    auto status = singleKvStorePtr->GetResultSet(query, output);
+    auto status = singleKvStore->GetResultSet(query, output);
     ASSERT_EQ(status, NOT_SUPPORT);
     ASSERT_EQ(output, nullptr);
 }

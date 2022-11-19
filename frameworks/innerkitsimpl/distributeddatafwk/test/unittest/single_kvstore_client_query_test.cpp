@@ -21,11 +21,10 @@
 #include <vector>
 #include "distributed_kv_data_manager.h"
 #include "types.h"
-#include "log_print.h"
 #include "gtest/gtest.h"
+namespace {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
 class SingleKvStoreClientQueryTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -36,19 +35,21 @@ public:
 
     void TearDown();
 
-    static std::shared_ptr<SingleKvStore> singleKvStorePtr;
+    static std::shared_ptr<SingleKvStore> singleKvStore;
     static Status statusGetKvStore;
 };
 
-const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
-        "\"SCHEMA_MODE\":\"STRICT\","
-        "\"SCHEMA_SKIPSIZE\":0,"
-        "\"SCHEMA_DEFINE\":{"
-            "\"name\":\"INTEGER, NOT NULL\""
-        "},"
-        "\"SCHEMA_INDEXES\":[\"$.name\"]}";
-std::shared_ptr<SingleKvStore> SingleKvStoreClientQueryTest::singleKvStorePtr = nullptr;
+static constexpr const char *VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
+                                                          "\"SCHEMA_MODE\":\"STRICT\","
+                                                          "\"SCHEMA_SKIPSIZE\":0,"
+                                                          "\"SCHEMA_DEFINE\":{"
+                                                              "\"name\":\"INTEGER, NOT NULL\""
+                                                          "},"
+                                                          "\"SCHEMA_INDEXES\":[\"$.name\"]}";
+std::shared_ptr<SingleKvStore> SingleKvStoreClientQueryTest::singleKvStore = nullptr;
 Status SingleKvStoreClientQueryTest::statusGetKvStore = Status::ERROR;
+static constexpr int32_t INVALID_NUMBER = -1;
+static constexpr uint32_t MAX_QUERY_LENGTH = 1024;
 
 void SingleKvStoreClientQueryTest::SetUpTestCase(void)
 {
@@ -70,15 +71,14 @@ void SingleKvStoreClientQueryTest::TearDown(void)
 {}
 
 /**
-* @tc.name: TestQueryC001
-* @tc.desc: Query reset.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is reset
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC001, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, TestQueryReset, TestSize.Level1)
 {
-    ZLOGD("TestQueryC001 start");
     DataQuery query;
     EXPECT_TRUE(query.ToString().length() == 0);
     std::string str = "test value";
@@ -86,19 +86,49 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC001, TestSize.Level1)
     EXPECT_TRUE(query.ToString().length() > 0);
     query.Reset();
     EXPECT_TRUE(query.ToString().length() == 0);
-    ZLOGD("TestQueryC001 end");
 }
 
 /**
-* @tc.name: TestQueryC002
-* @tc.desc: Query equalTo.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is equalTo, the field is invalid
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC002, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryEqualToInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC002 start");
+    DataQuery query;
+    query.EqualTo("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("$.test_field_name^", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("", (int64_t)100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("^", (int64_t)100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("$.^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("", false);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("^$.test_field_name", false);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("", std::string("str"));
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.EqualTo("^^^^^^^", std::string("str"));
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is equalTo, the field is valid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryEqualToValidField, TestSize.Level1)
+{
     DataQuery query;
     query.EqualTo("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -115,19 +145,49 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC002, TestSize.Level1)
     std::string str = "";
     query.EqualTo("$.test_field_name", str);
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC002 end");
 }
 
 /**
-* @tc.name: TestQueryC003
-* @tc.desc: Query notEqualTo.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is notEqualTo, the field is invalid
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC003, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryNotEqualToValidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC003 start");
+      DataQuery query;
+      query.NotEqualTo("", 100);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("$.test_field_name^test", 100);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("", (int64_t)100);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("^$.test_field_name", (int64_t)100);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("", 1.23);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("^", 1.23);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("", false);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("^^", false);
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("", std::string("test_value"));
+      EXPECT_TRUE(query.ToString().length() == 0);
+      query.NotEqualTo("$.test_field^_name", std::string("test_value"));
+      EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is notEqualTo, the field is valid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryNotEqualToInvalidField, TestSize.Level1)
+{
     DataQuery query;
     query.NotEqualTo("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -144,19 +204,45 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC003, TestSize.Level1)
     std::string str = "test value";
     query.NotEqualTo("$.test_field_name", str);
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC003 end");
 }
 
 /**
-* @tc.name: TestQueryC004
-* @tc.desc: Query greaterThan.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is greaterThan, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC004, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryGreaterThanInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC004 start");
+    DataQuery query;
+    query.GreaterThan("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("$.^^", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("^$.test_field_name", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThan("$.test_field_name^*%$#", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is greaterThan, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryGreaterThanValidField, TestSize.Level1)
+{
     DataQuery query;
     query.GreaterThan("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -167,22 +253,47 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC004, TestSize.Level1)
     query.GreaterThan("$.test_field_name", 1.23);
     EXPECT_TRUE(query.ToString().length() > 0);
     query.Reset();
-    std::string str = "test value";
-    query.GreaterThan("$.test_field_name", str);
+    query.GreaterThan("$.test_field_name$$$", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC004 end");
 }
 
 /**
-* @tc.name: TestQueryC005
-* @tc.desc: Query lessThan.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is lessThan, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC005, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLessThanInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC005 start");
+    DataQuery query;
+    query.LessThan("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("$.^", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("^$.test_field_name", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("^^^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThan("$.test_field_name^", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is lessThan, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLessThanValidField, TestSize.Level1)
+{
     DataQuery query;
     query.LessThan("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -193,22 +304,47 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC005, TestSize.Level1)
     query.LessThan("$.test_field_name", 1.23);
     EXPECT_TRUE(query.ToString().length() > 0);
     query.Reset();
-    std::string str = "test value";
-    query.LessThan("$.test_field_name", str);
+    query.LessThan("$.test_field_name", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC005 end");
 }
 
 /**
-* @tc.name: TestQueryC006
-* @tc.desc: Query greaterThanOrEqualTo.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is greaterThanOrEqualTo, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC006, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryGreaterThanOrEqualToInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC006 start");
+    DataQuery query;
+    query.GreaterThanOrEqualTo("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("^$.test_field_name", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("$.test_field_name^", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("^$.^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.GreaterThanOrEqualTo("^^=", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is greaterThanOrEqualTo, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryGreaterThanOrEqualToValidField, TestSize.Level1)
+{
     DataQuery query;
     query.GreaterThanOrEqualTo("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -219,22 +355,47 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC006, TestSize.Level1)
     query.GreaterThanOrEqualTo("$.test_field_name", 1.23);
     EXPECT_TRUE(query.ToString().length() > 0);
     query.Reset();
-    std::string str = "test value";
-    query.GreaterThanOrEqualTo("$.test_field_name", str);
+    query.GreaterThanOrEqualTo("$.test_field_name", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC006 end");
 }
 
 /**
-* @tc.name: TestQueryC007
-* @tc.desc: Query lessThanOrEqualTo.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is lessThanOrEqualTo, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC007, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLessThanOrEqualToInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC007 start");
+    DataQuery query;
+    query.LessThanOrEqualTo("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("^$.test_field_name", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("$.test_field_name^", (int64_t) 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.LessThanOrEqualTo("678678^", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is lessThanOrEqualTo, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLessThanOrEqualToValidField, TestSize.Level1)
+{
     DataQuery query;
     query.LessThanOrEqualTo("$.test_field_name", 100);
     EXPECT_TRUE(query.ToString().length() > 0);
@@ -245,38 +406,81 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC007, TestSize.Level1)
     query.LessThanOrEqualTo("$.test_field_name", 1.23);
     EXPECT_TRUE(query.ToString().length() > 0);
     query.Reset();
-    std::string str = "test value";
-    query.LessThanOrEqualTo("$.test_field_name", str);
+    query.LessThanOrEqualTo("$.test_field_name", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC007 end");
 }
 
 /**
-* @tc.name: TestQueryC008
-* @tc.desc: Query isNull.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is isNull, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC008, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryIsNullInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC008 start");
+    DataQuery query;
+    query.IsNull("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.IsNull("$.test^_field_name");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is isNull, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryIsNullValidField, TestSize.Level1)
+{
     DataQuery query;
     query.IsNull("$.test_field_name");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC008 end");
 }
 
 /**
-* @tc.name: TestQueryC009
-* @tc.desc: Query in.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is in, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC009, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryInInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC009 start");
+    DataQuery query;
+    std::vector<int> vectInt{ 10, 20, 30 };
+    query.In("", vectInt);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.In("^", vectInt);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<int64_t> vectLong{ (int64_t) 100, (int64_t) 200, (int64_t) 300 };
+    query.In("", vectLong);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.In("$.test_field_name^", vectLong);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<double> vectDouble{1.23, 2.23, 3.23};
+    query.In("", vectDouble);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.In("$.^test_field_name", vectDouble);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<std::string> vectString{ "value 1", "value 2", "value 3" };
+    query.In("", vectString);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.In("$.test_field_^name^", vectString);
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is in, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryInValidField, TestSize.Level1)
+{
     DataQuery query;
     std::vector<int> vectInt{ 10, 20, 30 };
     query.In("$.test_field_name", vectInt);
@@ -293,19 +497,49 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC009, TestSize.Level1)
     std::vector<std::string> vectString{ "value 1", "value 2", "value 3" };
     query.In("$.test_field_name", vectString);
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC009 end");
 }
 
 /**
-* @tc.name: TestQueryC010
-* @tc.desc: Query in.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is notIn, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC010, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryNotInInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC010 start");
+    DataQuery query;
+    std::vector<int> vectInt{ 10, 20, 30 };
+    query.NotIn("", vectInt);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotIn("$.^", vectInt);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<int64_t> vectLong{ (int64_t) 100, (int64_t) 200, (int64_t) 300 };
+    query.NotIn("", vectLong);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotIn("^^", vectLong);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<double> vectDouble{ 1.23, 2.23, 3.23 };
+    query.NotIn("", vectDouble);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotIn("^$.test_field_name", vectDouble);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    std::vector<std::string> vectString{ "value 1", "value 2", "value 3" };
+    query.NotIn("", vectString);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotIn("$.^", vectString);
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is notIn, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryNotInValidField, TestSize.Level1)
+{
     DataQuery query;
     std::vector<int> vectInt{ 10, 20, 30 };
     query.NotIn("$.test_field_name", vectInt);
@@ -322,121 +556,199 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC010, TestSize.Level1)
     std::vector<std::string> vectString{ "value 1", "value 2", "value 3" };
     query.NotIn("$.test_field_name", vectString);
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC010 end");
 }
 
 /**
-* @tc.name: TestQueryC011
-* @tc.desc: Query like.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is like, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC011, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLikeInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC011 start");
+    DataQuery query;
+    query.Like("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Like("$.test_fi^eld_name", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is like, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLikeValidField, TestSize.Level1)
+{
     DataQuery query;
     query.Like("$.test_field_name", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC011 end");
 }
 
 /**
-* @tc.name: TestQueryC012
-* @tc.desc: Query unlike.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is unlike, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC012, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryUnlikeInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC012 start");
+    DataQuery query;
+    query.Unlike("", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Unlike("$.^", "test value");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is unlike, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryUnlikeValidField, TestSize.Level1)
+{
     DataQuery query;
     query.Unlike("$.test_field_name", "test value");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC012 end");
 }
 
 /**
-* @tc.name: TestQueryC013
-* @tc.desc: Query and.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is and
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC013, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryAnd, TestSize.Level1)
 {
-    ZLOGD("TestQueryC013 start");
     DataQuery query;
     query.Like("$.test_field_name1", "test value1");
     query.And();
     query.Like("$.test_field_name2", "test value2");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC013 end");
 }
 
 /**
-* @tc.name: TestQueryC014
-* @tc.desc: Query or.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is or
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC014, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryOr, TestSize.Level1)
 {
-    ZLOGD("TestQueryC014 start");
     DataQuery query;
     query.Like("$.test_field_name1", "test value1");
     query.Or();
     query.Like("$.test_field_name2", "test value2");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC014 end");
 }
 
 /**
-* @tc.name: TestQueryC015
-* @tc.desc: Query orderBy.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is orderByAsc, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC015, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryOrderByAscInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC015 start");
+    DataQuery query;
+    query.OrderByAsc("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.OrderByAsc("$.^");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is orderByAsc, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryOrderByAscValidField, TestSize.Level1)
+{
     DataQuery query;
     query.OrderByAsc("$.test_field_name1");
-    query.Reset();
-    query.OrderByDesc("$.test_field_name1");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC015 end");
 }
 
 /**
-* @tc.name: TestQueryC016
-* @tc.desc: Query orderBy.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is orderByDesc, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000DPSF5
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC016, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryOrderByDescInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC016 start");
+    DataQuery query;
+    query.OrderByDesc("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.OrderByDesc("$.test^_field_name1");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is orderByDesc, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryOrderByDescValidField, TestSize.Level1)
+{
+    DataQuery query;
+    query.OrderByDesc("$.test_field_name1");
+    EXPECT_TRUE(query.ToString().length() > 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is limit, the field is invalid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLimitInvalidField, TestSize.Level1)
+{
+    DataQuery query;
+    query.Limit(INVALID_NUMBER, 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Limit(10, INVALID_NUMBER);
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is limit, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryLimitValidField, TestSize.Level1)
+{
     DataQuery query;
     query.Limit(10, 100);
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC016 end");
 }
 
 /**
-* @tc.name: TestSingleKvStoreQueryC001
-* @tc.desc: query single KvStore.
+* @tc.name: DataQuery
+* @tc.desc: query single kvStore by dataQuery, the predicate is notEqualTo
 * @tc.type: FUNC
-* @tc.require: SR000DPCO9
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC001, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualTo, TestSize.Level1)
 {
-    ZLOGD("TestSingleKvStoreQueryC001 start");
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
@@ -444,67 +756,63 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC001, TestSize.Leve
     options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId1" };
-    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    singleKvStorePtr->Put("test_key_1", "{\"name\":1}");
-    singleKvStorePtr->Put("test_key_2", "{\"name\":2}");
-    singleKvStorePtr->Put("test_key_3", "{\"name\":3}");
+    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_2", "{\"name\":2}");
+    singleKvStore->Put("test_key_3", "{\"name\":3}");
 
     DataQuery query;
     query.NotEqualTo("$.name", 3);
     std::vector<Entry> results;
-    Status status1 = singleKvStorePtr->GetEntries(query, results);
+    Status status1 = singleKvStore->GetEntries(query, results);
     ASSERT_EQ(status1, Status::SUCCESS);
     EXPECT_TRUE(results.size() == 2);
     results.clear();
-    Status status2 = singleKvStorePtr->GetEntries(query, results);
+    Status status2 = singleKvStore->GetEntries(query, results);
     ASSERT_EQ(status2, Status::SUCCESS);
     EXPECT_TRUE(results.size() == 2);
 
     std::shared_ptr<KvStoreResultSet> resultSet;
-    Status status3 = singleKvStorePtr->GetResultSet(query, resultSet);
+    Status status3 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status3, Status::SUCCESS);
     EXPECT_TRUE(resultSet->GetCount() == 2);
-    auto closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    auto closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
-    Status status4 = singleKvStorePtr->GetResultSet(query, resultSet);
+    Status status4 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status4, Status::SUCCESS);
     EXPECT_TRUE(resultSet->GetCount() == 2);
 
-    closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
 
     int resultSize1;
-    Status status5 = singleKvStorePtr->GetCount(query, resultSize1);
+    Status status5 = singleKvStore->GetCount(query, resultSize1);
     ASSERT_EQ(status5, Status::SUCCESS);
     EXPECT_TRUE(resultSize1 == 2);
     int resultSize2;
-    Status status6 = singleKvStorePtr->GetCount(query, resultSize2);
+    Status status6 = singleKvStore->GetCount(query, resultSize2);
     ASSERT_EQ(status6, Status::SUCCESS);
     EXPECT_TRUE(resultSize2 == 2);
 
-    singleKvStorePtr->Delete("test_key_1");
-    singleKvStorePtr->Delete("test_key_2");
-    singleKvStorePtr->Delete("test_key_3");
+    singleKvStore->Delete("test_key_1");
+    singleKvStore->Delete("test_key_2");
+    singleKvStore->Delete("test_key_3");
     Status status = manager.CloseAllKvStore(appId);
     EXPECT_EQ(status, Status::SUCCESS);
     status = manager.DeleteAllKvStore(appId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
-    ZLOGD("TestSingleKvStoreQueryC001 end");
 }
 
-
 /**
-* @tc.name: TestSingleKvStoreQueryC002
-* @tc.desc: query single KvStore.
+* @tc.name: DataQuery
+* @tc.desc: query single kvStore by dataQuery, the predicate is notEqualTo and equalTo
 * @tc.type: FUNC
-* @tc.require: SR000DPCO9
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC002, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, TestSize.Level1)
 {
-    ZLOGD("TestSingleKvStoreQueryC002 start");
-
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
@@ -512,105 +820,189 @@ HWTEST_F(SingleKvStoreClientQueryTest, TestSingleKvStoreQueryC002, TestSize.Leve
     options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId2" };
-    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStorePtr);
-    EXPECT_NE(singleKvStorePtr, nullptr) << "kvStorePtr is null.";
-    singleKvStorePtr->Put("test_key_1", "{\"name\":1}");
-    singleKvStorePtr->Put("test_key_2", "{\"name\":2}");
-    singleKvStorePtr->Put("test_key_3", "{\"name\":3}");
+    statusGetKvStore = manager.GetSingleKvStore(options, appId, storeId, singleKvStore);
+    EXPECT_NE(singleKvStore, nullptr) << "kvStorePtr is null.";
+    singleKvStore->Put("test_key_1", "{\"name\":1}");
+    singleKvStore->Put("test_key_2", "{\"name\":2}");
+    singleKvStore->Put("test_key_3", "{\"name\":3}");
 
     DataQuery query;
     query.NotEqualTo("$.name", 3);
     query.And();
     query.EqualTo("$.name", 1);
     std::vector<Entry> results1;
-    Status status1 = singleKvStorePtr->GetEntries(query, results1);
+    Status status1 = singleKvStore->GetEntries(query, results1);
     ASSERT_EQ(status1, Status::SUCCESS);
     EXPECT_TRUE(results1.size() == 1);
     std::vector<Entry> results2;
-    Status status2 = singleKvStorePtr->GetEntries(query, results2);
+    Status status2 = singleKvStore->GetEntries(query, results2);
     ASSERT_EQ(status2, Status::SUCCESS);
     EXPECT_TRUE(results2.size() == 1);
 
     std::shared_ptr<KvStoreResultSet> resultSet;
-    Status status3 = singleKvStorePtr->GetResultSet(query, resultSet);
+    Status status3 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status3, Status::SUCCESS);
     EXPECT_TRUE(resultSet->GetCount() == 1);
-    auto closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    auto closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
-    Status status4 = singleKvStorePtr->GetResultSet(query, resultSet);
+    Status status4 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status4, Status::SUCCESS);
     EXPECT_TRUE(resultSet->GetCount() == 1);
 
-    closeResultSetStatus = singleKvStorePtr->CloseResultSet(resultSet);
+    closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
 
     int resultSize1;
-    Status status5 = singleKvStorePtr->GetCount(query, resultSize1);
-    ZLOGD("this is it %ul", status5);
+    Status status5 = singleKvStore->GetCount(query, resultSize1);
     ASSERT_EQ(status5, Status::SUCCESS);
     EXPECT_TRUE(resultSize1 == 1);
     int resultSize2;
-    Status status6 = singleKvStorePtr->GetCount(query, resultSize2);
+    Status status6 = singleKvStore->GetCount(query, resultSize2);
     ASSERT_EQ(status6, Status::SUCCESS);
     EXPECT_TRUE(resultSize2 == 1);
 
-    singleKvStorePtr->Delete("test_key_1");
-    singleKvStorePtr->Delete("test_key_2");
-    singleKvStorePtr->Delete("test_key_3");
+    singleKvStore->Delete("test_key_1");
+    singleKvStore->Delete("test_key_2");
+    singleKvStore->Delete("test_key_3");
     Status status = manager.CloseAllKvStore(appId);
     EXPECT_EQ(status, Status::SUCCESS);
     status = manager.DeleteAllKvStore(appId, options.baseDir);
     EXPECT_EQ(status, Status::SUCCESS);
-    ZLOGD("TestSingleKvStoreQueryC002 end");
 }
 
 /**
-* @tc.name: TestQueryC017
-* @tc.desc: Query group prefix isNotNull.
+* @tc.name: DataQuery
+* @tc.desc: query group, the predicate is prefix, isNotNull, but field is invalid
 * @tc.type: FUNC
-* @tc.require: AR000EPAMV
-* @tc.author: YangLeda
+* @tc.require:
+* @tc.author: zuojiangjiang
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC017, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryGroupAbnormal, TestSize.Level1)
 {
-    ZLOGD("TestQueryC017 start");
+    DataQuery query;
+    query.KeyPrefix("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.KeyPrefix("prefix^");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.Reset();
+    query.BeginGroup();
+    query.IsNotNull("");
+    EXPECT_TRUE(query.ToString().length() > 0);
+    query.IsNotNull("^$.name");
+    EXPECT_TRUE(query.ToString().length() > 0);
+    query.EndGroup();
+    EXPECT_TRUE(query.ToString().length() > 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: query group, the predicate is prefix, isNotNull.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryByGroupNormal, TestSize.Level1)
+{
     DataQuery query;
     query.KeyPrefix("prefix");
+    EXPECT_TRUE(query.ToString().length() > 0);
+    query.Reset();
     query.BeginGroup();
     query.IsNotNull("$.name");
     query.EndGroup();
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC017 end");
 }
 
 /**
-* @tc.name: TestQueryC018
-* @tc.desc: Query SetSuggestIndex.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is setSuggestIndex, the field is invalid.
 * @tc.type: FUNC
-* @tc.require: AR000F3PBJ
+* @tc.require:
 * @tc.author: liuwenhui
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC018, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQuerySetSuggestIndexInvalidField, TestSize.Level1)
 {
-    ZLOGD("TestQueryC018 start");
+    DataQuery query;
+    query.SetSuggestIndex("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.SetSuggestIndex("test_field^_name");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is setSuggestIndex, the field is valid.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: liuwenhui
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQuerySetSuggestIndexValidField, TestSize.Level1)
+{
     DataQuery query;
     query.SetSuggestIndex("test_field_name");
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC018 end");
 }
 
 /**
-* @tc.name: TestQueryC019
-* @tc.desc: Query InKeys.
+* @tc.name: DataQuery
+* @tc.desc: the predicate is inKeys
 * @tc.type: FUNC
-* @tc.require: AR000GOHO7
+* @tc.require:
 * @tc.author: taoyuxin
 */
-HWTEST_F(SingleKvStoreClientQueryTest, TestQueryC019, TestSize.Level1)
+HWTEST_F(SingleKvStoreClientQueryTest, DataQuerySetInKeys, TestSize.Level1)
 {
-    ZLOGD("TestQueryC019 start");
     DataQuery query;
+    query.InKeys({});
+    EXPECT_TRUE(query.ToString().length() == 0);
     query.InKeys({"test_field_name"});
     EXPECT_TRUE(query.ToString().length() > 0);
-    ZLOGD("TestQueryC019 end");
+    query.InKeys({"test_field_name_hasKey"});
+    EXPECT_TRUE(query.ToString().length() > 0);
+    query.Reset();
+    std::vector<std::string> keys { "test_field", "", "^test_field", "^", "test_field_name" };
+    query.InKeys(keys);
+    EXPECT_TRUE(query.ToString().length() > 0);
 }
+
+/**
+* @tc.name: DataQuery
+* @tc.desc:the predicate is deviceId, the field is invalid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdInvalidField, TestSize.Level1)
+{
+    DataQuery query;
+    query.DeviceId("");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.DeviceId("$$^");
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.DeviceId("device_id^");
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+
+/**
+* @tc.name: DataQuery
+* @tc.desc: the predicate is valid deviceId, the field is valid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdValidField, TestSize.Level1)
+{
+    DataQuery query;
+    query.DeviceId("device_id");
+    EXPECT_TRUE(query.ToString().length() > 0);
+    query.Reset();
+    std::string deviceId = "";
+    uint32_t i = 0;
+    while(i < MAX_QUERY_LENGTH) {
+        deviceId += "device";
+        i++;
+    }
+    query.DeviceId(deviceId);
+    EXPECT_TRUE(query.ToString().length() == 0);
+}
+} // namespace

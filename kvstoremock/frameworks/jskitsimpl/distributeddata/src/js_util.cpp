@@ -239,8 +239,8 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
         int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        htonl(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp4int);
+        uint32_t tmp32 = htonl(*reinterpret_cast<uint32_t*>(&tmp4int));
+        tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
     }
