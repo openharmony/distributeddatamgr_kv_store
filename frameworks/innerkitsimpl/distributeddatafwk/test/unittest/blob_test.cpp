@@ -17,10 +17,10 @@
 #include <cstdint>
 #include <vector>
 #include "types.h"
-#include "itypes_util.h"
-namespace {
+#include "kv_types_util.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+using namespace OHOS;
 
 class BlobTest : public testing::Test {
 public:
@@ -335,4 +335,3 @@ HWTEST_F(BlobTest, WriteToBuffer001, TestSize.Level1)
     ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outUpdates));
     ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outDeletes));
 }
-} // namespace

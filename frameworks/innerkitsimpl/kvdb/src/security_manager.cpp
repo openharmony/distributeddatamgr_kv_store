@@ -41,54 +41,51 @@ SecurityManager &SecurityManager::GetInstance()
     return instance;
 }
 
-void SecurityManager::Init()
+bool SecurityManager::Retry()
 {
-    auto check = Retry();
-    check();
+    auto status = CheckRootKey();
+    if (status == HKS_SUCCESS) {
+        hasRootKey_ = true;
+        ZLOGE("root key already exist.");
+        return true;
+    }
+
+    if (status == HKS_ERROR_NOT_EXIST && GenerateRootKey() == HKS_SUCCESS) {
+        hasRootKey_ = true;
+        ZLOGE("GenerateRootKey success.");
+        return true;
+    }
+
+    constexpr int32_t interval = 100;
+    TaskExecutor::GetInstance().Execute([this] { Retry(); }, interval);
+    return false;
 }
 
-std::function<void()> SecurityManager::Retry()
+SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
+    bool needCreate)
 {
-    return [this]() {
-        auto status = CheckRootKey();
-        if (status == HKS_SUCCESS) {
-            ZLOGE("root key already exist.");
-            return;
-        }
-        if (status == HKS_ERROR_NOT_EXIST && GenerateRootKey() == HKS_SUCCESS) {
-            ZLOGE("GenerateRootKey success.");
-            return;
-        }
-        constexpr int32_t interval = 100;
-        TaskExecutor::GetInstance().Execute(Retry(), interval);
-    };
-}
-
-SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path, bool needCreate)
-{
+    DBPassword password;
     auto secKey = LoadKeyFromFile(name, path);
-    if (secKey.empty()) {
-        if (!needCreate) {
-            return DBPassword();
-        } else {
-            secKey = Random(KEY_SIZE);
-            SaveKeyToFile(name, path, secKey);
+    if (secKey.empty() && needCreate) {
+        secKey = Random(KEY_SIZE);
+        if (!SaveKeyToFile(name, path, secKey)) {
+            secKey.assign(secKey.size(), 0);
+            return password;
         }
     }
-    DBPassword password;
+
     password.SetValue(secKey.data(), secKey.size());
     secKey.assign(secKey.size(), 0);
     return password;
 }
 
-bool SecurityManager::SaveDBPassword
-    (const std::string &name, const std::string &path, const SecurityManager::DBPassword &key)
+bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
+    const SecurityManager::DBPassword &key)
 {
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
-    SaveKeyToFile(name, path, pwd);
+    auto result = SaveKeyToFile(name, path, pwd);
     pwd.assign(pwd.size(), 0);
-    return true;
+    return result;
 }
 
 void SecurityManager::DelDBPassword(const std::string &name, const std::string &path)
@@ -135,9 +132,8 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
-
-    std::vector<uint8_t> secretKey {};
     content.assign(content.size(), 0);
+    std::vector<uint8_t> secretKey {};
     if(!Decrypt(key, secretKey)) {
         ZLOGE("client Decrypt failed");
         return {};
@@ -147,8 +143,8 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
 
 bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
 {
-    if (CheckRootKey() != HKS_SUCCESS) {
-        ZLOGE("client rootkey generation failed");
+    if (!hasRootKey_ && !Retry()) {
+        ZLOGE("failed! no root key and generation failed");
         return false;
     }
     

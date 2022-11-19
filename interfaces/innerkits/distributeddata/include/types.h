@@ -16,12 +16,13 @@
 #ifndef DISTRIBUTED_KVSTORE_TYPES_H
 #define DISTRIBUTED_KVSTORE_TYPES_H
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
-#include <vector>
 #include <variant>
-#include "store_errno.h"
+#include <vector>
 #include "blob.h"
+#include "store_errno.h"
 #include "visibility.h"
 
 namespace OHOS {
