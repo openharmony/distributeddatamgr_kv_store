@@ -2233,3 +2233,52 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore002, TestSize.Level1)
     EXPECT_EQ(openStatus, INVALID_ARGS);
     EXPECT_EQ(mgr.CloseKvStore(localDelegate), OK);
 }
+
+/**
+  * @tc.name: TimeChangeWithCloseStoreTest001
+  * @tc.desc: Test close store with time changed
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest001, TestSize.Level3)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    std::atomic<bool> isFinished(false);
+
+    std::vector<std::thread> slowThreads;
+    for (int i = 0; i < 10; i++) { // 10: thread to slow donw system
+        std::thread th([&isFinished]() {
+            while (!isFinished) {
+                // pass
+            }
+        });
+        slowThreads.emplace_back(std::move(th));
+    }
+
+    std::thread th([&isFinished]() {
+        int timeChangedCnt = 0;
+        while (!isFinished.load()) {
+            OS::SetOffsetBySecond(100 - timeChangedCnt++ * 2); // 100 2 : fake system time change
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100: wait for a while
+        }
+    });
+
+    for (int i = 0; i < 100; i++) { // run 100 times
+        const KvStoreNbDelegate::Option option = {true, false, false};
+        mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+        ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+        EXPECT_EQ(g_kvDelegateStatus, OK);
+        EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 1000: wait for a while
+    isFinished.store(true);
+    th.join();
+    for (auto &it : slowThreads) {
+        it.join();
+    }
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
