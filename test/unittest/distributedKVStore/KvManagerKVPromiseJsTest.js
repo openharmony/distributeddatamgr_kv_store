@@ -89,16 +89,18 @@ describe('KVManagerPromiseTest', function () {
     it('KVManagerGetKVStorePromiseSucTest', 0, async function (done) {
         console.info('KVManagerGetKVStorePromiseSucTest');
         try {
-            await kvManager.getKVStore(TEST_STORE_ID, options).then((err, store) => {
+            await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
                 console.info('KVManagerGetKVStorePromiseSucTest getKVStore success');
                 expect(store != undefined && store != null).assertTrue();
-                done();
-            })
+            }).catch((err) => {
+                console.error('KVManagerGetKVStorePromiseSucTest getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
         } catch (e) {
             console.error('KVManagerGetKVStorePromiseSucTest getKVStore e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
-            done();
         }
+        done();
     })
 
     /**
