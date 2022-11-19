@@ -114,6 +114,7 @@ Status KvUtils::ToEntryKey(const std::map<std::string, DataShareValueObject> &va
     if (auto *val = std::get_if<std::string>(&it->second.value)) {
         std::vector<uint8_t> uData;
         std::string data = *val;
+        uData.push_back(KvUtils::STRING);
         uData.insert(uData.end(), data.begin(), data.end());
         blob = Blob(uData);
         return Status::SUCCESS;
