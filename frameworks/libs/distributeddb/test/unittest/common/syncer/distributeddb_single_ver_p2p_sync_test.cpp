@@ -2976,3 +2976,49 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask001, TestSize.L
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
 }
+
+/**
+  * @tc.name: DeviceOfflineSyncTask002
+  * @tc.desc: Test sync task when autoSync and close db Concurrently
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask002, TestSize.Level3)
+{
+    DBStatus status = OK;
+    g_deviceC->Offline();
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA set auto sync and put some key/value
+     * @tc.expected: step2. interface should return OK.
+     */
+    bool autoSync = true;
+    PragmaData data = static_cast<PragmaData>(&autoSync);
+    status = g_kvDelegatePtr->Pragma(AUTO_SYNC, data);
+    ASSERT_EQ(status, OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME * 2));
+
+    Key key1 = {'2'};
+    Key key2 = {'3'};
+    Key key3 = {'4'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key1, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key2, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key3, value) == OK);
+    /**
+     * @tc.steps: step3. close db
+     * @tc.expected: step3. interface should return OK.
+     */
+    if (g_kvDelegatePtr != nullptr) {
+        g_mgr.CloseKvStore(g_kvDelegatePtr);
+        g_kvDelegatePtr = nullptr;
+    }
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+}
