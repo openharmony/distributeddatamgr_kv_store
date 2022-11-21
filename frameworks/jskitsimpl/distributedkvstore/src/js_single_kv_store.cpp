@@ -641,9 +641,8 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
         }
     }
 
-    ctxt->status =
-        proxy->Subscribe(type, std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
-    ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "Subscribe failed!");
+    Status status = proxy->Subscribe(type, std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
+    ThrowNapiError(env, status, "", false);
 }
 
 /*
@@ -669,7 +668,7 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
 
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     bool found = false;
-    napi_status status = napi_ok;
+    Status status = Status::SUCCESS;
     auto traverseType = [argc, argv, proxy, env, &found, &status](uint8_t type, auto& observers) {
         auto it = observers.begin();
         while (it != observers.end()) {
@@ -679,7 +678,7 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
             }
             found = true;
             status = proxy->UnSubscribe(type, *it);
-            if (status != napi_ok) {
+            if (status != Status::SUCCESS) {
                 break; // stop on fail.
             }
             it = observers.erase(it);
@@ -689,11 +688,12 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
     std::lock_guard<std::mutex> lck(proxy->listMutex_);
     for (uint8_t type = SUBSCRIBE_LOCAL; type < SUBSCRIBE_COUNT; type++) {
         traverseType(type, proxy->dataObserver_[type]);
-        if (status != napi_ok) {
+        if (status != Status::SUCCESS) {
             break; // stop on fail.
         }
     }
     ASSERT_BUSINESS_ERR(ctxt, found || (argc == 0), Status::INVALID_ARGUMENT, "not Subscribed!");
+    ThrowNapiError(env, status, "", false);
 }
 
 /*
@@ -777,29 +777,29 @@ napi_status JsSingleKVStore::UnRegisterSyncCallback()
     return napi_ok;
 }
 
-napi_status JsSingleKVStore::Subscribe(uint8_t type, std::shared_ptr<DataObserver> observer)
+Status JsSingleKVStore::Subscribe(uint8_t type, std::shared_ptr<DataObserver> observer)
 {
     auto subscribeType = ToSubscribeType(type);
     Status status = kvStore_->SubscribeKvStore(subscribeType, observer);
     ZLOGD("kvStore_->SubscribeKvStore(%{public}d) return %{public}d", type, status);
     if (status != Status::SUCCESS) {
         observer->Clear();
-        return napi_generic_failure;
+        return status;
     }
     dataObserver_[type].push_back(observer);
-    return napi_ok;
+    return status;
 }
 
-napi_status JsSingleKVStore::UnSubscribe(uint8_t type, std::shared_ptr<DataObserver> observer)
+Status JsSingleKVStore::UnSubscribe(uint8_t type, std::shared_ptr<DataObserver> observer)
 {
     auto subscribeType = ToSubscribeType(type);
     Status status = kvStore_->UnSubscribeKvStore(subscribeType, observer);
     ZLOGD("kvStore_->UnSubscribeKvStore(%{public}d) return %{public}d", type, status);
     if (status == Status::SUCCESS) {
         observer->Clear();
-        return napi_ok;
+        return status;
     }
-    return napi_generic_failure;
+    return status;
 }
 
 void JsSingleKVStore::DataObserver::OnChange(const ChangeNotification& notification)
