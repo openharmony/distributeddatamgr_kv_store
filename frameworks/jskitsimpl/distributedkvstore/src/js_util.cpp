@@ -854,7 +854,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
             DataShareValuesBucket values;
             GetValue(env, item, values);
             entry = KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin() + 1, entry.key.Data().end());
+            entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
             if (hasSchema) {
                 entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
             }
