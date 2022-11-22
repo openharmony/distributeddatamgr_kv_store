@@ -91,7 +91,7 @@ void SingleStoreImplTest::TearDown(void)
     auto status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
     auto baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    status = StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
 }
 
@@ -156,7 +156,9 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
 HWTEST_F(SingleStoreImplTest, Put_Invalid_key, TestSize.Level0)
 {
     std::shared_ptr<SingleKvStore> kvStore;
-    kvStore = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
     size_t MAX_DEV_KEY_LEN = 897;
@@ -170,9 +172,13 @@ HWTEST_F(SingleStoreImplTest, Put_Invalid_key, TestSize.Level0)
     Blob value1("test_value1");
     status = kvStore->Put(key1, value1);
     EXPECT_EQ(status, INVALID_ARGUMENT);
- 
+
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 
     size_t MAX_SINGLE_KEY_LEN = 1025;
     std::string str1(MAX_SINGLE_KEY_LEN, 'b');
@@ -462,7 +468,9 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Prefix, TestSize.Level0)
 HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
 {
     std::shared_ptr<SingleKvStore> kvStore;
-    kvStore = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
     std::vector<Entry> input;
@@ -479,8 +487,12 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
     ASSERT_NE(output.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 
     status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
@@ -500,7 +512,9 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
 HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
 {
     std::shared_ptr<SingleKvStore> kvStore;
-    kvStore = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
     size_t KEY_LEN = sizeof(uint32_t);
@@ -520,8 +534,12 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Greater_Prefix, TestSize.Level0)
     ASSERT_NE(output.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 
     status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
