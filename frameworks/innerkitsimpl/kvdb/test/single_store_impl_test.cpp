@@ -147,13 +147,13 @@ HWTEST_F(SingleStoreImplTest, Put, TestSize.Level0)
 }
 
 /**
- * @tc.name: Put_Invalid_key
+ * @tc.name: Put_Invalid_Key
  * @tc.desc: put invalid key-value data to the device kv store and single kv store
  * @tc.type: FUNC
  * @tc.require: I4XVQQ
  * @tc.author: wu fengshan
  */
-HWTEST_F(SingleStoreImplTest, Put_Invalid_key, TestSize.Level0)
+HWTEST_F(SingleStoreImplTest, Put_Invalid_Key, TestSize.Level0)
 {
     std::shared_ptr<SingleKvStore> kvStore;
     AppId appId = { "SingleStoreImplTest" };
@@ -708,13 +708,13 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 }
 
 /**
- * @tc.name: move_offset
+ * @tc.name: Move_Offset
  * @tc.desc: Move the ResultSet Relative Distance
  * @tc.type: FUNC
  * @tc.require: I4XVQQ
  * @tc.author: wu fengshan
  */
-HWTEST_F(SingleStoreImplTest, move_offset, TestSize.Level0)
+HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
 {
     std::vector<Entry> input;
     for (int i = 0; i < 10; ++i) {
@@ -733,23 +733,35 @@ HWTEST_F(SingleStoreImplTest, move_offset, TestSize.Level0)
     ASSERT_NE(output, nullptr);
 
     auto outputTmp = output;
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(output, nullptr);
     ASSERT_EQ(outputTmp->Move(1), true);
 
     std::shared_ptr<SingleKvStore> kvStore;
-    kvStore = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "DeviceKVStore" };
+    kvStore = CreateKVStore(storeId.storeId, DEVICE_COLLABORATION, false, true);
     ASSERT_NE(kvStore, nullptr);
 
-    status = kvStore_->PutBatch(input);
+    status = kvStore->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::shared_ptr<KvStoreResultSet> output1;
-    status = kvStore_->GetResultSet(prefix, output1);
+    status = kvStore->GetResultSet(prefix, output1);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_NE(output1, nullptr);
     auto outputTmp1 = output1;
+    status = kvStore->CloseResultSet(output1);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_EQ(output1, nullptr);
     ASSERT_EQ(outputTmp1->Move(1), true);
 
+    kvStore = nullptr;
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
-    StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "DeviceKVStore" }, baseDir);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
