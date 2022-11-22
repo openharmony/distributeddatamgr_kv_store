@@ -91,7 +91,7 @@ void VirtualCommunicator::CallbackOnMessage(const std::string &srcTarget, Messag
 {
     std::lock_guard<std::mutex> lock(onMessageLock_);
     if (isEnable_ && onMessage_ && (srcTarget != deviceId_) && ((inMsg->GetMessageId() != dropMsgId_) ||
-        ((inMsg->GetMessageId() == dropMsgId_) && (dropMsgTimes_ == 0)))) {
+        (dropMsgTimes_ == 0))) {
         onMessage_(srcTarget, inMsg);
     } else {
         LOGD("drop msg from dev=%s, localDev=%s", srcTarget.c_str(), deviceId_.c_str());
