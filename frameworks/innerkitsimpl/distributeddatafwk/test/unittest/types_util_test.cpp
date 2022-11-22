@@ -343,6 +343,6 @@ HWTEST_F(TypesUtilTest, GetTotalSizeByEntries, TestSize.Level1)
 HWTEST_F(TypesUtilTest, GetTotalSizeByKeys, TestSize.Level1)
 {
     std::vector<Key> keys;
-    entries.push_back("student_name_mali");
+    keys.push_back("student_name_mali");
     ASSERT_EQ(ITypesUtil::GetTotalSize(keys), sizeof(int) + std::string("student_name_mali").size());
 }
