@@ -874,12 +874,10 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
         { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED }
     };
-    for (const auto &node : stateNodes) {
-        if (node.errCode == errCode) {
-            return static_cast<int>(node.status);
-        }
-    }
-    return SyncOperation::OP_FAILED;
+    const auto &result = std::find_if(std::begin(stateNodes), std::end(stateNodes), [errCode](const auto &node) {
+        return node.errCode == errCode;
+    });
+    return result == std::end(stateNodes) ? SyncOperation::OP_FAILED : static_cast<int>((*result).status);
 }
 
 int SingleVerSyncStateMachine::TimeMarkSyncRecv(const Message *inMsg)

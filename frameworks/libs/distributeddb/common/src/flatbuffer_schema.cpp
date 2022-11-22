@@ -264,12 +264,10 @@ FieldType MapFieldType(reflection::BaseType inType)
         {reflection::BaseType::Vector, FieldType::LEAF_FIELD_ARRAY},
         {reflection::BaseType::Obj, FieldType::INTERNAL_FIELD_OBJECT}
     };
-    for (const auto &node : baseTypeNodes) {
-        if (node.type == inType) {
-            return node.fieldType;
-        }
-    }
-    return FieldType::LEAF_FIELD_NULL;
+    const auto &result = std::find_if(std::begin(baseTypeNodes), std::end(baseTypeNodes), [inType](const auto &node) {
+        return node.type == inType;
+    });
+    return result == std::end(baseTypeNodes) ? FieldType::LEAF_FIELD_NULL : (*result).fieldType;
 }
 
 RawString CheckDollarDotAndSkipIt(RawString inPath)

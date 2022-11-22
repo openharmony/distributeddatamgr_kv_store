@@ -1409,7 +1409,7 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 }
 
 int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre,
-    std::vector<std::string> &deviceId) const
+    std::vector<std::string> &outKeys) const
 {
     sqlite3_stmt *statement = nullptr;
     const std::string &sqlStr = (attachMetaMode_ ? SELECT_ATTACH_META_KEYS_BY_PREFIX : SELECT_META_KEYS_BY_PREFIX);
@@ -1433,7 +1433,7 @@ int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &ke
     SQLiteUtils::ResetStatement(statement, true, errCode);
     for (const auto &it : keys) {
         if (it.size() > keyPre.size()) {
-            deviceId.push_back(std::string(it.begin() + keyPre.size(), it.end()));
+            outKeys.push_back(std::string(it.begin() + keyPre.size(), it.end()));
         } else {
             LOGW("[SingleVerExe][GetAllKey] Get invalid key, size=%zu", it.size());
         }
@@ -1457,7 +1457,7 @@ int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &devic
     } else {
         std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
             SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES_BY_DEV);
-        int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
         if (errCode != E_OK) {
             LOGE("Get all entries statement failed:%d", errCode);
             return errCode;

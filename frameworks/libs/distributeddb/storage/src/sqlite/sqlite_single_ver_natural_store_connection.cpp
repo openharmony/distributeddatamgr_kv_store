@@ -14,6 +14,7 @@
  */
 
 #include "sqlite_single_ver_natural_store_connection.h"
+#include <algorithm>
 
 #include "db_constant.h"
 #include "db_dfx_adapter.h"
@@ -1772,9 +1773,10 @@ int SQLiteSingleVerNaturalStoreConnection::GetKeys(const IOption &option,
     std::vector<Entry> entries;
     int errCode = GetEntriesInner(false, option, keyPrefix, entries);
     if (errCode == E_OK) {
-        for (auto &entry : entries) {
-            keys.push_back(std::move(entry.key));
-        }
+        keys.resize(entries.size());
+        std::transform(entries.begin(), entries.end(), keys.begin(), [](auto &entry) {
+            return std::move(entry.key);
+        });
     }
     keys.shrink_to_fit();
     return errCode;
