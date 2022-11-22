@@ -41,7 +41,7 @@ public:
         isRunning_ = true;
         taskId_ = INVALID_TASK_ID;
         thread_ = std::make_unique<std::thread>([this, name]() {
-            auto realName = std::string("KvScheduler_") + name;
+            auto realName = std::string("scheduler_") + name;
             pthread_setname_np(pthread_self(), realName.c_str());
             Loop();
         });
@@ -162,7 +162,8 @@ private:
                     return !tasks_.empty();
                 });
                 if (tasks_.begin()->first > std::chrono::system_clock::now()) {
-                    condition_.wait_until(lock, tasks_.begin()->first);
+                    auto time = tasks_.begin()->first;
+                    condition_.wait_until(lock, time);
                     continue;
                 }
                 auto it = tasks_.begin();
