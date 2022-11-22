@@ -2889,7 +2889,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData004, TestSize.Level
 
 /**
   * @tc.name: CalculateSyncData005
-  * @tc.desc: Test CalculateSyncData and close db Concurrently
+  * @tc.desc: Test CalculateSyncData and rekey Concurrently
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
@@ -2904,19 +2904,24 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level
     std::thread thread1([]() {
         if (g_kvDelegatePtr != nullptr) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            g_mgr.CloseKvStore(g_kvDelegatePtr);
-            g_kvDelegatePtr = nullptr;
+            CipherPassword passwd; // random password
+            vector<uint8_t> passwdBuffer(10, 45);  // 10 and 45 as random password.
+            passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
+            g_kvDelegatePtr->Rekey(passwd);
         }
     });
     std::thread thread2([&dataSize, &key1, &value1]() {
         if (g_kvDelegatePtr != nullptr) {
             dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
         }
-        uint32_t expectedDataSize = (key1.size() + value1.size());
-        uint32_t externalSize = 70u;
-        uint32_t serialHeadLen = 8u;
-        ASSERT_GE(static_cast<uint32_t>(dataSize), expectedDataSize);
-        ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + expectedDataSize + externalSize);
+        if (dataSize > 0)
+        {
+            uint32_t expectedDataSize = (key1.size() + value1.size());
+            uint32_t externalSize = 70u;
+            uint32_t serialHeadLen = 8u;
+            ASSERT_GE(static_cast<uint32_t>(dataSize), expectedDataSize);
+            ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + expectedDataSize + externalSize);
+        }
     });
     thread1.join();
     thread2.join();
