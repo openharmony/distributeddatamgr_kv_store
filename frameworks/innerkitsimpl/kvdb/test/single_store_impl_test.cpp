@@ -733,10 +733,10 @@ HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
     ASSERT_NE(output, nullptr);
 
     auto outputTmp = output;
+    ASSERT_EQ(outputTmp->Move(1), true);
     status = kvStore_->CloseResultSet(output);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(output, nullptr);
-    ASSERT_EQ(outputTmp->Move(1), true);
 
     std::shared_ptr<SingleKvStore> kvStore;
     AppId appId = { "SingleStoreImplTest" };
@@ -751,10 +751,10 @@ HWTEST_F(SingleStoreImplTest, Move_Offset, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     ASSERT_NE(output1, nullptr);
     auto outputTmp1 = output1;
+    ASSERT_EQ(outputTmp1->Move(1), true);
     status = kvStore->CloseResultSet(output1);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(output1, nullptr);
-    ASSERT_EQ(outputTmp1->Move(1), true);
 
     kvStore = nullptr;
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
