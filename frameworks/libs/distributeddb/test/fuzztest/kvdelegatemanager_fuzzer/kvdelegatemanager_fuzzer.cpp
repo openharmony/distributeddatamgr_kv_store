@@ -34,7 +34,7 @@ std::string GetRandomString(const uint8_t* data, size_t size, size_t len, uint32
     if (size == 0) {
         return "";
     }
-    if (start >= size) {
+    if (start >= size || start + len >= size) {
         return std::string(data, data + size - 1);
     }
     res = std::string(data + start, data + start + len - 1);
