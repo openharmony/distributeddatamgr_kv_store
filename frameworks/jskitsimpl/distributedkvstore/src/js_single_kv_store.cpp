@@ -641,7 +641,8 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
         }
     }
 
-    Status status = proxy->Subscribe(type, std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
+    Status status = proxy->Subscribe(type,
+                                     std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
     ThrowNapiError(env, status, "", false);
 }
 
