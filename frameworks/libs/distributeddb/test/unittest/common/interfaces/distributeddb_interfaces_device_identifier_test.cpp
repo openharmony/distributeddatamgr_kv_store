@@ -501,7 +501,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest005, TestSize.Level1)
 
 /**
   * @tc.name: StorageEngineTest001
-  * @tc.desc: Call GetStorageEngine to determine whether the storageEngine exists
+  * @tc.desc: Test cache db remove data
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
@@ -513,6 +513,9 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
         static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(CACHEDB);
+    EXPECT_EQ(g_store->RemoveDeviceData("device1", false), -1);
+    storageEngine->Release();
 }
 
 /**
@@ -670,5 +673,85 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest006, TestSize.Level
     EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
     EXPECT_EQ(storageEngine->CheckEngineOption(prop), E_OK);
 
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: StorageEngineTest007
+  * @tc.desc: Export and import after changing engine state
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get storage engine
+     * @tc.expected: step1. Expect E_OK
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+
+    /**
+     * @tc.steps: step2. Change engine state to cache db
+     * @tc.expected: step2. Expect -E_NOT_SUPPORT
+     */
+    storageEngine->SetEngineState(CACHEDB);
+    CipherPassword passwd;
+    string filePath = g_testDir + "/store_export.db";
+    EXPECT_EQ(g_store->Export(filePath, passwd), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->Import(filePath, passwd), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_store->Rekey(passwd), -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps: step3. Change engine state to INVALID
+     * @tc.expected: step3. Expect -E_BUSY
+     */
+    storageEngine->SetEngineState(INVALID);
+    EXPECT_EQ(g_store->Export(filePath, passwd), -E_BUSY);
+    EXPECT_EQ(g_store->Import(filePath, passwd), -E_BUSY);
+    EXPECT_EQ(g_store->Rekey(passwd), -E_BUSY);
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: StorageEngineTest008
+  * @tc.desc: add and remove sub after changing engine state
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get storage engine
+     * @tc.expected: step1. Expect E_OK
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+
+    /**
+     * @tc.steps: step2. Change engine state to cache db
+     * @tc.expected: step2. Expect E_OK
+     */
+    storageEngine->SetEngineState(CACHEDB);
+    Query query = Query::Select();
+    QueryObject queryObj(query);
+    std::string sub = "123";
+    EXPECT_EQ(g_store->AddSubscribe(sub, queryObj, true), E_OK);
+
+    /**
+     * @tc.steps: step3. Remove subscribe from cache db
+     * @tc.expected: step3. Expect -1
+     */
+    std::vector<std::string> subs;
+    subs.push_back(sub);
+    EXPECT_EQ(g_store->RemoveSubscribe(subs), -1);
     storageEngine->Release();
 }
