@@ -739,6 +739,7 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, GetSyncDataTransTest001, TestSi
      */
     RefObject::KillAndDecObjRef(store);
     KvDBManager::ReleaseDatabaseConnection(conn);
+    SingleVerKvEntry::Release(entries);
 }
 
 /**
