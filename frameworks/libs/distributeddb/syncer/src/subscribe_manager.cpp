@@ -226,6 +226,12 @@ int SubscribeManager::LocalSubscribeLimitCheck(const std::vector<std::string> &d
     return E_OK;
 }
 
+bool SubscribeManager::IsQueryExistSubscribe(const std::string &queryId) const
+{
+    std::shared_lock<std::shared_mutex> lockGuard(remoteSubscribedMapLock_);
+    return remoteSubscribedTotalMap_.find(queryId) != remoteSubscribedTotalMap_.end();
+}
+
 void SubscribeManager::ClearSubscribeQuery(const std::string &device, SubscribeMap &subscribeMap,
     SubscribedTotalMap &subscribedTotalMap)
 {
