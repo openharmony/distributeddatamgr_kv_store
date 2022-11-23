@@ -86,8 +86,7 @@ int BridgeWriter::Write(uint32_t column, const uint8_t *value, size_t size)
 
 int BridgeWriter::Write(uint32_t column, const char *value, size_t size)
 {
-    if (column < 0 || column > 1 || value == nullptr)
-    {
+    if (column < 0 || column > 1 || value == nullptr) {
         return E_ERROR;
     }
     auto vec = std::vector<uint8_t>(value, value + size - 1);
@@ -142,10 +141,11 @@ void KvstoreDatashareBridgeTest::SetUpTestCase(void)
 void KvstoreDatashareBridgeTest::TearDownTestCase(void)
 {
     manager.DeleteKvStore(
-        {"KvstoreDatashareBridgeTest"}, {"test_single"}, "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+            {"KvstoreDatashareBridgeTest"}, {"test_single"},
+            "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
 }
 
 /**
