@@ -25,6 +25,7 @@
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_natural_store_connection.h"
+#include "storage_engine_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -1334,4 +1335,66 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject003, TestSize.Level1)
     writeParcel2.WriteUInt32(DBConstant::MAX_INKEYS_SIZE + 1);
     Parcel readParcel2(buffer.data(), buffLen);
     EXPECT_EQ(QuerySyncObject::DeSerializeData(readParcel2, queryObj2), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: QueryObject004
+  * @tc.desc: Put sync data under error condition
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Put in error store
+     * @tc.expected: -E_INVALID_DB
+     */
+    Query query1 = Query::Select("Relational_table").EqualTo("field1", "abc");
+    QuerySyncObject obj1(query1);
+    std::vector<SingleVerKvEntry *> entry;
+    std::string deviceName = "";
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
+    EXPECT_EQ(errStore->PutSyncDataWithQuery(obj1, entry, deviceName), -E_INVALID_DB);
+
+    /**
+     * @tc.steps:step2. Put in correct store but device name is null
+     * @tc.expected: -E_NOT_SUPPORT
+     */
+    EXPECT_EQ(g_store->PutSyncDataWithQuery(obj1, entry, deviceName), -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. Put in correct store but device name is over size
+     * @tc.expected: -E_INVALID_ARGS
+     */
+    vector<uint8_t> buffer(129, 1); // 129 is greater than 128
+    deviceName.assign(buffer.begin(), buffer.end());
+    EXPECT_EQ(g_store->PutSyncDataWithQuery(obj1, entry, deviceName), -E_INVALID_ARGS);
+}
+
+/**
+  * @tc.name: QueryObject005
+  * @tc.desc: Set engine state to cache and then put sync data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject005, TestSize.Level1)
+{
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, "31");
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestQuerySync");
+    property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::DEVICE_COLLABORATION);
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(CACHEDB);
+    DataItem data1{KEY1, VALUE1, 0, DataItem::LOCAL_FLAG, REMOTE_DEVICE_ID};
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(g_store, vector{data1}, REMOTE_DEVICE_ID), -1);
+    storageEngine->Release();
 }

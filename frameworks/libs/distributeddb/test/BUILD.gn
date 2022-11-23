@@ -732,6 +732,12 @@ distributeddb_unittest("DistributedDBInterfacesLogTest") {
       [ "unittest/common/interfaces/distributeddb_interfaces_log_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBStorageDataConnectionTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_storage_data_connection_test.cpp",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -798,6 +804,7 @@ group("unittest") {
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBStorageCommitStorageTest",
+    ":DistributedDBStorageDataConnectionTest",
     ":DistributedDBStorageDataOperationTest",
     ":DistributedDBStorageIndexOptimizeTest",
     ":DistributedDBStorageMemorySingleVerNaturalStoreTest",
