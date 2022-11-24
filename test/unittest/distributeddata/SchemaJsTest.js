@@ -4,7 +4,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium'
+import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from 'deccjsunit/index'
 import ddm from '@ohos.data.distributedData';
 
 const TEST_BUNDLE_NAME = 'com.example.myapplication';
@@ -275,10 +275,10 @@ describe('schemaTest', function() {
 
             let schema = new ddm.Schema();
             schema.root.appendChild(english);
-            schema.indexes = [];    // indexex set to empty array -> invalid indexes.
+            schema.indexes = [];
             expect(null).assertFail();
         } catch (e) {
-            console.info("schema exception is ok: " + e);
+            console.info("schema exception is: " + e);
         }
         done();
     })
@@ -333,7 +333,7 @@ describe('schemaTest', function() {
 
             let schema = new ddm.Schema();
             schema.mode = 1;
-            console.info("schema mode = "+schema.mode)   
+            console.info("schema mode = "+schema.mode)
             expect(schema.mode === 1).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);
@@ -353,7 +353,7 @@ describe('schemaTest', function() {
 
             let schema = new ddm.Schema();
             schema.mode = 0;
-            console.info("schema mode = "+schema.mode) 
+            console.info("schema mode = "+schema.mode)
             expect(schema.mode === 0).assertTrue();
         } catch (e) {
             console.info("schema fail on exception: " + e);

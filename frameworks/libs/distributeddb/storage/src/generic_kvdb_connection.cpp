@@ -346,4 +346,14 @@ int GenericKvDBConnection::CheckIntegrity() const
 {
     return E_OK;
 }
+
+int GenericKvDBConnection::GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const
+{
+    return -E_NOT_SUPPORT;
+}
+
+int GenericKvDBConnection::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    return -E_NOT_SUPPORT;
+}
 }

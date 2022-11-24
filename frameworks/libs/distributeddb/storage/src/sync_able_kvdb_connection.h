@@ -35,6 +35,8 @@ public:
     // Pragma interface.
     int Pragma(int cmd, void *parameter) override;
 
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
+
 protected:
     int DisableManualSync();
 

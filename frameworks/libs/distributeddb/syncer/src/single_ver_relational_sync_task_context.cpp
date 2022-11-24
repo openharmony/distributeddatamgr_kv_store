@@ -52,35 +52,28 @@ void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *targe
     deleteSyncId_ = GetDeviceId() + hexTableName; // save as deviceId + hexTableName
 }
 
-void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy strategy)
+void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy &strategy, bool isSchemaSync)
 {
     std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     relationalSyncStrategy_ = strategy;
+    isSchemaSync_ = isSchemaSync;
 }
 
-SyncStrategy SingleVerRelationalSyncTaskContext::GetSyncStrategy(QuerySyncObject &querySyncObject) const
+std::pair<bool, bool> SingleVerRelationalSyncTaskContext::GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const
 {
     std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     auto it = relationalSyncStrategy_.find(querySyncObject.GetRelationTableName());
     if (it == relationalSyncStrategy_.end()) {
-        return {};
+        return {false, isSchemaSync_};
     }
-    return it->second;
-}
-
-void SingleVerRelationalSyncTaskContext::SetIsNeedResetAbilitySync(bool isNeedReset)
-{
-    isNeedResetAbilitySync_ = isNeedReset;
-    if (isNeedResetAbilitySync_) {
-        SetIsSchemaSync(false);
-    }
+    return {it->second.permitSync, isSchemaSync_};
 }
 
 void SingleVerRelationalSyncTaskContext::SchemaChange()
 {
     SetIsNeedResetAbilitySync(true);
-    std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
-    relationalSyncStrategy_ = {};
+    RelationalSyncStrategy strategy;
+    SetRelationalSyncStrategy(strategy, false);
 }
 }
 #endif

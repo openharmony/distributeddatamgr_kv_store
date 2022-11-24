@@ -27,16 +27,16 @@ namespace DistributedDB {
 class SerialBuffer; // Forward Declarations
 
 struct FrameInfo {
-    SerialBuffer *buffer;
+    SerialBuffer *buffer = nullptr;
     std::string srcTarget;
     LabelType commLabel;
-    uint32_t frameId;
+    uint32_t frameId = 0u;
 };
 
 struct RetainWork {
-    SerialBuffer *buffer;
-    uint32_t frameId;
-    uint32_t remainTime; // in second
+    SerialBuffer *buffer = nullptr;
+    uint32_t frameId = 0u;
+    uint32_t remainTime = 0u; // in second
 };
 
 class FrameRetainer {

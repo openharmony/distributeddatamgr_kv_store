@@ -129,6 +129,29 @@ namespace {
             EXPECT_TRUE(resultvalue == value);
         }
     }
+
+    void CalculateDataTest(uint32_t itemCount, uint32_t keySize, uint32_t valueSize)
+    {
+        for (uint32_t i = 0; i < itemCount; i++) {
+            std::vector<uint8_t> prefixKey = {'a', 'b', 'c'};
+            Key key = DistributedDBToolsUnitTest::GetRandPrefixKey(prefixKey, keySize);
+            Value value;
+            DistributedDBToolsUnitTest::GetRandomKeyValue(value, valueSize);
+            EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+        }
+        size_t dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
+        uint32_t expectedDataSize = (valueSize + keySize);
+        uint32_t externalSize = 70u;
+        uint32_t serialHeadLen = 8u;
+        LOGI("expectedDataSize=%u, v=%u", expectedDataSize, externalSize);
+        uint32_t maxDataSize = 1024u * 1024u;
+        if (itemCount * expectedDataSize >= maxDataSize) {
+            EXPECT_EQ(static_cast<uint32_t>(dataSize), maxDataSize);
+            return;
+        }
+        ASSERT_GE(static_cast<uint32_t>(dataSize), itemCount * expectedDataSize);
+        ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + itemCount * (expectedDataSize + externalSize));
+    }
 }
 
 class DistributedDBSingleVerP2PSyncTest : public testing::Test {
@@ -3413,4 +3436,232 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync003, TestSize.Level1)
     Value actualValue;
     EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), NOT_FOUND);
     g_deviceB->ResetDataControl();
+}
+
+/**
+  * @tc.name: RemoveDeviceData001
+  * @tc.desc: call rekey and removeDeviceData Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000D487B
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RemoveDeviceData001, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Value value = {'1'};
+    g_deviceB->PutData(key1, value, 1, 0);
+    g_deviceB->PutData(key2, value, 2, 0);
+    g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true);
+
+    Value actualValue;
+    g_kvDelegatePtr->Get(key1, actualValue);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    g_kvDelegatePtr->Get(key2, actualValue);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step2. call Rekey and RemoveDeviceData Concurrently
+     * * @tc.expected: step2. interface return ok
+    */
+    std::thread thread1([]() {
+        CipherPassword passwd3;
+        std::vector<uint8_t> passwdVect = {'p', 's', 'd', 'z'};
+        passwd3.SetValue(passwdVect.data(), passwdVect.size());
+        g_kvDelegatePtr->Rekey(passwd3);
+    });
+    std::thread thread2([]() {
+        g_kvDelegatePtr->RemoveDeviceData(g_deviceB->GetDeviceId());
+    });
+    thread1.join();
+    thread2.join();
+}
+
+/**
+  * @tc.name: CalculateSyncData001
+  * @tc.desc: Test sync data whose device never synced before
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData001, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    size_t dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
+    uint32_t serialHeadLen = 8u;
+    EXPECT_EQ(static_cast<uint32_t>(dataSize), 0u + serialHeadLen);
+    uint32_t keySize = 256u;
+    uint32_t valuesize = 1024u;
+    uint32_t itemCount = 10u;
+    CalculateDataTest(itemCount, keySize, valuesize);
+}
+
+/**
+  * @tc.name: CalculateSyncData002
+  * @tc.desc: Test sync data whose device synced before, but sync data is less than 1M
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData002, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    Key key1 = {'1'};
+    Value value1 = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
+
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_TRUE(status == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        EXPECT_TRUE(pair.second == OK);
+    }
+
+    uint32_t keySize = 256u;
+    uint32_t valuesize = 512u;
+    uint32_t itemCount = 20u;
+    CalculateDataTest(itemCount, keySize, valuesize);
+}
+
+/**
+  * @tc.name: CalculateSyncData003
+  * @tc.desc: Test sync data whose device synced before, but sync data is larger than 1M
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData003, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    Key key1 = {'1'};
+    Value value1 = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
+
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    ASSERT_TRUE(status == OK);
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        EXPECT_TRUE(pair.second == OK);
+    }
+    uint32_t keySize = 256u;
+    uint32_t valuesize = 1024u;
+    uint32_t itemCount = 2048u;
+    CalculateDataTest(itemCount, keySize, valuesize);
+}
+
+/**
+  * @tc.name: CalculateSyncData004
+  * @tc.desc: Test invalid device when call GetSyncDataSize interface
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData004, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    std::string device;
+    EXPECT_EQ(g_kvDelegatePtr->GetSyncDataSize(device), 0u);
+}
+
+/**
+  * @tc.name: CalculateSyncData005
+  * @tc.desc: Test CalculateSyncData and close db Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    size_t dataSize = 0;
+    Key key1 = {'1'};
+    Value value1 = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
+    std::thread thread1([]() {
+        if (g_kvDelegatePtr != nullptr) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            g_mgr.CloseKvStore(g_kvDelegatePtr);
+            g_kvDelegatePtr = nullptr;
+        }
+    });
+    std::thread thread2([&dataSize, &key1, &value1]() {
+        if (g_kvDelegatePtr != nullptr) {
+            dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
+        }
+        uint32_t expectedDataSize = (key1.size() + value1.size());
+        uint32_t externalSize = 70u;
+        uint32_t serialHeadLen = 8u;
+        ASSERT_GE(static_cast<uint32_t>(dataSize), expectedDataSize);
+        ASSERT_LE(static_cast<uint32_t>(dataSize), serialHeadLen + expectedDataSize + externalSize);
+    });
+    thread1.join();
+    thread2.join();
+}
+
+/**
+  * @tc.name: DeviceOfflineSyncTask001
+  * @tc.desc: Test sync task when device offline and close db Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask001, TestSize.Level3)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA set auto sync and put some key/value
+     * @tc.expected: step2. interface should return OK.
+     */
+    bool autoSync = true;
+    PragmaData data = static_cast<PragmaData>(&autoSync);
+    status = g_kvDelegatePtr->Pragma(AUTO_SYNC, data);
+    ASSERT_EQ(status, OK);
+
+    Key key1 = {'2'};
+    Key key2 = {'3'};
+    Key key3 = {'4'};
+    Key key4 = {'5'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key1, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key2, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key3, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key4, value) == OK);
+    /**
+     * @tc.steps: step3. device offline and close db Concurrently
+     * @tc.expected: step3. interface should return OK.
+     */
+    std::thread thread1([]() {
+        if (g_kvDelegatePtr != nullptr) {
+            g_mgr.CloseKvStore(g_kvDelegatePtr);
+            g_kvDelegatePtr = nullptr;
+        }
+    });
+    std::thread thread2([]() {
+        g_deviceB->Offline();
+    });
+    thread1.join();
+    thread2.join();
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
 }

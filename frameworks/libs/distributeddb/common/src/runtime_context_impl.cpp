@@ -393,9 +393,8 @@ int RuntimeContextImpl::RunPermissionCheck(const PermissionCheckParam &param, ui
     }
     if (checkResult) {
         return E_OK;
-    } else {
-        return -E_NOT_PERMIT;
     }
+    return -E_NOT_PERMIT;
 }
 
 int RuntimeContextImpl::EnableKvStoreAutoLaunch(const KvDBProperties &properties, AutoLaunchNotifier notifier,

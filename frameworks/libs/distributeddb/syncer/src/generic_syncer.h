@@ -102,6 +102,8 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) override;
 
+    int GetSyncDataSize(const std::string &device, size_t &size) const override;
+
 protected:
 
     // trigger query auto sync or auto subscribe
@@ -177,6 +179,12 @@ protected:
     int BuildSyncEngine();
 
     int InitTimeChangedListener();
+
+    void ReleaseInnerResource();
+
+    void RecordTimeChangeOffset(void *changedOffset);
+
+    int CloseInner(bool isClosedOperation);
 
     static int SyncModuleInit();
 

@@ -45,6 +45,7 @@ int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNe
 int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
     const std::string &tableName)
 {
+    std::lock_guard<std::mutex> lock(syncerLock_);
     if (metadata_ == nullptr) {
         return -E_NOT_INIT;
     }
@@ -55,7 +56,7 @@ int SingleVerSyncer::SetStaleDataWipePolicy(WipePolicy policy)
 {
     std::lock_guard<std::mutex> lock(syncerLock_);
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGI("[Syncer] Syncer is closing, return!");
         return -E_BUSY;
     }
     if (syncEngine_ == nullptr) {

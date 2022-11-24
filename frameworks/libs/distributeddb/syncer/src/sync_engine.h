@@ -58,7 +58,7 @@ public:
     void GetOnlineDevices(std::vector<std::string> &devices) const override;
 
     // Register the device connect callback, this function must be called after Engine inited
-    void RegConnectCallback() override;
+    void StartCommunicator() override;
 
     // Get the queue cache memory size
     int GetQueueCacheSize() const;
@@ -179,10 +179,7 @@ private:
     // Handle message in order.
     int ScheduleDealMsg(ISyncTaskContext *context, Message *inMsg);
 
-    // Schedule Sync Task
-    void ScheduleSyncTask(ISyncTaskContext *context);
-
-    ISyncTaskContext *GetConextForMsg(const std::string &targetDev, int &errCode);
+    ISyncTaskContext *GetContextForMsg(const std::string &targetDev, int &errCode);
 
     ICommunicator *AllocCommunicator(const std::string &identifier, int &errCode);
 
@@ -214,9 +211,10 @@ private:
     std::function<void(const std::string &)> offlineChanged_;
     std::shared_ptr<Metadata> metadata_;
     std::deque<Message *> msgQueue_;
-    uint32_t execTaskCount_;
+    volatile uint32_t execTaskCount_;
     std::string label_;
-    bool isSyncRetry_;
+    volatile bool isSyncRetry_;
+    std::mutex communicatorProxyLock_;
     CommunicatorProxy *communicatorProxy_;
     std::mutex equalCommunicatorsLock_;
     std::map<std::string, ICommunicator *> equalCommunicators_;

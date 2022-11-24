@@ -13,10 +13,12 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
 #include <cstdint>
-#include <vector>
+#include <gtest/gtest.h>
 #include <variant>
+#include <vector>
+
+#include "change_notification.h"
 #include "iremote_broker.h"
 #include "iremote_object.h"
 #include "iremote_proxy.h"

@@ -40,7 +40,7 @@ enum class AutoLaunchItemState {
 };
 
 enum class DBType {
-    DB_KV = 0,
+    DB_KV = 1,
     DB_RELATION,
     DB_INVALID,
 };
@@ -164,7 +164,7 @@ protected:
 
     void TryCloseRelationConnection(AutoLaunchItem &autoLaunchItem);
 
-    void EraseAutoLauchItem(const std::string &identifier, const std::string &userId);
+    void EraseAutoLaunchItem(const std::string &identifier, const std::string &userId);
 
     void NotifyInvalidParam(const AutoLaunchItem &autoLaunchItem);
 

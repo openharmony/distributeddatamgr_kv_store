@@ -198,9 +198,10 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
     (void)parcel.WriteVectorChar(context.prefixKey);
     (void)parcel.WriteString(context.suggestIndex);
     (void)parcel.WriteUInt32(context.queryObjNodes.size());
-
     parcel.EightByteAlign();
-
+    if (parcel.IsError()) {
+        return -E_INVALID_ARGS;
+    }
     for (const QueryObjNode &node : context.queryObjNodes) {
         errCode = SerializeDataObjNode(parcel, node);
         if (errCode != E_OK) {
@@ -219,11 +220,10 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
             (void)parcel.WriteVectorChar(key);
         }
     }  // QUERY_SYNC_OBJECT_VERSION_1 end.
-
+    parcel.EightByteAlign();
     if (parcel.IsError()) { // parcel almost success
         return -E_INVALID_ARGS;
     }
-    parcel.EightByteAlign();
     return E_OK;
 }
 
@@ -271,10 +271,10 @@ int QuerySyncObject::DeSerializeData(Parcel &parcel, QuerySyncObject &queryObj)
 
     uint32_t nodesSize = 0;
     (void)parcel.ReadUInt32(nodesSize);
+    parcel.EightByteAlign();
     if (parcel.IsError()) { // almost success
         return -E_INVALID_ARGS;
     }
-    parcel.EightByteAlign();
     for (size_t i = 0; i < nodesSize; i++) {
         QueryObjNode node;
         int errCode = DeSerializeDataObjNode(parcel, node);

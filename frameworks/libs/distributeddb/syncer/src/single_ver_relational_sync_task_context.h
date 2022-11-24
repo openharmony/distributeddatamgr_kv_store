@@ -31,10 +31,8 @@ public:
     std::string GetQuerySyncId() const override;
     std::string GetDeleteSyncId() const override;
 
-    void SetRelationalSyncStrategy(RelationalSyncStrategy strategy);
-    SyncStrategy GetSyncStrategy(QuerySyncObject &querySyncObject) const override;
-
-    void SetIsNeedResetAbilitySync(bool isNeedReset) override;
+    void SetRelationalSyncStrategy(RelationalSyncStrategy &strategy, bool isSchemaSync);
+    std::pair<bool, bool> GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const override;
 
     void SchemaChange() override;
 protected:
@@ -47,6 +45,7 @@ protected:
     // for relational syncStrategy
     mutable std::mutex syncStrategyMutex_;
     RelationalSyncStrategy relationalSyncStrategy_;
+    std::atomic<bool> isSchemaSync_ = false;
 };
 }
 #endif // RELATIONAL_STORE

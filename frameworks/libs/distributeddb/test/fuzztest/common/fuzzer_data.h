@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
 namespace DistributedDBTest {
 class FuzzerData final {
@@ -30,6 +31,9 @@ public:
     uint32_t GetUInt32();
     uint64_t GetUInt64();
     std::vector<uint8_t> GetSequence(size_t size);
+    std::string GetString(size_t len);
+    std::vector<std::string> GetStringVector(size_t size);
+    std::vector<std::u16string> GetU16StringVector(size_t size);
 private:
     const uint8_t *data_;
     const size_t size_;

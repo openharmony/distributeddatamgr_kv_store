@@ -17,9 +17,10 @@
 #include <cstdint>
 #include <vector>
 #include "types.h"
-#include "itypes_util.h"
+#include "kv_types_util.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+using namespace OHOS;
 
 class BlobTest : public testing::Test {
 public:
@@ -57,8 +58,7 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
     Blob blob3("12345");
     EXPECT_EQ(blob3.Size(), (size_t)5);
     std::string strTmp = "123";
-    const char *chr = strTmp.c_str();
-    Blob blob4(chr);
+    Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Size(), (size_t)3);
     std::vector<uint8_t> vec = {'1', '2', '3', '4'};
     Blob blob5(vec);
@@ -66,6 +66,10 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
     const char *chr1 = strTmp.c_str();
     Blob blob6(chr1, strlen(chr1));
     EXPECT_EQ(blob6.Size(), (size_t)3);
+    Blob blob7(nullptr);
+    EXPECT_EQ(blob7.Size(), (size_t)0);
+    Blob blob8(nullptr, strlen(chr1));
+    EXPECT_EQ(blob8.Size(), (size_t)0);
 }
 
 /**
@@ -84,8 +88,7 @@ HWTEST_F(BlobTest, Empty001, TestSize.Level0)
     Blob blob3("12345");
     EXPECT_EQ(blob3.Empty(), false);
     std::string strTmp = "123";
-    const char *chr = strTmp.c_str();
-    Blob blob4(chr);
+    Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Empty(), false);
     std::vector<uint8_t> vec = {'1', '2', '3', '4'};
     Blob blob5(vec);
@@ -263,6 +266,8 @@ HWTEST_F(BlobTest, Operator004, TestSize.Level0)
     std::vector<uint8_t> blob = { 1, 2, 3, 4 };
     Blob blob1(move(blob));
     EXPECT_EQ(blob1.Size(), 4);
+    std::vector<uint8_t> blob2 = std::move(blob1);
+    EXPECT_EQ(blob2.size(), 4);
 }
 
 /**

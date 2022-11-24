@@ -187,7 +187,7 @@ int SingleVerDataSync::TryContinueSync(SingleVerSyncTaskContext *context, const 
     }
     if (!isAllDataHasSent_) {
         return InnerSyncStart(context);
-    } else if (reSendMap_.size() == 0) {
+    } else if (reSendMap_.empty()) {
         context->SetOperationStatus(SyncOperation::OP_SEND_FINISHED);
         InnerClearSyncStatus();
         return -E_FINISHED;
@@ -320,7 +320,6 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
 int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
     size_t packetSize)
 {
-    int errCode;
     WaterMark startMark = 0;
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
@@ -334,6 +333,7 @@ int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vec
         storage_->ReleaseContinueToken(token);
     }
     DataSizeSpecInfo syncDataSizeInfo = GetDataSizeSpecInfo(packetSize);
+    int errCode;
     if (curType != SyncType::QUERY_SYNC_TYPE) {
         errCode = storage_->GetSyncData(startMark, endMark, outData, token, syncDataSizeInfo);
     } else {
@@ -672,11 +672,11 @@ void SingleVerDataSync::FillDataRequestPacket(DataRequestPacket *packet, SingleV
 
 int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
 {
-    if (!SingleVerDataSyncUtils::QuerySyncCheck(context)) {
-        context->SetTaskErrCode(-E_NOT_SUPPORT);
-        return -E_NOT_SUPPORT;
+    int errCode = QuerySyncCheck(context);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    int errCode = RemoveDeviceDataIfNeed(context);
+    errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
         return errCode;
@@ -746,11 +746,11 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     if (context == nullptr) {
         return -E_INVALID_ARGS;
     }
-    if (!SingleVerDataSyncUtils::QuerySyncCheck(context)) {
-        context->SetTaskErrCode(-E_NOT_SUPPORT);
-        return -E_NOT_SUPPORT;
+    int errCode = QuerySyncCheck(context);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    int errCode = RemoveDeviceDataIfNeed(context);
+    errCode = RemoveDeviceDataIfNeed(context);
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
         return errCode;
@@ -1489,14 +1489,14 @@ int SingleVerDataSync::CheckSchemaStrategy(SingleVerSyncTaskContext *context, co
         return -E_INVALID_ARGS;
     }
     auto query = packet->GetQuery();
-    SyncStrategy localStrategy = context->GetSyncStrategy(query);
-    if (!context->GetIsSchemaSync()) {
-        LOGE("[DataSync][CheckSchemaStrategy] isSchemaSync=%d check failed", context->GetIsSchemaSync());
+    std::pair<bool, bool> schemaSyncStatus = context->GetSchemaSyncStatus(query);
+    if (!schemaSyncStatus.second) {
+        LOGE("[DataSync][CheckSchemaStrategy] isSchemaSync=%d check failed", schemaSyncStatus.second);
         (void)SendDataAck(context, message, -E_NEED_ABILITY_SYNC, 0);
         return -E_NEED_ABILITY_SYNC;
     }
-    if (!localStrategy.permitSync) {
-        LOGE("[DataSync][CheckSchemaStrategy] Strategy permitSync=%d check failed", localStrategy.permitSync);
+    if (!schemaSyncStatus.first) {
+        LOGE("[DataSync][CheckSchemaStrategy] Strategy permitSync=%d check failed", schemaSyncStatus.first);
         (void)SendDataAck(context, message, -E_SCHEMA_MISMATCH, 0);
         return -E_SCHEMA_MISMATCH;
     }
@@ -2033,5 +2033,22 @@ void SingleVerDataSync::ScheduleInfoHandle(bool isNeedHandleStatus, bool isNeedC
 void SingleVerDataSync::ClearDataMsg()
 {
     msgSchedule_.ClearMsg();
+}
+
+int SingleVerDataSync::QuerySyncCheck(SingleVerSyncTaskContext *context)
+{
+    if (context == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    bool isCheckStatus = false;
+    int errCode = SingleVerDataSyncUtils::QuerySyncCheck(context, isCheckStatus);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (!isCheckStatus) {
+        context->SetTaskErrCode(-E_NOT_SUPPORT);
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

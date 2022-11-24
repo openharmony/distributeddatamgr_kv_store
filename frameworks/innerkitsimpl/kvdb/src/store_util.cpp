@@ -20,7 +20,6 @@
 #include <unistd.h>
 #include "log_print.h"
 #include "types.h"
-#include "unistd.h"
 namespace OHOS::DistributedKv {
 constexpr mode_t DEFAULT_UMASK = 0002;
 constexpr int32_t HEAD_SIZE = 3;

@@ -19,7 +19,7 @@
 #include "single_ver_syncer.h"
 
 namespace DistributedDB {
-class SingleVerKVSyncer final : public SingleVerSyncer {
+class SingleVerKVSyncer : public SingleVerSyncer {
 public:
     SingleVerKVSyncer();
     ~SingleVerKVSyncer() override;

@@ -61,7 +61,7 @@ void SyncAbleEngine::WakeUpSyncer()
 
 void SyncAbleEngine::Close()
 {
-    StopSyncer(true);
+    StopSyncer();
 }
 
 void SyncAbleEngine::EnableAutoSync(bool enable)
@@ -145,10 +145,19 @@ int SyncAbleEngine::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedAct
 }
 
 // Stop syncer
-void SyncAbleEngine::StopSyncer(bool isClosedOperation)
+void SyncAbleEngine::StopSyncer()
 {
-    std::unique_lock<std::mutex> lock(syncerOperateLock_);
-    StopSyncerWithNoLock(isClosedOperation);
+    NotificationChain::Listener *userChangeListener = nullptr;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        StopSyncerWithNoLock(true);
+        userChangeListener = userChangeListener_;
+        userChangeListener_ = nullptr;
+    }
+    if (userChangeListener != nullptr) {
+        userChangeListener->Drop(true);
+        userChangeListener = nullptr;
+    }
 }
 
 void SyncAbleEngine::StopSyncerWithNoLock(bool isClosedOperation)
@@ -159,7 +168,7 @@ void SyncAbleEngine::StopSyncerWithNoLock(bool isClosedOperation)
         started_ = false;
     }
     closed_ = isClosedOperation;
-    if (userChangeListener_ != nullptr) {
+    if (!isClosedOperation && userChangeListener_ != nullptr) {
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }
@@ -226,21 +235,6 @@ void SyncAbleEngine::ReSetSyncModuleActive()
 {
     isSyncModuleActiveCheck_ = false;
     isSyncNeedActive_ = true;
-}
-
-void SyncAbleEngine::TriggerSync(int notifyEvent)
-{
-    if (!started_) {
-        StartSyncer();
-    }
-    if (started_) {
-        int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, notifyEvent] {
-            syncer_.LocalDataChanged(notifyEvent);
-        });
-        if (errCode != E_OK) {
-            LOGE("[TriggerSync] SyncAbleEngine TriggerSync LocalDataChanged retCode:%d", errCode);
-        }
-    }
 }
 
 int SyncAbleEngine::GetLocalIdentity(std::string &outTarget)

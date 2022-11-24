@@ -179,6 +179,7 @@ int SingleVerSyncStateMachine::ReceiveMessageCallback(Message *inMsg)
 {
     int errCode = MessageCallbackPre(inMsg);
     if (errCode != E_OK) {
+        LOGE("[StateMachine] message pre check failed");
         return errCode;
     }
     switch (inMsg->GetMessageId()) {
@@ -363,7 +364,7 @@ void SingleVerSyncStateMachine::InitStateMapping()
     stateMapping_[SYNC_CONTROL_CMD] = std::bind(&SingleVerSyncStateMachine::DoInitiactiveControlSync, this);
 }
 
-Event SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow()
+Event SingleVerSyncStateMachine::DoInitiactiveDataSyncWithSlidingWindow() const
 {
     LOGD("[StateMachine][activeDataSync] mode=%d,label=%s,dev=%s", context_->GetMode(),
         dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
@@ -424,7 +425,7 @@ Event SingleVerSyncStateMachine::DoPassiveDataSyncWithSlidingWindow()
     return Event::WAIT_ACK_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoInitiactiveControlSync()
+Event SingleVerSyncStateMachine::DoInitiactiveControlSync() const
 {
     LOGD("[StateMachine][activeControlSync] mode=%d,label=%s,dev=%s", context_->GetMode(),
         dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
@@ -465,7 +466,7 @@ Event SingleVerSyncStateMachine::DoWaitForDataRecv() const
     return Event::WAIT_ACK_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoTimeSync()
+Event SingleVerSyncStateMachine::DoTimeSync() const
 {
     if (timeSync_->IsNeedSync()) {
         CommErrHandler handler = nullptr;
@@ -485,7 +486,7 @@ Event SingleVerSyncStateMachine::DoTimeSync()
     return Event::TIME_SYNC_FINISHED_EVENT;
 }
 
-Event SingleVerSyncStateMachine::DoAbilitySync()
+Event SingleVerSyncStateMachine::DoAbilitySync() const
 {
     uint16_t remoteCommunicatorVersion = 0;
     int errCode = communicator_->GetRemoteCommunicatorVersion(context_->GetDeviceId(), remoteCommunicatorVersion);
@@ -615,7 +616,6 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
                 LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
                     dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
                 currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
-                (static_cast<SingleVerSyncTaskContext *>(context_))->SetIsSchemaSync(true);
                 std::lock_guard<std::mutex> lock(stateMachineLock_);
                 (void)ResetWatchDog();
                 JumpStatusAfterAbilitySync(context_->GetMode());
@@ -874,12 +874,10 @@ int SingleVerSyncStateMachine::GetSyncOperationStatus(int errCode) const
         { -E_REMOTE_OVER_SIZE,                SyncOperation::OP_MAX_LIMITS },
         { -E_INVALID_PASSWD_OR_CORRUPTED_DB,  SyncOperation::OP_NOTADB_OR_CORRUPTED }
     };
-    for (const auto &node : stateNodes) {
-        if (node.errCode == errCode) {
-            return static_cast<int>(node.status);
-        }
-    }
-    return SyncOperation::OP_FAILED;
+    const auto &result = std::find_if(std::begin(stateNodes), std::end(stateNodes), [errCode](const auto &node) {
+        return node.errCode == errCode;
+    });
+    return result == std::end(stateNodes) ? SyncOperation::OP_FAILED : static_cast<int>((*result).status);
 }
 
 int SingleVerSyncStateMachine::TimeMarkSyncRecv(const Message *inMsg)

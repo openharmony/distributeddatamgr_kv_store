@@ -17,8 +17,6 @@
 
 #include "ikvstore_data_service.h"
 #include <ipc_skeleton.h>
-#include "irdb_service.h"
-#include "rdb_service_proxy.h"
 #include "itypes_util.h"
 #include "message_parcel.h"
 #include "types.h"

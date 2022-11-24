@@ -242,6 +242,7 @@ protected:
     int UnsubscribeRequestRecv(SingleVerSyncTaskContext *context, const Message *message);
     int SendControlAck(SingleVerSyncTaskContext *context, const Message *message, int32_t recvCode,
         uint32_t controlCmdType, const CommErrHandler &handler = nullptr);
+    int QuerySyncCheck(SingleVerSyncTaskContext *context);
 
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;

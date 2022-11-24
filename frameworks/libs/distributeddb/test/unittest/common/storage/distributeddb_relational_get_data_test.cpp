@@ -31,6 +31,7 @@
 #include "relational_store_manager.h"
 #include "relational_store_sqlite_ext.h"
 #include "relational_sync_able_storage.h"
+#include "runtime_config.h"
 #include "sqlite_relational_store.h"
 #include "sqlite_utils.h"
 #include "virtual_communicator_aggregator.h"
@@ -1194,10 +1195,10 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData2, TestSize.Level1)
      * @tc.steps: step3. Check deviceA's distributed table.
      * @tc.expected: The create sql is correct.
      */
-    std::string expectSql = "CREATE TABLE naturalbase_rdb_aux_data_"
-        "265a9c8c3c690cdfdac72acfe7a50f748811802635d987bb7d69dc602ed3794f(key integer NOT NULL,"
-        "value integer, integer_type integer NOT NULL DEFAULT 123, text_type text NOT NULL DEFAULT 'high_version', "
-        "real_type real NOT NULL DEFAULT 123.123456, blob_type blob NOT NULL DEFAULT 123, PRIMARY KEY (key))";
+    std::string expectSql = "CREATE TABLE 'naturalbase_rdb_aux_data_"
+        "265a9c8c3c690cdfdac72acfe7a50f748811802635d987bb7d69dc602ed3794f' ('key' 'integer' NOT NULL,'value' 'integer',"
+        " 'integer_type' 'integer' NOT NULL DEFAULT 123, 'text_type' 'text' NOT NULL DEFAULT 'high_version', "
+        "'real_type' 'real' NOT NULL DEFAULT 123.123456, 'blob_type' 'blob' NOT NULL DEFAULT 123, PRIMARY KEY ('key'))";
     sql = "SELECT sql FROM sqlite_master WHERE tbl_name='" + DBConstant::RELATIONAL_PREFIX + g_tableName + "_" +
         DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceID)) + "';";
     EXPECT_EQ(GetOneText(db, sql), expectSql);
@@ -1586,5 +1587,94 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level
     dataItem.flag = DataItem::DELETE_FLAG;
     token->FinishGetData();
     token->SetNextBeginTime(dataItem);
+}
+
+/**
+ * @tc.name: CloseStore001
+ * @tc.desc: Test Relational Store Close Action.
+ * @tc.type: FUNC
+ * @tc.require: AR000H2QPN
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. new store and get connection now ref count is 2.
+     * @tc.expected: Succeed.
+     */
+    auto store = new (std::nothrow) SQLiteRelationalStore();
+    ASSERT_NE(store, nullptr);
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    EXPECT_EQ(store->Open(properties), E_OK);
+    int errCode = E_OK;
+    auto connection = store->GetDBConnection(errCode);
+    EXPECT_EQ(errCode, E_OK);
+    ASSERT_NE(connection, nullptr);
+    errCode = store->RegisterLifeCycleCallback([](const std::string &, const std::string &) {
+    });
+    EXPECT_EQ(errCode, E_OK);
+    errCode = store->RegisterLifeCycleCallback(nullptr);
+    EXPECT_EQ(errCode, E_OK);
+    auto syncInterface = store->GetStorageEngine();
+    ASSERT_NE(syncInterface, nullptr);
+    RefObject::IncObjRef(syncInterface);
+    /**
+     * @tc.steps: step2. release store.
+     * @tc.expected: Succeed.
+     */
+    store->ReleaseDBConnection(connection);
+    RefObject::DecObjRef(store);
+    store = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    /**
+     * @tc.steps: step3. try trigger heart beat after store release.
+     * @tc.expected: No crash.
+     */
+    Timestamp maxTimestamp = 0u;
+    syncInterface->GetMaxTimestamp(maxTimestamp);
+    RefObject::DecObjRef(syncInterface);
+}
+
+/**
+ * @tc.name: StopSync001
+ * @tc.desc: Test Relational Stop Sync Action.
+ * @tc.type: FUNC
+ * @tc.require: AR000H2QPN
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
+{
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    properties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    const int loopCount = 1000;
+    std::thread userChangeThread([]() {
+        for (int i = 0; i < loopCount; ++i) {
+            RuntimeConfig::NotifyUserChanged();
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    });
+    std::string hashIdentifier = properties.GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
+    properties.SetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, hashIdentifier);
+    OpenDbProperties option;
+    option.uri = properties.GetStringProp(DBProperties::DATA_DIR, "");
+    option.createIfNecessary = true;
+    for (int i = 0; i < loopCount; ++i) {
+        auto sqliteStorageEngine = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
+        ASSERT_NE(sqliteStorageEngine, nullptr);
+        StorageEngineAttr poolSize = {1, 1, 0, 16}; // at most 1 write 16 read.
+        int errCode = sqliteStorageEngine->InitSQLiteStorageEngine(poolSize, option, hashIdentifier);
+        EXPECT_EQ(errCode, E_OK);
+        auto storageEngine = new (std::nothrow) RelationalSyncAbleStorage(sqliteStorageEngine);
+        ASSERT_NE(storageEngine, nullptr);
+        auto syncAbleEngine = std::make_unique<SyncAbleEngine>(storageEngine);
+        ASSERT_NE(syncAbleEngine, nullptr);
+        syncAbleEngine->WakeUpSyncer();
+        syncAbleEngine->Close();
+        RefObject::KillAndDecObjRef(storageEngine);
+    }
+    userChangeThread.join();
 }
 #endif

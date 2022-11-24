@@ -16,8 +16,8 @@
 #ifndef PARSE_RESULT_H
 #define PARSE_RESULT_H
 
-#include <set>
 #include <cstdint>
+#include <set>
 #include "communicator_type_define.h"
 
 namespace DistributedDB {

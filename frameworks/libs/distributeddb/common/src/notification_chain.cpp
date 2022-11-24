@@ -187,7 +187,7 @@ int NotificationChain::ListenerChain::UnRegisterListener(Listener *listener, boo
 void NotificationChain::ListenerChain::BackupListenerSet(std::set<Listener *> &backupSet) const
 {
     for (auto listener : listenerSet_) {
-        listener->IncObjRef(listener);
+        RefObject::IncObjRef(listener);
         backupSet.insert(listener);
     }
 }

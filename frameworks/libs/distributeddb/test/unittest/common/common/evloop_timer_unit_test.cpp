@@ -19,8 +19,8 @@
 
 #include "db_errno.h"
 #include "distributeddb_tools_unit_test.h"
-#include "evloop/include/ievent.h"
-#include "evloop/include/ievent_loop.h"
+#include "evloop/src/ievent.h"
+#include "evloop/src/ievent_loop.h"
 #include "log_print.h"
 #include "platform_specific.h"
 

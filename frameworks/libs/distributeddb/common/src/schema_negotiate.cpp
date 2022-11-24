@@ -213,12 +213,12 @@ int SchemaNegotiate::SerializeData(const RelationalSyncOpinion &opinions, Parcel
     (void)parcel.WriteString(MAGIC);
     (void)parcel.WriteUInt32(SYNC_OPINION_VERSION);
     (void)parcel.WriteUInt32(static_cast<uint32_t>(opinions.size()));
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
     for (const auto &it : opinions) {
         (void)parcel.WriteString(it.first);
         (void)parcel.WriteUInt32(it.second.permitSync);
         (void)parcel.WriteUInt32(it.second.requirePeerConvert);
-        (void)parcel.EightByteAlign();
+        parcel.EightByteAlign();
     }
     return parcel.IsError() ? -E_INVALID_ARGS : E_OK;
 }
@@ -242,7 +242,7 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
     }
     uint32_t opinionSize;
     (void)parcel.ReadUInt32(opinionSize);
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
     static const uint32_t MAX_OPINION_SIZE = 1024; // max 1024 opinions
     if (parcel.IsError() || opinionSize > MAX_OPINION_SIZE) {
         return -E_INVALID_ARGS;
@@ -257,7 +257,7 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
         uint32_t requirePeerConvert;
         (void)parcel.ReadUInt32(requirePeerConvert);
         tableOpinion.requirePeerConvert = static_cast<bool>(requirePeerConvert);
-        (void)parcel.EightByteAlign();
+        parcel.EightByteAlign();
         opinion[tableName] =  tableOpinion;
     }
     return parcel.IsError() ? -E_INVALID_ARGS : E_OK;

@@ -797,9 +797,11 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest004, TestSize.
     std::string fileUrl = g_testDir + "/ShaAlgoEncryptTest004.db";
     std::string attachName = "EncryptTest004";
     SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd, fileUrl, attachName);
+    EXPECT_NE(SQLiteUtils::SetKeyInner(db, static_cast<CipherType>(3), g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
     uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
     EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
     EXPECT_NE(SQLiteUtils::SetKey(db, static_cast<CipherType>(3), g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_NE(SQLiteUtils::SetKeyInner(db, static_cast<CipherType>(3), g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
     EXPECT_EQ(SQLiteUtils::SetKey(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
     EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA1_ALGO_SQL), E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);

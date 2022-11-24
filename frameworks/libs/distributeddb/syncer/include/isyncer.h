@@ -32,7 +32,6 @@ namespace DistributedDB {
 struct SyncerBasicInfo {
     bool isSyncActive = false;
     bool isAutoSync = false;
-    bool isClearHistoryData = false;
 };
 class ISyncer {
 public:
@@ -50,10 +49,7 @@ public:
     virtual ~ISyncer() {};
 
     // Init the Syncer modules
-    virtual int Initialize(ISyncInterface *syncInterface, bool isNeedActive)
-    {
-        return -E_NOT_SUPPORT;
-    }
+    virtual int Initialize(ISyncInterface *syncInterface, bool isNeedActive) = 0;
 
     // Close
     virtual int Close(bool isClosedOperation) = 0;
@@ -125,6 +121,8 @@ public:
 
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) = 0;
+
+    virtual int GetSyncDataSize(const std::string &device, size_t &size) const = 0;
 };
 } // namespace DistributedDB
 

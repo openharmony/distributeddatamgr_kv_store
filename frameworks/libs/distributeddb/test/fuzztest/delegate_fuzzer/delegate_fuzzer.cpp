@@ -79,7 +79,6 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     kvStoreSnapshotPtr->GetEntries(keyPrefix, [](DBStatus status, const std::vector<Entry> &entries) {
         (void) entries.size();
     });
-
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
     kvDelegatePtr->UnRegisterObserver(observer);

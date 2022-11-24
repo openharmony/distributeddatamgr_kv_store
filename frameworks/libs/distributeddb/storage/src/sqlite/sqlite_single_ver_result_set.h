@@ -19,8 +19,8 @@
 #include <mutex>
 #include <vector>
 
-#include "kvdb_windowed_result_set.h"
 #include "ikvdb_raw_cursor.h"
+#include "kvdb_windowed_result_set.h"
 #include "query_object.h"
 
 namespace DistributedDB {

@@ -84,9 +84,7 @@ int Blob::WriteBlob(const uint8_t *ptrArray, const uint32_t &size)
 
 std::vector<uint8_t> Blob::ToVector() const
 {
-    std::vector<uint8_t> vec;
-    vec.insert(vec.end(), ptr_, ptr_ + size_);
-    return vec;
+    return std::vector<uint8_t>(ptr_, ptr_ + size_);
 }
 
 DataValue::DataValue() : type_(StorageType::STORAGE_TYPE_NULL)

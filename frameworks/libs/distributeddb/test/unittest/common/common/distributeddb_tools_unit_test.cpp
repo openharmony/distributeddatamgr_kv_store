@@ -15,10 +15,13 @@
 
 #include "distributeddb_tools_unit_test.h"
 
+#include <codecvt>
+#include <cstdio>
 #include <cstring>
 #include <dirent.h>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <locale>
 #include <openssl/rand.h>
 #include <random>
 #include <set>
@@ -29,6 +32,7 @@
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
 #include "platform_specific.h"
+#include "runtime_config.h"
 #include "single_ver_data_packet.h"
 #include "value_hash_calc.h"
 
@@ -662,6 +666,22 @@ void DistributedDBToolsUnitTest::CalcHash(const std::vector<uint8_t> &value, std
     hashCalc.Initialize();
     hashCalc.Update(value);
     hashCalc.GetResult(hashValue);
+}
+
+void DistributedDBToolsUnitTest::Dump()
+{
+    constexpr const char *rightDumpParam = "dump-distributeddb";
+    constexpr const char *ignoreDumpParam = "ignore-param";
+    const std::u16string u16DumpRightParam =
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(rightDumpParam);
+    const std::u16string u16DumpIgnoreParam =
+        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(ignoreDumpParam);
+    std::vector<std::u16string> params = {
+        u16DumpRightParam,
+        u16DumpIgnoreParam
+    };
+    // print to std::cout
+    RuntimeConfig::Dump(0, params);
 }
 
 KvStoreObserverUnitTest::KvStoreObserverUnitTest() : callCount_(0), isCleared_(false)

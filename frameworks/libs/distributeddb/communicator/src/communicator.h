@@ -16,16 +16,16 @@
 #ifndef COMMUNICATOR_H
 #define COMMUNICATOR_H
 
-#include <set>
-#include <mutex>
 #include <chrono>
-#include <string>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
-#include <condition_variable>
-#include "serial_buffer.h"
-#include "icommunicator.h"
+#include <mutex>
+#include <set>
+#include <string>
 #include "communicator_aggregator.h"
+#include "icommunicator.h"
+#include "serial_buffer.h"
 
 namespace DistributedDB {
 class Communicator : public ICommunicator {

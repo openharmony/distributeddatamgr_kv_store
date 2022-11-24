@@ -105,6 +105,8 @@ public:
 
     int CheckIntegrity() const override;
 
+    int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const override;
+
 private:
     int CheckMonoStatus(OperatePerm perm);
 
@@ -201,6 +203,9 @@ private:
 
     bool CheckLogOverLimit(SQLiteSingleVerStorageExecutor *executor) const;
     int CalcHashDevID(PragmaDeviceIdentifier &pragmaDev);
+
+    int GetEntriesInner(bool isGetValue, const IOption &option,
+        const Key &keyPrefix, std::vector<Entry> &entries) const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 

@@ -939,4 +939,39 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
     }
     return TransferDBErrno(errCode);
 }
+
+DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION.c_str());
+        return DB_ERROR;
+    }
+    IOption option;
+    option.dataType = IOption::SYNC_DATA;
+    int errCode = conn_->GetKeys(option, keyPrefix, keys);
+    if (errCode == E_OK) {
+        return OK;
+    }
+    LOGW("[KvStoreNbDelegate] Get the keys failed:%d", errCode);
+    return TransferDBErrno(errCode);
+}
+
+size_t KvStoreNbDelegateImpl::GetSyncDataSize(const std::string &device) const
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION.c_str());
+        return 0;
+    }
+    if (device.empty()) {
+        LOGE("device len is invalid");
+        return 0;
+    }
+    size_t size = 0;
+    int errCode = conn_->GetSyncDataSize(device, size);
+    if (errCode != E_OK) {
+        LOGE("[KvStoreNbDelegate] calculate sync data size failed : %d", errCode);
+        return 0;
+    }
+    return size;
+}
 } // namespace DistributedDB

@@ -36,8 +36,10 @@
 #endif
 
 #ifdef _MACOS
-#define memcpy_s(t, tLen, s, len) memcpy(t, s, std::min(tlen, slen))
+#define memcpy_s(t, tLen, s, sLen) memcpy(t, s, std::min(tLen, sLen))
 #endif
+
+constexpr mode_t MODE = 0755;
 
 class AbilityMock {
 public:

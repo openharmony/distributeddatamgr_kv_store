@@ -33,10 +33,123 @@ config("module_private_config") {
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
 
-ohos_unittest("SingleStoreImpl") {
+ohos_unittest("SingleStoreImplTest") {
   module_out_path = module_output_path
 
   sources = [ "single_store_impl_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog_native:libhilog",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("StoreUtilTest") {
+  module_out_path = module_output_path
+
+  sources = [ "store_util_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("BackupManagerTest") {
+  module_out_path = module_output_path
+
+  sources = [ "backup_manager_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("AutoSyncTimerTest") {
+  module_out_path = module_output_path
+
+  sources = [ "auto_sync_timer_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog_native:libhilog",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("DevManagerTest") {
+  module_out_path = module_output_path
+
+  sources = [ "dev_manager_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog_native:libhilog",
+    "ipc:ipc_core",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//third_party/googletest:gtest",
+  ]
+}
+
+ohos_unittest("SingleStoreImplGetTopTest") {
+  module_out_path = module_output_path
+
+  sources = [ "single_store_impl_get_top_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
@@ -60,6 +173,14 @@ ohos_unittest("SingleStoreImpl") {
 group("unittest") {
   testonly = true
 
-  deps = [ ":SingleStoreImpl" ]
+  deps = []
+  deps += [
+    ":AutoSyncTimerTest",
+    ":BackupManagerTest",
+    ":DevManagerTest",
+    ":SingleStoreImplGetTopTest",
+    ":SingleStoreImplTest",
+    ":StoreUtilTest",
+  ]
 }
 ###############################################################################

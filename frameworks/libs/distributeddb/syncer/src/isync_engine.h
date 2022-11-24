@@ -49,8 +49,8 @@ public:
     // Get Online devices
     virtual void GetOnlineDevices(std::vector<std::string> &devices) const = 0;
 
-    // Register the device connect callback, this function must be called after Engine initted
-    virtual void RegConnectCallback() = 0;
+    // Register the device connect callback and active communicator, this function must be called after Engine initted
+    virtual void StartCommunicator() = 0;
 
     // Get the database identifier
     virtual std::string GetLabel() const = 0;

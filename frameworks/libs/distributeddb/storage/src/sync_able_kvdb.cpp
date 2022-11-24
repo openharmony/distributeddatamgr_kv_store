@@ -196,8 +196,17 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 // Stop syncer
 void SyncAbleKvDB::StopSyncer(bool isClosedOperation)
 {
-    std::unique_lock<std::mutex> lock(syncerOperateLock_);
-    StopSyncerWithNoLock(isClosedOperation);
+    NotificationChain::Listener *userChangeListener = nullptr;
+    {
+        std::unique_lock<std::mutex> lock(syncerOperateLock_);
+        StopSyncerWithNoLock(isClosedOperation);
+        userChangeListener = userChangeListener_;
+        userChangeListener_ = nullptr;
+    }
+    if (userChangeListener != nullptr) {
+        userChangeListener->Drop(true);
+        userChangeListener = nullptr;
+    }
 }
 
 void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
@@ -208,7 +217,7 @@ void SyncAbleKvDB::StopSyncerWithNoLock(bool isClosedOperation)
         started_ = false;
     }
     closed_ = isClosedOperation;
-    if (userChangeListener_ != nullptr) {
+    if (!isClosedOperation && userChangeListener_ != nullptr) {
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }
@@ -229,7 +238,7 @@ void SyncAbleKvDB::UserChangeHandle()
         return;
     }
     isNeedActive = RuntimeContext::GetInstance()->IsSyncerNeedActive(syncInterface->GetDbProperties());
-    isNeedChange = (isNeedActive != isSyncNeedActive_) ? true : false;
+    isNeedChange = (isNeedActive != isSyncNeedActive_);
     // non_active to active or active to non_active
     if (isNeedChange) {
         StopSyncerWithNoLock(); // will drop userChangeListener
@@ -386,5 +395,10 @@ void SyncAbleKvDB::Dump(int fd)
         DBDumpHelper::Dump(fd, "\tDistributedDB Database Sync Module Message Info:\n");
         syncer_.Dump(fd);
     }
+}
+
+int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    return syncer_.GetSyncDataSize(device, size);
 }
 }

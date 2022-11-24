@@ -210,7 +210,7 @@ void SyncerProxy::Dump(int fd)
 SyncerBasicInfo SyncerProxy::DumpSyncerBasicInfo()
 {
     if (syncer_ == nullptr) {
-        return SyncerBasicInfo { false, false, false };
+        return SyncerBasicInfo { false, false };
     }
     return syncer_->DumpSyncerBasicInfo();
 }
@@ -222,5 +222,13 @@ int SyncerProxy::RemoteQuery(const std::string &device, const RemoteCondition &c
         return -E_NOT_INIT;
     }
     return syncer_->RemoteQuery(device, condition, timeout, connectionId, result);
+}
+
+int SyncerProxy::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->GetSyncDataSize(device, size);
 }
 } // namespace DistributedDB

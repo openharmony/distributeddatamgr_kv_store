@@ -121,8 +121,7 @@ int QuerySyncWaterMarkHelper::GetQueryWaterMarkInCacheAndDb(const std::string &c
 int QuerySyncWaterMarkHelper::GetQueryWaterMark(const std::string &queryIdentify, const std::string &deviceId,
     QueryWaterMark &queryWaterMark)
 {
-    std::string cacheKey;
-    GetHashQuerySyncDeviceId(deviceId, queryIdentify, cacheKey);
+    std::string cacheKey = GetHashQuerySyncDeviceId(deviceId, queryIdentify);
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
     return GetQueryWaterMarkInCacheAndDb(cacheKey, queryWaterMark);
 }
@@ -130,8 +129,7 @@ int QuerySyncWaterMarkHelper::GetQueryWaterMark(const std::string &queryIdentify
 int QuerySyncWaterMarkHelper::SetRecvQueryWaterMark(const std::string &queryIdentify,
     const std::string &deviceId, const WaterMark &waterMark)
 {
-    std::string cacheKey;
-    GetHashQuerySyncDeviceId(deviceId, queryIdentify, cacheKey);
+    std::string cacheKey = GetHashQuerySyncDeviceId(deviceId, queryIdentify);
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
     return SetRecvQueryWaterMarkWithoutLock(cacheKey, waterMark);
 }
@@ -139,8 +137,7 @@ int QuerySyncWaterMarkHelper::SetRecvQueryWaterMark(const std::string &queryIden
 int QuerySyncWaterMarkHelper::SetLastQueryTime(const std::string &queryIdentify,
     const std::string &deviceId, const Timestamp &timestamp)
 {
-    std::string cacheKey;
-    GetHashQuerySyncDeviceId(deviceId, queryIdentify, cacheKey);
+    std::string cacheKey = GetHashQuerySyncDeviceId(deviceId, queryIdentify);
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
     QueryWaterMark queryWaterMark;
     int errCode = GetQueryWaterMarkInCacheAndDb(cacheKey, queryWaterMark);
@@ -166,8 +163,7 @@ int QuerySyncWaterMarkHelper::SetRecvQueryWaterMarkWithoutLock(const std::string
 int QuerySyncWaterMarkHelper::SetSendQueryWaterMark(const std::string &queryIdentify,
     const std::string &deviceId, const WaterMark &waterMark)
 {
-    std::string cacheKey;
-    GetHashQuerySyncDeviceId(deviceId, queryIdentify, cacheKey);
+    std::string cacheKey = GetHashQuerySyncDeviceId(deviceId, queryIdentify);
     QueryWaterMark queryWaterMark;
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
     int errCode = GetQueryWaterMarkInCacheAndDb(cacheKey, queryWaterMark);
@@ -288,10 +284,10 @@ uint64_t QuerySyncWaterMarkHelper::CalculateQueryWaterMarkSize(const QueryWaterM
     return length;
 }
 
-void QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &deviceId,
-    const DeviceID &queryId, DeviceID &hashQuerySyncId)
+DeviceID QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &deviceId, const DeviceID &queryId)
 {
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
+    DeviceID hashQuerySyncId;
     if (deviceIdToHashQuerySyncIdMap_[deviceId].count(queryId) == 0) {
         // do not modify this
         hashQuerySyncId = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId) + queryId;
@@ -299,19 +295,18 @@ void QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &deviceId
     } else {
         hashQuerySyncId = deviceIdToHashQuerySyncIdMap_[deviceId][queryId];
     }
+    return hashQuerySyncId;
 }
 
 int QuerySyncWaterMarkHelper::GetDeleteSyncWaterMark(const std::string &deviceId, DeleteWaterMark &deleteWaterMark)
 {
-    std::string hashId;
-    GetHashDeleteSyncDeviceId(deviceId, hashId);
+    std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     return GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
 }
 
 int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark)
 {
-    std::string hashId;
-    GetHashDeleteSyncDeviceId(deviceId, hashId);
+    std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     DeleteWaterMark deleteWaterMark;
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.sendWaterMark = waterMark;
@@ -321,8 +316,7 @@ int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceI
 
 int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark)
 {
-    std::string hashId;
-    GetHashDeleteSyncDeviceId(deviceId, hashId);
+    std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     DeleteWaterMark deleteWaterMark;
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.recvWaterMark = waterMark;
@@ -402,8 +396,9 @@ int QuerySyncWaterMarkHelper::SaveDeleteWaterMarkToDB(const DeviceID &hashDevice
     return errCode;
 }
 
-void QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId)
+DeviceID QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId)
 {
+    DeviceID hashDeleteSyncId;
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     if (deviceIdToHashDeleteSyncIdMap_.count(deviceId) == 0) {
         hashDeleteSyncId = DBConstant::DELETE_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
@@ -411,6 +406,7 @@ void QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceI
     } else {
         hashDeleteSyncId = deviceIdToHashDeleteSyncIdMap_[deviceId];
     }
+    return hashDeleteSyncId;
 }
 
 int QuerySyncWaterMarkHelper::SerializeDeleteWaterMark(const DeleteWaterMark &deleteWaterMark,
@@ -513,26 +509,24 @@ int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Ke
 int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName)
 {
     // lock prevent other thread modify queryWaterMark at this moment
-    {
-        std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
-        std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
-        if (!tableName.empty()) {
-            std::string hashTableName = DBCommon::TransferHashString(tableName);
-            std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
-            prefixKeyStr += hexTableName;
-        }
-
-        // remove in db
-        Key prefixKey;
-        DBCommon::StringToVector(prefixKeyStr, prefixKey);
-        int errCode = storage_->DeleteMetaDataByPrefixKey(prefixKey);
-        if (errCode != E_OK) {
-            LOGE("[META]ResetRecvQueryWaterMark fail errCode:%d", errCode);
-            return errCode;
-        }
-        // clean cache
-        querySyncCache_.RemoveWithPrefixKey(prefixKeyStr);
+    std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
+    std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+    if (!tableName.empty()) {
+        std::string hashTableName = DBCommon::TransferHashString(tableName);
+        std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
+        prefixKeyStr += hexTableName;
     }
+
+    // remove in db
+    Key prefixKey;
+    DBCommon::StringToVector(prefixKeyStr, prefixKey);
+    int errCode = storage_->DeleteMetaDataByPrefixKey(prefixKey);
+    if (errCode != E_OK) {
+        LOGE("[META]ResetRecvQueryWaterMark fail errCode:%d", errCode);
+        return errCode;
+    }
+    // clean cache
+    querySyncCache_.RemoveWithPrefixKey(prefixKeyStr);
     return E_OK;
 }
 }  // namespace DistributedDB

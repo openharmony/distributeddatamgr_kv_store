@@ -91,7 +91,7 @@ void VirtualCommunicator::CallbackOnMessage(const std::string &srcTarget, Messag
 {
     std::lock_guard<std::mutex> lock(onMessageLock_);
     if (isEnable_ && onMessage_ && (srcTarget != deviceId_) && ((inMsg->GetMessageId() != dropMsgId_) ||
-        ((inMsg->GetMessageId() == dropMsgId_) && (dropMsgTimes_ == 0)))) {
+        (dropMsgTimes_ == 0))) {
         onMessage_(srcTarget, inMsg);
     } else {
         LOGD("drop msg from dev=%s, localDev=%s", srcTarget.c_str(), deviceId_.c_str());
@@ -211,7 +211,7 @@ int VirtualCommunicator::TranslateMsg(const Message *inMsg, Message *&outMsg)
 {
     int errCode = E_OK;
     std::shared_ptr<ExtendHeaderHandle> extendHandle = nullptr;
-    auto buffer = ProtocolProto::ToSerialBuffer(inMsg, errCode, extendHandle);
+    auto buffer = ProtocolProto::ToSerialBuffer(inMsg, extendHandle, false, errCode);
     if (errCode != E_OK) {
         return errCode;
     }

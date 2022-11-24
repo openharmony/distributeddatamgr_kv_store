@@ -213,11 +213,11 @@ int SingleVerSerializeManager::DataPacketSyncerPartSerialization(Parcel &parcel,
     }
     if (packet->GetVersion() > SOFTWARE_VERSION_RELEASE_2_0) {
         parcel.WriteUInt32(packet->GetFlag());
-        if (parcel.IsError()) {
-            return -E_PARSE_FAIL;
-        }
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 }
 
@@ -351,10 +351,10 @@ int SingleVerSerializeManager::AckPacketSyncerPartSerializationV1(Parcel &parcel
     parcel.WriteUInt64(packet->GetData());
     parcel.WriteInt(packet->GetRecvCode());
     parcel.WriteVector<uint64_t>(packet->GetReserved());
+    parcel.EightByteAlign();
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
-    parcel.EightByteAlign();
     return E_OK;
 }
 
@@ -480,13 +480,13 @@ int SingleVerSerializeManager::DataPacketSyncerPartDeSerialization(Parcel &parce
         packLen += parcel.ReadUInt32(flag);
         packet->SetFlag(flag);
     }
+    parcel.EightByteAlign();
     packLen = Parcel::GetEightByteAlign(packLen);
     if (parcel.IsError()) {
         LOGE("[DataSync][DataPacketDeSerialization] deserialize failed! input len=%" PRIu32 ",packLen=%" PRIu32,
             length, packLen);
         return -E_LENGTH_ERROR;
     }
-    parcel.EightByteAlign();
     packet->SetEndWaterMark(waterMark);
     packet->SetLocalWaterMark(localWaterMark);
     packet->SetPeerWaterMark(peerWaterMark);
@@ -654,11 +654,11 @@ int SingleVerSerializeManager::ControlRequestSerialization(Parcel &parcel, const
     parcel.WriteInt(packet->GetSendCode());
     parcel.WriteUInt32(packet->GetcontrolCmdType());
     parcel.WriteUInt32(packet->GetFlag());
+    parcel.EightByteAlign();
     if (parcel.IsError()) {
         LOGE("[ControlRequestSerialization] Serialization failed");
         return -E_INVALID_ARGS;
     }
-    parcel.EightByteAlign();
     return E_OK;
 }
 

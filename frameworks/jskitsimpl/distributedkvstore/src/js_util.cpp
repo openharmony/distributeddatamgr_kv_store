@@ -14,7 +14,6 @@
  */
 #define LOG_TAG "JSUtil"
 #include "js_util.h"
-#include "endian_converter.h"
 #include "ability.h"
 #include "hap_module_info.h"
 #include "napi_base_context.h"
@@ -848,7 +847,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
             OHOS::DataShare::DataShareValuesBucket values;
             GetValue(env, item, values);
             entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin() + 1, entry.key.Data().end());
+            entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
             if (hasSchema) {
                 entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
             }

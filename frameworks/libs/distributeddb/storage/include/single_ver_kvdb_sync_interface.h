@@ -24,8 +24,6 @@
 
 namespace DistributedDB {
 using MulDevTimeRanges = std::map<DeviceID, std::pair<Timestamp, Timestamp>>;
-using MulDevSinVerKvEntry = std::map<DeviceID, std::vector<SingleVerKvEntry *>>;
-using MulDevDataItems = std::map<DeviceID, std::vector<DataItem>>;
 
 class SingleVerKvDBSyncInterface : public IKvDBSyncInterface {
 public:

@@ -30,6 +30,7 @@
 #include "device_manager.h"
 #include "db_constant.h"
 #include "ability_sync.h"
+#include "generic_single_ver_kv_entry.h"
 #include "single_ver_serialize_manager.h"
 
 namespace DistributedDB {
@@ -67,12 +68,8 @@ GenericSyncer::~GenericSyncer()
         }
         syncEngine_ = nullptr;
     }
-    if (timeChangedListener_ != nullptr) {
-        timeChangedListener_->Drop(true);
-        timeChangedListener_ = nullptr;
-    }
-    timeHelper_ = nullptr;
-    metadata_ = nullptr;
+    ReleaseInnerResource();
+    std::lock_guard<std::mutex> lock(syncerLock_);
     syncInterface_ = nullptr;
 }
 
@@ -134,42 +131,18 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         initialized_ = true;
     }
 
-    // RegConnectCallback may start an auto sync, this function can not in syncerLock_
-    syncEngine_->RegConnectCallback();
+    // StartCommunicator may start an auto sync, this function can not in syncerLock_
+    syncEngine_->StartCommunicator();
     return E_OK;
 }
 
 int GenericSyncer::Close(bool isClosedOperation)
 {
-    {
-        std::lock_guard<std::mutex> lock(syncerLock_);
-        if (!initialized_) {
-            if (isClosedOperation) {
-                timeHelper_ = nullptr;
-                metadata_ = nullptr;
-            }
-            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
-            return -E_NOT_INIT;
-        }
-        initialized_ = false;
-        if (closing_) {
-            LOGE("[Syncer] Syncer is closing, return!");
-            return -E_BUSY;
-        }
-        closing_ = true;
+    int errCode = CloseInner(isClosedOperation);
+    if (errCode != -E_BUSY && isClosedOperation) {
+        ReleaseInnerResource();
     }
-    ClearSyncOperations(isClosedOperation);
-    if (syncEngine_ != nullptr) {
-        syncEngine_->Close();
-        LOGD("[Syncer] Close SyncEngine!");
-        std::lock_guard<std::mutex> lock(syncerLock_);
-        closing_ = false;
-    }
-    if (isClosedOperation) {
-        timeHelper_ = nullptr;
-        metadata_ = nullptr;
-    }
-    return E_OK;
+    return errCode;
 }
 
 int GenericSyncer::Sync(const std::vector<std::string> &devices, int mode,
@@ -229,7 +202,6 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         SubQueuedSyncSize();
         return -E_OUT_OF_MEMORY;
     }
-    operation->SetIdentifier(syncInterface_->GetIdentifier());
     {
         std::lock_guard<std::mutex> autoLock(syncerLock_);
         PerformanceAnalysis::GetInstance()->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
@@ -704,18 +676,22 @@ int GenericSyncer::GetLocalIdentity(std::string &outTarget) const
 
 void GenericSyncer::GetOnlineDevices(std::vector<std::string> &devices) const
 {
-    // Get devices from AutoLaunch first.
-    if (syncInterface_ == nullptr) {
-        LOGI("[Syncer] GetOnlineDevices syncInterface_ is nullptr");
-        return;
-    }
-    bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
-        false);
     std::string identifier;
-    if (isSyncDualTupleMode) {
-        identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-    } else {
-        identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        // Get devices from AutoLaunch first.
+        if (syncInterface_ == nullptr) {
+            LOGI("[Syncer] GetOnlineDevices syncInterface_ is nullptr");
+            return;
+        }
+        bool isSyncDualTupleMode = syncInterface_->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
+            false);
+        if (isSyncDualTupleMode) {
+            identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::DUAL_TUPLE_IDENTIFIER_DATA,
+                "");
+        } else {
+            identifier = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
+        }
     }
     RuntimeContext::GetInstance()->GetAutoLaunchSyncDevices(identifier, devices);
     if (!devices.empty()) {
@@ -723,7 +699,7 @@ void GenericSyncer::GetOnlineDevices(std::vector<std::string> &devices) const
     }
     std::lock_guard<std::mutex> lock(syncerLock_);
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGW("[Syncer] Syncer is closing, return!");
         return;
     }
     if (syncEngine_ != nullptr) {
@@ -757,7 +733,7 @@ std::string GenericSyncer::GetSyncDevicesStr(const std::vector<std::string> &dev
 {
     std::string syncDevices;
     for (const auto &dev:devices) {
-        syncDevices += STR_MASK(dev);
+        syncDevices += DBCommon::StringMasking(dev);
         syncDevices += ",";
     }
     return syncDevices.substr(0, syncDevices.size() - 1);
@@ -770,7 +746,7 @@ int GenericSyncer::StatusCheck() const
         return -E_NOT_INIT;
     }
     if (closing_) {
-        LOGE("[Syncer] Syncer is closing, return!");
+        LOGW("[Syncer] Syncer is closing, return!");
         return -E_BUSY;
     }
     return E_OK;
@@ -876,28 +852,131 @@ int GenericSyncer::InitTimeChangedListener()
     }
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
-            if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
-                return;
-            }
-            TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
-                static_cast<TimeOffset>(TimeHelper::TO_100_NS);
-            TimeOffset orgOffset = this->metadata_->GetLocalTimeOffset() - changedTimeOffset;
-            Timestamp currentSysTime = TimeHelper::GetSysCurrentTime();
-            Timestamp maxItemTime = 0;
-            this->syncInterface_->GetMaxTimestamp(maxItemTime);
-            if (static_cast<Timestamp>(orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
-                orgOffset = static_cast<Timestamp>(TimeHelper::BUFFER_VALID_TIME) -
-                    currentSysTime + TimeHelper::MS_TO_100_NS;
-            }
-            if (static_cast<Timestamp>(currentSysTime + orgOffset) <= maxItemTime) {
-                orgOffset = static_cast<TimeOffset>(maxItemTime - currentSysTime + TimeHelper::MS_TO_100_NS); // 1ms
-            }
-            this->metadata_->SaveLocalTimeOffset(orgOffset);
+            RecordTimeChangeOffset(changedOffset);
         }, errCode);
     if (timeChangedListener_ == nullptr) {
         LOGE("[GenericSyncer] Init RegisterTimeChangedLister failed");
         return errCode;
     }
+    return E_OK;
+}
+
+void GenericSyncer::ReleaseInnerResource()
+{
+    NotificationChain::Listener *timeChangedListener = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (timeChangedListener_ != nullptr) {
+            timeChangedListener = timeChangedListener_;
+            timeChangedListener_ = nullptr;
+        }
+        timeHelper_ = nullptr;
+        metadata_ = nullptr;
+    }
+    if (timeChangedListener != nullptr) {
+        timeChangedListener->Drop(true);
+    }
+}
+
+void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (changedOffset == nullptr || metadata_ == nullptr || syncInterface_ == nullptr) {
+            return;
+        }
+        storage = syncInterface_;
+        metadata = metadata_;
+        storage->IncRefCount();
+    }
+    TimeOffset changedTimeOffset = *(reinterpret_cast<TimeOffset *>(changedOffset)) *
+        static_cast<TimeOffset>(TimeHelper::TO_100_NS);
+    TimeOffset orgOffset = metadata->GetLocalTimeOffset() - changedTimeOffset;
+    TimeOffset currentSysTime = static_cast<TimeOffset>(TimeHelper::GetSysCurrentTime());
+    Timestamp maxItemTime = 0;
+    storage->GetMaxTimestamp(maxItemTime);
+    if ((orgOffset + currentSysTime) > TimeHelper::BUFFER_VALID_TIME) {
+        orgOffset = TimeHelper::BUFFER_VALID_TIME -
+            currentSysTime + static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS);
+    }
+    if ((currentSysTime + orgOffset) <= static_cast<TimeOffset>(maxItemTime)) {
+        orgOffset = static_cast<TimeOffset>(maxItemTime) - currentSysTime +
+            static_cast<TimeOffset>(TimeHelper::MS_TO_100_NS); // 1ms
+    }
+    metadata->SaveLocalTimeOffset(orgOffset);
+    storage->DecRefCount();
+}
+
+int GenericSyncer::CloseInner(bool isClosedOperation)
+{
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (!initialized_) {
+            LOGW("[Syncer] Syncer[%s] don't need to close, because it has not been init", label_.c_str());
+            return -E_NOT_INIT;
+        }
+        initialized_ = false;
+        if (closing_) {
+            LOGE("[Syncer] Syncer is closing, return!");
+            return -E_BUSY;
+        }
+        closing_ = true;
+    }
+    ClearSyncOperations(isClosedOperation);
+    if (syncEngine_ != nullptr) {
+        syncEngine_->Close();
+        LOGD("[Syncer] Close SyncEngine!");
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        closing_ = false;
+    }
+    return E_OK;
+}
+
+int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) const
+{
+    uint64_t localWaterMark = 0;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr || syncInterface_ == nullptr) {
+            return -E_INTERNAL_ERROR;
+        }
+        if (closing_) {
+            LOGE("[Syncer] Syncer is closing, return!");
+            return -E_BUSY;
+        }
+        syncInterface_->IncRefCount();
+        metadata_->GetLocalWaterMark(device, localWaterMark);
+    }
+    uint32_t expectedMtuSize = 1024u * 1024u; // 1M
+    DataSizeSpecInfo syncDataSizeInfo = {expectedMtuSize, static_cast<size_t>(MAX_TIMESTAMP)};
+    std::vector<SendDataItem> outData;
+    ContinueToken token = nullptr;
+    int errCode = static_cast<SyncGenericInterface *>(syncInterface_)->GetSyncData(localWaterMark, MAX_TIMESTAMP,
+        outData, token, syncDataSizeInfo);
+    if (token != nullptr) {
+        static_cast<SyncGenericInterface *>(syncInterface_)->ReleaseContinueToken(token);
+        token = nullptr;
+    }
+    if ((errCode != E_OK) && (errCode != -E_UNFINISHED)) {
+        LOGE("calculate sync data size failed %d", errCode);
+        syncInterface_->DecRefCount();
+        return errCode;
+    }
+    uint32_t totalLen = 0;
+    if (errCode == -E_UNFINISHED) {
+        totalLen = expectedMtuSize;
+    } else {
+        totalLen = GenericSingleVerKvEntry::CalculateLens(outData, SOFTWARE_VERSION_CURRENT);
+    }
+    for (auto &entry : outData) {
+        delete entry;
+        entry = nullptr;
+    }
+    syncInterface_->DecRefCount();
+    // if larger than 1M, return 1M
+    size = (totalLen >= expectedMtuSize) ? expectedMtuSize : totalLen;
     return E_OK;
 }
 } // namespace DistributedDB

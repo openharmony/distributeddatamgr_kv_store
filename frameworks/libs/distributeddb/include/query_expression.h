@@ -16,10 +16,10 @@
 #ifndef DISTRIBUTEDDB_QUERY_EXPRESSION_H
 #define DISTRIBUTEDDB_QUERY_EXPRESSION_H
 
-#include <string>
-#include <vector>
 #include <list>
 #include <set>
+#include <string>
+#include <vector>
 
 #include "types_export.h"
 
