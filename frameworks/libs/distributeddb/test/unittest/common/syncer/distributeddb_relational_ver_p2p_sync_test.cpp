@@ -1780,19 +1780,24 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery006, TestSize.Level1)
     PrepareEnvironment(dataMap, {g_deviceB});
     ASSERT_NE(g_deviceB, nullptr);
     ASSERT_NE(g_rdbDelegatePtr, nullptr);
-    g_communicatorAggregator->RegOnDispatch([](const std::string &device, Message *inMsg) {
+    std::thread *offlineThread = nullptr;
+    g_communicatorAggregator->RegOnDispatch([&offlineThread](const std::string &device, Message *inMsg) {
         ASSERT_NE(inMsg, nullptr);
         inMsg->SetMessageId(INVALID_MESSAGE_ID);
-        std::thread t([]() {
+        offlineThread = new std::thread([]() {
             g_deviceB->Offline();
         });
-        t.detach();
     });
     RemoteCondition condition;
     condition.sql = "SELECT * FROM " + g_tableName + " WHERE 1=0";
     std::shared_ptr<ResultSet> result = nullptr;
     EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), COMM_FAILURE);
     ASSERT_EQ(result, nullptr);
+    if (offlineThread != nullptr) {
+        offlineThread->join();
+        delete offlineThread;
+        offlineThread = nullptr;
+    }
 }
 
 /**
