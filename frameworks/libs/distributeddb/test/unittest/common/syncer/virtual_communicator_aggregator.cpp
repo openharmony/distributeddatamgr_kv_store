@@ -194,7 +194,6 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
         uint32_t sendDelayTime = sendDelayTime_;
         std::thread thread([communicator, srcTarget, dstTarget, msg, isNeedDelay, sendDelayTime, onDispatch]() {
             if (isNeedDelay) {
-                LOGD("begin to delay message for %" PRIu32 "ms dstTarget %s", sendDelayTime, dstTarget.c_str());
                 std::this_thread::sleep_for(std::chrono::milliseconds(sendDelayTime));
             }
             if (onDispatch) {
@@ -203,13 +202,7 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
             communicator->CallbackOnMessage(srcTarget, msg);
             RefObject::DecObjRef(communicator);
         });
-        if ((skipTimes_ == 0) && delayTimes_ > 0 && (inMsg->GetMessageId() == delayMessageId_) &&
-            (delayDevices_.count(dstTarget) > 0)) {
-            delayTimes_--;
-        }
-        if (skipTimes_ > 0 && (inMsg->GetMessageId() == delayMessageId_) && (delayDevices_.count(dstTarget) > 0)) {
-            skipTimes_--;
-        }
+        DelayTimeHandle(inMsg->GetMessageId(), dstTarget);
         thread.detach();
         CallSendEnd(E_OK, onEnd);
     } else {
@@ -307,5 +300,16 @@ void VirtualCommunicatorAggregator::ResetSendDelayInfo()
     delayTimes_ = 0;
     skipTimes_ = 0;
     delayDevices_.clear();
+}
+
+void VirtualCommunicatorAggregator::DelayTimeHandle(uint32_t messageId, const std::string &dstTarget)
+{
+    if ((skipTimes_ == 0) && delayTimes_ > 0 && (messageId == delayMessageId_) &&
+        (delayDevices_.count(dstTarget) > 0)) {
+        delayTimes_--;
+    }
+    if (skipTimes_ > 0 && (messageId == delayMessageId_) && (delayDevices_.count(dstTarget) > 0)) {
+        skipTimes_--;
+    }
 }
 } // namespace DistributedDB
