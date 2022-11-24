@@ -77,7 +77,7 @@ public:
 
     void SetDeviceMtuSize(const std::string &deviceId, uint32_t mtuSize);
 
-    void SetSendDelayInfo(uint32_t sendDelayTime, uint32_t DelayMessageId, uint32_t delayTimes, uint32_t skipTimes,
+    void SetSendDelayInfo(uint32_t sendDelayTime, uint32_t delayMessageId, uint32_t delayTimes, uint32_t skipTimes,
         std::set<std::string> &delayDevices);
     void ResetSendDelayInfo();
 
@@ -86,6 +86,7 @@ public:
 
 private:
     void CallSendEnd(int errCode, const OnSendEnd &onEnd);
+    void DelayTimeHandle(uint32_t messageId, const std::string &dstTarget);
 
     mutable std::mutex communicatorsLock_;
     std::map<std::string, VirtualCommunicator *> communicators_;

@@ -3343,7 +3343,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync003, TestSize.Level1)
   * @tc.require:
   * @tc.author: zhuwentao
   */
- HWTEST_F(DistributedDBSingleVerP2PSyncTest, GetSyncDataFail001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, GetSyncDataFail001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. device B set get data errCode control and put some data

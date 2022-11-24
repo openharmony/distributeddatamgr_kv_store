@@ -32,7 +32,7 @@ struct VirtualDataItem {
     Timestamp writeTimestamp = 0;
     uint64_t flag = 0;
     bool isLocal = true;
-    uint32_t deviceId_ = 0; // 0: means local
+    uint32_t deviceId = 0; // 0: means local
     static const uint64_t DELETE_FLAG = 0x01;
     static const uint64_t LOCAL_FLAG = 0x02;
 };
