@@ -101,7 +101,7 @@ void SubscribeManager::PutLocalUnFiniedSubQueries(const std::string &device,
 {
     LOGI("[SubscribeManager] put local unfinished subscribe queries, nums=%zu", subscribeQueries.size());
     std::unique_lock<std::shared_mutex> lockGuard(localSubscribeMapLock_);
-    if (subscribeQueries.size() == 0) {
+    if (subscribeQueries.empty()) {
         unFinishedLocalAutoSubMap_.erase(device);
         return;
     }
@@ -117,7 +117,7 @@ void SubscribeManager::GetAllUnFinishSubQueries(
 {
     std::shared_lock<std::shared_mutex> lock(localSubscribeMapLock_);
     for (auto &item : unFinishedLocalAutoSubMap_) {
-        if (item.second.size() == 0) {
+        if (item.second.empty()) {
             continue;
         }
         allSyncQueries[item.first] = {};
@@ -149,7 +149,7 @@ void SubscribeManager::RemoveLocalSubscribeQuery(const std::string &device, cons
         unFinishedLocalAutoSubMap_[device].find(queryId) != unFinishedLocalAutoSubMap_[device].end()) {
         unFinishedLocalAutoSubMap_[device].erase(queryId);
         LOGI("[SubscribeManager] dev=%s,queryId=%s delete from UnFinishedMap", STR_MASK(device), STR_MASK(queryId));
-        if (unFinishedLocalAutoSubMap_[device].size() == 0) {
+        if (unFinishedLocalAutoSubMap_[device].empty()) {
             LOGI("[SubscribeManager] dev=%s delete from unFinish map", STR_MASK(device));
             unFinishedLocalAutoSubMap_.erase(device);
         }

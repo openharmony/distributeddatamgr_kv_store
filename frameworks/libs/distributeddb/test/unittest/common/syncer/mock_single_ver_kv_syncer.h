@@ -12,17 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef SCHEMA_DELTEGATE_FUZZER_H
-#define SCHEMA_DELTEGATE_FUZZER_H
 
-#include <cstdint>
-#include <unistd.h>
-#include <climits>
-#include <cstdio>
-#include <cstdlib>
-#include <fcntl.h>
+#ifndef MOCK_SINGLE_VER_KV_SYNCER_H
+#define MOCK_SINGLE_VER_KV_SYNCER_H
+#include <gmock/gmock.h>
+#include "single_ver_kv_syncer.h"
 
-#define FUZZ_PROJECT_NAME "schemadelegate_fuzzer"
-
-#endif // SCHEMA_DELTEGATE_FUZZER_H
-
+namespace DistributedDB {
+class MockSingleVerKVSyncer : public SingleVerKVSyncer {
+public:
+    void CallRecordTimeChangeOffset(void *changedOffset)
+    {
+        RecordTimeChangeOffset(changedOffset);
+    }
+};
+}
+#endif // MOCK_SINGLE_VER_KV_SYNCER_H

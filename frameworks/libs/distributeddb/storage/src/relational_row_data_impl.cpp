@@ -43,6 +43,9 @@ int RelationalRowDataImpl::Serialize(Parcel &parcel) const
         }
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 }
 
@@ -62,6 +65,9 @@ int RelationalRowDataImpl::DeSerialize(Parcel &parcel)
         data_.emplace_back(std::move(value));
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 }
 

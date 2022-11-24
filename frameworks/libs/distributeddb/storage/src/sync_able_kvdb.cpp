@@ -238,7 +238,7 @@ void SyncAbleKvDB::UserChangeHandle()
         return;
     }
     isNeedActive = RuntimeContext::GetInstance()->IsSyncerNeedActive(syncInterface->GetDbProperties());
-    isNeedChange = (isNeedActive != isSyncNeedActive_) ? true : false;
+    isNeedChange = (isNeedActive != isSyncNeedActive_);
     // non_active to active or active to non_active
     if (isNeedChange) {
         StopSyncerWithNoLock(); // will drop userChangeListener

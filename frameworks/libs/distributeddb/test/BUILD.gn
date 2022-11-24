@@ -727,6 +727,10 @@ distributeddb_unittest("DistributedDBInterfacesRelationalRoutinesTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_routines_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
+  sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -779,6 +783,7 @@ group("unittest") {
     ":DistributedDBRelationalRemoteQueryTest",
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
+    ":DistributedDBRelationalSyncableStorageTest",
     ":DistributedDBRelationalVerP2PSyncTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",

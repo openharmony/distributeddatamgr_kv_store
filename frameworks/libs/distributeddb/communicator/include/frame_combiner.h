@@ -16,20 +16,20 @@
 #ifndef FRAME_COMBINER_H
 #define FRAME_COMBINER_H
 
+#include <cstdint>
 #include <map>
 #include <mutex>
-#include <cstdint>
-#include "semaphore_utils.h"
+#include "combine_status.h"
 #include "macro_utils.h"
 #include "parse_result.h"
-#include "combine_status.h"
 #include "runtime_context.h"
+#include "semaphore_utils.h"
 
 namespace DistributedDB {
 class SerialBuffer; // Forward Declarations
 
 struct CombineWork {
-    SerialBuffer *buffer;
+    SerialBuffer *buffer = nullptr;
     CombineStatus status;
     ParseResult frameInfo;
 };

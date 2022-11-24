@@ -24,6 +24,9 @@
 #include "platform_specific.h"
 #include "relational_store_manager.h"
 #include "relational_store_sqlite_ext.h"
+#include "relational_virtual_device.h"
+#include "runtime_config.h"
+#include "virtual_relational_ver_sync_db_interface.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -36,6 +39,11 @@ namespace {
     std::string g_testDir;
     std::string g_dbDir;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
+
+    const std::string DEVICE_A = "real_device";
+    const std::string DEVICE_B = "deviceB";
+    VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+    RelationalVirtualDevice *g_deviceB = nullptr;
 
     const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_data(" \
         "key         BLOB NOT NULL UNIQUE," \
@@ -75,6 +83,21 @@ namespace {
         "VALUES('KEY', 123456789, 1, 'HASH_KEY');";
 
     const std::string INVALID_TABLE_FIELD_SQL = "create table if not exists t1 ('1 = 1; --' int primary key, b blob)";
+
+    void PrepareVirtualDeviceEnv(const std::string &tableName, const std::string &dbPath,
+        const std::vector<RelationalVirtualDevice *> &remoteDeviceVec)
+    {
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
+        ASSERT_NE(db, nullptr);
+        TableInfo tableInfo;
+        SQLiteUtils::AnalysisSchema(db, tableName, tableInfo);
+        for (const auto &dev : remoteDeviceVec) {
+            std::vector<FieldInfo> fieldInfoList = tableInfo.GetFieldInfos();
+            dev->SetLocalFieldInfo(fieldInfoList);
+            dev->SetTableInfo(tableInfo);
+        }
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    }
 }
 
 class DistributedDBInterfacesRelationalTest : public testing::Test {
@@ -91,6 +114,10 @@ void DistributedDBInterfacesRelationalTest::SetUpTestCase(void)
     LOGD("Test dir is %s", g_testDir.c_str());
     g_dbDir = g_testDir + "/";
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+
+    g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_TRUE(g_communicatorAggregator != nullptr);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
 }
 
 void DistributedDBInterfacesRelationalTest::TearDownTestCase(void)
@@ -100,11 +127,31 @@ void DistributedDBInterfacesRelationalTest::TearDownTestCase(void)
 void DistributedDBInterfacesRelationalTest::SetUp(void)
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+
+    g_deviceB = new (std::nothrow) RelationalVirtualDevice(DEVICE_B);
+    ASSERT_TRUE(g_deviceB != nullptr);
+    auto *syncInterfaceB = new (std::nothrow) VirtualRelationalVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
+    auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
+        const std::string &deviceId, uint8_t flag) -> bool {
+        return true;
+    };
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(permissionCheckCallback), OK);
 }
 
 void DistributedDBInterfacesRelationalTest::TearDown(void)
 {
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+    if (g_deviceB != nullptr) {
+        delete g_deviceB;
+        g_deviceB = nullptr;
+    }
+    PermissionCheckCallbackV2 nullCallback;
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(nullCallback), OK);
+    if (g_communicatorAggregator != nullptr) {
+        g_communicatorAggregator->RegOnDispatch(nullptr);
+    }
 }
 
 /**
@@ -338,8 +385,17 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
     EXPECT_EQ(delegate->CreateDistributedTable("t1"), NOT_SUPPORT);
 
     /**
-     * @tc.steps:step4. Close store
-     * @tc.expected: step4. Return OK.
+     * @tc.steps:step4. Create distributed table temp table or not exist table
+     * @tc.expected: step4. Create distributed table failed.
+     */
+    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+    std::string tempTableSql = "CREATE TEMP TABLE child(x, y, z)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, tempTableSql), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+
+    /**
+     * @tc.steps:step5. Close store
+     * @tc.expected: step5. Return OK.
      */
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
@@ -813,4 +869,98 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalOpenStorePressureTest0
         std::this_thread::sleep_for(std::chrono::microseconds(100 * u(e)));
     }
     openStoreThread.join();
+}
+
+namespace {
+void ProcessSync(RelationalStoreDelegate *delegate)
+{
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("create").EqualTo("create", 1);
+    DBStatus status = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("create", data);
+    EXPECT_EQ(data.size(), 2u);
+
+    VirtualRowData virtualRowData;
+    DataValue d1;
+    d1 = static_cast<int64_t>(2); // 2: test data
+    virtualRowData.objectData.PutDataValue("create", d1);
+    DataValue d2;
+    d2.SetText("hello");
+    virtualRowData.objectData.PutDataValue("ddd", d2);
+    DataValue d3;
+    d3.SetText("hello");
+    virtualRowData.objectData.PutDataValue("eee", d3);
+    virtualRowData.logInfo.timestamp = 1;
+    g_deviceB->PutData("create", {virtualRowData});
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+}
+}
+
+/**
+  * @tc.name: SqliteKeyWord001
+  * @tc.desc: Test relational table with sqlite key world.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+
+    std::string tableSql = "CREATE TABLE IF NOT EXISTS 'create' ('create' INTEGER PRIMARY KEY, b 'CREATE', " \
+        "c TEXT DEFAULT 'DEFAULT', UNIQUE(b, c))";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, tableSql), SQLITE_OK);
+    std::string indexSql = "CREATE INDEX IF NOT EXISTS 'index' on 'create' (b)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, indexSql), SQLITE_OK);
+
+    PrepareVirtualDeviceEnv("create", g_dbDir + STORE_ID + DB_SUFFIX, {g_deviceB});
+
+    DBStatus status = OK;
+    RelationalStoreDelegate *delegate = nullptr;
+    status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    status = delegate->CreateDistributedTable("create");
+    EXPECT_EQ(status, OK);
+
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "INSERT INTO 'create' values(1, 'bbb', 'ccc')"), SQLITE_OK);
+
+    std::string insertSql = "INSERT INTO 'create' values(1001, 'create', 'text')";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, insertSql), SQLITE_OK);
+
+    std::string updateSql = "UPDATE 'create' SET 'create' = 1002 WHERE b = 'create'";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, updateSql), SQLITE_OK);
+
+    std::string deleteSql = "DELETE FROM 'create' WHERE 'create' = 1002";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, deleteSql), SQLITE_OK);
+
+    ProcessSync(delegate);
+
+    std::string alterSql = "ALTER TABLE 'create' ADD COLUMN 'table' 'insert' DEFAULT NULL";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, alterSql), SQLITE_OK);
+    status = delegate->CreateDistributedTable("create");
+    EXPECT_EQ(status, OK);
+
+    status = delegate->RemoveDeviceData("DEVICES_B", "create");
+    EXPECT_EQ(status, OK);
+
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    delegate = nullptr;
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }

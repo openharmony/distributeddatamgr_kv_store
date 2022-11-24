@@ -107,8 +107,7 @@ private:
 
     // get the querySync hashId in cache_ or generate one and then put it in to cache_
     // the hashId is made up of "QUERY_SYNC_PREFIX_KEY" + hash(deviceId) + queryId
-    void GetHashQuerySyncDeviceId(const DeviceID &deviceId,
-        const DeviceID &queryId, DeviceID &hashQuerySyncId);
+    DeviceID GetHashQuerySyncDeviceId(const DeviceID &deviceId, const DeviceID &queryId);
 
     // put queryWaterMark to lru cache_ and then save to db
     int UpdateCacheAndSave(const std::string &cacheKey, QueryWaterMark &queryWaterMark);
@@ -119,7 +118,7 @@ private:
 
     // get the deleteSync hashId in cache_ or generate one and then put it in to cache_
     // the hashId is made up of "DELETE_SYNC_PREFIX_KEY" + hash(deviceId)
-    void GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId);
+    DeviceID GetHashDeleteSyncDeviceId(const DeviceID &deviceId);
 
     int SaveDeleteWaterMarkToDB(const DeviceID &hashDeviceId, const DeleteWaterMark &deleteWaterMark);
 

@@ -216,6 +216,8 @@ public:
 
     static int BuildMessage(const DataSyncMessageInfo &messageInfo, DistributedDB::Message *&message);
 
+    static void Dump();
+
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 

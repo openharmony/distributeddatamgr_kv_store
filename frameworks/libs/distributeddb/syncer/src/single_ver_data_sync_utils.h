@@ -21,7 +21,7 @@
 namespace DistributedDB {
 class SingleVerDataSyncUtils {
 public:
-    static bool QuerySyncCheck(const SingleVerSyncTaskContext *context);
+    static int QuerySyncCheck(const SingleVerSyncTaskContext *context, bool &isCheckStatus);
 
     static int AckMsgErrnoCheck(const SingleVerSyncTaskContext *context, const Message *message);
 

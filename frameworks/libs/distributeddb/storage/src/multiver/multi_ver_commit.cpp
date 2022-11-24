@@ -106,7 +106,7 @@ void MultiVerCommit::SetDeviceInfo(const DeviceID &deviceInfo)
 
 bool MultiVerCommit::CheckCommit() const
 {
-    if (commitID_.size() == 0 || commitID_.size() > MAX_COMMIT_ID_LENGTH ||
+    if (commitID_.empty() || commitID_.size() > MAX_COMMIT_ID_LENGTH ||
         leftParentID_.size() > MAX_COMMIT_ID_LENGTH || rightParentID_.size() > MAX_COMMIT_ID_LENGTH ||
         deviceInfo_.size() > MAX_COMMIT_DEV_LENGTH) {
         LOGE("Check commit failed! Error length of commit ID.");

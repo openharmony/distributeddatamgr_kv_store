@@ -529,6 +529,7 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser004, TestSize.Level0)
     option.syncDualTupleMode = true;
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_2, APP_ID, STORE_ID, option, notifier) == OK);
     EXPECT_TRUE(g_mgr1.EnableKvStoreAutoLaunch(USER_ID_1, APP_ID, STORE_ID, option, notifier) == OK);
+    DistributedDBToolsUnitTest::Dump();
 
     /**
      * @tc.steps: step3. RunCommunicatorLackCallback
@@ -804,5 +805,42 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser011, TestSize.Level1)
     std::map<std::string, DBStatus> result;
     std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
     EXPECT_EQ(g_tool.SyncTest(g_kvDelegatePtr1, devices, SYNC_MODE_PUSH_ONLY, result, true), OK);
+    CloseStore();
+}
+
+/**
+ * @tc.name: MultiUser012
+ * @tc.desc: test NotifyUserChanged and SetEqualIdentifier sync concurrently
+ * @tc.type: FUNC
+ * @tc.require: AR000E8S2T
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser012, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and only userId1 can active
+     */
+    g_mgr1.SetSyncActivationCheckCallback(g_syncActivationCheckCallback2);
+    /**
+     * @tc.steps: step2. openstore1 and openstore2 in dual tuple sync mode
+     * @tc.expected: step2. only userId1 sync mode is active
+     */
+    OpenStore1(true);
+    OpenStore2(true);
+    /**
+     * @tc.steps: step3. set SyncActivationCheckCallback and only userId2 can active
+     */
+    g_mgr1.SetSyncActivationCheckCallback(g_syncActivationCheckCallback1);
+    /**
+     * @tc.steps: step4. SetEqualIdentifier and NotifyUserChanged concurrently called
+     */
+    thread subThread([]() {
+        EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
+    });
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier("default", APP_ID, STORE_ID);
+    std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
+    g_kvDelegatePtr1->SetEqualIdentifier(identifier, devices);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_3_SECONDS));
+    subThread.join();
     CloseStore();
 }

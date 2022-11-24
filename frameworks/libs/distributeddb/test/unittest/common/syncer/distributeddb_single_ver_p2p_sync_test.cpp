@@ -3146,12 +3146,56 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, ReSetWaterDogTest001, TestSize.Level
 }
 
 /**
+  * @tc.name: RemoveDeviceData001
+  * @tc.desc: call rekey and removeDeviceData Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000D487B
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RemoveDeviceData001, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Value value = {'1'};
+    g_deviceB->PutData(key1, value, 1, 0);
+    g_deviceB->PutData(key2, value, 2, 0);
+    g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true);
+
+    Value actualValue;
+    g_kvDelegatePtr->Get(key1, actualValue);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    g_kvDelegatePtr->Get(key2, actualValue);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step2. call Rekey and RemoveDeviceData Concurrently
+     * * @tc.expected: step2. interface return ok
+    */
+    std::thread thread1([]() {
+        CipherPassword passwd3;
+        std::vector<uint8_t> passwdVect = {'p', 's', 'd', 'z'};
+        passwd3.SetValue(passwdVect.data(), passwdVect.size());
+        g_kvDelegatePtr->Rekey(passwd3);
+    });
+    std::thread thread2([]() {
+        g_kvDelegatePtr->RemoveDeviceData(g_deviceB->GetDeviceId());
+    });
+    thread1.join();
+    thread2.join();
+}
+
+/**
   * @tc.name: CalculateSyncData001
   * @tc.desc: Test sync data whose device never synced before
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
   * @tc.author: zhuwentao
- */
+  */
 HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData001, TestSize.Level3)
 {
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
@@ -3270,4 +3314,61 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CalculateSyncData005, TestSize.Level
     });
     thread1.join();
     thread2.join();
+}
+
+/**
+  * @tc.name: DeviceOfflineSyncTask001
+  * @tc.desc: Test sync task when device offline and close db Concurrently
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask001, TestSize.Level3)
+{
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+
+    /**
+     * @tc.steps: step2. deviceA set auto sync and put some key/value
+     * @tc.expected: step2. interface should return OK.
+     */
+    bool autoSync = true;
+    PragmaData data = static_cast<PragmaData>(&autoSync);
+    status = g_kvDelegatePtr->Pragma(AUTO_SYNC, data);
+    ASSERT_EQ(status, OK);
+
+    Key key1 = {'2'};
+    Key key2 = {'3'};
+    Key key3 = {'4'};
+    Key key4 = {'5'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key1, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key2, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key3, value) == OK);
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key4, value) == OK);
+    /**
+     * @tc.steps: step3. device offline and close db Concurrently
+     * @tc.expected: step3. interface should return OK.
+     */
+    std::thread thread1([]() {
+        if (g_kvDelegatePtr != nullptr) {
+            g_mgr.CloseKvStore(g_kvDelegatePtr);
+            g_kvDelegatePtr = nullptr;
+        }
+    });
+    std::thread thread2([]() {
+        g_deviceB->Offline();
+    });
+    thread1.join();
+    thread2.join();
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
 }

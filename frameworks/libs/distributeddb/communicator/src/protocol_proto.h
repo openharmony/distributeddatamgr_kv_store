@@ -18,31 +18,31 @@
 
 #include <cstdint>
 #include <memory>
-#include "message.h"
+#include "communicator_type_define.h"
 #include "frame_header.h"
+#include "iprocess_communicator.h"
+#include "message.h"
+#include "message_transform.h"
 #include "parse_result.h"
 #include "serial_buffer.h"
-#include "message_transform.h"
-#include "communicator_type_define.h"
-#include "iprocess_communicator.h"
 
 namespace DistributedDB {
 struct PhyHeaderInfo {
-    uint64_t sourceId;
-    uint32_t frameId;
-    FrameType frameType;
+    uint64_t sourceId = 0u;
+    uint32_t frameId = 0u;
+    FrameType frameType = FrameType::EMPTY;
 };
 
 struct FrameFragmentInfo {
-    uint8_t *oringinalBytesAddr;
-    uint32_t extendHeadSize;
-    uint32_t splitLength;
-    uint16_t fragCount;
+    uint8_t *oringinalBytesAddr = nullptr;
+    uint32_t extendHeadSize = 0u;
+    uint32_t splitLength = 0u;
+    uint16_t fragCount = 0u;
 };
 
 struct FragmentPacket {
-    uint8_t *ptrPacket;
-    uint32_t leftLength;
+    uint8_t *ptrPacket = nullptr;
+    uint32_t leftLength = 0u;
 };
 
 class ProtocolProto {
@@ -55,8 +55,8 @@ public:
     static uint32_t GetCommLayerFrameHeaderLength();
 
     // For handling application layer message. Return a heap object.
-    static SerialBuffer *ToSerialBuffer(const Message *inMsg, int &outErrorNo,
-        std::shared_ptr<ExtendHeaderHandle> &extendHandle, bool onlyMsgHeader = false);
+    static SerialBuffer *ToSerialBuffer(const Message *inMsg,
+        std::shared_ptr<ExtendHeaderHandle> &extendHandle, bool onlyMsgHeader, int &outErrorNo);
     static Message *ToMessage(const SerialBuffer *inBuff, int &outErrorNo, bool onlyMsgHeader = false);
 
     // For handling communication layer frame. Return a heap object.

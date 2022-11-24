@@ -372,6 +372,9 @@ int CommitHistorySync::RequestPacketSerialization(uint8_t *buffer, uint32_t leng
         return -E_SECUREC_ERROR;
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) { // almost success
+        return -E_INVALID_ARGS;
+    }
     return errCode;
 }
 
@@ -462,18 +465,14 @@ int CommitHistorySync::AckPacketSerialization(uint8_t *buffer, uint32_t length, 
     packet->GetData(commits);
     packet->GetErrorCode(ackErrCode);
     // errCode Serialization
-    int errCode = parcel.WriteInt(ackErrCode);
-    if (errCode != E_OK) {
-        return -E_SECUREC_ERROR;
-    }
-    errCode = parcel.WriteUInt32(packet->GetVersion());
-    if (errCode != E_OK) {
-        return -E_SECUREC_ERROR;
-    }
+    parcel.WriteInt(ackErrCode);
+    parcel.WriteUInt32(packet->GetVersion());
     parcel.EightByteAlign();
-
+    if (parcel.IsError()) { // almost success
+        return -E_INVALID_ARGS;
+    }
     // commits vector Serialization
-    errCode = parcel.WriteMultiVerCommits(commits);
+    int errCode = parcel.WriteMultiVerCommits(commits);
     if (errCode != E_OK) {
         return -E_SECUREC_ERROR;
     }
@@ -482,6 +481,9 @@ int CommitHistorySync::AckPacketSerialization(uint8_t *buffer, uint32_t length, 
         return -E_SECUREC_ERROR;
     }
     parcel.EightByteAlign();
+    if (parcel.IsError()) { // almost success
+        return -E_INVALID_ARGS;
+    }
     return errCode;
 }
 
@@ -498,6 +500,9 @@ int CommitHistorySync::AckPacketDeSerialization(const uint8_t *buffer, uint32_t 
     packLen += parcel.ReadInt(pktErrCode);
     packLen += parcel.ReadUInt32(version);
     parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     packLen = Parcel::GetEightByteAlign(packLen);
     // commits vector DeSerialization
     packLen += parcel.ReadMultiVerCommits(commits);

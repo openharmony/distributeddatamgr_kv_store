@@ -27,7 +27,7 @@ namespace DistributedDB {
 using RelationalObserverAction = std::function<void(const std::string &device)>;
 class RelationalSyncAbleStorage : public RelationalDBSyncInterface, public virtual RefObject {
 public:
-    explicit RelationalSyncAbleStorage(StorageEngine *engine);
+    explicit RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine);
     ~RelationalSyncAbleStorage() override;
 
     // Get interface type of this kvdb.
@@ -143,7 +143,7 @@ private:
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
 
     // data
-    SQLiteSingleRelationalStorageEngine *storageEngine_ = nullptr;
+    std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
     mutable std::mutex onSchemaChangedMutex_;
     std::mutex dataChangeDeviceMutex_;

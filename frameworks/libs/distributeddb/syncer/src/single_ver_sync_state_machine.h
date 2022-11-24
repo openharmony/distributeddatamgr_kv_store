@@ -142,10 +142,10 @@ private:
     void InitStateMapping();
 
     // Do TimeSync, for first sync
-    Event DoTimeSync();
+    Event DoTimeSync() const;
 
     // Do AbilitySync, for first sync
-    Event DoAbilitySync();
+    Event DoAbilitySync() const;
 
     // Waiting for pull data revice finish, if coming a pull request, should goto START_PASSIVE_DATA_SYNC state
     Event DoWaitForDataRecv() const;
@@ -159,11 +159,11 @@ private:
     // Do something when sync get some err.
     Event DoInnerErr();
 
-    Event DoInitiactiveDataSyncWithSlidingWindow();
+    Event DoInitiactiveDataSyncWithSlidingWindow() const;
 
     Event DoPassiveDataSyncWithSlidingWindow();
 
-    Event DoInitiactiveControlSync();
+    Event DoInitiactiveControlSync() const;
 
     Event GetEventAfterTimeSync(int mode) const;
 

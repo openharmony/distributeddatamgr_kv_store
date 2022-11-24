@@ -34,17 +34,20 @@ std::string SingleVerKvSyncTaskContext::GetDeleteSyncId() const
     return GetDeviceId();
 }
 
-void SingleVerKvSyncTaskContext::SetSyncStrategy(const SyncStrategy &strategy)
+void SingleVerKvSyncTaskContext::SetSyncStrategy(const SyncStrategy &strategy, bool isSchemaSync)
 {
+    std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     syncStrategy_.permitSync = strategy.permitSync;
     syncStrategy_.convertOnSend = strategy.convertOnSend;
     syncStrategy_.convertOnReceive = strategy.convertOnReceive;
     syncStrategy_.checkOnReceive = strategy.checkOnReceive;
+    isSchemaSync_ = isSchemaSync;
 }
 
-SyncStrategy SingleVerKvSyncTaskContext::GetSyncStrategy(QuerySyncObject &querySyncObject) const
+std::pair<bool, bool> SingleVerKvSyncTaskContext::GetSchemaSyncStatus(QuerySyncObject &querySyncObject) const
 {
+    std::lock_guard<std::mutex> autoLock(syncStrategyMutex_);
     (void) querySyncObject;
-    return syncStrategy_;
+    return {syncStrategy_.permitSync, isSchemaSync_};
 }
 }

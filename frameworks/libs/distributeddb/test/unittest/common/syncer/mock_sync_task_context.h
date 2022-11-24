@@ -48,7 +48,7 @@ public:
 
     MOCK_CONST_METHOD0(GetRequestSessionId, uint32_t(void));
 
-    MOCK_CONST_METHOD1(GetSyncStrategy, SyncStrategy(QuerySyncObject &));
+    MOCK_CONST_METHOD1(GetSchemaSyncStatus, std::pair<bool, bool>(QuerySyncObject &));
 
     void CallCommErrHandlerFuncInner(int errCode, uint32_t sessionId)
     {

@@ -89,7 +89,7 @@ int PreparedStmt::Serialize(Parcel &parcel) const
         }
     }
 
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
@@ -137,7 +137,10 @@ int PreparedStmt::DeSerialize(Parcel &parcel)
         }
     }
 
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 }
 }

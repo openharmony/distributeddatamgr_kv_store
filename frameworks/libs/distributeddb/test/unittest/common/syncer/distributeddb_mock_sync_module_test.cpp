@@ -29,6 +29,7 @@
 #include "mock_meta_data.h"
 #include "mock_remote_executor.h"
 #include "mock_single_ver_data_sync.h"
+#include "mock_single_ver_kv_syncer.h"
 #include "mock_single_ver_state_machine.h"
 #include "mock_sync_engine.h"
 #include "mock_sync_task_context.h"
@@ -771,8 +772,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
      * @tc.steps: step2. set syncDBInterface busy for save data return -E_BUSY
      */
     syncDBInterface.SetBusy(true);
-    SyncStrategy mockStrategy = {true, false, false};
-    EXPECT_CALL(syncTaskContext, GetSyncStrategy(_)).WillOnce(Return(mockStrategy));
+    std::pair<bool, bool> schemaSyncStatus = {true, true};
+    EXPECT_CALL(syncTaskContext, GetSchemaSyncStatus(_)).WillOnce(Return(schemaSyncStatus));
     EXPECT_EQ(abilitySync.AckRecv(message, &syncTaskContext), -E_BUSY);
     delete message;
     EXPECT_EQ(syncTaskContext.GetTaskErrCode(), -E_BUSY);
@@ -795,19 +796,19 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
     RelationalSyncStrategy strategy;
     const std::string tableName = "TEST";
     strategy[tableName] = {true, true, true};
-    context->SetRelationalSyncStrategy(strategy);
+    context->SetRelationalSyncStrategy(strategy, true);
     QuerySyncObject query;
     query.SetTableName(tableName);
     /**
      * @tc.steps: step2. set table is need reset ability sync but it still permit sync
      */
     context->SetIsNeedResetAbilitySync(true);
-    EXPECT_EQ(context->GetSyncStrategy(query).permitSync, true);
+    EXPECT_EQ(context->GetSchemaSyncStatus(query).first, true);
     /**
      * @tc.steps: step3. set table is schema change now it don't permit sync
      */
     context->SchemaChange();
-    EXPECT_EQ(context->GetSyncStrategy(query).permitSync, false);
+    EXPECT_EQ(context->GetSchemaSyncStatus(query).first, false);
     RefObject::KillAndDecObjRef(context);
 }
 
@@ -895,6 +896,36 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->TestLocalChange();
     delete syncDBInterface;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+/**
+ * @tc.name: SyncLifeTest004
+ * @tc.desc: Test syncer remote data change.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    auto syncDBInterface = new MockKvSyncInterface();
+    int incRefCount = 0;
+    EXPECT_CALL(*syncDBInterface, IncRefCount()).WillRepeatedly([&incRefCount]() {
+        incRefCount++;
+    });
+    EXPECT_CALL(*syncDBInterface, DecRefCount()).WillRepeatedly(Return());
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface->SetIdentifier(identifier);
+    syncer->Initialize(syncDBInterface, true);
+    syncer->EnableAutoSync(true);
+    syncer->RemoteDataChanged("");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+    EXPECT_EQ(incRefCount, 2); // refCount is 2
 }
 
 /**
@@ -1034,6 +1065,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     virtualCommunicatorAggregator = nullptr;
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**
@@ -1133,7 +1165,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     Parcel parcel(buffer.data(), buffer.size());
 
@@ -1141,7 +1173,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     std::map<std::string, std::string> extraCondition = { { "test", "testsql" } };
     packet.SetExtraConditions(extraCondition);
     EXPECT_EQ(packet.Serialization(parcel), -E_INVALID_ARGS);
-    
+
     std::string sql = "testsql";
     for (uint32_t i = 0; i < DBConstant::MAX_CONDITION_COUNT; i++) {
         extraCondition[std::to_string(i)] = sql;
@@ -1183,7 +1215,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     RemoteExecutorRequestPacket targetPacket;
     Parcel targetParcel(buffer.data(), 3); // 3 is invalid len for deserialization
@@ -1335,3 +1367,38 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest001, TestSize.Le
     ChangeTime(-2); // decrease 2s
 }
 #endif
+
+/**
+ * @tc.name: TimeChangeListenerTest002
+ * @tc.desc: Test TimeChange.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create syncer without activation
+     */
+    MockSingleVerKVSyncer syncer;
+    VirtualSingleVerSyncDBInterface syncDBInterface;
+    KvDBProperties dbProperties;
+    dbProperties.SetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, true);
+    syncDBInterface.SetDbProperties(dbProperties);
+    /**
+     * @tc.steps: step2. trigger time change logic and reopen syncer at the same time
+     * @tc.expected: no crash here
+     */
+    const int loopCount = 100;
+    std::thread timeChangeThread([&syncer]() {
+        for (int i = 0; i < loopCount; ++i) {
+            int64_t changeOffset = 1;
+            syncer.CallRecordTimeChangeOffset(&changeOffset);
+        }
+    });
+    for (int i = 0; i < loopCount; ++i) {
+        EXPECT_EQ(syncer.Initialize(&syncDBInterface, false), -E_NO_NEED_ACTIVE);
+        EXPECT_EQ(syncer.Close(true), -E_NOT_INIT);
+    }
+    timeChangeThread.join();
+}

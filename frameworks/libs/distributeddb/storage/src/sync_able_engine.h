@@ -27,7 +27,6 @@ class SyncAbleEngine final {
 public:
     explicit SyncAbleEngine(ISyncInterface *store);
     ~SyncAbleEngine();
-    void TriggerSync(int notifyEvent);
 
     // Start a sync action.
     int Sync(const ISyncer::SyncParma &parm, uint64_t connectionId);

@@ -79,7 +79,7 @@ int RelationalRowDataSet::Serialize(Parcel &parcel) const
         rowData->Serialize(parcel);
     };
 
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
@@ -118,7 +118,10 @@ int RelationalRowDataSet::DeSerialize(Parcel &parcel)
         }
         data_.push_back(rowData);
     }
-    (void)parcel.EightByteAlign();
+    parcel.EightByteAlign();
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
+    }
     return E_OK;
 };
 

@@ -408,10 +408,10 @@ int MultiVerDataSync::RequestPacketDeSerialization(const uint8_t *buffer, uint32
     Parcel parcel(const_cast<uint8_t *>(buffer), length);
     int32_t pktErrCode;
     uint64_t packLen = parcel.ReadInt(pktErrCode);
+    parcel.EightByteAlign();
     if (parcel.IsError()) {
         return -E_INVALID_ARGS;
     }
-    parcel.EightByteAlign();
     packLen = Parcel::GetEightByteAlign(packLen);
     // commit DeSerialization
     packLen += parcel.ReadMultiVerCommit(commit);

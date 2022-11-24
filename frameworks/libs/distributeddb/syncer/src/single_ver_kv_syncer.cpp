@@ -49,7 +49,7 @@ void SingleVerKVSyncer::EnableAutoSync(bool enable)
     }
 
     if (!initialized_) {
-        LOGE("[Syncer] Syncer has not Init");
+        LOGI("[Syncer] Syncer has not Init");
         return;
     }
 
@@ -127,6 +127,7 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     SingleVerSyncer::RemoteDataChanged(device);
     if (autoSyncEnable_) {
         RefObject::IncObjRef(syncEngine_);
+        syncInterface_->IncRefCount();
         int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, device] {
             std::vector<std::string> devices;
             devices.push_back(device);
@@ -135,17 +136,19 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
                 LOGE("[SingleVerKVSyncer] sync start by RemoteDataChanged failed err %d", errCode);
             }
             RefObject::DecObjRef(syncEngine_);
+            syncInterface_->DecRefCount();
         });
         if (retCode != E_OK) {
             LOGE("[AutoLaunch] RemoteDataChanged triggler sync retCode:%d", retCode);
             RefObject::DecObjRef(syncEngine_);
+            syncInterface_->DecRefCount();
         }
     }
     // db online again ,trigger subscribe
     // if remote device online, subscribequery num is 0
     std::vector<QuerySyncObject> syncQueries;
     static_cast<SingleVerSyncEngine *>(syncEngine_)->GetLocalSubscribeQueries(device, syncQueries);
-    if (syncQueries.size() == 0) {
+    if (syncQueries.empty()) {
         LOGI("no need to trigger auto subscribe");
         return;
     }
@@ -262,9 +265,16 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         static_cast<SingleVerSyncEngine *>(syncEngine_)->GetRemoteSubscribeQueries(device, queries);
         for (auto &query : queries) {
             std::string queryId = query.GetIdentify();
-            uint64_t lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
             WaterMark queryWaterMark = 0;
-            errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
+            uint64_t lastTimestamp = 0;
+            {
+                std::lock_guard<std::mutex> lock(syncerLock_);
+                if (metadata_ == nullptr) {
+                    return;
+                }
+                lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
+                errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
+            }
             if (errCode != E_OK) {
                 LOGE("[Syncer] get queryId=%s,dev=%s watermark failed", STR_MASK(queryId), STR_MASK(device));
                 continue;

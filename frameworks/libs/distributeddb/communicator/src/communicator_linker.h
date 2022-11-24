@@ -16,17 +16,17 @@
 #ifndef COMMUNICATOR_LINKER_H
 #define COMMUNICATOR_LINKER_H
 
-#include <set>
-#include <map>
-#include <mutex>
 #include <atomic>
-#include <string>
-#include <vector>
 #include <cstdlib>
 #include <functional>
+#include <map>
+#include <mutex>
+#include <set>
+#include <string>
+#include <vector>
+#include "communicator_type_define.h"
 #include "ref_object.h"
 #include "serial_buffer.h"
-#include "communicator_type_define.h"
 
 namespace DistributedDB {
 class CommunicatorAggregator; // Forward Declaration
@@ -46,7 +46,7 @@ public:
 
     // Clear all labels related to this target. Let no longer waiting for ack of this target.
     // The caller should notify all related communicator about this target offline.
-    int TargetOffline(const std::string &inTarget, std::set<LabelType> &outRelatedLabels);
+    void TargetOffline(const std::string &inTarget, std::set<LabelType> &outRelatedLabels);
 
     // Add local label. Create async task to send out label_exchange and waiting for label_exchange_ack.
     // If waiting timeout, pass the send&wait task to overrall timing retry task.

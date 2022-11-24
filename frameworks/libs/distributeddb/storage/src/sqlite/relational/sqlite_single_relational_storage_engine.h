@@ -32,7 +32,7 @@ public:
 
     void SetSchema(const RelationalSchemaObject &schema);
 
-    const RelationalSchemaObject &GetSchemaRef() const;
+    RelationalSchemaObject GetSchema() const;
 
     int CreateDistributedTable(const std::string &tableName, const std::string &identity, bool &schemaChanged);
 

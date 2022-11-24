@@ -248,22 +248,22 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
         LOGI("[SingleVerSyncTaskContext] request taskcount=%zu, responsecount=%zu", requestTargetQueue_.size(),
             responseTargetQueue_.size());
         while (!requestTargetQueue_.empty()) {
-            ISyncTarget *tmpTarget = nullptr;
-            tmpTarget = requestTargetQueue_.front();
+            ISyncTarget *tmpTarget = requestTargetQueue_.front();
+            SyncOperation *tmpInfOperation = nullptr;
+            tmpTarget->GetSyncOperation(tmpInfOperation);
+            RefObject::IncObjRef(tmpInfOperation);
             requestTargetQueue_.pop_front();
             targetQueue.push_back(tmpTarget);
         }
         while (!responseTargetQueue_.empty()) {
-            ISyncTarget *tmpTarget = nullptr;
-            tmpTarget = responseTargetQueue_.front();
+            ISyncTarget *tmpTarget = responseTargetQueue_.front();
             responseTargetQueue_.pop_front();
             delete tmpTarget;
             tmpTarget = nullptr;
         }
     }
     while (!targetQueue.empty()) {
-        ISyncTarget *target = nullptr;
-        target = targetQueue.front();
+        ISyncTarget *target = targetQueue.front();
         targetQueue.pop_front();
         SyncOperation *tmpOperation = nullptr;
         target->GetSyncOperation(tmpOperation);
@@ -282,6 +282,7 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
         }
         delete target;
         target = nullptr;
+        RefObject::DecObjRef(tmpOperation);
     }
     if (GetTaskExecStatus() == SyncTaskContext::RUNNING) {
         // clear syncing task.
@@ -356,16 +357,6 @@ bool SingleVerSyncTaskContext::GetSendPermitCheck() const
     return isSendPermitChecked_;
 }
 
-void SingleVerSyncTaskContext::SetIsSchemaSync(bool isSchemaSync)
-{
-    isSchemaSync_ = isSchemaSync;
-}
-
-bool SingleVerSyncTaskContext::GetIsSchemaSync() const
-{
-    return isSchemaSync_;
-}
-
 bool SingleVerSyncTaskContext::IsSkipTimeoutError(int errCode) const
 {
     if (errCode == -E_TIMEOUT && IsSyncTaskNeedRetry() && (GetRetryTime() < GetSyncRetryTimes())) {
@@ -425,7 +416,7 @@ std::string SingleVerSyncTaskContext::GetRemoteCompressAlgoStr() const
 {
     static std::map<CompressAlgorithm, std::string> algoMap = {{CompressAlgorithm::ZLIB, "zlib"}};
     std::set<CompressAlgorithm> remoteCompressAlgoSet = GetRemoteCompressAlgo();
-    if (remoteCompressAlgoSet.size() == 0) {
+    if (remoteCompressAlgoSet.empty()) {
         return "none";
     }
     std::string currentAlgoStr;
@@ -455,7 +446,7 @@ void SingleVerSyncTaskContext::SetDbAbility(DbAbility &remoteDbAbility)
 CompressAlgorithm SingleVerSyncTaskContext::ChooseCompressAlgo() const
 {
     std::set<CompressAlgorithm> remoteAlgo = GetRemoteCompressAlgo();
-    if (remoteAlgo.size() == 0) {
+    if (remoteAlgo.empty()) {
         return CompressAlgorithm::NONE;
     }
     std::set<CompressAlgorithm> localAlgorithmSet;
@@ -463,7 +454,7 @@ CompressAlgorithm SingleVerSyncTaskContext::ChooseCompressAlgo() const
     std::set<CompressAlgorithm> algoIntersection;
     set_intersection(remoteAlgo.begin(), remoteAlgo.end(), localAlgorithmSet.begin(), localAlgorithmSet.end(),
         inserter(algoIntersection, algoIntersection.begin()));
-    if (algoIntersection.size() == 0) {
+    if (algoIntersection.empty()) {
         return CompressAlgorithm::NONE;
     }
     return *(algoIntersection.begin());

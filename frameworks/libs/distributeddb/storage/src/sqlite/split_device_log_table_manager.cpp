@@ -22,11 +22,11 @@ std::string SplitDeviceLogTableManager::CalcPrimaryKeyHash(const std::string &re
     (void)identity;
     std::string sql;
     if (table.GetPrimaryKey().size() == 1) {
-        sql = "calc_hash(" + references + table.GetPrimaryKey().at(0)  + ")";
+        sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "')";
     }  else {
         sql = "calc_hash(";
         for (const auto &it : table.GetPrimaryKey()) {
-            sql += "calc_hash(" + references + it.second + ")||";
+            sql += "calc_hash(" + references + "'" + it.second + "')||";
         }
         sql.pop_back();
         sql.pop_back();
@@ -40,7 +40,7 @@ std::string SplitDeviceLogTableManager::GetInsertTrigger(const TableInfo &table,
     std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_INSERT AFTER INSERT \n";
-    insertTrigger += "ON " + table.GetTableName() + "\n";
+    insertTrigger += "ON '" + table.GetTableName() + "'\n";
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key)";
@@ -58,7 +58,7 @@ std::string SplitDeviceLogTableManager::GetUpdateTrigger(const TableInfo &table,
     std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_UPDATE AFTER UPDATE \n";
-    updateTrigger += "ON " + table.GetTableName() + "\n";
+    updateTrigger += "ON '" + table.GetTableName() + "'\n";
     updateTrigger += "BEGIN\n";
     if (table.GetPrimaryKey().size() == 1 && table.GetPrimaryKey().at(0) == "rowid") {
         updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
@@ -82,7 +82,7 @@ std::string SplitDeviceLogTableManager::GetDeleteTrigger(const TableInfo &table,
 {
     std::string deleteTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     deleteTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_DELETE BEFORE DELETE \n";
-    deleteTrigger += "ON " + table.GetTableName() + "\n";
+    deleteTrigger += "ON '" + table.GetTableName() + "'\n";
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_sys_time(0)";
