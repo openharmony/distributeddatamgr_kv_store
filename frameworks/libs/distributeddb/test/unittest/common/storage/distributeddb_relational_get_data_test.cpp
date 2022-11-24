@@ -1543,6 +1543,9 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetAfterDropTable1, TestSize.Level1
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
 {
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
     auto store = GetRelationalStore();
     ASSERT_NE(store, nullptr);
     Query query = Query::Select().OrderBy("errDevice", false);
@@ -1559,5 +1562,29 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
     EXPECT_EQ(errorNo, E_OK);
     errorNo = queryObj2.Init();
     EXPECT_EQ(errorNo, -E_INVALID_QUERY_FIELD);
+    RefObject::DecObjRef(g_store);
+}
+
+/**
+  * @tc.name: SetNextBeginTime001
+  * @tc.desc: Test invalid parameters of query_object.cpp
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level1)
+{
+    QueryObject query(Query::Select(g_tableName));
+    std::unique_ptr<SQLiteSingleVerRelationalContinueToken> token =
+        std::make_unique<SQLiteSingleVerRelationalContinueToken>(SyncTimeRange {}, query);
+    ASSERT_TRUE(token != nullptr);
+
+    DataItem dataItem;
+    dataItem.timestamp = INT64_MAX;
+    token->SetNextBeginTime(dataItem);
+
+    dataItem.flag = DataItem::DELETE_FLAG;
+    token->FinishGetData();
+    token->SetNextBeginTime(dataItem);
 }
 #endif
