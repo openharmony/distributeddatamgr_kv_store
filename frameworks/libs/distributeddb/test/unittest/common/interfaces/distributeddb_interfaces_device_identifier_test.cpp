@@ -644,14 +644,14 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest006, TestSize.Level
     prop.SetStringProp(KvDBProperties::DATA_DIR, g_property.GetStringProp(KvDBProperties::DATA_DIR, ""));
     prop.SetStringProp(KvDBProperties::STORE_ID, g_property.GetStringProp(KvDBProperties::STORE_ID, ""));
     prop.SetIntProp(KvDBProperties::DATABASE_TYPE, g_property.GetIntProp(KvDBProperties::DATABASE_TYPE, 0));
-    string SCHEMA_STRING =
+    string schemaString =
         "{\"SCHEMA_VERSION\":\"1.0\","
         "\"SCHEMA_MODE\":\"STRICT\","
         "\"SCHEMA_DEFINE\":{"
         "\"field_name1\":\"BOOL\"},"
         "\"SCHEMA_INDEXES\":[\"$.field_name1\"]}";
     SchemaObject schema;
-    schema.ParseFromSchemaString(SCHEMA_STRING);
+    schema.ParseFromSchemaString(schemaString);
     prop.SetSchema(schema);
     EXPECT_EQ(storageEngine->CheckEngineOption(prop), -E_SCHEMA_MISMATCH);
 
@@ -669,7 +669,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest006, TestSize.Level
      * @tc.steps: step3. Set the correct Schema for the option
      * @tc.expected: step3. Expect return E_OK
      */
-    option.schema = SCHEMA_STRING;
+    option.schema = schemaString;
     EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
     EXPECT_EQ(storageEngine->CheckEngineOption(prop), E_OK);
 

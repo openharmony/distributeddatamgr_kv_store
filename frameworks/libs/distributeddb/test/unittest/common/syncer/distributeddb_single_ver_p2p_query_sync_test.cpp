@@ -609,7 +609,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryRequestPacketTest001, Test
  * @tc.name: QueryRequestPacketTest002
  * @tc.desc: Test exception branch of serialization.
  * @tc.type: FUNC
- * @tc.require: 
+ * @tc.require:
  * @tc.author: zhangshijie
  */
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, SerializationManager001, TestSize.Level1)
