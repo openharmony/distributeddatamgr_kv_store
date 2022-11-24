@@ -971,3 +971,77 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync007, TestSize.
     EXPECT_TRUE(g_schemaKvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query, true) == NOT_SUPPORT);
     EXPECT_TRUE(g_schemaKvDelegatePtr->UnSubscribeRemoteQuery(devices, nullptr, query, true) == NOT_SUPPORT);
 }
+
+namespace {
+    KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
+    {
+        KvVirtualDevice *device = nullptr;
+        do {
+            if (g_communicatorAggregator == nullptr) {
+                break;
+            }
+            device = new (std::nothrow) KvVirtualDevice(deviceName);
+            if (device == nullptr) {
+                break;
+            }
+            auto interface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+            if (interface == nullptr) {
+                delete device;
+                device = nullptr;
+                break;
+            }
+            EXPECT_EQ(device->Initialize(g_communicatorAggregator, interface), E_OK);
+        } while(false);
+        return device;
+    }
+}
+
+/**
+ * @tc.name: SubscribeSync009
+ * @tc.desc: test subscribe query with 33 device
+ * @tc.type: FUNC
+ * @tc.require: AR000H5VLO
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. InitSchemaDb
+     */
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    const int maxDeviceCount = 32;
+    std::vector<KvVirtualDevice *> devices;
+    for (int i = 0; i < maxDeviceCount; ++i) {
+        std::string deviceName = "D_" + std::to_string(i);
+        auto device = CreateKvVirtualDevice(deviceName);
+        EXPECT_NE(device, nullptr);
+        if (device == nullptr) {
+            continue;
+        }
+        devices.push_back(device);
+    }
+
+    /**
+     * @tc.steps: step2. 33 device unsubscribe
+     */
+    LOGI("============step 2============");
+    Query query = Query::Select();
+    for (const auto &dev: devices) {
+        dev->Online();
+        dev->Subscribe(QuerySyncObject(query), true, 1); // sync id is 1
+    }
+    g_deviceB->Subscribe(QuerySyncObject(query), true, 1); // sync id is 1
+
+    /**
+     * @tc.steps: step3. 32 unsubscribe
+     */
+    LOGI("============step 3============");
+    SyncOperation::UserCallback callback = [](std::map<std::string, int> res) {
+        ASSERT_EQ(res.size(), 1u);
+        EXPECT_EQ(res["real_device"], SyncOperation::OP_FINISHED_ALL);
+    };
+    for (const auto &dev: devices) {
+        dev->UnSubscribe(QuerySyncObject(query), true, 1, callback); // sync id is 1
+    }
+}
