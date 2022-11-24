@@ -1268,7 +1268,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject002, TestSize.Level1)
     std::vector<uint8_t> key;
     std::set<Key> keys;
     QuerySyncObject querySyncObj1(nodes, key, keys);
-    uint32_t len = 8; // 8 is random len
+    uint32_t len = 120; // 120 is the number of serialized prefixes
     std::vector<uint8_t> buff(len, 0);
     Parcel parcel(buff.data(), len);
 
