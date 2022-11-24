@@ -49,11 +49,11 @@ void DistributedDBInterfacesLogTest::TearDown()
 }
 
 /**
- * @tc.name: DBFactoryTest001
- * @tc.desc: check table manager with mode
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
+  * @tc.name: DBFactoryTest001
+  * @tc.desc: check table manager with mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
   */
 HWTEST_F(DistributedDBInterfacesLogTest, DBFactoryTest001, TestSize.Level1)
 {
@@ -71,12 +71,12 @@ HWTEST_F(DistributedDBInterfacesLogTest, DBFactoryTest001, TestSize.Level1)
   */
 HWTEST_F(DistributedDBInterfacesLogTest, DeviceLogTest001, TestSize.Level1)
 {
-    string key1 = "key1";
+    string key1 = "NEW.";
     TableInfo tableInfo;
     tableInfo.SetPrimaryKey("key2", 1);
     tableInfo.SetPrimaryKey("key3", 2);
-    string key4 = "key4";
+    string key4 = "hashKey";
     SplitDeviceLogTableManager manager;
     string value = manager.CalcPrimaryKeyHash(key1, tableInfo, key4);
-    EXPECT_EQ(value, "calc_hash(calc_hash(key1key2)||calc_hash(key1key3))");
+    EXPECT_EQ(value, "calc_hash(calc_hash(NEW.'key2')||calc_hash(NEW.'key3'))");
 }
