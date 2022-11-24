@@ -186,7 +186,7 @@ int VirtualSingleVerSyncDBInterface::RemoveDeviceData(const std::string &deviceN
         devId = deviceMapping_[deviceName];
     }
     for (auto &item : dbData_) {
-        if (item.deviceId_ == devId && devId > 0) {
+        if (item.deviceId == devId && devId > 0) {
             item.flag = VirtualDataItem::DELETE_FLAG;
         }
     }
@@ -293,7 +293,7 @@ int VirtualSingleVerSyncDBInterface::PutSyncData(std::vector<VirtualDataItem>& d
             dbDataIter->writeTimestamp = iter->writeTimestamp;
             dbDataIter->flag = iter->flag;
             dbDataIter->isLocal = false;
-            dbDataIter->deviceId_ = deviceMapping_[deviceName];
+            dbDataIter->deviceId = deviceMapping_[deviceName];
         } else {
             LOGI("PutSyncData, use remote data %" PRIu64, iter->timestamp);
             VirtualDataItem dataItem;
@@ -303,7 +303,7 @@ int VirtualSingleVerSyncDBInterface::PutSyncData(std::vector<VirtualDataItem>& d
             dataItem.writeTimestamp = iter->writeTimestamp;
             dataItem.flag = iter->flag;
             dataItem.isLocal = false;
-            dataItem.deviceId_ = deviceMapping_[deviceName];
+            dataItem.deviceId = deviceMapping_[deviceName];
             dbData_.push_back(dataItem);
         }
     }
