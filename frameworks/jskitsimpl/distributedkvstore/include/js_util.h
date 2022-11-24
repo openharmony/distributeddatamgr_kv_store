@@ -26,7 +26,6 @@
 #include "datashare_abs_predicates.h"
 #include "datashare_values_bucket.h"
 #include "js_error_utils.h"
-// #include "js_status_utils.h"
 
 namespace OHOS::DistributedKVStore {
 class JSUtil final {
@@ -150,7 +149,7 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
     static napi_status GetValue(napi_env env, napi_value in, DataQuery &out);
 
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject &valueObject);
+    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &value);
     static napi_status GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
 
     static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);
@@ -194,7 +193,7 @@ private:
         TUPLE_VALUE,
         TUPLE_SIZE
     };
-    
+    static napi_status GetLevel(int32_t level, int32_t &out);
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

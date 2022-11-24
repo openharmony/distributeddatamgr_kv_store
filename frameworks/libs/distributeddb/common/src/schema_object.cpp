@@ -721,7 +721,6 @@ int SchemaObject::CheckFieldPathIndexableThenSave(const std::vector<FieldPath> &
     for (const auto &eachPath : inPathVec) {
         // Previous logic guarantee eachPath.size greater than zero
         uint32_t depth = eachPath.size() - 1; // minus 1 to change depth count from zero
-        std::string eachPathStr = SchemaUtils::FieldPathString(eachPath);
         if (schemaDefine_.count(depth) == 0) {
             LOGE("[Schema][CheckIndexable] No schema define of this depth.");
             return -E_SCHEMA_PARSE_FAIL;
@@ -742,19 +741,16 @@ int SchemaObject::CheckFieldPathIndexableThenSave(const std::vector<FieldPath> &
 
 int SchemaObject::CompareSchemaVersionMode(const SchemaObject &newSchema) const
 {
-    static std::map<SchemaMode, std::string> modeMapString = {
-        {SchemaMode::STRICT, "STRICT"},
-        {SchemaMode::COMPATIBLE, "COMPATIBLE"},
-    };
     if (schemaVersion_ != newSchema.schemaVersion_) {
         LOGE("[Schema][CompareVerMode] OldVer=%s mismatch newVer=%s.", schemaVersion_.c_str(),
             newSchema.schemaVersion_.c_str());
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
+
     // Only Json-Schema need to compare mode
     if (schemaType_ == SchemaType::JSON && schemaMode_ != newSchema.schemaMode_) {
-        LOGE("[Schema][CompareVerMode] OldMode=%s mismatch newMode=%s.", modeMapString[schemaMode_].c_str(),
-            modeMapString[newSchema.schemaMode_].c_str());
+        LOGE("[Schema][CompareVerMode] OldMode=%d mismatch newMode=%d.", static_cast<int>(schemaMode_),
+            static_cast<int>(newSchema.schemaMode_));
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // Do not return E_OK here, E_OK is ambiguous.

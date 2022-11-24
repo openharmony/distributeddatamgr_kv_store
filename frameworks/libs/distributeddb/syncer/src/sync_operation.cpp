@@ -279,12 +279,10 @@ SyncType SyncOperation::GetSyncType(int mode)
         {static_cast<int>(SyncModeType::QUERY_PULL), SyncType::QUERY_SYNC_TYPE},
         {static_cast<int>(SyncModeType::QUERY_PUSH_PULL), SyncType::QUERY_SYNC_TYPE}
     };
-    for (const auto &node: syncTypeNodes) {
-        if (node.mode == mode) {
-            return node.type;
-        }
-    }
-    return SyncType::INVALID_SYNC_TYPE;
+    const auto &result = std::find_if(std::begin(syncTypeNodes), std::end(syncTypeNodes), [mode](const auto &node) {
+        return node.mode == mode;
+    });
+    return result == std::end(syncTypeNodes) ? SyncType::INVALID_SYNC_TYPE : (*result).type;
 }
 
 int SyncOperation::TransferSyncMode(int mode)
@@ -324,12 +322,11 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         { static_cast<int>(OP_DENIED_SQL),                    NO_PERMISSION },
         { static_cast<int>(OP_NOTADB_OR_CORRUPTED),           INVALID_PASSWD_OR_CORRUPTED_DB },
     };
-    for (const auto &node: syncOperationStatusNodes) {
-        if (node.operationStatus == operationStatus) {
-            return node.status;
-        }
-    }
-    return DB_ERROR;
+    const auto &result = std::find_if(std::begin(syncOperationStatusNodes), std::end(syncOperationStatusNodes),
+        [operationStatus](const auto &node) {
+            return node.operationStatus == operationStatus;
+        });
+    return result == std::end(syncOperationStatusNodes) ? DB_ERROR : (*result).status;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SyncOperation)
 } // namespace DistributedDB

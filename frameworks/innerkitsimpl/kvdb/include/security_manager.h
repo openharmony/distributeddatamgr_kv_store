@@ -14,6 +14,7 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
+#include <atomic>
 #include "types.h"
 #include "types_export.h"
 namespace OHOS::DistributedKv {
@@ -26,17 +27,26 @@ public:
     void DelDBPassword(const std::string &name, const std::string &path);
 
 private:
-    static constexpr const char *ROOT_KEY_ALIAS = "distributed_db_root_key";
-    static constexpr const char *STRATEGY_META_PREFIX = "StrategyMetaData";
-    static constexpr const char *CAPABILITY_ENABLED = "capabilityEnabled";
-    static constexpr const char *CAPABILITY_RANGE = "capabilityRange";
+    static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
-    static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata";
+    static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
     static constexpr int KEY_SIZE = 32;
 
+    SecurityManager();
+    ~SecurityManager();
     std::vector<uint8_t> Random(int32_t len);
     std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path);
-    bool SaveKeyToFile(const std::string &name, const std::string &path, const std::vector<uint8_t> &key);
+    bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
+    int32_t GenerateRootKey();
+    int32_t CheckRootKey();
+    bool Retry();
+    std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
+    bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
+    
+    std::vector<uint8_t> vecRootKeyAlias_{};
+    std::vector<uint8_t> vecNonce_{};
+    std::vector<uint8_t> vecAad_{};
+    std::atomic_bool hasRootKey_ = false;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H

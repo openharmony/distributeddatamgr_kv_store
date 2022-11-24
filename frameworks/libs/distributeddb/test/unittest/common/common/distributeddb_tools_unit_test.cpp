@@ -432,7 +432,7 @@ bool DistributedDBToolsUnitTest::CheckObserverResult(const std::vector<Distribut
     }
 
     int index = 0;
-    for (auto &entry : resultLst) {
+    for (const auto &entry : resultLst) {
         if (entry.key != orgEntries[index].key) {
             LOGE("CheckObserverResult failed, key of index[%d] not match", index);
             return false;

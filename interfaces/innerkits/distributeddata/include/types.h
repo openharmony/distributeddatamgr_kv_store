@@ -16,12 +16,13 @@
 #ifndef DISTRIBUTED_KVSTORE_TYPES_H
 #define DISTRIBUTED_KVSTORE_TYPES_H
 
+#include <algorithm>
 #include <cstdint>
 #include <string>
-#include <vector>
 #include <variant>
-#include "store_errno.h"
+#include <vector>
 #include "blob.h"
+#include "store_errno.h"
 #include "visibility.h"
 
 namespace OHOS {
@@ -124,7 +125,7 @@ enum SubscribeType : uint32_t {
     SUBSCRIBE_TYPE_ALL = 3, // both local changes and synced data changes
 };
 
-struct Entry : public virtual Parcelable {
+struct Entry {
     Key key;
     Value value;
 
@@ -141,58 +142,10 @@ struct Entry : public virtual Parcelable {
         return key.ReadFromBuffer(cursorPtr, bufferLeftSize) && value.ReadFromBuffer(cursorPtr, bufferLeftSize);
     }
 
-    // Write a parcelable object to the given parcel.
-    // The object position is saved into Parcel if set savePosition to
-    // true, and this intends to use in kernel data transaction.
-    // Returns size being written on success or zero if any error occur.
-    bool Marshalling(Parcel &parcel) const override
-    {
-        if (!parcel.WriteParcelable(&key)) {
-            return false;
-        }
-        if (!parcel.WriteParcelable(&value)) {
-            return false;
-        }
-        return true;
-    }
-
     int RawSize() const
     {
         return key.RawSize() + value.RawSize();
     }
-
-    // Read data from the given parcel into this parcelable object.
-    // Returns size being read on success or zero if any error occur.
-    static Entry *Unmarshalling(Parcel &parcel)
-    {
-        Entry *entry = new(std::nothrow) Entry;
-        if (entry == nullptr) {
-            return entry;
-        }
-
-        bool noError = true;
-        sptr<Key> keyTmp = parcel.ReadParcelable<Key>();
-        if (keyTmp != nullptr) {
-            entry->key = *keyTmp;
-        } else {
-            noError = false;
-        }
-
-        sptr<Value> valueTmp = parcel.ReadParcelable<Value>();
-        if (valueTmp != nullptr) {
-            entry->value = *valueTmp;
-        } else {
-            noError = false;
-        }
-
-        if (!noError) {
-            delete entry;
-            entry = nullptr;
-        }
-        return entry;
-    }
-
-    API_EXPORT virtual ~Entry() {}
 };
 
 enum SyncMode : int32_t {

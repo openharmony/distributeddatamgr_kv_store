@@ -20,14 +20,13 @@ config("module_private_config") {
 
   include_dirs = [
     "../include/",
+    "../../kvdb/include/",
     "../../../../interfaces/innerkits/distributeddata/",
-
-    # TEMP MODIFICATION FOR PMS
-    "../../../../services/distributeddataservice/app/include",
 
     # for ipc_core interfaces.
     "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
+    "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
 }
@@ -192,13 +191,54 @@ ohos_unittest("BlobTest") {
     "//third_party/googletest:gtest_main",
   ]
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+  ]
 }
 
 ohos_unittest("TypesUtilTest") {
   module_out_path = module_output_path
 
   sources = [ "unittest/types_util_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "//third_party/googletest:gtest_main",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+  ]
+}
+
+ohos_unittest("KvUtilTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/kv_utils_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  deps = [
+    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
+    "//third_party/googletest:gtest_main",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "ipc:ipc_core",
+  ]
+}
+
+ohos_unittest("KvstoreDatashareBridgeTest") {
+  module_out_path = module_output_path
+
+  sources = [ "unittest/kvstore_datashare_bridge_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
@@ -225,6 +265,8 @@ group("unittest") {
     ":DeviceKvStoreTest",
     ":DistributedKvDataManagerEncryptTest",
     ":DistributedKvDataManagerTest",
+    ":KvUtilTest",
+    ":KvstoreDatashareBridgeTest",
     ":LocalSubscribeDeviceStoreTest",
     ":LocalSubscribeStoreTest",
     ":SingleKvStoreClientQueryTest",

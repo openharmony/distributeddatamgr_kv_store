@@ -48,7 +48,7 @@ public:
 
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
-        SyncStatusCallback &onComplete);
+        const SyncStatusCallback &onComplete);
 
     RelationalStoreConnection *conn_ = nullptr;
     std::string storePath_;

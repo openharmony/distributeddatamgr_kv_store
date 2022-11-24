@@ -673,6 +673,25 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest002, TestSize.L
     KvDBManager::ReleaseDatabaseConnection(conn);
 }
 
+/**
+  * @tc.name: AddSubscribeErrTest001
+  * @tc.desc: Test invalid parameters of Subscribe
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeErrTest001, TestSize.Level1)
+{
+    DistributedDB::SQLiteSingleVerNaturalStore *store = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(store, nullptr);
+    Query query = Query::Select().EqualTo("field_name2", false);
+    QueryObject queryObj(query);
+    EXPECT_EQ(store->CheckAndInitQueryCondition(queryObj), -E_INVALID_DB);
+    EXPECT_EQ(store->AddSubscribe(SUBSCRIBE_ID, queryObj, false), -E_INVALID_DB);
+    EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), -E_INVALID_DB);
+    store->DecObjRef(store);
+}
+
 namespace {
 void PutSyncData(SQLiteSingleVerNaturalStore *store, const Key &key, const std::string &valStr)
 {

@@ -241,8 +241,8 @@ SerialBuffer *ProtocolProto::BuildLabelExchange(uint64_t inDistinctValue, uint64
     fieldPtr++;
     // Note: don't worry, memory length had been carefully calculated above
     auto bytePtr = reinterpret_cast<uint8_t *>(fieldPtr);
-    for (auto &eachLabel : inLabels) {
-        for (auto &eachByte : eachLabel) {
+    for (const auto &eachLabel : inLabels) {
+        for (const auto &eachByte : eachLabel) {
             *bytePtr++ = eachByte;
         }
     }

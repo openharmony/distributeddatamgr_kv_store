@@ -1,20 +1,21 @@
 /*
-* Copyright (c) 2022 Huawei Device Co., Ltd.
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 import {describe, beforeAll, beforeEach, afterEach, afterAll, it, expect} from 'deccjsunit/index'
 import factory from '@ohos.data.distributedKVStore'
-import dataSharePredicates from '@ohos.data.dataSharePredicates'
+import dataShare from '@ohos.data.dataSharePredicates'
 import abilityFeatureAbility from '@ohos.ability.featureAbility'
 
 var context = abilityFeatureAbility.getContext();
@@ -23,6 +24,8 @@ const KEY_TEST_FLOAT_ELEMENT = 'key_test_float';
 const KEY_TEST_BOOLEAN_ELEMENT = 'key_test_boolean';
 const KEY_TEST_STRING_ELEMENT = 'key_test_string';
 const KEY_TEST_SYNC_ELEMENT = 'key_test_sync';
+const file = "";
+const files = [file];
 
 const VALUE_TEST_INT_ELEMENT = 123;
 const VALUE_TEST_FLOAT_ELEMENT = 321.12;
@@ -31,12 +34,12 @@ const VALUE_TEST_STRING_ELEMENT = 'value-string-001';
 const VALUE_TEST_SYNC_ELEMENT = 'value-string-001';
 
 const TEST_BUNDLE_NAME = 'com.example.myapplication';
-const TEST_STORE_ID = 'dstoreId';
+const TEST_STORE_ID = 'storeId2';
 var kvManager = null;
 var kvStore = null;
 var localDeviceId = null;
-const USED_DEVICE_IDS =  ['A12C1F9261528B21F95778D2FDC0B2E33943E6251AC5487F4473D005758905DB'];
-const UNUSED_DEVICE_IDS =  [];  /* add you test device-ids here */
+const USED_DEVICE_IDS = ['A12C1F9261528B21F95778D2FDC0B2E33943E6251AC5487F4473D005758905DB'];
+const UNUSED_DEVICE_IDS = [];  /* add you test device-ids here */
 var syncDeviceIds = USED_DEVICE_IDS.concat(UNUSED_DEVICE_IDS);
 
 function sleep(ms) {
@@ -47,34 +50,35 @@ function putBatchString(len, prefix) {
     let entries = [];
     for (var i = 0; i < len; i++) {
         var entry = {
-            key : prefix + i,
-            value : {
-                type : factory.ValueType.STRING,
-                value : 'batch_test_string_value'
+            key: prefix + i,
+            value: {
+                type: factory.ValueType.STRING,
+                value: 'batch_test_string_value'
             }
         }
         entries.push(entry);
     }
     return entries;
 }
-describe('deviceKvStorePromiseTest', function () {
+
+describe('DeviceKvStorePromiseTest', function () {
     const config = {
-        bundleName : TEST_BUNDLE_NAME,
+        bundleName: TEST_BUNDLE_NAME,
         context: context
     }
 
     const options = {
-        createIfMissing : true,
-        encrypt : false,
-        backup : false,
-        autoSync : true,
-        kvStoreType : factory.KVStoreType.DEVICE_COLLABORATION,
-        schema : '',
-        securityLevel : factory.SecurityLevel.S2,
+        createIfMissing: true,
+        encrypt: false,
+        backup: true,
+        autoSync: true,
+        kvStoreType: factory.KVStoreType.DEVICE_COLLABORATION,
+        schema: '',
+        securityLevel: factory.SecurityLevel.S2,
     }
 
     beforeAll(async function (done) {
-        console.info('beforeAll config:'+ JSON.stringify(config));
+        console.info('beforeAll config:' + JSON.stringify(config));
         await factory.createKVManager(config).then((manager) => {
             kvManager = manager;
             console.info('beforeAll createKVManager success');
@@ -100,14 +104,14 @@ describe('deviceKvStorePromiseTest', function () {
                 reject(new Error('not resolved in 2 second, reject it.'))
             }, 2000);
         });
-        await getDeviceId.then(function(deviceId) {
+        await getDeviceId.then(function (deviceId) {
             console.info('beforeAll getDeviceId ' + JSON.stringify(deviceId));
             localDeviceId = deviceId;
         }).catch((error) => {
             console.error('beforeAll can NOT getDeviceId, fail: ' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
         });
-        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, kvStore);
+        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID);
         await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID);
         kvStore = null;
         console.info('beforeAll end');
@@ -123,2539 +127,2449 @@ describe('deviceKvStorePromiseTest', function () {
 
     beforeEach(async function (done) {
         console.info('beforeEach' + JSON.stringify(options));
-        await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
+        await kvManager.getKVStore(TEST_STORE_ID, options, function (err, store) {
             kvStore = store;
             console.info('beforeEach getKVStore success');
-        }).catch((err) => {
-            console.error('beforeEach getKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+            done();
         });
-        console.info('beforeEach end');
-        done();
     })
 
     afterEach(async function (done) {
         console.info('afterEach');
-        await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
-            console.info('afterEach closeKVStore success');
-            await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
-                console.info('afterEach deleteKVStore success');
-            }).catch((err) => {
-                console.error('afterEach deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+        try {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, async function (err, data) {
+                console.info('afterEach closeKVStore success: err is: ' + err);
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err, data) {
+                    console.info('afterEach deleteKVStore success err is: ' + err);
+                    done();
+                });
             });
-        }).catch((err) => {
+            kvStore = null;
+        } catch (e) {
             console.error('afterEach closeKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
-        kvStore = null;
-        done();
+        }
     })
 
     /**
-     * @tc.name DeviceKvStorePutStringPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Put(String) testcase 001
+     * @tc.name DeviceKvStorePutStringPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(String) with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutStringPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorePutStringPromiseTest001');
+    it('DeviceKvStorePutStringPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStorePutStringPromiseInvalidArgsTest');
         try {
             await kvStore.put(KEY_TEST_STRING_ELEMENT, null).then((data) => {
-                console.info('DeviceKvStorePutStringPromiseTest001 put success');
+                console.info('DeviceKvStorePutStringPromiseInvalidArgsTest put success');
                 expect(null).assertFail();
             }).catch((error) => {
-                console.error('DeviceKvStorePutStringPromiseTest001 put error' + `, error code is ${error.code}, message is ${error.message}`);
+                console.error('DeviceKvStorePutStringPromiseInvalidArgsTest put error' + `, error code is ${error.code}, message is ${error.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutStringPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutStringPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutStringPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Put(String) testcase 002
+     * @tc.name DeviceKvStorePutStringPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(String) in a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutStringPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStorePutStringPromiseTest002');
+    it('DeviceKvStorePutStringPromiseClosedKVStoreTest', 0, async function (done) {
+        console.info('DeviceKvStorePutStringPromiseClosedKVStoreTest');
         try {
-            await kvStore.put(KEY_TEST_STRING_ELEMENT, '').then((data) => {
-                console.info('DeviceKvStorePutStringPromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStorePutStringPromiseTest002 put error' + `, error code is ${error.code}, message is ${error.message}`);
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then((data) => {
+                console.info('DeviceKvStorePutStringPromiseClosedKVStoreTest put success');
                 expect(null).assertFail();
+            }).catch((error) => {
+                console.error('DeviceKvStorePutStringPromiseClosedKVStoreTest put error' + `, error code is ${error.code}, message is ${error.message}`);
+                expect(error.code == 15100005).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutStringPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutStringPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutStringPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Put(String) testcase 003
+     * @tc.name DeviceKvStorePutStringPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(String) success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutStringPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStorePutStringPromiseTest003');
+    it('DeviceKvStorePutStringPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStorePutStringPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then((data) => {
-                console.info('DeviceKvStorePutStringPromiseTest003 put success');
+                console.info('DeviceKvStorePutStringPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
             }).catch((error) => {
-                console.error('DeviceKvStorePutStringPromiseTest003 put error' + `, error code is ${error.code}, message is ${error.message}`);
+                console.error('DeviceKvStorePutStringPromiseSucTest put error' + `, error code is ${error.code}, message is ${error.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutStringPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutStringPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutStringPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.Put(String) testcase 004
+     * @tc.name DeviceKvStoreGetStringPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreGetString success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutStringPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStorePutStringPromiseTest004');
-        try {
-            var str = '';
-            for (var i = 0 ; i < 4095; i++) {
-                str += 'x';
-            }
-            await kvStore.put(KEY_TEST_STRING_ELEMENT, str).then(async (data) => {
-                console.info('DeviceKvStorePutStringPromiseTest004 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
-                    console.info('DeviceKvStorePutStringPromiseTest004 get success data ' + data);
-                    expect(str == data).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStorePutStringPromiseTest004 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
-            }).catch((error) => {
-                console.error('DeviceKvStorePutStringPromiseTest004 put error' + `, error code is ${error.code}, message is ${error.message}`);
-                expect(null).assertFail();
-            });
-        } catch (e) {
-            console.error('DeviceKvStorePutStringPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreGetStringPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Get(String) testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetStringPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetStringPromiseTest001');
+    it('DeviceKvStoreGetStringPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetStringPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then(async (data) => {
-                console.info('DeviceKvStoreGetStringPromiseTest001 put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetStringPromiseTest001 get success');
                     expect(VALUE_TEST_STRING_ELEMENT == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreGetStringPromiseTest001 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((error) => {
-                console.error('DeviceKvStoreGetStringPromiseTest001 put error' + `, error code is ${error.code}, message is ${error.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetStringPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetStringPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Get(String) testcase 002
+     * @tc.name DeviceKvStoreGetStringPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreGetString with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetStringPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreGetStringPromiseTest002');
+    it('DeviceKvStoreGetStringPromiseInvalidArgsTest', 0, async function (done) {
         try {
-            await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreGetStringPromiseTest002 get success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetStringPromiseTest002 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        } catch (e) {
-            console.error('DeviceKvStoreGetStringPromiseTest002 get e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStorePutIntPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Put(Int) testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStorePutIntPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorePutIntPromiseTest001');
-        try {
-            await kvStore.put(KEY_TEST_INT_ELEMENT, VALUE_TEST_INT_ELEMENT).then((data) => {
-                console.info('DeviceKvStorePutIntPromiseTest001 put success');
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then(async (data) => {
                 expect(data == undefined).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStorePutIntPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        } catch (e) {
-            console.error('DeviceKvStorePutIntPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStorePutIntPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Put(Int) testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStorePutIntPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStorePutIntPromiseTest002');
-        try {
-            var intValue = 987654321;
-            await kvStore.put(KEY_TEST_INT_ELEMENT, intValue).then(async (data) => {
-                console.info('DeviceKvStorePutIntPromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.get(localDeviceId, KEY_TEST_INT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStorePutIntPromiseTest002 get success');
-                    expect(intValue == data).assertTrue();
+                await kvStore.get().then((data) => {
+                    expect(null).assertFail();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutIntPromiseTest002 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
-            }).catch((err) => {
-                console.error('DeviceKvStorePutIntPromiseTest002 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
+            }).catch((error) => {
+                expect(error.code == 401).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutIntPromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreGetStringPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutIntPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Put(Int) testcase 003
+     * @tc.name DeviceKvStoreGetStringPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreGetString from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutIntPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStorePutIntPromiseTest003');
+    it('DeviceKvStoreGetStringPromiseClosedKVStoreTest', 0, async function (done) {
+        try {
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then(async (data) => {
+                expect(data == undefined).assertTrue();
+            }).catch((error) => {
+                console.error('DeviceKvStoreGetStringPromiseClosedKVStoreTest put error' + `, error code is ${error.code}, message is ${error.message}`);
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetStringPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetStringPromiseNoPutTest
+     * @tc.desc Test Js Api DeviceKvStoreGetString without put
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetStringPromiseNoPutTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetStringPromiseNoPutTest');
+        try {
+            await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
+                console.info('DeviceKvStoreGetStringPromiseNoPutTest get success');
+                expect(null).assertFail();
+            }).catch((err) => {
+                console.error('DeviceKvStoreGetStringPromiseNoPutTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100004).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetStringPromiseNoPutTest get e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutIntPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(Int) success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutIntPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStorePutIntPromiseSucTest');
+        try {
+            await kvStore.put(KEY_TEST_INT_ELEMENT, VALUE_TEST_INT_ELEMENT).then((data) => {
+                console.info('DeviceKvStorePutIntPromiseSucTest put success');
+                expect(data == undefined).assertTrue();
+            }).catch((err) => {
+                console.error('DeviceKvStorePutIntPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutIntPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutIntPromiseMaxTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(Int) with max value
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutIntPromiseMaxTest', 0, async function (done) {
+        console.info('DeviceKvStorePutIntPromiseMaxTest');
         try {
             var intValue = Number.MAX_VALUE;
             await kvStore.put(KEY_TEST_INT_ELEMENT, intValue).then(async (data) => {
-                console.info('DeviceKvStorePutIntPromiseTest003 put success');
+                console.info('DeviceKvStorePutIntPromiseMaxTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_INT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStorePutIntPromiseTest003 get success');
+                    console.info('DeviceKvStorePutIntPromiseMaxTest get success');
                     expect(intValue == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutIntPromiseTest003 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutIntPromiseMaxTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutIntPromiseTest003 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutIntPromiseMaxTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutIntPromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutIntPromiseMaxTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutIntPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.Put(Int) testcase 004
+     * @tc.name DeviceKvStorePutIntPromiseMinTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(Int) with min value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutIntPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStorePutIntPromiseTest004');
+    it('DeviceKvStorePutIntPromiseMinTest', 0, async function (done) {
+        console.info('DeviceKvStorePutIntPromiseMinTest');
         try {
             var intValue = Number.MIN_VALUE;
             await kvStore.put(KEY_TEST_INT_ELEMENT, intValue).then(async (data) => {
-                console.info('DeviceKvStorePutIntPromiseTest004 put success');
+                console.info('DeviceKvStorePutIntPromiseMinTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_INT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStorePutIntPromiseTest004 get success');
+                    console.info('DeviceKvStorePutIntPromiseMinTest get success');
                     expect(intValue == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutIntPromiseTest004 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutIntPromiseMinTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutIntPromiseTest004 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutIntPromiseMinTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutIntPromiseTest004 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutIntPromiseMinTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetIntPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Get(Int) testcase 001
+     * @tc.name DeviceKvStoreGetIntPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreGetInt success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetIntPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetIntPromiseTest001');
+    it('DeviceKvStoreGetIntPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetIntPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_INT_ELEMENT, VALUE_TEST_INT_ELEMENT).then(async (data) => {
-                console.info('DeviceKvStoreGetIntPromiseTest001 put success');
+                console.info('DeviceKvStoreGetIntPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_INT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetIntPromiseTest001 get success');
+                    console.info('DeviceKvStoreGetIntPromiseSucTest get success');
                     expect(VALUE_TEST_INT_ELEMENT == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreGetIntPromiseTest001 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStoreGetIntPromiseSucTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreGetIntPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetIntPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetIntPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreGetIntPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBoolPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Put(Bool) testcase 001
+     * @tc.name DeviceKvStorePutBoolPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(Bool) success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBoolPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorePutBoolPromiseTest001');
+    it('DeviceKvStorePutBoolPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBoolPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_BOOLEAN_ELEMENT, VALUE_TEST_BOOLEAN_ELEMENT).then((data) => {
-                console.info('DeviceKvStorePutBoolPromiseTest001 put success');
+                console.info('DeviceKvStorePutBoolPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutBoolPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBoolPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutBoolPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutBoolPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetBoolPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Get(Bool) testcase 001
+     * @tc.name DeviceKvStoreGetBoolPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreGetBool success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetBoolPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetBoolPromiseTest001');
+    it('DeviceKvStoreGetBoolPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetBoolPromiseSucTest');
         try {
             var boolValue = false;
             await kvStore.put(KEY_TEST_BOOLEAN_ELEMENT, boolValue).then(async (data) => {
-                console.info('DeviceKvStoreGetBoolPromiseTest001 put success');
+                console.info('DeviceKvStoreGetBoolPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_BOOLEAN_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetBoolPromiseTest001 get success');
+                    console.info('DeviceKvStoreGetBoolPromiseSucTest get success');
                     expect(boolValue == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreGetBoolPromiseTest001 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStoreGetBoolPromiseSucTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreGetBoolPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetBoolPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetBoolPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreGetBoolPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutFloatPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Put(Float) testcase 001
+     * @tc.name DeviceKvStorePutFloatPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.Put(Float) success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutFloatPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorePutFloatPromiseTest001');
+    it('DeviceKvStorePutFloatPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStorePutFloatPromiseSucTest');
         try {
             await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then((data) => {
-                console.info('DeviceKvStorePutFloatPromiseTest001 put success');
+                console.info('DeviceKvStorePutFloatPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutFloatPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutFloatPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStorePutFloatPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutFloatPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetFloatPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Get(Float) testcase 001
+     * @tc.name DeviceKvStoreGetFloatPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreGetFloat success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetFloatPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetFloatPromiseTest001');
+    it('DeviceKvStoreGetFloatPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetFloatPromiseSucTest');
         try {
             var floatValue = 123456.654321;
             await kvStore.put(KEY_TEST_FLOAT_ELEMENT, floatValue).then(async (data) => {
-                console.info('DeviceKvStoreGetFloatPromiseTest001 put success');
+                console.info('DeviceKvStoreGetFloatPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.get(localDeviceId, KEY_TEST_FLOAT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetFloatPromiseTest001 get success');
+                    console.info('DeviceKvStoreGetFloatPromiseSucTest get success');
                     expect(floatValue == data).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreGetFloatPromiseTest001 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStoreGetFloatPromiseSucTest get fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreGetFloatPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetFloatPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreGetFloatPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreGetFloatPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetFloatPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Get(Float) testcase 002
+     * @tc.name DeviceKvStoreDeleteStringPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteString success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetFloatPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreGetFloatPromiseTest002');
-        try {
-            var floatValue = 123456.0;
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, floatValue).then(async (data) => {
-                console.info('DeviceKvStoreGetFloatPromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.get(localDeviceId, KEY_TEST_FLOAT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetFloatPromiseTest002 get success');
-                    expect(floatValue == data).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStoreGetFloatPromiseTest002 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetFloatPromiseTest002 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        } catch (e) {
-            console.error('DeviceKvStoreGetFloatPromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreGetFloatPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Get(Float) testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetFloatPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreGetFloatPromiseTest003');
-        try {
-            var floatValue = 123456.00;
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, floatValue).then(async (data) => {
-                console.info('DeviceKvStoreGetFloatPromiseTest003 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.get(localDeviceId, KEY_TEST_FLOAT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreGetFloatPromiseTest003 get success');
-                    expect(floatValue == data).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStoreGetFloatPromiseTest003 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetFloatPromiseTest003 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        } catch (e) {
-            console.error('DeviceKvStoreGetFloatPromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreDeleteStringPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.DeleteString() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreDeleteStringPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteStringPromiseTest001');
+    it('DeviceKvStoreDeleteStringPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteStringPromiseSucTest');
         try {
             var str = 'this is a test string';
             await kvStore.put(KEY_TEST_STRING_ELEMENT, str).then(async (data) => {
-                console.info('DeviceKvStoreDeleteStringPromiseTest001 put success');
+                console.info('DeviceKvStoreDeleteStringPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
                 await kvStore.delete(KEY_TEST_STRING_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreDeleteStringPromiseTest001 delete success');
+                    console.info('DeviceKvStoreDeleteStringPromiseSucTest delete success');
                     expect(data == undefined).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteStringPromiseTest001 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStoreDeleteStringPromiseSucTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteStringPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreDeleteStringPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreDeleteStringPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreDeleteStringPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteStringPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.DeleteString() testcase 002
+     * @tc.name DeviceKvStoreDeleteStringPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteString with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteStringPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteStringPromiseTest002');
+    it('DeviceKvStoreDeleteStringPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteStringPromiseInvalidArgsTest');
         try {
-            var str = '';
-            for (var i = 0 ; i < 4096; i++) {
-                str += 'x';
-            }
-            await kvStore.put(KEY_TEST_STRING_ELEMENT, str).then(async (data) => {
-                console.info('DeviceKvStoreDeleteStringPromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.delete(KEY_TEST_STRING_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreDeleteStringPromiseTest002 delete success');
-                    expect(data == undefined).assertTrue();
+            var str = 'this is a test string';
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, str).then(async () => {
+                expect(true).assertTrue();
+                await kvStore.delete().then(() => {
+                    expect(null).assertFail();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteStringPromiseTest002 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteStringPromiseTest002 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
+                expect(err.code == 401).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreDeleteStringPromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteStringPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.DeleteString() testcase 003
+     * @tc.name DeviceKvStoreDeleteStringPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteString into a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteStringPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteStringPromiseTest003');
+    it('DeviceKvStoreDeleteStringPromiseClosedKVStoreTest', 0, async function (done) {
         try {
+            let str = "test";
+
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, str).then(async () => {
+                console.info('DeviceKvStoreDeleteStringPromiseSucTest put success');
+                expect(true).assertTrue();
+            }).catch((err) => {
+                console.error('DeviceKvStoreDeleteStringPromiseClosedKVStoreTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
             await kvStore.delete(KEY_TEST_STRING_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreDeleteStringPromiseTest003 delete success');
-                expect(data == undefined).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreDeleteStringPromiseTest003 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.info('DeviceKvStoreDeleteStringPromiseSucTest delete success');
                 expect(null).assertFail();
+            }).catch((err) => {
+                console.error('DeviceKvStoreDeleteStringPromiseSucTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreDeleteStringPromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStorePutStringPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteIntPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.DeleteInt() testcase 001
+     * @tc.name DeviceKvStoreDeletePredicatesPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.Delete() success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteIntPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteIntPromiseTest001');
+    it('DeviceKvStoreDeletePredicatesPromiseSucTest', 0, async function (done) {
+        console.log('DeviceKvStoreDeletePredicatesPromiseSucTest');
         try {
-            await kvStore.put(KEY_TEST_INT_ELEMENT, VALUE_TEST_INT_ELEMENT).then(async (data) => {
-                console.info('DeviceKvStoreDeleteIntPromiseTest001 put success');
+            let predicates = new dataShare.DataSharePredicates();
+            let arr = ["name"];
+            predicates.inKeys(arr);
+            await kvStore.put("name", "Bob").then(async (data) => {
+                console.log('DeviceKvStoreDeletePredicatesPromiseSucTest put success');
                 expect(data == undefined).assertTrue();
-                await kvStore.delete(KEY_TEST_INT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreDeleteIntPromiseTest001 delete success');
+                await kvStore.delete(predicates).then((data) => {
+                    console.log('DeviceKvStoreDeletePredicatesPromiseSucTest delete success');
                     expect(data == undefined).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteIntPromiseTest001 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStoreDeletePredicatesPromiseSucTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteIntPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreDeletePredicatesPromiseSucTest put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.error('DeviceKvStoreDeleteIntPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.error('DeviceKvStoreDeletePredicatesPromiseSucTest put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteFloatPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.DeleteFloat() testcase 001
+     * @tc.name DeviceKvStoreDeletePredicatesPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreDelete predicates into a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteFloatPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteFloatPromiseTest001');
+    it('DeviceKvStoreDeletePredicatesPromiseClosedKVStoreTest', 0, async function (done) {
         try {
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then(async (data) => {
-                console.info('DeviceKvStoreDeleteFloatPromiseTest001 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.delete(KEY_TEST_FLOAT_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreDeleteFloatPromiseTest001 delete success');
-                    expect(data == undefined).assertTrue();
+            let predicates = new dataShare.DataSharePredicates();
+            let arr = ["name"];
+            predicates.inKeys(arr);
+            await kvStore.put("name", "Bob").then(async () => {
+                expect(true).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteFloatPromiseTest001 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.delete(predicates).then((data) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreDeletePredicatesPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreDeletePredicatesPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreDelete predicates with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreDeleteStringPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteStringPromiseInvalidArgsTest');
+        try {
+            let predicates = new dataShare.DataSharePredicates();
+            let arr = ["name"];
+            predicates.inKeys(arr);
+            await kvStore.put("name", "bob").then(async () => {
+                expect(true).assertTrue();
+                await kvStore.delete().then(() => {
+                    expect(null).assertFail();
+                }).catch((err) => {
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteFloatPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
+                expect(err.code == 401).assertTrue();
             });
         } catch (e) {
-            console.error('DeviceKvStoreDeleteFloatPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteBoolPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.DeleteBool() testcase 001
+     * @tc.name DeviceKvStoreSetSyncRangePromiseDisjointTest
+     * @tc.desc Test Js Api DeviceKvStoreSetSyncRange with disjoint ranges
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteBoolPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteBoolPromiseTest001');
-        try {
-            await kvStore.put(KEY_TEST_BOOLEAN_ELEMENT, VALUE_TEST_BOOLEAN_ELEMENT).then(async (data) => {
-                console.info('DeviceKvStoreDeleteBoolPromiseTest001 put success');
-                expect(data == undefined).assertTrue();
-                await kvStore.delete(KEY_TEST_BOOLEAN_ELEMENT).then((data) => {
-                    console.info('DeviceKvStoreDeleteBoolPromiseTest001 delete success');
-                    expect(data == undefined).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteBoolPromiseTest001 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
-            }).catch((err) => {
-                console.error('DeviceKvStoreDeleteBoolPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        } catch (e) {
-            console.error('DeviceKvStoreDeleteBoolPromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnChangePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.OnChange() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnChangePromiseTest001', 0, async function (done) {
-        try {
-            kvStore.on('dataChange', 0, function (data) {
-                console.info('DeviceKvStoreOnChangePromiseTest001 0' + JSON.stringify(data))
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnChangePromiseTest001 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnChangePromiseTest001 put fail ' + `, error code is ${error.code}, message is ${error.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreOnChangePromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnChangePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.OnChange() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnChangePromiseTest002', 0, async function (done) {
-        try {
-            kvStore.on('dataChange', 1, function (data) {
-                console.info('DeviceKvStoreOnChangePromiseTest002 0' + JSON.stringify(data))
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnChangePromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnChangePromiseTest002 put fail ' + `, error code is ${error.code}, message is ${error.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreOnChangePromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnChangePromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.OnChange() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnChangePromiseTest003', 0, async function (done) {
-        try {
-            kvStore.on('dataChange', 2, function (data) {
-                console.info('DeviceKvStoreOnChangePromiseTest003 0' + JSON.stringify(data))
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_FLOAT_ELEMENT, VALUE_TEST_FLOAT_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnChangePromiseTest003 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnChangePromiseTest003 put fail ' + `, error code is ${error.code}, message is ${error.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreOnChangePromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnSyncCompletePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.OnSyncComplete() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnSyncCompletePromiseTest001', 0, async function (done) {
-        try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest001 0' + data)
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT, VALUE_TEST_SYNC_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest001 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest001 put failed:' + `, error code is ${e.code}, message is ${e.message}`);
-                expect(null).assertFail();
-            });
-            try {
-                var mode = factory.SyncMode.PULL_ONLY;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode);
-            } catch (e) {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest001 sync no peer device :e:' + `, error code is ${e.code}, message is ${e.message}`);
-            }
-        } catch(e) {
-            console.error('DeviceKvStoreOnSyncCompletePromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnSyncCompletePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.OnSyncComplete() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnSyncCompletePromiseTest002', 0, async function (done) {
-        try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest002 0' + data)
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT, VALUE_TEST_SYNC_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest002 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest002 put failed:' + `, error code is ${e.code}, message is ${e.message}`);
-                expect(null).assertFail();
-            });
-            try {
-                var mode = factory.SyncMode.PUSH_ONLY;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode);
-            } catch(error) {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest002 no peer device :e:' + `, error code is ${error.code}, message is ${error.message}`);
-            }
-        } catch(e) {
-            console.error('DeviceKvStoreOnSyncCompletePromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOnSyncCompletePromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.OnSyncComplete() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOnSyncCompletePromiseTest003', 0, async function (done) {
-        try {
-            kvStore.on('syncComplete', function (data) {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest003 0' + data)
-                expect(data != null).assertTrue();
-            });
-            await kvStore.put(KEY_TEST_SYNC_ELEMENT, VALUE_TEST_SYNC_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreOnSyncCompletePromiseTest003 put success');
-                expect(data == undefined).assertTrue();
-            }).catch((error) => {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest003 put failed:' + `, error code is ${e.code}, message is ${e.message}`);
-                expect(null).assertFail();
-            });
-            try {
-                var mode = factory.SyncMode.PUSH_PULL;
-                console.info('kvStore.sync to ' + JSON.stringify(syncDeviceIds));
-                kvStore.sync(syncDeviceIds, mode);
-            } catch(error) {
-                console.error('DeviceKvStoreOnSyncCompletePromiseTest003 no peer device :e:' + `, error code is ${error.code}, message is ${error.message}`);
-            }
-        } catch(e) {
-            console.error('DeviceKvStoreOnSyncCompletePromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffChangePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.OffChange() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffChangePromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreOffChangePromiseTest001');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest001 0' + data)
-            };
-            kvStore.on('dataChange', 0, func);
-            kvStore.off('dataChange', func);
-        }catch(e) {
-            console.error('DeviceKvStoreOffChangePromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffChangePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.OffChange() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffChangePromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreOffChangePromiseTest002');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest002 0' + data)
-            };
-            var func1 = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest002 0' + data)
-            };
-            kvStore.on('dataChange', 0, func);
-            kvStore.on('dataChange', 0, func1);
-            kvStore.off('dataChange', func);
-        }catch(e) {
-            console.error('DeviceKvStoreOffChangePromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffChangePromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.OffChange() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffChangePromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreOffChangePromiseTest003');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest003 0' + data)
-            };
-            var func1 = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest003 0' + data)
-            };
-            kvStore.on('dataChange', 0, func);
-            kvStore.on('dataChange', 0, func1);
-            kvStore.off('dataChange', func);
-            kvStore.off('dataChange', func1);
-        }catch(e) {
-            console.error('DeviceKvStoreOffChangePromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffChangePromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.OffChange() testcase 004
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffChangePromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreOffChangePromiseTest004');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffChangePromiseTest004 0' + data)
-            };
-            kvStore.on('dataChange', 0, func);
-            kvStore.off('dataChange');
-        }catch(e) {
-            console.error('DeviceKvStoreOffChangePromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffSyncCompletePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.OffSyncComplete() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffSyncCompletePromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreOffSyncCompletePromiseTest001');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest001 0' + data)
-            };
-            kvStore.on('syncComplete', func);
-            kvStore.off('syncComplete', func);
-        }catch(e) {
-            console.error('DeviceKvStoreOffSyncCompletePromiseTest001 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffSyncCompletePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.OffSyncComplete() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffSyncCompletePromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreOffSyncCompletePromiseTest002');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest002 0' + data)
-            };
-            var func1 = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest002 0' + data)
-            };
-            kvStore.on('syncComplete', func);
-            kvStore.on('syncComplete', func1);
-            kvStore.off('syncComplete', func);
-        }catch(e) {
-            console.error('DeviceKvStoreOffSyncCompletePromiseTest002 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffSyncCompletePromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.OffSyncComplete() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffSyncCompletePromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreOffSyncCompletePromiseTest003');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest003 0' + data)
-            };
-            var func1 = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest003 0' + data)
-            };
-            kvStore.on('syncComplete', func);
-            kvStore.on('syncComplete', func1);
-            kvStore.off('syncComplete', func);
-            kvStore.off('syncComplete', func1);
-        }catch(e) {
-            console.error('DeviceKvStoreOffSyncCompletePromiseTest003 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreOffSyncCompletePromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.OffSyncComplete() testcase 004
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreOffSyncCompletePromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreOffSyncCompletePromiseTest004');
-        try {
-            var func = function (data) {
-                console.info('DeviceKvStoreOffSyncCompletePromiseTest004 0' + data)
-            };
-            kvStore.on('syncComplete', func);
-            kvStore.off('syncComplete');
-        }catch(e) {
-            console.error('DeviceKvStoreOffSyncCompletePromiseTest004 put e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreSetSyncRangePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreSetSyncRangePromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreSetSyncRangePromiseTest001');
+    it('DeviceKvStoreSetSyncRangePromiseDisjointTest', 0, async function (done) {
+        console.info('DeviceKvStoreSetSyncRangePromiseDisjointTest');
         try {
             var localLabels = ['A', 'B'];
             var remoteSupportLabels = ['C', 'D'];
             await kvStore.setSyncRange(localLabels, remoteSupportLabels).then((err) => {
-                console.info('DeviceKvStoreSetSyncRangePromiseTest001 setSyncRange success');
+                console.info('DeviceKvStoreSetSyncRangePromiseDisjointTest setSyncRange success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteStringPromiseTest003 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreDeleteStringPromiseNoPutTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreSetSyncRangePromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreSetSyncRangePromiseDisjointTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreSetSyncRangePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() testcase 002
+     * @tc.name DeviceKvStoreSetSyncRangePromiseJointTest
+     * @tc.desc Test Js Api DeviceKvStoreSetSyncRange with joint range
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreSetSyncRangePromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreSetSyncRangePromiseTest002');
+    it('DeviceKvStoreSetSyncRangePromiseJointTest', 0, async function (done) {
+        console.info('DeviceKvStoreSetSyncRangePromiseJointTest');
         try {
             var localLabels = ['A', 'B'];
             var remoteSupportLabels = ['B', 'C'];
             await kvStore.setSyncRange(localLabels, remoteSupportLabels).then((err) => {
-                console.info('DeviceKvStoreSetSyncRangePromiseTest002 setSyncRange success');
+                console.info('DeviceKvStoreSetSyncRangePromiseJointTest setSyncRange success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreSetSyncRangePromiseTest002 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreSetSyncRangePromiseJointTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreSetSyncRangePromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreSetSyncRangePromiseJointTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreSetSyncRangePromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() testcase 003
+     * @tc.name DeviceKvStoreSetSyncRangePromiseSameTest
+     * @tc.desc Test Js Api DeviceKvStoreSetSyncRange with same range
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreSetSyncRangePromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreSetSyncRangePromiseTest003');
+    it('DeviceKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
+        console.info('DeviceKvStoreSetSyncRangePromiseSameTest');
         try {
             var localLabels = ['A', 'B'];
             var remoteSupportLabels = ['A', 'B'];
             await kvStore.setSyncRange(localLabels, remoteSupportLabels).then((err) => {
-                console.info('DeviceKvStoreSetSyncRangePromiseTest003 setSyncRange success');
+                console.info('DeviceKvStoreSetSyncRangePromiseSameTest setSyncRange success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreSetSyncRangePromiseTest003 delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreSetSyncRangePromiseSameTest delete fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreSetSyncRangePromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreSetSyncRangePromiseSameTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 001
+     * @tc.name DeviceKvStoreSetSyncRangePromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreSetSyncRange with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest001');
+    it('DeviceKvStoreSetSyncRangePromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreSetSyncRangePromiseSameTest');
+        try {
+            var remoteSupportLabels = ['A', 'B'];
+            await kvStore.setSyncRange(remoteSupportLabels).then((err) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreSetSyncRangePromiseSameTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchPromiseStringTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with string value
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchPromiseStringTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseStringTest');
         try {
             let entries = putBatchString(10, 'batch_test_string_key');
-            console.info('DeviceKvStorePutBatchPromiseTest001 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseStringTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest001 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseStringTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_string_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest001 getEntries success');
-                    console.info('DeviceKvStorePutBatchPromiseTest001 entrys.length: ' + entrys.length);
-                    console.info('DeviceKvStorePutBatchPromiseTest001 entrys[0]: ' + JSON.stringify(entrys[0]));
-                    console.info('DeviceKvStorePutBatchPromiseTest001 entrys[0].value: ' + JSON.stringify(entrys[0].value));
-                    console.info('DeviceKvStorePutBatchPromiseTest001 entrys[0].value.value: ' + entrys[0].value.value);
+                    console.info('DeviceKvStorePutBatchPromiseStringTest getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseStringTest ' + JSON.stringify(entries));
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value == 'batch_test_string_value').assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest001 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseStringTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseStringTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseStringTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 002
+     * @tc.name DeviceKvStorePutBatchPromiseIntegerTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with integer value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest002');
+    it('DeviceKvStorePutBatchPromiseIntegerTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseIntegerTest');
         try {
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_number_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.INTEGER,
-                        value : 222
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.INTEGER,
+                        value: 222
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStorePutBatchPromiseTest002 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseIntegerTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest002 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseIntegerTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_number_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest002 getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseIntegerTest getEntries success');
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value == 222).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest002 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseIntegerTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest002 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseIntegerTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseIntegerTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 003
+     * @tc.name DeviceKvStorePutBatchPromiseFloatTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with float value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest003');
+    it('DeviceKvStorePutBatchPromiseFloatTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseFloatTest');
         try {
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_number_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.FLOAT,
-                        value : 2.0
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.FLOAT,
+                        value: 2.0
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStorePutBatchPromiseTest003 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseFloatTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest003 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseFloatTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_number_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest003 getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseFloatTest getEntries success');
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value == 2.0).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest003 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseFloatTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest003 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseFloatTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseFloatTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 004
+     * @tc.name DeviceKvStorePutBatchPromiseDoubleTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with double value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest004');
+    it('DeviceKvStorePutBatchPromiseDoubleTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseDoubleTest');
         try {
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_number_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.DOUBLE,
-                        value : 2.00
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.DOUBLE,
+                        value: 2.00
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStorePutBatchPromiseTest004 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseDoubleTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest004 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseDoubleTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_number_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest004 getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseDoubleTest getEntries success');
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value == 2.00).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest004 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseDoubleTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest004 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseDoubleTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseDoubleTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest005
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 005
+     * @tc.name DeviceKvStorePutBatchPromiseBooleanTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with boolean value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest005', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest005');
+    it('DeviceKvStorePutBatchPromiseBooleanTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseBooleanTest');
         try {
             var bo = false;
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_bool_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.BOOLEAN,
-                        value : bo
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BOOLEAN,
+                        value: bo
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStorePutBatchPromiseTest005 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseBooleanTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest005 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseBooleanTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_bool_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest005 getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseBooleanTest getEntries success');
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value == bo).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest005 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseBooleanTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest005 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseBooleanTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest005 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseBooleanTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorePutBatchPromiseTest006
-     * @tc.desc Test Js Api DeviceKvStore.Put(Batch) testcase 006
+     * @tc.name DeviceKvStorePutBatchPromiseByteArrayTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() with byte array value
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorePutBatchPromiseTest006', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchPromiseTest006');
+    it('DeviceKvStorePutBatchPromiseByteArrayTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchPromiseByteArrayTest');
         try {
-            var arr = new Uint8Array([21,31]);
+            var arr = new Uint8Array([21, 31]);
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_bool_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.BYTE_ARRAY,
-                        value : arr
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStorePutBatchPromiseTest006 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStorePutBatchPromiseByteArrayTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorePutBatchPromiseTest006 putBatch success');
+                console.info('DeviceKvStorePutBatchPromiseByteArrayTest putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.getEntries(localDeviceId, 'batch_test_bool_key').then((entrys) => {
-                    console.info('DeviceKvStorePutBatchPromiseTest006 getEntries success');
+                    console.info('DeviceKvStorePutBatchPromiseByteArrayTest getEntries success');
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStorePutBatchPromiseTest006 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchPromiseByteArrayTest getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest006 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseByteArrayTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStorePutBatchPromiseTest005 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchPromiseBooleanTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteBatchPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.DeleteBatch() testcase 001
+     * @tc.name DeviceKvStorePutBatchValuePromiseUint8ArrayTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put Uint8Array
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteBatchPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteBatchPromiseTest001');
+    it('DeviceKvStorePutBatchValuePromiseUint8ArrayTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest');
+        try {
+            let values = [];
+            let arr1 = new Uint8Array([4, 5, 6, 7]);
+            let arr2 = new Uint8Array([4, 5, 6, 7, 8]);
+            let vb1 = {key: "name_1", value: arr1};
+            let vb2 = {key: "name_2", value: arr2};
+            values.push(vb1);
+            values.push(vb2);
+            console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest values: ' + JSON.stringify(values));
+            await kvStore.putBatch(values).then(async (err) => {
+                console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest putBatch success');
+                expect(err == undefined).assertTrue();
+                var query = new factory.Query();
+                query.prefixKey("name_");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 2).assertTrue();
+                    done();
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseUint8ArrayTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+            done();
+        }
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseStringTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put String
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseStringTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchValuePromiseStringTest');
+        try {
+            let values = [];
+            let vb1 = {key: "name_1", value: "arr1"};
+            let vb2 = {key: "name_2", value: "arr2"};
+            values.push(vb1);
+            values.push(vb2);
+            console.info('DeviceKvStorePutBatchValuePromiseStringTest values: ' + JSON.stringify(values));
+            await kvStore.putBatch(values).then(async (err) => {
+                console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest putBatch success');
+                expect(err == undefined).assertTrue();
+                var query = new factory.Query();
+                query.prefixKey("name_");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 2).assertTrue();
+                    done();
+                }).catch((err) => {
+                    console.log('DeviceKvStorePutBatchValueTest delete fail ' + err);
+                    expect(null).assertFail();
+                });
+            }).catch((err) => {
+                console.log('DeviceKvStorePutBatchValueTest delete fail ' + err);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseStringTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseNumbersTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put numbers
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseNumbersTest', 0, async function (done) {
+        try {
+            let values = [];
+            let vb1 = {key: "name_1", value: 123};
+            let vb2 = {key: "name_2", value: 321.0};
+            let vb3 = {key: "name_3", value: 321.00};
+            values.push(vb1);
+            values.push(vb2);
+            values.push(vb3);
+            await kvStore.putBatch(values).then(async (err) => {
+                expect(err == undefined).assertTrue();
+                var query = new factory.Query();
+                query.prefixKey("name_");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 3).assertTrue();
+                    done();
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+            done();
+        }
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseBooleanTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put booleans
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseBooleanTest', 0, async function (done) {
+        try {
+            let values = [];
+            let vb1 = {key: "name_1", value: true};
+            let vb2 = {key: "name_2", value: false};
+            values.push(vb1);
+            values.push(vb2);
+            await kvStore.putBatch(values).then(async (err) => {
+                expect(err == undefined).assertTrue();
+                var query = new factory.Query();
+                query.prefixKey("name_");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 2).assertTrue();
+                    done();
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+            done();
+        }
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseNullTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put null
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseNullTest', 0, async function (done) {
+        console.info('DeviceKvStorePutBatchValuePromiseNullTest');
+        try {
+            let values = [];
+            let vb1 = {key: "name_1", value: null};
+            let vb2 = {key: "name_2", value: null};
+            values.push(vb1);
+            values.push(vb2);
+            console.info('DeviceKvStorePutBatchValuePromiseNullTest values: ' + JSON.stringify(values));
+            await kvStore.putBatch(values).then(async (err) => {
+                console.info('DeviceKvStorePutBatchValuePromiseNullTest putBatch success');
+                expect(err == undefined).assertTrue();
+                var query = new factory.Query();
+                query.prefixKey("name_");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 2).assertTrue();
+                    expect(entrys[0].value == null).assertTrue();
+                    done();
+                });
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseNullTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+            done();
+        }
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseInvalidArgsTest', 0, async function (done) {
+        try {
+            await kvStore.putBatch().then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseNullTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorePutBatchValuePromiseClosedKvstoreTest
+     * @tc.desc Test Js Api DeviceKvStore.PutBatch() put into closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorePutBatchValuePromiseClosedKvstoreTest', 0, async function (done) {
+        try {
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            let values = [];
+            let vb1 = {key: "name_1", value: null};
+            let vb2 = {key: "name_2", value: null};
+            values.push(vb1);
+            values.push(vb2);
+            await kvStore.putBatch(values).then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStorePutBatchValuePromiseNullTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreDeleteBatchPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteBatch success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreDeleteBatchPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteBatchPromiseSucTest');
         try {
             let entries = [];
             let keys = [];
             for (var i = 0; i < 5; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
                 keys.push(key + i);
             }
-            console.info('DeviceKvStoreDeleteBatchPromiseTest001 entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreDeleteBatchPromiseTest001 putBatch success');
                 expect(err == undefined).assertTrue();
                 await kvStore.deleteBatch(keys).then((err) => {
-                    console.info('DeviceKvStoreDeleteBatchPromiseTest001 deleteBatch success');
                     expect(err == undefined).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteBatchPromiseTest001 deleteBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreDeleteBatchPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreDeleteBatchPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreDeleteBatchPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.DeleteBatch() testcase 002
+     * @tc.name DeviceKvStoreDeleteBatchPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteBatch with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeleteBatchPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteBatchPromiseTest002');
-        try {
-            let keys = ['batch_test_string_key1', 'batch_test_string_key2'];
-            await kvStore.deleteBatch(keys).then((err) => {
-                console.info('DeviceKvStoreDeleteBatchPromiseTest002 deleteBatch success');
-            }).catch((err) => {
-                console.error('DeviceKvStoreDeleteBatchPromiseTest002 deleteBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreDeleteBatchPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreDeleteBatchPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.DeleteBatch() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreDeleteBatchPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreDeleteBatchPromiseTest003');
+    it('DeviceKvStoreDeleteBatchPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteBatchPromiseInvalidArgsTest');
         try {
             let entries = [];
-            for (var i = 0; i < 10; i++) {
+            let keys = [];
+            for (var i = 0; i < 5; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+                keys.push(key + i);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+                await kvStore.deleteBatch(1).then((err) => {
+                    console.log("fail1")
+                    expect(null).assertFail();
+                }).catch((err) => {
+                    console.log("fail2")
+                    expect(null).assertFail();
+                });
+            }).catch((err) => {
+                console.log("fail3")
+                expect(err.code == 401).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreDeleteBatchPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreDeleteBatchPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreDeleteBatch into closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreDeleteBatchPromiseClosedKVStoreTest', 0, async function (done) {
+        console.info('DeviceKvStoreDeleteBatchPromiseClosedKVStoreTest');
+        try {
+            let entries = [];
+            let keys = [];
+            for (var i = 0; i < 5; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+                keys.push(key + i);
+            }
+            await kvStore.putBatch(entries).then((err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            kvStore.deleteBatch(keys).then((err) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(null).assertFail();
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreDeleteBatchPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesPromiseQueryTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with query
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesPromiseQueryTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetEntriesPromiseQueryTest');
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStoreDeleteBatchPromiseTest003 entries: ' + JSON.stringify(entries));
+            console.info('DeviceKvStoreGetEntriesPromiseQueryTest entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreDeleteBatchPromiseTest003 putBatch success');
+                console.info('DeviceKvStoreGetEntriesPromiseQueryTest putBatch success');
                 expect(err == undefined).assertTrue();
-                let keys = ['batch_test_string_key1', 'batch_test_string_keya'];
-                await kvStore.deleteBatch(keys).then((err) => {
-                    console.info('DeviceKvStoreDeleteBatchPromiseTest003 deleteBatch success');
+                let query = new factory.Query();
+                query.prefixKey("batch_test");
+                await kvStore.getEntries(query).then((entrys) => {
+                    expect(entrys.length == 10).assertTrue();
+                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
                 }).catch((err) => {
-                    console.error('DeviceKvStoreDeleteBatchPromiseTest003 deleteBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.log("errr1")
                     expect(null).assertFail();
                 });
             }).catch((err) => {
-                console.error('DeviceKvStoreDeleteBatchPromiseTest003 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.log("errr2")
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreDeleteBatchPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesPromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            console.log("errr3")
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorestartTransactionPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.startTransaction() testcase 001
+     * @tc.name DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() query from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorestartTransactionPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStorestartTransactionPromiseTest001');
+    it('DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            let query = new factory.Query();
+            query.prefixKey("batch_test");
+            await kvStore.getEntries(query).then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesPromiseQueryClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetEntriesPromiseSucTest');
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+                await kvStore.getEntries(localDeviceId, "batch_test").then((entrys) => {
+                    expect(entrys.length == 10).assertTrue();
+                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
+                }).catch((err) => {
+                    console.log("faillll1" + `${err.code}`)
+                    expect(err == undefined).assertTrue();
+                });
+            }).catch((error) => {
+                console.log("faillll2"`${error.code}`)
+                expect(error == undefined).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesPromiseClosedKVStoreTest', 0, async function (done) {
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.getEntries("batch_test").then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetEntriesPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStore.GetEntries() with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetEntriesPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetEntriesPromiseInvalidArgsTest');
+        try {
+            var arr = new Uint8Array([21, 31]);
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_bool_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.BYTE_ARRAY,
+                        value: arr
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+                await kvStore.getEntries().then(() => {
+                    expect(null).assertFail();
+                }).catch((err) => {
+                    expect(null).assertFail();
+                });
+            }).catch((err) => {
+                expect(err.code == 401).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetEntriesPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorestartTransactionPromiseCommitTest
+     * @tc.desc Test Js Api DeviceKvStorestartTransaction with commit
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorestartTransactionPromiseCommitTest', 0, async function (done) {
+        console.info('DeviceKvStorestartTransactionPromiseCommitTest');
         try {
             var count = 0;
-            kvStore.on('dataChange', 0, function (data) {
-                console.info('DeviceKvStorestartTransactionPromiseTest001' + JSON.stringify(data))
+            kvStore.on('dataChange', factory.SubscribeType.SUBSCRIBE_TYPE_ALL, function (data) {
                 count++;
             });
             await kvStore.startTransaction().then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest001 startTransaction success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest001 startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             let entries = putBatchString(10, 'batch_test_string_key');
-            console.info('DeviceKvStorestartTransactionPromiseTest001 entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest001 putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             let keys = Object.keys(entries).slice(5);
             await kvStore.deleteBatch(keys).then((err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest001 deleteBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest001 deleteBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await kvStore.commit().then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest001 commit success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest001 commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await sleep(2000);
             expect(count == 1).assertTrue();
-        }catch(e) {
-            console.error('DeviceKvStorestartTransactionPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorestartTransactionPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.startTransaction() testcase 002
+     * @tc.name DeviceKvStorestartTransactionPromiseRollbackTest
+     * @tc.desc Test Js Api DeviceKvStorestartTransaction with Rollback
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorestartTransactionPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStorestartTransactionPromiseTest002');
+    it('DeviceKvStorestartTransactionPromiseRollbackTest', 0, async function (done) {
+        console.info('DeviceKvStorestartTransactionPromiseRollbackTest');
         try {
             var count = 0;
             kvStore.on('dataChange', 0, function (data) {
-                console.info('DeviceKvStorestartTransactionPromiseTest002' + JSON.stringify(data))
+                console.info('DeviceKvStorestartTransactionPromiseRollbackTest ' + JSON.stringify(data));
                 count++;
             });
             await kvStore.startTransaction().then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest002 startTransaction success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest002 startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             let entries = putBatchString(10, 'batch_test_string_key');
-            console.info('DeviceKvStorestartTransactionPromiseTest002 entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest002 putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest002 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             let keys = Object.keys(entries).slice(5);
             await kvStore.deleteBatch(keys).then((err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest002 deleteBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest002 deleteBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await kvStore.rollback().then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest002 rollback success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest002 rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await sleep(2000);
             expect(count == 0).assertTrue();
-        }catch(e) {
-            console.error('DeviceKvStorestartTransactionPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorestartTransactionPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.startTransaction() testcase 003
+     * @tc.name DeviceKvStorestartTransactionPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStorestartTransaction with a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorestartTransactionPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStorestartTransactionPromiseTest002');
+    it('DeviceKvStorestartTransactionPromiseClosedKVStoreTest', 0, async function (done) {
+        try {
+            var count = 0;
+            kvStore.on('dataChange', 0, function (data) {
+                count++;
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.startTransaction().then(async (err) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(err.code == 15100005).assertTrue();
+            });
+
+        } catch (e) {
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStorestartTransactionPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStorestartTransaction with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStorestartTransactionPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStorestartTransactionPromiseRollbackTest');
         try {
             await kvStore.startTransaction(1).then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest003 startTransaction success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest003 startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(true).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStorestartTransactionPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorestartTransactionPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.startTransaction() testcase 004
+     * @tc.name DeviceKvStoreCommitPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreCommit with a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorestartTransactionPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStorestartTransactionPromiseTest004');
+    it('DeviceKvStoreCommitPromiseClosedKVStoreTest', 0, async function (done) {
+        console.info('DeviceKvStoreCommitPromiseClosedKVStoreTest');
         try {
-            await kvStore.startTransaction('test_string').then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest004 startTransaction success');
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.commit().then(async (err) => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest004 startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStorestartTransactionPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStorestartTransactionPromiseTest005
-     * @tc.desc Test Js Api DeviceKvStore.startTransaction() testcase 005
+     * @tc.name DeviceKvStoreRollbackPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreRollback with a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStorestartTransactionPromiseTest005', 0, async function (done) {
-        console.info('DeviceKvStorestartTransactionPromiseTest005');
+    it('DeviceKvStoreRollbackPromiseClosedKVStoreTest', 0, async function (done) {
         try {
-            await kvStore.startTransaction(2.000).then(async (err) => {
-                console.info('DeviceKvStorestartTransactionPromiseTest005 startTransaction success');
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            })
+            await kvStore.rollback().then(async (err) => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStorestartTransactionPromiseTest005 startTransaction fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStorestartTransactionPromiseTest005 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreCommitPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Commit() testcase 001
+     * @tc.name DeviceKvStoreEnableSyncPromiseTrueTest
+     * @tc.desc Test Js Api DeviceKvStoreEnableSync true
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreCommitPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreCommitPromiseTest001');
-        try {
-            await kvStore.commit(1).then(async (err) => {
-                console.info('DeviceKvStoreCommitPromiseTest001 commit success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreCommitPromiseTest001 commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreCommitPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreCommitPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Commit() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreCommitPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreCommitPromiseTest002');
-        try {
-            await kvStore.commit('test_string').then(async (err) => {
-                console.info('DeviceKvStoreCommitPromiseTest002 commit success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreCommitPromiseTest002 commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreCommitPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreCommitPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Commit() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreCommitPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreCommitPromiseTest003');
-        try {
-            await kvStore.commit(2.000).then(async (err) => {
-                console.info('DeviceKvStoreCommitPromiseTest003 commit success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreCommitPromiseTest003 commit fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreCommitPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreRollbackPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreRollbackPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreRollbackPromiseTest001');
-        try {
-            await kvStore.rollback(1).then(async (err) => {
-                console.info('DeviceKvStoreRollbackPromiseTest001 rollback success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRollbackPromiseTest001 rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreRollbackPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreRollbackPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreRollbackPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreRollbackPromiseTest002');
-        try {
-            await kvStore.rollback('test_string').then(async (err) => {
-                console.info('DeviceKvStoreRollbackPromiseTest002 rollback success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRollbackPromiseTest002 rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreRollbackPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreRollbackPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.Rollback() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreRollbackPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreRollbackPromiseTest003');
-        try {
-            await kvStore.rollback(2.000).then(async (err) => {
-                console.info('DeviceKvStoreRollbackPromiseTest003 rollback success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRollbackPromiseTest003 rollback fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreRollbackPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreEnableSyncPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreEnableSyncPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreEnableSyncPromiseTest001');
+    it('DeviceKvStoreEnableSyncPromiseTrueTest', 0, async function (done) {
         try {
             await kvStore.enableSync(true).then((err) => {
-                console.info('DeviceKvStoreEnableSyncPromiseTest001 enableSync success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreEnableSyncPromiseTest001 enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreEnableSyncPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreEnableSyncPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 002
+     * @tc.name DeviceKvStoreEnableSyncPromiseFalseTest
+     * @tc.desc Test Js Api DeviceKvStoreEnableSync false
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreEnableSyncPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreEnableSyncPromiseTest002');
+    it('DeviceKvStoreEnableSyncPromiseFalseTest', 0, async function (done) {
+        console.info('DeviceKvStoreEnableSyncPromiseFalseTest');
         try {
             await kvStore.enableSync(false).then((err) => {
-                console.info('DeviceKvStoreEnableSyncPromiseTest002 enableSync success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreEnableSyncPromiseTest002 enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreEnableSyncPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreEnableSyncPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 003
+     * @tc.name DeviceKvStoreEnableSyncPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreEnableSync with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreEnableSyncPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreEnableSyncPromiseTest003');
+    it('DeviceKvStoreEnableSyncPromiseInvalidArgsTest', 0, async function (done) {
         try {
             await kvStore.enableSync().then((err) => {
-                console.info('DeviceKvStoreEnableSyncPromiseTest003 enableSync success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreEnableSyncPromiseTest003 enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreEnableSyncPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreEnableSyncPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.EnableSync() testcase 004
+     * @tc.name DeviceKvStoreSetSyncRangePromiseSameTest
+     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() with same range
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreEnableSyncPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreEnableSyncPromiseTest004');
+    it('DeviceKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
         try {
-            await kvStore.enableSync(null).then((err) => {
-                console.info('DeviceKvStoreEnableSyncPromiseTest004 enableSync success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreEnableSyncPromiseTest004 enableSync fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreEnableSyncPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreRemoveDeviceDataPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreRemoveDeviceDataPromiseTest001');
-        try {
-            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then((err) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest001 put success');
+            var localLabels = ['A', 'B'];
+            var remoteSupportLabels = ['A', 'B'];
+            await kvStore.setSyncRange(localLabels, remoteSupportLabels).then((err) => {
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest001 put fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-            var deviceid = 'no_exist_device_id';
-            await kvStore.removeDeviceData(deviceid).then((err) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest001 removeDeviceData success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest001 removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-            await kvStore.get(localDeviceId, KEY_TEST_STRING_ELEMENT).then((data) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest001 get success data:' + data);
-                expect(data == VALUE_TEST_STRING_ELEMENT).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest001 get fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreRemoveDeviceDataPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 002
+     * @tc.name DeviceKvStoreSetSyncRangePromiseSameTest
+     * @tc.desc Test Js Api DeviceKvStore.SetSyncRange() with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreRemoveDeviceDataPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreRemoveDeviceDataPromiseTest002');
+    it('DeviceKvStoreSetSyncRangePromiseSameTest', 0, async function (done) {
+        try {
+            await kvStore.setSyncRange().then((err) => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreRemoveDeviceData with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest');
         try {
             await kvStore.removeDeviceData().then((err) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest002 removeDeviceData success');
+                console.info('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest removeDeviceData success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest002 removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreRemoveDeviceDataPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreRemoveDeviceDataPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 003
+     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreRemoveDeviceData in a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-     it('DeviceKvStoreRemoveDeviceDataPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreRemoveDeviceDataPromiseTest003');
+    it('DeviceKvStoreRemoveDeviceDataPromiseClosedKVStoreTest', 0, async function (done) {
         try {
-            await kvStore.removeDeviceData('').then((data) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest003 removeDeviceData success');
+            await kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT).then((err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                });
+            })
+            var deviceid = 'no_exist_device_id';
+            await kvStore.removeDeviceData(deviceid).then(() => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest003 removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreRemoveDeviceDataPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+
+        } catch (e) {
+            console.error('DeviceKvStoreRemoveDeviceDataPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreRemoveDeviceDataPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.RemoveDeviceData() testcase 004
+     * @tc.name DeviceKvStoreGetResultSetPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreRemoveDeviceDataPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreRemoveDeviceDataPromiseTest004');
-        try {
-            await kvStore.removeDeviceData(null).then((data) => {
-                console.info('DeviceKvStoreRemoveDeviceDataPromiseTest004 removeDeviceData success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('DeviceKvStoreRemoveDeviceDataPromiseTest004 removeDeviceData fail ' + `, error code is ${err.code}, message is ${err.message}`);
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreRemoveDeviceDataPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetResultSetPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest001');
+    it('DeviceKvStoreGetResultSetPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetResultSetPromiseSucTest');
         try {
             let resultSet;
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
             }
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest001 putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await kvStore.getResultSet(localDeviceId, 'batch_test_string_key').then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest001 getResultSet success');
                 resultSet = result;
                 expect(resultSet.getCount() == 10).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest001 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             await kvStore.closeResultSet(resultSet).then((err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest001 closeResultSet success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest001 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 002
+     * @tc.name DeviceKvStoreGetResultSetPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetResultSetPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest002');
-        try {
-            let resultSet;
-            await kvStore.getResultSet(localDeviceId, 'batch_test_string_key').then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest002 getResultSet success');
-                resultSet = result;
-                expect(resultSet.getCount() == 0).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest002 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-            await kvStore.closeResultSet(resultSet).then((err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest002 closeResultSet success');
-                expect(err == undefined).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest002 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 003
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetResultSetPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest003');
+    it('DeviceKvStoreGetResultSetPromiseInvalidArgsTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetResultSetPromiseInvalidArgsTest');
         try {
             let resultSet;
             await kvStore.getResultSet().then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest003 getResultSet success');
+                console.info('DeviceKvStoreGetResultSetPromiseInvalidArgsTest getResultSet success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest003 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetResultSetPromiseInvalidArgsTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 004
+     * @tc.name DeviceKvStoreGetResultSetPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetResultSetPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest004');
+    it('DeviceKvStoreGetResultSetPromiseClosedKVStoreTest', 0, async function (done) {
         try {
             let resultSet;
-            await kvStore.getResultSet('test_key_string', 123).then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest004 getResultSet success');
+            let entries = [];
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            });
+            await kvStore.getResultSet(localDeviceId, 'batch_test_string_key').then((result) => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest004 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetResultSetPromiseClosedKVStoreTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 401).assertTrue();
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest005
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 005
+     * @tc.name DeviceKvStoreGetResultSetPromiseQueryTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet with query
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetResultSetPromiseTest005', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest005');
+    it('DeviceKvStoreGetResultSetPromiseQueryTest', 0, async function (done) {
+        console.info('DeviceKvStoreGetResultSetPromiseQueryTest');
         try {
             let resultSet;
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
             }
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest005 putBatch success');
+                console.info('DeviceKvStoreGetResultSetPromiseQueryTest putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseStringTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             var query = new factory.Query();
             query.prefixKey("batch_test");
             await kvStore.getResultSet(localDeviceId, query).then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest005 getResultSet success');
+                console.info('DeviceKvStoreGetResultSetPromiseQueryTest getResultSet success');
                 resultSet = result;
                 expect(resultSet.getCount() == 10).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest005 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetResultSetPromiseQueryTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-            query.deviceId(localDeviceId);
-            console.info("testDeviceKvStoreGetResultSet005 " + query.getSqlLike());
             await kvStore.closeResultSet(resultSet).then((err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest005 closeResultSet success');
+                console.info('DeviceKvStoreGetResultSetPromiseQueryTest closeResultSet success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest005 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetResultSetPromiseQueryTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest005 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetPromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoregetResultSetPromiseTest006
-     * @tc.desc Test Js Api DeviceKvStore.getResultSet() testcase 006
+     * @tc.name DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet query from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetResultSetPromiseTest006', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest006');
+    it('DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest', 0, async function (done) {
         try {
             let resultSet;
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
             }
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest006 putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-            var query = new factory.Query();
-            query.deviceId(localDeviceId);
-            query.prefixKey("batch_test");
-            console.info("testDeviceKvStoreGetResultSet006 " + query.getSqlLike());
-            await kvStore.getResultSet(query).then((result) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest006 getResultSet success');
-                resultSet = result;
-                expect(resultSet.getCount() == 10).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest006 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-            await kvStore.closeResultSet(resultSet).then((err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest006 closeResultSet success');
-                expect(err == undefined).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetPromiseTest006 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest006 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreGetResultSetPromiseTest007
-     * @tc.desc Test Js Api DeviceKvStore.GetResultSet() testcase 007
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-     it('DeviceKvStoreGetResultSetPromiseTest007', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSetPromiseTest007');
-        try {
-            let resultSet;
-            let entries = [];
-            for (var i = 0; i < 10; i++) {
-                var key = 'batch_test_string_key';
-                var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
-                    }
-                }
-                entries.push(entry);
-            }
-            await kvStore.putBatch(entries).then( async (err) => {
-                console.info('DeviceKvStoreGetResultSetPromiseTest007 putBatch success');
-                expect(err == undefined).assertTrue();
-                let predicates = new dataSharePredicates.DataSharePredicates();
-                predicates.inKeys("batch_test");
-                await kvStore.getResultSet(localDeviceId, predicates).then( async (result) => {
-                    console.info('DeviceKvStoreGetResultSetPromiseTest007 getResultSet success');
-                    resultSet = result;
-                    expect(resultSet.getCount() == 10).assertTrue();
-                    await kvStore.closeResultSet(resultSet).then(err => {
-                        console.info('DeviceKvStoreGetResultSetPromiseTest007 closeResultSet success');
-                        expect(err == undefined).assertTrue();
-                        done();
-                    })
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
                 });
             });
-        } catch(e) {
-            console.error('DeviceKvStoreGetResultSetPromiseTest007 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
-        }
-    })    
-
-    /**
-     * @tc.name DeviceKvStoreCloseResultSetPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.CloseResultSet() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreCloseResultSetPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreCloseResultSetPromiseTest001');
-        try {
-            console.info('DeviceKvStoreCloseResultSetPromiseTest001 success');
-            let resultSet = null;
-            await kvStore.closeResultSet(resultSet).then(() => {
-                console.info('DeviceKvStoreCloseResultSetPromiseTest001 closeResultSet success');
+            var query = new factory.Query();
+            query.prefixKey("batch_test");
+            await kvStore.getResultSet(localDeviceId, query).then((result) => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreCloseResultSetPromiseTest001 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreCloseResultSetPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 401).assertTrue();
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreCloseResultSetPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.CloseResultSet() testcase 002
+     * @tc.name DeviceKvStoreGetResultSetPredicatesPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStore.GetResultSet() with predicates success
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreCloseResultSetPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreCloseResultSetPromiseTest002');
+    it('DeviceKvStoreGetResultSetPredicatesPromiseSucTest', 0, async function (done) {
+        console.log('DeviceKvStoreGetResultSetPredicatesPromiseSucTest');
         try {
-            console.info('DeviceKvStoreCloseResultSetPromiseTest002 success');
-            let resultSet = null;
-            await kvStore.getResultSet(localDeviceId, 'batch_test_string_key').then((result) => {
-                console.info('DeviceKvStoreCloseResultSetPromiseTest002 getResultSet success');
-                resultSet = result;
+            let entries = [];
+            let resultSet;
+            for (let i = 0; i < 10; i++) {
+                let key = 'name_';
+                let value = 'Bob_'
+                let entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: value + i
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreCloseResultSetPromiseTest002 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+            let predicates = new dataShare.DataSharePredicates();
+            predicates.prefixKey("name_");
+            await kvStore.getResultSet(localDeviceId, predicates).then((result) => {
+                resultSet = result;
+                expect(resultSet.getCount() == 10).assertTrue();
+            }).catch((err) => {
                 expect(null).assertFail();
             });
             await kvStore.closeResultSet(resultSet).then((err) => {
-                console.info('DeviceKvStoreCloseResultSetPromiseTest002 closeResultSet success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreCloseResultSetPromiseTest002 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreCloseResultSetPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreCloseResultSetPromiseTest003
-     * @tc.desc Test Js Api DeviceKvStore.CloseResultSet() testcase 003
+     * @tc.name DeviceKvStoreGetResultSetPredicatesPromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSet predicates from a closed kvstore
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreCloseResultSetPromiseTest003', 0, async function (done) {
-        console.info('DeviceKvStoreCloseResultSetPromiseTest003');
+    it('DeviceKvStoreGetResultSetPredicatesPromiseClosedKVStoreTest', 0, async function (done) {
         try {
-            console.info('DeviceKvStoreCloseResultSetPromiseTest003 success');
-            let resultSet = null;
-            await kvStore.closeResultSet().then(() => {
-                console.info('DeviceKvStoreCloseResultSetPromiseTest003 closeResultSet success');
+            let resultSet;
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            });
+            let predicates = new dataShare.DataSharePredicates();
+            predicates.prefixKey("batch_test");
+            await kvStore.getResultSet(localDeviceId, predicates).then((result) => {
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreCloseResultSetPromiseTest003 closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreCloseResultSetPromiseTest003 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSetPredicatesPromiseClosedKVStoreTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreCloseResultSetPromiseSucTest
+     * @tc.desc Test Js Api DeviceKvStoreCloseResultSet success
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreCloseResultSetPromiseSucTest', 0, async function (done) {
+        console.info('DeviceKvStoreCloseResultSetPromiseSucTest');
+        try {
+            console.info('DeviceKvStoreCloseResultSetPromiseSucTest success');
+            let resultSet = null;
+            await kvStore.getResultSet('batch_test_string_key').then((result) => {
+                console.info('DeviceKvStoreCloseResultSetPromiseSucTest getResultSet success');
+                resultSet = result;
+            }).catch((err) => {
+                console.error('DeviceKvStoreCloseResultSetPromiseSucTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+            await kvStore.closeResultSet(resultSet).then((err) => {
+                console.info('DeviceKvStoreCloseResultSetPromiseSucTest closeResultSet success');
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                console.error('DeviceKvStoreCloseResultSetPromiseSucTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreCloseResultSetPromiseSucTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(null).assertFail();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreCloseResultSetPromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreCloseResultSet with invalid args
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreCloseResultSetPromiseInvalidArgsTest', 0, async function (done) {
+        try {
+            await kvStore.closeResultSet().then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                console.error('DeviceKvStoreCloseResultSetPromiseInvalidArgsTest closeResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreCloseResultSetPromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(e.code == 401).assertTrue();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreCloseResultSetPromiseTest004
-     * @tc.desc Test Js Api DeviceKvStore.CloseResultSet() testcase 004
+     * @tc.name DeviceKvStoreGetResultSizePromiseQueryTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSize with query
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreCloseResultSetPromiseTest004', 0, async function (done) {
-        console.info('DeviceKvStoreCloseResultSetPromiseTest004');
-        try {
-            console.info('DeviceKvStoreCloseResultSetPromiseTest004 success');
-        }catch(e) {
-            console.error('DeviceKvStoreCloseResultSetPromiseTest004 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreGetResultSizePromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.Get(ResultSize) testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetResultSizePromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSizePromiseTest001');
+    it('DeviceKvStoreGetResultSizePromiseQueryTest', 0, async function (done) {
         try {
             let entries = [];
             for (var i = 0; i < 10; i++) {
                 var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
             }
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetResultSizePromiseTest001 putBatch success');
+                console.info('DeviceKvStoreGetResultSizePromiseQueryTest putBatch success');
                 expect(err == undefined).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-            var query = new factory.Query();
-            query.prefixKey("batch_test");
-            query.deviceId(localDeviceId);
-            await kvStore.getResultSize(query).then((resultSize) => {
-                console.info('DeviceKvStoreGetResultSizePromiseTest001 getResultSet success');
-                expect(resultSize == 10).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSizePromiseTest001 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
-            });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSizePromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-        }
-        done();
-    })
-
-    /**
-     * @tc.name DeviceKvStoreGetResultSizePromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.Get(ResultSize) testcase 002
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    it('DeviceKvStoreGetResultSizePromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreGetResultSizePromiseTest001');
-        try {
-            let entries = [];
-            for (var i = 0; i < 10; i++) {
-                var key = 'batch_test_string_key';
-                var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.STRING,
-                        value : 'batch_test_string_value'
-                    }
-                }
-                entries.push(entry);
-            }
-            await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetResultSizePromiseTest001 putBatch success');
-                expect(err == undefined).assertTrue();
-            }).catch((err) => {
-                console.error('DeviceKvStorePutBatchPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStorePutBatchPromiseStringTest putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
             var query = new factory.Query();
             query.prefixKey("batch_test");
             await kvStore.getResultSize(localDeviceId, query).then((resultSize) => {
-                console.info('DeviceKvStoreGetResultSizePromiseTest001 getResultSet success');
+                console.info('DeviceKvStoreGetResultSizePromiseQueryTest getResultSet success');
                 expect(resultSize == 10).assertTrue();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSizePromiseTest001 getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                console.error('DeviceKvStoreGetResultSizePromiseQueryTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-        }catch(e) {
-            console.error('DeviceKvStoreGetResultSizePromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSizePromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseTest001
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() testcase 001
+     * @tc.name DeviceKvStoreGetResultSizePromiseInvalidArgsTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSize with invalid args
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseTest001', 0, async function (done) {
-        console.info('DeviceKvStoreGetEntriesPromiseTest001');
+    it('DeviceKvStoreGetResultSizePromiseInvalidArgsTest', 0, async function (done) {
         try {
-            var arr = new Uint8Array([21,31]);
             let entries = [];
             for (var i = 0; i < 10; i++) {
-                var key = 'batch_test_bool_key';
+                var key = 'batch_test_string_key';
                 var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.BYTE_ARRAY,
-                        value : arr
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
                     }
                 }
                 entries.push(entry);
             }
-            console.info('DeviceKvStoreGetEntriesPromiseTest001 entries: ' + JSON.stringify(entries));
             await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetEntriesPromiseTest001 putBatch success');
                 expect(err == undefined).assertTrue();
-                var query = new factory.Query();
-                query.deviceId(localDeviceId);
-                query.prefixKey("batch_test");
-                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
-                    console.info('DeviceKvStoreGetEntriesPromiseTest001 getEntries success');
-                    console.info(entrys.length);
-                    console.info(entrys[0].value.value.toString());
-                    expect(entrys.length == 10).assertTrue();
-                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStoreGetEntriesPromiseTest001 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
             }).catch((err) => {
-                console.error('DeviceKvStoreGetEntriesPromiseTest001 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
-            console.info('DeviceKvStoreGetEntriesPromiseTest001 success');
-        }catch(e) {
-            console.error('DeviceKvStoreGetEntriesPromiseTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            await kvStore.getResultSize().then(() => {
+                expect(null).assertFail();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSizePromiseInvalidArgsTest e ' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 401).assertTrue();
+        }
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreGetResultSizePromiseClosedKVStoreTest
+     * @tc.desc Test Js Api DeviceKvStoreGetResultSize from a closed kvstore
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest', 0, async function (done) {
+        try {
+            let entries = [];
+            for (var i = 0; i < 10; i++) {
+                var key = 'batch_test_string_key';
+                var entry = {
+                    key: key + i,
+                    value: {
+                        type: factory.ValueType.STRING,
+                        value: 'batch_test_string_value'
+                    }
+                }
+                entries.push(entry);
+            }
+            await kvStore.putBatch(entries).then(async (err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
+                expect(null).assertFail();
+            });
+            await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(async () => {
+                await kvManager.deleteKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID).then(() => {
+                    expect(true).assertTrue();
+                }).catch((err) => {
+                    console.error('deleteKVStore err ' + `, error code is ${err.code}, message is ${err.message}`);
+                });
+            });
+            var query = new factory.Query();
+            query.prefixKey("batch_test");
+            await kvStore.getResultSize(localDeviceId, query).then(() => {
+                console.info('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest getResultSet success');
+                expect(null).assertFail();
+            }).catch((err) => {
+                console.error('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest getResultSet fail ' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(err.code == 15100005).assertTrue();
+            });
+        } catch (e) {
+            console.error('DeviceKvStoreGetResultSizePromiseQueryTest e ' + `, error code is ${e.code}, message is ${e.message}`);
             expect(null).assertFail();
         }
         done();
     })
 
     /**
-     * @tc.name DeviceKvStoreGetEntriesPromiseTest002
-     * @tc.desc Test Js Api DeviceKvStore.GetEntries() testcase 002
+     * @tc.name DeviceKvStoreChangeNotificationPromiseTest
+     * @tc.desc Test Js Api DeviceKvStoreChangeNotification
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetEntriesPromiseTest002', 0, async function (done) {
-        console.info('DeviceKvStoreGetEntriesPromiseTest002');
-        try {
-            var arr = new Uint8Array([21,31]);
-            let entries = [];
-            for (var i = 0; i < 10; i++) {
-                var key = 'batch_test_bool_key';
-                var entry = {
-                    key : key + i,
-                    value : {
-                        type : factory.ValueType.BYTE_ARRAY,
-                        value : arr
-                    }
-                }
-                entries.push(entry);
-            }
-            console.info('DeviceKvStoreGetEntriesPromiseTest002 entries: ' + JSON.stringify(entries));
-            await kvStore.putBatch(entries).then(async (err) => {
-                console.info('DeviceKvStoreGetEntriesPromiseTest002 putBatch success');
-                expect(err == undefined).assertTrue();
-                var query = new factory.Query();
-                query.prefixKey("batch_test");
-                query.deviceId(localDeviceId);
-                await kvStore.getEntries(query).then((entrys) => {
-                    console.info('DeviceKvStoreGetEntriesPromiseTest002 getEntries success');
-                    expect(entrys.length == 10).assertTrue();
-                    expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
-                }).catch((err) => {
-                    console.error('DeviceKvStoreGetEntriesPromiseTest002 getEntries fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                    expect(null).assertFail();
-                });
-            }).catch((err) => {
-                console.error('DeviceKvStoreGetEntriesPromiseTest002 putBatch fail ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
+    it('DeviceKvStoreChangeNotificationPromiseTest', 0, async function (done) {
+        var getInsertEntries = new Promise((resolve, reject) => {
+            kvStore.on('dataChange', 0, function (ChangeNotification) {
+                resolve(ChangeNotification.insertEntries);
             });
-            console.info('DeviceKvStoreGetEntriesPromiseTest002 success');
-        }catch(e) {
-            console.error('DeviceKvStoreGetEntriesPromiseTest002 e ' + `, error code is ${e.code}, message is ${e.message}`);
+            kvStore.put("getInsertEntries", "byPut").then(() => {
+                console.info('DeviceKvStoreChangeNotificationPromiseTest put success');
+            });
+        });
+        await getInsertEntries.then(function (insertEntries) {
+            console.info('DeviceKvStoreChangeNotificationPromiseTest getInsertEntries' + JSON.stringify(insertEntries));
+            expect(insertEntries != null).assertTrue();
+        }).catch((error) => {
+            console.error('DeviceKvStoreChangeNotificationPromiseTest can NOT getInsertEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
             expect(null).assertFail();
-        }
+        });
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreChangeNotificationPromisePutTest
+     * @tc.desc Test Js Api DeviceKvStoreChangeNotification put
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreChangeNotificationPromisePutTest', 0, async function (done) {
+        await kvStore.put('getUpdateEntries', 'byPut').then(() => {
+            console.info('DeviceKvStoreChangeNotificationPromisePutTest put success');
+        });
+        var getUpdateEntries = new Promise((resolve, reject) => {
+            kvStore.on('dataChange', 0, function (ChangeNotification) {
+                resolve(ChangeNotification.updateEntries);
+            });
+            kvStore.put("getUpdateEntries", "byPut").then(() => {
+                console.info('DeviceKvStoreChangeNotificationPromisePutTest update success');
+            });
+        });
+        await getUpdateEntries.then(function (updateEntries) {
+            console.info('DeviceKvStoreChangeNotificationPromisePutTest getUpdateEntries' + JSON.stringify(updateEntries));
+            expect(updateEntries != null).assertTrue();
+        }).catch((error) => {
+            console.error('DeviceKvStoreChangeNotificationPromisePutTest can NOT getUpdateEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
+            expect(null).assertFail();
+        });
+        done();
+    })
+
+    /**
+     * @tc.name DeviceKvStoreChangeNotificationPromiseDeleteTest
+     * @tc.desc Test Js Api DeviceKvStoreChangeNotification delete
+     * @tc.type: FUNC
+     * @tc.require: issueNumber
+     */
+    it('DeviceKvStoreChangeNotificationPromiseDeleteTest', 0, async function (done) {
+        await kvStore.put('deleteEntries', 'byPut').then(() => {
+            console.info('DeviceKvStoreChangeNotificationPromiseDeleteTest put success');
+        });
+        var getdeleteEntries = new Promise((resolve, reject) => {
+            kvStore.on('dataChange', 0, function (ChangeNotification) {
+                resolve(ChangeNotification.deleteEntries);
+            });
+            kvStore.delete("deleteEntries").then(() => {
+                console.info('DeviceKvStoreChangeNotificationPromiseDeleteTest delete success');
+            });
+        });
+        await getdeleteEntries.then(function (deleteEntries) {
+            console.info('DeviceKvStoreChangeNotificationPromiseDeleteTest deleteEntries' + JSON.stringify(getdeleteEntries));
+            expect(deleteEntries != null).assertTrue();
+        }).catch((error) => {
+            console.error('DeviceKvStoreChangeNotificationPromiseDeleteTest can NOT getdeleteEntries, fail:' + `, error code is ${error.code}, message is ${error.message}`);
+            expect(null).assertFail();
+        });
         done();
     })
 })

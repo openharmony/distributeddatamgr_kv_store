@@ -49,7 +49,6 @@ namespace {
     const string INCORRECT_KEY = "a incorrect key";
     CipherPassword g_incorrectPasswd;
     const int DEFAULT_ITER = 5000;
-    const int CUSTOMIZED_ITER = 10000;
 #endif
 
     const int ONE_HUNDERED = 100;
@@ -243,7 +242,7 @@ namespace {
     }
 
     void InsertValue(sqlite3 *db, std::map<std::string, DataValue> &dataMap,
-        std::vector<FieldInfo> &fieldInfoList, const std::string &tableName)
+        const std::vector<FieldInfo> &fieldInfoList, const std::string &tableName)
     {
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(PrepareInsert(db, stmt, fieldInfoList, tableName), SQLITE_OK);
@@ -398,7 +397,7 @@ namespace {
     }
 
     void GetSyncDataStep(std::map<std::string, DataValue> &dataMap, sqlite3_stmt *statement,
-        std::vector<FieldInfo> &fieldInfoList)
+        const std::vector<FieldInfo> &fieldInfoList)
     {
         int columnCount = sqlite3_column_count(statement);
         ASSERT_EQ(static_cast<size_t>(columnCount), fieldInfoList.size());
@@ -410,7 +409,7 @@ namespace {
     }
 
     void GetSyncData(sqlite3 *db, std::map<std::string, DataValue> &dataMap, const std::string &tableName,
-        std::vector<FieldInfo> &fieldInfoList)
+        const std::vector<FieldInfo> &fieldInfoList)
     {
         sqlite3_stmt *statement = nullptr;
         EXPECT_EQ(PrepareSelect(db, statement, GetDeviceTableName(tableName)), SQLITE_OK);
@@ -486,7 +485,7 @@ namespace {
     }
 
     void CheckData(const std::map<std::string, DataValue> &targetMap, const std::string &tableName,
-        std::vector<FieldInfo> &fieldInfoList)
+        const std::vector<FieldInfo> &fieldInfoList)
     {
         std::map<std::string, DataValue> dataMap;
         sqlite3 *db = nullptr;
@@ -721,6 +720,7 @@ namespace {
             RemoteCondition condition;
             condition.sql = "SELECT * FROM " + g_tableName;
             std::shared_ptr<ResultSet> result = nullptr;
+            ASSERT_NE(g_rdbDelegatePtr, nullptr);
             EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), resStatus);
         } else {
             BlockSync(SYNC_MODE_PUSH_ONLY, resStatus, {DEVICE_B});
@@ -803,9 +803,9 @@ void DistributedDBRelationalVerP2PSyncTest::SetUpTestCase()
     g_id = g_mgr.GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1);
 
 #ifndef OMIT_ENCRYPT
-    g_correctPasswd.SetValue((const uint8_t *)(CORRECT_KEY.data()), CORRECT_KEY.size());
-    g_rekeyPasswd.SetValue((const uint8_t *)(REKEY_KEY.data()), REKEY_KEY.size());
-    g_incorrectPasswd.SetValue((const uint8_t *)(INCORRECT_KEY.data()), INCORRECT_KEY.size());
+    g_correctPasswd.SetValue(reinterpret_cast<const uint8_t *>(CORRECT_KEY.data()), CORRECT_KEY.size());
+    g_rekeyPasswd.SetValue(reinterpret_cast<const uint8_t *>(REKEY_KEY.data()), REKEY_KEY.size());
+    g_incorrectPasswd.SetValue(reinterpret_cast<const uint8_t *>(INCORRECT_KEY.data()), INCORRECT_KEY.size());
 #endif
 }
 

@@ -359,7 +359,7 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     auto notifiers = std::move(closeNotifiers_);
     UnlockObj();
 
-    for (auto &notifier : notifiers) {
+    for (const auto &notifier : notifiers) {
         if (notifier) {
             notifier();
         }

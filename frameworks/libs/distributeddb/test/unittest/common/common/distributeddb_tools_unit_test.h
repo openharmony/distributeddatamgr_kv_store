@@ -89,7 +89,7 @@ public:
 
     // compare whether two vectors are equal.
     template<typename T>
-    static bool CompareVector(std::vector<T>& vec1, std::vector<T>& vec2)
+    static bool CompareVector(const std::vector<T>& vec1, const std::vector<T>& vec2)
     {
         if (vec1.size() != vec2.size()) {
             return false;
@@ -104,7 +104,7 @@ public:
 
     // compare whether two vectors are equal.
     template<typename T>
-    static bool CompareVectorN(std::vector<T>& vec1, std::vector<T>& vec2, uint32_t n)
+    static bool CompareVectorN(const std::vector<T>& vec1, const std::vector<T>& vec2, uint32_t n)
     {
         if (n > std::min(vec1.size(), vec2.size())) {
             return false;
@@ -175,7 +175,7 @@ public:
 
     static void CalcHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashValue);
 
-    static int CreateMockSingleDb(DatabaseInfo &dbId, DistributedDB::OpenDbProperties &properties);
+    static int CreateMockSingleDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 
     static int CreateMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 

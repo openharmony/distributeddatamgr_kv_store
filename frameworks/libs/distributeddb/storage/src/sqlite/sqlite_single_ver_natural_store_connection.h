@@ -106,6 +106,7 @@ public:
     int CheckIntegrity() const override;
 
     int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const override;
+
 private:
     int CheckMonoStatus(OperatePerm perm);
 

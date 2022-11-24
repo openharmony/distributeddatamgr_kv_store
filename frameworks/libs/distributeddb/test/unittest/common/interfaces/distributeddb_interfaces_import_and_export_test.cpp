@@ -295,6 +295,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001,
 
     KvStoreSnapshotDelegate *snapshotDelegatePtr = nullptr;
     GetSnapshotUnitTest(g_kvDelegatePtr, snapshotDelegatePtr);
+    ASSERT_TRUE(snapshotDelegatePtr != nullptr);
 
     /**
      * @tc.steps: step5. Check whether the imported data is the preset content in step 1.
@@ -315,10 +316,8 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001,
     snapshotDelegatePtr->Get(KEY_5, g_valueCallback);
     EXPECT_EQ(g_valueStatus, NOT_FOUND);
 
-    if (g_kvDelegatePtr != nullptr && snapshotDelegatePtr != nullptr) {
-        EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
-        snapshotDelegatePtr = nullptr;
-    }
+    EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
+    snapshotDelegatePtr = nullptr;
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
@@ -453,15 +452,14 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, Te
 
     KvStoreSnapshotDelegate *snapshotDelegatePtr = nullptr;
     GetSnapshotUnitTest(g_kvDelegatePtr, snapshotDelegatePtr);
+    ASSERT_TRUE(snapshotDelegatePtr != nullptr);
 
     snapshotDelegatePtr->Get(KEY_1, g_valueCallback);
     EXPECT_EQ(g_valueStatus, OK);
     EXPECT_EQ(g_value, VALUE_1);
 
-    if (g_kvDelegatePtr != nullptr && snapshotDelegatePtr != nullptr) {
-        EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
-        snapshotDelegatePtr = nullptr;
-    }
+    EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
+    snapshotDelegatePtr = nullptr;
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
@@ -572,6 +570,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.L
 
     KvStoreSnapshotDelegate *snapshotDelegatePtr = nullptr;
     GetSnapshotUnitTest(g_kvDelegatePtr, snapshotDelegatePtr);
+    ASSERT_TRUE(snapshotDelegatePtr != nullptr);
 
     /**
      * @tc.steps: step4. Check whether the data is the same as the backup database.
@@ -581,10 +580,8 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.L
     EXPECT_EQ(g_valueStatus, OK);
     EXPECT_EQ(g_value, VALUE_1);
 
-    if (g_kvDelegatePtr != nullptr && snapshotDelegatePtr != nullptr) {
-        EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
-        snapshotDelegatePtr = nullptr;
-    }
+    EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshotDelegatePtr) == OK);
+    snapshotDelegatePtr = nullptr;
 
     // clear resource
     g_junkFilesList.push_back(multiExportFileName);
