@@ -1780,7 +1780,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery006, TestSize.Level1)
     PrepareEnvironment(dataMap, {g_deviceB});
     ASSERT_NE(g_deviceB, nullptr);
     ASSERT_NE(g_rdbDelegatePtr, nullptr);
-    std::thread *offlineThread = nullptr; 
+    std::thread *offlineThread = nullptr;
     g_communicatorAggregator->RegOnDispatch([&offlineThread](const std::string &device, Message *inMsg) {
         ASSERT_NE(inMsg, nullptr);
         inMsg->SetMessageId(INVALID_MESSAGE_ID);
