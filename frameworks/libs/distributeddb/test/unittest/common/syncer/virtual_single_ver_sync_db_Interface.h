@@ -32,11 +32,13 @@ struct VirtualDataItem {
     Timestamp writeTimestamp = 0;
     uint64_t flag = 0;
     bool isLocal = true;
+    uint32_t deviceId_ = 0; // 0: means local
     static const uint64_t DELETE_FLAG = 0x01;
     static const uint64_t LOCAL_FLAG = 0x02;
 };
 class VirtualSingleVerSyncDBInterface : public SingleVerKvDBSyncInterface {
 public:
+    VirtualSingleVerSyncDBInterface();
     int GetInterfaceType() const override;
 
     void IncRefCount() override;
@@ -131,6 +133,9 @@ public:
     void SetDbProperties(KvDBProperties &kvDBProperties);
 
     void DelayGetSyncData(uint32_t milliDelayTime);
+
+    void SetGetDataErrCode(int whichTime, int errCode, bool isGetDataControl);
+    void ResetDataControl();
 private:
     int GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize, std::vector<VirtualDataItem>& dataItems,
         ContinueToken& continueStmtToken) const;
@@ -140,8 +145,12 @@ private:
 
     int PutSyncData(std::vector<VirtualDataItem>& dataItems, const std::string &deviceName);
 
+    int DataControl() const;
+
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::vector<VirtualDataItem> dbData_;
+    std::map<std::string, uint32_t> deviceMapping_; // key: deviceName, value: deviceId
+    uint32_t availableDeviceId_ = 0;
     std::string schema_;
     SchemaObject schemaObj_;
     KvDBProperties properties_;
@@ -153,6 +162,11 @@ private:
     std::map<std::string, std::map<Key, Value>> deviceData_;
     std::vector<uint8_t> identifier_;
     uint64_t getDataDelayTime_ = 0;
+    uint64_t dbCreateTime_;
+
+    int countDown_ = -1;
+    int expectedErrCode_ = E_OK;
+    bool isGetDataControl_ = true; // control get data: true, control save data : false
 };
 }  // namespace DistributedDB
 
