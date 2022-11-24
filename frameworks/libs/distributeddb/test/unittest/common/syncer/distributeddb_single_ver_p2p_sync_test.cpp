@@ -2584,6 +2584,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync001, TestSize.Level3)
     EXPECT_EQ(result.size(), 0u);
     VirtualDataItem actualValue;
     EXPECT_EQ(g_deviceB->GetData(key, actualValue), -E_NOT_FOUND);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 
 
