@@ -17,6 +17,7 @@
 #define VIRTUAL_ICOMMUNICATORAGGREGATOR_H
 
 #include <cstdint>
+#include <set>
 
 #include "icommunicator_aggregator.h"
 #include "virtual_communicator.h"
@@ -76,6 +77,10 @@ public:
 
     void SetDeviceMtuSize(const std::string &deviceId, uint32_t mtuSize);
 
+    void SetSendDelayInfo(uint32_t sendDelayTime, uint32_t DelayMessageId, uint32_t delayTimes, uint32_t skipTimes,
+        std::set<std::string> &delayDevices);
+    void ResetSendDelayInfo();
+
     ~VirtualCommunicatorAggregator() {};
     VirtualCommunicatorAggregator() {};
 
@@ -93,6 +98,12 @@ private:
     OnConnectCallback onConnect_;
     std::function<void(const std::string &target, Message *inMsg)> onDispatch_;
     std::string userId_;
+
+    uint32_t sendDelayTime_ = 0;
+    uint32_t delayMessageId_ = INVALID_MESSAGE_ID;
+    uint32_t delayTimes_ = 0; // ms
+    uint32_t skipTimes_ = 0;
+    std::set<std::string> delayDevices_;
 };
 } // namespace DistributedDB
 

@@ -34,6 +34,8 @@ public:
     int Commit();
     void SetSaveDataDelayTime(uint64_t milliDelayTime);
     void DelayGetSyncData(uint64_t milliDelayTime);
+    void SetGetDataErrCode(int whichTime, int errCode, bool isGetDataControl);
+    void ResetDataControl();
 
     int Subscribe(QuerySyncObject query, bool wait, int id);
     int UnSubscribe(QuerySyncObject query, bool wait, int id);

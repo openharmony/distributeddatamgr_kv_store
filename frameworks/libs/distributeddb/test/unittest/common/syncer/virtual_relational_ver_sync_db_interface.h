@@ -37,7 +37,7 @@ struct VirtualRowData {
 
 class VirtualRelationalVerSyncDBInterface : public RelationalDBSyncInterface {
 public:
-    VirtualRelationalVerSyncDBInterface() = default;
+    VirtualRelationalVerSyncDBInterface();
     ~VirtualRelationalVerSyncDBInterface() override = default;
 
     int PutSyncDataWithQuery(const QueryObject &query, const std::vector<SingleVerKvEntry *> &entries,
@@ -133,6 +133,7 @@ private:
     RelationalDBProperties rdbProperties_;
     SecurityOption secOption_;
     bool permitCreateDistributedTable_ = true;
+    uint64_t dbCreateTime_;
 };
 }
 #endif

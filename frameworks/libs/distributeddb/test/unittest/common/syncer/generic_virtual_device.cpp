@@ -271,4 +271,12 @@ int GenericVirtualDevice::RemoteQuery(const std::string &device, const RemoteCon
     }
     return TransferDBErrno(errCode);
 }
+
+void GenericVirtualDevice::SetClearRemoteStaleData(bool isStaleData)
+{
+    if (context_ != nullptr) {
+        static_cast<SingleVerSyncTaskContext *>(context_)->EnableClearRemoteStaleData(isStaleData);
+        LOGD("set clear remote stale data mark");
+    }
+}
 } // DistributedDB
