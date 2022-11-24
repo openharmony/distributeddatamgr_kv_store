@@ -566,7 +566,7 @@ void SyncEngine::PutMsgIntoQueue(const std::string &targetDev, Message *inMsg, i
     inMsg->SetTarget(targetDev);
     msgQueue_.push_back(inMsg);
     queueCacheSize_ += msgSize;
-    LOGE("[SyncEngine] The quantity of executing threads is beyond maximum. msgQueueSize = %zu", msgQueue_.size());
+    LOGW("[SyncEngine] The quantity of executing threads is beyond maximum. msgQueueSize = %zu", msgQueue_.size());
 }
 
 int SyncEngine::GetMsgSize(const Message *inMsg) const
