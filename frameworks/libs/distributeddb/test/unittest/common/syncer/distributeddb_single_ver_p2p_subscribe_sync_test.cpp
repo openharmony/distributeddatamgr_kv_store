@@ -671,7 +671,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSi
     EXPECT_EQ(subManager.IsLastRemoteContainSubscribe(DEVICE_A, queryId), false);
 
     /**
-     * @tc.steps: step3. active local subscribe with a device which is not in local subscribe map and 
+     * @tc.steps: step3. active local subscribe with a device which is not in local subscribe map and
      * a query sync object which is in local subscribe map
      * @tc.expected: step3 return -E_INTERNAL_ERROR
      */
