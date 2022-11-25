@@ -727,6 +727,17 @@ distributeddb_unittest("DistributedDBInterfacesRelationalRoutinesTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_routines_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBInterfacesLogTest") {
+  sources =
+      [ "unittest/common/interfaces/distributeddb_interfaces_log_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageDataConnectionTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_storage_data_connection_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
   sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
 }
@@ -756,6 +767,7 @@ group("unittest") {
     ":DistributedDBInterfacesEncryptDelegateTest",
     ":DistributedDBInterfacesImportAndExportTest",
     ":DistributedDBInterfacesIndexUnitTest",
+    ":DistributedDBInterfacesLogTest",
     ":DistributedDBInterfacesNBDelegateLocalBatchTest",
     ":DistributedDBInterfacesNBDelegateSchemaPutTest",
     ":DistributedDBInterfacesNBDelegateTest",
@@ -797,6 +809,7 @@ group("unittest") {
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBStorageCommitStorageTest",
+    ":DistributedDBStorageDataConnectionTest",
     ":DistributedDBStorageDataOperationTest",
     ":DistributedDBStorageIndexOptimizeTest",
     ":DistributedDBStorageMemorySingleVerNaturalStoreTest",

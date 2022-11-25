@@ -25,6 +25,7 @@
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_natural_store_connection.h"
+#include "storage_engine_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -54,6 +55,7 @@ namespace {
     const Value VALUE1 = { 'v', '1' };
     const Value VALUE2 = { 'v', '2' };
     const Value VALUE3 = { 'v', '3' };
+    const int VERSION_BIT = 19;
 
     void ReleaseKvEntries(std::vector<SingleVerKvEntry *> &entries)
     {
@@ -1227,4 +1229,172 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, MultiInkeys1, TestSize.Level1)
     IOption option;
     option.dataType = IOption::SYNC_DATA;
     EXPECT_EQ(g_schemaConnect->GetEntries(option, query, entries), -E_INVALID_QUERY_FORMAT);
+}
+
+/**
+  * @tc.name: QueryObject001
+  * @tc.desc: Parse query object when node is empty
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject001, TestSize.Level1)
+{
+    std::list<QueryObjNode> nodes;
+    QueryObjNode node;
+    nodes.push_back(node);
+    std::vector<uint8_t> key;
+    std::set<Key> keys;
+    QueryObject queryObj(nodes, key, keys);
+    EXPECT_EQ(queryObj.ParseQueryObjNodes(), -E_INVALID_QUERY_FORMAT);
+}
+
+/**
+  * @tc.name: QueryObject002
+  * @tc.desc: Serialize query sync object when node is empty
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a query object and parcel
+     * @tc.expected: ok
+     */
+    std::list<QueryObjNode> nodes;
+    QueryObjNode node;
+    nodes.push_back(node);
+    std::vector<uint8_t> key;
+    std::set<Key> keys;
+    QuerySyncObject querySyncObj1(nodes, key, keys);
+    uint32_t len = 120; // 120 is the number of serialized prefixes
+    std::vector<uint8_t> buff(len, 0);
+    Parcel parcel(buff.data(), len);
+
+    /**
+     * @tc.steps:step2. Serialize data when node is empty
+     * @tc.expected: -E_INVALID_QUERY_FORMAT
+     */
+    EXPECT_EQ(querySyncObj1.CalculateParcelLen(SOFTWARE_VERSION_CURRENT - 1), (uint32_t) 0);
+    EXPECT_EQ(querySyncObj1.SerializeData(parcel, 0), -E_INVALID_QUERY_FORMAT);
+
+    /**
+     * @tc.steps:step2. Serialize data when parcel len is zero
+     * @tc.expected: -E_INVALID_ARGS
+     */
+    Query query = Query::Select("Relational_table");
+    QuerySyncObject querySyncObj2(query);
+    Parcel parcel1(buff.data(), 0);
+    EXPECT_EQ(querySyncObj2.SerializeData(parcel1, 0), -E_INVALID_ARGS);
+}
+
+/**
+  * @tc.name: QueryObject003
+  * @tc.desc: Test DeSerializeData under error Parcel buffer
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a query object with table name is specified
+     * @tc.expected: ok
+     */
+    Query query1 = Query::Select("Relational_table").EqualTo("field1", "abc");
+    QuerySyncObject obj1(query1);
+
+    /**
+     * @tc.steps:step2. Serialize the object
+     * @tc.expected: ok
+     */
+    uint32_t buffLen = obj1.CalculateParcelLen(SOFTWARE_VERSION_CURRENT);
+    vector<uint8_t> buffer(buffLen, 0);
+    Parcel writeParcel(buffer.data(), buffLen);
+    EXPECT_EQ(obj1.SerializeData(writeParcel, SOFTWARE_VERSION_CURRENT), E_OK);
+
+    /**
+     * @tc.steps:step3. Deserialize data when the version number is abnormal
+     * @tc.expected: -E_VERSION_NOT_SUPPORT，then correct the version number
+     */
+    EXPECT_EQ(buffLen, 120u); // 120 is the max buffer len
+    uint8_t oldValue = *(buffer.data() + VERSION_BIT);
+    uint8_t newValue = 2;
+    ASSERT_EQ(memcpy_s(buffer.data() + VERSION_BIT, sizeof(newValue), &newValue, sizeof(newValue)), 0);
+    Parcel readParcel(buffer.data(), buffLen);
+    QuerySyncObject queryObj2;
+    EXPECT_EQ(QuerySyncObject::DeSerializeData(readParcel, queryObj2), -E_VERSION_NOT_SUPPORT);
+    ASSERT_EQ(memcpy_s(buffer.data() + VERSION_BIT, sizeof(oldValue), &oldValue, sizeof(oldValue)), 0);
+
+    /**
+     * @tc.steps:step4. Deserialize data when the key size is abnormal
+     * @tc.expected: -E_PARSE_FAIL
+     */
+    Parcel writeParcel2(buffer.data() + 116, buffLen); // 116 is the starting bit of key
+    writeParcel2.WriteUInt32(DBConstant::MAX_INKEYS_SIZE + 1);
+    Parcel readParcel2(buffer.data(), buffLen);
+    EXPECT_EQ(QuerySyncObject::DeSerializeData(readParcel2, queryObj2), -E_PARSE_FAIL);
+}
+
+/**
+  * @tc.name: QueryObject004
+  * @tc.desc: Put sync data under error condition
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Put in error store
+     * @tc.expected: -E_INVALID_DB
+     */
+    Query query1 = Query::Select("Relational_table").EqualTo("field1", "abc");
+    QuerySyncObject obj1(query1);
+    std::vector<SingleVerKvEntry *> entry;
+    std::string deviceName = "";
+    std::unique_ptr<SQLiteSingleVerNaturalStore> errStore = std::make_unique<SQLiteSingleVerNaturalStore>();
+    EXPECT_EQ(errStore->PutSyncDataWithQuery(obj1, entry, deviceName), -E_INVALID_DB);
+
+    /**
+     * @tc.steps:step2. Put in correct store but device name is null
+     * @tc.expected: -E_NOT_SUPPORT
+     */
+    EXPECT_EQ(g_store->PutSyncDataWithQuery(obj1, entry, deviceName), -E_NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step3. Put in correct store but device name is over size
+     * @tc.expected: -E_INVALID_ARGS
+     */
+    vector<uint8_t> buffer(129, 1); // 129 is greater than 128
+    deviceName.assign(buffer.begin(), buffer.end());
+    EXPECT_EQ(g_store->PutSyncDataWithQuery(obj1, entry, deviceName), -E_INVALID_ARGS);
+}
+
+/**
+  * @tc.name: QueryObject005
+  * @tc.desc: Set engine state to cache and then put sync data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject005, TestSize.Level1)
+{
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, "31");
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestQuerySync");
+    property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::DEVICE_COLLABORATION);
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(CACHEDB);
+    DataItem data1{KEY1, VALUE1, 0, DataItem::LOCAL_FLAG, REMOTE_DEVICE_ID};
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(g_store, vector{data1}, REMOTE_DEVICE_ID), -1);
+    storageEngine->Release();
 }
