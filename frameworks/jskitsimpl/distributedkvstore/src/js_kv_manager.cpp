@@ -73,14 +73,12 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, ctxt->kvManger != nullptr, Status::INVALID_ARGUMENT, "KVManager::New failed!");
     };
     ctxt->GetCbInfo(env, info, input);
+    napi_value result = nullptr;
     ASSERT_NULL(!ctxt->isThrowError, "CreateKVManager New exit");
-    auto noExecute = NapiAsyncExecute();
-    auto output = [env, ctxt](napi_value& result) {
-        ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
-        napi_delete_reference(env, ctxt->ref);
-        ASSERT_STATUS(ctxt, "output KVManager failed");
-    };
-    return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), noExecute, output);
+    ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
+    napi_delete_reference(env, ctxt->ref);
+    NAPI_ASSERT(env, ctxt->status == napi_ok, "output KVManager failed");
+    return result;
 }
 
 struct GetKVStoreContext : public ContextBase {
