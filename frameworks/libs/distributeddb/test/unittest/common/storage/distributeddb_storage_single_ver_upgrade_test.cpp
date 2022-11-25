@@ -586,3 +586,39 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest006, TestSize.Leve
     (void)sqlite3_close_v2(db);
     EXPECT_EQ(g_mgr.DeleteKvStore("TestUpgradeNb"), OK);
 }
+
+/**
+  * @tc.name: UpgradeErrTest001
+  * @tc.desc: Upgrade test when db file exists
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeErrTest001, TestSize.Level2)
+{
+    /**
+     * @tc.steps:step1. Upgrade after creating an upgrade Lock File
+     * @tc.expected: the upgrade lock File was deleted
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    std::string upgradeLockFileDir = g_testDir + "/" + DBCommon::TransferStringToHex(g_identifier)
+        + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::UPGRADE_POSTFIX;
+    EXPECT_EQ(OS::CreateFileByFileName(upgradeLockFileDir), E_OK);
+    GetKvStoreProcess(option, false, false, SecurityOption());
+    EXPECT_FALSE(OS::CheckPathExistence(upgradeLockFileDir));
+
+    /**
+     * @tc.steps:step2. Upgrade after opening a db File
+     * @tc.expected: the db File was deleted
+     */
+    sqlite3 *db = nullptr;
+    std::string dbPath = g_testDir + g_databaseName;
+    OpenDbProperties property = {dbPath, true, false};
+    EXPECT_EQ(SQLiteUtils::OpenDatabase(property, db), E_OK);
+    ASSERT_NE(db, nullptr);
+    EXPECT_TRUE(OS::CheckPathExistence(dbPath));
+    GetKvStoreProcess(option, false, false, SecurityOption());
+    EXPECT_FALSE(OS::CheckPathExistence(dbPath));
+    (void)sqlite3_close_v2(db);
+    EXPECT_EQ(g_mgr.DeleteKvStore("TestUpgradeNb"), OK);
+}
