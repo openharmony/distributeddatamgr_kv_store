@@ -354,6 +354,7 @@ HWTEST_F(DistributedDBStorageDataConnectionTest, ConnectionTest006, TestSize.Lev
      */
     EXPECT_EQ(g_connection->GetSnapshot(snapshot), E_OK);
     EXPECT_EQ(g_connection->PreClose(), -E_BUSY);
+    g_connection->ReleaseSnapshot(snapshot);
 }
 
 /**
