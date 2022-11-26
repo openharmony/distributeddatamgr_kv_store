@@ -132,7 +132,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam001
      * @tc.steps: step1. The Data type is invalid
      * @tc.expected: step1. Expect -E_INVALID_ARGS
      */
-    Timestamp timestamp;
+    Timestamp timestamp = 0;
     Key key;
     Value value;
     int type = static_cast<int>(SingleVerDataType::SYNC_TYPE);
@@ -426,7 +426,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
      */
     Key key = KEY_1;
     Value value;
-    Timestamp timestamp;
+    Timestamp timestamp = 0;
     EXPECT_EQ(g_handle->PutKvData(SingleVerDataType::LOCAL_TYPE, key, value, timestamp, nullptr), E_OK);
 
     /**
@@ -467,7 +467,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidSync001,
      */
     DataItem item;
     DeviceInfo info;
-    Timestamp time;
+    Timestamp time = 0;
     EXPECT_EQ(g_handle->SaveSyncDataItem(item, info, time, nullptr, false), -E_INVALID_ARGS);
 
     /**
