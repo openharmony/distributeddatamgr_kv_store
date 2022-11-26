@@ -17,14 +17,19 @@
 #include <atomic>
 #include "types.h"
 #include "types_export.h"
+#include "kv_store_nb_delegate.h"
 namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
+    using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBPassword = DistributedDB::CipherPassword;
+    using DBStatus = DistributedDB::DBStatus;
     static SecurityManager &GetInstance();
     DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
     bool SaveDBPassword(const std::string &name, const std::string &path, const DBPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
+    bool IsKeyOutdated(const SecurityManager::DBPassword &key, bool encrypt);
+    bool ReKey(const std::string &name, const std::string &path, DBStore *store);
 
 private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";

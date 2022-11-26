@@ -342,4 +342,55 @@ int32_t SecurityManager::CheckRootKey()
     ZLOGI("HksKeyExist status: %{public}d", ret);
     return ret;
 }
+
+bool SecurityManager::IsKeyOutdated(const SecurityManager::DBPassword &key, bool encrypt)
+{
+    ZLOGE("Size of key is: %{public}d, and time size is: %{public}d ",key.GetSize(),(sizeof(time_t) / sizeof(uint8_t)));
+    if (!encrypt) {
+        ZLOGE("No encrypt db");
+        return false;
+    }
+    if (key.GetSize() < (sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE) {
+        ZLOGE("Key check failed, size og key is %{public}d", sizeof(time_t) / sizeof(uint8_t) + KEY_SIZE);
+        return false;
+    }
+    auto secData = key.GetData();
+    std::vector<uint8_t> timeVec;
+    for (int i = 0; i < static_cast<int>(sizeof(time_t) / sizeof(uint8_t)); i++) {
+        timeVec.push_back(secData[i]);
+    }
+
+    time_t createTime = TransferByteArrayToType<time_t>(timeVec);
+    std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
+    time_t oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(525600));
+    std::chrono::system_clock::time_point currentTimePointer = std::chrono::system_clock::now();
+    time_t currentTime = std::chrono::system_clock::to_time_t(currentTimePointer);
+    return (oneYearLater > currentTime);
+}
+
+bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBStore *store)
+{
+    if (store == nullptr) {
+        ZLOGE("Pointer store is nullptr");
+        return false;
+    }
+    std::vector<uint8_t> secKey = Random(KEY_SIZE);
+    DBPassword password;
+    auto status = password.SetValue(secKey.data(), secKey.size());
+    if (status != DBPassword::ErrorCode::OK) {
+        ZLOGE("Failed to set the password.");
+        return false;
+    }
+    DBStatus dbStatus = store->Rekey(password);
+    if (dbStatus != DBStatus::OK) {
+        ZLOGE("Rekey failed");
+        return false;
+    }
+    bool isSaved = SaveKeyToFile(name, path, secKey);
+    if (isSaved) {
+        ZLOGE("Rekey success");
+    }
+    secKey.assign(secKey.size(), 0);
+    return isSaved;
+}
 } // namespace OHOS::DistributedKv

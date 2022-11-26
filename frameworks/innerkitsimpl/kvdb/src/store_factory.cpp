@@ -62,10 +62,13 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, password),
-            [this, &dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
+            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId, &password](auto status, auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
                     return;
+                }
+                if (SecurityManager::GetInstance().IsKeyOutdated(password, options.encrypt)) {
+                    SecurityManager::GetInstance().ReKey(storeId.storeId, options.baseDir, store);
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
