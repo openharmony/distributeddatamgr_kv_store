@@ -530,6 +530,11 @@ distributeddb_unittest("DistributedDBStorageSQLiteSingleVerNaturalStoreTest") {
   ]
 }
 
+distributeddb_unittest(
+    "DistributedDBStorageSQLiteSingleVerNaturalExecutorTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_sqlite_single_ver_natural_executor_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBStorageMemorySingleVerNaturalStoreTest") {
   sources = [
     "unittest/common/storage/distributeddb_storage_memory_single_ver_naturall_store_test.cpp",
@@ -812,6 +817,7 @@ group("unittest") {
     ":DistributedDBStorageRegisterConflictTest",
     ":DistributedDBStorageRegisterObserverTest",
     ":DistributedDBStorageResultAndJsonOptimizeTest",
+    ":DistributedDBStorageSQLiteSingleVerNaturalExecutorTest",
     ":DistributedDBStorageSQLiteSingleVerNaturalStoreTest",
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageTransactionDataTest",

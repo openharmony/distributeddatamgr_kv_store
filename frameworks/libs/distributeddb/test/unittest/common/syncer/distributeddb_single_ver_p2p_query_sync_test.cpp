@@ -931,6 +931,83 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSiz
 }
 
 /**
+ * @tc.name: GetQueryLastTimestamp001
+ * @tc.desc: Test function of GetQueryLastTimestamp.
+ * @tc.type: FUNC
+ * @tc.require: AR000FN6G9
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryLastTimestamp001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. initialize meta with nullptr
+     * @tc.expected: step1. return -E_INVALID_DB
+     */
+    Metadata meta;
+    EXPECT_EQ(meta.Initialize(nullptr), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step2. initialize meta with storage
+     * @tc.expected: step2. E_OK
+     */
+    VirtualSingleVerSyncDBInterface storage;
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step3. call GetQueryLastTimestamp with a non-exists device
+     * @tc.expected: step3. return INT64_MAX
+     */
+    EXPECT_EQ(meta.GetQueryLastTimestamp("D1", "Q1"), static_cast<uint64_t>(INT64_MAX));
+
+    /**
+     * @tc.steps: step4. call GetQueryLastTimestamp with device D1 again
+     * @tc.expected: step4. return 0
+     */
+    EXPECT_EQ(meta.GetQueryLastTimestamp("D1", "Q1"), 0u);
+
+    /**
+     * @tc.steps: step5. call GetQueryLastTimestamp with device D1 and Q2
+     * @tc.expected: step5. return INT64_MAX
+     */
+    EXPECT_EQ(meta.GetQueryLastTimestamp("D1", "Q2"), static_cast<uint64_t>(INT64_MAX));
+}
+
+/**
+ * @tc.name: MetaDataExceptionBranch001
+ * @tc.desc: Test execption branch of meata data.
+ * @tc.type: FUNC
+ * @tc.require: AR000FN6G9
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, MetaDataExceptionBranch001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. call GetRemoveDataMark with a device not in map
+     * @tc.expected: step1. out value = 0
+     */
+    Metadata meta;
+    uint64_t val = 99; // 99 is the initial value of outValue
+    uint64_t outValue = val;
+    meta.GetRemoveDataMark("D1", outValue);
+    EXPECT_EQ(outValue, 0u);
+
+    /**
+     * @tc.steps: step2. reset outValue, call GetDbCreateTime with a device not in map
+     * @tc.expected: step2. out value = 0
+     */
+    outValue = val;
+    meta.GetDbCreateTime("D1", outValue);
+    EXPECT_EQ(outValue, 0u);
+
+    /**
+     * @tc.steps: step3. call ResetMetaDataAfterRemoveData with a device not in map
+     * @tc.expected: step3. return -E_NOT_FOUND
+     */
+    EXPECT_EQ(meta.ResetMetaDataAfterRemoveData("D1"), -E_NOT_FOUND);
+}
+
+/**
  * @tc.name: GetDeleteKeyWaterMark 001
  * @tc.desc: Test metaData save and get deleteWaterMark.
  * @tc.type: FUNC
