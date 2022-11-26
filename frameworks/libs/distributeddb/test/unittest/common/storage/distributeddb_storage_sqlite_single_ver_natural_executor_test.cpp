@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#include <cstdint>
 #include <gtest/gtest.h>
 
 #include "db_constant.h"
@@ -228,8 +228,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam005
      * @tc.expected: step2. Expect -E_INVALID_DB
      */
     std::vector<DataItem> dataItems;
-    Timestamp begin;
-    Timestamp end;
+    Timestamp begin = 0;
+    Timestamp end = INT64_MAX;
     DataSizeSpecInfo info;
     EXPECT_EQ(g_nullHandle->GetSyncDataByTimestamp(dataItems, sizeof("time"), begin, end, info), -E_INVALID_DB);
     EXPECT_EQ(g_nullHandle->GetDeletedSyncDataByTimestamp(dataItems, sizeof("time"), begin, end, info), -E_INVALID_DB);
