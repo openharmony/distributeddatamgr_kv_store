@@ -39,7 +39,7 @@ StorageEngine::StorageEngine()
 
 StorageEngine::~StorageEngine()
 {
-    Release();
+    CloseExecutor();
 }
 
 int StorageEngine::Init()

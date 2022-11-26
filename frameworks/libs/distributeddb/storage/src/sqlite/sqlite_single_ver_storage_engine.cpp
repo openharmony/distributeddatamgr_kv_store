@@ -67,7 +67,8 @@ SQLiteSingleVerStorageEngine::SQLiteSingleVerStorageEngine()
 {}
 
 SQLiteSingleVerStorageEngine::~SQLiteSingleVerStorageEngine()
-{}
+{
+}
 
 int SQLiteSingleVerStorageEngine::MigrateLocalData(SQLiteSingleVerStorageExecutor *handle) const
 {

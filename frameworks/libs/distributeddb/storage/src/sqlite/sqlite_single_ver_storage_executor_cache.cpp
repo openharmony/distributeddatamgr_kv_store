@@ -256,7 +256,7 @@ int SQLiteSingleVerStorageExecutor::GetMaxVersionInCacheDb(uint64_t &maxVersion)
     return CheckCorruptedStatus(errCode);
 }
 
-int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, NotifyMigrateSyncData &syncData)
+int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, const NotifyMigrateSyncData &syncData)
 {
     // Put or delete. Prepare notify data here.
     NotifyConflictAndObserverData notify;

@@ -636,8 +636,8 @@ void AutoLaunch::UpdateGlobalMap(std::map<std::string, std::map<std::string, Aut
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);
     LOGI("[AutoLaunch] UpdateGlobalMap");
-    for (auto &items : doOpenMap) {
-        for (auto &iter : items.second) {
+    for (const auto &items : doOpenMap) {
+        for (const auto &iter : items.second) {
             if (iter.second.conn != nullptr) {
                 autoLaunchItemMap_[items.first][iter.first].conn = iter.second.conn;
                 autoLaunchItemMap_[items.first][iter.first].observerHandle = iter.second.observerHandle;

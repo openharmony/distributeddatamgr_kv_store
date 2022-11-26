@@ -66,8 +66,6 @@ public:
         DataItem &dataItem);
     static int DeSerializeDataItem(const DataItem &dataItem, OptRowDataWithLog &data,
         const std::vector<FieldInfo> &remoteFieldInfo);
-    static void ReduceMapping(const std::vector<FieldInfo> &remoteFieldInfo,
-        const std::vector<FieldInfo> &localFieldInfo);
 
     static uint32_t CalDataValueLength(const DataValue &dataValue);
     static int DeserializeDataValue(DataValue &dataValue, Parcel &parcel);

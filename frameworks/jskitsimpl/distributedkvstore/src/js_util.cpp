@@ -14,25 +14,18 @@
  */
 #define LOG_TAG "JSUtil"
 #include "js_util.h"
-#include <endian.h>
-#include <securec.h>
 #include "ability.h"
 #include "hap_module_info.h"
+#include "napi_base_context.h"
 #include "js_schema.h"
 #include "kv_utils.h"
 #include "log_print.h"
-#include "napi_base_context.h"
 #include "napi_queue.h"
 #include "types.h"
 
-using namespace OHOS::DistributedKv;
-using namespace OHOS::DataShare;
 namespace OHOS::DistributedKVStore {
 constexpr int32_t STR_MAX_LENGTH = 4096;
 constexpr size_t STR_TAIL_LENGTH = 1;
-struct PredicatesProxy {
-    std::shared_ptr<DataShareAbsPredicates> predicates_;
-};
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, napi_value& out)
 {
@@ -227,8 +220,8 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
         int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp4int);
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
+        tmp = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
     }
@@ -783,7 +776,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::list<DistributedKv::Entry>
     return status;
 }
 
-napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject &valueObject)
+napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject::Type &valueObject)
 {
     napi_valuetype type = napi_undefined;
     napi_typeof(env, jsValue, &type);
@@ -851,10 +844,10 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
         status = GetValue(env, item, entry, hasSchema);
         if (status != napi_ok) {
             ZLOGD("maybe valubucket type");
-            DataShareValuesBucket values;
+            OHOS::DataShare::DataShareValuesBucket values;
             GetValue(env, item, values);
-            entry = KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin() + 1, entry.key.Data().end());
+            entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
+            entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
             if (hasSchema) {
                 entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
             }
@@ -983,8 +976,25 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
 
     int32_t level = 0;
     status = GetNamedProperty(env, in, "securityLevel", level);
-    options.securityLevel = level;
-    return status;
+    if (status != napi_ok) {
+        return status;
+    }
+
+    return GetLevel(level, options.securityLevel);
+}
+
+napi_status JSUtil::GetLevel(int32_t level, int32_t &out)
+{
+    switch (level) {
+        case OHOS::DistributedKv::SecurityLevel::S1:
+        case OHOS::DistributedKv::SecurityLevel::S2:
+        case OHOS::DistributedKv::SecurityLevel::S3:
+        case OHOS::DistributedKv::SecurityLevel::S4:
+            out = level;
+            return napi_ok;
+        default:
+            return napi_invalid_arg;
+    }
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value inner, JsSchema*& out)
@@ -1093,12 +1103,12 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob> &out
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
-    ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
+    OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
+    napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
+    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
+    std::vector<OHOS::DistributedKv::Key> keys;
     nstatus = napi_invalid_arg;
-    Status status = KvUtils::GetKeys(*(predicates->predicates_), keys);
+    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(jsProxy->predicates_), keys);
     if (status == Status::SUCCESS) {
         ZLOGD("napi_value —> GetValue Blob ok");
         out = keys;
@@ -1113,11 +1123,10 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    PredicatesProxy *predicates = nullptr;
-    napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
-    ASSERT((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
-    Status status = KvUtils::ToQuery(*(predicates->predicates_), query);
+    OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
+    napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
+    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
+    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(jsProxy->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
     }

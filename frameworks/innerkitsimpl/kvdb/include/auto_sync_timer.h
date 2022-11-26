@@ -15,9 +15,10 @@
 #ifndef SDB_AUTO_SYNC_TIMER_H
 #define SDB_AUTO_SYNC_TIMER_H
 #include <set>
+
 #include "concurrent_map.h"
-#include "task_scheduler.h"
 #include "kvdb_service.h"
+#include "task_scheduler.h"
 namespace OHOS::DistributedKv {
 class AutoSyncTimer {
 public:
@@ -38,8 +39,8 @@ private:
     void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
     bool HasSyncStores();
     ConcurrentMap<std::string, std::set<StoreId>> stores_;
-    TaskScheduler::Iterator delaySyncTask_;
-    TaskScheduler::Iterator forceSyncTask_;
+    TaskScheduler::TaskId delaySyncTaskId_;
+    TaskScheduler::TaskId forceSyncTaskId_;
     std::mutex mutex_;
     TaskScheduler scheduler_{ TIME_TASK_NUM };
 };

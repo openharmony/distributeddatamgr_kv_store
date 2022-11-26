@@ -15,69 +15,85 @@
 
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TASK_SCHEDULER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TASK_SCHEDULER_H
-#include <memory>
-#include <thread>
-#include <limits>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <functional>
+#include <limits>
+#include <map>
+#include <memory>
 #include <mutex>
+#include <thread>
+
 #include "visibility.h"
 namespace OHOS {
 class API_LOCAL TaskScheduler {
 public:
+    using TaskId = uint64_t;
     using Time = std::chrono::system_clock::time_point;
     using Duration = std::chrono::system_clock::duration;
     using System = std::chrono::system_clock;
-    using Iterator = std::map<std::chrono::system_clock::time_point, std::function<void()>>::iterator;
     using Task = std::function<void()>;
-    TaskScheduler(size_t capacity = std::numeric_limits<size_t>::max())
+    inline static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
+    TaskScheduler(size_t capacity, const std::string &name)
     {
         capacity_ = capacity;
         isRunning_ = true;
-        thread_ = std::make_unique<std::thread>([this]() { this->Loop(); });
+        taskId_ = INVALID_TASK_ID;
+        thread_ = std::make_unique<std::thread>([this, name]() {
+            auto realName = std::string("scheduler_") + name;
+            pthread_setname_np(pthread_self(), realName.c_str());
+            Loop();
+        });
     }
+    TaskScheduler(const std::string &name) : TaskScheduler(std::numeric_limits<size_t>::max(), name) {}
+    TaskScheduler(size_t capacity = std::numeric_limits<size_t>::max()) : TaskScheduler(capacity, "") {}
+
     ~TaskScheduler()
     {
         isRunning_ = false;
-        At(std::chrono::system_clock::now(), [](){});
+        Clean();
+        At(std::chrono::system_clock::now(), []() {});
         thread_->join();
     }
+
     // execute task at specific time
-    Iterator At(const Time &time, std::function<void()> task)
+    TaskId At(const Time &time, Task task)
     {
         std::unique_lock<std::mutex> lock(mutex_);
         if (tasks_.size() >= capacity_) {
-            return tasks_.end();
+            return INVALID_TASK_ID;
         }
-
-        auto it = tasks_.insert({time, task});
+        auto taskId = GenTaskId();
+        auto it = tasks_.insert({ time, std::pair{ task, taskId } });
         if (it == tasks_.begin()) {
             condition_.notify_one();
         }
-        return it;
+        indexes_[taskId] = it;
+        return taskId;
     }
-    Iterator Reset(Iterator task, const Time &time, const Duration &interval)
+
+    TaskId Reset(TaskId taskId, const Duration &interval)
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        if (tasks_.begin()->first > time) {
-            return {};
+        auto index = indexes_.find(taskId);
+        if (index == indexes_.end()) {
+            return INVALID_TASK_ID;
         }
 
-        auto current = std::chrono::system_clock::now();
-        if (current >= time) {
-            return {};
-        }
-
-        auto it = tasks_.insert({ current + interval, std::move(task->second) });
-        if (it == tasks_.begin()) {
+        auto it = tasks_.insert({ std::chrono::system_clock::now() + interval, std::move(index->second->second) });
+        if (it == tasks_.begin() || index->second == tasks_.begin()) {
             condition_.notify_one();
         }
-        tasks_.erase(task);
-        return it;
+        tasks_.erase(index->second);
+        indexes_[taskId] = it;
+        return taskId;
     }
+
     void Clean()
     {
         std::unique_lock<std::mutex> lock(mutex_);
+        indexes_.clear();
         tasks_.clear();
     }
 
@@ -90,16 +106,20 @@ public:
         };
         At(std::chrono::system_clock::now() + interval, waitFunc);
     }
+
     // remove task in SchedulerTask
-    void Remove(const Iterator &task)
+    void Remove(TaskId taskId)
     {
         std::unique_lock<std::mutex> lock(mutex_);
-        auto it = tasks_.find(task->first);
-        if (it != tasks_.end()) {
-            tasks_.erase(it);
-            condition_.notify_one();
+        auto index = indexes_.find(taskId);
+        if (index == indexes_.end()) {
+            return;
         }
+        tasks_.erase(index->second);
+        indexes_.erase(index);
+        condition_.notify_one();
     }
+
     // execute task periodically with duration after delay
     void Every(Duration delay, Duration interval, Task task)
     {
@@ -109,6 +129,7 @@ public:
         };
         At(std::chrono::system_clock::now() + delay, waitFunc);
     }
+
     // execute task for some times periodically with duration after delay
     void Every(int32_t times, Duration delay, Duration interval, Task task)
     {
@@ -124,37 +145,56 @@ public:
         At(std::chrono::system_clock::now() + delay, waitFunc);
     }
 
+    TaskId Execute(Task task)
+    {
+        return At(std::chrono::system_clock::now(), std::move(task));
+    }
+
 private:
+    using InnerTask = std::pair<std::function<void()>, uint64_t>;
     void Loop()
     {
         while (isRunning_) {
             std::function<void()> exec;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                if ((!tasks_.empty()) && (tasks_.begin()->first <= std::chrono::system_clock::now())) {
-                    exec = tasks_.begin()->second;
-                    tasks_.erase(tasks_.begin());
+                condition_.wait(lock, [this] {
+                    return !tasks_.empty();
+                });
+                if (tasks_.begin()->first > std::chrono::system_clock::now()) {
+                    auto time = tasks_.begin()->first;
+                    condition_.wait_until(lock, time);
+                    continue;
                 }
+                auto it = tasks_.begin();
+                exec = it->second.first;
+                indexes_.erase(it->second.second);
+                tasks_.erase(it);
             }
 
             if (exec) {
                 exec();
             }
-
-            std::unique_lock<std::mutex> lock(mutex_);
-            if (tasks_.empty()) {
-                condition_.wait(lock);
-            } else {
-                condition_.wait_until(lock, tasks_.begin()->first);
-            }
         }
     }
+
+    TaskId GenTaskId()
+    {
+        auto taskId = ++taskId_;
+        if (taskId == INVALID_TASK_ID) {
+            return ++taskId_;
+        }
+        return taskId;
+    }
+
     volatile bool isRunning_;
     size_t capacity_;
-    std::multimap<std::chrono::system_clock::time_point, std::function<void()>> tasks_;
+    std::multimap<Time, InnerTask> tasks_;
+    std::map<TaskId, decltype(tasks_)::iterator> indexes_;
     std::mutex mutex_;
     std::unique_ptr<std::thread> thread_;
     std::condition_variable condition_;
+    std::atomic<uint64_t> taskId_;
 };
 } // namespace OHOS
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TASK_SCHEDULER_H

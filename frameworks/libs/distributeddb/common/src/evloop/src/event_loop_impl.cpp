@@ -167,7 +167,7 @@ int EventLoopImpl::Run()
         loopThread_ = std::this_thread::get_id();
     }
 
-    int errCode;
+    int errCode = E_OK;
     IncObjRef(this);
 
     while (running_) {
@@ -279,14 +279,11 @@ int EventLoopImpl::QueueRequest(int type, EventImpl *event, T argument)
         return -E_OBJ_IS_KILLED;
     }
 
-    int errCode;
-    if (event != nullptr) {
-        errCode = event->CheckStatus();
-        if (errCode != E_OK) {
-            if (errCode != -E_OBJ_IS_KILLED ||
-                type != EventRequest::REMOVE_EVENT) {
-                return errCode;
-            }
+    int errCode = event->CheckStatus();
+    if (errCode != E_OK) {
+        if (errCode != -E_OBJ_IS_KILLED ||
+            type != EventRequest::REMOVE_EVENT) {
+            return errCode;
         }
     }
 

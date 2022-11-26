@@ -47,7 +47,6 @@ int DataTransformer::TransformDataItem(const std::vector<DataItem> &dataItems,
         return E_OK;
     }
     std::vector<int> indexMapping;
-    ReduceMapping(remoteFieldInfo, localFieldInfo);
     for (const DataItem &dataItem : dataItems) {
         OptRowDataWithLog dataWithLog;
         int errCode = DeSerializeDataItem(dataItem, dataWithLog, remoteFieldInfo);
@@ -128,16 +127,6 @@ uint32_t DataTransformer::CalDataValueLength(const DataValue &dataValue)
             break;
     }
     return length;
-}
-
-void DataTransformer::ReduceMapping(const std::vector<FieldInfo> &remoteFieldInfo,
-    const std::vector<FieldInfo> &localFieldInfo)
-{
-    std::map<std::string, int> fieldMap;
-    for (int i = 0; i < static_cast<int>(remoteFieldInfo.size()); ++i) {
-        const auto &fieldInfo = remoteFieldInfo[i];
-        fieldMap[fieldInfo.GetFieldName()] = i;
-    }
 }
 
 namespace {

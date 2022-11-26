@@ -70,12 +70,12 @@ Entry KvUtils::ToEntry(const DataShareValuesBucket &valueBucket)
         return {};
     }
     Entry entry;
-    Status status = ToEntryData(values, KEY, entry.key);
+    Status status = ToEntryKey(values, entry.key);
     if (status != Status::SUCCESS) {
         ZLOGE("GetEntry key failed: %{public}d", status);
         return {};
     }
-    status = ToEntryData(values, VALUE, entry.value);
+    status = ToEntryValue(values, entry.value);
     if (status != Status::SUCCESS) {
         ZLOGE("GetEntry value failed: %{public}d", status);
         return {};
@@ -97,8 +97,11 @@ Status KvUtils::GetKeys(const DataShareAbsPredicates &predicates, std::vector<Ke
             ZLOGE("find operation failed");
             return Status::NOT_SUPPORT;
         }
-        std::vector<std::string> val = oper.multiParams[0];
-        myKeys.insert(myKeys.end(), val.begin(), val.end());
+        auto *val = std::get_if<std::vector<std::string>>(&oper.multiParams[0]);
+        if (val == nullptr) {
+            continue;
+        }
+        myKeys.insert(myKeys.end(), val->begin(), val->end());
     }
     for (const auto &it : myKeys) {
         keys.push_back(it.c_str());
@@ -106,44 +109,60 @@ Status KvUtils::GetKeys(const DataShareAbsPredicates &predicates, std::vector<Ke
     return Status::SUCCESS;
 }
 
-Status KvUtils::ToEntryData(const std::map<std::string, DataShareValueObject> &valuesMap,
-    const std::string field, Blob &blob)
+Status KvUtils::ToEntryKey(const std::map<std::string, DataShareValueObject::Type> &values, Blob &blob)
 {
-    auto it = valuesMap.find(field);
-    if (it == valuesMap.end()) {
+    auto it = values.find(KEY);
+    if (it == values.end()) {
         ZLOGE("field is not find!");
         return Status::ERROR;
     }
-    DataShareValueObjectType type = it->second.type;
+    if (auto *val = std::get_if<std::string>(&it->second)) {
+        std::vector<uint8_t> uData;
+        std::string data = *val;
+        uData.insert(uData.end(), data.begin(), data.end());
+        blob = Blob(uData);
+        return Status::SUCCESS;
+    }
+    ZLOGE("value bucket type is not string");
+    return Status::ERROR;
+}
+
+Status KvUtils::ToEntryValue(const std::map<std::string, DataShareValueObject::Type> &values, Blob &blob)
+{
+    auto it = values.find(VALUE);
+    if (it == values.end()) {
+        ZLOGE("field is not find!");
+        return Status::ERROR;
+    }
 
     std::vector<uint8_t> uData;
-    if (type == DataShareValueObjectType::TYPE_BLOB) {
-        ZLOGE("Value bucket type blob");
-        std::vector<uint8_t> data = it->second;
+    if (auto *val = std::get_if<std::vector<uint8_t>>(&it->second)) {
+        ZLOGD("Value bucket type blob");
+        std::vector<uint8_t> data = *val;
         uData.push_back(KvUtils::BYTE_ARRAY);
         uData.insert(uData.end(), data.begin(), data.end());
-    } else if (type == DataShareValueObjectType::TYPE_INT) {
-        ZLOGE("Value bucket type int");
-        int64_t data = it->second;
+    } else if (auto *val = std::get_if<int64_t>(&it->second)) {
+        ZLOGD("Value bucket type int");
+        int64_t data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::INTEGER);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(int64_t) / sizeof(uint8_t));
-    } else if (type == DataShareValueObjectType::TYPE_DOUBLE) {
-        ZLOGE("Value bucket type double");
-        double data = it->second;
+    } else if (auto *val = std::get_if<double>(&it->second)) {
+        ZLOGD("Value bucket type double");
+        double data = *val;
         uint64_t data64 = htobe64(*reinterpret_cast<uint64_t*>(&data));
         uint8_t *dataU8 = reinterpret_cast<uint8_t*>(&data64);
         uData.push_back(KvUtils::DOUBLE);
         uData.insert(uData.end(), dataU8, dataU8 + sizeof(double) / sizeof(uint8_t));
-    } else if (type == DataShareValueObjectType::TYPE_BOOL) {
-        ZLOGE("Value bucket type bool");
-        bool data = it->second;
+    } else if (auto *val = std::get_if<bool>(&it->second)) {
+        ZLOGD("Value bucket type bool");
+        bool data = *val;
         uData.push_back(KvUtils::BOOLEAN);
         uData.push_back(static_cast<uint8_t>(data));
-    } else if (type == DataShareValueObjectType::TYPE_STRING) {
-        ZLOGE("Value bucket type string");
-        std::string data = it->second;
+    } else if (auto *val = std::get_if<std::string>(&it->second)) {
+        ZLOGD("Value bucket type string");
+        std::string data = *val;
         uData.push_back(KvUtils::STRING);
         uData.insert(uData.end(), data.begin(), data.end());
     }
@@ -158,48 +177,52 @@ void KvUtils::NoSupport(const DataShare::OperationItem &oper, DataQuery &query)
 
 void KvUtils::InKeys(const OperationItem &oper, DataQuery &query)
 {
-    query.InKeys(oper.multiParams[0]);
+    auto *val = std::get_if<std::vector<std::string>>(&oper.multiParams[0]);
+    if (val == nullptr) {
+        return;
+    }
+    query.InKeys(*val);
 }
 
 void KvUtils::KeyPrefix(const OperationItem &oper, DataQuery &query)
 {
-    query.KeyPrefix(oper.singleParams[0]);
+    query.KeyPrefix(oper.GetSingle(0));
 }
 
 void KvUtils::EqualTo(const OperationItem &oper, DataQuery &query)
 {
     Querys equal(&query, QueryType::EQUAL);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, equal);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], equal);
 }
 
 void KvUtils::NotEqualTo(const OperationItem &oper, DataQuery &query)
 {
     Querys notEqual(&query, QueryType::NOT_EQUAL);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, notEqual);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], notEqual);
 }
 
 void KvUtils::GreaterThan(const OperationItem &oper, DataQuery &query)
 {
     Querys greater(&query, QueryType::GREATER);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, greater);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], greater);
 }
 
 void KvUtils::LessThan(const OperationItem &oper, DataQuery &query)
 {
     Querys less(&query, QueryType::LESS);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, less);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], less);
 }
 
 void KvUtils::GreaterThanOrEqualTo(const OperationItem &oper, DataQuery &query)
 {
     Querys greaterOrEqual(&query, QueryType::GREATER_OR_EQUAL);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, greaterOrEqual);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], greaterOrEqual);
 }
 
 void KvUtils::LessThanOrEqualTo(const OperationItem &oper, DataQuery &query)
 {
     Querys lessOrEqual(&query, QueryType::LESS_OR_EQUAL);
-    CovUtil::FillField(oper.singleParams[0], oper.singleParams[1].value, lessOrEqual);
+    CovUtil::FillField(oper.GetSingle(0), oper.singleParams[1], lessOrEqual);
 }
 
 void KvUtils::And(const OperationItem &oper, DataQuery &query)
@@ -214,49 +237,49 @@ void KvUtils::Or(const OperationItem &oper, DataQuery &query)
 
 void KvUtils::IsNull(const OperationItem &oper, DataQuery &query)
 {
-    query.IsNull(oper.singleParams[0]);
+    query.IsNull(oper.GetSingle(0));
 }
 
 void KvUtils::IsNotNull(const OperationItem &oper, DataQuery &query)
 {
-    query.IsNotNull(oper.singleParams[0]);
+    query.IsNotNull(oper.GetSingle(0));
 }
 
 void KvUtils::In(const OperationItem &oper, DataQuery &query)
 {
     InOrNotIn in(&query, QueryType::IN);
-    CovUtil::FillField(oper.singleParams[0], oper.multiParams[0].value, in);
+    CovUtil::FillField(oper.GetSingle(0), oper.multiParams[0], in);
 }
 
 void KvUtils::NotIn(const OperationItem &oper, DataQuery &query)
 {
     InOrNotIn notIn(&query, QueryType::NOT_IN);
-    CovUtil::FillField(oper.singleParams[0], oper.multiParams[0].value, notIn);
+    CovUtil::FillField(oper.GetSingle(0), oper.multiParams[0], notIn);
 }
 
 void KvUtils::Like(const OperationItem &oper, DataQuery &query)
 {
-    query.Like(oper.singleParams[0], oper.singleParams[1]);
+    query.Like(oper.GetSingle(0), oper.GetSingle(1));
 }
 
 void KvUtils::Unlike(const OperationItem &oper, DataQuery &query)
 {
-    query.Unlike(oper.singleParams[0], oper.singleParams[1]);
+    query.Unlike(oper.GetSingle(0), oper.GetSingle(1));
 }
 
 void KvUtils::OrderByAsc(const OperationItem &oper, DataQuery &query)
 {
-    query.OrderByAsc(oper.singleParams[0]);
+    query.OrderByAsc(oper.GetSingle(0));
 }
 
 void KvUtils::OrderByDesc(const OperationItem &oper, DataQuery &query)
 {
-    query.OrderByDesc(oper.singleParams[0]);
+    query.OrderByDesc(oper.GetSingle(0));
 }
 
 void KvUtils::Limit(const OperationItem &oper, DataQuery &query)
 {
-    query.Limit(oper.singleParams[0], oper.singleParams[1]);
+    query.Limit(oper.GetSingle(0), oper.GetSingle(1));
 }
 } // namespace DistributedKv
 } // namespace OHOS

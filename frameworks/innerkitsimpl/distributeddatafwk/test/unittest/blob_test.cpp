@@ -17,8 +17,10 @@
 #include <cstdint>
 #include <vector>
 #include "types.h"
+#include "kv_types_util.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+using namespace OHOS;
 
 class BlobTest : public testing::Test {
 public:
@@ -56,8 +58,7 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
     Blob blob3("12345");
     EXPECT_EQ(blob3.Size(), (size_t)5);
     std::string strTmp = "123";
-    const char *chr = strTmp.c_str();
-    Blob blob4(chr);
+    Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Size(), (size_t)3);
     std::vector<uint8_t> vec = {'1', '2', '3', '4'};
     Blob blob5(vec);
@@ -65,6 +66,10 @@ HWTEST_F(BlobTest, Size001, TestSize.Level0)
     const char *chr1 = strTmp.c_str();
     Blob blob6(chr1, strlen(chr1));
     EXPECT_EQ(blob6.Size(), (size_t)3);
+    Blob blob7(nullptr);
+    EXPECT_EQ(blob7.Size(), (size_t)0);
+    Blob blob8(nullptr, strlen(chr1));
+    EXPECT_EQ(blob8.Size(), (size_t)0);
 }
 
 /**
@@ -83,8 +88,7 @@ HWTEST_F(BlobTest, Empty001, TestSize.Level0)
     Blob blob3("12345");
     EXPECT_EQ(blob3.Empty(), false);
     std::string strTmp = "123";
-    const char *chr = strTmp.c_str();
-    Blob blob4(chr);
+    Blob blob4(strTmp.c_str());
     EXPECT_EQ(blob4.Empty(), false);
     std::vector<uint8_t> vec = {'1', '2', '3', '4'};
     Blob blob5(vec);
@@ -248,4 +252,86 @@ HWTEST_F(BlobTest, Operator003, TestSize.Level0)
     EXPECT_EQ(blob1 == blob2, false);
     EXPECT_EQ(blob1.Empty(), true);
     EXPECT_EQ(blob2.ToString(), "1234");
+}
+
+/**
+* @tc.name: Operator004
+* @tc.desc: construct a Blob and check it operator std::vector<uint8_t> && function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wangkai
+*/
+HWTEST_F(BlobTest, Operator004, TestSize.Level0)
+{
+    std::vector<uint8_t> blob = { 1, 2, 3, 4 };
+    Blob blob1(move(blob));
+    EXPECT_EQ(blob1.Size(), 4);
+    std::vector<uint8_t> blob2 = std::move(blob1);
+    EXPECT_EQ(blob2.size(), 4);
+}
+
+/**
+* @tc.name: Operator005
+* @tc.desc: construct a Blob and check it operator std::vector<uint8_t> & function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wangkai
+*/
+HWTEST_F(BlobTest, Operator005, TestSize.Level0)
+{
+    const std::vector<uint8_t> blob = { 1, 2, 3, 4 };
+    Blob blob1(blob);
+    EXPECT_EQ(blob1.Size(), 4);
+}
+
+/**
+* @tc.name: RawSize001
+* @tc.desc: construct a Blob and check it RawSize function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wangkai
+*/
+HWTEST_F(BlobTest, RawSize001, TestSize.Level0)
+{
+    Blob blob1("1234");
+    Blob blob2("12345");
+    EXPECT_EQ(blob1.RawSize(), sizeof(int) + 4);
+    EXPECT_EQ(blob2.RawSize(), sizeof(int) + 5);
+}
+
+/**
+* @tc.name: WriteToBuffer001
+* @tc.desc: construct a Blob and check it WriteToBuffer and ReadFromBuffer function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: wangkai
+*/
+HWTEST_F(BlobTest, WriteToBuffer001, TestSize.Level1)
+{
+    Entry insert, update, del;
+    insert.key = "insert";
+    update.key = "update";
+    del.key = "delete";
+    insert.value = "insert_value";
+    update.value = "update_value";
+    del.value = "delete_value";
+    std::vector<Entry> inserts, updates, deletes;
+    inserts.push_back(insert);
+    updates.push_back(update);
+    deletes.push_back(del);
+
+    ChangeNotification changeIn(std::move(inserts), std::move(updates), std::move(deletes), std::string(), false);
+    OHOS::MessageParcel parcel;
+    int64_t insertSize = ITypesUtil::GetTotalSize(changeIn.GetInsertEntries());
+    int64_t updateSize = ITypesUtil::GetTotalSize(changeIn.GetUpdateEntries());
+    int64_t deleteSize = ITypesUtil::GetTotalSize(changeIn.GetDeleteEntries());
+    ASSERT_TRUE(ITypesUtil::MarshalToBuffer(changeIn.GetInsertEntries(), insertSize, parcel));
+    ASSERT_TRUE(ITypesUtil::MarshalToBuffer(changeIn.GetUpdateEntries(), updateSize, parcel));
+    ASSERT_TRUE(ITypesUtil::MarshalToBuffer(changeIn.GetDeleteEntries(), deleteSize, parcel));
+    std::vector<Entry> outInserts;
+    std::vector<Entry> outUpdates;
+    std::vector<Entry> outDeletes;
+    ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outInserts));
+    ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outUpdates));
+    ASSERT_TRUE(ITypesUtil::UnmarshalFromBuffer(parcel, outDeletes));
 }

@@ -27,6 +27,7 @@
 #include "icommunicator.h"
 #include "ref_object.h"
 #include "serial_buffer.h"
+#include "sync_types.h"
 
 namespace DistributedDB {
 class VirtualCommunicatorAggregator;
@@ -46,6 +47,7 @@ public:
 
     uint32_t GetCommunicatorMtuSize() const override;
     uint32_t GetCommunicatorMtuSize(const std::string &target) const override;
+    void SetCommunicatorMtuSize(uint32_t mtuSize);
 
     uint32_t GetTimeout() const override;
     uint32_t GetTimeout(const std::string &target) const override;
@@ -59,7 +61,7 @@ public:
 
     int GetRemoteCommunicatorVersion(const std::string &deviceId, uint16_t &version) const override;
 
-    void CallbackOnMessage(const std::string &srcTarget, Message *inMsg) const;
+    void CallbackOnMessage(const std::string &srcTarget, Message *inMsg);
 
     void CallbackOnConnect(const std::string &target, bool isConnect) const;
 
@@ -76,6 +78,8 @@ public:
     bool IsEnabled() const;
 
     bool IsDeviceOnline(const std::string &device) const override;
+
+    void SetDropMessageTypeByDevice(MessageId msgid, uint32_t dropTimes = 1);
 
 private:
     int TimeSync();
@@ -101,6 +105,9 @@ private:
     VirtualCommunicatorAggregator *communicatorAggregator_;
 
     uint32_t timeout_ = 5 * 1000; // 5 * 1000ms
+    MessageId dropMsgId_ = MessageId::UNKNOW_MESSAGE;
+    uint32_t dropMsgTimes_ = 0;
+    uint32_t mtuSize_ = 5 * 1024 * 1024; // 5 * 1024 * 1024B
 };
 } // namespace DistributedDB
 

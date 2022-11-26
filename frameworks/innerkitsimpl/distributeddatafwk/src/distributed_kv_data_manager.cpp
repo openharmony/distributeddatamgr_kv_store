@@ -182,10 +182,6 @@ Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
 Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy)
 {
     auto dvInfos = DevManager::GetInstance().GetRemoteDevices();
-    if (dvInfos.empty()) {
-        ZLOGD("no remote device!");
-        return Status::ERROR;
-    }
     for (const auto &info : dvInfos) {
         if (info.networkId.empty()) {
             ZLOGW("deviceId empty!");

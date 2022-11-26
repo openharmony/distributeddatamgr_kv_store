@@ -63,8 +63,8 @@ void FuzzLessThanOrEqualTo(const uint8_t* data, size_t size)
 void FuzzOrderBy(const uint8_t* data, size_t size)
 {
     std::string rawString(reinterpret_cast<const char *>(data), size);
-    Query query = Query::Select().GreaterThanOrEqualTo(rawString, true);
-    query = Query::Select().GreaterThanOrEqualTo(rawString, false);
+    (void)Query::Select().GreaterThanOrEqualTo(rawString, true);
+    (void)Query::Select().GreaterThanOrEqualTo(rawString, false);
 }
 
 void FuzzLimit(const uint8_t* data, size_t size)

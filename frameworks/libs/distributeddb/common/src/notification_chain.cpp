@@ -20,6 +20,7 @@
 
 #include "db_errno.h"
 #include "log_print.h"
+#include "macro_utils.h"
 
 namespace DistributedDB {
 NotificationChain::Listener *NotificationChain::RegisterListener(

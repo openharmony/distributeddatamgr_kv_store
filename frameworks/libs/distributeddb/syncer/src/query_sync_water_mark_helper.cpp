@@ -496,7 +496,7 @@ int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Ke
     uint32_t removeCount = allItems.size() - MAX_STORE_ITEMS - waitToRemove.size();
     // quick select the k_th least used
     std::nth_element(allItems.begin(), allItems.begin() + removeCount, allItems.end(),
-        [](std::pair<std::string, Timestamp> &w1, std::pair<std::string, Timestamp> &w2) {
+        [](const std::pair<std::string, Timestamp> &w1, const std::pair<std::string, Timestamp> &w2) {
             return w1.second < w2.second;
         });
     for (uint32_t i = 0; i < removeCount; ++i) {

@@ -121,7 +121,7 @@ public:
 
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
-    int GetMetaKeysByKeyPrefix(const std::string &keyPre, std::vector<std::string> &keys) const;
+    int GetMetaKeysByKeyPrefix(const std::string &keyPre, std::vector<std::string> &outKeys) const;
 
     int GetAllSyncedEntries(const std::string &deviceName, std::vector<Entry> &entries) const;
 
@@ -368,7 +368,7 @@ private:
 
     int MigrateDataItems(std::vector<DataItem> &dataItems, NotifyMigrateSyncData &syncData);
 
-    int MigrateDataItem(DataItem &dataItem, NotifyMigrateSyncData &syncData);
+    int MigrateDataItem(DataItem &dataItem, const NotifyMigrateSyncData &syncData);
 
     int GetEntriesForNotifyRemoveDevData(const DataItem &item, std::vector<Entry> &entries) const;
 

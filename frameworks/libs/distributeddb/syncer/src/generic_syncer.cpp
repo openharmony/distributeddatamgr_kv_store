@@ -60,8 +60,7 @@ GenericSyncer::~GenericSyncer()
         syncEngine_->OnKill([this]() { this->syncEngine_->Close(); });
         RefObject::KillAndDecObjRef(syncEngine_);
         // waiting all thread exist
-        std::mutex engineMutex;
-        std::unique_lock<std::mutex> cvLock(engineMutex);
+        std::unique_lock<std::mutex> cvLock(engineMutex_);
         bool engineFinalize = engineFinalizeCv_.wait_for(cvLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
             [this]() { return engineFinalize_; });
         if (!engineFinalize) {
@@ -386,10 +385,8 @@ int GenericSyncer::InitSyncEngine(ISyncInterface *syncInterface)
         return E_OK;
     } else {
         LOGE("[Syncer] SyncEngine init failed! err:%d.", errCode);
-        if (syncEngine_ != nullptr) {
-            RefObject::KillAndDecObjRef(syncEngine_);
-            syncEngine_ = nullptr;
-        }
+        RefObject::KillAndDecObjRef(syncEngine_);
+        syncEngine_ = nullptr;
         return errCode;
     }
 }
@@ -797,7 +794,10 @@ int GenericSyncer::BuildSyncEngine()
     }
     syncEngine_->OnLastRef([this]() {
         LOGD("[Syncer] SyncEngine finalized");
-        engineFinalize_ = true;
+        {
+            std::lock_guard<std::mutex> cvLock(engineMutex_);
+            engineFinalize_ = true;
+        }
         engineFinalizeCv_.notify_all();
     });
     return E_OK;
