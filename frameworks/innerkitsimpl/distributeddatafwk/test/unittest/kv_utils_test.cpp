@@ -121,8 +121,8 @@ Blob KvUtilTest::VariantValue2Blob(const var_t &value)
 
 void KvUtilTest::SetUpTestCase(void)
 {
-    Options options = { .createIfMissing = true, .encrypt = false, .autoSync = false,
-            .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
+    Options options = {.createIfMissing = true, .encrypt = false, .autoSync = false,
+            .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE};
     options.area = EL1;
     options.baseDir = std::string("/data/service/el1/public/database/kvUtilTest");
     AppId appId = { "kvUtilTest" };
@@ -141,9 +141,9 @@ void KvUtilTest::TearDownTestCase(void)
 {
     manager.DeleteKvStore(
             {"kvUtilTest"}, {"test_single"}, "/data/service/el1/public/database/kvUtilTest");
-    (void)remove("/data/service/el1/public/database/kvUtilTest/key");
-    (void)remove("/data/service/el1/public/database/kvUtilTest/kvdb");
-    (void)remove("/data/service/el1/public/database/kvUtilTest");
+    (void) remove("/data/service/el1/public/database/kvUtilTest/key");
+    (void) remove("/data/service/el1/public/database/kvUtilTest/kvdb");
+    (void) remove("/data/service/el1/public/database/kvUtilTest");
 }
 
 /**
@@ -181,7 +181,6 @@ HWTEST_F(KvUtilTest, KvStoreResultSetToResultSetBridge, TestSize.Level0)
     EXPECT_EQ(resultSet->GetCount(), 3);
     auto bridge = KvUtils::ToResultSetBridge(resultSet);
     EXPECT_NE(bridge, nullptr);
-
 }
 
 /**
