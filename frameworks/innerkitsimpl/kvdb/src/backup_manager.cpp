@@ -208,7 +208,7 @@ SecurityManager::DBPassword BackupManager::GetRestorePassword(const std::string 
         password.SetValue(pwd.data(), pwd.size());
         pwd.assign(pwd.size(), 0);
     } else {
-        password =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir);
+        password =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir).password;
     }
     return password;
 }
