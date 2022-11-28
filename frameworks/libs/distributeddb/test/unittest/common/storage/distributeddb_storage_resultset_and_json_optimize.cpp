@@ -312,4 +312,114 @@ HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetGetEntry001, Te
      */
     resultSet->Close();
 }
+
+/**
+  * @tc.name: ResultSetTest001
+  * @tc.desc: Check the resultSet open
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Check resultSet Open when db is nullptr
+     * @tc.expected: step2. Expect return -E_INVALID_ARGS.
+     */
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet1 =
+        std::make_unique<SQLiteSingleVerResultSet>(nullptr, EMPTY_KEY, OPTION);
+    ASSERT_NE(resultSet1, nullptr);
+    EXPECT_EQ(resultSet1->Open(true), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. Check resultSet Open when it is opened
+     * @tc.expected: step2. Expect return E_OK.
+     */
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet2 =
+        std::make_unique<SQLiteSingleVerResultSet>(g_store, EMPTY_KEY, OPTION);
+    ASSERT_NE(resultSet2, nullptr);
+    EXPECT_EQ(resultSet2->Open(true), E_OK);
+    EXPECT_EQ(resultSet2->Open(true), E_OK);
+
+    /**
+     * @tc.steps: step3. Check resultSet Open when db it is not opened
+     * @tc.expected: step3. Expect Open return -E_INVALID_DB.
+     */
+    SQLiteSingleVerNaturalStore *errStore = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(errStore, nullptr);
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet3 =
+        std::make_unique<SQLiteSingleVerResultSet>(errStore, EMPTY_KEY, OPTION);
+    ASSERT_NE(resultSet3, nullptr);
+    EXPECT_EQ(resultSet3->Open(true), -E_INVALID_DB);
+    RefObject::KillAndDecObjRef(errStore);
+
+    /**
+     * @tc.steps: step4. Check resultSet Open when ResultSetType is query
+     * @tc.expected: step4. Expect return E_OK.
+     */
+    QueryObject queryObject;
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet4 =
+        std::make_unique<SQLiteSingleVerResultSet>(g_store, queryObject, OPTION);
+    ASSERT_NE(resultSet4, nullptr);
+    EXPECT_EQ(resultSet4->Open(true), E_OK);
+
+    resultSet1->Close();
+    resultSet2->Close();
+    resultSet3->Close();
+    resultSet4->Close();
+}
+
+/**
+  * @tc.name: ResultSetTest002
+  * @tc.desc: Check the resultSet move,then get
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageResultAndJsonOptimizeTest, ResultSetTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Check resultSet MoveTo when resultSet is not opened
+     * @tc.expected: step1. Expect return -E_RESULT_SET_STATUS_INVALID.
+     */
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet1 =
+        std::make_unique<SQLiteSingleVerResultSet>(g_store, EMPTY_KEY, OPTION);
+    ASSERT_NE(resultSet1, nullptr);
+    EXPECT_EQ(resultSet1->MoveTo(INSERT_NUMBER - 1), -E_RESULT_SET_STATUS_INVALID);
+
+    /**
+     * @tc.steps: step2. Then get the Entry
+     * @tc.expected: step2. Expect return -E_NO_SUCH_ENTRY.
+     */
+    Entry entry;
+    EXPECT_EQ(resultSet1->GetEntry(entry), -E_NO_SUCH_ENTRY);
+    resultSet1->Close();
+
+    /**
+     * @tc.steps: step3. Check resultSet MoveTo when db is empty
+     * @tc.expected: step3. Expect return -E_RESULT_SET_EMPTY.
+     */
+    std::unique_ptr<SQLiteSingleVerResultSet> resultSet2 =
+        std::make_unique<SQLiteSingleVerResultSet>(g_store, EMPTY_KEY, OPTION);
+    ASSERT_NE(resultSet2, nullptr);
+    IOption option;
+    option.dataType = IOption::SYNC_DATA;
+    Key insertKey;
+    ASSERT_EQ(g_connection->StartTransaction(), E_OK);
+    for (int i = 1; i < INSERT_NUMBER + 1; i++) {
+        insertKey.clear();
+        insertKey.push_back(i);
+        ASSERT_EQ(g_connection->Delete(option, insertKey), OK);
+    }
+    ASSERT_EQ(g_connection->Commit(), E_OK);
+    resultSet2->Open(true);
+    EXPECT_EQ(resultSet2->MoveTo(INSERT_NUMBER - 1), -E_RESULT_SET_EMPTY);
+
+    /**
+     * @tc.steps: step4. Get resultSet Entry when db is empty
+     * @tc.expected: step4. Expect return -E_NO_SUCH_ENTRY.
+     */
+    EXPECT_EQ(resultSet2->GetEntry(entry), -E_NO_SUCH_ENTRY);
+    resultSet2->Close();
+}
 #endif

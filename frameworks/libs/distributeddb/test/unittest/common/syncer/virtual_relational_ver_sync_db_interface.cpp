@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "db_common.h"
 #include "generic_single_ver_kv_entry.h"
+#include "platform_specific.h"
 #include "relational_remote_query_continue_token.h"
 #include "runtime_context.h"
 #include "virtual_relational_ver_sync_db_interface.h"
@@ -60,6 +61,12 @@ namespace {
         DBCommon::VectorToString(vec, str);
         return str;
     }
+}
+
+VirtualRelationalVerSyncDBInterface::VirtualRelationalVerSyncDBInterface()
+{
+    (void)OS::GetCurrentSysTimeInMicrosecond(dbCreateTime_);
+    LOGD("virtual device init db createTime");
 }
 
 int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject &object,
@@ -163,6 +170,7 @@ void VirtualRelationalVerSyncDBInterface::SetSchemaInfo(const RelationalSchemaOb
 
 int VirtualRelationalVerSyncDBInterface::GetDatabaseCreateTimestamp(Timestamp &outTime) const
 {
+    outTime = dbCreateTime_;
     return E_OK;
 }
 

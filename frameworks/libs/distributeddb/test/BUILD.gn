@@ -531,6 +531,11 @@ distributeddb_unittest("DistributedDBStorageSQLiteSingleVerNaturalStoreTest") {
   ]
 }
 
+distributeddb_unittest(
+    "DistributedDBStorageSQLiteSingleVerNaturalExecutorTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_sqlite_single_ver_natural_executor_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBStorageMemorySingleVerNaturalStoreTest") {
   sources = [
     "unittest/common/storage/distributeddb_storage_memory_single_ver_naturall_store_test.cpp",
@@ -728,6 +733,17 @@ distributeddb_unittest("DistributedDBInterfacesRelationalRoutinesTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_routines_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBInterfacesLogTest") {
+  sources =
+      [ "unittest/common/interfaces/distributeddb_interfaces_log_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageDataConnectionTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_storage_data_connection_test.cpp",
+  ]
+}
+
 distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
   sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
 }
@@ -757,6 +773,7 @@ group("unittest") {
     ":DistributedDBInterfacesEncryptDelegateTest",
     ":DistributedDBInterfacesImportAndExportTest",
     ":DistributedDBInterfacesIndexUnitTest",
+    ":DistributedDBInterfacesLogTest",
     ":DistributedDBInterfacesNBDelegateLocalBatchTest",
     ":DistributedDBInterfacesNBDelegateSchemaPutTest",
     ":DistributedDBInterfacesNBDelegateTest",
@@ -798,6 +815,7 @@ group("unittest") {
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBStorageCommitStorageTest",
+    ":DistributedDBStorageDataConnectionTest",
     ":DistributedDBStorageDataOperationTest",
     ":DistributedDBStorageIndexOptimizeTest",
     ":DistributedDBStorageMemorySingleVerNaturalStoreTest",
@@ -805,6 +823,7 @@ group("unittest") {
     ":DistributedDBStorageRegisterConflictTest",
     ":DistributedDBStorageRegisterObserverTest",
     ":DistributedDBStorageResultAndJsonOptimizeTest",
+    ":DistributedDBStorageSQLiteSingleVerNaturalExecutorTest",
     ":DistributedDBStorageSQLiteSingleVerNaturalStoreTest",
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageTransactionDataTest",

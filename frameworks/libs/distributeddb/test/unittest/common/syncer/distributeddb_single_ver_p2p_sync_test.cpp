@@ -392,10 +392,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, NormalSync003, TestSize.Level1)
     VirtualDataItem item;
     Key hashKey;
     DistributedDBToolsUnitTest::CalcHash(key, hashKey);
-    EXPECT_EQ(g_deviceB->GetData(hashKey, item), E_OK);
-    EXPECT_TRUE(item.flag != 0);
-    g_deviceC->GetData(hashKey, item);
-    EXPECT_TRUE(item.flag != 0);
+    EXPECT_EQ(g_deviceB->GetData(hashKey, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_deviceC->GetData(hashKey, item), -E_NOT_FOUND);
 }
 
 /**
@@ -982,8 +980,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSync001, TestSize.Level
     item.value.clear();
     Key hashKey;
     DistributedDBToolsUnitTest::CalcHash(key3, hashKey);
-    g_deviceC->GetData(hashKey, item);
-    EXPECT_TRUE((item.flag & VirtualDataItem::DELETE_FLAG) == 1);
+    EXPECT_TRUE(g_deviceC->GetData(hashKey, item) == -E_NOT_FOUND);
     item.value.clear();
     g_deviceC->GetData(key4, item);
     EXPECT_TRUE(item.value == value4);
@@ -2759,6 +2756,55 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSize.Le
 }
 
 /**
+  * @tc.name: RemoveDeviceData002
+  * @tc.desc: test remove device data before sync
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RemoveDeviceData002, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A and check data
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Value value = {'1'};
+    Timestamp currentTime;
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key1, value, currentTime, 0), E_OK);
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key2, value, currentTime, 0), E_OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step2. call RemoveDeviceData
+     * * @tc.expected: step2. interface return ok
+    */
+    g_kvDelegatePtr->RemoveDeviceData(g_deviceB->GetDeviceId());
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), NOT_FOUND);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), NOT_FOUND);
+    /**
+     * @tc.steps: step3. sync to device A again and check data
+     * * @tc.expected: step3. sync ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    actualValue.clear();
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
   * @tc.name: DataSync001
   * @tc.desc: Test Data Sync when Initialize
   * @tc.type: FUNC
@@ -3143,6 +3189,253 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, ReSetWaterDogTest001, TestSize.Level
     g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
     g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 4k
     g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 4k
+}
+
+/**
+  * @tc.name: RebuildSync001
+  * @tc.desc: rebuild db and sync again
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync001, TestSize.Level3)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A and check data
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Value value = {'1'};
+    Timestamp currentTime;
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key1, value, currentTime, 0), E_OK);
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key2, value, currentTime, 0), E_OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    actualValue.clear();
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step2. delete db and rebuild
+     * * @tc.expected: step2. interface return ok
+    */
+    g_mgr.CloseKvStore(g_kvDelegatePtr);
+    g_kvDelegatePtr = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step3. sync to device A again
+     * * @tc.expected: step3. sync ok
+    */
+    value = {'2'};
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key1, value, currentTime, 0), E_OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    /**
+     * @tc.steps: step4. check data in device A
+     * * @tc.expected: step4. check ok
+    */
+    actualValue.clear();
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+}
+
+/**
+  * @tc.name: RebuildSync002
+  * @tc.desc: test clear remote data when receive data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync002, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    /**
+     * @tc.steps: step1. device A SET_WIPE_POLICY
+     * * @tc.expected: step1. interface return ok
+    */
+    int pragmaData = 2; // 2 means enable
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_WIPE_POLICY, input) == OK);
+    /**
+     * @tc.steps: step2. sync deviceB data to A and check data
+     * * @tc.expected: step2. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Key key3 = {'3'};
+    Key key4 = {'4'};
+    Value value = {'1'};
+    Timestamp currentTime;
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key1, value, currentTime, 0), E_OK);
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key2, value, currentTime, 0), E_OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(key3, value), OK);
+    /**
+     * @tc.steps: step3. deviceA call pull sync
+     * @tc.expected: step3. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, result) == OK);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, check data
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        EXPECT_TRUE(pair.second == OK);
+    }
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    /**
+     * @tc.steps: step5. device B rebuild and put some data
+     * * @tc.expected: step5. rebuild ok
+    */
+    if (g_deviceB != nullptr) {
+        delete g_deviceB;
+        g_deviceB = nullptr;
+    }
+    g_deviceB = new (std::nothrow) KvVirtualDevice(DEVICE_B);
+    ASSERT_TRUE(g_deviceB != nullptr);
+    VirtualSingleVerSyncDBInterface *syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key3, value, currentTime, 0), E_OK);
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    EXPECT_EQ(g_deviceB->PutData(key4, value, currentTime, 0), E_OK);
+    /**
+     * @tc.steps: step6. sync to device A again and check data
+     * * @tc.expected: step6. sync ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key3, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key4, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), NOT_FOUND);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), NOT_FOUND);
+}
+
+/**
+  * @tc.name: RebuildSync003
+  * @tc.desc: test clear history data when receive ack
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync003, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    /**
+     * @tc.steps: step1. sync deviceB data to A and check data
+     * * @tc.expected: step1. interface return ok
+    */
+    Key key1 = {'1'};
+    Key key2 = {'2'};
+    Key key3 = {'3'};
+    Key key4 = {'4'};
+    Value value = {'1'};
+    EXPECT_EQ(g_deviceB->PutData(key1, value, 1u, 0), E_OK); // 1: timestamp
+    EXPECT_EQ(g_deviceB->PutData(key2, value, 2u, 0), E_OK); // 2: timestamp
+    EXPECT_EQ(g_kvDelegatePtr->Put(key3, value), OK);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_PULL, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    VirtualDataItem item;
+    EXPECT_EQ(g_deviceB->GetData(key3, item), E_OK);
+    EXPECT_EQ(item.value, value);
+    /**
+     * @tc.steps: step2. device B sync to device A,but make it failed
+     * * @tc.expected: step2. interface return ok
+    */
+    EXPECT_EQ(g_deviceB->PutData(key4, value, 3u, 0), E_OK); // 3: timestamp
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_A, DATA_SYNC_MESSAGE);
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    /**
+     * @tc.steps: step3. device B set delay send time
+     * * @tc.expected: step3. interface return ok
+    */
+    std::set<std::string> delayDevice = {DEVICE_B};
+    g_communicatorAggregator->SetSendDelayInfo(3000u, DATA_SYNC_MESSAGE, 1u, 0u, delayDevice);// delay 3000ms one time
+    /**
+     * @tc.steps: step4. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
+     * * @tc.expected: step4. interface return ok
+    */
+    std::thread thread1([]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait 1s
+        g_deviceB->SetClearRemoteStaleData(true);
+        if (g_kvDelegatePtr != nullptr) {
+            g_mgr.CloseKvStore(g_kvDelegatePtr);
+            g_kvDelegatePtr = nullptr;
+        }
+        ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+        KvStoreNbDelegate::Option option;
+        g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+        ASSERT_TRUE(g_kvDelegateStatus == OK);
+        ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+        std::map<std::string, DBStatus> result;
+        std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
+        g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+        ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result) == OK);
+    });
+    /**
+     * @tc.steps: step5. device B sync to A, make it clear history data and check data
+     * * @tc.expected: step5. interface return ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    thread1.join();
+    EXPECT_EQ(g_deviceB->GetData(key3, item), -E_NOT_FOUND);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    EXPECT_EQ(g_kvDelegatePtr->Get(key2, actualValue), OK);
+    EXPECT_EQ(actualValue, value);
+    g_communicatorAggregator->ResetSendDelayInfo();
+}
+
+/**
+  * @tc.name: GetSyncDataFail001
+  * @tc.desc: test get sync data failed when sync
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, GetSyncDataFail001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device B set get data errCode control and put some data
+     * * @tc.expected: step1. interface return ok
+    */
+    g_deviceB->SetGetDataErrCode(1, -E_BUSY, true);
+    Key key1 = {'1'};
+    Value value = {'1'};
+    EXPECT_EQ(g_deviceB->PutData(key1, value, 1u, 0), E_OK); // 1: timestamp
+    /**
+     * @tc.steps: step2. device B sync to device A and check data
+     * * @tc.expected: step2. interface return ok
+    */
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), NOT_FOUND);
+    g_deviceB->ResetDataControl();
 }
 
 /**

@@ -81,6 +81,18 @@ void KvVirtualDevice::DelayGetSyncData(uint64_t milliDelayTime)
     syncInterface->DelayGetSyncData(milliDelayTime);
 }
 
+void KvVirtualDevice::SetGetDataErrCode(int whichTime, int errCode, bool isGetDataControl)
+{
+    VirtualSingleVerSyncDBInterface *syncInterface = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncInterface->SetGetDataErrCode(whichTime, errCode, isGetDataControl);
+}
+
+void KvVirtualDevice::ResetDataControl()
+{
+    VirtualSingleVerSyncDBInterface *syncInterface = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncInterface->ResetDataControl();
+}
+
 int KvVirtualDevice::Subscribe(QuerySyncObject query, bool wait, int id)
 {
     auto operation = new (std::nothrow) SyncOperation(id, {remoteDeviceId_}, SUBSCRIBE_QUERY, nullptr, wait);

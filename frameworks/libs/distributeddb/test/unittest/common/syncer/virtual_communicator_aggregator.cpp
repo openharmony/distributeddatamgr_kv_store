@@ -189,13 +189,20 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
         msg->SetTarget(srcTarget);
         RefObject::IncObjRef(communicator);
         auto onDispatch = onDispatch_;
-        std::thread thread([communicator, srcTarget, dstTarget, msg, onDispatch]() {
+        bool isNeedDelay = ((sendDelayTime_ > 0) && (delayTimes_ > 0) && (msg->GetMessageId() == delayMessageId_) &&
+            (delayDevices_.count(dstTarget) > 0) && (skipTimes_ == 0));
+        uint32_t sendDelayTime = sendDelayTime_;
+        std::thread thread([communicator, srcTarget, dstTarget, msg, isNeedDelay, sendDelayTime, onDispatch]() {
+            if (isNeedDelay) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(sendDelayTime));
+            }
             if (onDispatch) {
                 onDispatch(dstTarget, msg);
             }
             communicator->CallbackOnMessage(srcTarget, msg);
             RefObject::DecObjRef(communicator);
         });
+        DelayTimeHandle(inMsg->GetMessageId(), dstTarget);
         thread.detach();
         CallSendEnd(E_OK, onEnd);
     } else {
@@ -273,6 +280,36 @@ void VirtualCommunicatorAggregator::SetDeviceMtuSize(const std::string &deviceId
     std::lock_guard<std::mutex> lock(communicatorsLock_);
     if (communicators_.find(deviceId) != communicators_.end()) {
         communicators_[deviceId]->SetCommunicatorMtuSize(mtuSize);
+    }
+}
+
+void VirtualCommunicatorAggregator::SetSendDelayInfo(uint32_t sendDelayTime, uint32_t delayMessageId,
+    uint32_t delayTimes, uint32_t skipTimes, std::set<std::string> &delayDevices)
+{
+    sendDelayTime_ = sendDelayTime;
+    delayMessageId_ = delayMessageId;
+    delayTimes_ = delayTimes;
+    delayDevices_ = delayDevices;
+    skipTimes_ = skipTimes;
+}
+
+void VirtualCommunicatorAggregator::ResetSendDelayInfo()
+{
+    sendDelayTime_ = 0;
+    delayMessageId_ = INVALID_MESSAGE_ID;
+    delayTimes_ = 0;
+    skipTimes_ = 0;
+    delayDevices_.clear();
+}
+
+void VirtualCommunicatorAggregator::DelayTimeHandle(uint32_t messageId, const std::string &dstTarget)
+{
+    if ((skipTimes_ == 0) && delayTimes_ > 0 && (messageId == delayMessageId_) &&
+        (delayDevices_.count(dstTarget) > 0)) {
+        delayTimes_--;
+    }
+    if (skipTimes_ > 0 && (messageId == delayMessageId_) && (delayDevices_.count(dstTarget) > 0)) {
+        skipTimes_--;
     }
 }
 } // namespace DistributedDB

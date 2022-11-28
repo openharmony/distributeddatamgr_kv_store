@@ -641,6 +641,70 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager005, TestSi
 }
 
 /**
+ * @tc.name: subscribeManager006
+ * @tc.desc: test exception branch of subscribe manager
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. active a query sync object which is not in local subscribe map
+     * @tc.expected:step1 return -E_INTERNAL_ERROR
+     */
+    SubscribeManager subManager;
+    QuerySyncObject queryCommonObj(Query::Select().PrefixKey({'a'}));
+    EXPECT_EQ(subManager.ActiveLocalSubscribeQuery(DEVICE_A, queryCommonObj), -E_INTERNAL_ERROR);
+    subManager.DeleteLocalSubscribeQuery(DEVICE_A, queryCommonObj);
+    subManager.RemoveLocalSubscribeQuery(DEVICE_A, queryCommonObj);
+    std::vector<QuerySyncObject> subscribeQueries;
+    subManager.PutLocalUnFinishedSubQueries(DEVICE_A, subscribeQueries);
+    std::map<std::string, std::vector<QuerySyncObject>> allSyncQueries;
+    subManager.GetAllUnFinishSubQueries(allSyncQueries);
+
+    /**
+     * @tc.steps: step2. call IsLastRemoteContainSubscribe with a device not in remote subscribe map
+     * @tc.expected: step2 return false
+     */
+    std::string queryId = "queryId";
+    EXPECT_EQ(subManager.IsLastRemoteContainSubscribe(DEVICE_A, queryId), false);
+
+    /**
+     * @tc.steps: step3. active local subscribe with a device which is not in local subscribe map and
+     * a query sync object which is in local subscribe map
+     * @tc.expected: step3 return -E_INTERNAL_ERROR
+     */
+    std::vector<std::string> deviceAQueies;
+    std::vector<std::string> deviceBQueies;
+    std::map<std::string, QuerySyncObject> queryMap;
+    InitLocalSubscribeMap(queryCommonObj, queryMap, deviceAQueies, deviceBQueies, subManager);
+    ASSERT_TRUE(queryMap.size() > 0);
+    std::string devNotExists = "device_not_exists";
+    EXPECT_EQ(subManager.ActiveLocalSubscribeQuery(devNotExists, queryMap.begin()->second), -E_INTERNAL_ERROR);
+    QuerySyncObject queryObj(Query::Select().PrefixKey({'b'}));
+    EXPECT_EQ(subManager.ReserveLocalSubscribeQuery("test_dev", queryObj), E_OK);
+    subManager.DeleteLocalSubscribeQuery(DEVICE_A, queryObj);
+    
+    EXPECT_EQ(subManager.ActiveLocalSubscribeQuery(DEVICE_B, queryObj), -E_INTERNAL_ERROR);
+    subManager.DeleteLocalSubscribeQuery(DEVICE_A, queryCommonObj);
+    ASSERT_TRUE(subManager.ReserveRemoteSubscribeQuery(DEVICE_A, queryCommonObj) == E_OK);
+    ASSERT_TRUE(subManager.ActiveRemoteSubscribeQuery(DEVICE_A, queryCommonObj) == E_OK);
+    EXPECT_EQ(subManager.IsLastRemoteContainSubscribe(DEVICE_A, queryId), false);
+    deviceAQueies.push_back(DEVICE_A);
+    EXPECT_EQ(subManager.LocalSubscribeLimitCheck(deviceAQueies, queryCommonObj), E_OK);
+    
+    /**
+     * @tc.steps: step4. add MAX_DEVICES_NUM device, then call LocalSubscribeLimitCheck
+     * @tc.expected: step4 return -E_MAX_LIMITS
+     */
+    for (size_t i = 0 ; i < MAX_DEVICES_NUM; i++) {
+        deviceAQueies.push_back("device_" + std::to_string(i));
+    }
+    EXPECT_EQ(subManager.LocalSubscribeLimitCheck(deviceAQueies, queryCommonObj), -E_MAX_LIMITS);
+}
+
+/**
  * @tc.name: subscribeSync001
  * @tc.desc: test subscribe normal sync
  * @tc.type: FUNC

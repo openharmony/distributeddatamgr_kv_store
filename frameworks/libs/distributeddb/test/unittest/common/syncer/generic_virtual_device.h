@@ -45,6 +45,7 @@ public:
     virtual int Sync(SyncMode mode, const Query &query, const SyncOperation::UserCallback &callBack, bool wait);
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, std::shared_ptr<ResultSet> &result);
+    void SetClearRemoteStaleData(bool isStaleData);
 protected:
     ICommunicator *communicateHandle_;
     VirtualCommunicatorAggregator *communicatorAggregator_;

@@ -21,6 +21,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "platform_specific.h"
 #include "securec.h"
+#include "sqlite_local_kvdb_snapshot.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -1868,4 +1869,21 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, GetSnapshotObserverData001, 
 
     EXPECT_EQ(g_kvDelegatePtr->ReleaseKvStoreSnapshot(g_snapshotDelegatePtr), OK);
     g_snapshotDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: SnapshotErr001
+  * @tc.desc: Attempt to get interface when connection is nullptr
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotErr001, TestSize.Level1)
+{
+    SQLiteLocalKvDBSnapshot snapshot(nullptr);
+    Key key;
+    Value value;
+    EXPECT_EQ(snapshot.Get(key, value), -E_INVALID_DB);
+
+    std::vector<Entry> entry;
+    EXPECT_EQ(snapshot.GetEntries(key, entry), -E_INVALID_DB);
 }

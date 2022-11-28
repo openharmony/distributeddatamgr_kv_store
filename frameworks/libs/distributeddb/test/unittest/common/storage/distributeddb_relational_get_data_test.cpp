@@ -1567,6 +1567,29 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
 }
 
 /**
+  * @tc.name: SetNextBeginTime001
+  * @tc.desc: Test invalid parameters of query_object.cpp
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level1)
+{
+    QueryObject query(Query::Select(g_tableName));
+    std::unique_ptr<SQLiteSingleVerRelationalContinueToken> token =
+        std::make_unique<SQLiteSingleVerRelationalContinueToken>(SyncTimeRange {}, query);
+    ASSERT_TRUE(token != nullptr);
+
+    DataItem dataItem;
+    dataItem.timestamp = INT64_MAX;
+    token->SetNextBeginTime(dataItem);
+
+    dataItem.flag = DataItem::DELETE_FLAG;
+    token->FinishGetData();
+    token->SetNextBeginTime(dataItem);
+}
+
+/**
  * @tc.name: CloseStore001
  * @tc.desc: Test Relational Store Close Action.
  * @tc.type: FUNC
