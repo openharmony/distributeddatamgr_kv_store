@@ -44,12 +44,6 @@ describe('schemaTest', function () {
         try {
             kvManager =  ddm.createKVManager(config);
             console.info("beforeAll: createKVManager (single) with " + JSON.stringify(options));
-            // await ddm.createKVManager(config).then((manager) => {
-            //     kvManager = manager;
-            //     console.info('beforeAll createKVManager success');
-            // }).catch((err) => {
-            //     console.info('beforeAll createKVManager err ' + err);
-            // });
         } catch (e) {
             console.info("fail on exception: " + e);
             expect(null).assertFail();

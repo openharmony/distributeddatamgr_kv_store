@@ -76,11 +76,6 @@ describe('SingleKvStoreCallbackTest', function () {
     beforeAll(async function (done) {
         console.info('beforeAll config:' + JSON.stringify(config));
         kvManager =  factory.createKVManager(config);
-        // await factory.createKVManager(config, function (err, manager) {
-        //     kvManager = manager;
-        //     console.info('beforeAll createKVManager success');
-        //     done();
-        // })
         done();
     })
 
