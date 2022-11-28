@@ -127,7 +127,7 @@ Status BackupManager::Backup(const std::string &name, const std::string &baseDir
     (void)StoreUtil::InitPath(topPath);
     (void)StoreUtil::InitPath(storePath);
     KeepData(backupFullName, isCreate);
-    auto password = SecurityManager::GetInstance().GetDBPassword(storeId, baseDir);
+    auto password = SecurityManager::GetInstance().GetDBPassword(storeId, baseDir).password;
     if (password.GetSize() != 0) {
         KeepData(keyFullName, isCreate);
     }

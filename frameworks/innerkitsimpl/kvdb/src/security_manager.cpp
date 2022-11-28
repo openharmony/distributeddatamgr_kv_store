@@ -309,14 +309,14 @@ int32_t SecurityManager::GenerateRootKey()
     return ret;
 }
 
-bool SecurityManager::CheckRootKey()
+int32_t SecurityManager::CheckRootKey()
 {
     struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return false;
+        return ret;
     }
 
     struct HksParam hksParam[] = {
@@ -332,20 +332,20 @@ bool SecurityManager::CheckRootKey()
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return false;
+        return ret;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return false;
+        return ret;
     }
 
     ret = HksKeyExist(&rootKeyName, params);
     HksFreeParamSet(&params);
     ZLOGI("HksKeyExist status: %{public}d", ret);
-    return ret == HKS_SUCCESS;
+    return ret;
 }
 
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
