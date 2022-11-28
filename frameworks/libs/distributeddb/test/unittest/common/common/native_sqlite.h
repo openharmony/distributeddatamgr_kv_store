@@ -12,6 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#ifndef NATIVE_SQLITE_H
+#define NATIVE_SQLITE_H
+
 #include <string>
 #include <functional>
 
@@ -30,3 +34,5 @@ private:
     ~NativeSqlite();
 };
 }
+
+#endif // NATIVE_SQLITE_H
