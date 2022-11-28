@@ -435,8 +435,11 @@ HWTEST_F(BackupManagerTest, CleanTmp, TestSize.Level0)
 */
 HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
 {
+    AppId appId = { "BackupManagerTest" };
+    StoreId storeId = { "SingleKVStoreEncrypt" };
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
-    auto kvStoreEncrypt = CreateKVStore("SinglekvStoreEncrypt", "BackupManagerTest", baseDir, SINGLE_VERSION, false);
+
+    auto kvStoreEncrypt = CreateKVStore("SinglekvStoreEncrypt", "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     if (kvStoreEncrypt == nullptr) {
         kvStoreEncrypt = CreateKVStore("SinglekvStoreEncrypt", "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     }
@@ -459,4 +462,11 @@ HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
     status = kvStoreEncrypt->Get("Put Test", value);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(std::string("Put Value"), value.ToString());
+
+    status = DeleteBackUpFiles(kvStoreEncrypt, baseDir, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, SUCCESS);
 }
