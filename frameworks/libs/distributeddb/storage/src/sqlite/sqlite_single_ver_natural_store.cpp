@@ -954,7 +954,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     return RemoveDeviceData(deviceName, isNeedNotify, true);
 }
 
-int SQLiteSingleVerNaturalStore::GetExistsDeviceList(std::vector<std::string> &deviceList) const
+int SQLiteSingleVerNaturalStore::GetExistsDeviceList(std::set<std::string> &deviceList) const
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
@@ -989,7 +989,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         return -E_LOG_OVER_LIMITS;
     }
 
-    std::vector<std::string> removeDevices;
+    std::set<std::string> removeDevices;
     if (deviceName.empty()) {
         errCode = GetExistsDeviceList(removeDevices);
         if (errCode != E_OK) {
@@ -997,7 +997,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
             return errCode;
         }
     } else {
-        removeDevices.push_back(deviceName);
+        removeDevices.insert(deviceName);
     }
 
     LOGD("[SingleVerNStore] remove device data, size=%zu", removeDevices.size());

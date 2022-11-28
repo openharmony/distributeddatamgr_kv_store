@@ -121,7 +121,7 @@ public:
 
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
-    int GetMetaKeysByKeyPrefix(const std::string &keyPre, std::vector<std::string> &outKeys) const;
+    int GetMetaKeysByKeyPrefix(const std::string &keyPre, std::set<std::string> &outKeys) const;
 
     int GetAllSyncedEntries(const std::string &deviceName, std::vector<Entry> &entries) const;
 
@@ -249,7 +249,7 @@ public:
 
     uint64_t GetLogFileSize() const;
 
-    int GetExistsDevicesFromMeta(std::vector<std::string> &deviceList);
+    int GetExistsDevicesFromMeta(std::set<std::string> &deviceList);
 
 private:
     struct SaveRecordStatements {
