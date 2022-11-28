@@ -43,12 +43,13 @@ describe('KvStoreResultSetTest', function () {
     beforeAll(async function (done) {
         console.info('beforeAll');
         console.info('beforeAll config:' + JSON.stringify(config));
-        await factory.createKVManager(config).then((manager) => {
-            kvManager = manager;
-            console.info('beforeAll createKVManager success');
-        }).catch((err) => {
-            console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
+        kvManager =  factory.createKVManager(config);
+        // await factory.createKVManager(config).then((manager) => {
+        //     kvManager = manager;
+        //     console.info('beforeAll createKVManager success');
+        // }).catch((err) => {
+        //     console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
+        // });
         await kvManager.getAllKVStoreId(TEST_BUNDLE_NAME).then(async (data) => {
             console.info('beforeAll getAllKVStoreId size = ' + data.length);
             for (var i = 0; i < data.length; i++) {
