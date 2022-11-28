@@ -34,7 +34,6 @@ public:
     DBPasswordData GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
     bool SaveDBPassword(const std::string &name, const std::string &path, const DBPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
-    bool IsKeyOutdated(const SecurityManager::DBPassword &key, bool encrypt);
     bool ReKey(const std::string &name, const std::string &path, DBStore *store);
 
 private:
@@ -54,10 +53,11 @@ private:
     bool Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
-    
+
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};
     std::vector<uint8_t> vecAad_{};
+    std::atomic_bool hasRootKey_ = false;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H

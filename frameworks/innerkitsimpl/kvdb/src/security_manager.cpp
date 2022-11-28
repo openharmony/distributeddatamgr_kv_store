@@ -131,10 +131,10 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
 
     offset++;
     std::vector<uint8_t> date;
-    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);  
+    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
     isKeyOutdated = IsKeyOutdated(date);
     ZLOGE("isKeyOutdated is: %{public}d", isKeyOutdated);
-    
+
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     content.assign(content.size(), 0);
@@ -146,13 +146,13 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     return secretKey;
 }
 
-bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key, bool needSaveTime)
+bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
 {
     if (!hasRootKey_ && !Retry()) {
         ZLOGE("failed! no root key and generation failed");
         return false;
     }
-    
+
     auto secretKey = Encrypt(key);
     auto keyPath = path + "/key";
     StoreUtil::InitPath(keyPath);
@@ -309,14 +309,14 @@ int32_t SecurityManager::GenerateRootKey()
     return ret;
 }
 
-int32_t SecurityManager::CheckRootKey()
+bool SecurityManager::CheckRootKey()
 {
     struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
     struct HksParamSet *params = nullptr;
     int32_t ret = HksInitParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksInitParamSet failed, status: %{public}d", ret);
-        return ret;
+        return false;
     }
 
     struct HksParam hksParam[] = {
@@ -332,27 +332,27 @@ int32_t SecurityManager::CheckRootKey()
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksAddParams failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ret;
+        return false;
     }
 
     ret = HksBuildParamSet(&params);
     if (ret != HKS_SUCCESS) {
         ZLOGE("HksBuildParamSet failed, status: %{public}d", ret);
         HksFreeParamSet(&params);
-        return ret;
+        return false;
     }
 
     ret = HksKeyExist(&rootKeyName, params);
     HksFreeParamSet(&params);
     ZLOGI("HksKeyExist status: %{public}d", ret);
-    return ret;
+    return ret == HKS_SUCCESS;
 }
 
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 {
-    
+
     std::vector<uint8_t> timeVec(date);
-    
+
     time_t createTime = TransferByteArrayToType<time_t>(timeVec);
     std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
     time_t oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(525600));
