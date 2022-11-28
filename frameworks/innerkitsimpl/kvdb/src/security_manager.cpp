@@ -14,13 +14,15 @@
  */
 #define LOG_TAG "SECURITYMANAGER"
 #include "security_manager.h"
+
 #include <limits>
 #include <random>
 #include <unistd.h>
-#include "log_print.h"
+
+#include "file_ex.h"
 #include "hks_api.h"
 #include "hks_param.h"
-#include "file_ex.h"
+#include "log_print.h"
 #include "securec.h"
 #include "store_util.h"
 #include "task_executor.h"
@@ -33,7 +35,8 @@ SecurityManager::SecurityManager()
 }
 
 SecurityManager::~SecurityManager()
-{}
+{
+}
 
 SecurityManager &SecurityManager::GetInstance()
 {
@@ -61,15 +64,16 @@ bool SecurityManager::Retry()
     return false;
 }
 
-SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path , bool needCreate)
+SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
+    bool needCreate)
 {
     DBPasswordData passwordData;
     auto secKey = LoadKeyFromFile(name, path, passwordData.isKeyOutdated);
-    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", name.c_str(), path.c_str(), needCreate);
+    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", name.c_str(), path.c_str(),
+        needCreate);
     if (secKey.empty()) {
         if (!needCreate) {
-            return {false, DBPassword()};
+            return { false, DBPassword() };
         } else {
             secKey = Random(KEY_SIZE);
             SaveKeyToFile(name, path, secKey);
@@ -107,7 +111,8 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
     return key;
 }
 
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path, bool &isKeyOutdated)
+std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
+    bool &isKeyOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!FileExists(keyPath)) {
@@ -136,10 +141,10 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     ZLOGE("isKeyOutdated is: %{public}d", isKeyOutdated);
 
     offset += (sizeof(time_t) / sizeof(uint8_t));
-    std::vector<uint8_t> key{content.begin() + offset, content.end()};
+    std::vector<uint8_t> key{ content.begin() + offset, content.end() };
     content.assign(content.size(), 0);
-    std::vector<uint8_t> secretKey {};
-    if(!Decrypt(key, secretKey)) {
+    std::vector<uint8_t> secretKey{};
+    if (!Decrypt(key, secretKey)) {
         ZLOGE("client Decrypt failed");
         return {};
     }
@@ -162,7 +167,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     content.push_back(char((sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE));
     content.insert(content.end(), date.begin(), date.end());
     content.insert(content.end(), secretKey.begin(), secretKey.end());
-    auto keyFullPath = keyPath+ "/" + name + ".key";
+    auto keyFullPath = keyPath + "/" + name + ".key";
     auto ret = SaveBufferToFile(keyFullPath, content);
     content.assign(content.size(), 0);
     if (!ret) {
@@ -350,9 +355,7 @@ int32_t SecurityManager::CheckRootKey()
 
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 {
-
     std::vector<uint8_t> timeVec(date);
-
     time_t createTime = TransferByteArrayToType<time_t>(timeVec);
     std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
     time_t oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(525600));

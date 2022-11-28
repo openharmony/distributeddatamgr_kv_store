@@ -51,7 +51,8 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
     if (isCreate && options.persistent) {
-        auto password = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt).password;
+        auto password =
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt).password;
         std::vector<uint8_t> pwd(password.GetData(), password.GetData() + password.GetSize());
         if (service != nullptr) {
             // delay notify

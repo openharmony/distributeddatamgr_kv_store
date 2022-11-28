@@ -55,10 +55,12 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+        auto passwordData =
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, passwordData.password),
-            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId, &passwordData](auto status, auto *store) {
+            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId, &passwordData](auto status,
+                auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
                     return;
