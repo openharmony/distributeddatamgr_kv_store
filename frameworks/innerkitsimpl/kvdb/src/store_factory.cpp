@@ -55,19 +55,16 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto password = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
-        if (password.GetSize() == 0 && options.encrypt) {
-            status = CRYPT_ERROR;
-            return !stores.empty();
-        }
+        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
         DBStatus dbStatus = DBStatus::DB_ERROR;
-        dbManager->GetKvStore(storeId, GetDBOption(options, password),
-            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId, &password](auto status, auto *store) {
+        dbManager->GetKvStore(storeId, GetDBOption(options, passwordData.password),
+            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId, &passwordData](auto status, auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
                     return;
                 }
-                if (SecurityManager::GetInstance().IsKeyOutdated(password, options.encrypt)) {
+
+                if (passwordData.isKeyOutdated) {
                     SecurityManager::GetInstance().ReKey(storeId.storeId, options.baseDir, store);
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };

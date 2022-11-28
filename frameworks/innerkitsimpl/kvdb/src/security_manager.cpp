@@ -61,22 +61,24 @@ bool SecurityManager::Retry()
     return false;
 }
 
-SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
-    bool needCreate)
+SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string &name,
+    const std::string &path , bool needCreate)
 {
-    DBPassword password;
-    auto secKey = LoadKeyFromFile(name, path);
-    if (secKey.empty() && needCreate) {
-        secKey = Random(KEY_SIZE);
-        if (!SaveKeyToFile(name, path, secKey)) {
-            secKey.assign(secKey.size(), 0);
-            return password;
+    DBPasswordData passwordData;
+    auto secKey = LoadKeyFromFile(name, path, passwordData.isKeyOutdated);
+    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", name.c_str(), path.c_str(), needCreate);
+    if (secKey.empty()) {
+        if (!needCreate) {
+            return {false, DBPassword()};
+        } else {
+            secKey = Random(KEY_SIZE);
+            SaveKeyToFile(name, path, secKey);
         }
     }
 
-    password.SetValue(secKey.data(), secKey.size());
+    passwordData.password.SetValue(secKey.data(), secKey.size());
     secKey.assign(secKey.size(), 0);
-    return password;
+    return passwordData;
 }
 
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
@@ -105,7 +107,7 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
     return key;
 }
 
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path)
+std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path, bool &isKeyOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!FileExists(keyPath)) {
@@ -129,7 +131,10 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
 
     offset++;
     std::vector<uint8_t> date;
-    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
+    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);  
+    isKeyOutdated = IsKeyOutdated(date);
+    ZLOGE("isKeyOutdated is: %{public}d", isKeyOutdated);
+    
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     content.assign(content.size(), 0);
@@ -141,7 +146,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     return secretKey;
 }
 
-bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)
+bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key, bool needSaveTime)
 {
     if (!hasRootKey_ && !Retry()) {
         ZLOGE("failed! no root key and generation failed");
@@ -343,23 +348,11 @@ int32_t SecurityManager::CheckRootKey()
     return ret;
 }
 
-bool SecurityManager::IsKeyOutdated(const SecurityManager::DBPassword &key, bool encrypt)
+bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 {
-    ZLOGE("Size of key is: %{public}d, and time size is: %{public}d ",key.GetSize(),(sizeof(time_t) / sizeof(uint8_t)));
-    if (!encrypt) {
-        ZLOGE("No encrypt db");
-        return false;
-    }
-    if (key.GetSize() < (sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE) {
-        ZLOGE("Key check failed, size og key is %{public}d", sizeof(time_t) / sizeof(uint8_t) + KEY_SIZE);
-        return false;
-    }
-    auto secData = key.GetData();
-    std::vector<uint8_t> timeVec;
-    for (int i = 0; i < static_cast<int>(sizeof(time_t) / sizeof(uint8_t)); i++) {
-        timeVec.push_back(secData[i]);
-    }
-
+    
+    std::vector<uint8_t> timeVec(date);
+    
     time_t createTime = TransferByteArrayToType<time_t>(timeVec);
     std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
     time_t oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(525600));

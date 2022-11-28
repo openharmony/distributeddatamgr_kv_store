@@ -24,8 +24,14 @@ public:
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBPassword = DistributedDB::CipherPassword;
     using DBStatus = DistributedDB::DBStatus;
+
+    struct DBPasswordData {
+        bool isKeyOutdated  = false;
+        DBPassword password;
+    };
+
     static SecurityManager &GetInstance();
-    DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
+    DBPasswordData GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
     bool SaveDBPassword(const std::string &name, const std::string &path, const DBPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
     bool IsKeyOutdated(const SecurityManager::DBPassword &key, bool encrypt);
@@ -39,9 +45,10 @@ private:
 
     SecurityManager();
     ~SecurityManager();
-    std::vector<uint8_t> Random(int32_t len);
-    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path);
+    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path, bool &isKeyOutdated);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
+    std::vector<uint8_t> Random(int32_t len);
+    bool IsKeyOutdated(const std::vector<uint8_t> &date);
     int32_t GenerateRootKey();
     int32_t CheckRootKey();
     bool Retry();
@@ -51,7 +58,6 @@ private:
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};
     std::vector<uint8_t> vecAad_{};
-    std::atomic_bool hasRootKey_ = false;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
