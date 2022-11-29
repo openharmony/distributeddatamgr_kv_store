@@ -143,24 +143,24 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     if (schema.GetTable(tableName).GetTableName() == tableName) {
         LOGI("distributed table bas been created.");
         isUpgraded = true;
-        int errCode = UpgradeDistributedTable(tableName);
+        int errCode = UpgradeDistributedTable(tableName, schemaChanged);
         if (errCode != E_OK) {
             LOGE("Upgrade distributed table failed. %d", errCode);
             return errCode;
         }
         // Triggers may need to be rebuilt, no return directly
-    }
-
-    if (schema.GetTables().size() >= DBConstant::MAX_DISTRIBUTED_TABLE_COUNT) {
+    } else if (schema.GetTables().size() >= DBConstant::MAX_DISTRIBUTED_TABLE_COUNT) {
         LOGE("The number of distributed tables is exceeds limit.");
         return -E_MAX_LIMITS;
+    } else {
+        schemaChanged = true;
     }
 
-    return CreateDistributedTable(tableName, isUpgraded, identity, schemaChanged, schema);
+    return CreateDistributedTable(tableName, isUpgraded, identity, schema);
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName, bool isUpgraded,
-    const std::string &identity, bool &schemaChanged, RelationalSchemaObject &schema)
+    const std::string &identity, RelationalSchemaObject &schema)
 {
     LOGD("Create distributed table.");
     int errCode = E_OK;
@@ -198,12 +198,11 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     errCode = handle->Commit();
     if (errCode == E_OK) {
         schema_ = schema;
-        schemaChanged = true;
     }
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName)
+int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged)
 {
     LOGD("Upgrade distributed table.");
     RelationalSchemaObject schema = schema_;
@@ -222,7 +221,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
 
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-    errCode = handle->UpgradeDistributedTable(tableName, mode, schema);
+    errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema);
     if (errCode != E_OK) {
         LOGE("Upgrade distributed table failed. %d", errCode);
         (void)handle->Rollback();
