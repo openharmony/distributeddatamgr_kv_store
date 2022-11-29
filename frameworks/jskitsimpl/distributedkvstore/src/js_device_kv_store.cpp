@@ -148,10 +148,10 @@ struct VariantArgs {
 
 static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
 {
-    napi_status status = (argc == 1) ? GetLocalDeviceId(va.deviceId) : JSUtil::GetValue(env, argv[0], va.deviceId);
+    (argc == 1) ? GetLocalDeviceId(va.deviceId) : JSUtil::GetValue(env, argv[0], va.deviceId);
     int32_t pos = (argc == 1) ? 0 : 1;
     napi_valuetype type = napi_undefined;
-    status = napi_typeof(env, argv[pos], &type);
+    napi_status status = napi_typeof(env, argv[pos], &type);
     if (!(type == napi_string || type == napi_object)) {
         va.errMsg = "The type of parameters keyPrefix/query is incorrect.";
         return napi_invalid_arg;
