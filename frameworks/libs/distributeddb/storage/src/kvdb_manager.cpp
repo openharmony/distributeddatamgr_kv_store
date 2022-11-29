@@ -28,7 +28,7 @@ const std::string KvDBManager::PROCESS_LABEL_CONNECTOR = "-";
 std::atomic<KvDBManager *> KvDBManager::instance_{nullptr};
 std::mutex KvDBManager::kvDBLock_;
 std::mutex KvDBManager::instanceLock_;
-std::map<std::string, OS::FileHandle> KvDBManager::locks_;
+std::map<std::string, OS::FileHandle *> KvDBManager::locks_;
 
 namespace {
     DefaultFactory g_defaultFactory;
@@ -200,7 +200,7 @@ int KvDBManager::TryLockDB(const KvDBProperties &kvDBProp, int retryTimes)
     }
 
     std::string hexHashId = DBCommon::TransferStringToHex((id));
-    OS::FileHandle handle;
+    OS::FileHandle *handle = nullptr;
     int errCode = OS::OpenFile(dataDir + hexHashId + DBConstant::DB_LOCK_POSTFIX, handle);
     if (errCode != E_OK) {
         LOGE("Open lock file fail errCode = [%d], errno:%d", errCode, errno);

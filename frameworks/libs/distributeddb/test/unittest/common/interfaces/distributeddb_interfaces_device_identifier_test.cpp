@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 #include <thread>
+#include <fcntl.h>
 
 #include "db_common.h"
 #include "db_constant.h"
@@ -528,10 +529,10 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
 HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest002, TestSize.Level1)
 {
     std::string exportFileName = g_testDir + "/" + STORE_ID + ".dump";
-    OS::FileHandle fd;
-    EXPECT_EQ(OS::OpenFile(exportFileName, fd), E_OK);
-    g_store->Dump(fd.handle);
-    OS::CloseFile(fd);
+    int fd = open(exportFileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
+    ASSERT_TRUE(fd >= 0);
+    g_store->Dump(fd);
+    close(fd);
     OS::RemoveDBDirectory(exportFileName);
 }
 

@@ -45,6 +45,11 @@ namespace OS {
 namespace {
     const int ACCESS_MODE_EXISTENCE = 0;
 }
+
+struct FileHandle {
+    int handle = -1;
+};
+
 bool CheckPathExistence(const std::string &filePath)
 {
     int ret = _access(filePath.c_str(), ACCESS_MODE_EXISTENCE);
@@ -301,34 +306,43 @@ int SetFilePermissions(const std::string &fileName, uint32_t permissions)
     return E_OK;
 }
 
-int OpenFile(const std::string &fileName, FileHandle &handle)
+int OpenFile(const std::string &fileName, FileHandle *&handle)
 {
+    handle = new (std::nothrow)FileHandle;
+    if (handle == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
     handle.handle = _open(fileName.c_str(), (O_WRONLY | O_CREAT), _S_IREAD | _S_IWRITE);
-    if (handle.handle < 0) {
+    if (handle->handle < 0) {
         LOGE("[FileLock] can not open file when lock it:[%d]", errno);
+        delete handle;
+        handle = nullptr;
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
 }
 
-int CloseFile(FileHandle &handle)
+int CloseFile(FileHandle *handle)
 {
-    if (handle.handle == -1) {
+    if (handle == nullptr || handle->handle == -1) {
         LOGI("[CloseFile] file handle is invalid!");
-        return E_OK;
+        return -E_INVALID_ARGS;
     }
 
-    if (close(handle.handle) != 0) {
+    if (close(handle->handle) != 0) {
         LOGE("close file failed, errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
     }
-    handle.handle = -1;
+    delete handle;
     return E_OK;
 }
 
-int FileLock(const FileHandle &handle, bool isBlock)
+int FileLock(const FileHandle *handle, bool isBlock)
 {
-    if (handle.handle < 0) {
+    if (handle == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    if (handle->handle < 0) {
         LOGE("[FileLock] can not open file when lock it:[%d]", errno);
         return -E_SYSTEM_API_FAIL;
     }
@@ -336,7 +350,7 @@ int FileLock(const FileHandle &handle, bool isBlock)
     return E_OK;
 }
 
-int FileUnlock(FileHandle &handle)
+int FileUnlock(FileHandle *handle)
 {
     return E_OK;
 }
@@ -345,6 +359,11 @@ namespace {
     const int ACCESS_MODE_EXISTENCE = 0;
     const uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
 }
+
+struct FileHandle {
+    int handle = -1;
+};
+
 bool CheckPathExistence(const std::string &filePath)
 {
     return (access(filePath.c_str(), ACCESS_MODE_EXISTENCE) == 0);
@@ -579,33 +598,42 @@ int SetFilePermissions(const std::string &fileName, uint32_t permissions)
     return E_OK;
 }
 
-int OpenFile(const std::string &fileName, FileHandle &handle)
+int OpenFile(const std::string &fileName, FileHandle *&handle)
 {
-    handle.handle = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
-    if (handle.handle < 0) {
+    handle = new (std::nothrow)FileHandle;
+    if (handle == nullptr) {
+        return -E_OUT_OF_MEMORY;
+    }
+    handle->handle = open(fileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
+    if (handle->handle < 0) {
         LOGE("[FileLock] can not open file when lock it:[%d]", errno);
+        delete handle;
+        handle = nullptr;
         return -E_SYSTEM_API_FAIL;
     }
     return E_OK;
 }
 
-int CloseFile(FileHandle &handle)
+int CloseFile(FileHandle *handle)
 {
-    if (handle.handle == -1) {
+    if (handle == nullptr || handle->handle == -1) {
         LOGI("[CloseFile] file handle is invalid!");
-        return E_OK;
+        return -E_INVALID_ARGS;
     }
-    if (close(handle.handle) != 0) {
+    if (close(handle->handle) != 0) {
         LOGE("close file failed, errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
     }
-    handle.handle = -1;
+    delete handle;
     return E_OK;
 }
 
-int FileLock(const FileHandle &handle, bool isBlock)
+int FileLock(const FileHandle *handle, bool isBlock)
 {
-    if (handle.handle < 0) {
+    if (handle == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    if (handle->handle < 0) {
         LOGE("[FileLock] can not open file when lock it:[%d]", errno);
         return -E_SYSTEM_API_FAIL;
     }
@@ -617,7 +645,7 @@ int FileLock(const FileHandle &handle, bool isBlock)
     fileLockInfo.l_start = 0;
     fileLockInfo.l_len = 0;
     LOGD("Lock file isBlock[%d]", isBlock);
-    if (fcntl(handle.handle, isBlock ? F_SETLKW : F_SETLK, &fileLockInfo) == -1 && !isBlock) {
+    if (fcntl(handle->handle, isBlock ? F_SETLKW : F_SETLK, &fileLockInfo) == -1 && !isBlock) {
         LOGD("Lock file is Blocked, please retry!");
         return -E_BUSY;
     }
@@ -625,9 +653,9 @@ int FileLock(const FileHandle &handle, bool isBlock)
     return E_OK;
 }
 
-int FileUnlock(FileHandle &handle)
+int FileUnlock(FileHandle *handle)
 {
-    if (handle.handle == -1) {
+    if (handle == nullptr || handle->handle == -1) {
         LOGI("[FileUnlock] file handle is invalid!");
         return E_OK;
     }
@@ -638,7 +666,7 @@ int FileUnlock(FileHandle &handle)
     fileLockInfo.l_whence = SEEK_SET;
     fileLockInfo.l_start = 0;
     fileLockInfo.l_len = 0;
-    if (fcntl(handle.handle, F_SETLK, &fileLockInfo) == -1) {
+    if (fcntl(handle->handle, F_SETLK, &fileLockInfo) == -1) {
         LOGE("Unlock file failed. errno:%d", errno);
         return -E_SYSTEM_API_FAIL;
     }

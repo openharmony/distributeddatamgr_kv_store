@@ -96,6 +96,21 @@ HWTEST_F(DistributedDBCommonTest, RemoveAllFilesOfDirectory, TestSize.Level1)
 
 #ifdef RUNNING_ON_LINUX
 /**
+ * @tc.name: InvalidArgsTest001
+ * @tc.desc: Test invalid args for file operation.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCommonTest, InvalidArgsTest001, TestSize.Level1)
+{
+    EXPECT_EQ(OS::CloseFile(nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(OS::FileLock(nullptr, false), -E_INVALID_ARGS);
+    // unlock nullptr will return E_OK
+    EXPECT_EQ(OS::FileUnlock(nullptr), E_OK);
+}
+
+/**
  * @tc.name: SameProcessReLockFile
  * @tc.desc: Test same process repeat lock same file.
  * @tc.type: FUNC
@@ -106,14 +121,14 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReLockFile, TestSize.Level1)
 {
     // block mode
     EXPECT_EQ(OS::CreateFileByFileName(g_testDir + "/blockmode"), E_OK);
-    OS::FileHandle fd;
+    OS::FileHandle *fd = nullptr;
     EXPECT_EQ(OS::OpenFile(g_testDir + "/blockmode", fd), E_OK);
 
     EXPECT_EQ(OS::FileLock(fd, true), E_OK);
     EXPECT_EQ(OS::FileLock(fd, true), E_OK);
 
     // normal mode
-    OS::FileHandle fd2;
+    OS::FileHandle *fd2 = nullptr;
     EXPECT_EQ(OS::CreateFileByFileName(g_testDir + "/normalmode"), E_OK);
     EXPECT_EQ(OS::OpenFile(g_testDir + "/normalmode", fd2), E_OK);
     EXPECT_EQ(OS::FileLock(fd2, true), E_OK);
@@ -137,16 +152,10 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
 {
     // unlock normal file twice
     EXPECT_EQ(OS::CreateFileByFileName(g_testDir + "/normalmode"), E_OK);
-    OS::FileHandle fd;
+    OS::FileHandle *fd = nullptr;
     EXPECT_EQ(OS::OpenFile(g_testDir + "/normalmode", fd), E_OK);
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
     EXPECT_EQ(OS::CloseFile(fd), E_OK);
-    EXPECT_EQ(OS::FileUnlock(fd), E_OK);
-    EXPECT_EQ(OS::CloseFile(fd), E_OK);
-
-    EXPECT_EQ(OS::FileLock(fd, true), -E_SYSTEM_API_FAIL);
-    EXPECT_EQ(OS::FileLock(fd, true), -E_SYSTEM_API_FAIL);
-    ASSERT_EQ(fd.handle, -1);
 
     // block mode
     EXPECT_EQ(OS::CreateFileByFileName(g_testDir + "/blockmode"), E_OK);
@@ -154,9 +163,6 @@ HWTEST_F(DistributedDBCommonTest, SameProcessReUnLockFile, TestSize.Level1)
 
     EXPECT_EQ(OS::FileLock(fd, false), E_OK);
     EXPECT_EQ(OS::FileLock(fd, false), E_OK);
-
-    EXPECT_EQ(OS::FileUnlock(fd), E_OK);
-    EXPECT_EQ(OS::CloseFile(fd), E_OK);
     EXPECT_EQ(OS::FileUnlock(fd), E_OK);
     EXPECT_EQ(OS::CloseFile(fd), E_OK);
 }
@@ -211,7 +217,7 @@ void createStepFlag(int step)
  */
 HWTEST_F(DistributedDBCommonTest, DiffProcessLockFile, TestSize.Level1)
 {
-    OS::FileHandle fd;
+    OS::FileHandle *fd = nullptr;
     EXPECT_EQ(OS::OpenFile(g_testDir + DBConstant::DB_LOCK_POSTFIX, fd), E_OK);
     EXPECT_EQ(OS::FileLock(fd, false), E_OK);
     sleep(1);

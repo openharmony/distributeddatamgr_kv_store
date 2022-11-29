@@ -14,6 +14,7 @@
  */
 #ifndef OMIT_ENCRYPT
 #include <gtest/gtest.h>
+#include <fcntl.h>
 
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
@@ -1148,17 +1149,19 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ForceExportTest001, TestSiz
     CipherPassword passwd;
     std::string exportFileName = g_exportFileDir + "ForceExportTest001.back";
 
-    OS::FileHandle file;
-    OS::OpenFile(exportFileName, file);
+    int fd = open(exportFileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
+    ASSERT_TRUE(fd >= 0);
     std::string text = "Hello world.";
-    write(file.handle, text.c_str(), text.length());
-    OS::CloseFile(file);
+    write(fd, text.c_str(), text.length());
+    close(fd);
 
-    OS::SetFilePermissions(exportFileName, S_IRWXU);
+    chmod(exportFileName.c_str(), S_IRWXU);
     EXPECT_EQ(g_kvNbDelegatePtr->Export(exportFileName, passwd, true), OK);
 
     uint32_t filePermission = 0;
-    OS::GetFilePermissions(exportFileName, filePermission);
+    struct stat fileStat;
+    EXPECT_EQ(stat(exportFileName.c_str(), &fileStat), 0);
+    filePermission = fileStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO);
     EXPECT_EQ(filePermission, static_cast<uint32_t>(S_IRWXU));
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
