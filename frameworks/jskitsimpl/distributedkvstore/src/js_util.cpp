@@ -811,7 +811,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value jsValue, ValuesBucket &val
     for (size_t i = 0; i < arrLen; ++i) {
         napi_value jsKey = 0;
         status = napi_get_element(env, keys, i, &jsKey);
-        CHECK_RETURN((status == napi_ok), "no element", status);
+        ASSERT((status == napi_ok), "no element", status);
         std::string key;
         JSUtil::GetValue(env, jsKey, key);
         napi_value valueJs = 0;
