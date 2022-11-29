@@ -859,6 +859,32 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SyncEngineTest003
+ * @tc.desc: Test SyncEngine add block sync operation.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest003, TestSize.Level1)
+{
+    auto *enginePtr = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(enginePtr, nullptr);
+    std::vector<std::string> devices = {
+        "DEVICES_A", "DEVICES_B"
+    };
+    const int syncId = 1;
+    auto operation = new (std::nothrow) SyncOperation(syncId, devices, 0, nullptr, true);
+    ASSERT_NE(operation, nullptr);
+    operation->Initialize();
+    enginePtr->AddSyncOperation(operation);
+    for (const auto &device: devices) {
+        EXPECT_EQ(operation->GetStatus(device), static_cast<int>(SyncOperation::OP_BUSY_FAILURE));
+    }
+    RefObject::KillAndDecObjRef(operation);
+    RefObject::KillAndDecObjRef(enginePtr);
+}
+
+/**
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC
@@ -955,7 +981,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     Parcel parcel(buffer.data(), buffer.size());
 
@@ -963,7 +989,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     std::map<std::string, std::string> extraCondition = { { "test", "testsql" } };
     packet.SetExtraConditions(extraCondition);
     EXPECT_EQ(packet.Serialization(parcel), -E_INVALID_ARGS);
-    
+
     std::string sql = "testsql";
     for (uint32_t i = 0; i < DBConstant::MAX_CONDITION_COUNT; i++) {
         extraCondition[std::to_string(i)] = sql;
@@ -1005,7 +1031,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     RemoteExecutorRequestPacket targetPacket;
     Parcel targetParcel(buffer.data(), 3); // 3 is invalid len for deserialization
