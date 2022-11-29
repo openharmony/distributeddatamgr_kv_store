@@ -112,19 +112,19 @@ int SyncEngine::Close()
     isActive_ = false;
     UnRegCommunicatorsCallback();
     StopAutoSubscribeTimer();
-
+    std::vector<ISyncTaskContext *> decContext;
     // Clear SyncContexts
     {
         std::unique_lock<std::mutex> lock(contextMapLock_);
         for (auto &iter : syncTaskContextMap_) {
-            ISyncTaskContext *tempContext = iter.second;
-            lock.unlock();
-            RefObject::KillAndDecObjRef(tempContext);
-            tempContext = nullptr;
-            lock.lock();
+            decContext.push_back(iter.second);
             iter.second = nullptr;
         }
         syncTaskContextMap_.clear();
+    }
+    for (auto &iter : decContext) {
+        RefObject::KillAndDecObjRef(iter);
+        iter = nullptr;
     }
 
     WaitingExecTaskExist();
@@ -566,7 +566,7 @@ void SyncEngine::PutMsgIntoQueue(const std::string &targetDev, Message *inMsg, i
     inMsg->SetTarget(targetDev);
     msgQueue_.push_back(inMsg);
     queueCacheSize_ += msgSize;
-    LOGE("[SyncEngine] The quantity of executing threads is beyond maximum. msgQueueSize = %zu", msgQueue_.size());
+    LOGW("[SyncEngine] The quantity of executing threads is beyond maximum. msgQueueSize = %zu", msgQueue_.size());
 }
 
 int SyncEngine::GetMsgSize(const Message *inMsg) const
@@ -855,9 +855,9 @@ void SyncEngine::GetRemoteSubscribeQueries(const std::string &device, std::vecto
     subManager_->GetRemoteSubscribeQueries(device, subscribeQueries);
 }
 
-void SyncEngine::PutUnfiniedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries)
+void SyncEngine::PutUnfinishedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries)
 {
-    subManager_->PutLocalUnFiniedSubQueries(device, subscribeQueries);
+    subManager_->PutLocalUnFinishedSubQueries(device, subscribeQueries);
 }
 
 void SyncEngine::GetAllUnFinishSubQueries(std::map<std::string, std::vector<QuerySyncObject>> &allSyncQueries)
@@ -1017,7 +1017,7 @@ void SyncEngine::SchemaChange()
     std::lock_guard<std::mutex> lock(contextMapLock_);
     for (const auto &entry : syncTaskContextMap_) {
         auto context = entry.second;
-        if (context->IsKilled()) {
+        if (context == nullptr || context->IsKilled()) {
             continue;
         }
         // IncRef for SyncEngine to make sure context is valid, to avoid a big lock
@@ -1058,7 +1058,9 @@ void SyncEngine::Dump(int fd)
     // dump context info
     std::lock_guard<std::mutex> autoLock(contextMapLock_);
     for (const auto &entry : syncTaskContextMap_) {
-        entry.second->Dump(fd);
+        if (entry.second != nullptr) {
+            entry.second->Dump(fd);
+        }
     }
     DBDumpHelper::Dump(fd, "\t]\n\n");
 }
@@ -1139,7 +1141,7 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
         std::lock_guard<std::mutex> lock(contextMapLock_);
         for (const auto &entry : syncTaskContextMap_) {
             auto context = entry.second;
-            if (context->IsKilled()) {
+            if (context == nullptr || context->IsKilled()) {
                 continue;
             }
             RefObject::IncObjRef(context);

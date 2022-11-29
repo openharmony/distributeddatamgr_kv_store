@@ -256,8 +256,11 @@ void PragmaOperation(const uint8_t* data, size_t size)
     input = static_cast<PragmaData>(&size2);
     g_kvDelegatePtr->Pragma(GET_QUEUED_SYNC_SIZE, input);
 
-    auto *r = reinterpret_cast<const int *>(data);
-    int limit = *r;
+    int limit = 1; // init 1
+    if (size > sizeof(int)) {
+        auto *r = reinterpret_cast<const int *>(data);
+        limit = *r;
+    }
     input = static_cast<PragmaData>(&limit);
     g_kvDelegatePtr->Pragma(SET_QUEUED_SYNC_LIMIT, input);
 

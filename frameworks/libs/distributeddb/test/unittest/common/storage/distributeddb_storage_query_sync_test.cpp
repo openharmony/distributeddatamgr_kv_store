@@ -1316,7 +1316,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject003, TestSize.Level1)
 
     /**
      * @tc.steps:step3. Deserialize data when the version number is abnormal
-     * @tc.expected: -E_VERSION_NOT_SUPPORT，then correct the version number
+     * @tc.expected: -E_VERSION_NOT_SUPPORT, then correct the version number
      */
     EXPECT_EQ(buffLen, 120u); // 120 is the max buffer len
     uint8_t oldValue = *(buffer.data() + VERSION_BIT);

@@ -112,7 +112,13 @@ int KvVirtualDevice::Subscribe(QuerySyncObject query, bool wait, int id)
 
 int KvVirtualDevice::UnSubscribe(QuerySyncObject query, bool wait, int id)
 {
-    auto operation = new (std::nothrow) SyncOperation(id, {remoteDeviceId_}, UNSUBSCRIBE_QUERY, nullptr, wait);
+    return UnSubscribe(query, wait, id, nullptr);
+}
+
+int KvVirtualDevice::UnSubscribe(const QuerySyncObject &query, bool wait, int id,
+    const SyncOperation::UserCallback &callback)
+{
+    auto operation = new (std::nothrow) SyncOperation(id, {remoteDeviceId_}, UNSUBSCRIBE_QUERY, callback, wait);
     if (operation == nullptr) {
         return -E_OUT_OF_MEMORY;
     }

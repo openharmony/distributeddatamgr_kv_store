@@ -39,6 +39,7 @@ public:
 
     int Subscribe(QuerySyncObject query, bool wait, int id);
     int UnSubscribe(QuerySyncObject query, bool wait, int id);
+    int UnSubscribe(const QuerySyncObject &query, bool wait, int id, const SyncOperation::UserCallback &callback);
 };
 } // namespace DistributedDB
 

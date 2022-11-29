@@ -456,6 +456,7 @@ int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
     return E_OK;
 }
 
+#ifndef RUNNING_ON_SIMULATED_ENV
 int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
 {
     struct timeval rawTime;
@@ -468,6 +469,7 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
               static_cast<uint64_t>(rawTime.tv_usec);
     return E_OK;
 }
+#endif // RUNNING_ON_SIMULATED_ENV
 
 namespace {
     const uint64_t MULTIPLES_BETWEEN_MICROSECONDS_AND_NANOSECONDS = 1000;
