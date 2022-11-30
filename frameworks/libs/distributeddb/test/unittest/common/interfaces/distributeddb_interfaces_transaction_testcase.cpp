@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include "distributeddb_interfaces_transaction_testcase.h"
 
 using namespace testing::ext;
@@ -718,3 +718,4 @@ void DistributedDBInterfacesTransactionTestCase::RollBack008(KvStoreDelegate *&k
     EXPECT_TRUE(entryVectorStatus == OK);
     ASSERT_TRUE(matchSizeCallback == matchSize);
 }
+#endif // OMIT_MULTI_VER

@@ -32,41 +32,11 @@ int KvVirtualDevice::GetData(const Key &key, VirtualDataItem &item)
     return syncAble->GetSyncData(key, item);
 }
 
-int KvVirtualDevice::GetData(const Key &key, Value &value)
-{
-    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
-    return syncInterface->GetData(key, value);
-}
-
 int KvVirtualDevice::PutData(const Key &key, const Value &value, const Timestamp &time, int flag)
 {
     VirtualSingleVerSyncDBInterface *syncAble = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
     LOGI("dev %s put data time %" PRIu64, deviceId_.c_str(), time);
     return syncAble->PutData(key, value, time, flag);
-}
-
-int KvVirtualDevice::PutData(const Key &key, const Value &value)
-{
-    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
-    return syncInterface->PutData(key, value);
-}
-
-int KvVirtualDevice::DeleteData(const Key &key)
-{
-    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
-    return syncInterface->DeleteData(key);
-}
-
-int KvVirtualDevice::StartTransaction()
-{
-    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
-    return syncInterface->StartTransaction();
-}
-
-int KvVirtualDevice::Commit()
-{
-    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
-    return syncInterface->Commit();
 }
 
 void KvVirtualDevice::SetSaveDataDelayTime(uint64_t milliDelayTime)
@@ -92,6 +62,38 @@ void KvVirtualDevice::ResetDataControl()
     VirtualSingleVerSyncDBInterface *syncInterface = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
     syncInterface->ResetDataControl();
 }
+
+#ifndef OMIT_MULTI_VER
+int KvVirtualDevice::GetData(const Key &key, Value &value)
+{
+    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
+    return syncInterface->GetData(key, value);
+}
+
+int KvVirtualDevice::PutData(const Key &key, const Value &value)
+{
+    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
+    return syncInterface->PutData(key, value);
+}
+
+int KvVirtualDevice::DeleteData(const Key &key)
+{
+    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
+    return syncInterface->DeleteData(key);
+}
+
+int KvVirtualDevice::StartTransaction()
+{
+    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
+    return syncInterface->StartTransaction();
+}
+
+int KvVirtualDevice::Commit()
+{
+    VirtualMultiVerSyncDBInterface *syncInterface = static_cast<VirtualMultiVerSyncDBInterface *>(storage_);
+    return syncInterface->Commit();
+}
+#endif // OMIT_MULTI_VER
 
 int KvVirtualDevice::Subscribe(QuerySyncObject query, bool wait, int id)
 {

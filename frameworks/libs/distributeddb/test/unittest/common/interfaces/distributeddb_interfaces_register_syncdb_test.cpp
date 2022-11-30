@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 #include <thread>
 
@@ -1887,3 +1887,4 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, SnapshotErr001, TestSize.Lev
     std::vector<Entry> entry;
     EXPECT_EQ(snapshot.GetEntries(key, entry), -E_INVALID_DB);
 }
+#endif // OMIT_MULTI_VER

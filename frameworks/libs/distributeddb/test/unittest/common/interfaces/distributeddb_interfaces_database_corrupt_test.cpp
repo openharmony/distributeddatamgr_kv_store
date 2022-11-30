@@ -35,12 +35,15 @@ namespace {
     string g_testDir;
     KvStoreConfig g_config;
 
+#ifndef OMIT_MULTI_VER
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
-    DBStatus g_kvNbDelegateStatus = INVALID_ARGS;
     KvStoreDelegate *g_kvDelegatePtr = nullptr;
-    KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     auto g_kvDelegateCallback = std::bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, std::placeholders::_1,
         std::placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+#endif // OMIT_MULTI_VER
+
+    DBStatus g_kvNbDelegateStatus = INVALID_ARGS;
+    KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     auto g_kvNbDelegateCallback = std::bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         std::placeholders::_1, std::placeholders::_2, std::ref(g_kvNbDelegateStatus), std::ref(g_kvNbDelegatePtr));
 
@@ -66,30 +69,30 @@ namespace {
         return filePath;
     }
 
-    int PutDataIntoDatabase(KvStoreDelegate *kvDelegate, KvStoreNbDelegate *kvNbDelegate)
+    int PutDataIntoDatabaseSingleVer(KvStoreNbDelegate *kvNbDelegate)
     {
-        if (kvDelegate == nullptr && kvNbDelegate == nullptr) {
+        if (kvNbDelegate == nullptr) {
             return DBStatus::DB_ERROR;
         }
         Key key;
         Value value;
         DistributedDBToolsUnitTest::GetRandomKeyValue(key);
         DistributedDBToolsUnitTest::GetRandomKeyValue(value);
-        DBStatus status = OK;
-        if (kvDelegate != nullptr) {
-            status = kvDelegate->Put(key, value);
-            if (status != OK) {
-                return status;
-            }
-        }
-        if (kvNbDelegate != nullptr) {
-            status = kvNbDelegate->Put(key, value);
-            if (status != OK) {
-                return status;
-            }
-        }
-        return status;
+        return kvNbDelegate->Put(key, value);
     }
+#ifndef OMIT_MULTI_VER
+    int PutDataIntoDatabaseMultiVer(KvStoreDelegate *kvDelegate)
+    {
+        if (kvDelegate == nullptr) {
+            return DBStatus::DB_ERROR;
+        }
+        Key key;
+        Value value;
+        DistributedDBToolsUnitTest::GetRandomKeyValue(key);
+        DistributedDBToolsUnitTest::GetRandomKeyValue(value);
+        return kvDelegate->Put(key, value);
+    }
+#endif // OMIT_MULTI_VER
 }
 
 class DistributedDBInterfacesDatabaseCorruptTest : public testing::Test {
@@ -116,9 +119,11 @@ void DistributedDBInterfacesDatabaseCorruptTest::TearDownTestCase(void)
 
 void DistributedDBInterfacesDatabaseCorruptTest::SetUp(void)
 {
+#ifndef OMIT_MULTI_VER
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesDatabaseCorruptTest::TearDown(void)
@@ -126,6 +131,7 @@ void DistributedDBInterfacesDatabaseCorruptTest::TearDown(void)
     g_mgr.SetKvStoreCorruptionHandler(nullptr);
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: DatabaseCorruptionHandleTest001
   * @tc.desc: Check the corruption detect without setting the corrupt handler.
@@ -149,7 +155,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     g_mgr.GetKvStore("corrupt1", option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
-    ASSERT_EQ(PutDataIntoDatabase(g_kvDelegatePtr, nullptr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     g_kvDelegatePtr = nullptr;
 
@@ -168,6 +174,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     EXPECT_TRUE(g_kvDelegateStatus == INVALID_PASSWD_OR_CORRUPTED_DB);
     g_mgr.DeleteKvStore("corrupt1");
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: DatabaseCorruptionHandleTest002
@@ -188,24 +195,30 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     DistributedDBToolsUnitTest::GetRandomKeyValue(randomPassword, PASSWD_SIZE);
     int errCode = passwd.SetValue(randomPassword.data(), randomPassword.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option = {true, false, false, CipherType::DEFAULT, passwd};
-    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
-
     g_mgr.GetKvStore("corrupt2", option, g_kvDelegateCallback);
-    g_mgr.GetKvStore("corrupt3", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_EQ(PutDataIntoDatabase(g_kvDelegatePtr, g_kvNbDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
+
+    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
+    g_mgr.GetKvStore("corrupt3", nbOption, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvNbDelegatePtr = nullptr;
 
     /**
      * @tc.steps: step4. Modify the database file.
      */
-    std::string filePath = GetKvStoreDirectory("corrupt2", DBConstant::DB_TYPE_MULTI_VER);
+    std::string filePath;
+#ifndef OMIT_MULTI_VER
+    filePath = GetKvStoreDirectory("corrupt2", DBConstant::DB_TYPE_MULTI_VER);
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
+#endif // OMIT_MULTI_VER
     filePath = GetKvStoreDirectory("corrupt3", DBConstant::DB_TYPE_SINGLE_VER); // single ver database.
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
     KvStoreCorruptInfo corruptInfo;
@@ -217,15 +230,21 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
      * @tc.steps: step5. Re-obtain the kvStore.
      * @tc.expected: step5. Returns null kvstore.
      */
+    size_t infoSize = 0;
+#ifndef OMIT_MULTI_VER
     g_mgr.GetKvStore("corrupt2", option, g_kvDelegateCallback);
-    g_mgr.GetKvStore("corrupt3", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvDelegateStatus != OK);
-    ASSERT_TRUE(g_kvNbDelegateStatus != OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
-    EXPECT_EQ(corruptInfo.GetDatabaseInfoSize(), 2UL); // 2 callback
     EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt2"), true);
-    EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt3"), true);
     g_mgr.DeleteKvStore("corrupt2");
+    infoSize++;
+#endif // OMIT_MULTI_VER
+
+    g_mgr.GetKvStore("corrupt3", nbOption, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegateStatus != OK);
+    infoSize++;
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
+    EXPECT_EQ(corruptInfo.GetDatabaseInfoSize(), infoSize); // 2 callback
+    EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt3"), true);
     g_mgr.DeleteKvStore("corrupt3");
 }
 
@@ -248,20 +267,25 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     DistributedDBToolsUnitTest::GetRandomKeyValue(randomPassword, PASSWD_SIZE);
     int errCode = passwd.SetValue(randomPassword.data(), randomPassword.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option = {true, true, false, CipherType::DEFAULT, passwd};
-    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
-
     g_mgr.GetKvStore("corrupt4", option, g_kvDelegateCallback);
-    g_mgr.GetKvStore("corrupt5", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    ASSERT_EQ(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
+    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
+    g_mgr.GetKvStore("corrupt5", nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_EQ(PutDataIntoDatabase(g_kvDelegatePtr, g_kvNbDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
 
     /**
      * @tc.steps: step4. Modify the database file.
      */
-    std::string filePath = GetKvStoreDirectory("corrupt4", DBConstant::DB_TYPE_LOCAL); // local database.
+    std::string  filePath;
+#ifndef OMIT_MULTI_VER
+    filePath = GetKvStoreDirectory("corrupt4", DBConstant::DB_TYPE_LOCAL); // local database.
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
+#endif // OMIT_MULTI_VER
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath + "-wal");
     filePath = GetKvStoreDirectory("corrupt5", DBConstant::DB_TYPE_SINGLE_VER); // single ver database.
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
@@ -275,17 +299,23 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
      * @tc.steps: step5. Put data into the kvStore.
      * @tc.expected: step5. The corrupt handler is called twice.
      */
-    ASSERT_NE(PutDataIntoDatabase(g_kvDelegatePtr, nullptr), OK);
-    ASSERT_NE(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+    size_t infoSize = 0;
+#ifndef OMIT_MULTI_VER
+    ASSERT_NE(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
-    EXPECT_TRUE(corruptInfo.GetDatabaseInfoSize() >= 2UL); // 2 more callback
     EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt4"), true);
-    EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt5"), true);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvDelegatePtr = nullptr;
-    g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt4"), OK);
+    infoSize++;
+#endif // OMIT_MULTI_VER
+    ASSERT_NE(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    infoSize++;
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
+    EXPECT_TRUE(corruptInfo.GetDatabaseInfoSize() >= infoSize); // 2 more callback
+    EXPECT_EQ(corruptInfo.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt5"), true);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt5"), OK);
 }
 
@@ -308,20 +338,16 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
     DistributedDBToolsUnitTest::GetRandomKeyValue(randomPassword, PASSWD_SIZE);
     int errCode = passwd.SetValue(randomPassword.data(), randomPassword.size());
     ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
-    KvStoreDelegate::Option option = {true, true, false, CipherType::DEFAULT, passwd};
-    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
 
-    g_mgr.GetKvStore("corrupt6", option, g_kvDelegateCallback);
+    KvStoreNbDelegate::Option nbOption = {true, false, false, CipherType::DEFAULT, passwd};
     g_mgr.GetKvStore("corrupt7", nbOption, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_EQ(PutDataIntoDatabase(g_kvDelegatePtr, g_kvNbDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
 
     /**
      * @tc.steps: step4. Modify the database file.
      */
-    std::string filePath = GetKvStoreDirectory("corrupt6", DBConstant::DB_TYPE_LOCAL); // local database.
-    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
+    std::string filePath;
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath + "-wal");
     filePath = GetKvStoreDirectory("corrupt7", DBConstant::DB_TYPE_SINGLE_VER); // single ver database.
     DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
@@ -338,20 +364,79 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTes
      * @tc.steps: step5. Re-obtain the kvStore.
      * @tc.expected: step5. Returns null kvstore.
      */
-    ASSERT_NE(PutDataIntoDatabase(g_kvDelegatePtr, nullptr), OK);
-    ASSERT_NE(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+    size_t infoSize = 0;
+    ASSERT_NE(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
+    infoSize++;
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
     EXPECT_EQ(corruptInfo.GetDatabaseInfoSize(), 0UL); // no callback
-    EXPECT_TRUE(corruptInfoNew.GetDatabaseInfoSize() >= 2UL); // 2 more callback
-    EXPECT_EQ(corruptInfoNew.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt6"), true);
+    EXPECT_TRUE(corruptInfoNew.GetDatabaseInfoSize() >= infoSize); // 2 more callback
     EXPECT_EQ(corruptInfoNew.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt7"), true);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvDelegatePtr = nullptr;
     g_kvNbDelegatePtr = nullptr;
-    EXPECT_EQ(g_mgr.DeleteKvStore("corrupt6"), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("corrupt7"), OK);
 }
+
+#ifndef OMIT_MULTI_VER
+/**
+  * @tc.name: DatabaseCorruptionHandleTest005
+  * @tc.desc: Test the DeleteKvStore Interface and check whether the database files can be removed.
+  * @tc.type: FUNC
+  * @tc.require: AR000D487C SR000D4878
+  * @tc.author: wangbingquan
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseCorruptionHandleTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Get the kvStore.
+     * @tc.steps: step2. Put data into the store.
+     * @tc.steps: step3. Close the store.
+     */
+    CipherPassword passwd;
+    Key randomPassword;
+    DistributedDBToolsUnitTest::GetRandomKeyValue(randomPassword, PASSWD_SIZE);
+    int errCode = passwd.SetValue(randomPassword.data(), randomPassword.size());
+    ASSERT_EQ(errCode, CipherPassword::ErrorCode::OK);
+    KvStoreDelegate::Option option = {true, true, false, CipherType::DEFAULT, passwd};
+    g_mgr.GetKvStore("corrupt6", option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    ASSERT_EQ(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
+
+    /**
+     * @tc.steps: step4. Modify the database file.
+     */
+    std::string filePath = GetKvStoreDirectory("corrupt6", DBConstant::DB_TYPE_LOCAL); // local database.
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath + "-wal");
+    filePath = GetKvStoreDirectory("corrupt7", DBConstant::DB_TYPE_SINGLE_VER); // single ver database.
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath);
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath + "-wal");
+    KvStoreCorruptInfo corruptInfo;
+    KvStoreCorruptInfo corruptInfoNew;
+    auto notifier = bind(&KvStoreCorruptInfo::CorruptCallBack, &corruptInfo, std::placeholders::_1,
+                         std::placeholders::_2, std::placeholders::_3);
+    g_mgr.SetKvStoreCorruptionHandler(notifier);
+    auto notifierNew = bind(&KvStoreCorruptInfo::CorruptCallBack, &corruptInfoNew, std::placeholders::_1,
+                            std::placeholders::_2, std::placeholders::_3);
+    g_mgr.SetKvStoreCorruptionHandler(notifierNew);
+    /**
+     * @tc.steps: step5. Re-obtain the kvStore.
+     * @tc.expected: step5. Returns null kvstore.
+     */
+    size_t infoSize = 0;
+    ASSERT_NE(PutDataIntoDatabaseMultiVer(g_kvDelegatePtr), OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
+    EXPECT_EQ(corruptInfoNew.IsDataBaseCorrupted(APP_NAME, USER_NAME, "corrupt6"), true);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+    g_kvDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore("corrupt6"), OK);
+    infoSize++;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_CALLBACK_TIME));
+    EXPECT_EQ(corruptInfo.GetDatabaseInfoSize(), 0UL); // no callback
+    EXPECT_TRUE(corruptInfoNew.GetDatabaseInfoSize() >= infoSize); // 2 more callback
+}
+#endif // OMIT_MULTI_VER
 
 namespace {
 const uint32_t MODIFY_SIZE = 12; // Modify size is 12 * sizeof(uint32_t);
@@ -370,7 +455,7 @@ void TestDatabaseIntegrityCheckOption(const std::string &storeId, bool isEncrypt
     g_mgr.GetKvStore(storeId, nbOption, g_kvNbDelegateCallback);
     ASSERT_EQ(g_kvNbDelegateStatus, OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    ASSERT_EQ(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
     /**
@@ -400,7 +485,7 @@ void TestDatabaseIntegrityCheckOption(const std::string &storeId, bool isEncrypt
     g_mgr.GetKvStore(storeId, nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
 
-    ASSERT_EQ(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+    ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
     /**
@@ -470,7 +555,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseIntegrityCheck002, 
         g_mgr.GetKvStore("integrity021", nbOption, g_kvNbDelegateCallback);
         ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
         ASSERT_EQ(g_kvNbDelegatePtr->CheckIntegrity(), OK);
-        ASSERT_EQ(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+        ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
         EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
         DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath, i * 4096, MODIFY_SIZE, MODIFY_VALUE); // page size 4096
         g_mgr.GetKvStore("integrity021", nbOption, g_kvNbDelegateCallback);
@@ -493,7 +578,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseCorruptTest, DatabaseIntegrityCheck002, 
         g_mgr.GetKvStore("integrity022", nbOption, g_kvNbDelegateCallback);
         ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
         ASSERT_EQ(g_kvNbDelegatePtr->CheckIntegrity(), OK);
-        ASSERT_EQ(PutDataIntoDatabase(nullptr, g_kvNbDelegatePtr), OK);
+        ASSERT_EQ(PutDataIntoDatabaseSingleVer(g_kvNbDelegatePtr), OK);
         EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
         DistributedDBToolsUnitTest::ModifyDatabaseFile(filePath, i * 1024, MODIFY_SIZE, MODIFY_VALUE); // page size 1024
         g_mgr.GetKvStore("integrity022", nbOption, g_kvNbDelegateCallback);

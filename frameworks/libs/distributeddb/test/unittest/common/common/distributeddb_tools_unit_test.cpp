@@ -298,6 +298,7 @@ int DistributedDBToolsUnitTest::RemoveTestDbFiles(const std::string &dir)
     return 0;
 }
 
+#ifndef OMIT_MULTI_VER
 void DistributedDBToolsUnitTest::KvStoreDelegateCallback(
     DBStatus statusSrc, KvStoreDelegate *kvStoreSrc, DBStatus &statusDst, KvStoreDelegate *&kvStoreDst)
 {
@@ -305,17 +306,19 @@ void DistributedDBToolsUnitTest::KvStoreDelegateCallback(
     kvStoreDst = kvStoreSrc;
 }
 
-void DistributedDBToolsUnitTest::KvStoreNbDelegateCallback(
-    DBStatus statusSrc, KvStoreNbDelegate* kvStoreSrc, DBStatus &statusDst, KvStoreNbDelegate *&kvStoreDst)
-{
-    statusDst = statusSrc;
-    kvStoreDst = kvStoreSrc;
-}
 void DistributedDBToolsUnitTest::SnapshotDelegateCallback(
     DBStatus statusSrc, KvStoreSnapshotDelegate* snapshot, DBStatus &statusDst, KvStoreSnapshotDelegate *&snapshotDst)
 {
     statusDst = statusSrc;
     snapshotDst = snapshot;
+}
+#endif
+
+void DistributedDBToolsUnitTest::KvStoreNbDelegateCallback(
+    DBStatus statusSrc, KvStoreNbDelegate* kvStoreSrc, DBStatus &statusDst, KvStoreNbDelegate *&kvStoreDst)
+{
+    statusDst = statusSrc;
+    kvStoreDst = kvStoreSrc;
 }
 
 void DistributedDBToolsUnitTest::ValueCallback(

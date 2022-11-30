@@ -25,20 +25,19 @@ using namespace std;
 
 namespace {
     string g_testDir;
-    const bool LOCAL_ONLY = true;
     const string STORE_ID = STORE_ID_LOCAL;
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     KvStoreConfig g_config;
     // define the g_kvDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatusForQuery = INVALID_ARGS;
+
+#ifndef OMIT_MULTI_VER
+    const bool LOCAL_ONLY = true;
     KvStoreDelegate *g_kvDelegatePtrForQuery = nullptr;
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallbackForQuery = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatusForQuery), std::ref(g_kvDelegatePtrForQuery));
-    KvStoreNbDelegate *g_kvNbDelegatePtrForQuery = nullptr;
-    auto g_kvNbDelegateCallbackForQuery = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
-        placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatusForQuery), std::ref(g_kvNbDelegatePtrForQuery));
 
     // define the g_kvDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
@@ -53,6 +52,11 @@ namespace {
     // the type of g_snapshotDelegateCallback is function<void(DBStatus, KvStoreSnapshotDelegate*)>
     auto g_snapshotDelegateCallback = bind(&DistributedDBToolsUnitTest::SnapshotDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(g_snapshotDelegateStatus), std::ref(g_snapshotDelegatePtr));
+#endif // OMIT_MULTI_VER
+
+    KvStoreNbDelegate *g_kvNbDelegatePtrForQuery = nullptr;
+    auto g_kvNbDelegateCallbackForQuery = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
+        placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatusForQuery), std::ref(g_kvNbDelegatePtrForQuery));
 
     // define the g_valueCallback, used to query a value object data from the kvdb.
     DBStatus g_valueStatus = INVALID_ARGS;
@@ -84,13 +88,40 @@ namespace {
                                         "\"field_name10\":\"LONG, DEFAULT 100\""
                                     "},"
                                     "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2\"]}";
-
+#ifndef OMIT_MULTI_VER
     void GetSnapshotUnitTest()
     {
         g_kvDelegatePtr->GetKvStoreSnapshot(nullptr, g_snapshotDelegateCallback);
         EXPECT_TRUE(g_snapshotDelegateStatus == OK);
         ASSERT_TRUE(g_snapshotDelegatePtr != nullptr);
     }
+
+    void TestSnapshotCreateAndRelease()
+    {
+        DBStatus status;
+        KvStoreSnapshotDelegate *snapshot = nullptr;
+        KvStoreObserver *observer = nullptr;
+        auto snapshotDelegateCallback = bind(&DistributedDBToolsUnitTest::SnapshotDelegateCallback,
+            placeholders::_1, placeholders::_2, std::ref(status), std::ref(snapshot));
+
+        /**
+        * @tc.steps: step1. Obtain the snapshot object snapshot through
+        *  the GetKvStoreSnapshot interface of the delegate.
+        * @tc.expected: step1. Returns a non-empty snapshot.
+        */
+        g_kvDelegatePtr->GetKvStoreSnapshot(observer, snapshotDelegateCallback);
+
+        EXPECT_TRUE(status == OK);
+        EXPECT_NE(snapshot, nullptr);
+
+        /**
+        * @tc.steps: step2. Release the obtained snapshot through
+        *  the ReleaseKvStoreSnapshot interface of the delegate.
+        * @tc.expected: step2. Release successfully.
+        */
+        EXPECT_EQ(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshot), OK);
+    }
+#endif // OMIT_MULTI_VER
 #ifndef OMIT_JSON
     const int CIRCLE_COUNT = 3;
     void PutValidEntries1()
@@ -271,33 +302,7 @@ namespace {
         Value value5(validData.begin(), validData.end());
         EXPECT_EQ(g_kvNbDelegatePtrForQuery->Put(KEY_5, value5), OK);
     }
-#endif
-    void TestSnapshotCreateAndRelease()
-    {
-        DBStatus status;
-        KvStoreSnapshotDelegate *snapshot = nullptr;
-        KvStoreObserver *observer = nullptr;
-        auto snapshotDelegateCallback = bind(&DistributedDBToolsUnitTest::SnapshotDelegateCallback,
-            placeholders::_1, placeholders::_2, std::ref(status), std::ref(snapshot));
 
-        /**
-        * @tc.steps: step1. Obtain the snapshot object snapshot through
-        *  the GetKvStoreSnapshot interface of the delegate.
-        * @tc.expected: step1. Returns a non-empty snapshot.
-        */
-        g_kvDelegatePtr->GetKvStoreSnapshot(observer, snapshotDelegateCallback);
-
-        EXPECT_TRUE(status == OK);
-        EXPECT_NE(snapshot, nullptr);
-
-        /**
-        * @tc.steps: step2. Release the obtained snapshot through
-        *  the ReleaseKvStoreSnapshot interface of the delegate.
-        * @tc.expected: step2. Release successfully.
-        */
-        EXPECT_EQ(g_kvDelegatePtr->ReleaseKvStoreSnapshot(snapshot), OK);
-    }
-#ifndef OMIT_JSON
     vector<Entry> PreDataForQueryByPreFixKey()
     {
         vector<Entry> res;
@@ -373,15 +378,18 @@ void DistributedDBInterfacesDataOperationTest::SetUp(void)
      * Here, we create STORE_ID.db before test,
      * and it will be closed in TearDown().
      */
+#ifndef OMIT_MULTI_VER
     CipherPassword passwd;
     KvStoreDelegate::Option option = {true, LOCAL_ONLY, false, CipherType::DEFAULT, passwd};
     g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesDataOperationTest::TearDown(void)
 {
+#ifndef OMIT_MULTI_VER
     if (g_kvDelegatePtr != nullptr && g_snapshotDelegatePtr != nullptr) {
         EXPECT_TRUE(g_kvDelegatePtr->ReleaseKvStoreSnapshot(g_snapshotDelegatePtr) == OK);
         g_snapshotDelegatePtr = nullptr;
@@ -391,8 +399,10 @@ void DistributedDBInterfacesDataOperationTest::TearDown(void)
         EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
         g_kvDelegatePtr = nullptr;
     }
+#endif // OMIT_MULTI_VER
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: Put001
   * @tc.desc: Put a data(non-empty key, non-empty value) into an exist distributed db
@@ -988,6 +998,7 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, SetConflictResolutionPolicyFa
      */
     EXPECT_NE(g_kvDelegatePtr->SetConflictResolutionPolicy(CUSTOMER_RESOLUTION, nullptr), OK);
 }
+#endif // OMIT_MULTI_VER
 #ifndef OMIT_JSON
 /**
   * @tc.name: GetEntriesWithQuery001

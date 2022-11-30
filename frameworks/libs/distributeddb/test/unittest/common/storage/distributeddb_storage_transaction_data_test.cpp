@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <cstdlib>
 #include <ctime>
 #include <gtest/gtest.h>
@@ -1590,3 +1590,4 @@ HWTEST_F(DistributedDBStorageTransactionDataTest, GetBranchTag001, TestSize.Leve
         }
     }
 }
+#endif // OMIT_MULTI_VER

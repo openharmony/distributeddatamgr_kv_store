@@ -40,7 +40,6 @@ namespace {
 
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
-    KvStoreDelegate *g_kvDelegatePtr = nullptr;
 
     void KvStoreNbDelegateCallback(DBStatus statusSrc, KvStoreNbDelegate* kvStoreSrc,
         DBStatus* statusDst, KvStoreNbDelegate** kvStoreDst)
@@ -101,15 +100,12 @@ void DistributedDBInterfacesNBResultsetPerfTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvNbDelegatePtr = nullptr;
-    g_kvDelegatePtr = nullptr;
 }
 
 void DistributedDBInterfacesNBResultsetPerfTest::TearDown(void)
 {
-    if (g_kvDelegatePtr != nullptr) {
-        g_mgr.CloseKvStore(g_kvNbDelegatePtr);
-        g_kvNbDelegatePtr = nullptr;
-    }
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
