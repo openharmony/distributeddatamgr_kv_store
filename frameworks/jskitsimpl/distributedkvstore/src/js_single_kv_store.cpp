@@ -983,7 +983,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
-        ZLOGD("ArgsType::PREDICATES GetResultSetWithQuery return %{public}d", status);
+        ZLOGD("kvStore->GetResultSet() return %{public}d", status);
 
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
