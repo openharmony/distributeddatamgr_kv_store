@@ -453,6 +453,21 @@ int QueryObject::SetSchema(const RelationalSchemaObject &schemaObj)
 }
 #endif
 
+void QueryObject::SetLimit(int limit, int offset)
+{
+    limit_ = limit;
+    offset_ = offset;
+    for (auto &iter : queryObjNodes_) {
+        if (iter.operFlag == QueryObjType::LIMIT) {
+            if (iter.fieldValue.size() == LIMIT_FIELD_VALUE_SIZE) {
+                iter.fieldValue[0].integerValue = limit_;
+                iter.fieldValue[1].integerValue = offset_;
+                break; // only one limit node
+            }
+        }
+    }
+}
+
 void QueryObject::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;

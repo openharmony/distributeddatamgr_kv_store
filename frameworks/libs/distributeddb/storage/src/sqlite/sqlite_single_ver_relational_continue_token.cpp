@@ -152,5 +152,20 @@ void SQLiteSingleVerRelationalContinueToken::SetFieldNames(const std::vector<std
 {
     fieldNames_ = fieldNames;
 }
+
+void SQLiteSingleVerRelationalContinueToken::UpdateNextSyncOffset(int addOffset)
+{
+    if (!queryObj_.HasLimit() || queryObj_.HasOrderBy()) {
+        return;
+    }
+    int limit;
+    int offset;
+    queryObj_.GetLimitVal(limit, offset);
+    if (limit < addOffset) {
+        LOGW("Sync data is over limit.");
+        return;
+    }
+    queryObj_.SetLimit(limit - addOffset, offset + addOffset);
+}
 }  // namespace DistributedDB
 #endif

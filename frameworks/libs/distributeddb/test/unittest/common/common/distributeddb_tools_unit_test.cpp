@@ -933,30 +933,37 @@ int RelationalTestUtils::ExecSql(sqlite3 *db, const std::string &sql,
         return -E_INVALID_ARGS;
     }
 
+    bool bindFinish = true;
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
         goto END;
     }
-    if (bindCallback) {
-        errCode = bindCallback(stmt);
-        if (errCode != E_OK) {
-            goto END;
-        }
-    }
 
     do {
-        errCode = SQLiteUtils::StepWithRetry(stmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            break;
+        if (bindCallback) {
+            errCode = bindCallback(stmt);
+            if (errCode != E_OK && errCode != -E_UNFINISHED) {
+                goto END;
+            }
+            bindFinish = (errCode != -E_UNFINISHED); // continue bind if unfinished
         }
-        if (resultCallback && resultCallback(stmt) != E_OK) { // continue step stmt while callback return E_OK
-            goto END;
+
+        while (true) {
+            errCode = SQLiteUtils::StepWithRetry(stmt);
+            if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+                errCode = E_OK; // Step finished
+                break;
+            } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+                goto END; // Step return error
+            }
+            if (resultCallback != nullptr && ((errCode = resultCallback(stmt)) != E_OK)) {
+                goto END;
+            }
         }
-    } while (true);
+        SQLiteUtils::ResetStatement(stmt, false, errCode);
+    } while (!bindFinish);
+
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return errCode;

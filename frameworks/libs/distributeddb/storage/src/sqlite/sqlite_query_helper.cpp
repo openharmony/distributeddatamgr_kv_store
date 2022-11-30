@@ -964,17 +964,71 @@ int SqliteQueryHelper::GetRelationalMissQueryStatement(sqlite3 *dbHandle, uint64
     return BindTimeRange(statement, index, beginTime, endTime);
 }
 
+namespace {
+std::string GetRelationalSyncDataQueryHeader(const std::vector<std::string> &fieldNames)
+{
+    std::string sql = "SELECT b.data_key,"
+        "b.device,"
+        "b.ori_device,"
+        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
+        "b.wtimestamp,"
+        "b.flag,"
+        "b.hash_key,";
+    if (fieldNames.empty()) {  // For query check. If column count changed, can be discovered.
+        sql += "a.*";
+    } else {
+        for (const auto &fieldName : fieldNames) {  // For query data.
+            sql += "a." + fieldName + ",";
+        }
+        sql.pop_back();
+    }
+    return sql;
+}
+}
+
+int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<std::string> &fieldNames,
+    std::string &sql)
+{
+    if (!isValid_) {
+        return -E_INVALID_QUERY_FORMAT;
+    }
+
+    if (hasPrefixKey_) {
+        LOGE("For relational DB query, prefix key is not supported.");
+        return -E_NOT_SUPPORT;
+    }
+    sql = GetRelationalSyncDataQueryHeader(fieldNames);
+    sql += " FROM '" + tableName_ + "' AS a INNER JOIN ";
+    sql += DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
+    sql += " AS b ON (a.rowid = b.data_key)";
+    sql += " WHERE (b.flag&0x03=0x02)";
+
+    querySql_.clear(); // clear local query sql format
+    int errCode = ToQuerySyncSql(true, true);
+    if (errCode != E_OK) {
+        LOGE("To query sql fail! errCode[%d]", errCode);
+        return errCode;
+    }
+    sql += querySql_;
+    return E_OK;
+}
+
 int SqliteQueryHelper::GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
     const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement)
 {
+    int errCode = E_OK;
     bool hasSubQuery = false;
-    if (hasLimit_ || hasOrderBy_) {
+    std::string sql;
+    if (hasLimit_ && !hasOrderBy_) { // Query with limit and no order by
         hasSubQuery = true; // Need sub query.
+        errCode = GetRelationalSyncDataQuerySqlWithLimit(fieldNames, sql);
+    } else if (hasLimit_ || hasOrderBy_) {
+        hasSubQuery = true; // Need sub query.
+        errCode = GetRelationalSyncDataQuerySql(sql, hasSubQuery, fieldNames);
     } else {
         isNeedOrderbyKey_ = false; // Need order by timestamp.
+        errCode = GetRelationalSyncDataQuerySql(sql, hasSubQuery, fieldNames);
     }
-    std::string sql;
-    int errCode = GetRelationalSyncDataQuerySql(sql, hasSubQuery, fieldNames);
     if (errCode != E_OK) {
         LOGE("[Query] Get SQL fail!");
         return -E_INVALID_QUERY_FORMAT;
@@ -989,21 +1043,21 @@ int SqliteQueryHelper::GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t b
     int index = 1; // begin with 1.
     if (hasSubQuery) {
         /**
-         * SELECT * FROM (
          *   SELECT b.data_key,b.device,b.ori_device,b.timestamp as naturalbase_rdb_timestamp,
          *          b.wtimestamp,b.flag,b.hash_key,a.*
          *   FROM tableName AS a INNER JOIN naturalbase_rdb_log AS b
          *   ON a.rowid=b.data_key
          *   WHERE (b.flag&0x03=0x02)
+         *   ORDER BY a.xxx
          *   LIMIT ? OFFSET ? )
-         * WHERE (naturalbase_rdb_timestamp>=? AND naturalbase_rdb_timestamp<?)
-         * ORDER BY naturalbase_rdb_timestamp;
          */
         errCode = BindObjNodes(statement, index);
         if (errCode != E_OK) {
             return errCode;
         }
-        errCode = BindTimeRange(statement, index, beginTime, endTime);
+        if (!hasLimit_ || hasOrderBy_) {
+            errCode = BindTimeRange(statement, index, beginTime, endTime);
+        }
     } else {
         /**
          * SELECT b.data_key,b.device,b.ori_device,b.timestamp as naturalbase_rdb_timestamp,
