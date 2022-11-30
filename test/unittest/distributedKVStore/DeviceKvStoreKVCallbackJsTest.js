@@ -78,12 +78,6 @@ describe('DeviceKvStoreCallbackTest', function () {
     beforeAll(async function (done) {
         console.info('beforeAll config:' + JSON.stringify(config));
         kvManager = factory.createKVManager(config);
-        // .then((manager) => {
-        //     kvManager = manager;
-        //     console.info('beforeAll createKVManager success');
-        // }).catch((err) => {
-        //     console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-        // });
         await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
             kvStore = store;
             console.info('beforeAll getKVStore for getDeviceId success');
