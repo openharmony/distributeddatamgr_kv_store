@@ -68,6 +68,7 @@ void DistributedDBInterfacesEncryptDatabaseTest::TearDown(void)
 {
 }
 
+#ifndef OMIT_MULTI_VER
 void DistributedDBInterfacesEncryptDatabaseTest::CheckRekeyWithMultiKvStore(bool isLocal)
 {
     DBStatus status;
@@ -344,6 +345,33 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, MultiVerRekeyCheck003, Test
 }
 
 /**
+  * @tc.name: ExportAndImportCheck001
+  * @tc.desc: Test the EXPORT interface
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, ExportAndImportCheck001, TestSize.Level1)
+{
+    DBStatus status;
+    KvStoreDelegate *kvStore = nullptr;
+    auto delegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
+                                 placeholders::_2, std::ref(status), std::ref(kvStore));
+    KvStoreDelegate::Option option = {true, true, false};
+    g_mgr.GetKvStore(STORE_ID1, option, delegateCallback);
+    ASSERT_TRUE(kvStore != nullptr);
+
+    string path = g_testDir + "/export.back";
+    CipherPassword passwd;
+    vector<uint8_t> passwdBuffer(10, 45);  // 10 and 45 as random password.
+    passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
+    ASSERT_EQ(kvStore->Export(path, passwd), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(kvStore), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);
+}
+#endif // OMIT_MULTI_VER
+
+/**
   * @tc.name: SingleVerRekeyCheck001
   * @tc.desc: Attempt to rekey while another delegate is existed.
   * @tc.type: FUNC
@@ -494,31 +522,5 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck003, Tes
     EXPECT_EQ(kvStore->Rekey(passwd), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(kvStore), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID2), OK);
-}
-
-/**
-  * @tc.name: ExportAndImportCheck001
-  * @tc.desc: Test the EXPORT interface
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: bty
-  */
-HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, ExportAndImportCheck001, TestSize.Level1)
-{
-    DBStatus status;
-    KvStoreDelegate *kvStore = nullptr;
-    auto delegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
-        placeholders::_2, std::ref(status), std::ref(kvStore));
-    KvStoreDelegate::Option option = {true, true, false};
-    g_mgr.GetKvStore(STORE_ID1, option, delegateCallback);
-    ASSERT_TRUE(kvStore != nullptr);
-
-    string path = g_testDir + "/export.back";
-    CipherPassword passwd;
-    vector<uint8_t> passwdBuffer(10, 45);  // 10 and 45 as random password.
-    passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
-    ASSERT_EQ(kvStore->Export(path, passwd), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(kvStore), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);
 }
 #endif

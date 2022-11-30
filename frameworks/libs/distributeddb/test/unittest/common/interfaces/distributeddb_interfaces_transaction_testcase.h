@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #ifndef DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H
 #define DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H
 
@@ -83,3 +83,4 @@ public:
         DistributedDB::KvStoreSnapshotDelegate *&snapshotDelegatePtr);
 };
 #endif
+#endif // OMIT_MULTI_VER

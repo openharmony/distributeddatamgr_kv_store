@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #ifndef VIRTUAL_MULTI_VER_SYNC_INTERFACE_H
 #define VIRTUAL_MULTI_VER_SYNC_INTERFACE_H
 
@@ -103,3 +103,4 @@ private:
 }  // namespace DistributedDB
 
 #endif // VIRTUAL_MULTI_VER_SYNC_INTERFACE
+#endif // OMIT_MULTI_VER

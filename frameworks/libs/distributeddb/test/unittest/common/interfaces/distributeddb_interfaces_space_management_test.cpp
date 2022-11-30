@@ -37,16 +37,18 @@ namespace {
     // define the g_kvNbDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
-    KvStoreDelegate *g_kvDelegatePtr = nullptr;
     KvStoreNbDelegate::Option g_nbOption;
 
     // the type of g_kvNbDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
+#ifndef OMIT_MULTI_VER
+    KvStoreDelegate *g_kvDelegatePtr = nullptr;
 
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+#endif // OMIT_MULTI_VER
 
     std::string g_storeId;
     std::string g_identifier;
@@ -130,7 +132,9 @@ void DistributedDBInterfacesSpaceManagementTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvNbDelegatePtr = nullptr;
+#ifndef OMIT_MULTI_VER
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesSpaceManagementTest::TearDown(void) {}
@@ -224,12 +228,13 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize002, Test
 {
     g_storeId = "distributed_GetKvStoreDiskSize_002";
     GetRealFileUrl();
-
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option;
     g_mgr.GetKvStore(g_storeId, option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
 
     g_mgr.GetKvStore(g_storeId, g_nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
@@ -252,6 +257,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize002, Test
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step3/4. Reopen Db and Put some Key Value to change Db size.
      */
@@ -259,6 +265,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize002, Test
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+#endif // OMIT_MULTI_VER
 
     /**
      * @tc.steps: step5/6. Get Db size by GetKvStoreDiskSize.
@@ -277,7 +284,9 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize002, Test
      * @tc.steps: step7. Close and Delete Db.
      * @tc.expected: step7. Successfully.
      */
+#ifndef OMIT_MULTI_VER
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
     EXPECT_EQ(g_mgr.DeleteKvStore(g_storeId), OK);
 }
 
@@ -324,11 +333,12 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, Test
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option;
     g_mgr.GetKvStore(g_storeId, option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
+#endif // OMIT_MULTI_VER
 
     /**
      * @tc.steps: step1. Use an anomalous length of storeId by GetKvStoreDiskSize to get size.
@@ -375,7 +385,9 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, GetKvStoreDiskSize003, Test
     EXPECT_EQ(dbSizeForCheck, singleAndMultiDbSize);
 
     DeleteFile(g_testDir + "/" + g_storeId + "/" + DBConstant::MULTI_SUB_DIR + "/test.txt");
+#ifndef OMIT_MULTI_VER
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
     EXPECT_EQ(g_mgr.DeleteKvStore(g_storeId), OK);
 }
 
@@ -452,6 +464,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option;
     g_mgr.GetKvStore(storeId1, option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
@@ -462,13 +475,14 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
 
     std::string storeId2 = "distributed_DeleteDbByStoreId002";
-
     g_mgr.GetKvStore(storeId2, nbOption, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+#ifndef OMIT_MULTI_VER
     option.localOnly = false;
     g_mgr.GetKvStore(storeId2, option, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
@@ -479,6 +493,7 @@ HWTEST_F(DistributedDBInterfacesSpaceManagementTest, DeleteDbByStoreId001, TestS
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
 
     uint64_t store1DbSize = 0;
     EXPECT_EQ(g_mgr.GetKvStoreDiskSize(storeId1, store1DbSize), OK);

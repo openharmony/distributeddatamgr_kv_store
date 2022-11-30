@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 
 #include "distributeddb_data_generate_unit_test.h"
@@ -673,3 +673,4 @@ HWTEST_F(DistributedDBInterfacesTransactionTest, Rollback008, TestSize.Level1)
      */
     DistributedDBInterfacesTransactionTestCase::RollBack008(g_kvDelegatePtr, g_snapshotDelegatePtr);
 }
+#endif // OMIT_MULTI_VER

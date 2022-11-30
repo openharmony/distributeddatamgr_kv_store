@@ -35,9 +35,7 @@
 #include "runtime_context.h"
 #include "param_check_utils.h"
 #include "auto_launch.h"
-#ifndef OMIT_MULTI_VER
 #include "kv_store_delegate_impl.h"
-#endif
 
 namespace DistributedDB {
 const std::string KvStoreDelegateManager::DEFAULT_PROCESS_APP_ID = "default";
@@ -171,7 +169,6 @@ DBStatus KvStoreDelegateManager::SetKvStoreConfig(const KvStoreConfig &kvStoreCo
     return OK;
 }
 
-#ifndef OMIT_MULTI_VER
 void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStoreDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreDelegate *)> &callback)
 {
@@ -179,7 +176,7 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
         LOGE("[KvStoreMgr] Invalid callback for kv store!");
         return;
     }
-
+#ifndef OMIT_MULTI_VER
     // Multi version and local database mode not allow the creation of a memory database
     if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) || GetKvStorePath().empty()) {
         callback(INVALID_ARGS, nullptr);
@@ -217,8 +214,11 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
         return;
     }
     callback(OK, kvStore);
-}
+#else
+    callback(NOT_SUPPORT, nullptr);
+    return;
 #endif
+}
 
 DBStatus KvStoreDelegateManager::SetObserverNotifier(KvStoreNbDelegate *kvStore,
     const KvStoreNbDelegate::Option &option)
@@ -341,9 +341,10 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     callback(OK, kvStore);
 }
 
-#ifndef OMIT_MULTI_VER
+
 DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreDelegate *kvStore)
 {
+#ifndef OMIT_MULTI_VER
     if (kvStore == nullptr) {
         return INVALID_ARGS;
     }
@@ -359,8 +360,10 @@ DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreDelegate *kvStore)
     delete kvStore;
     kvStore = nullptr;
     return OK;
-}
+#else
+    return NOT_SUPPORT;
 #endif
+}
 
 DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreNbDelegate *kvStore)
 {

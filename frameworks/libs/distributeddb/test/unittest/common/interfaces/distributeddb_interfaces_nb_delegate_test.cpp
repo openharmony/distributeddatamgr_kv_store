@@ -48,7 +48,13 @@ namespace {
     // define the g_kvNbDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate *g_kvDelegatePtr = nullptr;
+
+    // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
+    auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
+        placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+#endif // OMIT_MULTI_VER
     const int OBSERVER_SLEEP_TIME = 100;
     const int BATCH_PRESET_SIZE_TEST = 10;
     const int DIVIDE_BATCH_PRESET_SIZE = 5;
@@ -73,10 +79,6 @@ namespace {
     // the type of g_kvNbDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
-
-    // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
-    auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
-        placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
 
     enum LockState {
         UNLOCKED = 0,
@@ -238,12 +240,14 @@ void DistributedDBInterfacesNBDelegateTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvNbDelegatePtr = nullptr;
+#ifndef OMIT_MULTI_VER
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesNBDelegateTest::TearDown(void)
 {
-    if (g_kvDelegatePtr != nullptr) {
+    if (g_kvNbDelegatePtr != nullptr) {
         g_mgr.CloseKvStore(g_kvNbDelegatePtr);
         g_kvNbDelegatePtr = nullptr;
     }
@@ -397,6 +401,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb001, TestSize.Leve
 
     g_mgr.CloseKvStore(kvNbDelegatePtr001);
     g_mgr.CloseKvStore(kvNbDelegatePtr002);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -431,6 +436,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb002, TestSize.Leve
     delegate1 = nullptr;
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: CreateMemoryDb003
   * @tc.desc: The physical database cannot be created or open, when the MemoryDB has been opened.
@@ -460,6 +466,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDb003, TestSize.Leve
     g_mgr.CloseKvStore(g_kvDelegatePtr);
     g_kvDelegatePtr = nullptr;
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: OperMemoryDbData001
@@ -519,6 +526,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, OperMemoryDbData001, TestSize.Le
     EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_2, readValueKey2), OK);
     EXPECT_EQ(readValueKey2, VALUE_3);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -569,6 +577,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CloseMemoryDb001, TestSize.Level
     readValue.clear();
     EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, readValue), NOT_FOUND);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -1713,6 +1722,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, QueryPreFixKey002, TestSize.Leve
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_TRUE(g_mgr.DeleteKvStore("QueryPreFixKey002") == OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -1939,6 +1949,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogSize002, TestSize.Level2)
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("MaxLogSize002"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -1985,6 +1996,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MaxLogCheckPoint001, TestSize.Le
     EXPECT_LT(sizeAfterChk, 100 * 1024ULL); // less than 100K
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("MaxLogCheckPoint001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -2006,6 +2018,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, CreateMemoryDbWithoutPath, TestS
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -2091,6 +2104,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     sqlite3_close_v2(db);
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -2152,6 +2166,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, GetKeys001, TestSize.Level1)
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("GetKeys001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 namespace {
@@ -2223,6 +2238,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_4, val), NOT_FOUND);
 
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
     FreeVirtualDevice(g_deviceB);
     FreeVirtualDevice(g_deviceC);
@@ -2267,6 +2283,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest001,
         ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
         EXPECT_EQ(g_kvDelegateStatus, OK);
         EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+        g_kvNbDelegatePtr = nullptr;
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 1000: wait for a while

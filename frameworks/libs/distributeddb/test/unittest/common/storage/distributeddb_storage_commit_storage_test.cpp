@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 
 #include "db_errno.h"
@@ -836,3 +836,4 @@ HWTEST_F(DistributedDBStorageCommitStorageTest, MultiVerCommitStorage017, TestSi
         commit = nullptr;
     }
 }
+#endif // OMIT_MULTI_VER

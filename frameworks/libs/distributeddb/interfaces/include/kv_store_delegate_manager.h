@@ -25,9 +25,7 @@
 #include "auto_launch_export.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
-#ifndef OMIT_MULTI_VER
 #include "kv_store_delegate.h"
-#endif
 #include "kv_store_nb_delegate.h"
 #include "store_types.h"
 
@@ -45,12 +43,11 @@ public:
     // Used to set global config of the KvStores, such dataDir, return OK if set config success.
     DB_API DBStatus SetKvStoreConfig(const KvStoreConfig &kvStoreConfig);
 
-#ifndef OMIT_MULTI_VER
     // Used to open or create a KvStore.
     // Return OK and a KvStoreDelegate* if there is no error. else return ERROR and nullptr;
     DB_API void GetKvStore(const std::string &storeId, const KvStoreDelegate::Option &option,
         const std::function<void(DBStatus, KvStoreDelegate *)> &callback);
-#endif
+
     // Used to open or create a KvStore(Natural store).
     // Suggest: Not to use encrypted database in S3 SECE access controlled;
     // Warning: Access controlled prevents access to files so cannot verify passwords,
@@ -58,10 +55,8 @@ public:
     DB_API void GetKvStore(const std::string &storeId, const KvStoreNbDelegate::Option &option,
         const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
 
-#ifndef OMIT_MULTI_VER
     // Close a KvStore, return OK if close success.
     DB_API DBStatus CloseKvStore(KvStoreDelegate *kvStore);
-#endif
 
     DB_API DBStatus CloseKvStore(KvStoreNbDelegate *kvStore);
 

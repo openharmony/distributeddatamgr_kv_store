@@ -33,6 +33,14 @@ std::map<std::string, OS::FileHandle *> KvDBManager::locks_;
 namespace {
     DefaultFactory g_defaultFactory;
 
+    static const KvDBType g_dbTypeArr[] = {
+            LOCAL_KVDB,
+            SINGER_VER_KVDB,
+#ifndef OMIT_MULTI_VER
+            MULTI_VER_KVDB
+#endif // OMIT_MULTI_VER
+    };
+
     int CreateDataBaseInstance(const KvDBProperties &property, IKvDB *&kvDB)
     {
         IKvDBFactory *factory = IKvDBFactory::GetCurrent();
@@ -49,7 +57,11 @@ namespace {
         } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE) {
             kvDB = factory->CreateKvDb(SINGER_VER_KVDB, errCode);
         } else {
+#ifndef OMIT_MULTI_VER
             kvDB = factory->CreateKvDb(MULTI_VER_KVDB, errCode);
+#else
+            return -E_NOT_SUPPORT;
+#endif // OMIT_MULTI_VER
         }
         return errCode;
     }
@@ -108,7 +120,7 @@ int KvDBManager::ExecuteRemoveDatabase(const KvDBProperties &properties)
     }
 
     errCode = -E_NOT_FOUND;
-    for (KvDBType kvDbType = LOCAL_KVDB; kvDbType < UNSUPPORT_KVDB_TYPE; kvDbType = (KvDBType)(kvDbType + 1)) {
+    for (const KvDBType kvDbType : g_dbTypeArr) {
         int innerErrCode = E_OK;
         IKvDB *kvdb = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {
@@ -435,7 +447,7 @@ int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t
     }
 
     uint64_t totalSize = 0;
-    for (KvDBType kvDbType = LOCAL_KVDB; kvDbType < UNSUPPORT_KVDB_TYPE; kvDbType = (KvDBType)(kvDbType + 1)) {
+    for (const KvDBType kvDbType : g_dbTypeArr) {
         int innerErrCode = E_OK;
         IKvDB *kvDB = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {

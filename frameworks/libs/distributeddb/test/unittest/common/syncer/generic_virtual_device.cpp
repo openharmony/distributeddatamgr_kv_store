@@ -98,9 +98,12 @@ int GenericVirtualDevice::Initialize(VirtualCommunicatorAggregator *comAggregato
         static_cast<SingleVerSyncTaskContext *>(context_)->SetSubscribeManager(subManager_);
     } else if (storage_->GetInterfaceType() == IKvDBSyncInterface::SYNC_RELATION) {
         context_ = new (std::nothrow) SingleVerRelationalSyncTaskContext;
-    } else {
+    }
+#ifndef OMIT_MULTI_VER
+    else {
         context_ = new (std::nothrow) MultiVerSyncTaskContext;
     }
+#endif // OMIT_MULTI_VER
     if (context_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 
 #include "db_constant.h"
@@ -1098,4 +1098,4 @@ HWTEST_F(DistributedDBStorageTransactionRecordTest, MultiverStorage025, TestSize
     EXPECT_EQ(DistributedDBToolsUnitTest::IsKvEntryExist(entry, entriesRead), true);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsKvEntryExist(entry1, entriesRead), true);
 }
-
+#endif // OMIT_MULTI_VER
