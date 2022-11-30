@@ -72,7 +72,7 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         ctxt->napiKvManager = JSUtil::NewInstance(env, argc, argv, JsKVManager::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->napiKvManager != nullptr, Status::INVALID_ARGUMENT, "KVManager::New failed!");
     };
-    ctxt->GetCbInfo(env, info, input, true);
+    ctxt->GetCbInfoSync(env, info, input);
     ASSERT_NULL(!ctxt->isThrowError, "CreateKVManager New exit");
     return ctxt->napiKvManager;
 }
