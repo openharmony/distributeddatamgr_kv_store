@@ -44,6 +44,7 @@ static napi_status GetLocalDeviceId(std::string &locDevId)
         ZLOGE("GetLocalDevice return %{public}d", daviceStatus);
         return napi_generic_failure;
     }
+    locDevId = info.deviceId;
     return napi_ok;
 }
 
@@ -129,51 +130,43 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
 
-enum class ArgsType : uint8_t {
-    /* input arguments' combination type */
-    DEVICEID_KEYPREFIX = 0,
-    DEVICEID_QUERY,
-    QUERY,
-    UNKNOWN = 255
-};
 struct VariantArgs {
     /* input arguments' combinations */
-    std::string deviceId;
-    std::string keyPrefix;
-    JsQuery* query;
-    ArgsType type = ArgsType::UNKNOWN;
     DataQuery dataQuery;
     std::string errMsg = "";
 };
 
 static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
 {
-    (argc == 1) ? GetLocalDeviceId(va.deviceId) : JSUtil::GetValue(env, argv[0], va.deviceId);
+    std::string deviceId;
+    (argc == 1) ? GetLocalDeviceId(deviceId) : JSUtil::GetValue(env, argv[0], deviceId);
+    va.dataQuery.DeviceId(deviceId);
     int32_t pos = (argc == 1) ? 0 : 1;
     napi_valuetype type = napi_undefined;
     napi_status status = napi_typeof(env, argv[pos], &type);
-    if (!(type == napi_string || type == napi_object)) {
+    if (status != napi_ok||(type != napi_string && type != napi_object)) {
         va.errMsg = "The type of parameters keyPrefix/query is incorrect.";
-        return napi_invalid_arg;
+        return status != napi_ok?status:napi_invalid_arg;
     }
     if (type == napi_string) {
-        status = JSUtil::GetValue(env, argv[pos], va.keyPrefix);
-        if (va.keyPrefix.empty()) {
+        std::string keyPrefix;
+        status = JSUtil::GetValue(env, argv[pos], keyPrefix);
+        if (keyPrefix.empty()) {
             va.errMsg = "The type of parameters keyPrefix is incorrect.";
             return napi_invalid_arg;
         }
-        va.type = ArgsType::DEVICEID_KEYPREFIX;
-    }
-    if (type == napi_object) {
+        va.dataQuery.KeyPrefix(keyPrefix);
+    } else {
         bool result = false;
         status = napi_instanceof(env, argv[pos], JsQuery::Constructor(env), &result);
         if ((status == napi_ok) && (result != false)) {
-            status = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void**>(&va.query), JsQuery::Constructor(env));
-            if (va.query == nullptr) {
+            JsQuery *jsQuery = nullptr;
+            status = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
+            if (jsQuery == nullptr) {
                 va.errMsg = "The parameters query is incorrect.";
                 return napi_invalid_arg;
             }
-            va.type = ArgsType::DEVICEID_QUERY;
+            va.dataQuery = jsQuery->GetDataQuery();
         } else {
             status = JSUtil::GetValue(env, argv[pos], va.dataQuery);
             ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", status);
@@ -210,22 +203,8 @@ napi_value JsDeviceKVStore::GetEntries(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::DEVICEID_KEYPREFIX) {
-            std::string deviceKey = GetDeviceKey(ctxt->va.deviceId, ctxt->va.keyPrefix);
-            OHOS::DistributedKv::Key keyPrefix(deviceKey);
-            status = kvStore->GetEntries(keyPrefix, ctxt->entries);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::DEVICEID_QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            query.DeviceId(ctxt->va.deviceId);
-            status = kvStore->GetEntries(query, ctxt->entries);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            status = kvStore->GetEntries(query, ctxt->entries);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        }
+        Status status = kvStore->GetEntries(ctxt->va.dataQuery, ctxt->entries);
+        ZLOGD("kvStore->GetEntries() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
     };
@@ -271,27 +250,8 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::DEVICEID_KEYPREFIX) {
-            std::string deviceKey = GetDeviceKey(ctxt->va.deviceId, ctxt->va.keyPrefix);
-            OHOS::DistributedKv::Key keyPrefix(deviceKey);
-            status = kvStore->GetResultSet(keyPrefix, kvResultSet);
-            ZLOGD("kvStore->GetResultSet() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::DEVICEID_QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            query.DeviceId(ctxt->va.deviceId);
-            status = kvStore->GetResultSet(query, kvResultSet);
-            ZLOGD("kvStore->GetResultSet() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            status = kvStore->GetResultSet(query, kvResultSet);
-            ZLOGD("kvStore->GetResultSet() return %{public}d", status);
-        } else {
-            ctxt->va.dataQuery.DeviceId(ctxt->va.deviceId);
-            ZLOGD("ArgsType::DEVICEID_PREDICATES ToQuery return %{public}d", status);
-            status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
-            ZLOGD("ArgsType::DEVICEID_PREDICATES GetResultSetWithQuery return %{public}d", status);
-        };
+        Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
+        ZLOGD("ArgsType::DEVICEID_PREDICATES GetResultSetWithQuery return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
         ctxt->resultSet->SetKvStoreResultSetPtr(kvResultSet);
@@ -323,8 +283,6 @@ napi_value JsDeviceKVStore::GetResultSize(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->va.type == ArgsType::DEVICEID_QUERY) || (ctxt->va.type == ArgsType::QUERY),
-           Status::INVALID_ARGUMENT, "The type of parameters ArgsType is incorrect.");
     };
 
     ctxt->GetCbInfo(env, info, input);
@@ -332,11 +290,7 @@ napi_value JsDeviceKVStore::GetResultSize(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->GetKvStorePtr();
-        auto query = ctxt->va.query->GetDataQuery();
-        if (ctxt->va.type == ArgsType::DEVICEID_QUERY) {
-            query.DeviceId(ctxt->va.deviceId);
-        }
-        Status status = kvStore->GetCount(query, ctxt->resultSize);
+        Status status = kvStore->GetCount(ctxt->va.dataQuery, ctxt->resultSize);
         ZLOGD("kvStore->GetCount() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
