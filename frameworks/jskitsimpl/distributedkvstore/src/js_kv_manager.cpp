@@ -70,7 +70,7 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
       ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
                           "Missing context parameter.");
       ctxt->napiKvManager = JSUtil::NewInstance(env, argc, argv, JsKVManager::Constructor(env));
-      ASSERT_BUSINESS_ERR(ctxt, ctxt->KVManager != nullptr, Status::INVALID_ARGUMENT, "KVManager::New failed!");
+      ASSERT_BUSINESS_ERR(ctxt, ctxt->napiKvManager != nullptr, Status::INVALID_ARGUMENT, "KVManager::New failed!");
     };
     ctxt->GetCbInfo(env, info, input, true);
     ASSERT_NULL(!ctxt->isThrowError, "CreateKVManager New exit");
