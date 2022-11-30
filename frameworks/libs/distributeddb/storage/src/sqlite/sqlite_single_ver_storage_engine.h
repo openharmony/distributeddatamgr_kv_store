@@ -89,7 +89,7 @@ private:
     void SetMaxTimestamp(Timestamp maxTimestamp) const;
     int EraseDeviceWaterMark(SQLiteSingleVerStorageExecutor *&handle, const std::vector<DataItem> &dataItems);
     int EraseDeviceWaterMark(const std::set<std::string> &removeDevices, bool isNeedHash);
-    int GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *&handle, const DataItem &item,
+    int GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *handle, const DataItem &item,
         std::set<std::string> &removeDevices, bool &isNeedHash) const;
 
     // For db.

@@ -101,9 +101,12 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::strin
     return E_OK;
 }
 
-int SQLiteSingleVerStorageEngine::GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *&handle, const DataItem &item,
+int SQLiteSingleVerStorageEngine::GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *handle, const DataItem &item,
     std::set<std::string> &removeDevices, bool &isNeedHash) const
 {
+    if (handle == nullptr) {
+        return -E_INVALID_DB;
+    }
     if (item.value.empty()) { // Device ID has been set to value in cache db
         // Empty means remove all device data, get device id from meta key
         int errCode = handle->GetExistsDevicesFromMeta(removeDevices);
