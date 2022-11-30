@@ -23,7 +23,7 @@
 
 namespace {
     const uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
-    std::atomic<int64_t> timeOffset(0);
+    std::atomic<int64_t> g_timeOffset(0);
 }
 
 namespace DistributedDB {
@@ -40,15 +40,15 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
     }
     outTime = static_cast<uint64_t>(rawTime.tv_sec) * MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS +
         static_cast<uint64_t>(rawTime.tv_usec);
-    outTime = outTime + timeOffset.load();
+    outTime = outTime + g_timeOffset.load();
     return 0;
 }
 #endif // RUNNING_ON_SIMULATED_ENV
 
 void SetOffsetBySecond(int64_t inSecond)
 {
-    int64_t microSecond = static_cast<int64_t>(inSecond) * 1000 * 1000; // to ms
-    timeOffset.store(microSecond);
+    int64_t microSecond = static_cast<int64_t>(inSecond) * MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS; // to ms
+    g_timeOffset.store(microSecond);
     LOGD("[SetTimeOffset] offset : %llds", inSecond);
 }
 }
