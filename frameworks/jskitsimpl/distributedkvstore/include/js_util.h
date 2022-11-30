@@ -143,7 +143,7 @@ public:
     /* napi_value <-> std::map<std::string, Status> */
     static napi_status GetValue(napi_env env, napi_value in, std::map<std::string, Status>& out);
     static napi_status SetValue(napi_env env, const std::map<std::string, Status>& in, napi_value& out);
-    
+
     static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
 
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
@@ -180,6 +180,7 @@ public:
 
     /* napi_new_instance  wrapper */
     static napi_ref NewWithRef(napi_env env, size_t argc, napi_value* argv, void** out, napi_value constructor);
+    static napi_value NewInstance(napi_env env, size_t argc, napi_value* argv, napi_value constructor);
 
     /* napi_unwrap with napi_instanceof */
     static napi_status Unwrap(napi_env env, napi_value in, void** out, napi_value constructor);

@@ -1069,6 +1069,15 @@ napi_ref JSUtil::NewWithRef(napi_env env, size_t argc, napi_value* argv, void** 
     return ref;
 }
 
+napi_value JSUtil::NewInstance(napi_env env, size_t argc, napi_value* argv, napi_value constructor)
+{
+    napi_value object = nullptr;
+    napi_status status = napi_new_instance(env, constructor, argc, argv, &object);
+    ASSERT(status == napi_ok, "napi_new_instance failed", nullptr);
+    ASSERT(object != nullptr, "napi_new_instance failed", nullptr);
+    return object;
+}
+
 napi_status JSUtil::Unwrap(napi_env env, napi_value in, void** out, napi_value constructor)
 {
     if (constructor != nullptr) {
