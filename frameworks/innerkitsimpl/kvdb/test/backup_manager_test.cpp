@@ -439,9 +439,9 @@ HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
     StoreId storeId = { "SingleKVStoreEncrypt" };
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
 
-    auto kvStoreEncrypt = CreateKVStore("SinglekvStoreEncrypt", "BackupManagerTest", baseDir, SINGLE_VERSION, true);
+    auto kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     if (kvStoreEncrypt == nullptr) {
-        kvStoreEncrypt = CreateKVStore("SinglekvStoreEncrypt", "BackupManagerTest", baseDir, SINGLE_VERSION, true);
+        kvStoreEncrypt = CreateKVStore(storeId.storeId, "BackupManagerTest", baseDir, SINGLE_VERSION, true);
     }
     ASSERT_NE(kvStoreEncrypt, nullptr);
 
