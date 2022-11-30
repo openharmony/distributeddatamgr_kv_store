@@ -1055,7 +1055,7 @@ namespace {
                 break;
             }
             EXPECT_EQ(device->Initialize(g_communicatorAggregator, interface), E_OK);
-        } while(false);
+        } while (false);
         return device;
     }
 }
