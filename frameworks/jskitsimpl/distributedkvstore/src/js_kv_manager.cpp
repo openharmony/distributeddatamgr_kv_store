@@ -60,13 +60,13 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         std::string bundleName;
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
-                            "Missing bundleName parameter.");
+            "Missing bundleName parameter.");
         ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), Status::INVALID_ARGUMENT,
-                            "The type of bundleName must be string.");
+            "The type of bundleName must be string.");
         napi_value jsContext = nullptr;
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
-                            "Missing context parameter.");
+            "Missing context parameter.");
         ctxt->status = napi_new_instance(env, JsKVManager::Constructor(env), argc, argv, &ctxt->napiKvManager);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "KVManager::New failed!");
     };
