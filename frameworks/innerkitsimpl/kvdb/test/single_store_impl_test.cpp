@@ -1035,3 +1035,254 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     status = store->RemoveDeviceData(device);
     ASSERT_EQ(status, SUCCESS);
 }
+
+/**
+ * @tc.name: CloseKVStoreWithInvalidAppId
+ * @tc.desc: close the kv store with invalid appid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidAppId, TestSize.Level0)
+{
+    AppId appId = { "" };
+    StoreId storeId = { "SingleKVStore" };
+    Status status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: CloseKVStoreWithInvalidStoreId
+ * @tc.desc: close the kv store with invalid store id
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, CloseKVStoreWithInvalidStoreId, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "" };
+    Status status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: CloseAllKVStore
+ * @tc.desc: close all kv store
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, CloseAllKVStore, TestSize.Level0)
+{
+    AppId appId = { "SingleStoreImplTestCloseAll" };
+    std::vector<std::shared_ptr<SingleKvStore>> kvStores;
+    for (int i = 0; i < 5; i++) {
+        std::shared_ptr<SingleKvStore> kvStore;
+        Options options;
+        options.kvStoreType = SINGLE_VERSION;
+        options.securityLevel = S1;
+        options.area = EL1;
+        options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+        std::string sId = "SingleStoreImplTestCloseAll" + std::to_string(i);
+        StoreId storeId = { sId };
+        Status status;
+        kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+        ASSERT_NE(kvStore, nullptr);
+        kvStores.push_back(kvStore);
+        ASSERT_EQ(status, SUCCESS);
+        kvStore = nullptr;
+    }
+    Status status = StoreManager::GetInstance().CloseAllKVStore(appId);
+    ASSERT_EQ(status, SUCCESS);
+}
+
+/**
+ * @tc.name: CloseAllKVStoreWithInvalidAppId
+ * @tc.desc: close the kv store with invalid appid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, CloseAllKVStoreWithInvalidAppId, TestSize.Level0)
+{
+    AppId appId = { "" };
+    Status status = StoreManager::GetInstance().CloseAllKVStore(appId);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: DeleteWithInvalidAppId
+ * @tc.desc: delete the kv store with invalid appid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, DeleteWithInvalidAppId, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "" };
+    StoreId storeId = { "SingleKVStore" };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: DeleteWithInvalidStoreId
+ * @tc.desc: delete the kv store with invalid storeid
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, DeleteWithInvalidStoreId, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "" };
+    Status status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
+    ASSERT_EQ(status, INVALID_ARGUMENT);
+}
+
+/**
+ * @tc.name: GetKVStoreWithPersistentFalse
+ * @tc.desc: delete the kv store with the persistent is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStorePersistentFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.persistent = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithInvalidType
+ * @tc.desc: delete the kv store with the KvStoreType is InvalidType
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImpStore";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreInvalidType" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = INVALID_TYPE;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithCreateIfMissingFalse
+ * @tc.desc: delete the kv store with the createIfMissing is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreCreateIfMissingFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.createIfMissing = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithAutoSync
+ * @tc.desc: delete the kv store with the autoSync is false
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreAutoSync" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.autoSync = false;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithAreaEL2
+ * @tc.desc: delete the kv store with the area is EL2
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el2/100/SingleStoreImplTest";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreAreaEL2" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S2;
+    options.area = EL2;
+    options.baseDir = "/data/service/el2/100/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(kvStore, nullptr);
+}
+
+/**
+ * @tc.name: GetKVStoreWithRebuildTrue
+ * @tc.desc: delete the kv store with the rebuild is true
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: Wang Kai
+ */
+HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
+{
+    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStoreRebuildFalse" };
+    std::shared_ptr<SingleKvStore> kvStore;
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.area = EL1;
+    options.rebuild = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+    Status status;
+    kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_NE(kvStore, nullptr);
+}
