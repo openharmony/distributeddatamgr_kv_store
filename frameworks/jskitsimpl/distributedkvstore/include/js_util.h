@@ -180,7 +180,6 @@ public:
 
     /* napi_new_instance  wrapper */
     static napi_ref NewWithRef(napi_env env, size_t argc, napi_value* argv, void** out, napi_value constructor);
-    static napi_value NewInstance(napi_env env, size_t argc, napi_value* argv, napi_value constructor);
 
     /* napi_unwrap with napi_instanceof */
     static napi_status Unwrap(napi_env env, napi_value in, void** out, napi_value constructor);
