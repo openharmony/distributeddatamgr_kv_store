@@ -50,29 +50,41 @@ JsKVManager::~JsKVManager()
 
 napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 {
-    struct ContextInfo : public ContextBase {
-        napi_value napiKvManager = nullptr;
-    };
-    auto ctxt = std::make_shared<ContextInfo>();
-    auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 1 arguments :: <bundleName>
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        std::string bundleName;
-        ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
-            "Missing bundleName parameter.");
-        ASSERT_BUSINESS_ERR(ctxt, !bundleName.empty(), Status::INVALID_ARGUMENT,
-            "The type of bundleName must be string.");
-        napi_value jsContext = nullptr;
-        ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_generic_failure, Status::INVALID_ARGUMENT,
-            "Missing context parameter.");
-        ctxt->status = napi_new_instance(env, JsKVManager::Constructor(env), argc, argv, &ctxt->napiKvManager);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "KVManager::New failed!");
-    };
-    ctxt->GetCbInfoSync(env, info, input);
-    ASSERT_NULL(!ctxt->isThrowError, "CreateKVManager New exit");
-    return ctxt->napiKvManager;
+    size_t argc = 2;
+    napi_value argv[2] = { nullptr };
+    napi_value result = nullptr;
+    napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
+
+    if (argc < 1) {
+      ThrowNapiError(env, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+      return result;
+    }
+
+    std::string bundleName;
+    napi_status status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
+    if (status == napi_generic_failure) {
+      ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing bundleName parameter.");
+      return result;
+    }
+    if (bundleName.empty()) {
+      ThrowNapiError(env, Status::INVALID_ARGUMENT, "The type of bundleName must be string.");
+      return result;
+    }
+
+    napi_value jsContext = nullptr;
+    status = JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
+    if (status == napi_generic_failure) {
+      ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing context parameter.");
+      return result;
+    }
+
+    status = napi_new_instance(env, Constructor(env), argc, argv, &result);
+    if (result == nullptr || status != napi_ok) {
+      ThrowNapiError(env, Status::INVALID_ARGUMENT, "KVManager::New failed!");
+      return result;
+    }
+
+    return result;
 }
 
 struct GetKVStoreContext : public ContextBase {
