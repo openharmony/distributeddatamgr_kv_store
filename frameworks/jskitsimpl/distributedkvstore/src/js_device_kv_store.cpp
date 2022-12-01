@@ -30,22 +30,11 @@ constexpr int DEVICEID_WIDTH = 4;
 static std::string GetDeviceKey(const std::string& deviceId, const std::string& key)
 {
     std::ostringstream oss;
-    oss << std::setfill('0') << std::setw(DEVICEID_WIDTH) << deviceId.length();
-    oss << deviceId << key;
-    return oss.str();
-}
-
-static napi_status GetLocalDeviceId(std::string &locDevId)
-{
-    DeviceInfo info;
-    DistributedKvDataManager manager;
-    Status daviceStatus = manager.GetLocalDevice(info);
-    if (daviceStatus != Status::SUCCESS) {
-        ZLOGE("GetLocalDevice return %{public}d", daviceStatus);
-        return napi_generic_failure;
+    if (!deviceId.empty()) {
+        oss << std::setfill('0') << std::setw(DEVICEID_WIDTH) << deviceId.length() << deviceId;
     }
-    locDevId = info.deviceId;
-    return napi_ok;
+    oss << key;
+    return oss.str();
 }
 
 JsDeviceKVStore::JsDeviceKVStore(const std::string& storeId)
@@ -99,10 +88,11 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // number 2 means: required 2 arguments, <deviceId> + <key>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        ctxt->status = (argc == 1) ? GetLocalDeviceId(ctxt->deviceId)
-                                   : JSUtil::GetValue(env, argv[0], ctxt->deviceId);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The parameter deviceId is incorrect.");
+        if (argc > 1) {
+            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceId);
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+                "The parameter deviceId is incorrect.");
+        }
         int32_t pos = (argc == 1) ? 0 : 1;
         ctxt->status = JSUtil::GetValue(env, argv[pos], ctxt->key);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of key must be string.");
@@ -138,9 +128,6 @@ struct VariantArgs {
 
 static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
 {
-    std::string deviceId;
-    (argc == 1) ? GetLocalDeviceId(deviceId) : JSUtil::GetValue(env, argv[0], deviceId);
-    va.dataQuery.DeviceId(deviceId);
     int32_t pos = (argc == 1) ? 0 : 1;
     napi_valuetype type = napi_undefined;
     napi_status status = napi_typeof(env, argv[pos], &type);
@@ -171,6 +158,11 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
             status = JSUtil::GetValue(env, argv[pos], va.dataQuery);
             ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", status);
         }
+    }
+    std::string deviceId;
+    if (argc > 1) {
+        JSUtil::GetValue(env, argv[0], deviceId);
+        va.dataQuery.DeviceId(deviceId);
     }
     return status;
 };
