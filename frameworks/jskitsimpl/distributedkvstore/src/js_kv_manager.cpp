@@ -56,32 +56,32 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, argv, nullptr, nullptr);
 
     if (argc < 1) {
-      ThrowNapiError(env, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-      return result;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        return result;
     }
 
     std::string bundleName;
     napi_status status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
     if (status == napi_generic_failure) {
-      ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing bundleName parameter.");
-      return result;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing bundleName parameter.");
+        return result;
     }
     if (bundleName.empty()) {
-      ThrowNapiError(env, Status::INVALID_ARGUMENT, "The type of bundleName must be string.");
-      return result;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "The type of bundleName must be string.");
+        return result;
     }
 
     napi_value jsContext = nullptr;
     status = JSUtil::GetNamedProperty(env, argv[0], "context", jsContext);
     if (status == napi_generic_failure) {
-      ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing context parameter.");
-      return result;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "Missing context parameter.");
+        return result;
     }
 
     status = napi_new_instance(env, Constructor(env), argc, argv, &result);
     if (result == nullptr || status != napi_ok) {
-      ThrowNapiError(env, Status::INVALID_ARGUMENT, "KVManager::New failed!");
-      return result;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, "KVManager::New failed!");
+        return result;
     }
 
     return result;
