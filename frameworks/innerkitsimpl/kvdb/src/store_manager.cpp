@@ -72,17 +72,6 @@ Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
     return StoreFactory::GetInstance().Close(appId, storeId);
 }
 
-Status StoreManager::CloseKVStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStore)
-{
-    if (!appId.IsValid() || kvStore == nullptr) {
-        return INVALID_ARGUMENT;
-    }
-
-    StoreId storeId{ kvStore->GetStoreId() };
-    kvStore = nullptr;
-    return StoreFactory::GetInstance().Close(appId, storeId);
-}
-
 Status StoreManager::CloseAllKVStore(const AppId &appId)
 {
     ZLOGD("appId:%{public}s", appId.appId.c_str());
