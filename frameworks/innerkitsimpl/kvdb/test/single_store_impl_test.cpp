@@ -1236,6 +1236,8 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
@@ -1260,7 +1262,9 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
     options.baseDir = "/data/service/el2/100/SingleStoreImplTest";
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
-    ASSERT_EQ(kvStore, nullptr);
+    ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
@@ -1285,4 +1289,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
     Status status;
     kvStore = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_NE(kvStore, nullptr);
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
 }
