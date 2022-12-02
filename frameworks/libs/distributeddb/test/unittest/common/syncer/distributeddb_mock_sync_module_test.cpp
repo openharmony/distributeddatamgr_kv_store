@@ -1061,6 +1061,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
 
     RefObject::KillAndDecObjRef(enginePtr);
     enginePtr = nullptr;
+    RefObject::KillAndDecObjRef(operation);
+
     metaData = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     virtualCommunicatorAggregator = nullptr;
@@ -1272,6 +1274,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
     EXPECT_EQ(GenericSingleVerKvEntry::SerializeDatas(kvEntries, parcel, SOFTWARE_VERSION_CURRENT), E_OK);
     parcel = Parcel(srcData.data(), srcData.size());
     EXPECT_EQ(GenericSingleVerKvEntry::DeSerializeDatas(kvEntries, parcel), 0);
+    SingleVerKvEntry::Release(kvEntries);
 }
 
 /**

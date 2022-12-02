@@ -26,6 +26,7 @@
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
 #include "sqlite_single_ver_natural_store.h"
+#include "system_timer.h"
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -2226,4 +2227,53 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     FreeVirtualDevice(g_deviceB);
     FreeVirtualDevice(g_deviceC);
     FreeVirtualDevice(g_deviceD);
+}
+
+/**
+  * @tc.name: TimeChangeWithCloseStoreTest001
+  * @tc.desc: Test close store with time changed
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest001, TestSize.Level3)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    std::atomic<bool> isFinished(false);
+
+    std::vector<std::thread> slowThreads;
+    for (int i = 0; i < 10; i++) { // 10: thread to slow donw system
+        std::thread th([&isFinished]() {
+            while (!isFinished) {
+                // pass
+            }
+        });
+        slowThreads.emplace_back(std::move(th));
+    }
+
+    std::thread th([&isFinished]() {
+        int timeChangedCnt = 0;
+        while (!isFinished.load()) {
+            OS::SetOffsetBySecond(100 - timeChangedCnt++ * 2); // 100 2 : fake system time change
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // 100: wait for a while
+        }
+    });
+
+    for (int i = 0; i < 100; i++) { // run 100 times
+        const KvStoreNbDelegate::Option option = {true, false, false};
+        mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+        ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+        EXPECT_EQ(g_kvDelegateStatus, OK);
+        EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // 1000: wait for a while
+    isFinished.store(true);
+    th.join();
+    for (auto &it : slowThreads) {
+        it.join();
+    }
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }

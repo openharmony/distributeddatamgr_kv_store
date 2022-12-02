@@ -330,10 +330,10 @@ int SchemaObject::VerifyValue(ValueSource sourceType, const RawValue &inValue) c
     }
 
     RawValue rawValue;
+    std::vector<uint8_t> cache;
     if (schemaSkipSize_ % SchemaConstant::SECURE_BYTE_ALIGN == 0) {
         rawValue = {inValue.first + schemaSkipSize_, inValue.second - schemaSkipSize_};
     } else {
-        std::vector<uint8_t> cache;
         cache.assign(inValue.first + schemaSkipSize_, inValue.first + inValue.second);
         rawValue = {cache.data(), cache.size()};
     }

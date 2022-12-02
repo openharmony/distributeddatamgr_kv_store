@@ -1958,14 +1958,14 @@ int SingleVerDataSync::SubscribeRequestRecv(SingleVerSyncTaskContext *context, c
     if (errCode != E_OK) {
         LOGE("[SingleVerDataSync] add remote subscribe query failed,err=%d,label=%s,dev=%s", errCode, label_.c_str(),
             STR_MASK(GetDeviceId()));
-        storage_->RemoveSubscribe(packet->GetQuery().GetIdentify());
+        RemoveSubscribeIfNeed(packet->GetQuery().GetIdentify(), subscribeManager);
         SendControlAck(context, message, errCode, controlCmdType);
         return errCode;
     }
     errCode = SendControlAck(context, message, E_OK, controlCmdType);
     if (errCode != E_OK) {
-        storage_->RemoveSubscribe(packet->GetQuery().GetIdentify());
         subscribeManager->DeleteRemoteSubscribeQuery(context->GetDeviceId(), packet->GetQuery());
+        RemoveSubscribeIfNeed(packet->GetQuery().GetIdentify(), subscribeManager);
         LOGE("[SingleVerDataSync] send control msg failed,err=%d,label=%s,dev=%s", errCode, label_.c_str(),
             STR_MASK(GetDeviceId()));
         return errCode;
@@ -2050,5 +2050,13 @@ int SingleVerDataSync::QuerySyncCheck(SingleVerSyncTaskContext *context)
         return -E_NOT_SUPPORT;
     }
     return E_OK;
+}
+
+void SingleVerDataSync::RemoveSubscribeIfNeed(const std::string &queryId,
+    const std::shared_ptr<SubscribeManager> &subscribeManager)
+{
+    if (!subscribeManager->IsQueryExistSubscribe(queryId)) {
+        storage_->RemoveSubscribe(queryId);
+    }
 }
 } // namespace DistributedDB

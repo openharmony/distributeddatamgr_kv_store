@@ -106,20 +106,6 @@ void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::TearDown(void)
 }
 
 /**
-  * @tc.name: Destructor001
-  * @tc.desc: Test the destructor of g_handle when the transaction is opened
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: bty
-  */
-HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, Destructor001, TestSize.Level1)
-{
-    g_handle->StartTransaction(TransactType::DEFERRED);
-    delete g_handle;
-    g_handle = nullptr;
-}
-
-/**
   * @tc.name: InvalidParam001
   * @tc.desc: Get Kv Data with Invalid condition
   * @tc.type: FUNC

@@ -139,7 +139,7 @@ std::string FormatSubscribeTriggerSql(const std::string &subscribeId, const std:
     std::string triggerName = DBConstant::SUBSCRIBE_QUERY_PREFIX + subscribeId + "_ON_" + triggerModeString;
     return "CREATE TRIGGER IF NOT EXISTS " + triggerName + " AFTER " + triggerModeString + " \n"
         "ON sync_data\n"
-        "WHEN " + subscribeCondition + "\n"
+        "WHEN ((NEW.flag&0x02=0x02) AND (" + subscribeCondition + "))\n" // filter locally changed data
         "BEGIN\n"
         "    SELECT " + DBConstant::UPDATE_META_FUNC + "(x'" + hexKeyStr + "', NEW.TIMESTAMP);\n"
         "END;";

@@ -244,6 +244,8 @@ protected:
         uint32_t controlCmdType, const CommErrHandler &handler = nullptr);
     int QuerySyncCheck(SingleVerSyncTaskContext *context);
 
+    void RemoveSubscribeIfNeed(const std::string &queryId, const std::shared_ptr<SubscribeManager> &subscribeManager);
+
     uint32_t mtuSize_;
     SyncGenericInterface* storage_;
     ICommunicator* communicateHandle_;

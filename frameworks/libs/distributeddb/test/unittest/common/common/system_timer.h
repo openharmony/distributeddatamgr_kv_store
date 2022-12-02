@@ -13,26 +13,14 @@
  * limitations under the License.
  */
 
-#ifndef NATIVE_SQLITE_H
-#define NATIVE_SQLITE_H
+#ifndef SYSTEM_TIMER_H
+#define SYSTEM_TIMER_H
 
-#include <string>
-#include <functional>
-
-#include "db_errno.h"
-#include "log_print.h"
-#include "sqlite_import.h"
+#include <cstdint>
 
 namespace DistributedDB {
-// For call sqlite native interfaces
-class NativeSqlite {
-public:
-    static sqlite3 *CreateDataBase(const std::string &dbUri);
-    static int ExecSql(sqlite3 *db, const std::string &sql);
-private:
-    NativeSqlite();
-    ~NativeSqlite();
-};
+namespace OS {
+void SetOffsetBySecond(int64_t inSecond);
 }
-
-#endif // NATIVE_SQLITE_H
+}
+#endif // SYSTEM_TIMER_H

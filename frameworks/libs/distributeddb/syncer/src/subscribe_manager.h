@@ -63,7 +63,7 @@ public:
     void DeleteRemoteSubscribeQuery(const std::string &device, const QuerySyncObject &query);
 
     // put subscribe queries into unfinished map when remote db online
-    void PutLocalUnFiniedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries);
+    void PutLocalUnFinishedSubQueries(const std::string &device, const std::vector<QuerySyncObject> &subscribeQueries);
 
     // get all device unFinished subscribe queries which triggered by auto subscribe and need retry subscribe
     void GetAllUnFinishSubQueries(std::map<std::string, std::vector<QuerySyncObject>> &allSyncQueries) const;
@@ -85,6 +85,8 @@ public:
     bool IsLastRemoteContainSubscribe(const std::string &device, const std::string &queryId) const;
 
     int LocalSubscribeLimitCheck(const std::vector<std::string> &devices, QuerySyncObject &query) const;
+
+    bool IsQueryExistSubscribe(const std::string &queryId) const;
 private:
     void ClearSubscribeQuery(const std::string &device, SubscribeMap &subscribeMap,
         SubscribedTotalMap &subscribedTotalMap);

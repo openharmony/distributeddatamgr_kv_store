@@ -96,7 +96,7 @@ void SubscribeManager::DeleteRemoteSubscribeQuery(const std::string &device, con
     DeleteSubscribeQuery(device, queryId, remoteSubscribedMap_, remoteSubscribedTotalMap_);
 }
 
-void SubscribeManager::PutLocalUnFiniedSubQueries(const std::string &device,
+void SubscribeManager::PutLocalUnFinishedSubQueries(const std::string &device,
     const std::vector<QuerySyncObject> &subscribeQueries)
 {
     LOGI("[SubscribeManager] put local unfinished subscribe queries, nums=%zu", subscribeQueries.size());
@@ -224,6 +224,12 @@ int SubscribeManager::LocalSubscribeLimitCheck(const std::vector<std::string> &d
         return -E_MAX_LIMITS;
     }
     return E_OK;
+}
+
+bool SubscribeManager::IsQueryExistSubscribe(const std::string &queryId) const
+{
+    std::shared_lock<std::shared_mutex> lockGuard(remoteSubscribedMapLock_);
+    return remoteSubscribedTotalMap_.find(queryId) != remoteSubscribedTotalMap_.end();
 }
 
 void SubscribeManager::ClearSubscribeQuery(const std::string &device, SubscribeMap &subscribeMap,
