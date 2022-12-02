@@ -80,7 +80,7 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 
     status = napi_new_instance(env, Constructor(env), argc, argv, &result);
     if (result == nullptr || status != napi_ok) {
-        ThrowNapiError(env, Status::ERROR, "KVManager::New failed!", false);
+        ThrowNapiError(env, status, "KVManager::New failed!", false);
         return result;
     }
 
