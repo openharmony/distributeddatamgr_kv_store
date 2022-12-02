@@ -92,10 +92,10 @@ HWTEST_F(TaskSchedulerTest, Reset1, TestSize.Level0)
     TaskScheduler taskScheduler("reset1Test");
     auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
     auto atTaskId1 = taskScheduler.At(expiredTime, []() {});
-    ASSERT_EQ(atTaskId1,1);
+    ASSERT_EQ(atTaskId1, 1);
     expiredTime += std::chrono::milliseconds(LONG_INTERVAL);
     auto atTaskId2 = taskScheduler.At(expiredTime, []() {});
-    ASSERT_EQ(atTaskId2,2);
+    ASSERT_EQ(atTaskId2, 2);
 
     auto resetTaskId1 = taskScheduler.Reset(atTaskId1, std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(resetTaskId1, atTaskId1);
@@ -120,6 +120,7 @@ HWTEST_F(TaskSchedulerTest, Reset2, TestSize.Level0)
     auto atTaskId = taskScheduler.At(expiredTime, [blockData]() {
         blockData->GetValue();
     });
+    ASSERT_EQ(atTaskId, 1);
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
     auto resetTaskId = taskScheduler.Reset(atTaskId, std::chrono::milliseconds(0));
     ASSERT_EQ(resetTaskId, TaskScheduler::INVALID_TASK_ID);
@@ -142,6 +143,7 @@ HWTEST_F(TaskSchedulerTest, Reset3, TestSize.Level0)
     auto atTaskId = taskScheduler.At(expiredTime, [blockData]() {
         blockData->GetValue();
     });
+    ASSERT_EQ(atTaskId, 1);
     blockData->SetValue(testData);
     blockData->SetValue(testData);
     ASSERT_EQ(blockData->GetValue(), testData);
