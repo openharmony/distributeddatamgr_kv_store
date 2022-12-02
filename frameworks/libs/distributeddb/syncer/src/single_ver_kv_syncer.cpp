@@ -86,7 +86,7 @@ void SingleVerKVSyncer::LocalDataChanged(int notifyEvent)
     std::vector<std::string> devices;
     GetOnlineDevices(devices);
     if (devices.empty()) {
-        LOGI("[Syncer] LocalDataChanged no online devices, Label=%s", label_.c_str());
+        LOGI("[Syncer] LocalDataChanged no online standard devices, Label=%s", label_.c_str());
         triggerSyncTask_ = true;
         return;
     }
@@ -157,27 +157,6 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
         TriggerSubscribe(device, query);
     }
     static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
-}
-
-void SingleVerKVSyncer::QueryAutoSync(const InternalSyncParma &param)
-{
-    if (!initialized_) {
-        LOGE("[Syncer] Syncer has not Init");
-        return;
-    }
-    LOGI("[SingleVerKVSyncer] trigger query syncmode=%u,dev=%s", param.mode, GetSyncDevicesStr(param.devices).c_str());
-    RefObject::IncObjRef(syncEngine_);
-    int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, param] {
-        int errCode = Sync(param);
-        if (errCode != E_OK) {
-            LOGE("[SingleVerKVSyncer] sync start by QueryAutoSync failed err %d", errCode);
-        }
-        RefObject::DecObjRef(syncEngine_);
-    });
-    if (retCode != E_OK) {
-        LOGE("[SingleVerKVSyncer] QueryAutoSync triggler sync retCode:%d", retCode);
-        RefObject::DecObjRef(syncEngine_);
-    }
 }
 
 int SingleVerKVSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,

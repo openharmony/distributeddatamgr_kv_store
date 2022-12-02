@@ -115,7 +115,7 @@ SingleVerSyncStateMachine::~SingleVerSyncStateMachine()
 }
 
 int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface,
-    std::shared_ptr<Metadata> &metaData, ICommunicator *communicator)
+    const std::shared_ptr<Metadata> &metaData, ICommunicator *communicator)
 {
     if ((context == nullptr) || (syncInterface == nullptr) || (metaData == nullptr) || (communicator == nullptr)) {
         return -E_INVALID_ARGS;
@@ -598,30 +598,30 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
         return E_OK;
     }
     if (inMsg->GetMessageType() == TYPE_NOTIFY) {
-            const AbilitySyncAckPacket *packet = inMsg->GetObject<AbilitySyncAckPacket>();
-            if (packet == nullptr) {
-                return -E_INVALID_ARGS;
-            }
-            int ackCode = packet->GetAckCode();
-            if (ackCode != AbilitySync::CHECK_SUCCESS && ackCode != AbilitySync::LAST_NOTIFY) {
-                LOGE("[StateMachine][AbilitySyncRecv] ackCode check failed,ackCode=%d", ackCode);
-                context_->SetTaskErrCode(ackCode);
-                std::lock_guard<std::mutex> lock(stateMachineLock_);
-                SwitchStateAndStep(Event::INNER_ERR_EVENT);
-                return E_OK;
-            }
-            if (ackCode == AbilitySync::LAST_NOTIFY && AbilityMsgSessionIdCheck(inMsg)) {
-                abilitySync_->SetAbilitySyncFinishedStatus(true);
-                // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
-                LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
-                    dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
-                currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
-                std::lock_guard<std::mutex> lock(stateMachineLock_);
-                (void)ResetWatchDog();
-                JumpStatusAfterAbilitySync(context_->GetMode());
-            } else if (ackCode != AbilitySync::LAST_NOTIFY) {
-                abilitySync_->AckNotifyRecv(inMsg, context_);
-            }
+        const AbilitySyncAckPacket *packet = inMsg->GetObject<AbilitySyncAckPacket>();
+        if (packet == nullptr) {
+            return -E_INVALID_ARGS;
+        }
+        int ackCode = packet->GetAckCode();
+        if (ackCode != AbilitySync::CHECK_SUCCESS && ackCode != AbilitySync::LAST_NOTIFY) {
+            LOGE("[StateMachine][AbilitySyncRecv] ackCode check failed,ackCode=%d", ackCode);
+            context_->SetTaskErrCode(ackCode);
+            std::lock_guard<std::mutex> lock(stateMachineLock_);
+            SwitchStateAndStep(Event::INNER_ERR_EVENT);
+            return E_OK;
+        }
+        if (ackCode == AbilitySync::LAST_NOTIFY && AbilityMsgSessionIdCheck(inMsg)) {
+            abilitySync_->SetAbilitySyncFinishedStatus(true);
+            // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
+            LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
+                dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
+            currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
+            std::lock_guard<std::mutex> lock(stateMachineLock_);
+            (void)ResetWatchDog();
+            JumpStatusAfterAbilitySync(context_->GetMode());
+        } else if (ackCode != AbilitySync::LAST_NOTIFY) {
+            abilitySync_->AckNotifyRecv(inMsg, context_);
+        }
         return E_OK;
     }
 
@@ -734,12 +734,12 @@ int SingleVerSyncStateMachine::HandleDataAckRecv(const Message *inMsg)
     }
     if (context_->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_2_0 && !dataSync_->AckPacketIdCheck(inMsg)) {
         // packetId not match but sequence id matched scene, means resend map has be rebuilt
-        // this is old ack, shoulb be dropped and wait for the same packetId sequence.
+        // this is old ack, should be dropped and wait for the same packetId sequence.
         return E_OK;
     }
     // AckRecv will save meta data, it may cost a long time. if another thread is saving data
     // So we need to send save data notify to keep remote alive.
-    // eg. remote do pull sync
+    // e.g. remote do pull sync
     bool isNeedStop = StartSaveDataNotify(inMsg->GetSessionId(), inMsg->GetSequenceId(), inMsg->GetMessageId());
     int errCode = dataSync_->AckRecv(context_, inMsg);
     if (isNeedStop) {
@@ -1030,7 +1030,7 @@ Event SingleVerSyncStateMachine::TransformErrCodeToEvent(int errCode) const
     switch (errCode) {
         case -E_TIMEOUT:
             return TransforTimeOutErrCodeToEvent();
-        case -VERSION_NOT_SUPPOR_EVENT:
+        case -static_cast<int>(VERSION_NOT_SUPPOR_EVENT):
             return Event::VERSION_NOT_SUPPOR_EVENT;
         case -E_SEND_DATA:
             return Event::SEND_DATA_EVENT;

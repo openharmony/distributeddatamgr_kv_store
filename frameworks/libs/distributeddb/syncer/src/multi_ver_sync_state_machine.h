@@ -40,7 +40,7 @@ public:
     ~MultiVerSyncStateMachine() override;
 
     // Init the MultiVerSyncStateMachine
-    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
+    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
         ICommunicator *communicator) override;
 
     // send Message to the StateMachine

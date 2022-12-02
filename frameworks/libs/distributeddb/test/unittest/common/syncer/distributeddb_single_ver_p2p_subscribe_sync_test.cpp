@@ -1037,27 +1037,27 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync007, TestSize.
 }
 
 namespace {
-    KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
-    {
-        KvVirtualDevice *device = nullptr;
-        do {
-            if (g_communicatorAggregator == nullptr) {
-                break;
-            }
-            device = new (std::nothrow) KvVirtualDevice(deviceName);
-            if (device == nullptr) {
-                break;
-            }
-            auto interface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
-            if (interface == nullptr) {
-                delete device;
-                device = nullptr;
-                break;
-            }
-            EXPECT_EQ(device->Initialize(g_communicatorAggregator, interface), E_OK);
-        } while (false);
-        return device;
-    }
+KvVirtualDevice *CreateKvVirtualDevice(const std::string &deviceName)
+{
+    KvVirtualDevice *device = nullptr;
+    do {
+        if (g_communicatorAggregator == nullptr) {
+            break;
+        }
+        device = new (std::nothrow) KvVirtualDevice(deviceName);
+        if (device == nullptr) {
+            break;
+        }
+        auto interface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+        if (interface == nullptr) {
+            delete device;
+            device = nullptr;
+            break;
+        }
+        EXPECT_EQ(device->Initialize(g_communicatorAggregator, interface), E_OK);
+    } while (false);
+    return device;
+}
 }
 
 /**
@@ -1087,7 +1087,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.
     }
 
     /**
-     * @tc.steps: step2. 33 device unsubscribe
+     * @tc.steps: step2. 33 device subscribe
      */
     LOGI("============step 2============");
     Query query = Query::Select();
@@ -1096,7 +1096,6 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.
         dev->Subscribe(QuerySyncObject(query), true, 1); // sync id is 1
     }
     g_deviceB->Subscribe(QuerySyncObject(query), true, 1); // sync id is 1
-
     /**
      * @tc.steps: step3. 32 unsubscribe
      */

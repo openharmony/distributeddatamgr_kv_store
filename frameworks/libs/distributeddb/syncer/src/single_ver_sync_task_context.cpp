@@ -39,8 +39,8 @@ SingleVerSyncTaskContext::~SingleVerSyncTaskContext()
     subManager_ = nullptr;
 }
 
-int SingleVerSyncTaskContext::Initialize(const std::string &deviceId,
-    ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
+int SingleVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
+    const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
 {
     if (deviceId.empty() || syncInterface == nullptr || metadata == nullptr ||
         communicator == nullptr) {
@@ -163,7 +163,7 @@ void SingleVerSyncTaskContext::ReleaseContinueToken()
 int SingleVerSyncTaskContext::PopResponseTarget(SingleVerSyncTarget &target)
 {
     std::lock_guard<std::mutex> lock(targetQueueLock_);
-    LOGD("[SingleVerSyncTaskContext] GetFrontExtWaterMarak size = %zu", responseTargetQueue_.size());
+    LOGD("[SingleVerSyncTaskContext] GetFrontExtWaterMark size = %zu", responseTargetQueue_.size());
     if (!responseTargetQueue_.empty()) {
         ISyncTarget *tmpTarget = responseTargetQueue_.front();
         responseTargetQueue_.pop_front();
@@ -249,10 +249,10 @@ void SingleVerSyncTaskContext::ClearAllSyncTask()
             responseTargetQueue_.size());
         while (!requestTargetQueue_.empty()) {
             ISyncTarget *tmpTarget = requestTargetQueue_.front();
+            requestTargetQueue_.pop_front();
             SyncOperation *tmpInfOperation = nullptr;
             tmpTarget->GetSyncOperation(tmpInfOperation);
             RefObject::IncObjRef(tmpInfOperation);
-            requestTargetQueue_.pop_front();
             targetQueue.push_back(tmpTarget);
         }
         while (!responseTargetQueue_.empty()) {
@@ -310,11 +310,6 @@ bool SingleVerSyncTaskContext::StartFeedDogForSync(uint32_t time, SyncDirectionF
 void SingleVerSyncTaskContext::StopFeedDogForSync(SyncDirectionFlag flag)
 {
     stateMachine_->StopFeedDogForSync(flag);
-}
-
-int SingleVerSyncTaskContext::HandleDataRequestRecv(const Message *msg)
-{
-    return static_cast<SingleVerSyncStateMachine *>(stateMachine_)->HandleDataRequestRecv(msg);
 }
 
 bool SingleVerSyncTaskContext::IsReceiveWaterMarkErr() const

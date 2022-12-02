@@ -115,7 +115,7 @@ namespace {
             EXPECT_TRUE(g_kvDelegatePtr->Get(entry.key, resultvalue) == OK);
             EXPECT_TRUE(resultvalue == entry.value);
         }
-        for (int i = 0; i < totalSize / 2; i++) {
+        for (int i = 0; i < totalSize / 2; i++) { // half of totalSize
             g_kvDelegatePtr->Delete(entries[i].key);
             Value resultvalue;
             EXPECT_TRUE(g_kvDelegatePtr->Get(entries[i].key, resultvalue) == NOT_FOUND);
@@ -1675,15 +1675,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck001, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (flag & CHECK_FLAG_SEND) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (flag & CHECK_FLAG_SEND) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     DBStatus status = OK;
     std::vector<std::string> devices;
@@ -1738,15 +1738,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck002, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (flag & CHECK_FLAG_RECEIVE) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (flag & CHECK_FLAG_RECEIVE) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
 
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
 
@@ -1808,15 +1808,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck003, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (flag & (CHECK_FLAG_SEND | CHECK_FLAG_RECEIVE)) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (flag & (CHECK_FLAG_SEND | CHECK_FLAG_RECEIVE)) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
 
     std::vector<std::string> devices;
@@ -1897,15 +1897,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck004, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (flag & CHECK_FLAG_RECEIVE) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (flag & CHECK_FLAG_RECEIVE) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     DBStatus status = OK;
     std::vector<std::string> devices;
@@ -1960,15 +1960,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck005, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (flag & CHECK_FLAG_SEND) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (flag & CHECK_FLAG_SEND) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
 
     DBStatus status = OK;
@@ -2029,15 +2029,15 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck006, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (deviceId == g_deviceB->GetDeviceId()) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (deviceId == g_deviceB->GetDeviceId()) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     DBStatus status = OK;
     std::vector<std::string> devices;
@@ -2096,16 +2096,16 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck007, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (deviceId == g_deviceC->GetDeviceId() &&
-                                            (flag & (CHECK_FLAG_RECEIVE | CHECK_FLAG_AUTOSYNC))) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (deviceId == g_deviceC->GetDeviceId() &&
+                (flag & (CHECK_FLAG_RECEIVE | CHECK_FLAG_AUTOSYNC))) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     DBStatus status = OK;
     std::vector<std::string> devices;
@@ -2154,16 +2154,16 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, PermissionCheck008, TestSize.Level3)
      * @tc.expected: step1. return OK.
      */
     auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
-                                        const std::string &deviceId, uint8_t flag) -> bool {
-                                        if (deviceId == g_deviceC->GetDeviceId() &&
-                                            (flag & CHECK_FLAG_SPONSOR)) {
-                                            LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
-                                            return false;
-                                        } else {
-                                            LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
-                                            return true;
-                                        }
-                                        };
+        const std::string &deviceId, uint8_t flag) -> bool {
+            if (deviceId == g_deviceC->GetDeviceId() &&
+                (flag & CHECK_FLAG_SPONSOR)) {
+                LOGD("in RunPermissionCheck callback func, check not pass, flag:%d", flag);
+                return false;
+            } else {
+                LOGD("in RunPermissionCheck callback func, check pass, flag:%d", flag);
+                return true;
+            }
+        };
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
     DBStatus status = OK;
     std::vector<std::string> devices;

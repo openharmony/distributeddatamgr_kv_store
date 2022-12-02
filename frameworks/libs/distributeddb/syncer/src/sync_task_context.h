@@ -167,6 +167,8 @@ public:
     // Judge if the communicator is normal
     bool IsCommNormal() const override;
 
+    void ClearSyncOperation() override;
+
     // If ability sync request set version, need call this function.
     // Should be called with ObjLock
     virtual void Abort(int status);
@@ -222,8 +224,6 @@ protected:
     void CommErrHandlerFuncInner(int errCode, uint32_t sessionId);
 
     void KillWait();
-
-    void ClearSyncOperation();
 
     void ClearSyncTarget();
 

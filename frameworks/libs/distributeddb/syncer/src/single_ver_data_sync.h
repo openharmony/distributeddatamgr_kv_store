@@ -63,7 +63,7 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(SingleVerDataSync);
 
     int Initialize(ISyncInterface *inStorage, ICommunicator *inCommunicateHandle,
-        std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId);
+        const std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId);
 
     int SyncStart(int mode, SingleVerSyncTaskContext *context);
 
@@ -146,14 +146,19 @@ protected:
     SyncTimeRange GetSyncDataTimeRange(SyncType syncType, SingleVerSyncTaskContext *context,
         const std::vector<SendDataItem> &inData, UpdateWaterMark &isUpdate);
 
+    int GetDataWithPerformanceRecord(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
+        size_t packetSize);
+
     int GetData(SingleVerSyncTaskContext *context, size_t packetSize, std::vector<SendDataItem> &outData);
 
-    int GetDataWithPerformanceRecord(SingleVerSyncTaskContext *context, SyncEntry &syncOutData);
+    int GetMatchData(SingleVerSyncTaskContext *context, SyncEntry &syncOutData);
 
     int Send(SingleVerSyncTaskContext *context, const Message *message, const CommErrHandler &handler,
         uint32_t packetLen);
 
     int GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize);
+    int GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
+        DataSizeSpecInfo syncDataSizeInfo, SyncTimeRange &waterMarkInfo);
 
     int GetNextUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize);
 

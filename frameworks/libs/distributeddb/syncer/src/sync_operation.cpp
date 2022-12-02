@@ -284,7 +284,7 @@ SyncType SyncOperation::GetSyncType(int mode)
     const auto &result = std::find_if(std::begin(syncTypeNodes), std::end(syncTypeNodes), [mode](const auto &node) {
         return node.mode == mode;
     });
-    return result == std::end(syncTypeNodes) ? SyncType::INVALID_SYNC_TYPE : (*result).type;
+    return result == std::end(syncTypeNodes) ? SyncType::INVALID_SYNC_TYPE : result->type;
 }
 
 int SyncOperation::TransferSyncMode(int mode)
@@ -329,7 +329,7 @@ DBStatus SyncOperation::DBStatusTrans(int operationStatus)
         [operationStatus](const auto &node) {
             return node.operationStatus == operationStatus;
         });
-    return result == std::end(syncOperationStatusNodes) ? DB_ERROR : (*result).status;
+    return result == std::end(syncOperationStatusNodes) ? DB_ERROR : result->status;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SyncOperation)
 } // namespace DistributedDB

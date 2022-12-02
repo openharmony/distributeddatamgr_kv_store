@@ -67,6 +67,8 @@ public:
 
     const RelationalDBProperties &GetDbProperties() const override;
 
+    int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
+
     // Get the data which would be synced with query condition
     int GetSyncData(QueryObject &query, const SyncTimeRange &timeRange,
         const DataSizeSpecInfo &dataSizeInfo, ContinueToken &continueStmtToken,

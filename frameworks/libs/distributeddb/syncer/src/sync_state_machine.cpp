@@ -51,7 +51,7 @@ SyncStateMachine::~SyncStateMachine()
 }
 
 int SyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface,
-    std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
+    const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
 {
     if ((context == nullptr) || (syncInterface == nullptr) || (metadata == nullptr) || (communicator == nullptr)) {
         return -E_INVALID_ARGS;

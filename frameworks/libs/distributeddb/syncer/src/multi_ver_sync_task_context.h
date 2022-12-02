@@ -28,8 +28,8 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(MultiVerSyncTaskContext);
 
     // Init the MultiVerSyncTaskContext
-    int Initialize(const std::string &deviceId, ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
-        ICommunicator *communicator) override;
+    int Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
+        const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) override;
 
     // Add a sync task target with the operation to the queue
     int AddSyncOperation(SyncOperation *operation) override;

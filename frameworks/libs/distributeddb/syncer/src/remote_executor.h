@@ -81,9 +81,9 @@ protected:
 
 private:
     struct SendMessage {
-        uint32_t sessionId;
-        uint32_t sequenceId;
-        bool isLast;
+        uint32_t sessionId = 0u;
+        uint32_t sequenceId = 0u;
+        bool isLast = true;
         SecurityOption option;
     };
 
@@ -110,11 +110,7 @@ private:
 
     int RequestStart(uint32_t sessionId);
 
-    int ResponseData(RelationalRowDataSet &&dataSet, uint32_t sessionId, uint32_t sequenceId, bool isLast,
-        const std::string &device);
-
     int ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage, const std::string &device);
-
     int ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,
         const std::string &device);
 
@@ -138,7 +134,7 @@ private:
     void RemoveAllTask(int errCode);
     void RemoveTaskByConnection(uint64_t connectionId, std::vector<uint32_t> &removeList);
 
-    int GetPacketSize(const std::string &device, size_t &packetSize);
+    int GetPacketSize(const std::string &device, size_t &packetSize) const;
     int CheckSecurityOption(ISyncInterface *storage, ICommunicator *communicator, const SecurityOption &remoteOption);
     bool CheckRemoteSecurityOption(const std::string &device, const SecurityOption &remoteOption,
         const SecurityOption &localOption);

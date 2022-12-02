@@ -34,9 +34,9 @@ public:
 
     MOCK_CONST_METHOD0(GetTimerId, TimerId(void));
 
-    MOCK_CONST_METHOD0(IsTargetQueueEmpty, bool(void));
-
     MOCK_METHOD0(MoveToNextTarget, void(void));
+
+    MOCK_CONST_METHOD0(IsTargetQueueEmpty, bool(void));
 
     MOCK_CONST_METHOD0(IsCurrentSyncTaskCanBeSkipped, bool(void));
 

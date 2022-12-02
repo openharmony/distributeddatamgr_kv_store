@@ -46,7 +46,7 @@ public:
     ~SyncStateMachine() override;
 
     // Init the SingleVerSyncStateMachine
-    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
+    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
         ICommunicator *communicator) override;
 
     // start a sync step

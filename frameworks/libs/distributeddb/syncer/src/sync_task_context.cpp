@@ -66,7 +66,7 @@ SyncTaskContext::~SyncTaskContext()
         delete stateMachine_;
         stateMachine_ = nullptr;
     }
-    ClearSyncOperation();
+    SyncTaskContext::ClearSyncOperation();
     ClearSyncTarget();
     syncInterface_ = nullptr;
     communicator_ = nullptr;
@@ -553,7 +553,7 @@ int SyncTaskContext::TimeOut(TimerId id)
         DecObjRef(this);
     });
     if (errCode != E_OK) {
-        LOGW("[SyncTaskContext][Timeout] Trigger Timeout Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
+        LOGW("[SyncTaskContext][TimeOut] Trigger TimeOut Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
         SafeExit();
         DecObjRef(this);
     }

@@ -1410,8 +1410,8 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
         std::map<std::string, int> virtualRes;
         Query query = Query::Select();
         g_deviceB->Sync(SYNC_MODE_PUSH_ONLY, query, [&virtualRes](std::map<std::string, int> resMap) {
-            virtualRes = std::move(resMap);
-        }, true);
+                virtualRes = std::move(resMap);
+            }, true);
     });
 
     /**

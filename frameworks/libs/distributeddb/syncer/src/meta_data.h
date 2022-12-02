@@ -139,8 +139,6 @@ private:
 
     int LoadAllMetadata();
 
-    uint64_t GetRandTimeOffset() const;
-
     void GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash);
 
     // this function will read data from db by metaData's key

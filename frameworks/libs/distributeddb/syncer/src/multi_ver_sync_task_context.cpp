@@ -29,7 +29,7 @@ MultiVerSyncTaskContext::~MultiVerSyncTaskContext()
 }
 
 int MultiVerSyncTaskContext::Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
-    std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
+    const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
 {
     if (deviceId.empty() || (syncInterface == nullptr) || (communicator == nullptr)) {
         return -E_INVALID_ARGS;

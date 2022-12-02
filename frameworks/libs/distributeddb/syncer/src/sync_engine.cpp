@@ -66,9 +66,8 @@ SyncEngine::~SyncEngine()
     LOGD("[SyncEngine] ~SyncEngine ok!");
 }
 
-int SyncEngine::Initialize(ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
-    const std::function<void(std::string)> &onRemoteDataChanged, const std::function<void(std::string)> &offlineChanged,
-    const std::function<void(const InternalSyncParma &param)> &queryAutoSyncCallback)
+int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
+    const InitCallbackParam &callbackParam)
 {
     if ((syncInterface == nullptr) || (metadata == nullptr)) {
         return -E_INVALID_ARGS;
@@ -87,10 +86,10 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, std::shared_ptr<Metada
         syncInterface_ = nullptr;
         return errCode;
     }
-    onRemoteDataChanged_ = onRemoteDataChanged;
-    offlineChanged_ = offlineChanged;
-    queryAutoSyncCallback_ = queryAutoSyncCallback;
-    errCode = InitInnerSource(onRemoteDataChanged, offlineChanged);
+    onRemoteDataChanged_ = callbackParam.onRemoteDataChanged;
+    offlineChanged_ = callbackParam.offlineChanged;
+    queryAutoSyncCallback_ = callbackParam.queryAutoSyncCallback;
+    errCode = InitInnerSource(callbackParam.onRemoteDataChanged, callbackParam.offlineChanged);
     if (errCode != E_OK) {
         // reset ptr if initialize device manager failed
         syncInterface_ = nullptr;
@@ -126,7 +125,6 @@ int SyncEngine::Close()
         RefObject::KillAndDecObjRef(iter);
         iter = nullptr;
     }
-
     WaitingExecTaskExist();
     ReleaseCommunicators();
     {
@@ -258,13 +256,14 @@ int SyncEngine::InitInnerSource(const std::function<void(std::string)> &onRemote
             break;
         }
         errCode = executor->Initialize(syncInterface_, communicator_);
-        SetRemoteExector(executor);
     } while (false);
     if (errCode != E_OK) {
         delete deviceManager_;
         deviceManager_ = nullptr;
         delete executor;
         executor = nullptr;
+    } else {
+        SetRemoteExector(executor);
     }
     return errCode;
 }
@@ -673,6 +672,12 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
         int errCode = context->GetNextTarget(true);
         if (errCode != E_OK) {
             return errCode;
+        }
+        if (context->IsCurrentSyncTaskCanBeSkipped()) {
+            context->SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
+            context->ClearSyncOperation();
+            context->SetTaskExecStatus(ISyncTaskContext::FINISHED);
+            return E_OK;
         }
         context->UnlockObj();
         errCode = context->StartStateMachine();
@@ -1126,12 +1131,12 @@ void SyncEngine::SetRemoteExector(RemoteExecutor *executor)
     remoteExecutor_ = executor;
 }
 
-bool SyncEngine::CheckDeviceIdValid(const std::string &deviceId, const std::string &localDeviceId)
+bool SyncEngine::CheckDeviceIdValid(const std::string &checkDeviceId, const std::string &localDeviceId)
 {
-    if (deviceId.empty()) {
+    if (checkDeviceId.empty()) {
         return false;
     }
-    return localDeviceId != deviceId;
+    return localDeviceId != checkDeviceId;
 }
 
 int SyncEngine::GetLocalDeviceId(std::string &deviceId)
