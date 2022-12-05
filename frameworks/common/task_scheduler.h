@@ -30,9 +30,9 @@ namespace OHOS {
 class API_LOCAL TaskScheduler {
 public:
     using TaskId = uint64_t;
-    using Time = std::chrono::system_clock::time_point;
-    using Duration = std::chrono::system_clock::duration;
-    using System = std::chrono::system_clock;
+    using Time = std::chrono::steady_clock::time_point;
+    using Duration = std::chrono::steady_clock::duration;
+    using Clock = std::chrono::steady_clock;
     using Task = std::function<void()>;
     inline static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
     TaskScheduler(size_t capacity, const std::string &name)
@@ -53,7 +53,7 @@ public:
     {
         isRunning_ = false;
         Clean();
-        At(std::chrono::system_clock::now(), []() {});
+        At(std::chrono::steady_clock::now(), []() {});
         thread_->join();
     }
 
@@ -81,7 +81,7 @@ public:
             return INVALID_TASK_ID;
         }
 
-        auto it = tasks_.insert({ std::chrono::system_clock::now() + interval, std::move(index->second->second) });
+        auto it = tasks_.insert({ std::chrono::steady_clock::now() + interval, std::move(index->second->second) });
         if (it == tasks_.begin() || index->second == tasks_.begin()) {
             condition_.notify_one();
         }
@@ -104,7 +104,7 @@ public:
             task();
             this->Every(interval, task);
         };
-        At(std::chrono::system_clock::now() + interval, waitFunc);
+        At(std::chrono::steady_clock::now() + interval, waitFunc);
     }
 
     // remove task in SchedulerTask
@@ -127,8 +127,9 @@ public:
             task();
             Every(interval, task);
         };
-        At(std::chrono::system_clock::now() + delay, waitFunc);
+        At(std::chrono::steady_clock::now() + delay, waitFunc);
     }
+
     // execute task for some times periodically with duration after delay
     void Every(int32_t times, Duration delay, Duration interval, Task task)
     {
@@ -141,12 +142,12 @@ public:
             }
         };
 
-        At(std::chrono::system_clock::now() + delay, waitFunc);
+        At(std::chrono::steady_clock::now() + delay, waitFunc);
     }
 
     TaskId Execute(Task task)
     {
-        return At(std::chrono::system_clock::now(), std::move(task));
+        return At(std::chrono::steady_clock::now(), std::move(task));
     }
 
 private:
@@ -160,7 +161,7 @@ private:
                 condition_.wait(lock, [this] {
                     return !tasks_.empty();
                 });
-                if (tasks_.begin()->first > std::chrono::system_clock::now()) {
+                if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
                     auto time = tasks_.begin()->first;
                     condition_.wait_until(lock, time);
                     continue;

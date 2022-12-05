@@ -21,7 +21,7 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using duration = std::chrono::system_clock::duration;
+using duration = std::chrono::steady_clock::duration;
 class TaskSchedulerTest : public testing::Test {
 public:
     static constexpr uint32_t SHORT_INTERVAL = 100;
@@ -42,7 +42,7 @@ public:
 HWTEST_F(TaskSchedulerTest, At, TestSize.Level0)
 {
     TaskScheduler taskScheduler("atTest");
-    auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
+    auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
     int testData = 10;
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
     auto atTaskId1 = taskScheduler.At(expiredTime, [blockData]() {
@@ -51,7 +51,7 @@ HWTEST_F(TaskSchedulerTest, At, TestSize.Level0)
     });
     ASSERT_EQ(blockData->GetValue(), 11);
     blockData->Clear();
-    expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
+    expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
     auto atTaskId2 = taskScheduler.At(expiredTime, [blockData]() {
         int testData = 12;
         blockData->SetValue(testData);
@@ -90,7 +90,7 @@ HWTEST_F(TaskSchedulerTest, Every, TestSize.Level0)
 HWTEST_F(TaskSchedulerTest, Reset1, TestSize.Level0)
 {
     TaskScheduler taskScheduler("reset1Test");
-    auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
+    auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(SHORT_INTERVAL);
     auto atTaskId1 = taskScheduler.At(expiredTime, []() {});
     expiredTime += std::chrono::milliseconds(LONG_INTERVAL);
     auto atTaskId2 = taskScheduler.At(expiredTime, []() {});
@@ -114,7 +114,7 @@ HWTEST_F(TaskSchedulerTest, Reset2, TestSize.Level0)
     TaskScheduler taskScheduler("reset2Test");
     int testData = 10;
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
-    auto expiredTime = std::chrono::system_clock::now();
+    auto expiredTime = std::chrono::steady_clock::now();
     auto atTaskId = taskScheduler.At(expiredTime, [blockData]() {
         blockData->GetValue();
     });
@@ -134,7 +134,7 @@ HWTEST_F(TaskSchedulerTest, Reset2, TestSize.Level0)
 HWTEST_F(TaskSchedulerTest, Reset3, TestSize.Level0)
 {
     TaskScheduler taskScheduler("reset3Test");
-    auto expiredTime = std::chrono::system_clock::now();
+    auto expiredTime = std::chrono::steady_clock::now();
     int testData = 10;
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
     auto atTaskId = taskScheduler.At(expiredTime, [blockData]() {

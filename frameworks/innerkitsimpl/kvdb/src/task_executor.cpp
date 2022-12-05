@@ -26,7 +26,7 @@ bool TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
     if (pool_ == nullptr) {
         return false;
     }
-    auto time = TaskScheduler::System::now() + std::chrono::milliseconds(interval);
+    auto time = TaskScheduler::Clock::now() + std::chrono::milliseconds(interval);
     pool_->At(time, std::move(task));
     return true;
 }
