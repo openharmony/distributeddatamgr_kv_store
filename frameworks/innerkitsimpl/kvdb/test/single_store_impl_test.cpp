@@ -24,6 +24,7 @@
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
+namespace {
 class SingleStoreImplTest : public testing::Test {
 public:
     class TestObserver : public KvStoreObserver {
@@ -1291,4 +1292,5 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
     ASSERT_NE(kvStore, nullptr);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
+}
 }
