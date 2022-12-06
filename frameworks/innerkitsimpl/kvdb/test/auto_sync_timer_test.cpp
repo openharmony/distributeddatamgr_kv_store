@@ -25,7 +25,6 @@ using namespace OHOS;
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace std::chrono;
-namespace {
 class AutoSyncTimerTest : public testing::Test {
 public:
     class KVDBServiceMock : public KVDBServiceClient {
@@ -281,5 +280,4 @@ HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store8"), 1);
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
-}
 }
