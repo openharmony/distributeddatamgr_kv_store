@@ -136,8 +136,7 @@ void RelationalStoreDelegateImpl::OnSyncComplete(const std::map<std::string, std
         for (const auto &tableStatus : tablesStatus) {
             TableStatus table;
             table.tableName = tableStatus.tableName;
-            DBStatus status = SyncOperation::DBStatusTrans(tableStatus.status);
-            table.status = status;
+            table.status = SyncOperation::DBStatusTrans(tableStatus.status);
             res[device].push_back(table);
         }
     }
