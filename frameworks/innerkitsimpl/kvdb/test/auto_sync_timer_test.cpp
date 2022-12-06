@@ -61,7 +61,7 @@ public:
 
         uint32_t GetCallCount(uint32_t value)
         {
-            int retry = 0;
+            uint32_t retry = 0;
             uint32_t callTimes = 0;
             while (retry < value) {
                 callTimes = value_.GetValue();
@@ -106,7 +106,6 @@ public:
     void TearDown();
 
 protected:
-    static std::shared_ptr<SingleKvStore> kvStore_;
     static BrokerDelegator<KVDBServiceMock> delegator_;
 };
 BrokerDelegator<AutoSyncTimerTest::KVDBServiceMock> AutoSyncTimerTest::delegator_;
