@@ -125,7 +125,7 @@ void AutoSyncTimerTest::SetUp(void)
 
 void AutoSyncTimerTest::TearDown(void)
 {
-    const int WATI_TIME = 10;
+    constexpr int WATI_TIME = 10;
     sleep(WATI_TIME);
 }
 
