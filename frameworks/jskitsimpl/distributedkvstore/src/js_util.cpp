@@ -963,11 +963,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     GetNamedProperty(env, in, "encrypt", options.encrypt);
     GetNamedProperty(env, in, "backup", options.backup);
     GetNamedProperty(env, in, "autoSync", options.autoSync);
-    if (options.autoSync) {
-        DistributedKv::SyncPolicy policy;
-        policy.type = DistributedKv::PolicyType::IMMEDIATE_SYNC_ON_READY;
-        options.policies.emplace_back(policy);
-    }
+
     int32_t kvStoreType = 0;
     GetNamedProperty(env, in, "kvStoreType", kvStoreType);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
