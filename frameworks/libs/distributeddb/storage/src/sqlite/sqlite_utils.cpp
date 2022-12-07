@@ -46,6 +46,8 @@ namespace {
     const int BIND_KEY_INDEX = 1;
     const int BIND_VAL_INDEX = 2;
     const int USING_STR_LEN = -1;
+    const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+    const int MAX_TEXT_READ_SIZE = 5 * 1024 * 1024; // 5M limit
     const std::string WAL_MODE_SQL = "PRAGMA journal_mode=WAL;";
     const std::string SYNC_MODE_FULL_SQL = "PRAGMA synchronous=FULL;";
     const std::string SYNC_MODE_NORMAL_SQL = "PRAGMA synchronous=NORMAL;";
@@ -501,11 +503,14 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
     }
 
     int keySize = sqlite3_column_bytes(statement, index);
-    auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(statement, index));
-    if (keySize < 0) {
-        LOGE("[SQLiteUtils][Column blob] size:%d", keySize);
+    if (keySize < 0 || keySize > MAX_BLOB_READ_SIZE) {
+        LOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
+        value.resize(MAX_BLOB_READ_SIZE + 1);
         return -E_INVALID_DATA;
-    } else if (keySize == 0 || keyRead == nullptr) {
+    }
+
+    auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(statement, index));
+    if (keySize == 0 || keyRead == nullptr) {
         value.resize(0);
     } else {
         value.resize(keySize);
@@ -520,8 +525,21 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
     }
+
+    int valSize = sqlite3_column_bytes(statement, index);
+    if (valSize < 0 || valSize > MAX_TEXT_READ_SIZE) {
+        LOGW("[SQLiteUtils][Column text] size over limit:%d", valSize);
+        value.resize(MAX_TEXT_READ_SIZE + 1);
+        return -E_INVALID_DATA;
+    }
+
     const unsigned char *val = sqlite3_column_text(statement, index);
-    value = (val != nullptr) ? std::string(reinterpret_cast<const char *>(val)) : std::string();
+    if (valSize == 0 || val == nullptr) {
+        value = {};
+    } else {
+        value = std::string(reinterpret_cast<const char *>(val));
+    }
+
     return E_OK;
 }
 
