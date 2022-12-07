@@ -143,7 +143,7 @@ public:
     /* napi_value <-> std::map<std::string, Status> */
     static napi_status GetValue(napi_env env, napi_value in, std::map<std::string, Status>& out);
     static napi_status SetValue(napi_env env, const std::map<std::string, Status>& in, napi_value& out);
-    
+
     static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
 
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);

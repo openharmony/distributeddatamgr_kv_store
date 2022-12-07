@@ -75,11 +75,8 @@ describe('SingleKvStoreCallbackTest', function () {
 
     beforeAll(async function (done) {
         console.info('beforeAll config:' + JSON.stringify(config));
-        await factory.createKVManager(config, function (err, manager) {
-            kvManager = manager;
-            console.info('beforeAll createKVManager success');
-            done();
-        })
+        kvManager =  factory.createKVManager(config);
+        done();
     })
 
     afterAll(async function (done) {
@@ -894,9 +891,9 @@ describe('SingleKvStoreCallbackTest', function () {
         try {
             await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
                 expect(err == undefined).assertTrue();
-            });
-            kvStore.on('dataChange', 2, function () {
-                expect(null).assertFail();
+                kvStore.on('dataChange', 2, function () {
+                    expect(null).assertFail();
+                });
             });
         } catch (e) {
             console.error('SingleKvStoreOnChangeCallbackClosedKVStoreTest e' + `, error code is ${e.code}, message is ${e.message}`);
