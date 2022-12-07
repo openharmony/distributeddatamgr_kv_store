@@ -15,8 +15,6 @@
 
 #include "auto_launch.h"
 
-#include <map>
-
 #include "db_common.h"
 #include "db_dump_helper.h"
 #include "db_dfx_adapter.h"

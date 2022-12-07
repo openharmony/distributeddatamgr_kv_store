@@ -29,7 +29,7 @@ class RefObject {
 public:
     class AutoLock final {
     public:
-        AutoLock(const RefObject *obj, bool unlocked = true);
+        explicit AutoLock(const RefObject *obj, bool unlocked = true);
         ~AutoLock();
         void Lock();
         void Unlock();

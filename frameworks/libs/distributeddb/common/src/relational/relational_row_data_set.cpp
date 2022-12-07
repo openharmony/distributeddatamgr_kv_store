@@ -139,11 +139,11 @@ void RelationalRowDataSet::SetColNames(std::vector<std::string> &&colNames)
 void RelationalRowDataSet::SetRowData(std::vector<RelationalRowData *> &&data)
 {
     for (const auto &rowData : data_) {
-        serialLength_ -= rowData->CalcLength();
+        serialLength_ -= static_cast<size_t>(rowData->CalcLength());
     }
     data_ = data;
     for (const auto &rowData : data_) {
-        serialLength_ += rowData->CalcLength();
+        serialLength_ += static_cast<size_t>(rowData->CalcLength());
     }
 }
 
@@ -156,7 +156,7 @@ int RelationalRowDataSet::Insert(RelationalRowData *rowData)
         return -E_INVALID_ARGS;
     }
     data_.push_back(rowData);
-    serialLength_ += rowData->CalcLength();
+    serialLength_ += static_cast<size_t>(rowData->CalcLength());
     return E_OK;
 }
 

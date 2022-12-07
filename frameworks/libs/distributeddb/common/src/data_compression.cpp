@@ -14,7 +14,6 @@
  */
 
 #include "data_compression.h"
-#include <map>
 #include "db_errno.h"
 
 namespace DistributedDB {
@@ -51,8 +50,8 @@ void DataCompression::Register(CompressAlgorithm algo, DataCompression *compress
     if (GetInstance(algo) != nullptr) {
         return;
     }
-    GetCompressionAlgos().insert({algo, compressionPtr});
-    GetTransMap().insert({static_cast<uint32_t>(algo), algo});
+    GetCompressionAlgos().insert({ algo, compressionPtr });
+    GetTransMap().insert({ static_cast<uint32_t>(algo), algo });
 }
 
 std::map<CompressAlgorithm, DataCompression *> &DataCompression::GetCompressionAlgos()

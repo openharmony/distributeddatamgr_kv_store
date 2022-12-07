@@ -54,5 +54,4 @@ public:
     static bool CheckRelationalTableName(const std::string &tableName);
 };
 } // namespace DistributedDB
-
-#endif // DISTRIBUTEDDB_PARAM_CHECK_UTILS_H
+#endif // PARAM_CHECK_UTILS_H
