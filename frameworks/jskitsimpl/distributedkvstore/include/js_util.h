@@ -40,6 +40,21 @@ public:
         DOUBLE = 5,
         INVALID = 255
     };
+    enum JsApiType{
+        NORMAL = 0,
+        DATASHARE = 1
+    };
+    struct StatusMsg{
+        napi_status status = napi_ok;
+        JsApiType jsApiType = NORMAL;
+        StatusMsg() : status(napi_ok), jsApiType(NORMAL) {}
+        StatusMsg(napi_status status) : status(status) {}
+        StatusMsg(napi_status status, JsApiType jsApiType) : status(status), jsApiType(jsApiType) {}
+        operator napi_status()
+        {
+            return status;
+        }
+    };
     using JsSchema = class JsSchema;
     using Blob = OHOS::DistributedKv::Blob;
     using ChangeNotification = OHOS::DistributedKv::ChangeNotification;
@@ -58,109 +73,105 @@ public:
     /* for query value related : number|string|boolean */
     using QueryVariant = std::variant<std::string, bool, double>;
 
-    static napi_status GetValue(napi_env env, napi_value in, napi_value& out);
-    static napi_status SetValue(napi_env env, napi_value in, napi_value& out);
+    static bool IsSystemApi(JsApiType jsApiType);
+
+    static StatusMsg GetValue(napi_env env, napi_value in, napi_value& out);
+    static StatusMsg SetValue(napi_env env, napi_value in, napi_value& out);
     /* napi_value <-> bool */
-    static napi_status GetValue(napi_env env, napi_value in, bool& out);
-    static napi_status SetValue(napi_env env, const bool& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, bool& out);
+    static StatusMsg SetValue(napi_env env, const bool& in, napi_value& out);
 
     /* napi_value <-> int32_t */
-    static napi_status GetValue(napi_env env, napi_value in, int32_t& out);
-    static napi_status SetValue(napi_env env, const int32_t& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, int32_t& out);
+    static StatusMsg SetValue(napi_env env, const int32_t& in, napi_value& out);
 
     /* napi_value <-> uint32_t */
-    static napi_status GetValue(napi_env env, napi_value in, uint32_t& out);
-    static napi_status SetValue(napi_env env, const uint32_t& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, uint32_t& out);
+    static StatusMsg SetValue(napi_env env, const uint32_t& in, napi_value& out);
 
     /* napi_value <-> int64_t */
-    static napi_status GetValue(napi_env env, napi_value in, int64_t& out);
-    static napi_status SetValue(napi_env env, const int64_t& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, int64_t& out);
+    static StatusMsg SetValue(napi_env env, const int64_t& in, napi_value& out);
 
     /* napi_value <-> double */
-    static napi_status GetValue(napi_env env, napi_value in, double& out);
-    static napi_status SetValue(napi_env env, const double& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, double& out);
+    static StatusMsg SetValue(napi_env env, const double& in, napi_value& out);
 
     /* napi_value <-> std::string */
-    static napi_status GetValue(napi_env env, napi_value in, std::string& out);
-    static napi_status SetValue(napi_env env, const std::string& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::string& out);
+    static StatusMsg SetValue(napi_env env, const std::string& in, napi_value& out);
 
     /* napi_value <-> KvStoreVariant */
-    static napi_status GetValue(napi_env env, napi_value in, KvStoreVariant& out);
-    static napi_status SetValue(napi_env env, const KvStoreVariant& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, KvStoreVariant& out);
+    static StatusMsg SetValue(napi_env env, const KvStoreVariant& in, napi_value& out);
 
     /* napi_value <-> QueryVariant */
-    static napi_status GetValue(napi_env env, napi_value in, QueryVariant& out);
-    static napi_status SetValue(napi_env env, const QueryVariant& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, QueryVariant& out);
+    static StatusMsg SetValue(napi_env env, const QueryVariant& in, napi_value& out);
 
     /* napi_value <-> std::vector<std::string> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<std::string>& out);
-    static napi_status SetValue(napi_env env, const std::vector<std::string>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<std::string>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<std::string>& in, napi_value& out);
 
     /* napi_value <-> std::vector<uint8_t> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<uint8_t>& out);
-    static napi_status SetValue(napi_env env, const std::vector<uint8_t>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<uint8_t>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<uint8_t>& in, napi_value& out);
 
     /* napi_value <-> std::vector<int32_t> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<int32_t>& out);
-    static napi_status SetValue(napi_env env, const std::vector<int32_t>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<int32_t>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<int32_t>& in, napi_value& out);
 
     /* napi_value <-> std::vector<uint32_t> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<uint32_t>& out);
-    static napi_status SetValue(napi_env env, const std::vector<uint32_t>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<uint32_t>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<uint32_t>& in, napi_value& out);
 
     /* napi_value <-> std::vector<int64_t> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<int64_t>& out);
-    static napi_status SetValue(napi_env env, const std::vector<int64_t>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<int64_t>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<int64_t>& in, napi_value& out);
 
     /* napi_value <-> std::vector<double> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<double>& out);
-    static napi_status SetValue(napi_env env, const std::vector<double>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<double>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<double>& in, napi_value& out);
 
     /* napi_value <-> ChangeNotification */
-    static napi_status GetValue(napi_env env, napi_value in, ChangeNotification& out, bool hasSchema);
-    static napi_status SetValue(napi_env env, const ChangeNotification& in, napi_value& out, bool hasSchema);
+    static StatusMsg GetValue(napi_env env, napi_value in, ChangeNotification& out, bool hasSchema);
+    static StatusMsg SetValue(napi_env env, const ChangeNotification& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> Options */
-    static napi_status GetValue(napi_env env, napi_value in, Options& out);
-    static napi_status SetValue(napi_env env, const Options& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, Options& out);
+    static StatusMsg SetValue(napi_env env, const Options& in, napi_value& out);
 
     /* napi_value <-> Entry */
-    static napi_status GetValue(napi_env env, napi_value in, Entry& out, bool hasSchema);
-    static napi_status SetValue(napi_env env, const Entry& in, napi_value& out, bool hasSchema);
+    static StatusMsg GetValue(napi_env env, napi_value in, Entry& out, bool hasSchema);
+    static StatusMsg SetValue(napi_env env, const Entry& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> Options */
-    static napi_status GetValue(napi_env env, napi_value in, std::list<Entry>& out, bool hasSchema);
-    static napi_status SetValue(napi_env env, const std::list<Entry>& in, napi_value& out, bool hasSchema);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::list<Entry>& out, bool hasSchema);
+    static StatusMsg SetValue(napi_env env, const std::list<Entry>& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> std::vector<Entry> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<Entry>& out, bool hasSchema);
-    static napi_status SetValue(napi_env env, const std::vector<Entry>& in, napi_value& out, bool hasSchema);
-
-    /* napi_value <-> std::vector<ValuesBucket> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<ValuesBucket>& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<Entry>& out, bool hasSchema);
+    static StatusMsg SetValue(napi_env env, const std::vector<Entry>& in, napi_value& out, bool hasSchema);
 
     /* napi_value <-> std::vector<StoreId> */
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<StoreId>& out);
-    static napi_status SetValue(napi_env env, const std::vector<StoreId>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<StoreId>& out);
+    static StatusMsg SetValue(napi_env env, const std::vector<StoreId>& in, napi_value& out);
 
     /* napi_value <-> std::map<std::string, Status> */
-    static napi_status GetValue(napi_env env, napi_value in, std::map<std::string, Status>& out);
-    static napi_status SetValue(napi_env env, const std::map<std::string, Status>& in, napi_value& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::map<std::string, Status>& out);
+    static StatusMsg SetValue(napi_env env, const std::map<std::string, Status>& in, napi_value& out);
     
-    static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
+    static StatusMsg GetValue(napi_env env, napi_value in, JsSchema*& out);
 
-    static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
-    static napi_status GetValue(napi_env env, napi_value in, DataQuery &out);
+    static StatusMsg GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
+    static StatusMsg GetValue(napi_env env, napi_value in, DataQuery &out);
 
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValueObject::Type &value);
-    static napi_status GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
+    static StatusMsg GetValue(napi_env env, napi_value jsValue, ValueObject::Type &value);
+    static StatusMsg GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
 
-    static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);
+    static StatusMsg GetValue(napi_env env, napi_value in, ContextParam &param);
 
-    static napi_status Convert(const std::vector<DataShare::DataShareValuesBucket> &in, std::vector<Entry> &out,
-        bool hasSchema);
-
-    static napi_status GetCurrentAbilityParam(napi_env env, ContextParam &param);
+    static StatusMsg GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
     static inline napi_status GetNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)

@@ -221,11 +221,14 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "The type of key must be string.");
         } else if (ctxt->type == napi_object) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
+            JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->keys);
+            ctxt->status = statusMsg.status;
             ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "The parameters predicates is incorrect.");
-            ASSERT_BUSINESS_ERR(ctxt, reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+            ASSERT_BUSINESS_ERR(ctxt,
+                reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp() ||
+                    !JSUtil::IsSystemApi(statusMsg.jsApiType),
                 Status::PERMISSION_DENIED, "");
         }
     });
@@ -321,21 +324,18 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
         std::vector<Entry> entries;
     };
     auto ctxt = std::make_shared<PutBatchContext>();
-    ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
+    ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value *argv) {
         // required 1 arguments :: <entries>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        auto isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
-        if(ctxt->status!=napi_ok){
-            ZLOGD("maybe valuesbucket type");
-            std::vector<DataShare::DataShareValuesBucket> valuesBuckets;
-            ctxt->status = JSUtil::GetValue(env, argv[0], valuesBuckets);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "The type of entries is incorrect.");
-            JSUtil::Convert(valuesBuckets, ctxt->entries, isSchemaStore);
-            ASSERT_BUSINESS_ERR(ctxt,
+        auto isSchemaStore = reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSchemaStore();
+        JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
+        ctxt->status = statusMsg.status;
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+            "The type of entries is incorrect.");
+        ASSERT_BUSINESS_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
                 reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
-                Status::PERMISSION_DENIED, "");
-        }
+            Status::PERMISSION_DENIED, "");
     });
     ASSERT_NULL(!ctxt->isThrowError, "PutBatch exit");
 

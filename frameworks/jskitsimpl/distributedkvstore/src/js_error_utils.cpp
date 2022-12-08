@@ -22,7 +22,7 @@
 namespace OHOS::DistributedKVStore {
 using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
-static const std::vector<JsErrorCode> jsErrCodeMsgMap{
+static const JsErrorCode jsErrCodeMsgMap[] = {
     { Status::INVALID_ARGUMENT, 401, "Parameter error." },
     { Status::STORE_NOT_OPEN, 0, "" },
     { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
@@ -35,14 +35,16 @@ static const std::vector<JsErrorCode> jsErrCodeMsgMap{
     { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
 };
 
+static const uint32_t jsErrCodeMsgMapLen = sizeof(jsErrCodeMsgMap)/sizeof(jsErrCodeMsgMap[0]);
+
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 {
-    auto jsErrorCode = JsErrorCode{errorCode, -1, ""};
-    auto iter = std::lower_bound(jsErrCodeMsgMap.begin(), jsErrCodeMsgMap.end(), jsErrorCode,
-        [](JsErrorCode jsErrorCode1, JsErrorCode jsErrorCode2) {
+    auto jsErrorCode = JsErrorCode{ errorCode, -1, "" };
+    auto iter = std::lower_bound(jsErrCodeMsgMap, jsErrCodeMsgMap + jsErrCodeMsgMapLen, jsErrorCode,
+        [](JsErrorCode &jsErrorCode1, JsErrorCode &jsErrorCode2) {
             return jsErrorCode1.status < jsErrorCode2.status;
         });
-    if (iter != jsErrCodeMsgMap.end() && iter->status == errorCode) {
+    if (iter < jsErrCodeMsgMap + jsErrCodeMsgMapLen && iter->status == errorCode) {
         return *iter;
     }
     return std::nullopt;
