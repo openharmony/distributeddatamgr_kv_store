@@ -136,6 +136,9 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Entry>& out, bool hasSchema);
     static napi_status SetValue(napi_env env, const std::vector<Entry>& in, napi_value& out, bool hasSchema);
 
+    /* napi_value <-> std::vector<ValuesBucket> */
+    static napi_status GetValue(napi_env env, napi_value in, std::vector<ValuesBucket>& out);
+
     /* napi_value <-> std::vector<StoreId> */
     static napi_status GetValue(napi_env env, napi_value in, std::vector<StoreId>& out);
     static napi_status SetValue(napi_env env, const std::vector<StoreId>& in, napi_value& out);
@@ -143,7 +146,7 @@ public:
     /* napi_value <-> std::map<std::string, Status> */
     static napi_status GetValue(napi_env env, napi_value in, std::map<std::string, Status>& out);
     static napi_status SetValue(napi_env env, const std::map<std::string, Status>& in, napi_value& out);
-
+    
     static napi_status GetValue(napi_env env, napi_value in, JsSchema*& out);
 
     static napi_status GetValue(napi_env env, napi_value in, std::vector<Blob> &out);
@@ -153,6 +156,9 @@ public:
     static napi_status GetValue(napi_env env, napi_value jsValue, ValuesBucket &valuesBucket);
 
     static napi_status GetValue(napi_env env, napi_value in, ContextParam &param);
+
+    static napi_status Convert(const std::vector<DataShare::DataShareValuesBucket> &in, std::vector<Entry> &out,
+        bool hasSchema);
 
     static napi_status GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
@@ -185,6 +191,8 @@ public:
     static napi_status Unwrap(napi_env env, napi_value in, void** out, napi_value constructor);
 
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
+
+    static bool IsSystemApp();
 
 private:
     enum {

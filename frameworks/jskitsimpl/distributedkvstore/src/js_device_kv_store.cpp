@@ -123,6 +123,7 @@ napi_value JsDeviceKVStore::Get(napi_env env, napi_callback_info info)
 struct VariantArgs {
     /* input arguments' combinations */
     DataQuery dataQuery;
+    bool isSystemApi = false;
     std::string errMsg = "";
 };
 
@@ -157,6 +158,7 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
         } else {
             status = JSUtil::GetValue(env, argv[pos], va.dataQuery);
             ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", status);
+            va.isSystemApi = true;
         }
     }
     std::string deviceId;
@@ -231,6 +233,9 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        ASSERT_BUSINESS_ERR(ctxt,
+            !ctxt->va.isSystemApi || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+            Status::PERMISSION_DENIED, "");
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,

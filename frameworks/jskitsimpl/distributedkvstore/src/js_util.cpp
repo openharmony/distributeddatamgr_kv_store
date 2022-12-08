@@ -833,24 +833,15 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<Distribute
     uint32_t length = 0;
     napi_status status = napi_get_array_length(env, in, &length);
     ASSERT((status == napi_ok) && (length > 0), "get_array failed!", status);
+
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
         status = napi_get_element(env, in, i, &item);
-        ASSERT((status == napi_ok), "no element", status);
-        if ((status != napi_ok) || (item == nullptr)) {
-            continue;
-        }
+        ASSERT((status == napi_ok) && (item != nullptr), "get_element failed", status);
         DistributedKv::Entry entry;
         status = GetValue(env, item, entry, hasSchema);
         if (status != napi_ok) {
-            ZLOGD("maybe valubucket type");
-            OHOS::DataShare::DataShareValuesBucket values;
-            GetValue(env, item, values);
-            entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
-            if (hasSchema) {
-                entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
-            }
+            return status;
         }
         out.push_back(entry);
     }
@@ -869,6 +860,33 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<DistributedKv::Entr
         napi_set_element(env, out, index++, entry);
     }
     return status;
+}
+
+/* napi_value <-> std::vector<DataShare::DataShareValuesBucket> */
+napi_status JSUtil::GetValue(napi_env env, napi_value in, std::vector<DataShare::DataShareValuesBucket> &out)
+{
+    out.clear();
+    ZLOGD("napi_value -> std::vector<DataShare::DataShareValuesBucket> ");
+    bool isArray = false;
+    napi_is_array(env, in, &isArray);
+    ASSERT(isArray, "not array", napi_invalid_arg);
+
+    uint32_t length = 0;
+    napi_status status = napi_get_array_length(env, in, &length);
+    ASSERT((status == napi_ok) && (length > 0), "get_array failed!", status);
+
+    for (uint32_t i = 0; i < length; ++i) {
+        napi_value item = nullptr;
+        status = napi_get_element(env, in, i, &item);
+        ASSERT((status == napi_ok) && (item != nullptr), "get_element failed", status);
+        OHOS::DataShare::DataShareValuesBucket values;
+        status = GetValue(env, item, values);
+        if (status != napi_ok) {
+            return status;
+        }
+        out.push_back(values);
+    }
+    return napi_ok;
 }
 
 /* napi_value <-> std::vector<DistributedKv::StoreId> */
@@ -1183,6 +1201,27 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
         status = GetNamedProperty(env, hapInfo, "moduleName", param.hapName);
         ASSERT(status == napi_ok, "get hap name failed", napi_invalid_arg);
     }
+    napi_value appInfo = nullptr;
+    GetNamedProperty(env, in, "applicationInfo", appInfo);
+    if (appInfo != nullptr) {
+        status = GetNamedProperty(env, appInfo, "systemApp", param.isSystemApp);
+        ASSERT(status == napi_ok, "get appInfo failed", napi_invalid_arg);
+    }
+    return napi_ok;
+}
+
+napi_status JSUtil::Convert(const std::vector<DataShare::DataShareValuesBucket> &in, std::vector<Entry> &out, bool hasSchema)
+{
+    for(auto valuesBucket:in){
+        DistributedKv::Entry entry;
+        entry = OHOS::DistributedKv::KvUtils::ToEntry(valuesBucket);
+        entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
+        if (hasSchema) {
+            entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
+        }
+        out.push_back(entry);
+    }
+
     return napi_ok;
 }
 } // namespace OHOS::DistributedKVStore
