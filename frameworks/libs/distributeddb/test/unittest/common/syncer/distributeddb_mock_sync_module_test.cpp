@@ -60,7 +60,7 @@ public:
     }
     void LocalChange()
     {
-        syncer_.LocalDataChanged(SQLITE_GENERAL_NS_PUT_EVENT);
+        syncer_.LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
     void Close()
     {
@@ -865,7 +865,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
     syncer->Initialize(syncDBInterface, true);
     syncer->EnableAutoSync(true);
     for (int i = 0; i < 1000; i++) { // trigger 1000 times auto sync check
-        syncer->LocalDataChanged(SQLITE_GENERAL_NS_PUT_EVENT);
+        syncer->LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);

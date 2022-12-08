@@ -16,8 +16,8 @@
 #define SYNC_GENERIC_INTERFACE_H
 
 #include "isync_interface.h"
-#include "single_ver_kv_entry.h"
 #include "query_object.h"
+#include "single_ver_kv_entry.h"
 
 namespace DistributedDB {
 class SyncGenericInterface : public ISyncInterface {

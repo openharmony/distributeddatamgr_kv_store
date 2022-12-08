@@ -73,8 +73,8 @@ void SingleVerKVSyncer::LocalDataChanged(int notifyEvent)
         return;
     }
 
-    if (notifyEvent != SQLITE_GENERAL_FINISH_MIGRATE_EVENT &&
-        notifyEvent != SQLITE_GENERAL_NS_PUT_EVENT) {
+    if (notifyEvent != static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_FINISH_MIGRATE_EVENT) &&
+        notifyEvent != static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT)) {
         LOGD("[Syncer] ignore event:%d", notifyEvent);
         return;
     }

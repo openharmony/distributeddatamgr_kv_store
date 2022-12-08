@@ -400,19 +400,20 @@ int SQLiteSingleVerNaturalStoreConnection::TranslateObserverModeToEventTypes(uns
 {
     int errCode = E_OK;
     switch (mode) {
-        case static_cast<unsigned>(SQLITE_GENERAL_NS_PUT_EVENT):
-            eventTypes.push_back(SQLITE_GENERAL_NS_PUT_EVENT);
+        case static_cast<unsigned>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT):
+            eventTypes.push_back(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
             break;
-        case static_cast<unsigned>(SQLITE_GENERAL_NS_SYNC_EVENT):
-            eventTypes.push_back(SQLITE_GENERAL_NS_SYNC_EVENT);
+        case static_cast<unsigned>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT):
+            eventTypes.push_back(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
             break;
-        case (static_cast<unsigned>(SQLITE_GENERAL_NS_PUT_EVENT) |
-            static_cast<unsigned>(SQLITE_GENERAL_NS_SYNC_EVENT)):
-            eventTypes.push_back(SQLITE_GENERAL_NS_PUT_EVENT);
-            eventTypes.push_back(SQLITE_GENERAL_NS_SYNC_EVENT);
+        case (static_cast<unsigned>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT) |
+            static_cast<unsigned>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT)):
+            eventTypes.push_back(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+            eventTypes.push_back(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
             break;
-        case static_cast<unsigned>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT):
-            eventTypes.push_back(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT);
+        case static_cast<unsigned>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT):
+            eventTypes.push_back(
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
             break;
         default:
             errCode = -E_NOT_SUPPORT;
@@ -424,14 +425,14 @@ int SQLiteSingleVerNaturalStoreConnection::TranslateObserverModeToEventTypes(uns
 void SQLiteSingleVerNaturalStoreConnection::ClearConflictNotifierCount()
 {
     uint32_t conflictType = static_cast<unsigned>(conflictType_);
-    if ((conflictType & static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY)) != 0) {
-        (void)kvDB_->UnregisterFunction(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY);
+    if ((conflictType & static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY)) != 0) {
+        (void)kvDB_->UnregisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY);
     }
-    if ((conflictType & static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG)) != 0) {
-        (void)kvDB_->UnregisterFunction(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG);
+    if ((conflictType & static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG)) != 0) {
+        (void)kvDB_->UnregisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG);
     }
-    if ((conflictType & static_cast<unsigned>(SQLITE_GENERAL_NS_NATIVE_ALL)) != 0) {
-        (void)kvDB_->UnregisterFunction(CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL);
+    if ((conflictType & static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL)) != 0) {
+        (void)kvDB_->UnregisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL);
     }
     return;
 }
@@ -452,14 +453,14 @@ void SQLiteSingleVerNaturalStoreConnection::AddConflictNotifierCount(int target)
     LOGD("Conflict type:%u vs %u", conflictType_, target);
     // Add the new conflict type function.
     uint32_t targetTemp = static_cast<uint32_t>(target);
-    if ((targetTemp & static_cast<uint32_t>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY)) != 0) {
-        (void)kvDB_->RegisterFunction(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY);
+    if ((targetTemp & static_cast<uint32_t>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY)) != 0) {
+        (void)kvDB_->RegisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY);
     }
-    if ((targetTemp & static_cast<uint32_t>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG)) != 0) {
-        (void)kvDB_->RegisterFunction(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG);
+    if ((targetTemp & static_cast<uint32_t>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG)) != 0) {
+        (void)kvDB_->RegisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG);
     }
-    if ((targetTemp & static_cast<uint32_t>(SQLITE_GENERAL_NS_NATIVE_ALL)) != 0) {
-        (void)kvDB_->RegisterFunction(CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL);
+    if ((targetTemp & static_cast<uint32_t>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL)) != 0) {
+        (void)kvDB_->RegisterFunction(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL);
     }
 }
 
@@ -484,7 +485,9 @@ int SQLiteSingleVerNaturalStoreConnection::SetConflictNotifier(int conflictType,
     if (action) {
         int errCode = E_OK;
         Key key;
-        listener = RegisterSpecialListener(SQLITE_GENERAL_CONFLICT_EVENT, key, action, true, errCode);
+        listener = RegisterSpecialListener(
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT), key, action, true,
+            errCode);
         if (listener == nullptr) {
             LOGE("Register Conflict listener failed:'%d'.", errCode);
             return errCode;
@@ -1225,7 +1228,9 @@ void SQLiteSingleVerNaturalStoreConnection::CommitAndReleaseNotifyData(
                 naturalStore->CommitNotify(eventType, committedData);
             }
             if (!committedData->IsConflictedDataEmpty()) {
-                naturalStore->CommitNotify(SQLITE_GENERAL_CONFLICT_EVENT, committedData);
+                naturalStore->CommitNotify(
+                    static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT),
+                    committedData);
             }
         }
     }
@@ -1309,14 +1314,14 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType
 void SQLiteSingleVerNaturalStoreConnection::InitConflictNotifiedFlag()
 {
     unsigned int conflictFlag = 0;
-    if (kvDB_->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
+    if (kvDB_->GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
     }
-    if (kvDB_->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
+    if (kvDB_->GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
     }
-    if (kvDB_->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_NATIVE_ALL);
+    if (kvDB_->GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL);
     }
 
     committedData_->SetConflictedNotifiedFlag(static_cast<int>(conflictFlag));
@@ -1331,8 +1336,10 @@ int SQLiteSingleVerNaturalStoreConnection::CommitInner()
     transactionEntrySize_ = 0;
 
     if (!isCacheOrMigrating) {
-        CommitAndReleaseNotifyData(committedData_, true, SQLITE_GENERAL_NS_PUT_EVENT);
-        CommitAndReleaseNotifyData(localCommittedData_, true, SQLITE_GENERAL_NS_LOCAL_PUT_EVENT);
+        CommitAndReleaseNotifyData(committedData_, true,
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+        CommitAndReleaseNotifyData(localCommittedData_, true,
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
     }
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore == nullptr) {
@@ -1437,7 +1444,8 @@ int SQLiteSingleVerNaturalStoreConnection::PublishLocal(const Key &key, bool del
         } else {
             errCode = CommitInner();
             if (errCode == E_OK) {
-                CommitAndReleaseNotifyData(localCommittedData, true, SQLITE_GENERAL_NS_LOCAL_PUT_EVENT);
+                CommitAndReleaseNotifyData(localCommittedData, true,
+                    static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
             }
         }
         ReleaseCommitData(localCommittedData);
@@ -1567,7 +1575,8 @@ END:
     } else {
         errCode = CommitInner();
         if (errCode == E_OK) {
-            CommitAndReleaseNotifyData(localCommittedData, true, SQLITE_GENERAL_NS_LOCAL_PUT_EVENT);
+            CommitAndReleaseNotifyData(localCommittedData, true,
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
         }
     }
     ReleaseCommitData(localCommittedData);

@@ -34,6 +34,9 @@ public:
     SQLiteRelationalStore() = default;
     ~SQLiteRelationalStore() override;
 
+    // Delete the copy and assign constructors
+    DISABLE_COPY_ASSIGN_MOVE(SQLiteRelationalStore);
+
     RelationalStoreConnection *GetDBConnection(int &errCode) override;
     int Open(const RelationalDBProperties &properties) override;
     void OnClose(const std::function<void(void)> &notifier);
@@ -111,7 +114,7 @@ private:
     // lifeCycle
     std::mutex lifeCycleMutex_;
     DatabaseLifeCycleNotifier lifeCycleNotifier_;
-    TimerId lifeTimerId_;
+    TimerId lifeTimerId_ {};
 };
 }  // namespace DistributedDB
 #endif

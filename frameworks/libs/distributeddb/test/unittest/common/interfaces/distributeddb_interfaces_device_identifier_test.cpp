@@ -381,7 +381,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest002, TestSize.Level1)
      * @tc.steps: step3. Check register Conflict type
      * @tc.expected: step3. Expect return -E_NOT_SUPPORT
      */
-    RegisterFuncType funcType = OBSERVER_SINGLE_VERSION_NS_PUT_EVENT;
+    RegisterFuncType funcType = RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_PUT_EVENT;
     EXPECT_EQ(errStore->TransConflictTypeToRegisterFunctionType(0, funcType), -E_NOT_SUPPORT);
 
     /**
@@ -514,7 +514,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
         static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
-    storageEngine->SetEngineState(CACHEDB);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
     EXPECT_EQ(g_store->RemoveDeviceData("device1", false), -1);
     storageEngine->Release();
 }
@@ -597,7 +597,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest004, TestSize.Level
      * @tc.steps: step4. Change the Engine State
      * @tc.expected: step4. Expect E_OK
      */
-    EngineState engineState = {CACHEDB};
+    EngineState engineState = {EngineState::CACHEDB};
     storageEngine->SetEngineState(engineState);
     EXPECT_EQ(storageEngine->InitSQLiteStorageEngine(poolSize, option), E_OK);
 
@@ -700,7 +700,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest007, TestSize.Level
      * @tc.steps: step2. Change engine state to cache db
      * @tc.expected: step2. Expect -E_NOT_SUPPORT
      */
-    storageEngine->SetEngineState(CACHEDB);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
     CipherPassword passwd;
     string filePath = g_testDir + "/store_export.db";
     EXPECT_EQ(g_store->Export(filePath, passwd), -E_NOT_SUPPORT);
@@ -711,7 +711,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest007, TestSize.Level
      * @tc.steps: step3. Change engine state to INVALID
      * @tc.expected: step3. Expect -E_BUSY
      */
-    storageEngine->SetEngineState(INVALID);
+    storageEngine->SetEngineState(EngineState::INVALID);
     EXPECT_EQ(g_store->Export(filePath, passwd), -E_BUSY);
     EXPECT_EQ(g_store->Import(filePath, passwd), -E_BUSY);
     EXPECT_EQ(g_store->Rekey(passwd), -E_BUSY);
@@ -741,7 +741,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest008, TestSize.Level
      * @tc.steps: step2. Change engine state to cache db
      * @tc.expected: step2. Expect E_OK
      */
-    storageEngine->SetEngineState(CACHEDB);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
     Query query = Query::Select();
     QueryObject queryObj(query);
     std::string sub = "123";
