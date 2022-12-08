@@ -15,9 +15,8 @@
 #define LOG_TAG "JS_ERROR_UTILS"
 #include "js_error_utils.h"
 
-#include <cstring>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace OHOS::DistributedKVStore {
 using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
@@ -35,13 +34,13 @@ static const JsErrorCode jsErrCodeMsgMap[] = {
     { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
 };
 
-static const uint32_t jsErrCodeMsgMapLen = sizeof(jsErrCodeMsgMap)/sizeof(jsErrCodeMsgMap[0]);
+static const uint32_t jsErrCodeMsgMapLen = sizeof(jsErrCodeMsgMap) / sizeof(jsErrCodeMsgMap[0]);
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 {
     auto jsErrorCode = JsErrorCode{ errorCode, -1, "" };
     auto iter = std::lower_bound(jsErrCodeMsgMap, jsErrCodeMsgMap + jsErrCodeMsgMapLen, jsErrorCode,
-        [](JsErrorCode &jsErrorCode1, JsErrorCode &jsErrorCode2) {
+        [](const JsErrorCode &jsErrorCode1, const JsErrorCode &jsErrorCode2) {
             return jsErrorCode1.status < jsErrorCode2.status;
         });
     if (iter < jsErrCodeMsgMap + jsErrCodeMsgMapLen && iter->status == errorCode) {
@@ -98,4 +97,4 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
     }
     napi_throw_error(env, jsCode.c_str(), message.c_str());
 }
-}  // namespace OHOS::DistributedKVStore
+} // namespace OHOS::DistributedKVStore
