@@ -25,7 +25,7 @@ using namespace OHOS;
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace std::chrono;
-namespace {
+namespace OHOS::Test {
 class AutoSyncTimerTest : public testing::Test {
 public:
     class KVDBServiceMock : public KVDBServiceClient {
@@ -124,8 +124,7 @@ void AutoSyncTimerTest::SetUp(void)
 
 void AutoSyncTimerTest::TearDown(void)
 {
-    constexpr int WATI_TIME = 10;
-    sleep(WATI_TIME);
+    sleep(10); // make sure the case has executed completely
 }
 
 /**
