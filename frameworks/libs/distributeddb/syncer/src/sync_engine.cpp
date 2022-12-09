@@ -815,7 +815,11 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
     std::vector<std::string> remoteQueryId;
     subManager_->GetRemoteSubscribeQueryIds(deviceId, remoteQueryId);
     subManager_->ClearRemoteSubscribeQuery(deviceId);
-    static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->RemoveSubscribe(remoteQueryId);
+    for (const auto &queryId: remoteQueryId) {
+        if (!subManager_->IsQueryExistSubscribe(queryId)) {
+            static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->RemoveSubscribe(queryId);
+        }
+    }
     // get context and Inc context if context is not nullprt
     ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
     if (context != nullptr) {

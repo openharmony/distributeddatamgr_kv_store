@@ -1109,3 +1109,61 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync009, TestSize.
         dev->UnSubscribe(QuerySyncObject(query), true, 1, callback); // sync id is 1
     }
 }
+
+/**
+ * @tc.name: subscribeSync012
+ * @tc.desc: test one device unsubscribe no effect other device
+ * @tc.type: FUNC
+ * @tc.require: AR000GOHO7
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. InitSchemaDb
+     */
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(g_deviceC->GetDeviceId());
+
+    /**
+     * @tc.steps: step2. deviceB unsubscribe inkeys(k1, key6) and prefix key "k" query to deviceA
+     */
+    LOGI("============step 2============");
+    Key key6 { 'k', '6' };
+    Query query = Query::Select();
+    g_deviceB->Online();
+    g_deviceC->Online();
+    g_deviceB->Subscribe(QuerySyncObject(query), true, 3);
+    g_deviceC->Subscribe(QuerySyncObject(query), true, 3);
+
+    /**
+     * @tc.steps: step3. deviceC unsubscribe
+     */
+    LOGI("============step 3============");
+    g_deviceC->Offline();
+
+    /**
+     * @tc.steps: step4. deviceA put k1,key6 and wait
+     */
+    LOGI("============step 4============");
+    const uint8_t putItemCount = 10u;
+    std::vector<Key> dataKeys;
+    for (uint8_t i = 0u; i < putItemCount; ++i) {
+        Key key = { i };
+        dataKeys.push_back(key);
+        EXPECT_EQ(g_schemaKvDelegatePtr->Put(key, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())), OK);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    /**
+     * @tc.steps: step5. deviceB has key6, has no k1
+     */
+    LOGI("============step 5============");
+    for (const auto &key: dataKeys) {
+        VirtualDataItem item;
+        EXPECT_EQ(g_deviceB->GetData(key, item), E_OK);
+        EXPECT_EQ(g_deviceC->GetData(key, item), -E_NOT_FOUND);
+    }
+}
