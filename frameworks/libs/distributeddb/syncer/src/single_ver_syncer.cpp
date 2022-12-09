@@ -27,14 +27,25 @@ void SingleVerSyncer::RemoteDataChanged(const std::string &device)
 
 void SingleVerSyncer::RemoteDeviceOffline(const std::string &device)
 {
-    LOGI("[SingleVerRelationalSyncer] device offline dev %s", STR_MASK(device));
+    LOGI("[SingleVerSyncer] device offline dev %s", STR_MASK(device));
     std::string userId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::USER_ID, "");
     std::string appId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::APP_ID, "");
     std::string storeId = syncInterface_->GetDbProperties().GetStringProp(KvDBProperties::STORE_ID, "");
     RuntimeContext::GetInstance()->NotifyDatabaseStatusChange(userId, appId, storeId, device, false);
     RefObject::IncObjRef(syncEngine_);
-    static_cast<SingleVerSyncEngine *>(syncEngine_)->OfflineHandleByDevice(device);
-    RefObject::DecObjRef(syncEngine_);
+    ISyncEngine *engine = syncEngine_;
+    ISyncInterface *storage = syncInterface_;
+    storage->IncRefCount();
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([engine, device, storage]() {
+        static_cast<SingleVerSyncEngine *>(engine)->OfflineHandleByDevice(device);
+        RefObject::DecObjRef(engine);
+        storage->DecRefCount();
+    });
+    if (errCode != E_OK) {
+        LOGW("[SingleVerSyncer][RemoteDeviceOffline] async task failed errCode = %d", errCode);
+        RefObject::DecObjRef(syncEngine_);
+        storage->DecRefCount();
+    }
 }
 
 int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
