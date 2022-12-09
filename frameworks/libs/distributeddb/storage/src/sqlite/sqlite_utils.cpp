@@ -506,7 +506,7 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
     if (keySize < 0 || keySize > MAX_BLOB_READ_SIZE) {
         LOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
         value.resize(MAX_BLOB_READ_SIZE + 1);
-        return -E_INVALID_DATA;
+        return (keySize > MAX_BLOB_READ_SIZE) ? E_OK : -E_INVALID_DATA;
     }
 
     auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(statement, index));
@@ -530,7 +530,7 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
     if (valSize < 0 || valSize > MAX_TEXT_READ_SIZE) {
         LOGW("[SQLiteUtils][Column text] size over limit:%d", valSize);
         value.resize(MAX_TEXT_READ_SIZE + 1);
-        return -E_INVALID_DATA;
+        return (valSize > MAX_BLOB_READ_SIZE) ? E_OK : -E_INVALID_DATA;
     }
 
     const unsigned char *val = sqlite3_column_text(statement, index);

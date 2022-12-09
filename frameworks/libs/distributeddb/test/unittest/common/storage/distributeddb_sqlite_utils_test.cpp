@@ -92,7 +92,7 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetBlobTest001, TestSize.Level1)
 
     NativeSqlite::ExecSql(g_db, "SELECT b FROM t1", nullptr, [](sqlite3_stmt *stmt) {
         Value val;
-        EXPECT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, val), -E_INVALID_DATA);
+        EXPECT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, val), E_OK);
         EXPECT_EQ(static_cast<int>(val.size()), MAX_BLOB_READ_SIZE + 1);
         return E_OK;
     });
@@ -178,7 +178,7 @@ HWTEST_F(DistributedDBSqliteUtilsTest, GetTextTest001, TestSize.Level1)
 
     NativeSqlite::ExecSql(g_db, "SELECT b FROM t1", nullptr, [](sqlite3_stmt *stmt) {
         std::string val;
-        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, val), -E_INVALID_DATA);
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, val), E_OK);
         EXPECT_EQ(static_cast<int>(val.size()), MAX_TEXT_READ_SIZE + 1);
         return E_OK;
     });
