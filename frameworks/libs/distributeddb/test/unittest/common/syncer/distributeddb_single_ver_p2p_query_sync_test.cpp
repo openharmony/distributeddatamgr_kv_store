@@ -536,6 +536,78 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync005, TestSize.Level1)
     ASSERT_EQ(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, query), INVALID_ARGS);
 }
 
+/**
+ * @tc.name: NormalSync006
+ * @tc.desc: Test normal push sync with query by 32 devices;
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. init db and 32 devices
+     */
+    InitNormalDb();
+    uint32_t syncDevCount = 1u;
+    std::vector<KvVirtualDevice *> virtualDeviceVec(syncDevCount, nullptr);
+    const std::string device = "deviceTmp_";
+    std::vector<std::string> devices;
+    bool isError = false;
+    for (uint32_t i = 0; i < syncDevCount; i++) {
+        std::string tmpDev = device + std::to_string(i);
+        virtualDeviceVec[i] = new (std::nothrow) KvVirtualDevice(tmpDev);
+        if (virtualDeviceVec[i] == nullptr) {
+            isError = true;
+            break;
+        }
+        VirtualSingleVerSyncDBInterface *tmpSyncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+        if (tmpSyncInterface == nullptr) {
+            isError = true;
+            break;
+        }
+        ASSERT_EQ(virtualDeviceVec[i]->Initialize(g_communicatorAggregator, tmpSyncInterface), E_OK);
+        devices.push_back(virtualDeviceVec[i]->GetDeviceId());
+    }
+    if (isError) {
+        for (uint32_t i = 0; i < syncDevCount; i++) {
+            if (virtualDeviceVec[i] != nullptr) {
+                delete virtualDeviceVec[i];
+                virtualDeviceVec[i] = nullptr;
+            }
+        }
+        ASSERT_TRUE(false);
+    }
+    /**
+     * @tc.steps: step2. deviceA put {k0, v0}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+    /**
+     * @tc.steps: step3. deviceA call query sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    Query query = Query::Select().PrefixKey(key);
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result, query) == OK);
+
+    /**
+     * @tc.expected: step3. onComplete should be called, DeviceB have {k1,v1} - {k9, v9}
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        EXPECT_TRUE(pair.second == OK);
+    }
+    VirtualDataItem item;
+    for (uint32_t i = 0; i < syncDevCount; i++) {
+        EXPECT_TRUE(virtualDeviceVec[i]->GetData(key, item) == E_OK);
+        EXPECT_EQ(item.value, value);
+        delete virtualDeviceVec[i];
+        virtualDeviceVec[i] = nullptr;
+    }
+}
+
 HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, QueryRequestPacketTest001, TestSize.Level1)
 {
     /**
