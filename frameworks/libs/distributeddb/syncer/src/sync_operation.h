@@ -121,7 +121,7 @@ public:
 
     // For query sync
     void SetQuery(const QuerySyncObject &query);
-    QuerySyncObject GetQuery() const;
+    void GetQuery(QuerySyncObject &targetObject) const;
     bool IsQuerySync() const;
     std::string GetQueryId() const;
     static SyncType GetSyncType(int mode);
@@ -171,6 +171,7 @@ private:
     // Used for block sync
     std::unique_ptr<SemaphoreUtils> semaphore_;
 
+    mutable std::mutex queryMutex_;
     QuerySyncObject query_;
     volatile bool isQuerySync_;
 

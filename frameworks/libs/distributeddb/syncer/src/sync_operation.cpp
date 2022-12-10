@@ -233,6 +233,7 @@ void SyncOperation::Finalize()
 
 void SyncOperation::SetQuery(const QuerySyncObject &query)
 {
+    std::lock_guard<std::mutex> lock(queryMutex_);
     query_ = query;
     isQuerySync_ = true;
     if (mode_ != SyncModeType::SUBSCRIBE_QUERY && mode_ != SyncModeType::UNSUBSCRIBE_QUERY) {
@@ -240,9 +241,10 @@ void SyncOperation::SetQuery(const QuerySyncObject &query)
     }
 }
 
-QuerySyncObject SyncOperation::GetQuery() const
+void SyncOperation::GetQuery(QuerySyncObject &targetObject) const
 {
-    return query_;
+    std::lock_guard<std::mutex> lock(queryMutex_);
+    targetObject = query_;
 }
 
 bool SyncOperation::IsQuerySync() const
@@ -297,6 +299,7 @@ int SyncOperation::TransferSyncMode(int mode)
 
 std::string SyncOperation::GetQueryId() const
 {
+    std::lock_guard<std::mutex> lock(queryMutex_);
     return query_.GetIdentify();
 }
 
