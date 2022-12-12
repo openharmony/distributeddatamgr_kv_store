@@ -15,26 +15,36 @@
 #define LOG_TAG "JS_ERROR_UTILS"
 #include "js_error_utils.h"
 
+#include <algorithm>
+#include <vector>
+
 namespace OHOS::DistributedKVStore {
 using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
-static const std::map<int32_t, JsErrorCode> jsErrCodeMsgMap {
-    {Status::INVALID_ARGUMENT,               {401, "Parameter error."}},
-    {Status::OVER_MAX_SUBSCRIBE_LIMITS,      {15100001, "Over max subscribe limits."}},
-    {Status::STORE_META_CHANGED,             {15100002, "Open existed database with changed options."}},
-    {Status::CRYPT_ERROR,                    {15100003, "Database corrupted."}},
-    {Status::NOT_FOUND,                      {15100004, "Not found."}},
-    {Status::ALREADY_CLOSED,                 {15100005, "Database or result set already closed."}},
-    {Status::STORE_ALREADY_SUBSCRIBE,        {0, ""}},
-    {Status::STORE_NOT_OPEN,                 {0, ""}},
-    {Status::STORE_NOT_SUBSCRIBE,            {0, ""}},
+static const JsErrorCode jsErrCodeMsgMap[] = {
+    { Status::INVALID_ARGUMENT, 401, "Parameter error." },
+    { Status::STORE_NOT_OPEN, 0, "" },
+    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
+    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
+    { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
+    { Status::PERMISSION_DENIED, 202, "Permission denied" },
+    { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::OVER_MAX_SUBSCRIBE_LIMITS, 15100001, "Over max subscribe limits." },
+    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
 };
+
+static const uint32_t jsErrCodeMsgMapLen = sizeof(jsErrCodeMsgMap) / sizeof(jsErrCodeMsgMap[0]);
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)
 {
-    auto iter = jsErrCodeMsgMap.find(errorCode);
-    if (iter != jsErrCodeMsgMap.end()) {
-        return iter->second;
+    auto jsErrorCode = JsErrorCode{ errorCode, -1, "" };
+    auto iter = std::lower_bound(jsErrCodeMsgMap, jsErrCodeMsgMap + jsErrCodeMsgMapLen, jsErrorCode,
+        [](const JsErrorCode &jsErrorCode1, const JsErrorCode &jsErrorCode2) {
+            return jsErrorCode1.status < jsErrorCode2.status;
+        });
+    if (iter < jsErrCodeMsgMap + jsErrCodeMsgMapLen && iter->status == errorCode) {
+        return *iter;
     }
     return std::nullopt;
 }
@@ -73,9 +83,10 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
         napiError.message = "";
     }
 
+    std::string message(napiError.message);
     if (isParamsCheck) {
-        napiError.message += errMessage;
         napiError.jsCode = 401;
+        message += errMessage;
     }
 
     std::string jsCode;
@@ -84,6 +95,6 @@ void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool i
     } else {
         jsCode = std::to_string(napiError.jsCode);
     }
-    napi_throw_error(env, jsCode.c_str(), napiError.message.c_str());
+    napi_throw_error(env, jsCode.c_str(), message.c_str());
 }
-}  // namespace OHOS::DistributedKVStore
+} // namespace OHOS::DistributedKVStore

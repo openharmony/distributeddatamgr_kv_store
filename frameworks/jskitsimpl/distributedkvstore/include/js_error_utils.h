@@ -15,7 +15,6 @@
 
 #ifndef OHOS_ERROR_UTILS_H
 #define OHOS_ERROR_UTILS_H
-#include <map>
 #include <string>
 #include <optional>
 #include "store_errno.h"
@@ -28,8 +27,9 @@ namespace DistributedKVStore {
 using Status = OHOS::DistributedKv::Status;
 
 struct JsErrorCode {
+    int32_t status;
     int32_t jsCode;
-    std::string message;
+    const char * message;
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);
@@ -50,6 +50,15 @@ napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
         if (!(assertion)) {                                                                  \
             (ctxt)->isThrowError = true;                                                     \
             ThrowNapiError((ctxt)->env, errorcode, message);                                 \
+            return;                                                                          \
+        }                                                                                    \
+    } while (0)
+
+#define ASSERT_PERMISSION_ERR(ctxt, assertion, errorcode, message)                           \
+    do {                                                                                     \
+        if (!(assertion)) {                                                                  \
+            (ctxt)->isThrowError = true;                                                     \
+            ThrowNapiError((ctxt)->env, errorcode, message, false);                          \
             return;                                                                          \
         }                                                                                    \
     } while (0)
