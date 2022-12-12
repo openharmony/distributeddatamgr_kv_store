@@ -28,10 +28,15 @@ namespace DistributedDB {
 class NativeSqlite {
 public:
     static sqlite3 *CreateDataBase(const std::string &dbUri);
+
     static int ExecSql(sqlite3 *db, const std::string &sql);
+
+    static int ExecSql(sqlite3 *db, const std::string &sql, const std::function<int (sqlite3_stmt *)> &bindCallback,
+        const std::function<int (sqlite3_stmt *)> &resultCallback);
+
 private:
-    NativeSqlite();
-    ~NativeSqlite();
+    NativeSqlite() = default;
+    ~NativeSqlite() = default;
 };
 }
 

@@ -23,6 +23,7 @@
 namespace DistributedDB {
 namespace {
 const std::string MAGIC = "remote query";
+const int MAX_QUERY_NODE_SIZE = 256;
 
 int SerializeDataObjNode(Parcel &parcel, const QueryObjNode &objNode)
 {
@@ -272,7 +273,8 @@ int QuerySyncObject::DeSerializeData(Parcel &parcel, QuerySyncObject &queryObj)
     uint32_t nodesSize = 0;
     (void)parcel.ReadUInt32(nodesSize);
     parcel.EightByteAlign();
-    if (parcel.IsError()) { // almost success
+    // Due to historical reasons, the limit of query node size was incorrectly set to MAX_QUERY_NODE_SIZE + 1
+    if (parcel.IsError() || nodesSize > MAX_QUERY_NODE_SIZE + 1) { // almost success
         return -E_INVALID_ARGS;
     }
     for (size_t i = 0; i < nodesSize; i++) {
