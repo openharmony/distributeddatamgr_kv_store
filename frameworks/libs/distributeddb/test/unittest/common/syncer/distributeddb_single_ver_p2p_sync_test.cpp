@@ -3716,3 +3716,31 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask002, TestSize.L
     }
     ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
 }
+
+/**
+  * @tc.name: DeviceOfflineSyncTask003
+  * @tc.desc: Test sync task when device offline after call sync
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, DeviceOfflineSyncTask003, TestSize.Level3)
+{
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step1. deviceA put {k1, v1}
+     */
+    Key key = {'1'};
+    Value value = {'1'};
+    ASSERT_TRUE(g_kvDelegatePtr->Put(key, value) == OK);
+    /**
+     * @tc.steps: step2. device offline after call sync
+     * @tc.expected: step2. interface should return OK.
+     */
+    Query query = Query::Select().PrefixKey(key);
+    ASSERT_TRUE(g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY, nullptr, query, false) == OK);
+    std::this_thread::sleep_for(std::chrono::milliseconds(15)); // wait for 15ms
+    g_deviceB->Offline();
+}
