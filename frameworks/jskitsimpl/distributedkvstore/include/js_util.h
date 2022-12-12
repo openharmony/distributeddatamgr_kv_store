@@ -40,14 +40,15 @@ public:
         DOUBLE = 5,
         INVALID = 255
     };
+	
     enum JsApiType{
         NORMAL = 0,
         DATASHARE = 1
     };
+	
     struct StatusMsg{
         napi_status status = napi_ok;
         JsApiType jsApiType = NORMAL;
-        StatusMsg() : status(napi_ok), jsApiType(NORMAL) {}
         StatusMsg(napi_status status) : status(status) {}
         StatusMsg(napi_status status, JsApiType jsApiType) : status(status), jsApiType(jsApiType) {}
         operator napi_status()
@@ -55,6 +56,7 @@ public:
             return status;
         }
     };
+	
     using JsSchema = class JsSchema;
     using Blob = OHOS::DistributedKv::Blob;
     using ChangeNotification = OHOS::DistributedKv::ChangeNotification;
@@ -67,6 +69,7 @@ public:
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
+	
     static KvStoreVariant Blob2VariantValue(const Blob& blob);
     static Blob VariantValue2Blob(const KvStoreVariant& value);
 

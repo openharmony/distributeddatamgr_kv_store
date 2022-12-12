@@ -226,9 +226,8 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
             ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "The parameters predicates is incorrect.");
-            ASSERT_BUSINESS_ERR(ctxt,
-                reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp() ||
-                    !JSUtil::IsSystemApi(statusMsg.jsApiType),
+            ASSERT_PERMISSION_ERR(ctxt,
+                !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
                 Status::PERMISSION_DENIED, "");
         }
     });
@@ -332,9 +331,8 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
             "The type of entries is incorrect.");
-        ASSERT_BUSINESS_ERR(ctxt,
-            !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
-                reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+        ASSERT_PERMISSION_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
             Status::PERMISSION_DENIED, "");
     });
     ASSERT_NULL(!ctxt->isThrowError, "PutBatch exit");
@@ -989,8 +987,8 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         JSUtil::StatusMsg statusMsg = GetVariantArgs(env, argc, argv, ctxt->va);
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
-        ASSERT_BUSINESS_ERR(ctxt,
-            JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+        ASSERT_PERMISSION_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
             Status::PERMISSION_DENIED, "");
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));

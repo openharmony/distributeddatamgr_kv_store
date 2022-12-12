@@ -54,6 +54,15 @@ napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
         }                                                                                    \
     } while (0)
 
+#define ASSERT_PERMISSION_ERR(ctxt, assertion, errorcode, message)                           \
+    do {                                                                                     \
+        if (!(assertion)) {                                                                  \
+            (ctxt)->isThrowError = true;                                                     \
+            ThrowNapiError((ctxt)->env, errorcode, message, false);                          \
+            return;                                                                          \
+        }                                                                                    \
+    } while (0)
+
 } // namespace DistributedKVStore
 }  // namespace OHOS
 #endif  // OHOS_ERROR_UTILS_H

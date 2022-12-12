@@ -745,20 +745,20 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::list<Distri
     ASSERT(isArray, "not array", napi_invalid_arg);
 
     uint32_t length = 0;
-    JSUtil::StatusMsg StatusMsg = napi_get_array_length(env, in, &length);
-    ASSERT((StatusMsg.status == napi_ok) && (length > 0), "get_array failed!", StatusMsg);
+    JSUtil::StatusMsg statusMsg = napi_get_array_length(env, in, &length);
+    ASSERT((statusMsg.status == napi_ok) && (length > 0), "get_array failed!", statusMsg);
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
-        StatusMsg = napi_get_element(env, in, i, &item);
-        ASSERT((StatusMsg.status == napi_ok), "no element", StatusMsg);
-        if ((StatusMsg.status != napi_ok) || (item == nullptr)) {
+        statusMsg = napi_get_element(env, in, i, &item);
+        ASSERT((statusMsg.status == napi_ok), "no element", statusMsg);
+        if ((statusMsg.status != napi_ok) || (item == nullptr)) {
             continue;
         }
         DistributedKv::Entry entry;
-        StatusMsg = GetValue(env, item, entry, hasSchema);
+        statusMsg = GetValue(env, item, entry, hasSchema);
         out.push_back(entry);
     }
-    return StatusMsg;
+    return statusMsg;
 }
 
 JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::list<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
@@ -804,14 +804,14 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value jsValue, ValuesBucke
     napi_value keys = 0;
     napi_get_property_names(env, jsValue, &keys);
     uint32_t arrLen = 0;
-    JSUtil::StatusMsg StatusMsg = napi_get_array_length(env, keys, &arrLen);
-    if (StatusMsg.status != napi_ok) {
-        return StatusMsg;
+    JSUtil::StatusMsg statusMsg = napi_get_array_length(env, keys, &arrLen);
+    if (statusMsg.status != napi_ok) {
+        return statusMsg;
     }
     for (size_t i = 0; i < arrLen; ++i) {
         napi_value jsKey = 0;
-        StatusMsg.status = napi_get_element(env, keys, i, &jsKey);
-        ASSERT((StatusMsg.status == napi_ok), "no element", StatusMsg);
+        statusMsg.status = napi_get_element(env, keys, i, &jsKey);
+        ASSERT((statusMsg.status == napi_ok), "no element", statusMsg);
         std::string key;
         JSUtil::GetValue(env, jsKey, key);
         napi_value valueJs = 0;
@@ -831,27 +831,27 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
     ASSERT(isArray, "not array", napi_invalid_arg);
 
     uint32_t length = 0;
-    JSUtil::StatusMsg StatusMsg = napi_get_array_length(env, in, &length);
-    ASSERT((StatusMsg.status == napi_ok) && (length > 0), "get_array failed!", StatusMsg);
+    JSUtil::StatusMsg statusMsg = napi_get_array_length(env, in, &length);
+    ASSERT((statusMsg.status == napi_ok) && (length > 0), "get_array failed!", statusMsg);
 
     bool isDataShare = false;
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
-        StatusMsg.status = napi_get_element(env, in, i, &item);
-        ASSERT(StatusMsg.status == napi_ok, "get_element failed", StatusMsg);
+        statusMsg.status = napi_get_element(env, in, i, &item);
+        ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
         if(item == nullptr){
             continue;
         }
         DistributedKv::Entry entry;
         if (!isDataShare) {
-            StatusMsg = GetValue(env, item, entry, hasSchema);
-            if (StatusMsg.status != napi_ok) {
+            statusMsg = GetValue(env, item, entry, hasSchema);
+            if (statusMsg.status != napi_ok) {
                 isDataShare = true;
             }
         }else{
             OHOS::DataShare::DataShareValuesBucket values;
-            StatusMsg = GetValue(env, item, values);
-            ASSERT(StatusMsg.status == napi_ok, "get_element failed", StatusMsg);
+            statusMsg = GetValue(env, item, values);
+            ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
             entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
             entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
             if (hasSchema) {
@@ -862,10 +862,10 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
     }
     if (isDataShare) {
         ZLOGD("valuesbucket type");
-        StatusMsg.jsApiType = DATASHARE;
+        statusMsg.jsApiType = DATASHARE;
     }
 
-    return napi_ok;
+    return statusMsg;
 }
 
 JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
@@ -892,35 +892,35 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
     ASSERT(isArray, "not array", napi_invalid_arg);
 
     uint32_t length = 0;
-    JSUtil::StatusMsg StatusMsg = napi_get_array_length(env, in, &length);
-    ASSERT((StatusMsg.status == napi_ok) && (length > 0), "get_array failed!", StatusMsg);
+    JSUtil::StatusMsg statusMsg = napi_get_array_length(env, in, &length);
+    ASSERT((statusMsg.status == napi_ok) && (length > 0), "get_array failed!", statusMsg);
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
-        StatusMsg.status = napi_get_element(env, in, i, &item);
-        ASSERT((StatusMsg.status == napi_ok), "no element", StatusMsg);
-        if ((StatusMsg.status != napi_ok) || (item == nullptr)) {
+        statusMsg.status = napi_get_element(env, in, i, &item);
+        ASSERT((statusMsg.status == napi_ok), "no element", statusMsg);
+        if ((statusMsg.status != napi_ok) || (item == nullptr)) {
             continue;
         }
         std::string value;
-        StatusMsg = GetValue(env, item, value);
+        statusMsg = GetValue(env, item, value);
         DistributedKv::StoreId storeId { value };
         out.push_back(storeId);
     }
-    return StatusMsg;
+    return statusMsg;
 }
 
 JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<DistributedKv::StoreId>& in, napi_value& out)
 {
     ZLOGD("napi_value <- std::vector<DistributedKv::StoreId>  %{public}d", static_cast<int>(in.size()));
-    JSUtil::StatusMsg StatusMsg = napi_create_array_with_length(env, in.size(), &out);
-    ASSERT((StatusMsg.status == napi_ok), "create_array failed!", StatusMsg);
+    JSUtil::StatusMsg statusMsg = napi_create_array_with_length(env, in.size(), &out);
+    ASSERT((statusMsg.status == napi_ok), "create_array failed!", statusMsg);
     int index = 0;
     for (const auto& item : in) {
         napi_value entry = nullptr;
         SetValue(env, item.storeId, entry);
         napi_set_element(env, out, index++, entry);
     }
-    return StatusMsg;
+    return statusMsg;
 }
 
 /* napi_value <-> DistributedKv::ChangeNotification */
@@ -937,39 +937,39 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::C
 JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const DistributedKv::ChangeNotification& in, napi_value& out, bool hasSchema)
 {
     ZLOGD("napi_value <- DistributedKv::ChangeNotification ");
-    JSUtil::StatusMsg StatusMsg = napi_create_object(env, &out);
-    ASSERT((StatusMsg.status == napi_ok), "napi_create_object for DistributedKv::ChangeNotification failed!", StatusMsg);
+    JSUtil::StatusMsg statusMsg = napi_create_object(env, &out);
+    ASSERT((statusMsg.status == napi_ok), "napi_create_object for DistributedKv::ChangeNotification failed!", statusMsg);
     napi_value deviceId = nullptr;
-    StatusMsg = SetValue(env, in.GetDeviceId(), deviceId);
-    ASSERT((StatusMsg.status == napi_ok) || (deviceId == nullptr), "GetDeviceId failed!", StatusMsg);
-    StatusMsg = napi_set_named_property(env, out, "deviceId", deviceId);
-    ASSERT((StatusMsg.status == napi_ok), "set_named_property deviceId failed!", StatusMsg);
+    statusMsg = SetValue(env, in.GetDeviceId(), deviceId);
+    ASSERT((statusMsg.status == napi_ok) || (deviceId == nullptr), "GetDeviceId failed!", statusMsg);
+    statusMsg = napi_set_named_property(env, out, "deviceId", deviceId);
+    ASSERT((statusMsg.status == napi_ok), "set_named_property deviceId failed!", statusMsg);
 
     napi_value insertEntries = nullptr;
-    StatusMsg = SetValue(env, in.GetInsertEntries(), insertEntries, hasSchema);
-    ASSERT((StatusMsg.status == napi_ok) || (insertEntries == nullptr), "GetInsertEntries failed!", StatusMsg);
-    StatusMsg = napi_set_named_property(env, out, "insertEntries", insertEntries);
-    ASSERT((StatusMsg.status == napi_ok), "set_named_property insertEntries failed!", StatusMsg);
+    statusMsg = SetValue(env, in.GetInsertEntries(), insertEntries, hasSchema);
+    ASSERT((statusMsg.status == napi_ok) || (insertEntries == nullptr), "GetInsertEntries failed!", statusMsg);
+    statusMsg = napi_set_named_property(env, out, "insertEntries", insertEntries);
+    ASSERT((statusMsg.status == napi_ok), "set_named_property insertEntries failed!", statusMsg);
 
     napi_value updateEntries = nullptr;
-    StatusMsg = SetValue(env, in.GetUpdateEntries(), updateEntries, hasSchema);
-    ASSERT((StatusMsg.status == napi_ok) || (updateEntries == nullptr), "GetUpdateEntries failed!", StatusMsg);
-    StatusMsg = napi_set_named_property(env, out, "updateEntries", updateEntries);
-    ASSERT((StatusMsg.status == napi_ok), "set_named_property updateEntries failed!", StatusMsg);
+    statusMsg = SetValue(env, in.GetUpdateEntries(), updateEntries, hasSchema);
+    ASSERT((statusMsg.status == napi_ok) || (updateEntries == nullptr), "GetUpdateEntries failed!", statusMsg);
+    statusMsg = napi_set_named_property(env, out, "updateEntries", updateEntries);
+    ASSERT((statusMsg.status == napi_ok), "set_named_property updateEntries failed!", statusMsg);
 
     napi_value deleteEntries = nullptr;
-    StatusMsg = SetValue(env, in.GetDeleteEntries(), deleteEntries, hasSchema);
-    ASSERT((StatusMsg.status == napi_ok) || (deleteEntries == nullptr), "GetDeleteEntries failed!", StatusMsg);
-    StatusMsg = napi_set_named_property(env, out, "deleteEntries", deleteEntries);
-    ASSERT((StatusMsg.status == napi_ok), "set_named_property deleteEntries failed!", StatusMsg);
-    return StatusMsg;
+    statusMsg = SetValue(env, in.GetDeleteEntries(), deleteEntries, hasSchema);
+    ASSERT((statusMsg.status == napi_ok) || (deleteEntries == nullptr), "GetDeleteEntries failed!", statusMsg);
+    statusMsg = napi_set_named_property(env, out, "deleteEntries", deleteEntries);
+    ASSERT((statusMsg.status == napi_ok), "set_named_property deleteEntries failed!", statusMsg);
+    return statusMsg;
 }
 
 /* napi_value <-> DistributedKv::Options */
 JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options& options)
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
-    JSUtil::StatusMsg StatusMsg = napi_invalid_arg;
+    JSUtil::StatusMsg statusMsg = napi_invalid_arg;
     GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
     GetNamedProperty(env, in, "encrypt", options.encrypt);
     GetNamedProperty(env, in, "backup", options.backup);
@@ -980,15 +980,15 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    StatusMsg = GetNamedProperty(env, in, "schema", jsSchema);
-    if (StatusMsg.status == napi_ok) {
+    statusMsg = GetNamedProperty(env, in, "schema", jsSchema);
+    if (statusMsg.status == napi_ok) {
         options.schema = jsSchema->Dump();
     }
 
     int32_t level = 0;
-    StatusMsg = GetNamedProperty(env, in, "securityLevel", level);
-    if (StatusMsg.status != napi_ok) {
-        return StatusMsg;
+    statusMsg = GetNamedProperty(env, in, "securityLevel", level);
+    if (statusMsg.status != napi_ok) {
+        return statusMsg;
     }
 
     return GetLevel(level, options.securityLevel);
