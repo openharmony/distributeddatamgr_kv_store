@@ -834,7 +834,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
     JSUtil::StatusMsg statusMsg = napi_get_array_length(env, in, &length);
     ASSERT((statusMsg.status == napi_ok) && (length > 0), "get_array failed!", statusMsg);
 
-    bool isDataShare = false;
+    bool isValuesBucket = false;
     for (uint32_t i = 0; i < length; ++i) {
         napi_value item = nullptr;
         statusMsg.status = napi_get_element(env, in, i, &item);
@@ -843,25 +843,26 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
             continue;
         }
         DistributedKv::Entry entry;
-        if (!isDataShare) {
+        if (!isValuesBucket) {
             statusMsg = GetValue(env, item, entry, hasSchema);
-            if (statusMsg.status != napi_ok) {
-                isDataShare = true;
+            if (statusMsg.status == napi_ok) {
+                out.push_back(entry);
+                continue;
             }
+            isValuesBucket = true;
         }
-        if (isDataShare) {
-            OHOS::DataShare::DataShareValuesBucket values;
-            statusMsg = GetValue(env, item, values);
-            ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
-            entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
-            entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
-            if (hasSchema) {
-                entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
-            }
+        OHOS::DataShare::DataShareValuesBucket values;
+        statusMsg = GetValue(env, item, values);
+        ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
+        entry = OHOS::DistributedKv::KvUtils::ToEntry(values);
+        entry.key = std::vector<uint8_t>(entry.key.Data().begin(), entry.key.Data().end());
+        if (hasSchema) {
+            entry.value = std::vector<uint8_t>(entry.value.Data().begin() + 1, entry.value.Data().end());
         }
         out.push_back(entry);
     }
-    if (isDataShare) {
+
+    if (isValuesBucket) {
         ZLOGD("valuesbucket type");
         statusMsg.jsApiType = DATASHARE;
     }
