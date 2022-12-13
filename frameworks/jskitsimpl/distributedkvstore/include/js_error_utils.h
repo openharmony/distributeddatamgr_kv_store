@@ -37,28 +37,28 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
 void ThrowNapiError(napi_env env, int32_t errCode, std::string errMessage, bool isParamsCheck = true);
 napi_value GenerateErrorMsg(napi_env env, JsErrorCode jsInfo);
 
-#define ASSERT_ERR(env, assertion, errorcode, message)                                       \
+#define ASSERT_ERR(env, assertion, errorCode, message)                                       \
     do {                                                                                     \
         if (!(assertion)) {                                                                  \
-            ThrowNapiError(env, errorcode, message);                                         \
+            ThrowNapiError(env, errorCode, message);                                         \
             return nullptr;                                                                  \
         }                                                                                    \
     } while (0)
 
-#define ASSERT_BUSINESS_ERR(ctxt, assertion, errorcode, message)                             \
+#define ASSERT_BUSINESS_ERR(ctxt, assertion, errorCode, message)                             \
     do {                                                                                     \
         if (!(assertion)) {                                                                  \
             (ctxt)->isThrowError = true;                                                     \
-            ThrowNapiError((ctxt)->env, errorcode, message);                                 \
+            ThrowNapiError((ctxt)->env, errorCode, message);                                 \
             return;                                                                          \
         }                                                                                    \
     } while (0)
 
-#define ASSERT_PERMISSION_ERR(ctxt, assertion, errorcode, message)                           \
+#define ASSERT_PERMISSION_ERR(ctxt, assertion, errorCode, message)                           \
     do {                                                                                     \
         if (!(assertion)) {                                                                  \
             (ctxt)->isThrowError = true;                                                     \
-            ThrowNapiError((ctxt)->env, errorcode, message, false);                          \
+            ThrowNapiError((ctxt)->env, errorCode, message, false);                          \
             return;                                                                          \
         }                                                                                    \
     } while (0)
