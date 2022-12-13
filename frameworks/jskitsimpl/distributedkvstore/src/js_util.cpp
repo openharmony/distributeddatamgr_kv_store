@@ -848,7 +848,8 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
             if (statusMsg.status != napi_ok) {
                 isDataShare = true;
             }
-        }else{
+        }
+        if (isDataShare) {
             OHOS::DataShare::DataShareValuesBucket values;
             statusMsg = GetValue(env, item, values);
             ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
