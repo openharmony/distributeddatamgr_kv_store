@@ -1166,8 +1166,13 @@ JSUtil::StatusMsg JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &par
     if (hapInfo != nullptr) {
         param.hapName = hapInfo->moduleName;
     }
-    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
-        param.baseDir.c_str());
+    auto appInfo = context->GetApplicationInfo();
+    if (appInfo != nullptr) {
+        param.isSystemApp = appInfo->isSystemApp;
+    }
+    ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s  isSystemApp:%{public}d", param.area,
+        param.hapName.c_str(), param.baseDir.c_str(), param.isSystemApp);
+
     return napi_ok;
 }
 
