@@ -52,6 +52,10 @@ public:
         std::string moduleName = "com.example.myapplication";
     };
     
+    struct ApplicationInfo {
+        bool isSystemApp = true;
+    };
+    
     class ContextMcok
     {        
     public:
@@ -76,6 +80,11 @@ public:
         std::shared_ptr<ModuleInfo> GetHapModuleInfo()
         {
             return std::make_shared<ModuleInfo>();
+        }
+
+        std::shared_ptr<ApplicationInfo> GetApplicationInfo()
+        {
+            return std::make_shared<ApplicationInfo>();
         }
     };
 
