@@ -43,4 +43,49 @@ int NativeSqlite::ExecSql(sqlite3 *db, const std::string &sql)
     sqlite3_free(errMsg);
     return errCode;
 }
+
+int NativeSqlite::ExecSql(sqlite3 *db, const std::string &sql, const std::function<int (sqlite3_stmt *)> &bindCallback,
+    const std::function<int (sqlite3_stmt *)> &resultCallback)
+{
+    if (db == nullptr || sql.empty()) {
+        return -E_INVALID_ARGS;
+    }
+
+    bool bindFinish = true;
+    sqlite3_stmt *stmt = nullptr;
+    int ret = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+    if (ret != SQLITE_OK) {
+        goto END;
+    }
+
+    do {
+        if (bindCallback) {
+            ret = bindCallback(stmt);
+            if (ret != E_OK && ret != -E_UNFINISHED) {
+                goto END;
+            }
+            bindFinish = (ret != -E_UNFINISHED);
+        }
+
+        while (true) {
+            ret = sqlite3_step(stmt);
+            if (ret == SQLITE_DONE) {
+                ret = E_OK; // step finished
+                break;
+            } else if (ret != SQLITE_ROW) {
+                goto END; // step return error
+            }
+
+            if (resultCallback != nullptr && (ret = resultCallback(stmt)) != E_OK) {
+                goto END;
+            }
+            // continue step stmt while callback return E_OK
+        }
+        (void)sqlite3_reset(stmt);
+    } while (!bindFinish);
+
+END:
+    (void)sqlite3_finalize(stmt);
+    return ret;
+}
 }

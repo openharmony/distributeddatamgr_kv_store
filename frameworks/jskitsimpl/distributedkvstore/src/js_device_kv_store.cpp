@@ -126,18 +126,18 @@ struct VariantArgs {
     std::string errMsg = "";
 };
 
-static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
+static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
 {
     int32_t pos = (argc == 1) ? 0 : 1;
     napi_valuetype type = napi_undefined;
-    napi_status status = napi_typeof(env, argv[pos], &type);
-    if (status != napi_ok||(type != napi_string && type != napi_object)) {
+    JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[pos], &type);
+    if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
         va.errMsg = "The type of parameters keyPrefix/query is incorrect.";
-        return status != napi_ok?status:napi_invalid_arg;
+        return statusMsg != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
         std::string keyPrefix;
-        status = JSUtil::GetValue(env, argv[pos], keyPrefix);
+        statusMsg = JSUtil::GetValue(env, argv[pos], keyPrefix);
         if (keyPrefix.empty()) {
             va.errMsg = "The type of parameters keyPrefix is incorrect.";
             return napi_invalid_arg;
@@ -145,18 +145,19 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
         va.dataQuery.KeyPrefix(keyPrefix);
     } else {
         bool result = false;
-        status = napi_instanceof(env, argv[pos], JsQuery::Constructor(env), &result);
-        if ((status == napi_ok) && (result != false)) {
+        statusMsg = napi_instanceof(env, argv[pos], JsQuery::Constructor(env), &result);
+        if ((statusMsg.status == napi_ok) && (result != false)) {
             JsQuery *jsQuery = nullptr;
-            status = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
+            statusMsg = JSUtil::Unwrap(env, argv[pos], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
             if (jsQuery == nullptr) {
                 va.errMsg = "The parameters query is incorrect.";
                 return napi_invalid_arg;
             }
             va.dataQuery = jsQuery->GetDataQuery();
         } else {
-            status = JSUtil::GetValue(env, argv[pos], va.dataQuery);
-            ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", status);
+            statusMsg = JSUtil::GetValue(env, argv[pos], va.dataQuery);
+            ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", statusMsg.status);
+            statusMsg.jsApiType = JSUtil::DATASHARE;
         }
     }
     std::string deviceId;
@@ -164,7 +165,7 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
         JSUtil::GetValue(env, argv[0], deviceId);
         va.dataQuery.DeviceId(deviceId);
     }
-    return status;
+    return statusMsg;
 };
 
 /*
@@ -229,8 +230,12 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<GetResultSetContext>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status != napi_invalid_arg, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        JSUtil::StatusMsg statusMsg = GetVariantArgs(env, argc, argv, ctxt->va);
+        ctxt->status = statusMsg.status;
+        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        ASSERT_PERMISSION_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+            Status::PERMISSION_DENIED, "");
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
