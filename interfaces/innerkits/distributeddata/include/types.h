@@ -231,7 +231,7 @@ struct Options {
     int32_t area = EL1;
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
 
-    std::vector<SyncPolicy> policies{ { IMMEDIATE_SYNC_ON_CHANGE }, { IMMEDIATE_SYNC_ON_READY } };
+    std::vector<SyncPolicy> policies{ { IMMEDIATE_SYNC_ON_CHANGE } };
     std::string schema = "";
     std::string hapName = "";
     std::string baseDir = "";
