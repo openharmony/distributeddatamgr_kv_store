@@ -1027,8 +1027,8 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const DistributedKv::Options& i
 napi_value JSUtil::DefineClass(napi_env env, const std::string& name,
     const napi_property_descriptor* properties, size_t count, napi_callback newcb)
 {
-    // base64("data.distributeddata") as rootPropName, i.e. global.<root>
-    const std::string rootPropName = "ZGF0YS5kaXN0cmlidXRlZGRhdGE";
+    // base64("data.distributedkvstore") as rootPropName, i.e. global.<root>
+    const std::string rootPropName = "ZGF0YS5kaXN0cmlidXRlZGt2c3RvcmU";
     napi_value root = nullptr;
     bool hasRoot = false;
     napi_value global = nullptr;
