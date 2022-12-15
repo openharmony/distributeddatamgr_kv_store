@@ -24,7 +24,7 @@
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-namespace {
+namespace OHOS::Test {
 class SingleStoreImplTest : public testing::Test {
 public:
     class TestObserver : public KvStoreObserver {
