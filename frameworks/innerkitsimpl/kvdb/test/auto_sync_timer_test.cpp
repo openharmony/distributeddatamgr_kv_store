@@ -25,6 +25,7 @@ using namespace OHOS;
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace std::chrono;
+namespace OHOS::Test {
 class AutoSyncTimerTest : public testing::Test {
 public:
     class KVDBServiceMock : public KVDBServiceClient {
@@ -60,7 +61,7 @@ public:
 
         uint32_t GetCallCount(uint32_t value)
         {
-            int retry = 0;
+            uint32_t retry = 0;
             uint32_t callTimes = 0;
             while (retry < value) {
                 callTimes = value_.GetValue();
@@ -85,8 +86,8 @@ public:
             value_.Clear(0);
         }
 
-        uint64_t startTime;
-        uint64_t endTime;
+        uint64_t startTime = 0;
+        uint64_t endTime = 0;
         uint32_t callCount = 0;
         std::map<std::string, std::set<std::string>> values_;
         BlockData<uint32_t> value_{ 1, 0 };
@@ -105,7 +106,6 @@ public:
     void TearDown();
 
 protected:
-    static std::shared_ptr<SingleKvStore> kvStore_;
     static BrokerDelegator<KVDBServiceMock> delegator_;
 };
 BrokerDelegator<AutoSyncTimerTest::KVDBServiceMock> AutoSyncTimerTest::delegator_;
@@ -124,7 +124,7 @@ void AutoSyncTimerTest::SetUp(void)
 
 void AutoSyncTimerTest::TearDown(void)
 {
-    sleep(10);
+    sleep(10); // make sure the case has executed completely
 }
 
 /**
@@ -226,4 +226,5 @@ HWTEST_F(AutoSyncTimerTest, SingleWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store8"), 1);
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
+}
 }
