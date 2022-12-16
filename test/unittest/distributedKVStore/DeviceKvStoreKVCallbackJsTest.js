@@ -77,12 +77,7 @@ describe('DeviceKvStoreCallbackTest', function () {
 
     beforeAll(async function (done) {
         console.info('beforeAll config:' + JSON.stringify(config));
-        await factory.createKVManager(config).then((manager) => {
-            kvManager = manager;
-            console.info('beforeAll createKVManager success');
-        }).catch((err) => {
-            console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
+        kvManager = factory.createKVManager(config);
         await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
             kvStore = store;
             console.info('beforeAll getKVStore for getDeviceId success');
@@ -800,9 +795,9 @@ describe('DeviceKvStoreCallbackTest', function () {
         try {
             await kvManager.closeKVStore(TEST_BUNDLE_NAME, TEST_STORE_ID, function (err) {
                 expect(err == undefined).assertTrue();
-            });
-            kvStore.on('dataChange', 2, function () {
-                expect(null).assertFail();
+                kvStore.on('dataChange', 2, function () {
+                    expect(null).assertFail();
+                });
             });
         } catch (e) {
             console.error('DeviceKvStoreOnChangeCallbackClosedKVStoreTest e' + `, error code is ${e.code}, message is ${e.message}`);
@@ -1286,6 +1281,7 @@ describe('DeviceKvStoreCallbackTest', function () {
                 var query = new factory.Query();
                 query.prefixKey("name_");
                 kvStore.getEntries(localDeviceId, query, function (err, entrys) {
+                    console.info(JSON.stringify(entrys));
                     expect(entrys.length == 2).assertTrue();
                     done();
                 });
