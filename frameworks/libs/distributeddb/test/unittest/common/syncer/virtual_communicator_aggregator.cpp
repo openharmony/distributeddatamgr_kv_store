@@ -185,11 +185,12 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
             inMsg = nullptr;
             return CallSendEnd(-E_PERIPHERAL_INTERFACE_FAIL, onEnd);
         }
+        uint32_t messageId = inMsg->GetMessageId();
         Message *msg = const_cast<Message *>(inMsg);
         msg->SetTarget(srcTarget);
         RefObject::IncObjRef(communicator);
         auto onDispatch = onDispatch_;
-        bool isNeedDelay = ((sendDelayTime_ > 0) && (delayTimes_ > 0) && (msg->GetMessageId() == delayMessageId_) &&
+        bool isNeedDelay = ((sendDelayTime_ > 0) && (delayTimes_ > 0) && (messageId == delayMessageId_) &&
             (delayDevices_.count(dstTarget) > 0) && (skipTimes_ == 0));
         uint32_t sendDelayTime = sendDelayTime_;
         std::thread thread([communicator, srcTarget, dstTarget, msg, isNeedDelay, sendDelayTime, onDispatch]() {
@@ -202,7 +203,7 @@ void VirtualCommunicatorAggregator::DispatchMessage(const std::string &srcTarget
             communicator->CallbackOnMessage(srcTarget, msg);
             RefObject::DecObjRef(communicator);
         });
-        DelayTimeHandle(inMsg->GetMessageId(), dstTarget);
+        DelayTimeHandle(messageId, dstTarget);
         thread.detach();
         CallSendEnd(E_OK, onEnd);
     } else {
