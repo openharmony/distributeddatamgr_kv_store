@@ -156,27 +156,27 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryEqualToValidField, TestSize.Leve
 */
 HWTEST_F(SingleKvStoreClientQueryTest, DataQueryNotEqualToValidField, TestSize.Level1)
 {
-      DataQuery query;
-      query.NotEqualTo("", 100);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("$.test_field_name^test", 100);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("", (int64_t)100);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("^$.test_field_name", (int64_t)100);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("", 1.23);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("^", 1.23);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("", false);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("^^", false);
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("", std::string("test_value"));
-      EXPECT_TRUE(query.ToString().length() == 0);
-      query.NotEqualTo("$.test_field^_name", std::string("test_value"));
-      EXPECT_TRUE(query.ToString().length() == 0);
+    DataQuery query;
+    query.NotEqualTo("", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("$.test_field_name^test", 100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("", (int64_t)100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("^$.test_field_name", (int64_t)100);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("^", 1.23);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("", false);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("^^", false);
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("", std::string("test_value"));
+    EXPECT_TRUE(query.ToString().length() == 0);
+    query.NotEqualTo("$.test_field^_name", std::string("test_value"));
+    EXPECT_TRUE(query.ToString().length() == 0);
 }
 
 /**
@@ -998,7 +998,7 @@ HWTEST_F(SingleKvStoreClientQueryTest, DataQueryDeviceIdValidField, TestSize.Lev
     query.Reset();
     std::string deviceId = "";
     uint32_t i = 0;
-    while(i < MAX_QUERY_LENGTH) {
+    while (i < MAX_QUERY_LENGTH) {
         deviceId += "device";
         i++;
     }
