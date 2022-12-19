@@ -749,6 +749,10 @@ distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
   sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBSqliteUtilsTest") {
+  sources = [ "unittest/common/storage/distributeddb_sqlite_utils_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -815,6 +819,7 @@ group("unittest") {
     ":DistributedDBSingleVerP2PSyncTest",
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
+    ":DistributedDBSqliteUtilsTest",
     ":DistributedDBStorageCommitStorageTest",
     ":DistributedDBStorageDataConnectionTest",
     ":DistributedDBStorageDataOperationTest",

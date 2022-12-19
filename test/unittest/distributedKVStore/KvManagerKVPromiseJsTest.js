@@ -44,12 +44,7 @@ describe('KVManagerPromiseTest', function () {
 
     beforeAll(async function (done) {
         console.info('beforeAll');
-        await factory.createKVManager(config).then((manager) => {
-            kvManager = manager;
-            console.info('beforeAll createKVManager success');
-        }).catch((err) => {
-            console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
+        kvManager = factory.createKVManager(config);
         console.info('beforeAll end');
         done();
     })
@@ -691,9 +686,8 @@ describe('KVManagerPromiseTest', function () {
             context: context
         }
         try {
-            await factory.createKVManager(config).then(async (manager) => {
-                kvManager = manager;
-                expect(manager != null).assertTrue();
+            kvManager = factory.createKVManager(config);
+            expect(kvManager != null).assertTrue();
                 console.info('CreateKVManagerPromiseFullFuncTest createKVManager success');
                 await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
                     console.info("CreateKVManagerPromiseFullFuncTest getKVStore success");
@@ -712,10 +706,6 @@ describe('KVManagerPromiseTest', function () {
                     console.info("CreateKVManagerPromiseFullFuncTest getKVStore err: " + JSON.stringify(err));
                     expect(null).assertFail();
                 });
-            }).catch((err) => {
-                console.error('CreateKVManagerPromiseFullFuncTest createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail()
-            });
         } catch (e) {
             console.error('CreateKVManagerPromiseFullFuncTest promise delete fail err' + `, error code is ${err.code}, message is ${err.message}`);
             expect(null).assertFail();
@@ -731,11 +721,8 @@ describe('KVManagerPromiseTest', function () {
      */
     it('CreateKVManagerPromiseInvalidArgsTest', 0, async function (done) {
         try {
-            await factory.createKVManager().then(() => {
-                expect(null).assertFail();
-            }).catch(() => {
-                expect(null).assertFail();
-            })
+            kvManager = factory.createKVManager();
+            expect(null).assertFail();
         } catch (e) {
             expect(e.code == 401).assertTrue();
         }
@@ -753,10 +740,11 @@ describe('KVManagerPromiseTest', function () {
             const config1  = {
                 bundleName : TEST_BUNDLE_NAME
             }
-            await factory.createKVManager(config1).then(() => {
-                expect(null).assertFail();
-            })
+            kvManager = factory.createKVManager(config1);
+            expect(null).assertFail();
         } catch (e) {
+            console.log(e.code);
+            console.log(e.message);
             expect(e.code == 401).assertTrue();
         }
         done();

@@ -782,12 +782,12 @@ void SingleStoreImpl::DoAutoSync()
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
-    expiration_ = system_clock::now() + seconds(interval_);
+    expiration_ = steady_clock::now() + seconds(interval_);
 }
 
 void SingleStoreImpl::Online(const std::string &device)
 {
-    if (!autoSync_ || system_clock::now() >= expiration_) {
+    if (!autoSync_ || steady_clock::now() >= expiration_) {
         return;
     }
 

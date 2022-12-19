@@ -736,7 +736,6 @@ napi_status JSUtil::SetValue(napi_env env, const DistributedKv::Entry& in, napi_
     } else {
         status = SetValue(env, Blob2VariantValue(in.value), vValue);
     }
-    status = SetValue(env, Blob2VariantValue(in.value), vValue); // Blob
     CHECK_RETURN((status == napi_ok), "invalid entry value", status);
     napi_set_named_property(env, value, "value", vValue);
 

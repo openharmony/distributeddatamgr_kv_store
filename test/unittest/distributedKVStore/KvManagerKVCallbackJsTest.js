@@ -42,11 +42,9 @@ describe('kvManagerCallbackTest', function () {
 
     beforeAll(async function (done) {
         console.info('beforeAll');
-        await factory.createKVManager(config, function (err, manager) {
-            kvManager = manager;
-            done();
-        });
+        kvManager =  factory.createKVManager(config);
         console.info('beforeAll end');
+        done();
     })
 
     afterAll(async function (done) {

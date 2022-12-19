@@ -79,7 +79,7 @@ void DBDfxAdapter::ReportFault(const ReportTask &reportTask)
 {
     RuntimeContext::GetInstance()->ScheduleTask([=]() {
         // call hievent here
-        OHOS::HiviewDFX::HiSysEvent::Write(OHOS::HiviewDFX::HiSysEvent::Domain::DISTRIBUTED_DATAMGR,
+        HiSysEventWrite(OHOS::HiviewDFX::HiSysEvent::Domain::DISTRIBUTED_DATAMGR,
             reportTask.eventName,
             OHOS::HiviewDFX::HiSysEvent::EventType::FAULT,
             APP_ID, reportTask.appId,

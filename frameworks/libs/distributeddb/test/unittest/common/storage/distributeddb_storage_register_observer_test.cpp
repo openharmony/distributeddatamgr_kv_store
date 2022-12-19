@@ -680,7 +680,7 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver013, TestSize
 static void PreSyncDataForRegisterObserver014(Timestamp time, vector<DataItem> &dataItems)
 {
     // sync data
-    DataItem dataItem = {g_entry1.key, g_entry1.value, .timestamp = ++time, .flag = 1};
+    DataItem dataItem = {g_entry1.key, g_entry1.value, ++time, 1};
     dataItem.writeTimestamp = dataItem.timestamp;
     DistributedDBToolsUnitTest::CalcHash(g_entry1.key, dataItem.key);
     dataItems.push_back(dataItem);

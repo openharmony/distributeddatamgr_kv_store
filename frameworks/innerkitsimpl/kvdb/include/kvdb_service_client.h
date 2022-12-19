@@ -50,9 +50,11 @@ public:
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
     sptr<KvStoreSyncCallbackClient> GetSyncAgent(const AppId &appId);
 
-private:
+protected:
     explicit KVDBServiceClient(const sptr<IRemoteObject> &object);
     virtual ~KVDBServiceClient() = default;
+
+private:
     class ServiceDeath : public KvStoreDeathRecipient {
     public:
         ServiceDeath() = default;

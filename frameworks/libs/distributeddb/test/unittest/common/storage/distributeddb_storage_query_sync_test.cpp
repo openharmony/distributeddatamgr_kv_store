@@ -20,6 +20,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "generic_single_ver_kv_entry.h"
+#include "get_query_info.h"
 #include "kvdb_manager.h"
 #include "query_sync_object.h"
 #include "sqlite_single_ver_continue_token.h"
@@ -824,6 +825,41 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerialize001, TestSize.Level1)
 }
 
 /**
+  * @tc.name: DeSerialize002
+  * @tc.desc: Test deserialize with query node over limit
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuixxx
+  */
+HWTEST_F(DistributedDBStorageQuerySyncTest, DeSerialize002, TestSize.Level1)
+{
+    Query query = Query::Select().EqualTo("field_0", 0);
+    for (int i = 1; i <= 128; i++) { // 128: query node size
+        query = query.And().EqualTo("field_" + std::to_string(i), i);
+    }
+    EXPECT_TRUE(GetQueryInfo::GetQueryExpression(query).GetErrFlag());
+
+    query = query.OrderBy("field_0");
+    EXPECT_FALSE(GetQueryInfo::GetQueryExpression(query).GetErrFlag());
+
+    // fake query sync object with query node over limit
+    std::list<QueryObjNode> queryObjNodes;
+    for (int i = 0; i <= 258; i++) { // 258: over query node limit
+        queryObjNodes.push_back(QueryObjNode {QueryObjType::EQUALTO, "field_" + std::to_string(i),
+            QueryValueType::VALUE_TYPE_INTEGER, {}});
+    }
+
+    QuerySyncObject querySync(queryObjNodes, {}, {});
+    vector<uint8_t> buffer(querySync.CalculateParcelLen(SOFTWARE_VERSION_CURRENT), 0);
+    Parcel writeParcel(buffer.data(), querySync.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+    EXPECT_EQ(querySync.SerializeData(writeParcel, SOFTWARE_VERSION_CURRENT), E_OK);
+
+    QuerySyncObject queryObj;
+    Parcel readParcel(buffer.data(), querySync.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+    EXPECT_EQ(QuerySyncObject::DeSerializeData(readParcel, queryObj), -E_INVALID_ARGS);
+}
+
+/**
   * @tc.name: SameQueryObjectIdInDiffVer001
   * @tc.desc: Same query object have same id in different version.
   * @tc.type: FUNC
@@ -1316,7 +1352,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject003, TestSize.Level1)
 
     /**
      * @tc.steps:step3. Deserialize data when the version number is abnormal
-     * @tc.expected: -E_VERSION_NOT_SUPPORT,then correct the version number
+     * @tc.expected: -E_VERSION_NOT_SUPPORT, then correct the version number
      */
     EXPECT_EQ(buffLen, 120u); // 120 is the max buffer len
     uint8_t oldValue = *(buffer.data() + VERSION_BIT);

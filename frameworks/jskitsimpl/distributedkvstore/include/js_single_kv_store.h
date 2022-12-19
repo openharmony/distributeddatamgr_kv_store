@@ -45,6 +45,7 @@ public:
     void SetUvQueue(std::shared_ptr<UvQueue> uvQueue);
     std::shared_ptr<DistributedKv::SingleKvStore> GetKvStorePtr();
     void SetContextParam(std::shared_ptr<ContextParam> param);
+    bool IsSystemApp() const;
 
     static napi_value Put(napi_env env, napi_callback_info info);
     static napi_value PutBatch(napi_env env, napi_callback_info info);

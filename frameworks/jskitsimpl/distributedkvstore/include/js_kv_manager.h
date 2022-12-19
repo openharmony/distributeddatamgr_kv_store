@@ -26,6 +26,7 @@ struct ContextParam {
     std::string baseDir = "";
     std::string hapName = "";
     int32_t area = DistributedKv::Area::EL1;
+    bool isSystemApp = false;
 };
 class JsKVManager {
 public:
