@@ -44,6 +44,7 @@ distrdb_defines = [
   "OMIT_FLATBUFFER",
   "RELATIONAL_STORE",
   "SQLITE_DISTRIBUTE_RELATIONAL",
+  "SQLITE_ENABLE_DROPTABLE_CALLBACK",
 ]
 config("distrdb_public_config") {
   visibility = [ "*:*" ]
