@@ -48,8 +48,13 @@ void AutoSyncTimer::DoAutoSync(const std::string &appId, std::set<StoreId> store
 
 void AutoSyncTimer::AddSyncStores(const std::string &appId, std::set<StoreId> storeIds)
 {
-    stores_.Compute(appId, [&storeIds](const auto &key, std::set<StoreId> &value) {
-        value.merge(std::move(storeIds));
+    stores_.Compute(appId, [&storeIds](const auto &key, std::vector<StoreId> &value) {
+        std::set<StoreId> tempStores(value.begin(), value.end());
+        for (auto it = storeIds.begin(); it != storeIds.end(); it++) {
+            if (!tempStores.count(*it)) {
+                value.push_back(*it);
+            }
+        }
         return !value.empty();
     });
 }
@@ -59,11 +64,11 @@ bool AutoSyncTimer::HasSyncStores()
     return !stores_.Empty();
 }
 
-std::map<std::string, std::set<StoreId>> AutoSyncTimer::GetStoreIds()
+std::map<std::string, std::vector<StoreId>> AutoSyncTimer::GetStoreIds()
 {
-    std::map<std::string, std::set<StoreId>> stores;
+    std::map<std::string, std::vector<StoreId>> stores;
     int count = SYNC_STORE_NUM;
-    stores_.EraseIf([&stores, &count](const std::string &key, std::set<StoreId> &value) {
+    stores_.EraseIf([&stores, &count](const std::string &key, std::vector<StoreId> &value) {
         int size = value.size();
         if (size <= count) {
             stores.insert({ key, std::move(value) });
@@ -72,7 +77,7 @@ std::map<std::string, std::set<StoreId>> AutoSyncTimer::GetStoreIds()
         }
         auto &innerStore = stores[key];
         for (auto it = value.begin(); it != value.end() && count > 0;) {
-            innerStore.insert(*it);
+            innerStore.push_back(*it);
             it = value.erase(it);
             count--;
         }
