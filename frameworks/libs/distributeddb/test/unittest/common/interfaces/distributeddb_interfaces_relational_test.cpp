@@ -989,7 +989,7 @@ void ProcessSync(RelationalStoreDelegate *delegate)
 
     std::vector<VirtualRowData> data;
     g_deviceB->GetAllSyncData("create", data);
-    EXPECT_EQ(data.size(), 2u);
+    EXPECT_EQ(data.size(), 1u);
 
     VirtualRowData virtualRowData;
     DataValue d1;
