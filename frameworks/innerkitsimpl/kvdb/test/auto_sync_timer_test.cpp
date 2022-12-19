@@ -281,3 +281,4 @@ HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
 }
+}
