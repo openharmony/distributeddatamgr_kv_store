@@ -117,7 +117,8 @@ TimeSync::TimeSync()
       isAckReceived_(false),
       timeChangedListener_(nullptr),
       timeDriverLockCount_(0),
-      isOnline_(true)
+      isOnline_(true),
+      closed_(false)
 {
 }
 
@@ -504,7 +505,7 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
             TimeHelper::GetSysCurrentTime(), errCode, timeout);
         std::unique_lock<std::mutex> lock(cvLock_);
         if (errCode != E_OK || !conditionVar_.wait_for(lock, std::chrono::milliseconds(timeout),
-            [this](){ return this->isAckReceived_ == true; })) {
+            [this](){ return this->isAckReceived_ || this->closed_; })) {
             LOGD("TimeSync::GetTimeOffset, retryTime_ = %d", retryTime_);
             retryTime_++;
             if (retryTime_ < MAX_RETRY_TIME) {
@@ -515,6 +516,9 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
             retryTime_ = 0;
             return -E_TIMEOUT;
         }
+    }
+    if (IsClosed()) {
+        return -E_BUSY;
     }
     retryTime_ = 0;
     metadata_->GetTimeOffset(deviceId_, outOffset);
@@ -559,5 +563,20 @@ void TimeSync::ResetTimer()
     if (errCode != E_OK) {
         LOGW("[TimeSync] Reset TimeSync timer failed err :%d", errCode);
     }
+}
+
+void TimeSync::Close()
+{
+    {
+        std::lock_guard<std::mutex> lock(cvLock_);
+        closed_ = true;
+    }
+    conditionVar_.notify_all();
+}
+
+bool TimeSync::IsClosed()
+{
+    std::lock_guard<std::mutex> lock(cvLock_);
+    return closed_ ;
 }
 } // namespace DistributedDB

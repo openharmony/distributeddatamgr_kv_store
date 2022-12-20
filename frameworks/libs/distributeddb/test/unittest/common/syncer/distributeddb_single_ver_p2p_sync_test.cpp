@@ -2587,6 +2587,57 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync001, TestSize.Level3)
     g_communicatorAggregator->RegOnDispatch(nullptr);
 }
 
+/**
+  * @tc.name: CloseSync002
+  * @tc.desc: Test 1 delegate close when in time sync
+  * @tc.type: FUNC
+  * @tc.require: AR000CCPOM
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PSyncTest, CloseSync002, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. invalid time sync packet from A
+     */
+    g_communicatorAggregator->RegOnDispatch([](const std::string &target, DistributedDB::Message *msg) {
+        ASSERT_NE(msg, nullptr);
+        if (target == DEVICE_B && msg->GetMessageId() == TIME_SYNC_MESSAGE && msg->GetMessageType() == TYPE_REQUEST) {
+            msg->SetMessageId(INVALID_MESSAGE_ID);
+            LOGD("Message is invalid");
+        }
+    });
+    Timestamp currentTime;
+    (void)OS::GetCurrentSysTimeInMicrosecond(currentTime);
+    g_deviceB->PutData({'k'}, {'v'}, currentTime, 0);
+
+    /**
+     * @tc.steps: step2. B PUSH to A and A close after 1s
+     * @tc.expected: step2. A closing time cost letter than 4s
+     */
+    std::thread closingThread([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        LOGD("Begin Close");
+        Timestamp beginTime;
+        (void)OS::GetCurrentSysTimeInMicrosecond(beginTime);
+        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+        Timestamp endTime;
+        (void)OS::GetCurrentSysTimeInMicrosecond(endTime);
+        EXPECT_LE(static_cast<int>(endTime - beginTime), 4 * 1000 * 1000); // waiting 4 * 1000 * 1000 us
+        LOGD("End Close");
+    });
+    EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    closingThread.join();
+
+    /**
+     * @tc.steps: step3. remove db
+     * @tc.expected: step3. remove ok
+     */
+    g_kvDelegatePtr = nullptr;
+    DBStatus status = g_mgr.DeleteKvStore(STORE_ID);
+    LOGD("delete kv store status %d", status);
+    ASSERT_TRUE(status == OK);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
 
 /**
   * @tc.name: OrderbyWriteTimeSync001

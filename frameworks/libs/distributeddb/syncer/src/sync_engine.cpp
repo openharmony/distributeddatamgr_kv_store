@@ -113,12 +113,6 @@ int SyncEngine::Close()
     UnRegCommunicatorsCallback();
     StopAutoSubscribeTimer();
 
-    std::unique_lock<std::mutex> closeLock(execTaskCountLock_);
-    bool isTimeout = execTaskCv_.wait_for(closeLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
-        [this]() { return execTaskCount_ == 0; });
-    if (!isTimeout) {
-        LOGD("SyncEngine Close with executing task!");
-    }
     // Clear SyncContexts
     {
         std::unique_lock<std::mutex> lock(contextMapLock_);
@@ -133,6 +127,7 @@ int SyncEngine::Close()
         syncTaskContextMap_.clear();
     }
 
+    WaitingExecTaskExist();
     ReleaseCommunicators();
     std::lock_guard<std::mutex> msgLock(queueLock_);
     while (!msgQueue_.empty()) {
@@ -1121,6 +1116,16 @@ void SyncEngine::AbortMachineIfNeed(uint32_t syncId)
     if (abortContext != nullptr) {
         abortContext->AbortMachineIfNeed(static_cast<uint32_t>(syncId));
         RefObject::DecObjRef(abortContext);
+    }
+}
+
+void SyncEngine::WaitingExecTaskExist()
+{
+    std::unique_lock<std::mutex> closeLock(execTaskCountLock_);
+    bool isTimeout = execTaskCv_.wait_for(closeLock, std::chrono::milliseconds(DBConstant::MIN_TIMEOUT),
+        [this]() { return execTaskCount_ == 0; });
+    if (!isTimeout) {
+        LOGD("SyncEngine Close with executing task!");
     }
 }
 } // namespace DistributedDB

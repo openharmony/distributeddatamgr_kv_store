@@ -591,6 +591,7 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
 void SyncTaskContext::KillWait()
 {
     StopTimer();
+    stateMachine_->NotifyClosing();
     UnlockObj();
     stateMachine_->AbortImmediately();
     LockObj();

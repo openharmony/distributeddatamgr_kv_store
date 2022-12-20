@@ -77,6 +77,9 @@ public:
 
     // start a timer to ResetWatchDog when get data and stop send notify ack if need
     void StopFeedDogForGetData() override;
+
+    // Notify machine is closing, should release some lock
+    void NotifyClosing() override;
 protected:
 
     // SyncOperation is timeout, step to timeout state
