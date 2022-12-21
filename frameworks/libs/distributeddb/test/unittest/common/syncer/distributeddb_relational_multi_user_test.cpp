@@ -311,30 +311,6 @@ namespace {
         CloseStore();
     }
 
-    int g_currentStatus = 0;
-    const AutoLaunchNotifier g_nofifier = [](const std::string &userId,
-        const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
-            LOGE("notifier status = %d", status);
-            g_currentStatus = static_cast<int>(status);
-        };
-
-    const AutoLaunchRequestCallback g_callback = [](const std::string &identifier, AutoLaunchParam &param) {
-        if (g_identifier != identifier) {
-            LOGE("g_identifier(%s) != identifier(%s)", g_identifier.c_str(), identifier.c_str());
-            return false;
-        }
-        param.path    = g_testDir + "/test2.db";
-        param.appId   = APP_ID;
-        param.storeId = STORE_ID;
-        CipherPassword passwd;
-        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
-            0, nullptr};
-        param.notifier = g_nofifier;
-        param.option.syncDualTupleMode = true;
-        return true;
-    };
-
-
     void TestSyncWithUserChange(bool wait, bool isRemoteQuery)
     {
         /**
