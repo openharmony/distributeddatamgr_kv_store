@@ -235,6 +235,8 @@ protected:
 
     SyncOperation *GetAndIncSyncOperation() const;
 
+    uint32_t GenerateRequestSessionId();
+
     static uint8_t GetPermissionCheckFlag(bool isAutoSync, int syncMode);
 
     mutable std::mutex targetQueueLock_;
