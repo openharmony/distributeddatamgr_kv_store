@@ -20,7 +20,8 @@ ohos_js_unittest("KvStoreJsTest") {
 
   hap_profile = "./config.json"
 
-  certificate_profile = "//test/testfwk/developer_test/signature/openharmony_sx.p7b"
+  certificate_profile =
+      "//test/testfwk/developer_test/signature/openharmony_sx.p7b"
 }
 
 group("unittest") {
