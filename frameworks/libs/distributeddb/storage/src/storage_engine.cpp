@@ -111,7 +111,7 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
 
     if (!isInitialized_.load()) {
         LOGE("Storage engine is not initialized");
-        errCode = -E_INVALID_DB;
+        errCode = -E_BUSY; // Usually in reinitialize engine, return BUSY
         return nullptr;
     }
 
