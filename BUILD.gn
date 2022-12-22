@@ -25,6 +25,7 @@ group("build_native_test") {
   deps = [
     "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
     "frameworks/libs/distributeddb/test:unittest",
+    "frameworks/libs/distributeddb/test/moduletest:moduletest",
   ]
 }
 
