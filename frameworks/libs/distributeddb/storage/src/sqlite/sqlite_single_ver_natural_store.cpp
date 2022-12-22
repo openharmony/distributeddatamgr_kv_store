@@ -952,7 +952,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     return RemoveDeviceData(deviceName, isNeedNotify, true);
 }
 
-int SQLiteSingleVerNaturalStore::GetExistsDeviceList(std::set<std::string> &deviceList) const
+int SQLiteSingleVerNaturalStore::GetExistsDeviceList(std::set<std::string> &devices) const
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
@@ -960,7 +960,7 @@ int SQLiteSingleVerNaturalStore::GetExistsDeviceList(std::set<std::string> &devi
         LOGE("[SingleVerNStore] GetExistsDeviceList get handle failed:%d", errCode);
         return errCode;
     }
-    errCode = handle->GetExistsDevicesFromMeta(deviceList);
+    errCode = handle->GetExistsDevicesFromMeta(devices);
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Get remove device list from meta failed. err=%d", errCode);
     }
