@@ -273,7 +273,7 @@ private:
 
     int RemoveAllSubscribe();
 
-    int GetExistsDeviceList(std::set<std::string> &deviceList) const;
+    int GetExistsDeviceList(std::set<std::string> &devices) const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 

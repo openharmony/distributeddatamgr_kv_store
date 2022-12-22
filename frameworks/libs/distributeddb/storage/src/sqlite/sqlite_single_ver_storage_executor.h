@@ -249,7 +249,7 @@ public:
 
     uint64_t GetLogFileSize() const;
 
-    int GetExistsDevicesFromMeta(std::set<std::string> &deviceList);
+    int GetExistsDevicesFromMeta(std::set<std::string> &devices);
 
 private:
     struct SaveRecordStatements {
