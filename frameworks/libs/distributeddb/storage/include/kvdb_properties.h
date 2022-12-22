@@ -38,9 +38,6 @@ public:
     // Set the password
     void SetPassword(CipherType type, const CipherPassword &password);
 
-    // is schema exist
-    bool IsSchemaExist() const;
-
     // set schema
     void SetSchema(const SchemaObject &schema);
 

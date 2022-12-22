@@ -46,7 +46,7 @@ private:
     static const int VERSION_1 = 1;
     static const int CURRENT_VERSION = VERSION_1;
 
-    ExecutorOperation opCode_;
+    ExecutorOperation opCode_ = ExecutorOperation::MIN_LIMIT;
     std::string sql_;
     std::vector<std::string> bindArgs_;
 };

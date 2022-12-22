@@ -14,15 +14,15 @@
  */
 
 #include "generic_kvdb.h"
-#include "platform_specific.h"
-#include "log_print.h"
+
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
+#include "kvdb_commit_notify_filterable_data.h"
+#include "kvdb_utils.h"
+#include "log_print.h"
 #include "package_file.h"
 #include "runtime_context.h"
-#include "kvdb_utils.h"
-#include "kvdb_commit_notify_filterable_data.h"
 
 namespace DistributedDB {
 DEFINE_OBJECT_TAG_FACILITIES(GenericKvDB);

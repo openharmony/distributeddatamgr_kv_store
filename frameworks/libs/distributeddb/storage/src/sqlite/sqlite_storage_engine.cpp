@@ -123,11 +123,6 @@ void SQLiteStorageEngine::SetEngineState(EngineState state)
     engineState_ = state; // Current usage logically can guarantee no concurrency
 }
 
-const OpenDbProperties &SQLiteStorageEngine::GetOpenOption() const
-{
-    return option_;
-}
-
 bool SQLiteStorageEngine::IsNeedMigrate() const
 {
     return false;

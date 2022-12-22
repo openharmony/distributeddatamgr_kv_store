@@ -127,8 +127,6 @@ public:
 
     static int MapSQLiteErrno(int errCode);
 
-    static int SaveSchema(const OpenDbProperties &properties);
-
     static int SaveSchema(sqlite3 *db, const std::string &strSchema);
 
     static int GetSchema(const OpenDbProperties &properties, std::string &strSchema);
@@ -168,7 +166,6 @@ public:
     static int RegisterGetSysTime(sqlite3 *db);
 
     static int CreateRelationalLogTable(sqlite3 *db, const std::string &oriTableName);
-    static int CreateRelationalMetaTable(sqlite3 *db);
 
     static int AddRelationalLogTableTrigger(sqlite3 *db, const std::string &identity, const TableInfo &table);
     static int AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table);

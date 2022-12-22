@@ -34,7 +34,6 @@ public:
 
     // Close and release the connection.
     int Close() override;
-    int TriggerAutoSync() override;
     int SyncToDevice(SyncInfo &info) override;
     std::string GetIdentifier() override;
     int CreateDistributedTable(const std::string &tableName) override;

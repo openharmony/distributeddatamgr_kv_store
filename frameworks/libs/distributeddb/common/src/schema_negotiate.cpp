@@ -231,7 +231,7 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
     std::string magicStr;
     (void)parcel.ReadString(magicStr);
     if (magicStr != MAGIC) {
-        LOGE("Deserialize sync opinion failed while read MAGIC string [%s]", magicStr.c_str());
+        LOGE("Deserialize sync opinion failed while read MAGIC string");
         return -E_INVALID_ARGS;
     }
     uint32_t version;
@@ -257,8 +257,8 @@ int SchemaNegotiate::DeserializeData(Parcel &parcel, RelationalSyncOpinion &opin
         uint32_t requirePeerConvert;
         (void)parcel.ReadUInt32(requirePeerConvert);
         tableOpinion.requirePeerConvert = static_cast<bool>(requirePeerConvert);
-        parcel.EightByteAlign();
-        opinion[tableName] =  tableOpinion;
+        (void)parcel.EightByteAlign();
+        opinion[tableName] = tableOpinion;
     }
     return parcel.IsError() ? -E_INVALID_ARGS : E_OK;
 }

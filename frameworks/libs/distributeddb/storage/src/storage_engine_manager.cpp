@@ -263,10 +263,7 @@ void StorageEngineManager::ReleaseResources(const std::string &identifier)
     if (storageEngine != nullptr) {
         LOGI("[StorageEngineManager] Release storage engine");
         delete storageEngine;
-        storageEngine = nullptr;
     }
-
-    return;
 }
 
 int StorageEngineManager::ReleaseEngine(StorageEngine *releaseEngine)
@@ -293,7 +290,6 @@ int StorageEngineManager::ReleaseEngine(StorageEngine *releaseEngine)
     }
 
     delete releaseEngine;
-    releaseEngine = nullptr;
     return E_OK;
 }
 

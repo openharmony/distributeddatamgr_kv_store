@@ -48,7 +48,6 @@ public:
 
     // Close and release the connection.
     virtual int Close() = 0;
-    virtual int TriggerAutoSync() = 0;
     virtual int SyncToDevice(SyncInfo &info) = 0;
     virtual std::string GetIdentifier() = 0;
     virtual int CreateDistributedTable(const std::string &tableName) = 0;

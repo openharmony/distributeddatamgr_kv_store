@@ -18,7 +18,7 @@
 #include "db_errno.h"
 
 namespace DistributedDB {
-const int KvStoreResultSetImpl::INIT_POSTION = -1;
+const int KvStoreResultSetImpl::INIT_POSITION = -1;
 
 KvStoreResultSetImpl::KvStoreResultSetImpl(IKvDBResultSet *resultSet)
     : resultSet_(resultSet)
@@ -36,7 +36,7 @@ int KvStoreResultSetImpl::GetCount() const
 int KvStoreResultSetImpl::GetPosition() const
 {
     if (resultSet_ == nullptr) {
-        return INIT_POSTION;
+        return INIT_POSITION;
     }
     return resultSet_->GetPosition();
 }
@@ -48,8 +48,8 @@ bool KvStoreResultSetImpl::Move(int offset)
     if (aimPos > INT_MAX) {
         return MoveToPosition(INT_MAX);
     }
-    if (aimPos < INIT_POSTION) {
-        return MoveToPosition(INIT_POSTION);
+    if (aimPos < INIT_POSITION) {
+        return MoveToPosition(INIT_POSITION);
     }
     return MoveToPosition(aimPos);
 }
@@ -128,7 +128,7 @@ bool KvStoreResultSetImpl::IsBeforeFirst() const
     if (GetCount() == 0) {
         return true;
     }
-    if (position <= INIT_POSTION) {
+    if (position <= INIT_POSITION) {
         return true;
     }
     return false;

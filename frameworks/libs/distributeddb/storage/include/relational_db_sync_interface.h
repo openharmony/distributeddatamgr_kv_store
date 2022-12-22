@@ -33,11 +33,6 @@ public:
 
     virtual RelationalSchemaObject GetSchemaInfo() const = 0;
 
-    // Get batch meta data associated with the given key.
-    virtual int GetBatchMetaData(const std::vector<Key> &keys, std::vector<Entry> &entries) const = 0;
-    // Put batch meta data as a key-value entry vector
-    virtual int PutBatchMetaData(std::vector<Entry> &entries) = 0;
-
     virtual std::vector<QuerySyncObject> GetTablesQuery() = 0;
 
     virtual int LocalDataChanged(int notifyEvent, std::vector<QuerySyncObject> &queryObj) = 0;

@@ -89,11 +89,11 @@ void RelationalSchemaObject::GenerateSchemaString()
     schemaString_ += "}";
 }
 
-void RelationalSchemaObject::AddRelationalTable(const TableInfo &tb)
+void RelationalSchemaObject::AddRelationalTable(const TableInfo &table)
 {
-    tables_[tb.GetTableName()] = tb;
+    tables_[table.GetTableName()] = table;
     isValid_ = true;
-    if (tb.GetPrimaryKey().size() > 1) { // Table with composite primary keys
+    if (table.GetPrimaryKey().size() > 1) { // Table with composite primary keys
         // Composite primary keys are supported since version 2.1
         schemaVersion_ = SchemaConstant::SCHEMA_CURRENT_VERSION;
     }

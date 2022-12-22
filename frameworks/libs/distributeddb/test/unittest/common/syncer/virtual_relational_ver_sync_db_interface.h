@@ -50,10 +50,6 @@ public:
 
     int GetDatabaseCreateTimestamp(Timestamp &outTime) const override;
 
-    int GetBatchMetaData(const std::vector<Key> &keys, std::vector<Entry> &entries) const override;
-
-    int PutBatchMetaData(std::vector<Entry> &entries) override;
-
     std::vector<QuerySyncObject> GetTablesQuery() override;
 
     int LocalDataChanged(int notifyEvent, std::vector<QuerySyncObject> &queryObj) override;

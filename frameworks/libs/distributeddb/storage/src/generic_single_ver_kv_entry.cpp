@@ -124,7 +124,7 @@ int GenericSingleVerKvEntry::SerializeData(Parcel &parcel, uint32_t targetVersio
 int GenericSingleVerKvEntry::SerializeDatas(const std::vector<SingleVerKvEntry *> &kvEntries, Parcel &parcel,
     uint32_t targetVersion)
 {
-    uint32_t size = kvEntries.size();
+    uint32_t size = static_cast<uint32_t>(kvEntries.size());
     int errCode = parcel.WriteUInt32(size);
     if (errCode != E_OK) {
         LOGE("[SerializeDatas] write entries size failed, errCode=%d.", errCode);

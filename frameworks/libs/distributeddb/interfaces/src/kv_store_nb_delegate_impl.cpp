@@ -18,22 +18,22 @@
 #include <functional>
 #include <string>
 
-#include "platform_specific.h"
-#include "log_print.h"
 #include "db_constant.h"
 #include "db_errno.h"
 #include "db_types.h"
-#include "param_check_utils.h"
-#include "store_types.h"
-#include "kvdb_pragma.h"
-#include "kvdb_manager.h"
-#include "kv_store_errno.h"
-#include "kv_store_observer.h"
 #include "kv_store_changed_data_impl.h"
+#include "kv_store_errno.h"
 #include "kv_store_nb_conflict_data_impl.h"
+#include "kv_store_observer.h"
 #include "kv_store_result_set_impl.h"
-#include "sync_operation.h"
+#include "kvdb_manager.h"
+#include "kvdb_pragma.h"
+#include "log_print.h"
+#include "param_check_utils.h"
 #include "performance_analysis.h"
+#include "platform_specific.h"
+#include "store_types.h"
+#include "sync_operation.h"
 
 namespace DistributedDB {
 namespace {
@@ -61,7 +61,7 @@ namespace {
         {EXEC_CHECKPOINT, PRAGMA_EXEC_CHECKPOINT},
     };
 
-    const std::string INVALID_CONNECTION = "[KvStoreNbDelegate] Invalid connection for operation";
+    constexpr const char *INVALID_CONNECTION = "[KvStoreNbDelegate] Invalid connection for operation";
 }
 
 KvStoreNbDelegateImpl::KvStoreNbDelegateImpl(IKvDBConnection *conn, const std::string &storeId)
@@ -97,7 +97,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntries(const Key &keyPrefix, std::vector<Ent
 DBStatus KvStoreNbDelegateImpl::GetEntries(const Key &keyPrefix, KvStoreResultSet *&resultSet) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -138,14 +138,14 @@ DBStatus KvStoreNbDelegateImpl::GetEntries(const Query &query, std::vector<Entry
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
 DBStatus KvStoreNbDelegateImpl::GetEntries(const Query &query, KvStoreResultSet *&resultSet) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -172,7 +172,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntries(const Query &query, KvStoreResultSet 
 DBStatus KvStoreNbDelegateImpl::GetCount(const Query &query, int &count) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -197,7 +197,7 @@ DBStatus KvStoreNbDelegateImpl::CloseResultSet(KvStoreResultSet *&resultSet)
     }
 
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -232,14 +232,14 @@ DBStatus KvStoreNbDelegateImpl::PutBatch(const std::vector<Entry> &entries)
         return TransferDBErrno(errCode);
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
 DBStatus KvStoreNbDelegateImpl::DeleteBatch(const std::vector<Key> &keys)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -307,7 +307,7 @@ DBStatus KvStoreNbDelegateImpl::PublishLocal(const Key &key, bool deleteLocal, b
         return OK;
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
@@ -328,14 +328,14 @@ DBStatus KvStoreNbDelegateImpl::UnpublishToLocal(const Key &key, bool deletePubl
         return OK;
     }
 
-    LOGE("%s", INVALID_CONNECTION.c_str());
+    LOGE("%s", INVALID_CONNECTION);
     return DB_ERROR;
 }
 
 DBStatus KvStoreNbDelegateImpl::PutLocalBatch(const std::vector<Entry> &entries)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -353,7 +353,7 @@ DBStatus KvStoreNbDelegateImpl::PutLocalBatch(const std::vector<Entry> &entries)
 DBStatus KvStoreNbDelegateImpl::DeleteLocalBatch(const std::vector<Key> &keys)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -390,7 +390,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     }
 
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -424,7 +424,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
     }
 
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -448,7 +448,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData(const std::string &device)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
     if (device.empty() || device.length() > DBConstant::MAX_DEV_LENGTH) {
@@ -473,7 +473,7 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     bool wait = false)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -492,7 +492,7 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     const Query &query, bool wait)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -514,7 +514,7 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
 DBStatus KvStoreNbDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -536,12 +536,12 @@ DBStatus KvStoreNbDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &paramData)
 DBStatus KvStoreNbDelegateImpl::SetConflictNotifier(int conflictType, const KvStoreNbConflictNotifier &notifier)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
     if (!ParamCheckUtils::CheckConflictNotifierType(conflictType)) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return INVALID_ARGS;
     }
 
@@ -583,7 +583,7 @@ END:
 DBStatus KvStoreNbDelegateImpl::Rekey(const CipherPassword &password)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -599,7 +599,7 @@ DBStatus KvStoreNbDelegateImpl::Rekey(const CipherPassword &password)
 DBStatus KvStoreNbDelegateImpl::Export(const std::string &filePath, const CipherPassword &passwd, bool force)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -632,7 +632,7 @@ DBStatus KvStoreNbDelegateImpl::Export(const std::string &filePath, const Cipher
 DBStatus KvStoreNbDelegateImpl::Import(const std::string &filePath, const CipherPassword &passwd)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -664,7 +664,7 @@ DBStatus KvStoreNbDelegateImpl::Import(const std::string &filePath, const Cipher
 DBStatus KvStoreNbDelegateImpl::StartTransaction()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -679,7 +679,7 @@ DBStatus KvStoreNbDelegateImpl::StartTransaction()
 DBStatus KvStoreNbDelegateImpl::Commit()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -694,7 +694,7 @@ DBStatus KvStoreNbDelegateImpl::Commit()
 DBStatus KvStoreNbDelegateImpl::Rollback()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -729,7 +729,7 @@ DBStatus KvStoreNbDelegateImpl::Close()
 DBStatus KvStoreNbDelegateImpl::CheckIntegrity() const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -739,7 +739,7 @@ DBStatus KvStoreNbDelegateImpl::CheckIntegrity() const
 DBStatus KvStoreNbDelegateImpl::GetSecurityOption(SecurityOption &option) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
     return TransferDBErrno(conn_->GetSecurityOption(option.securityLabel, option.securityFlag));
@@ -748,7 +748,7 @@ DBStatus KvStoreNbDelegateImpl::GetSecurityOption(SecurityOption &option) const
 DBStatus KvStoreNbDelegateImpl::SetRemotePushFinishedNotify(const RemotePushFinishedNotifier &notifier)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -763,7 +763,7 @@ DBStatus KvStoreNbDelegateImpl::SetRemotePushFinishedNotify(const RemotePushFini
 DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, Value &value) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -779,7 +779,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntriesInner(const IOption &option,
     const Key &keyPrefix, std::vector<Entry> &entries) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -794,7 +794,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntriesInner(const IOption &option,
 DBStatus KvStoreNbDelegateImpl::PutInner(const IOption &option, const Key &key, const Value &value)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -818,7 +818,7 @@ DBStatus KvStoreNbDelegateImpl::PutInner(const IOption &option, const Key &key, 
 DBStatus KvStoreNbDelegateImpl::DeleteInner(const IOption &option, const Key &key)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -848,7 +848,7 @@ DBStatus KvStoreNbDelegateImpl::SetEqualIdentifier(const std::string &identifier
     const std::vector<std::string> &targets)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -864,7 +864,7 @@ DBStatus KvStoreNbDelegateImpl::SetEqualIdentifier(const std::string &identifier
 DBStatus KvStoreNbDelegateImpl::SetPushDataInterceptor(const PushDataInterceptor &interceptor)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -881,7 +881,7 @@ DBStatus KvStoreNbDelegateImpl::SubscribeRemoteQuery(const std::vector<std::stri
     const Query &query, bool wait)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -905,7 +905,7 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
     const Query &query, bool wait)
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -927,7 +927,7 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
 DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
 
@@ -943,7 +943,7 @@ DBStatus KvStoreNbDelegateImpl::RemoveDeviceData()
 DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &keys) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
     IOption option;
@@ -959,7 +959,7 @@ DBStatus KvStoreNbDelegateImpl::GetKeys(const Key &keyPrefix, std::vector<Key> &
 size_t KvStoreNbDelegateImpl::GetSyncDataSize(const std::string &device) const
 {
     if (conn_ == nullptr) {
-        LOGE("%s", INVALID_CONNECTION.c_str());
+        LOGE("%s", INVALID_CONNECTION);
         return 0;
     }
     if (device.empty()) {

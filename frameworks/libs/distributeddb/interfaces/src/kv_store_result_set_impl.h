@@ -110,7 +110,7 @@ public:
     DBStatus GetRow(std::map<std::string, VariantData> &data) const override;
 
 private:
-    static const int INIT_POSTION;
+    static const int INIT_POSITION;
     IKvDBResultSet * const resultSet_;
 };
 } // namespace DistributedDB

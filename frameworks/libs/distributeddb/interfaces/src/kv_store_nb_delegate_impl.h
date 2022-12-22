@@ -16,13 +16,13 @@
 #ifndef KV_STORE_NB_DELEGATE_IMPL_H
 #define KV_STORE_NB_DELEGATE_IMPL_H
 
-#include <string>
 #include <functional>
 #include <map>
 #include <mutex>
+#include <string>
 
-#include "store_types.h"
 #include "db_types.h"
+#include "store_types.h"
 #include "ikvdb_connection.h"
 #include "kv_store_nb_conflict_data.h"
 #include "kv_store_nb_delegate.h"

@@ -69,7 +69,7 @@ struct QueryObjNode {
     bool IsValid()
     {
         return operFlag != QueryObjType::OPER_ILLEGAL &&
-               type != QueryValueType::VALUE_TYPE_INVALID;
+            type != QueryValueType::VALUE_TYPE_INVALID;
     }
 };
 
@@ -192,5 +192,5 @@ public:
         return QueryValueType::VALUE_TYPE_STRING;
     }
 };
-}
-#endif
+} // DistributedDB
+#endif // DISTRIBUTEDDB_QUERY_EXPRESSION_H

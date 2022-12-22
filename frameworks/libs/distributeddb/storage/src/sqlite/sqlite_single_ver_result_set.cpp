@@ -39,12 +39,12 @@ SQLiteSingleVerResultSet::~SQLiteSingleVerResultSet()
 {
     isOpen_ = false;
     count_ = 0;
-    position_ = INIT_POSTION;
+    position_ = INIT_POSITION;
     kvDB_ = nullptr;
     window_ = nullptr;
     rawCursor_ = nullptr;
     handle_ = nullptr;
-    cacheStartPosition_ = INIT_POSTION;
+    cacheStartPosition_ = INIT_POSITION;
 }
 
 // The user get KvStoreResultSet after Open function called, so no need mutex during open procedure
@@ -121,7 +121,7 @@ int SQLiteSingleVerResultSet::OpenForCacheEntryIdMode()
         cachedRowIds_.clear();
         return errCode;
     }
-    // If no result, then nothing is cached, so the cacheStartPosition_ is still INIT_POSTION
+    // If no result, then nothing is cached, so the cacheStartPosition_ is still INIT_POSITION
     if (count_ != 0) {
         cacheStartPosition_ = 0;
     }
@@ -150,12 +150,12 @@ int SQLiteSingleVerResultSet::MoveTo(int position) const
         return -E_RESULT_SET_STATUS_INVALID;
     }
     if (count_ == 0) {
-        position_ = (position >= 0) ? 0 : INIT_POSTION;
+        position_ = (position >= 0) ? 0 : INIT_POSITION;
         LOGW("[SqlSinResSet][MoveTo] Empty ResultSet.");
         return -E_RESULT_SET_EMPTY;
     }
     if (position < 0) {
-        position_ = INIT_POSTION;
+        position_ = INIT_POSITION;
         LOGW("[SqlSinResSet][MoveTo] Target Position=%d invalid.", position);
         return -E_INVALID_ARGS;
     }
@@ -180,7 +180,7 @@ int SQLiteSingleVerResultSet::MoveToForCacheFullEntryMode(int position) const
         position_ = position;
         return E_OK;
     }
-    position_ = INIT_POSTION;
+    position_ = INIT_POSITION;
     LOGE("[SqlSinResSet][MoveForEntry] Move to position=%d fail.", position);
     return -E_UNEXPECTED_DATA;
 }
@@ -223,8 +223,8 @@ int SQLiteSingleVerResultSet::MoveToForCacheEntryIdMode(int position) const
         LOGE("[SqlSinResSet][MoveForRowid] Move to position=%d, Reload fail, errCode=%d.", position, errCode);
         // What else shall we do if error happened ?
         cachedRowIds_.clear();
-        cacheStartPosition_ = INIT_POSTION;
-        position_ = INIT_POSTION; // Reset Position As MoveForEntry Do
+        cacheStartPosition_ = INIT_POSITION;
+        position_ = INIT_POSITION; // Reset Position As MoveForEntry Do
         return -E_UNEXPECTED_DATA;
     }
     LOGD("[SqlSinResSet][MoveForRowid] Reload: position=%d, cacheStartPos=%d, cached=%zu, count=%d.",
@@ -241,7 +241,7 @@ int SQLiteSingleVerResultSet::GetEntry(Entry &entry) const
     if (!isOpen_ || count_ == 0) {
         return -E_NO_SUCH_ENTRY;
     }
-    if (position_ > INIT_POSTION && position_ < count_) {
+    if (position_ > INIT_POSITION && position_ < count_) {
         // If position_ in the valid range, it can be guaranteed that everything is ok without errors
         if (option_.cacheMode == ResultSetCacheMode::CACHE_FULL_ENTRY) {
             return window_->GetEntry(entry);
@@ -278,7 +278,7 @@ void SQLiteSingleVerResultSet::Close()
     }
     isOpen_ = false;
     count_ = 0;
-    position_ = INIT_POSTION;
+    position_ = INIT_POSITION;
     LOGD("[SqlSinResSet][Close] Done, Type=%d, Mode=%d.", static_cast<int>(type_), static_cast<int>(option_.cacheMode));
 }
 
@@ -295,7 +295,7 @@ void SQLiteSingleVerResultSet::CloseForCacheFullEntryMode()
 
 void SQLiteSingleVerResultSet::CloseForCacheEntryIdMode()
 {
-    cacheStartPosition_ = INIT_POSTION;
+    cacheStartPosition_ = INIT_POSITION;
     cachedRowIds_.clear();
     // In Fact : handle_ and kvDB_ is guaranteed to be not nullptr
     if (handle_ != nullptr) {

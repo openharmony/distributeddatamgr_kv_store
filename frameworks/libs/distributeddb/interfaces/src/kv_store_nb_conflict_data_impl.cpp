@@ -49,18 +49,16 @@ bool KvStoreNbConflictDataImpl::IsDeleted(ValueType type) const
 {
     if (type == ValueType::OLD_VALUE) {
         return data_.oldData.isDeleted;
-    } else {
-        return data_.newData.isDeleted;
     }
+    return data_.newData.isDeleted;
 }
 
 bool KvStoreNbConflictDataImpl::IsNative(ValueType type) const
 {
     if (type == ValueType::OLD_VALUE) {
         return data_.oldData.isLocal;
-    } else {
-        return data_.newData.isLocal;
     }
+    return data_.newData.isLocal;
 }
 
 void KvStoreNbConflictDataImpl::SetConflictData(const KvDBConflictEntry &conflictData)

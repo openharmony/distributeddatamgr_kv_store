@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "sqlite_import.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
@@ -41,6 +42,41 @@ namespace {
     const std::string SET_USER_VERSION_SQL = "PRAGMA user_version=100;";
     const std::string SHA1_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA1;";
     const std::string SHA256_ALGO_ATTACH_SQL = "PRAGMA cipher_default_attach_hmac_algo=SHA256;";
+
+    std::string g_createTableSql1 = R""(create table student_1 (
+            id      INTEGER PRIMARY KEY,
+            name    STRING,
+            level   INTGER,
+            score   INTGER
+        ))"";
+    std::string g_createTableSql2 = R""(create table student_2 (
+            id      INTEGER,
+            age     STRING
+        ))"";
+    std::string g_inerstDataSql1 = "insert into student_1 (id, name, level, score) values (1001, 'xue', 2, 95);";
+    std::string g_inerstDataSql2 = "insert into student_1 (id, name, level, score) values (1002, 'xue', 2, 95);";
+    std::string g_inerstDataSql3 = "insert into student_2 (id, age) values (1001, 11);";
+    std::string g_inerstDataSql4 = "insert into student_2 (id, age) values (1002, 12);";
+    std::string g_deleteDataSql = "delete from student_1 where id='1001';";
+    std::string g_createViewSql = "create view studentView as select * from student_1;";
+    std::string g_createIndexSql = "create index in_id on student_2(id);";
+    std::string g_deleteViewSql = "drop view studentView;";
+    std::string g_dropTableSql1 = "drop table student_2;";
+    std::string g_dropTableSql2 = "drop table student_1;";
+    std::string g_dropIndex = "drop index in_id;";
+    std::string g_dbFile;
+    std::string g_tableName;
+    int g_callbackTimes = 0;
+    void DropCallback(sqlite3 *db, const char *tableName, const char *dbName)
+    {
+        auto filepath = sqlite3_db_filename(static_cast<sqlite3 *>(db), dbName);
+        if (filepath == nullptr) {
+            return;
+        }
+        EXPECT_EQ(g_dbFile, std::string(filepath));
+        EXPECT_EQ(g_tableName, std::string(tableName));
+        g_callbackTimes++;
+    }
 }
 
 class DistributedDBStorageDataOperationTest : public testing::Test {
@@ -785,7 +821,7 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest003, TestSize.
 }
 
 /**
-  * @tc.name: ShaAlgoEncryptTest003
+  * @tc.name: ShaAlgoEncryptTest004
   * @tc.desc: Test unnormal sql
   * @tc.type: FUNC
   * @tc.require: AR000HI2JS
@@ -814,6 +850,123 @@ HWTEST_F(DistributedDBStorageDataOperationTest, ShaAlgoEncryptTest004, TestSize.
     EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd2, DBConstant::DEFAULT_ITER_TIMES), E_OK);
     EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
     EXPECT_NE(SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd2, fileUrl, attachName), E_OK);
+    sqlite3_close_v2(db);
+    db = nullptr;
+}
+
+/**
+  * @tc.name: DeleteTableCallbackTest001
+  * @tc.desc: Test drop table callback
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest001, TestSize.Level0)
+{
+    sqlite3 *db = nullptr;
+    /**
+     * @tc.steps: step1. use sha256 to open db
+     * * @tc.expected: step1. interface return ok
+    */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/DeleteTableCallbackTest001.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    EXPECT_EQ(sqlite3_set_droptable_handle(db, DropCallback), E_OK);
+    /**
+     * @tc.steps: step1. exec some sql
+     * * @tc.expected: step1. interface return ok
+    */
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql2), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql2), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql3), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql4), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createViewSql), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createIndexSql), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_deleteViewSql), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_dropIndex), E_OK);
+    EXPECT_EQ(g_callbackTimes, 0);
+    g_dbFile = fileUrl;
+    g_tableName = "student_2";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_dropTableSql1), E_OK);
+    EXPECT_EQ(g_callbackTimes, 1);
+    g_tableName = "student_1";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_dropTableSql2), E_OK);
+    EXPECT_EQ(g_callbackTimes, 2);
+    sqlite3_close_v2(db);
+    db = nullptr;
+}
+
+/**
+  * @tc.name: DropTableCallbakTest001
+  * @tc.desc: Test drop table in attach mode
+  * @tc.type: FUNC
+  * @tc.require: AR000HI2JS
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest002, TestSize.Level0)
+{
+    sqlite3 *db = nullptr;
+    g_callbackTimes = 0;
+    /**
+     * @tc.steps: step1. use sha256 to open db
+     * * @tc.expected: step1. interface return ok
+    */
+    uint64_t flag = SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
+    std::string fileUrl = g_testDir + "/DeleteTableCallbackAttachTest002.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    EXPECT_EQ(sqlite3_set_droptable_handle(db, DropCallback), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql2), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql2), E_OK);
+    /**
+     * @tc.steps: step2. close db
+     * * @tc.expected: step2. interface return ok
+    */
+    sqlite3_close_v2(db);
+    db = nullptr;
+    /**
+     * @tc.steps: step3. open new db and attach old db
+     * * @tc.expected: step3. interface return ok
+    */
+    std::string fileUrl2 = g_testDir + "/DeleteTableCallbackTest002.db";
+    EXPECT_EQ(sqlite3_open_v2(fileUrl2.c_str(), &db, flag, nullptr), SQLITE_OK);
+    EXPECT_EQ(SQLiteUtils::SetKeyInner(db, CipherType::AES_256_GCM, g_passwd2, DBConstant::DEFAULT_ITER_TIMES), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_SQL), E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, SET_USER_VERSION_SQL) == E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, USER_VERSION_SQL), E_OK);
+    EXPECT_EQ(sqlite3_set_droptable_handle(db, DropCallback), E_OK);
+    std::string attachName = "AttachTest002";
+    EXPECT_EQ(SQLiteUtils::AttachNewDatabase(db, CipherType::AES_256_GCM, g_passwd, fileUrl, attachName), E_OK);
+    /**
+     * @tc.steps: step4. exec some sql
+     * * @tc.expected: step4. interface return ok
+    */
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_createTableSql2), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql1), E_OK);
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, g_inerstDataSql2), E_OK);
+    EXPECT_EQ(g_callbackTimes, 0);
+    std::string dropTableSql1 = "drop table " + attachName + ".student_2;";
+    std::string dropTableSql2 = "drop table student_1;";
+    g_dbFile = fileUrl;
+    g_tableName = "student_2";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, dropTableSql1), E_OK);
+    EXPECT_EQ(g_callbackTimes, 1);
+    g_dbFile = fileUrl2;
+    g_tableName = "student_1";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(db, dropTableSql2), E_OK);
+    EXPECT_EQ(g_callbackTimes, 2);
     sqlite3_close_v2(db);
     db = nullptr;
 }

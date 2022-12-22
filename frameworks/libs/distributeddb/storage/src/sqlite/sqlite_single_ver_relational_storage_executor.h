@@ -19,11 +19,11 @@
 #include "data_transformer.h"
 #include "db_types.h"
 #include "macro_utils.h"
-#include "sqlite_utils.h"
-#include "sqlite_storage_executor.h"
+#include "query_object.h"
 #include "relational_row_data.h"
 #include "relational_store_delegate.h"
-#include "query_object.h"
+#include "sqlite_storage_executor.h"
+#include "sqlite_utils.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerRelationalStorageExecutor : public SQLiteStorageExecutor {
@@ -38,7 +38,7 @@ public:
     int CreateDistributedTable(const std::string &tableName, DistributedTableMode mode, bool isUpgraded,
         const std::string &identity, TableInfo &table);
 
-    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode,
+    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema);
 
     int StartTransaction(TransactType type);
@@ -59,8 +59,6 @@ public:
     // For Put sync data
     int SaveSyncItems(const QueryObject &object, std::vector<DataItem> &dataItems,
         const std::string &deviceName, const TableInfo &table, bool useTrans = true);
-
-    int AnalysisRelationalSchema(const std::string &tableName, TableInfo &tableInfo);
 
     int CheckDBModeForRelational();
 

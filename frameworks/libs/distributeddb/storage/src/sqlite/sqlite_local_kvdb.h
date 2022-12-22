@@ -16,8 +16,8 @@
 #ifndef SQLITE_LOCAL_KV_DB_H
 #define SQLITE_LOCAL_KV_DB_H
 
-#include <string>
 #include <mutex>
+#include <string>
 
 #include "local_kvdb.h"
 #include "sqlite_local_storage_executor.h"

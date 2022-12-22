@@ -47,16 +47,9 @@ public:
     bool IsQueryOnlyByKey() const;
     bool IsQueryForRelationalDB() const;
 
-    void SetTableName(const std::string &tableName)
-    {
-        tableName_ = tableName;
-        isTableNameSpecified_ = true;
-    }
+    void SetTableName(const std::string &tableName);
 
-    const std::string &GetTableName() const
-    {
-        return tableName_;
-    }
+    const std::string &GetTableName() const;
 
     bool HasOrderBy() const;
 
@@ -64,20 +57,11 @@ public:
 
     bool Empty() const;
 
-    bool HasInKeys() const
-    {
-        return hasInKeys_;
-    }
+    bool HasInKeys() const;
 
-    void SetSortType(SortType sortType)
-    {
-        sortType_ = sortType;
-    }
+    void SetSortType(SortType sortType);
 
-    SortType GetSortType() const
-    {
-        return sortType_;
-    }
+    SortType GetSortType() const;
 
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
@@ -106,9 +90,8 @@ private:
     int CheckLimitFormat(const std::list<QueryObjNode>::iterator &iter) const;
     int CheckLinkerBefore(const std::list<QueryObjNode>::iterator &iter) const;
     void ClearNodesFlag();
-    void GetAttrFromQueryObjNodes();
+    void SetAttrWithQueryObjNodes();
     int CheckInKeys() const;
-    bool IsRelationalQuery() const;
 
     SchemaObject schema_; // used to check and parse schema filed
     int limit_;

@@ -28,6 +28,8 @@
 
 namespace DistributedDB {
 namespace {
+const int HASH_KEY_SIZE = 32;
+
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus)
 {
@@ -1409,7 +1411,7 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 }
 
 int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre,
-    std::vector<std::string> &outKeys) const
+    std::set<std::string> &outKeys) const
 {
     sqlite3_stmt *statement = nullptr;
     const std::string &sqlStr = (attachMetaMode_ ? SELECT_ATTACH_META_KEYS_BY_PREFIX : SELECT_META_KEYS_BY_PREFIX);
@@ -1432,8 +1434,8 @@ int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &ke
     errCode = GetAllKeys(statement, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     for (const auto &it : keys) {
-        if (it.size() > keyPre.size()) {
-            outKeys.push_back(std::string(it.begin() + keyPre.size(), it.end()));
+        if (it.size() >= keyPre.size() + HASH_KEY_SIZE) {
+            outKeys.insert({it.begin() + keyPre.size(), it.begin() + keyPre.size() + HASH_KEY_SIZE});
         } else {
             LOGW("[SingleVerExe][GetAllKey] Get invalid key, size=%zu", it.size());
         }
@@ -2232,19 +2234,19 @@ uint64_t SQLiteSingleVerStorageExecutor::GetLogFileSize() const
     return fileSize;
 }
 
-int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::vector<std::string> &deviceList)
+int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::set<std::string> &devices)
 {
-    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, deviceList);
+    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, deviceList);
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, deviceList);
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
     }

@@ -25,7 +25,6 @@
 namespace DistributedDB {
 class IKvDBSyncInterface : public SyncGenericInterface {
 public:
-
     // Constructor/Destructor.
     IKvDBSyncInterface() = default;
     ~IKvDBSyncInterface() override = default;

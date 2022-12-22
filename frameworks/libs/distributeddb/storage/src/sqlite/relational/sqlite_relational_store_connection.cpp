@@ -180,11 +180,6 @@ int SQLiteRelationalStoreConnection::Pragma(int cmd, void *parameter) // reserve
     return E_OK;
 }
 
-int SQLiteRelationalStoreConnection::TriggerAutoSync()
-{
-    return E_OK;
-}
-
 int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
 {
     auto *store = GetDB<SQLiteRelationalStore>();

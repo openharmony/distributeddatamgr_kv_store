@@ -31,7 +31,7 @@ namespace {
             if (item.fileType != type) {
                 continue;
             }
-            int errCode = OS::RemoveFile(item.fileName.c_str());
+            int errCode = OS::RemoveFile(item.fileName);
             if (errCode != E_OK) {
                 LOGE("Remove file failed:%d", errno);
             }
@@ -247,11 +247,9 @@ int DBCommon::CopyFile(const std::string &srcFile, const std::string &dstFile)
 END:
     if (fileIn != nullptr) {
         (void)fclose(fileIn);
-        fileIn = nullptr;
     }
     if (fileOut != nullptr) {
         (void)fclose(fileOut);
-        fileOut = nullptr;
     }
     return errCode;
 }
@@ -272,7 +270,7 @@ int DBCommon::RemoveAllFilesOfDirectory(const std::string &dir, bool isNeedRemov
     RemoveDirectories(fileList, OS::FileType::PATH);
     if (isNeedRemoveDir) {
         // Pay attention to the order of deleting the directory
-        if (OS::CheckPathExistence(dir) && OS::RemoveDBDirectory(dir.c_str()) != 0) {
+        if (OS::CheckPathExistence(dir) && OS::RemoveDBDirectory(dir) != 0) {
             LOGI("Remove the directory error:%d", errno);
             errCode = -E_SYSTEM_API_FAIL;
         }

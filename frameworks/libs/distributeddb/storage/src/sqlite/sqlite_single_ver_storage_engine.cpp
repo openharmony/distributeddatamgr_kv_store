@@ -17,17 +17,17 @@
 
 #include <memory>
 
-#include "db_errno.h"
-#include "log_print.h"
+#include "db_common.h"
 #include "db_constant.h"
+#include "db_errno.h"
+#include "kvdb_manager.h"
+#include "log_print.h"
+#include "param_check_utils.h"
+#include "platform_specific.h"
+#include "runtime_context.h"
 #include "sqlite_single_ver_database_upgrader.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_schema_database_upgrader.h"
-#include "platform_specific.h"
-#include "runtime_context.h"
-#include "db_common.h"
-#include "kvdb_manager.h"
-#include "param_check_utils.h"
 
 namespace DistributedDB {
 namespace {
@@ -75,6 +75,54 @@ int SQLiteSingleVerStorageEngine::MigrateLocalData(SQLiteSingleVerStorageExecuto
     return handle->MigrateLocalData();
 }
 
+int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(const std::set<std::string> &removeDevices, bool isNeedHash)
+{
+    auto kvdbManager = KvDBManager::GetInstance();
+    if (kvdbManager == nullptr) {
+        return -E_INVALID_DB;
+    }
+    auto identifier = GetIdentifier();
+    auto kvdb = kvdbManager->FindKvDB(identifier);
+    if (kvdb == nullptr) {
+        LOGE("[SingleVerEngine::EraseWaterMark] kvdb is null.");
+        return -E_INVALID_DB;
+    }
+
+    auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
+    for (const auto &devId : removeDevices) {
+        int errCode = kvStore->EraseDeviceWaterMark(devId, isNeedHash);
+        if (errCode != E_OK) {
+            RefObject::DecObjRef(kvdb);
+            return errCode;
+        }
+    }
+
+    RefObject::DecObjRef(kvdb);
+    return E_OK;
+}
+
+int SQLiteSingleVerStorageEngine::GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *handle, const DataItem &item,
+    std::set<std::string> &removeDevices, bool &isNeedHash) const
+{
+    if (handle == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (item.value.empty()) { // Device ID has been set to value in cache db
+        // Empty means remove all device data, get device id from meta key
+        int errCode = handle->GetExistsDevicesFromMeta(removeDevices);
+        if (errCode != E_OK) {
+            LOGE("Get remove devices list from meta failed. err=%d", errCode);
+            return errCode;
+        }
+        isNeedHash = false;
+    } else {
+        std::string deviceName;
+        DBCommon::VectorToString(item.value, deviceName);
+        removeDevices.insert(deviceName);
+    }
+    return E_OK;
+}
+
 int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(SQLiteSingleVerStorageExecutor *&handle,
     const std::vector<DataItem> &dataItems)
 {
@@ -82,28 +130,22 @@ int SQLiteSingleVerStorageEngine::EraseDeviceWaterMark(SQLiteSingleVerStorageExe
     for (const auto &dataItem : dataItems) {
         if ((dataItem.flag & DataItem::REMOVE_DEVICE_DATA_FLAG) == DataItem::REMOVE_DEVICE_DATA_FLAG ||
             (dataItem.flag & DataItem::REMOVE_DEVICE_DATA_NOTIFY_FLAG) == DataItem::REMOVE_DEVICE_DATA_NOTIFY_FLAG) {
-            auto kvdbManager = KvDBManager::GetInstance();
-            if (kvdbManager == nullptr) {
-                return -E_INVALID_DB;
+            bool isNeedHash = true;
+            std::set<std::string> removeDevices;
+            errCode = GetRemoveDataDevices(handle, dataItem, removeDevices, isNeedHash);
+            if (errCode != E_OK) {
+                LOGE("Get remove device id failed. err=%d", errCode);
+                return errCode;
             }
 
-            // sync module will use handle to fix water mark, if fix fail then migrate fail, not need hold write handle
+            // sync module will use handle to fix watermark, if fix fail then migrate fail, not need hold write handle
             errCode = ReleaseExecutor(handle);
             if (errCode != E_OK) {
                 LOGE("release executor for erase water mark! errCode = [%d]", errCode);
                 return errCode;
             }
 
-            auto identifier = GetIdentifier();
-            auto kvdb = kvdbManager->FindKvDB(identifier);
-            if (kvdb == nullptr) {
-                LOGE("[SingleVerEngine::EraseWaterMark] kvdb is null.");
-                return -E_INVALID_DB;
-            }
-
-            auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
-            errCode = kvStore->EraseDeviceWaterMark(dataItem.dev, false);
-            RefObject::DecObjRef(kvdb);
+            errCode = EraseDeviceWaterMark(removeDevices, isNeedHash);
             if (errCode != E_OK) {
                 LOGE("EraseDeviceWaterMark failed when migrating, errCode = [%d]", errCode);
                 return errCode;
@@ -171,7 +213,7 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
         SetMaxTimestamp(timestamp);
     }
 
-    errCode = ReleaseHandleTransiently(handle, 2ull, syncData); // temporary release handle 2ms
+    errCode = ReleaseHandleTransiently(handle, 2ULL, syncData); // temporary release handle 2ms
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1037,7 +1079,6 @@ void SQLiteSingleVerStorageEngine::CommitAndReleaseNotifyData(SingleVerNaturalSt
     }
     commitNotifyFunc_(eventType, static_cast<KvDBCommitNotifyFilterAbleData *>(committedData));
     committedData = nullptr;
-    return;
 }
 
 void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStoreCommitNotifyData *&committedData) const
@@ -1083,7 +1124,6 @@ void SQLiteSingleVerStorageEngine::SetMaxTimestamp(Timestamp maxTimestamp) const
     auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
     kvStore->SetMaxTimestamp(maxTimestamp);
     RefObject::DecObjRef(kvdb);
-    return;
 }
 
 void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSyncData &syncData) const
@@ -1132,7 +1172,6 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
     if (committedData != nullptr) {
         CommitAndReleaseNotifyData(committedData, SQLITE_GENERAL_NS_SYNC_EVENT);
     }
-    return;
 }
 
 // Cache subscribe when engine state is CACHE mode, and its will be applied at the beginning of migrate.

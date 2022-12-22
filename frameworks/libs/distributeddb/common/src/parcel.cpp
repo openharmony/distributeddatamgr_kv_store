@@ -48,7 +48,7 @@ bool Parcel::IsError() const
 
 int Parcel::WriteBool(bool data)
 {
-    uint8_t value = data ? 1 : 0;
+    uint8_t value = (data ? 1 : 0);
     return WriteUInt8(value);
 }
 
@@ -56,7 +56,7 @@ uint32_t Parcel::ReadBool(bool &val)
 {
     uint8_t intVal = 0;
     uint32_t len = ReadUInt8(intVal);
-    val = intVal == 1 ? true : false;
+    val = (intVal == 1);
     return len;
 }
 

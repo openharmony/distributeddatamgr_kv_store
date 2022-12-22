@@ -248,7 +248,7 @@ int SingleVerDataSync::Send(SingleVerSyncTaskContext *context, const Message *me
     return errCode;
 }
 
-int SingleVerDataSync::GetData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData, size_t packetSize)
+int SingleVerDataSync::GetData(SingleVerSyncTaskContext *context, size_t packetSize, std::vector<SendDataItem> &outData)
 {
     int errCode;
     UpdateMtuSize();
@@ -290,7 +290,7 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_READ_DATA);
     }
     context->StartFeedDogForGetData(context->GetResponseSessionId());
-    int errCode = GetData(context, syncOutData.entries, packetSize);
+    int errCode = GetData(context, packetSize, syncOutData.entries);
     context->StopFeedDogForGetData();
     if (performance != nullptr) {
         performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);

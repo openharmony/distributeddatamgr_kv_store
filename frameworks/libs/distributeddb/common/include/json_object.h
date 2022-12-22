@@ -28,7 +28,7 @@
 namespace DistributedDB {
 // JsonObject is the abstraction of JsonString, it hides the JsonLib that we use and other messy details.
 // JsonObject do not support concurrence inherently, use it locally or under mutex protection.
-class JsonObject {
+class JsonObject final {
 public:
     // Set max allowed nest depth and return the value before set.
     static uint32_t SetMaxNestDepth(uint32_t nestDepth);

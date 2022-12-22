@@ -18,8 +18,8 @@
 
 #include <string>
 
-#include "query_object.h"
 #include "parcel.h"
+#include "query_object.h"
 
 namespace DistributedDB {
 const uint32_t QUERY_SYNC_OBJECT_VERSION_0 = 0;
@@ -53,8 +53,11 @@ public:
 
 private:
     uint32_t CalculateLen() const;
+    uint32_t CalculateIdentifyLen() const;
     int GetObjContext(ObjContext &objContext) const;
     uint32_t GetVersion() const;
+
+    mutable std::string identify_;
 };
 }
 #endif

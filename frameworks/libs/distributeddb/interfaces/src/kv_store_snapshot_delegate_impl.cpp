@@ -16,8 +16,8 @@
 #ifndef OMIT_MULTI_VER
 #include "kv_store_snapshot_delegate_impl.h"
 
-#include "kv_store_errno.h"
 #include "db_errno.h"
+#include "kv_store_errno.h"
 #include "log_print.h"
 
 namespace DistributedDB {

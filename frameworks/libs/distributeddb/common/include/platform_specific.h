@@ -39,9 +39,7 @@ struct FileAttr {
 };
 
 // Shield the representation method of file handles on different platforms
-struct FileHandle {
-    int handle = -1;
-};
+struct FileHandle;
 
 int CalFileSize(const std::string &fileUrl, uint64_t &size);
 
@@ -71,11 +69,11 @@ int SetFilePermissions(const std::string &fileName, uint32_t permissions);
 
 int RenameFilePath(const std::string &oldFilePath, const std::string &newFilePath);
 
-int OpenFile(const std::string &fileName, FileHandle &handle);
-int CloseFile(FileHandle &handle);
+int OpenFile(const std::string &fileName, FileHandle *&handle);
+int CloseFile(FileHandle *handle);
 
-int FileLock(const FileHandle &handle, bool isBlock); // be careful use block=true, may block process
-int FileUnlock(FileHandle &handle);
+int FileLock(const FileHandle *handle, bool isBlock); // be careful use block=true, may block process
+int FileUnlock(FileHandle *handle);
 } // namespace OS
 } // namespace DistributedDB
 

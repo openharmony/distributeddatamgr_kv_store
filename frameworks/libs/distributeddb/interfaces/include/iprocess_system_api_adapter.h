@@ -16,8 +16,9 @@
 #ifndef IPROCESS_SYSTEM_API_ADAPTER_H
 #define IPROCESS_SYSTEM_API_ADAPTER_H
 
-#include <string>
 #include <functional>
+#include <string>
+
 #include "store_types.h"
 
 namespace DistributedDB {

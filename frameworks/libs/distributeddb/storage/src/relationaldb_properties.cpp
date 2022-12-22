@@ -29,11 +29,6 @@ RelationalDBProperties::RelationalDBProperties()
 RelationalDBProperties::~RelationalDBProperties()
 {}
 
-bool RelationalDBProperties::IsSchemaExist() const
-{
-    return schema_.IsSchemaValid();
-}
-
 void RelationalDBProperties::SetSchema(const RelationalSchemaObject &schema)
 {
     schema_ = schema;

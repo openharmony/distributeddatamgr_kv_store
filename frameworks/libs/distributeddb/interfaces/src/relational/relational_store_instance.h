@@ -33,8 +33,6 @@ public:
 
     static int ReleaseDataBaseConnection(RelationalStoreConnection *connection);
 
-    int CheckDatabaseFileStatus(const std::string &id);
-
     // public for test mock
     static IRelationalStore *GetDataBase(const RelationalDBProperties &properties, int &errCode);
 

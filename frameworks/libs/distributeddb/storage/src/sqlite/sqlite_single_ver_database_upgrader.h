@@ -29,7 +29,6 @@ public:
 
     // used for transferring db file to new dir while classifycation feature in SOFTWARE_VERSION_RELEASE_3_0
     static int TransferDatabasePath(const std::string &parentDir, const OpenDbProperties &option);
-    static int CreateDbDir();
 
     void SetMetaUpgrade(const SecurityOption &currentOpt, const SecurityOption &expectOpt, const std::string &subDir);
     void SetSubdir(const std::string &subDir);

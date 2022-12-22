@@ -24,7 +24,7 @@
 #include "query_object.h"
 
 namespace DistributedDB {
-constexpr int INIT_POSTION = -1;
+constexpr int INIT_POSITION = -1;
 constexpr int DEFAULT_RESULT_SET_CACHE_MAX_SIZE = 1; // Unit MB, default 1 MB
 constexpr int RESULT_SET_CACHE_MAX_SIZE_MIN = 1;
 constexpr int RESULT_SET_CACHE_MAX_SIZE_MAX = 16;
@@ -84,7 +84,7 @@ private:
     // Common Part Of Two ResultSet Mode.
     bool isOpen_ = false;
     int count_ = 0;
-    mutable int position_ = INIT_POSTION; // The position in the overall result
+    mutable int position_ = INIT_POSITION; // The position in the overall result
     mutable std::mutex mutex_;
 
     // For KeyPrefix Type Or Query Type.
@@ -101,7 +101,7 @@ private:
     // Cache EntryId Mode Using StorageExecutor, Own It, Responsible To Release It.
     SQLiteSingleVerStorageExecutor *handle_ = nullptr;
     mutable std::vector<int64_t> cachedRowIds_;
-    mutable int cacheStartPosition_ = INIT_POSTION; // The offset of the first cached rowid in all result rowids
+    mutable int cacheStartPosition_ = INIT_POSITION; // The offset of the first cached rowid in all result rowids
 };
 } // namespace DistributedDB
 

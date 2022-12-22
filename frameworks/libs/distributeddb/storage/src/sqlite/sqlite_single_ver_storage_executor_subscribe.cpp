@@ -172,14 +172,14 @@ int SQLiteSingleVerStorageExecutor::AddSubscribeTrigger(QueryObject &query, cons
         std::string subscribeCondition;
         errCode = helper.GetSubscribeSql(subscribeId, mode, subscribeCondition);
         if (errCode != E_OK) {
-            LOGE("Get subscribe trigger create sql failed. mode: %u, errCode: %d", static_cast<unsigned>(mode),
+            LOGE("Get subscribe trigger create sql failed. mode: %d, errCode: %d", static_cast<int>(mode),
                 errCode);
             return errCode;
         }
         std::string sql = FormatSubscribeTriggerSql(subscribeId, subscribeCondition, mode);
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
         if (errCode != E_OK) {
-            LOGE("Add subscribe trigger failed. mode: %u, errCode: %d", static_cast<unsigned>(mode), errCode);
+            LOGE("Add subscribe trigger failed. mode: %d, errCode: %d", static_cast<int>(mode), errCode);
             return errCode;
         }
     }

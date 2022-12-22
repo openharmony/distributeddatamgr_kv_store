@@ -21,5 +21,5 @@
 namespace DistributedDB {
 // Transfer the db error code to the DBStatus.
 DBStatus TransferDBErrno(int err);
-};
-#endif
+} // DistributedDB
+#endif // KV_STORE_ERRNO_H

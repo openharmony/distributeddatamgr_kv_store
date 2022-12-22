@@ -174,34 +174,6 @@ int VirtualRelationalVerSyncDBInterface::GetDatabaseCreateTimestamp(Timestamp &o
     return E_OK;
 }
 
-int VirtualRelationalVerSyncDBInterface::GetBatchMetaData(const std::vector<Key> &keys,
-    std::vector<Entry> &entries) const
-{
-    int errCode = E_OK;
-    for (const auto &key : keys) {
-        Entry entry;
-        entry.key = key;
-        errCode = GetMetaData(key, entry.value);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        entries.push_back(entry);
-    }
-    return errCode;
-}
-
-int VirtualRelationalVerSyncDBInterface::PutBatchMetaData(std::vector<Entry> &entries)
-{
-    int errCode = E_OK;
-    for (const auto &entry : entries) {
-        errCode = PutMetaData(entry.key, entry.value);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-    }
-    return errCode;
-}
-
 std::vector<QuerySyncObject> VirtualRelationalVerSyncDBInterface::GetTablesQuery()
 {
     return {};
@@ -307,7 +279,9 @@ int VirtualRelationalVerSyncDBInterface::GetAllSyncData(const std::string &table
         return -E_NOT_FOUND;
     }
     for (const auto &entry : syncData_[tableName]) {
-        data.push_back(entry.second);
+        if (entry.second.logInfo.flag != DataItem::DELETE_FLAG) {
+            data.push_back(entry.second);
+        }
     }
     return E_OK;
 }
