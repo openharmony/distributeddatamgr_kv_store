@@ -116,7 +116,7 @@ bool RelationalResultSetImpl::IsClosed() const
 void RelationalResultSetImpl::Close()
 {
     std::unique_lock<std::shared_mutex> writeLock(mutex_);
-    if (IsClosed()) {
+    if (isClosed_) {
         return;
     }
     isClosed_ = true;
