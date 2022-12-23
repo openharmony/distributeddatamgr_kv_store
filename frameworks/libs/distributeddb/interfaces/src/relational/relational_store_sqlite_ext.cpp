@@ -249,11 +249,27 @@ void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetTime(timeOffset));
 }
 
+void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 0 || argv == nullptr) { // 0: function need one parameter
+        return;
+    }
+
+    sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetTime(0));
+}
+
 int RegisterGetSysTime(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &GetSysTime;
     return RegisterFunction(db, "get_sys_time", 1, nullptr, func);
+}
+
+int RegisterGetLastTime(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &GetLastTime;
+    return RegisterFunction(db, "get_last_time", 0, nullptr, func);
 }
 
 int ResetStatement(sqlite3_stmt *&stmt)
@@ -381,6 +397,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
 
     if (isLogTblExists) {
         RegisterGetSysTime(db);
+        RegisterGetLastTime(db);
         sql = "UPDATE " + logTblName + " SET flag=0x03, timestamp=get_sys_time(0) "
                 "WHERE flag&0x03=0x02 AND timestamp<" + std::to_string(dropTimeStamp);
         (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
@@ -395,6 +412,7 @@ void PostHandle(sqlite3 *db)
     TimeHelper::Initialize(currentMaxTimestamp);
     RegisterCalcHash(db);
     RegisterGetSysTime(db);
+    RegisterGetLastTime(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
