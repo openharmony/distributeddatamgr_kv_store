@@ -2234,19 +2234,19 @@ uint64_t SQLiteSingleVerStorageExecutor::GetLogFileSize() const
     return fileSize;
 }
 
-int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::set<std::string> &deviceList)
+int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::set<std::string> &devices)
 {
-    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, deviceList);
+    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, deviceList);
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, deviceList);
+    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, devices);
     if (errCode != E_OK) {
         LOGE("Get meta data key failed. err=%d", errCode);
     }

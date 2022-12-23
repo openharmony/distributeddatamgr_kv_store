@@ -39,7 +39,7 @@ public:
     using DBQuery = DistributedDB::Query;
     using SyncInfo = KVDBService::SyncInfo;
     using Convert = std::function<Key(const DBKey &key, std::string &deviceId)>;
-    using TimePoint = std::chrono::system_clock::time_point;
+    using TimePoint = std::chrono::steady_clock::time_point;
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
     ~SingleStoreImpl();
     StoreId GetStoreId() const override;

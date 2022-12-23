@@ -860,7 +860,7 @@ void SyncEngine::GetRemoteSubscribeQueries(const std::string &device, std::vecto
     subManager_->GetRemoteSubscribeQueries(device, subscribeQueries);
 }
 
-void SyncEngine::PutUnfinishedSubQueries(const std::string &device, 
+void SyncEngine::PutUnfinishedSubQueries(const std::string &device,
     const std::vector<QuerySyncObject> &subscribeQueries)
 {
     subManager_->PutLocalUnFinishedSubQueries(device, subscribeQueries);

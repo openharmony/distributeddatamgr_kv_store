@@ -120,15 +120,8 @@ int QuerySyncObject::GetObjContext(ObjContext &objContext) const
     return E_OK;
 }
 
-std::string QuerySyncObject::GetIdentify() const
+uint32_t QuerySyncObject::CalculateIdentifyLen() const
 {
-    if (!isValid_) {
-        return std::string();
-    }
-    if (!identify_.empty()) {
-        return identify_;
-    }
-    // suggestionIndex is local attribute, do not need to be propagated to remote
     uint64_t len = Parcel::GetVectorCharLen(prefixKey_);
     for (const QueryObjNode &node : queryObjNodes_) {
         if (node.operFlag == QueryObjType::LIMIT || node.operFlag == QueryObjType::ORDERBY ||
@@ -148,6 +141,19 @@ std::string QuerySyncObject::GetIdentify() const
         len += Parcel::GetVectorCharLen(key);
     }  // QUERY_SYNC_OBJECT_VERSION_1 end.
 
+    return len;
+}
+
+std::string QuerySyncObject::GetIdentify() const
+{
+    if (!isValid_) {
+        return std::string();
+    }
+    if (!identify_.empty()) {
+        return identify_;
+    }
+    // suggestionIndex is local attribute, do not need to be propagated to remote
+    uint64_t len = CalculateIdentifyLen();
     std::vector<uint8_t> buff(len, 0); // It will affect the hash result, the default value cannot be modified
     Parcel parcel(buff.data(), len);
 

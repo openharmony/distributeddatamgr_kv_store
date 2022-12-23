@@ -53,6 +53,7 @@ public:
 
 private:
     uint32_t CalculateLen() const;
+    uint32_t CalculateIdentifyLen() const;
     int GetObjContext(ObjContext &objContext) const;
     uint32_t GetVersion() const;
 

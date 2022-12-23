@@ -22,7 +22,6 @@ public:
     std::shared_ptr<SingleKvStore> GetKVStore(const AppId &appId, const StoreId &storeId, const Options &options,
         Status &status);
     Status CloseKVStore(const AppId &appId, const StoreId &storeId);
-    Status CloseKVStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStore);
     Status CloseAllKVStore(const AppId &appId);
     Status GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);

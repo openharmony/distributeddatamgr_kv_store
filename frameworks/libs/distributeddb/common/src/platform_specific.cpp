@@ -312,7 +312,7 @@ int OpenFile(const std::string &fileName, FileHandle *&handle)
     if (handle == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
-    handle.handle = _open(fileName.c_str(), (O_WRONLY | O_CREAT), _S_IREAD | _S_IWRITE);
+    handle->handle = _open(fileName.c_str(), (O_WRONLY | O_CREAT), _S_IREAD | _S_IWRITE);
     if (handle->handle < 0) {
         LOGE("[FileLock] can not open file when lock it:[%d]", errno);
         delete handle;
