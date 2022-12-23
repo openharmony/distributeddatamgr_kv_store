@@ -31,6 +31,11 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
+    constexpr const char* DB_SUFFIX = ".db";
+    constexpr const char* STORE_ID = "Relational_Store_ID";
+    string g_testDir;
+    string g_dbDir;
+
     const std::string NORMAL_SCHEMA = R""({
             "SCHEMA_VERSION": "2.0",
             "SCHEMA_TYPE": "RELATIVE",
@@ -247,15 +252,35 @@ namespace {
 
 class DistributedDBRelationalSchemaObjectTest : public testing::Test {
 public:
-    static void SetUpTestCase(void) {};
-    static void TearDownTestCase(void) {};
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
     void SetUp() override;
-    void TearDown() override {};
+    void TearDown() override;
 };
+
+void DistributedDBRelationalSchemaObjectTest::SetUpTestCase(void)
+{
+    DistributedDBToolsUnitTest::TestDirInit(g_testDir);
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+    LOGI("The test db is:%s", g_testDir.c_str());
+    g_dbDir = g_testDir + "/";
+}
+
+void DistributedDBRelationalSchemaObjectTest::TearDownTestCase(void)
+{
+}
 
 void DistributedDBRelationalSchemaObjectTest::SetUp()
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+}
+
+void DistributedDBRelationalSchemaObjectTest::TearDown()
+{
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error.");
+    }
+    return;
 }
 
 /**
@@ -692,5 +717,56 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest001, TestSize.
     inTable3.AddField(field3);
     inTable3.AddField(field2);
     EXPECT_EQ(table.CompareWithTable(inTable3), -E_RELATIONAL_TABLE_EQUAL);
+}
+
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest001, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string createStudentSql = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT)";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createStudentSql), SQLITE_OK);
+
+    TableInfo tableStudent;
+    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, "STUDENT", tableStudent), E_OK);
+
+    RelationalSchemaObject schema;
+    schema.AddRelationalTable(tableStudent);
+
+    EXPECT_FALSE(schema.GetTable("STUDENT").Empty());
+    EXPECT_FALSE(schema.GetTable("StudENT").Empty());
+    EXPECT_EQ(schema.GetTable("StudENT").CompareWithTable(schema.GetTable("STUDENT")), -E_RELATIONAL_TABLE_EQUAL);
+
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+namespace {
+TableInfo GetTableInfo(sqlite3 *db, const std::string &tableName, const std::string &sql)
+{
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    TableInfo tableInfo;
+    EXPECT_EQ(SQLiteUtils::AnalysisSchema(db, tableName, tableInfo), E_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS " + tableName), SQLITE_OK);
+    return tableInfo;
+}
+}
+
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTest002, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+
+    std::string createTableSql1 = "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT, score INT, level INT); " \
+        "create index index_name on student (name);";
+    TableInfo table1 = GetTableInfo(db, "student", createTableSql1);
+    std::string createTableSql2 = "CREATE TABLE Student(ID INTEGER PRIMARY KEY, Name TEXT, Score INT, Level INT); " \
+        "create index index_NAME on student (Name);";
+    TableInfo table2 = GetTableInfo(db, "Student", createTableSql2);
+
+    EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
+
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 #endif

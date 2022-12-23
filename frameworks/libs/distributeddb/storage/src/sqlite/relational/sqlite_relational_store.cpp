@@ -440,7 +440,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         return -E_NOT_SUPPORT;
     }
 
-    std::map<std::string, TableInfo> tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
+    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (!tableName.empty() && tables.find(tableName) == tables.end()) {
         LOGW("Remove device data with table name which is not a distributed table or not exist.");
         return E_OK;

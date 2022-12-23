@@ -16,6 +16,7 @@
 #ifndef DISTRIBUTEDDB_TYPES_H
 #define DISTRIBUTEDDB_TYPES_H
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -151,6 +152,17 @@ enum class StorageType : int32_t {
 enum DistributedTableMode : int {
     COLLABORATION = 0, // Save all devices data in user table
     SPLIT_BY_DEVICE // Save device data in each table split by device
+};
+
+struct CaseInsensitiveComparator {
+    bool operator() (const std::string& first, const std::string& second) const
+    {
+        std::string str1(first.length(),' ');
+        std::string str2(second.length(),' ');
+        std::transform(first.begin(), first.end(), str1.begin(), tolower);
+        std::transform(second.begin(), second.end(), str2.begin(), tolower);
+        return str1 < str2;
+    }
 };
 
 enum class SortType {
