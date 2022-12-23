@@ -106,7 +106,7 @@ void RelationalSchemaObject::RemoveRelationalTable(const std::string &tableName)
     GenerateSchemaString();
 }
 
-const std::map<std::string, TableInfo> &RelationalSchemaObject::GetTables() const
+const TableInfoMap &RelationalSchemaObject::GetTables() const
 {
     return tables_;
 }

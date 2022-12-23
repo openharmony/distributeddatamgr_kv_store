@@ -69,6 +69,10 @@ public:
 
     static bool IsSameCipher(CipherType srcType, CipherType inputType);
 
+    static std::string ToLowerCase(const std::string &str);
+
+    static bool CaseInsensitiveCompare(std::string first, std::string second);
+
     static bool CheckIsAlnumAndUnderscore(const std::string &text);
 };
 

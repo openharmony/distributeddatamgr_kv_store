@@ -394,6 +394,20 @@ bool DBCommon::IsSameCipher(CipherType srcType, CipherType inputType)
     return false;
 }
 
+std::string DBCommon::ToLowerCase(const std::string &str)
+{
+    std::string res(str.length(), ' ');
+    std::transform(str.begin(), str.end(), res.begin(), ::tolower);
+    return res;
+}
+
+bool DBCommon::CaseInsensitiveCompare(std::string first, std::string second)
+{
+    std::transform(first.begin(), first.end(), first.begin(), ::tolower);
+    std::transform(second.begin(), second.end(), second.begin(), ::tolower);
+    return first == second;
+}
+
 bool DBCommon::CheckIsAlnumAndUnderscore(const std::string &text)
 {
     auto iter = std::find_if_not(text.begin(), text.end(), [](char c) {

@@ -152,6 +152,8 @@ public:
 
     static const std::string LOG_TABLE_VERSION_KEY;
 
+    static const std::string REMOTE_DEVICE_SCHEMA_KEY_PREFIX;
+
     static constexpr uint32_t MAX_CONDITION_KEY_LEN = 128;
     static constexpr uint32_t MAX_CONDITION_VALUE_LEN = 128;
     static constexpr uint32_t MAX_CONDITION_COUNT = 32;
@@ -159,5 +161,4 @@ public:
     static constexpr uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
 };
 } // namespace DistributedDB
-
 #endif // DISTRIBUTEDDB_CONSTANT_H

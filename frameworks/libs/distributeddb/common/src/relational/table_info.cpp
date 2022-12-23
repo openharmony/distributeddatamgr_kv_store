@@ -162,7 +162,7 @@ std::string FieldInfo::ToAttributeString() const
 
 int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
 {
-    if (fieldName_ != inField.GetFieldName() || isNotNull_ != inField.IsNotNull()) {
+    if (!DBCommon::CaseInsensitiveCompare(fieldName_, inField.GetFieldName()) || isNotNull_ != inField.IsNotNull()) {
         return false;
     }
     if (isLite) {
@@ -222,7 +222,7 @@ void TableInfo::SetCreateTableSql(const std::string &sql)
     }
 }
 
-const std::map<std::string, FieldInfo> &TableInfo::GetFields() const
+const FieldInfoMap &TableInfo::GetFields() const
 {
     return fields_;
 }
@@ -266,7 +266,7 @@ void TableInfo::AddField(const FieldInfo &field)
     fields_[field.GetFieldName()] = field;
 }
 
-const std::map<std::string, CompositeFields> &TableInfo::GetIndexDefine() const
+const IndexInfoMap &TableInfo::GetIndexDefine() const
 {
     return indexDefines_;
 }
@@ -379,12 +379,13 @@ void TableInfo::AddUniqueDefineString(std::string &attrStr) const
 
 int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string &schemaVersion) const
 {
-    if (tableName_ != inTableInfo.GetTableName()) {
+    if (!DBCommon::CaseInsensitiveCompare(tableName_, inTableInfo.GetTableName())) {
         LOGW("[Relational][Compare] Table name is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
 
-    if (primaryKey_ != inTableInfo.GetPrimaryKey()) {
+    int primaryKeyResult = CompareWithPrimaryKey(primaryKey_, inTableInfo.GetPrimaryKey());
+    if (primaryKeyResult == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
         LOGW("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
@@ -412,13 +413,30 @@ int TableInfo::CompareWithTable(const TableInfo &inTableInfo, const std::string 
     return (fieldCompareResult == -E_RELATIONAL_TABLE_EQUAL) ? indexCompareResult : fieldCompareResult;
 }
 
-int TableInfo::CompareWithTableFields(const std::map<std::string, FieldInfo> &inTableFields, bool isLite) const
+int TableInfo::CompareWithPrimaryKey(const std::map<int, FieldName> &local,
+    const std::map<int, FieldName> &remote) const
+{
+    if (local.size() != remote.size()) {
+        return -E_RELATIONAL_TABLE_INCOMPATIBLE;
+    }
+
+    for (size_t i = 0; i < local.size(); i++) {
+        if (local.find(i) == local.end() || remote.find(i) == remote.end() ||
+            !DBCommon::CaseInsensitiveCompare(local.at(i), remote.at(i))) {
+            return -E_RELATIONAL_TABLE_INCOMPATIBLE;
+        }
+    }
+
+    return -E_RELATIONAL_TABLE_EQUAL;
+}
+
+int TableInfo::CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite) const
 {
     auto itLocal = fields_.begin();
     auto itInTable = inTableFields.begin();
     int errCode = -E_RELATIONAL_TABLE_EQUAL;
     while (itLocal != fields_.end() && itInTable != inTableFields.end()) {
-        if (itLocal->first == itInTable->first) { // Same field
+        if (DBCommon::CaseInsensitiveCompare(itLocal->first, itInTable->first)) { // Same field
             if (!itLocal->second.CompareWithField(itInTable->second, isLite)) { // Compare field
                 LOGW("[Relational][Compare] Table field is incompatible"); // not compatible
                 return -E_RELATIONAL_TABLE_INCOMPATIBLE;
@@ -453,6 +471,21 @@ int TableInfo::CompareWithTableFields(const std::map<std::string, FieldInfo> &in
     return -E_RELATIONAL_TABLE_COMPATIBLE_UPGRADE;
 }
 
+int TableInfo::CompareCompositeFields(const CompositeFields &local, const CompositeFields &remote) const
+{
+    if (local.size() != remote.size()) {
+        return -E_RELATIONAL_TABLE_INCOMPATIBLE;
+    }
+
+    for (size_t i = 0; i < local.size(); i++) {
+        if (!DBCommon::CaseInsensitiveCompare(local.at(i), remote.at(i))) {
+            return -E_RELATIONAL_TABLE_INCOMPATIBLE;
+        }
+    }
+
+    return -E_RELATIONAL_TABLE_EQUAL;
+}
+
 int TableInfo::CompareWithTableUnique(const std::vector<CompositeFields> &inTableUnique) const
 {
     if (uniqueDefines_.size() != inTableUnique.size()) {
@@ -462,7 +495,7 @@ int TableInfo::CompareWithTableUnique(const std::vector<CompositeFields> &inTabl
     auto itLocal = uniqueDefines_.begin();
     auto itInTable = inTableUnique.begin();
     while (itLocal != uniqueDefines_.end()) {
-        if (*itLocal != *itInTable) {
+        if (CompareCompositeFields(*itLocal, *itInTable) != -E_RELATIONAL_TABLE_EQUAL) {
             return -E_RELATIONAL_TABLE_INCOMPATIBLE;
         }
         itLocal++;
@@ -471,13 +504,14 @@ int TableInfo::CompareWithTableUnique(const std::vector<CompositeFields> &inTabl
     return -E_RELATIONAL_TABLE_EQUAL;
 }
 
-int TableInfo::CompareWithTableIndex(const std::map<std::string, CompositeFields> &inTableIndex) const
+int TableInfo::CompareWithTableIndex(const IndexInfoMap &inTableIndex) const
 {
     // Index comparison results do not affect synchronization decisions
     auto itLocal = indexDefines_.begin();
     auto itInTable = inTableIndex.begin();
     while (itLocal != indexDefines_.end() && itInTable != inTableIndex.end()) {
-        if (itLocal->first != itInTable->first || itLocal->second != itInTable->second) {
+        if (!DBCommon::CaseInsensitiveCompare(itLocal->first, itInTable->first) ||
+            !CompareCompositeFields(itLocal->second, itInTable->second)) {
             return -E_RELATIONAL_TABLE_COMPATIBLE;
         }
         itLocal++;
@@ -489,9 +523,8 @@ int TableInfo::CompareWithTableIndex(const std::map<std::string, CompositeFields
 
 
 namespace {
-void Difference(const std::map<std::string, FieldInfo> &first, const std::map<std::string, FieldInfo> &second,
-    std::map<std::string, FieldInfo> &orphanFst, std::map<std::string, FieldInfo> &orphanSnd,
-    std::map<std::string, FieldInfo> &bothAppear)
+void Difference(const FieldInfoMap &first, const FieldInfoMap &second, FieldInfoMap &orphanFst, FieldInfoMap &orphanSnd,
+    FieldInfoMap &bothAppear)
 {
     auto itFirst = first.begin();
     auto itSecond = second.begin();
@@ -521,11 +554,11 @@ void Difference(const std::map<std::string, FieldInfo> &first, const std::map<st
 }
 }
 
-int TableInfo::CompareWithLiteTableFields(const std::map<std::string, FieldInfo> &liteTableFields) const
+int TableInfo::CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) const
 {
-    std::map<std::string, FieldInfo> orphanLocal;
-    std::map<std::string, FieldInfo> orphanLite;
-    std::map<std::string, FieldInfo> bothAppear;
+    FieldInfoMap orphanLocal;
+    FieldInfoMap orphanLite;
+    FieldInfoMap bothAppear;
     Difference(fields_, liteTableFields, orphanLocal, orphanLite, bothAppear);
 
     if (!orphanLocal.empty() && !orphanLite.empty()) {
@@ -560,7 +593,7 @@ int TableInfo::CompareWithLiteTableFields(const std::map<std::string, FieldInfo>
 int TableInfo::CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const
 {
     if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") &&
-        liteTableInfo.GetPrimaryKey() != primaryKey_) {
+        !CompareWithPrimaryKey(primaryKey_, liteTableInfo.GetPrimaryKey())) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
@@ -612,7 +645,7 @@ std::map<FieldPath, SchemaAttribute> TableInfo::GetSchemaDefine() const
     for (const auto &[fieldName, fieldInfo] : GetFields()) {
         FieldValue defaultValue;
         defaultValue.stringValue = fieldInfo.GetDefaultValue();
-        schemaDefine[std::vector { fieldName }] = SchemaAttribute {
+        schemaDefine[std::vector { DBCommon::ToLowerCase(fieldName) }] = SchemaAttribute {
             .type = FieldType::LEAF_FIELD_NULL,     // For relational schema, the json field type is unimportant.
             .isIndexable = true,                    // For relational schema, all field is indexable.
             .hasNotNullConstraint = fieldInfo.IsNotNull(),

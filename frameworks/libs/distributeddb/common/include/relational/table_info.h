@@ -62,13 +62,15 @@ private:
     int64_t cid_ = -1;
 };
 
+using FieldInfoMap = std::map<std::string, FieldInfo, CaseInsensitiveComparator>;
+using IndexInfoMap = std::map<std::string, CompositeFields, CaseInsensitiveComparator>;
 class TableInfo {
 public:
     const std::string &GetTableName() const;
     bool GetAutoIncrement() const;
     const std::string &GetCreateTableSql() const;
-    const std::map<FieldName, FieldInfo> &GetFields() const; // <colName, colAttr>
-    const std::map<std::string, CompositeFields> &GetIndexDefine() const;
+    const FieldInfoMap &GetFields() const; // <colName, colAttr>
+    const IndexInfoMap &GetIndexDefine() const;
     const std::map<int, FieldName> &GetPrimaryKey() const;
     const std::vector<CompositeFields> &GetUniqueDefine() const;
 
@@ -108,18 +110,20 @@ private:
     void AddIndexDefineString(std::string &attrStr) const;
     void AddUniqueDefineString(std::string &attrStr) const;
 
-    int CompareWithTableFields(const std::map<std::string, FieldInfo> &inTableFields, bool isLite = false) const;
-    int CompareWithTableIndex(const std::map<std::string, CompositeFields> &inTableIndex) const;
+    int CompareWithPrimaryKey(const std::map<int, FieldName> &local, const std::map<int, FieldName> &remove) const;
+    int CompareWithTableFields(const FieldInfoMap &inTableFields, bool isLite = false) const;
+    int CompareWithTableIndex(const IndexInfoMap &inTableIndex) const;
     int CompareWithTableUnique(const std::vector<CompositeFields> &inTableUnique) const;
+    int CompareCompositeFields(const CompositeFields &local, const CompositeFields &remote) const;
 
-    int CompareWithLiteTableFields(const std::map<std::string, FieldInfo> &liteTableFields) const;
+    int CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) const;
 
     std::string tableName_;
     bool autoInc_ = false; // only 'INTEGER PRIMARY KEY' could be defined as 'AUTOINCREMENT'
     std::string sql_;
-    std::map<std::string, FieldInfo> fields_;
+    FieldInfoMap fields_;
     std::map<int, FieldName> primaryKey_;
-    std::map<std::string, CompositeFields> indexDefines_;
+    IndexInfoMap indexDefines_;
     mutable std::vector<FieldInfo> fieldInfos_;
 
     std::vector<CompositeFields> uniqueDefines_;

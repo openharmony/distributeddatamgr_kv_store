@@ -14,6 +14,7 @@
  */
 #include "schema_negotiate.h"
 
+#include "db_common.h"
 #include "log_print.h"
 #include "schema_utils.h"
 
@@ -99,7 +100,7 @@ RelationalSyncOpinion SchemaNegotiate::MakeOpinionEachTable(const RelationalSche
 {
     RelationalSyncOpinion opinion;
     for (const auto &it : localSchema.GetTables()) {
-        if (remoteSchema.GetTable(it.first).GetTableName() != it.first) {
+        if (!DBCommon::CaseInsensitiveCompare(remoteSchema.GetTable(it.first).GetTableName(), it.first)) {
             LOGW("[RelationalSchema][opinion] Table was missing in remote schema");
             continue;
         }

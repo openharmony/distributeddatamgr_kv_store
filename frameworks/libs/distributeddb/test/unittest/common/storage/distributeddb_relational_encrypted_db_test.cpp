@@ -84,11 +84,7 @@ const RelationalSyncAbleStorage *GetRelationalStore()
 
 void ExecSqlAndAssertOK(sqlite3 *db, const std::string &sql)
 {
-    LOGD("----> sql:%s", sql.c_str());
-
-    char *msg = nullptr;
-    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &msg), SQLITE_OK);
-    LOGD("----> msg:%s", msg);
+    ASSERT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr), SQLITE_OK);
 }
 
 void FreeEntires(std::vector<SingleVerKvEntry *> &entries)
