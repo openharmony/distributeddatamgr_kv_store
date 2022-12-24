@@ -76,11 +76,13 @@ std::map<std::string, std::vector<StoreId>> AutoSyncTimer::GetStoreIds()
             return true;
         }
         auto &innerStore = stores[key];
-        for (auto it = value.begin(); it != value.end() && count > 0;) {
+        auto it = value.begin();
+        while (it != value.end() && count > 0) {
             innerStore.push_back(*it);
-            it = value.erase(it);
+            it++;
             count--;
         }
+        value.erase(value.begin(),it);
         return value.empty();
     });
     return stores;
