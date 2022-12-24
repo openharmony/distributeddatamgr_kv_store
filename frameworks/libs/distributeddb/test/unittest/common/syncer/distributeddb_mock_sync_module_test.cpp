@@ -33,6 +33,7 @@
 #include "mock_single_ver_state_machine.h"
 #include "mock_sync_engine.h"
 #include "mock_sync_task_context.h"
+#include "mock_time_sync.h"
 #include "remote_executor_packet.h"
 #include "single_ver_kv_syncer.h"
 #include "single_ver_relational_sync_task_context.h"
@@ -1536,4 +1537,35 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
     context->SetLastRequestSessionId(sessionIdMaxValue);
     EXPECT_LE(context->CallGenerateRequestSessionId(), sessionIdMaxValue);
     RefObject::KillAndDecObjRef(context);
+}
+
+/**
+ * @tc.name: TimeSync001
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync001, TestSize.Level1)
+{
+    auto *communicator = new(std::nothrow) MockCommunicator();
+    ASSERT_NE(communicator, nullptr);
+    auto *storage = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(storage, nullptr);
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+
+    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(DB_ERROR));
+    const int loopCount = 100;
+    const int timeDriverMs = 100;
+    for (int i = 0; i < loopCount; ++i) {
+        MockTimeSync timeSync;
+        timeSync.Initialize(communicator, metadata, storage, "DEVICES_A");
+        timeSync.ModifyTimer(timeDriverMs);
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
+        timeSync.Close();
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    metadata = nullptr;
+    delete storage;
+    delete communicator;
 }
