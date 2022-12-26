@@ -16,7 +16,6 @@
 #include "parcel.h"
 
 #include <climits>
-
 #include "db_constant.h"
 #include "db_errno.h"
 #include "endian_convert.h"

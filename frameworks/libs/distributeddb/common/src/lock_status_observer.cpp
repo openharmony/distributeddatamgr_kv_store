@@ -14,7 +14,6 @@
  */
 
 #include "lock_status_observer.h"
-
 #include "log_print.h"
 
 namespace DistributedDB {

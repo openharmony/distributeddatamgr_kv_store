@@ -114,7 +114,7 @@ private:
     static const int MAX_WRITE_SIZE;
     static const int MAX_READ_SIZE;
 
-    bool isInitialized_;
+    std::atomic<bool> isInitialized_;
     OperatePerm perm_;
     bool operateAbort_;
 

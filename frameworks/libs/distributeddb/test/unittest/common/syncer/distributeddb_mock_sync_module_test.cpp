@@ -929,6 +929,35 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
 }
 
 /**
+ * @tc.name: SyncLifeTest005
+ * @tc.desc: Test syncer remote device offline.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest005, TestSize.Level3)
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    auto syncDBInterface = new MockKvSyncInterface();
+    int incRefCount = 0;
+    EXPECT_CALL(*syncDBInterface, IncRefCount()).WillRepeatedly([&incRefCount]() {
+        incRefCount++;
+    });
+    EXPECT_CALL(*syncDBInterface, DecRefCount()).WillRepeatedly(Return());
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface->SetIdentifier(identifier);
+    syncer->Initialize(syncDBInterface, true);
+    syncer->RemoteDeviceOffline("dev");
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+    EXPECT_EQ(incRefCount, 2); // refCount is 2
+}
+
+/**
  * @tc.name: MessageScheduleTest001
  * @tc.desc: Test MessageSchedule stop timer when no message.
  * @tc.type: FUNC
@@ -1068,6 +1097,32 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     virtualCommunicatorAggregator = nullptr;
     std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
+ * @tc.name: SyncEngineTest003
+ * @tc.desc: Test SyncEngine add block sync operation.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest003, TestSize.Level1)
+{
+    auto *enginePtr = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(enginePtr, nullptr);
+    std::vector<std::string> devices = {
+        "DEVICES_A", "DEVICES_B"
+    };
+    const int syncId = 1;
+    auto operation = new (std::nothrow) SyncOperation(syncId, devices, 0, nullptr, true);
+    ASSERT_NE(operation, nullptr);
+    operation->Initialize();
+    enginePtr->AddSyncOperation(operation);
+    for (const auto &device: devices) {
+        EXPECT_EQ(operation->GetStatus(device), static_cast<int>(SyncOperation::OP_BUSY_FAILURE));
+    }
+    RefObject::KillAndDecObjRef(operation);
+    RefObject::KillAndDecObjRef(enginePtr);
 }
 
 /**

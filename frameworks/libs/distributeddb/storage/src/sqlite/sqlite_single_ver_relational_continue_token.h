@@ -36,7 +36,7 @@ public:
     bool IsGetAllDataFinished() const;
     const QueryObject &GetQuery() const;
     void SetFieldNames(const std::vector<std::string> &fieldNames);
-
+    void UpdateNextSyncOffset(int addOffset);
 private:
     std::string GetDeletedDataSQL() const;
     int GetQuerySyncStatement(sqlite3 *db, sqlite3_stmt *&stmt);

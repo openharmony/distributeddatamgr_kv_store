@@ -241,6 +241,8 @@ private:
     static int UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd,
         uint32_t iterTimes);
 
+    static int CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated);
+
     static std::mutex logMutex_;
     static std::string lastErrorMsg_;
 };

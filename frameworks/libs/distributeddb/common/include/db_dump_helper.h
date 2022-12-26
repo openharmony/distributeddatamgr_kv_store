@@ -22,5 +22,4 @@ public:
     static void Dump(int fd, const char *format, ...);
 };
 } // namespace DistributedDB
-
-#endif // DB_DFX_ADAPTER_H
+#endif // DB_DUMP_HELPER_H

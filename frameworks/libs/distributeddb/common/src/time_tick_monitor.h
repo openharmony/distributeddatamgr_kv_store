@@ -21,7 +21,6 @@
 #include "runtime_context.h"
 #include "platform_specific.h"
 
-
 namespace DistributedDB {
 class TimeTickMonitor final {
 public:

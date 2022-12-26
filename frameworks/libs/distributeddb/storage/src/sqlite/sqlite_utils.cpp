@@ -55,7 +55,6 @@ namespace {
     const std::string BEGIN_IMMEDIATE_SQL = "BEGIN IMMEDIATE TRANSACTION";
     const std::string COMMIT_SQL = "COMMIT TRANSACTION";
     const std::string ROLLBACK_SQL = "ROLLBACK TRANSACTION";
-    const std::string JSON_EXTRACT_BY_PATH_TEST_CREATED = "SELECT json_extract_by_path('{\"field\":0}', '$.field', 0);";
     const std::string DEFAULT_ATTACH_CIPHER = "PRAGMA cipher_default_attach_cipher=";
     const std::string DEFAULT_ATTACH_KDF_ITER = "PRAGMA cipher_default_attach_kdf_iter=5000";
     const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1;";
@@ -73,6 +72,8 @@ namespace {
 
     const std::string DETACH_BACKUP_SQL = "DETACH 'backup'";
     const std::string UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
+    const std::string CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
+        "type='table' AND tbl_name=?);";
 
     bool g_configLog = false;
 
@@ -504,8 +505,8 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
     int keySize = sqlite3_column_bytes(statement, index);
     if (keySize < 0 || keySize > MAX_BLOB_READ_SIZE) {
         LOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
-        value.resize(MAX_BLOB_READ_SIZE + 1);
-        return (keySize > MAX_BLOB_READ_SIZE) ? E_OK : -E_INVALID_DATA;
+        value.resize(MAX_BLOB_READ_SIZE + 1); // Reset value size to invalid
+        return E_OK; // Return OK for continue get data, but value is invalid
     }
 
     auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(statement, index));
@@ -528,8 +529,8 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
     int valSize = sqlite3_column_bytes(statement, index);
     if (valSize < 0 || valSize > MAX_TEXT_READ_SIZE) {
         LOGW("[SQLiteUtils][Column text] size over limit:%d", valSize);
-        value.resize(MAX_TEXT_READ_SIZE + 1);
-        return (valSize > MAX_BLOB_READ_SIZE) ? E_OK : -E_INVALID_DATA;
+        value.resize(MAX_TEXT_READ_SIZE + 1); // Reset value size to invalid
+        return E_OK; // Return OK for continue get data, but value is invalid
     }
 
     const unsigned char *val = sqlite3_column_text(statement, index);
@@ -1230,9 +1231,16 @@ int SQLiteUtils::GetSchema(sqlite3 *db, std::string &strSchema)
         return -E_INVALID_DB;
     }
 
+    bool isExists = false;
+    int errCode = CheckTableExists(db, "meta_data", isExists);
+    if (errCode != E_OK || !isExists) {
+        LOGW("meta table may has not been created, err=%d, isExists=%d", errCode, isExists);
+        return errCode;
+    }
+
     sqlite3_stmt *statement = nullptr;
     std::string sql = "SELECT value FROM meta_data WHERE key=?;";
-    int errCode = GetStatement(db, sql, statement);
+    errCode = GetStatement(db, sql, statement);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1339,17 +1347,12 @@ int SQLiteUtils::RegisterJsonFunctions(sqlite3 *db)
         return MapSQLiteErrno(errCode);
     }
 #ifdef USING_DB_JSON_EXTRACT_AUTOMATICALLY
-    errCode = ExecuteRawSQL(db, JSON_EXTRACT_BY_PATH_TEST_CREATED);
-    if (errCode == E_OK) {
-        LOGI("json_extract_by_path already created.");
-    } else {
-        // Specify need 3 parameter in json_extract_by_path function
-        errCode = sqlite3_create_function_v2(db, "json_extract_by_path", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
-            nullptr, &JsonExtractByPath, nullptr, nullptr, nullptr);
-        if (errCode != SQLITE_OK) {
-            LOGE("sqlite3_create_function_v2 about json_extract_by_path returned %d", errCode);
-            return MapSQLiteErrno(errCode);
-        }
+    // Specify need 3 parameter in json_extract_by_path function
+    errCode = sqlite3_create_function_v2(db, "json_extract_by_path", 3, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        nullptr, &JsonExtractByPath, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("sqlite3_create_function_v2 about json_extract_by_path returned %d", errCode);
+        return MapSQLiteErrno(errCode);
     }
 #endif
     return E_OK;
@@ -2274,5 +2277,36 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
         return Rekey(db, passwd);
     }
     return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+}
+
+int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated)
+{
+    if (db == nullptr) {
+        return -1;
+    }
+
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, CHECK_TABLE_CREATED, stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGW("Get check table statement failed. err=%d", errCode);
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::BindTextToStatement(stmt, 1, tableName);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
+        LOGE("Bind table name to statement failed. err=%d", errCode);
+        goto END;
+    }
+
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("Check table exists failed. err=%d", errCode); // should always return a row data
+        goto END;
+    }
+    errCode = E_OK;
+    isCreated = (sqlite3_column_int(stmt, 0) == 1);
+END:
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
 }
 } // namespace DistributedDB

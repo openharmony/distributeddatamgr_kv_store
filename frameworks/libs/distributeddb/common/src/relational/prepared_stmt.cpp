@@ -64,6 +64,9 @@ uint32_t PreparedStmt::CalcLength() const
                       Parcel::GetIntLen();          // bindArgs_.size()
     for (const auto &bindArg : bindArgs_) {
         length += Parcel::GetStringLen(bindArg);    // bindArgs_
+        if (length > INT32_MAX) {
+            return 0u;
+        }
     }
     return Parcel::GetEightByteAlign(length);
 }

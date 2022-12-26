@@ -33,6 +33,8 @@ public:
 
     ~RelationalResultSetImpl() = default;
 
+    DISABLE_COPY_ASSIGN_MOVE(RelationalResultSetImpl);
+
     // Returns the count of rows in the result set.
     int GetCount() const override;
 

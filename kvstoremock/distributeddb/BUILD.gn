@@ -133,7 +133,7 @@ distrdb_sources = [
   "${kv_store_distributeddb_path}interfaces/src/relational/relational_store_delegate_impl.cpp",
   "${kv_store_distributeddb_path}interfaces/src/relational/relational_store_manager.cpp",
   "${kv_store_distributeddb_path}interfaces/src/relational/relational_store_sqlite_ext.cpp",
-  "${kv_store_distributeddb_path}interfaces/src/relational/runtime_config.cpp",
+  "${kv_store_distributeddb_path}interfaces/src/runtime_config.cpp",
   "${kv_store_distributeddb_path}storage/src/data_transformer.cpp",
   "${kv_store_distributeddb_path}storage/src/db_properties.cpp",
   "${kv_store_distributeddb_path}storage/src/default_factory.cpp",

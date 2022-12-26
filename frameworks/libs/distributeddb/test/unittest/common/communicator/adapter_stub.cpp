@@ -244,11 +244,13 @@ void AdapterStub::SimulateSendRetry(const std::string &dstTarget)
 
 void AdapterStub::SimulateSendRetryClear(const std::string &dstTarget)
 {
-    std::lock_guard<std::mutex> retryLockGuard(retryMutex_);
-    if (targetRetrySet_.count(dstTarget) == 0) {
-        return;
+    {
+        std::lock_guard<std::mutex> retryLockGuard(retryMutex_);
+        if (targetRetrySet_.count(dstTarget) == 0) {
+            return;
+        }
+        targetRetrySet_.erase(dstTarget);
     }
-    targetRetrySet_.erase(dstTarget);
     std::lock_guard<std::mutex> onSendableLockGuard(onSendableMutex_);
     if (onSendableHandle_) {
         onSendableHandle_(dstTarget);

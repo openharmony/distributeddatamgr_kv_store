@@ -104,7 +104,6 @@ int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject 
                 break;
             }
             DataValue dataValue = std::move(optItem);
-            LOGD("type:%d", static_cast<int>(optItem.GetType()));
             virtualRowData.objectData.PutDataValue(localFieldInfo_[index].GetFieldName(), dataValue);
             index++;
         }

@@ -20,6 +20,8 @@
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
 #include "relational_store_manager.h"
+#include "relational_virtual_device.h"
+#include "runtime_config.h"
 #include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
@@ -36,6 +38,7 @@ namespace {
     std::string g_dbDir;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+    RelationalVirtualDevice *g_deviceB = nullptr;
 
     const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_data(" \
         "key         BLOB NOT NULL UNIQUE," \
@@ -79,6 +82,19 @@ namespace {
         DBCommon::StringToVector("1.0", val);
         EXPECT_EQ(RelationalTestUtils::SetMetaData(db, key, val), SQLITE_OK);
     }
+
+    void AddDeviceSchema(RelationalVirtualDevice *device, sqlite3 *db, const std::string &name)
+    {
+        TableInfo table;
+        SQLiteUtils::AnalysisSchema(db, name, table);
+
+        std::vector<FieldInfo> fieldList;
+        for (const auto &it : table.GetFields()) {
+            fieldList.push_back(it.second);
+        }
+        device->SetLocalFieldInfo(table.GetFieldInfos());
+        device->SetTableInfo(table);
+    }
 }
 
 class DistributedDBInterfacesRelationalSyncTest : public testing::Test {
@@ -112,22 +128,42 @@ void DistributedDBInterfacesRelationalSyncTest::SetUp()
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
 
+    g_deviceB = new (std::nothrow) RelationalVirtualDevice(DEVICE_B);
+    ASSERT_TRUE(g_deviceB != nullptr);
+    auto *syncInterfaceB = new (std::nothrow) VirtualRelationalVerSyncDBInterface();
+    ASSERT_TRUE(syncInterfaceB != nullptr);
+    ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, syncInterfaceB), E_OK);
+
+    auto permissionCheckCallback = [] (const std::string &userId, const std::string &appId, const std::string &storeId,
+        const std::string &deviceId, uint8_t flag) -> bool {
+        return true;
+    };
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(permissionCheckCallback), OK);
+
     db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", DEVICE_A);
-
     DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
     status = delegate->CreateDistributedTable("sync_data");
     EXPECT_EQ(status, OK);
+
+    AddDeviceSchema(g_deviceB, db, "sync_data");
 }
 
 void DistributedDBInterfacesRelationalSyncTest::TearDown()
 {
+    if (g_deviceB != nullptr) {
+        delete g_deviceB;
+        g_deviceB = nullptr;
+    }
+    PermissionCheckCallbackV2 nullCallback;
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(nullCallback), OK);
+
     g_mgr.CloseStore(delegate);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
@@ -476,4 +512,157 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpgradeTriggerTest001, TestS
         "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id'));\n"
         "END";
     EXPECT_TRUE(resultTrigger == expectTrigger);
+}
+
+
+namespace {
+void PrepareSyncData(sqlite3 *db, int dataSize)
+{
+    int i = 1;
+    std::string insertSql = "INSERT INTO sync_data VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+    int ret = RelationalTestUtils::ExecSql(db, insertSql, [&i, dataSize] (sqlite3_stmt *stmt) {
+        SQLiteUtils::BindTextToStatement(stmt, 1, "KEY_" + std::to_string(i));
+        SQLiteUtils::BindTextToStatement(stmt, 2, "VAL_" + std::to_string(i));
+        sqlite3_bind_int64(stmt, 3, 1000000 - (1000 + i));
+        sqlite3_bind_int64(stmt, 4, i % 4);
+        SQLiteUtils::BindTextToStatement(stmt, 5, "DEV_" + std::to_string(i));
+        SQLiteUtils::BindTextToStatement(stmt, 6, "KEY_" + std::to_string(i));
+        SQLiteUtils::BindTextToStatement(stmt, 7, "HASHKEY_" + std::to_string(i));
+        sqlite3_bind_int64(stmt, 8, 1000 + i);
+        return (i++ == dataSize) ? E_OK : -E_UNFINISHED;
+    }, nullptr);
+    EXPECT_EQ(ret, E_OK);
+}
+
+std::string GetKey(VirtualRowData rowData)
+{
+    DataValue dataVal;
+    rowData.objectData.GetDataValue("key", dataVal);
+    EXPECT_EQ(dataVal.GetType(), StorageType::STORAGE_TYPE_TEXT);
+    std::string dataStr;
+    EXPECT_EQ(dataVal.GetText(dataStr), E_OK);
+    return dataStr;
+}
+
+void CheckSyncData(sqlite3 *db, const std::string &checkSql, const std::vector<VirtualRowData> &resultData)
+{
+    int i = 0;
+    std::set<std::string> keySet;
+    keySet.clear();
+    for (size_t i = 0; i < resultData.size(); i++) {
+        std::string ss = GetKey(resultData[i]);
+        keySet.insert(ss);
+    }
+    EXPECT_EQ(keySet.size(), resultData.size());
+
+    RelationalTestUtils::ExecSql(db, checkSql, nullptr, [&i, keySet](sqlite3_stmt *stmt) {
+        std::string val;
+        SQLiteUtils::GetColumnTextValue(stmt, 0, val);
+        EXPECT_NE(keySet.find(val), keySet.end());
+        return E_OK;
+    });
+}
+}
+
+/**
+  * @tc.name: SyncLimitTest001
+  * @tc.desc: Sync device with limit query
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncLimitTest001, TestSize.Level3)
+{
+    PrepareSyncData(db, 5000);
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sync_data").Limit(4500, 100);
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("sync_data", data);
+    EXPECT_EQ(data.size(), static_cast<size_t>(4500));
+    std::string checkSql = "select * from sync_data limit 4500 offset 100;";
+    CheckSyncData(db, checkSql, data);
+}
+
+/**
+  * @tc.name: SyncLimitTest002
+  * @tc.desc: Sync device with limit query
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncLimitTest002, TestSize.Level3)
+{
+    PrepareSyncData(db, 5000);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sync_data").Limit(5000, 2000);
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("sync_data", data);
+    EXPECT_EQ(data.size(), static_cast<size_t>(3000));
+    std::string checkSql = "select * from sync_data limit 5000 offset 2000;";
+    CheckSyncData(db, checkSql, data);
+}
+
+/**
+  * @tc.name: SyncLimitTest003
+  * @tc.desc: Sync device with limit query
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncLimitTest003, TestSize.Level3)
+{
+    PrepareSyncData(db, 5000);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sync_data").OrderBy("timestamp").Limit(4500, 1500);
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("sync_data", data);
+    EXPECT_EQ(data.size(), static_cast<size_t>(3500));
+    std::string checkSql = "select * from sync_data order by timestamp limit 4500 offset 1500;";
+    CheckSyncData(db, checkSql, data);
+}
+
+/**
+  * @tc.name: SyncOrderByTest001
+  * @tc.desc: Sync device with limit query
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncOrderByTest001, TestSize.Level3)
+{
+    PrepareSyncData(db, 5000);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sync_data").OrderBy("timestamp");
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("sync_data", data);
+    EXPECT_EQ(data.size(), static_cast<size_t>(5000));
+    std::string checkSql = "select * from sync_data order by timestamp";
+    CheckSyncData(db, checkSql, data);
 }

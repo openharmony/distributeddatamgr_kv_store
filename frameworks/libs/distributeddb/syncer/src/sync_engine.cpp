@@ -167,17 +167,18 @@ int SyncEngine::AddSyncOperation(SyncOperation *operation)
     std::vector<std::string> devices = operation->GetDevices();
     std::string localDeviceId;
     int errCode = GetLocalDeviceId(localDeviceId);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     for (const auto &deviceId : devices) {
+        if (errCode != E_OK) {
+            operation->SetStatus(deviceId, errCode == -E_BUSY ?
+                SyncOperation::OP_BUSY_FAILURE : SyncOperation::OP_FAILED);
+            continue;
+        }
         if (!CheckDeviceIdValid(deviceId, localDeviceId)) {
             operation->SetStatus(deviceId, SyncOperation::OP_INVALID_ARGS);
             continue;
         }
         operation->SetStatus(deviceId, SyncOperation::OP_WAITING);
-        int errCode = AddSyncOperForContext(deviceId, operation);
-        if (errCode != E_OK) {
+        if (AddSyncOperForContext(deviceId, operation) != E_OK) {
             operation->SetStatus(deviceId, SyncOperation::OP_FAILED);
         }
     }
@@ -814,7 +815,11 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
     std::vector<std::string> remoteQueryId;
     subManager_->GetRemoteSubscribeQueryIds(deviceId, remoteQueryId);
     subManager_->ClearRemoteSubscribeQuery(deviceId);
-    static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->RemoveSubscribe(remoteQueryId);
+    for (const auto &queryId: remoteQueryId) {
+        if (!subManager_->IsQueryExistSubscribe(queryId)) {
+            static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->RemoveSubscribe(queryId);
+        }
+    }
     // get context and Inc context if context is not nullprt
     ISyncTaskContext *context = GetSyncTaskContextAndInc(deviceId);
     if (context != nullptr) {
@@ -1015,14 +1020,21 @@ bool SyncEngine::IsEngineActive() const
 
 void SyncEngine::SchemaChange()
 {
-    std::lock_guard<std::mutex> lock(contextMapLock_);
-    for (const auto &entry : syncTaskContextMap_) {
-        auto context = entry.second;
-        if (context == nullptr || context->IsKilled()) {
-            continue;
+    std::vector<ISyncTaskContext *> tmpContextVec;
+    {
+        std::lock_guard<std::mutex> lock(contextMapLock_);
+        for (const auto &entry : syncTaskContextMap_) {
+            auto context = entry.second;
+            if (context == nullptr || context->IsKilled()) {
+                continue;
+            }
+            RefObject::IncObjRef(context);
+            tmpContextVec.push_back(context);
         }
-        // IncRef for SyncEngine to make sure context is valid, to avoid a big lock
-        context->SchemaChange();
+    }
+    for (const auto &entryContext : tmpContextVec) {
+        entryContext->SchemaChange();
+        RefObject::DecObjRef(entryContext);
     }
 }
 

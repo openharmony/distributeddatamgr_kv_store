@@ -13,9 +13,6 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
-
-#include <mutex>
-
 #include "relational_result_set_impl.h"
 #include "kv_store_errno.h"
 
@@ -118,10 +115,10 @@ bool RelationalResultSetImpl::IsClosed() const
 
 void RelationalResultSetImpl::Close()
 {
-    if (IsClosed()) {
+    std::unique_lock<std::shared_mutex> writeLock(mutex_);
+    if (isClosed_) {
         return;
     }
-    std::unique_lock<std::shared_mutex> writeLock(mutex_);
     isClosed_ = true;
     index_ = -1;
     cacheDataSet_.clear();
@@ -196,7 +193,7 @@ DBStatus RelationalResultSetImpl::GetColumnIndex(const std::string &columnName, 
         std::unique_lock<std::shared_mutex> writeLock(mutex_);
         if (colNames_.empty()) {
             for (size_t i = 0; i < dataSet_.GetColNames().size(); ++i) {
-                colNames_[dataSet_.GetColNames().at(i)] = i;
+                colNames_[dataSet_.GetColNames().at(i)] = static_cast<int>(i);
             }
         }
     }

@@ -324,6 +324,7 @@ static void ProcessContinueTokenForQuerySync(const std::vector<DataItem> &dataIt
         return;
     }
     token->SetNextBeginTime(dataItems.back());
+    token->UpdateNextSyncOffset(dataItems.size());
 }
 
 /**

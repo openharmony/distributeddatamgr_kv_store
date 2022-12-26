@@ -67,6 +67,8 @@ public:
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
 #endif
 
+    // For continue token, once sync may not get all sync data, use AddOffset to continue last query
+    void SetLimit(int limit, int offset);
 protected:
     std::list<QueryObjNode> queryObjNodes_;
     std::vector<uint8_t> prefixKey_;

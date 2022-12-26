@@ -469,22 +469,28 @@ int SingleVerSerializeManager::DataPacketSyncerPartDeSerialization(Parcel &parce
     uint32_t flag = 0;
     std::vector<uint64_t> reserved;
 
-    packLen += parcel.ReadUInt64(waterMark);
-    packLen += parcel.ReadUInt64(localWaterMark);
-    packLen += parcel.ReadUInt64(peerWaterMark);
-    packLen += parcel.ReadInt(sendCode);
-    packLen += parcel.ReadInt(mode);
-    packLen += parcel.ReadUInt32(sessionId);
-    packLen += parcel.ReadVector<uint64_t>(reserved);
+    uint64_t totPacketLen = packLen;
+    totPacketLen += parcel.ReadUInt64(waterMark);
+    totPacketLen += parcel.ReadUInt64(localWaterMark);
+    totPacketLen += parcel.ReadUInt64(peerWaterMark);
+    totPacketLen += parcel.ReadInt(sendCode);
+    totPacketLen += parcel.ReadInt(mode);
+    totPacketLen += parcel.ReadUInt32(sessionId);
+    totPacketLen += parcel.ReadVector<uint64_t>(reserved);
     if (version > SOFTWARE_VERSION_RELEASE_2_0) {
-        packLen += parcel.ReadUInt32(flag);
+        totPacketLen += parcel.ReadUInt32(flag);
         packet->SetFlag(flag);
+    }
+    if (totPacketLen > INT32_MAX) {
+        LOGE("[DataSync][DataPacketDeSerialization] deserialize failed! input totPackLen=%" PRIu64 " is over limit.",
+             totPacketLen);
+        return -E_LENGTH_ERROR;
     }
     parcel.EightByteAlign();
     packLen = Parcel::GetEightByteAlign(packLen);
     if (parcel.IsError()) {
-        LOGE("[DataSync][DataPacketDeSerialization] deserialize failed! input len=%" PRIu32 ",packLen=%" PRIu32,
-            length, packLen);
+        LOGE("[DataSync][DataPacketDeSerialization] deserialize failed! input len=%" PRIu32 ", totPackLen=%" PRIu64,
+            length, totPacketLen);
         return -E_LENGTH_ERROR;
     }
     packet->SetEndWaterMark(waterMark);

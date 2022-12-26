@@ -36,7 +36,7 @@ void SingleVerSyncTarget::SetSyncOperation(SyncOperation *operation)
 {
     SyncTarget::SetSyncOperation(operation);
     if ((operation != nullptr) && !operation->IsKilled()) {
-        query_ = operation->GetQuery();
+        operation->GetQuery(query_);
         isQuerySync_ = operation->IsQuerySync();
     }
 }

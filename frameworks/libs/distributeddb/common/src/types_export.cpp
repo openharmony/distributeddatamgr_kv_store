@@ -15,7 +15,6 @@
 
 #include "types_export.h"
 
-#include <algorithm>
 #include <cstring>
 
 namespace DistributedDB {
