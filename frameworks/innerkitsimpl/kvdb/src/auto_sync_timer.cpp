@@ -51,7 +51,7 @@ void AutoSyncTimer::AddSyncStores(const std::string &appId, std::set<StoreId> st
     stores_.Compute(appId, [&storeIds](const auto &key, std::vector<StoreId> &value) {
         std::set<StoreId> tempStores(value.begin(), value.end());
         for (auto it = storeIds.begin(); it != storeIds.end(); it++) {
-            if (!tempStores.count(*it)) {
+            if (tempStores.count(*it) == 0) {
                 value.push_back(*it);
             }
         }
