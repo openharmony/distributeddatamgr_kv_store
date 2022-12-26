@@ -15,6 +15,7 @@
 
 #include "query_object.h"
 
+#include "db_common.h"
 #include "db_errno.h"
 #include "get_query_info.h"
 #include "log_print.h"

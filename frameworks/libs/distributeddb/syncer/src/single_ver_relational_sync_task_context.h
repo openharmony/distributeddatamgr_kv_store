@@ -45,7 +45,7 @@ protected:
     // for relational syncStrategy
     mutable std::mutex syncStrategyMutex_;
     RelationalSyncStrategy relationalSyncStrategy_;
-    std::atomic<bool> isSchemaSync_ = false;
+    bool isSchemaSync_ = false;
 };
 }
 #endif // RELATIONAL_STORE

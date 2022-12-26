@@ -51,6 +51,8 @@ private:
 
     void SchemaChangeCallback();
 
+    int QuerySyncPreCheck(const SyncParma &param) const;
+
     mutable std::mutex syncMapLock_;
     std::map<uint32_t, std::set<uint32_t>> fullSyncIdMap_;
     std::map<uint32_t, std::map<std::string, std::map<std::string, int>>> resMap_;

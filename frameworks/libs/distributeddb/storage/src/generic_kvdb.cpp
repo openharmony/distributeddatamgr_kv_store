@@ -301,42 +301,42 @@ void GenericKvDB::CommitNotifyAsync(int notifyEvent, KvDBCommitNotifyFilterAbleD
 
 int GenericKvDB::RegisterFunction(RegisterFuncType type)
 {
-    if (type >= REGISTER_FUNC_TYPE_MAX) {
+    if (type >= RegisterFuncType::REGISTER_FUNC_TYPE_MAX) {
         return -E_NOT_SUPPORT;
     }
     std::lock_guard<std::mutex> lock(regFuncCountMutex_);
     if (registerFunctionCount_.empty()) {
-        registerFunctionCount_.resize(static_cast<uint32_t>(REGISTER_FUNC_TYPE_MAX), 0);
-        if (registerFunctionCount_.size() != static_cast<size_t>(REGISTER_FUNC_TYPE_MAX)) {
+        registerFunctionCount_.resize(static_cast<uint32_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX), 0);
+        if (registerFunctionCount_.size() != static_cast<size_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX)) {
             return -E_OUT_OF_MEMORY;
         }
     }
-    registerFunctionCount_[type]++;
+    registerFunctionCount_[static_cast<int>(type)]++;
     return E_OK;
 }
 
 int GenericKvDB::UnregisterFunction(RegisterFuncType type)
 {
-    if (type >= REGISTER_FUNC_TYPE_MAX) {
+    if (type >= RegisterFuncType::REGISTER_FUNC_TYPE_MAX) {
         return -E_NOT_SUPPORT;
     }
     std::lock_guard<std::mutex> lock(regFuncCountMutex_);
-    if (registerFunctionCount_.size() != static_cast<size_t>(REGISTER_FUNC_TYPE_MAX) ||
-        registerFunctionCount_[type] == 0) {
+    if (registerFunctionCount_.size() != static_cast<size_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX) ||
+        registerFunctionCount_[static_cast<int>(type)] == 0) {
         return -E_UNEXPECTED_DATA;
     }
-    registerFunctionCount_[type]--;
+    registerFunctionCount_[static_cast<int>(type)]--;
     return E_OK;
 }
 
 uint32_t GenericKvDB::GetRegisterFunctionCount(RegisterFuncType type) const
 {
     std::lock_guard<std::mutex> lock(regFuncCountMutex_);
-    if (type >= REGISTER_FUNC_TYPE_MAX ||
-        registerFunctionCount_.size() != static_cast<size_t>(REGISTER_FUNC_TYPE_MAX)) {
+    if (type >= RegisterFuncType::REGISTER_FUNC_TYPE_MAX ||
+        registerFunctionCount_.size() != static_cast<size_t>(RegisterFuncType::REGISTER_FUNC_TYPE_MAX)) {
         return 0;
     }
-    return registerFunctionCount_[type];
+    return registerFunctionCount_[static_cast<int>(type)];
 }
 
 int GenericKvDB::TransObserverTypeToRegisterFunctionType(int observerType, RegisterFuncType &type) const
@@ -375,7 +375,6 @@ bool GenericKvDB::IsDataMigrating() const
 void GenericKvDB::SetConnectionFlag(bool isExisted) const
 {
     (void)isExisted;
-    return;
 }
 
 int GenericKvDB::CheckIntegrity() const

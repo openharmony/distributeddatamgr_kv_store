@@ -28,7 +28,7 @@
 
 namespace DistributedDB {
 namespace {
-const int HASH_KEY_SIZE = 32;
+const int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus)

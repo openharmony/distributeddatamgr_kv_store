@@ -438,7 +438,8 @@ HWTEST_F(DistributedDBStorageDataConnectionTest, ConnectionTest008, TestSize.Lev
     Key key;
     key.push_back('a');
     KvDBObserverHandle* handle = g_connection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), key,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     EXPECT_EQ(g_connection->Rekey(passwd), -E_BUSY);

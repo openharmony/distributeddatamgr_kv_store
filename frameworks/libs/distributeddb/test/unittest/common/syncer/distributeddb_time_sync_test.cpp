@@ -198,16 +198,14 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync002, TestSize.Level0)
     EXPECT_TRUE(errCode == E_OK);
 
     g_metadataB->Initialize(g_syncInterfaceB);
-        // initialize timeSyncB
+    // initialize timeSyncB
     errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
     EXPECT_TRUE(errCode == E_OK);
-
     /**
      * @tc.steps: step2. Register the OnMessageCallback to virtual communicator
      */
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
-
     /**
      * @tc.steps: step3. Fetch timeOffset value
      * @tc.expected: step3. (offsetB - offsetA ) - timeOffset < 100ms.
@@ -253,13 +251,11 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
     // initialize timeSyncB
     errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
     EXPECT_TRUE(errCode == E_OK);
-
     /**
      * @tc.steps: step3. Register the OnMessageCallback to virtual communicator
      */
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
-
     /**
      * @tc.steps: step4. Fetch timeOffset value
      * @tc.expected: step4. (offsetB - offsetA ) - timeOffset < 100ms.
@@ -297,12 +293,10 @@ HWTEST_F(DistributedDBTimeSyncTest, NetDisconnetSyncTest001, TestSize.Level0)
 
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
-
     /**
      * @tc.steps: step2. Disable the virtual communicator
      */
     g_virtualCommunicator->Disable();
-
     /**
      * @tc.steps: step3. Start time sync function
      * @tc.expected: step3. time sync return -E_PERIPHERAL_INTERFACE_FAIL
@@ -355,7 +349,6 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
     data.SetSourceTimeEnd(0);
     data.SetTargetTimeBegin(0);
     data.SetTargetTimeEnd(0);
-
     /**
      * @tc.steps: step3. SendMessage with id = DATA_SYNC_MESSAGE, type = TYPE_REQUEST
      * @tc.expected: step3. RequestRecv() return -E_INVALID_ARGS
@@ -367,7 +360,6 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
     msg->SetCopiedObject<>(data);
     errCode = g_virtualCommunicator->SendMessage(DEVICE_B, msg, conf);
     EXPECT_TRUE(errCode == -E_INVALID_ARGS);
-
     /**
      * @tc.steps: step4. SendMessage with id = TIME_SYNC_MESSAGE, type = TYPE_RESPONSE
      * @tc.expected: step4. RequestRecv() return -E_INVALID_ARGS
@@ -404,7 +396,6 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
     // initialize timeSyncB
     errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
     EXPECT_TRUE(errCode == E_OK);
-
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
 
@@ -426,7 +417,6 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
     data.SetSourceTimeEnd(0);
     data.SetTargetTimeBegin(0);
     data.SetTargetTimeEnd(0);
-
     /**
      * @tc.steps: step3. SendMessage with id = DATA_SYNC_MESSAGE, type = TYPE_RESPONSE and no data set
      * @tc.expected: step3. AckRecv() return -E_INVALID_ARGS
@@ -438,7 +428,6 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
     msg->SetCopiedObject<>(data);
     errCode = g_virtualCommunicator->SendMessage(DEVICE_A, msg, conf);
     EXPECT_TRUE(errCode == -E_INVALID_ARGS);
-
     /**
      * @tc.steps: step4. SendMessage with id = TIME_SYNC_MESSAGE, type = TYPE_REQUEST and no data set
      * @tc.expected: step4. AckRecv() return -E_INVALID_ARGS
@@ -473,7 +462,6 @@ HWTEST_F(DistributedDBTimeSyncTest, SyncTimeout001, TestSize.Level2)
      */
     errCode = g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
     EXPECT_TRUE(errCode == E_OK);
-
     /**
      * @tc.steps: step2. Start the time syc task invoking StartSync() method
      * @tc.expected: step2. Start the time sync task return E_TIMEOUT

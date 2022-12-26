@@ -51,7 +51,7 @@ SyncStateMachine::~SyncStateMachine()
 }
 
 int SyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface,
-    std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
+    const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator)
 {
     if ((context == nullptr) || (syncInterface == nullptr) || (metadata == nullptr) || (communicator == nullptr)) {
         return -E_INVALID_ARGS;
@@ -172,6 +172,7 @@ void SyncStateMachine::SwitchStateAndStep(uint8_t event)
 
 int SyncStateMachine::ExecNextTask()
 {
+    syncContext_->Clear();
     while (!syncContext_->IsTargetQueueEmpty()) {
         int errCode = syncContext_->GetNextTarget(false);
         if (errCode != E_OK) {
@@ -188,9 +189,8 @@ int SyncStateMachine::ExecNextTask()
         }
         return errCode;
     }
-    // no task left
     syncContext_->SetTaskExecStatus(ISyncTaskContext::FINISHED);
-    syncContext_->Clear();
+    // no task left
     LOGD("[SyncStateMachine] All sync task finished!");
     return -E_NO_SYNC_TASK;
 }

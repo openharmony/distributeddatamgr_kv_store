@@ -52,6 +52,8 @@ private:
     // so only need clear map msg
     int TimeOut(TimerId timerId);
 
+    int GetPacketId(const Message *msg, uint64_t &packetId);
+
     static constexpr int IDLE_TIME_OUT = 5 * 60 * 1000; // 5min
     std::mutex queueLock_;
     std::queue<Message *> msgQueue_;

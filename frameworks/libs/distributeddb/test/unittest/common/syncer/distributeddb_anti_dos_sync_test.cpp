@@ -117,7 +117,8 @@ void DistributeddbAntiDosSyncTest::SetUp(void)
     ASSERT_TRUE(errCodeMetaData == E_OK);
     g_syncEngine = new (std::nothrow) SingleVerSyncEngine();
     ASSERT_TRUE(g_syncEngine != nullptr);
-    int errCodeSyncEngine = g_syncEngine->Initialize(g_syncInterface, g_metaData, nullptr, nullptr, nullptr);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    int errCodeSyncEngine = g_syncEngine->Initialize(g_syncInterface, g_metaData, param);
     ASSERT_TRUE(errCodeSyncEngine == E_OK);
     g_communicator = static_cast<VirtualCommunicator *>(g_communicatorAggregator->GetCommunicator(remoteDeviceId));
     ASSERT_TRUE(g_communicator != nullptr);

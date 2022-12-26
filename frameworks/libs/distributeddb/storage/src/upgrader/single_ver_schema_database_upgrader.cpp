@@ -78,11 +78,7 @@ int SingleVerSchemaDatabaseUpgrader::ExecuteUpgradeSchema()
         return errCode;
     }
     // Update schema into database file
-    errCode = SetDatabaseSchema(newSchema_.ToSchemaString());
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return E_OK;
+    return SetDatabaseSchema(newSchema_.ToSchemaString());
 }
 
 int SingleVerSchemaDatabaseUpgrader::RestoreSchemaObjectFromDatabase(SchemaObject &outOriSchema) const

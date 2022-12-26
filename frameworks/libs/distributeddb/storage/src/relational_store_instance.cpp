@@ -176,8 +176,8 @@ int CheckCompatibility(const RelationalDBProperties &prop, const RelationalDBPro
 
     if (prop.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false) !=
         existedProp.GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
-            LOGE("Failed to check dual tuple sync mode for rdb");
-            return -E_MODE_MISMATCH;
+        LOGE("Failed to check dual tuple sync mode for rdb.");
+        return -E_MODE_MISMATCH;
     }
     return E_OK;
 }

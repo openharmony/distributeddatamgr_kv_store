@@ -50,7 +50,7 @@ int GenericKvDBConnection::RegisterObserverForOneType(int type, const Key &key, 
     if (kvDB_ == nullptr) {
         return -E_INVALID_CONNECTION;
     }
-    RegisterFuncType funcType = REGISTER_FUNC_TYPE_MAX;
+    RegisterFuncType funcType = RegisterFuncType::REGISTER_FUNC_TYPE_MAX;
     int errCode = kvDB_->TransObserverTypeToRegisterFunctionType(type, funcType);
     if (errCode != E_OK) {
         return errCode;
@@ -146,7 +146,7 @@ int GenericKvDBConnection::UnRegisterObserver(const KvDBObserverHandle *observer
         }
         observerList_.erase(observerIter);
         // Register function count in db is also protected by observer list lock.
-        RegisterFuncType funcType = REGISTER_FUNC_TYPE_MAX;
+        RegisterFuncType funcType = RegisterFuncType::REGISTER_FUNC_TYPE_MAX;
         for (auto type : eventTypes) {
             errCode = kvDB_->TransObserverTypeToRegisterFunctionType(type, funcType);
             if (errCode != E_OK) {

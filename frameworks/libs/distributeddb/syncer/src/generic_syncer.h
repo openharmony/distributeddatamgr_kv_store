@@ -153,6 +153,8 @@ protected:
     // isClosedOperation is false while userChanged
     void ClearSyncOperations(bool isClosedOperation);
 
+    void ClearInnerResource(bool isClosedOperation);
+
     void TriggerSyncFinished(SyncOperation *operation);
 
     // Callback when the special sync finished.
@@ -160,7 +162,7 @@ protected:
 
     bool IsManualSync(int inMode) const;
 
-    int AddQueuedManualSyncSize(int mode, bool wait);
+    virtual int AddQueuedManualSyncSize(int mode, bool wait);
 
     bool IsQueuedManualSyncFull(int mode, bool wait) const;
 
@@ -174,7 +176,7 @@ protected:
 
     int StatusCheck() const;
 
-    int SyncParamCheck(const SyncParma &param) const;
+    int SyncPreCheck(const SyncParma &param) const;
 
     int BuildSyncEngine();
 

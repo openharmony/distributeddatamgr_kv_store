@@ -51,6 +51,8 @@ public:
 
     virtual const RelationalDBProperties &GetRelationalDbProperties() const = 0;
 
+    virtual int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) = 0;
+
     virtual void ReleaseRemoteQueryContinueToken(ContinueToken &token) const = 0;
 };
 }

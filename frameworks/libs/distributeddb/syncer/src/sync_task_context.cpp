@@ -33,6 +33,7 @@ std::set<ISyncTaskContext *> SyncTaskContext::synTaskContextSet_;
 
 namespace {
     const int NEGOTIATION_LIMIT = 2;
+    const uint32_t SESSION_ID_MAX_VALUE = 0x8fffffffu;
 }
 
 SyncTaskContext::SyncTaskContext()
@@ -66,7 +67,7 @@ SyncTaskContext::~SyncTaskContext()
         delete stateMachine_;
         stateMachine_ = nullptr;
     }
-    ClearSyncOperation();
+    SyncTaskContext::ClearSyncOperation();
     ClearSyncTarget();
     syncInterface_ = nullptr;
     communicator_ = nullptr;
@@ -553,7 +554,7 @@ int SyncTaskContext::TimeOut(TimerId id)
         DecObjRef(this);
     });
     if (errCode != E_OK) {
-        LOGW("[SyncTaskContext][Timeout] Trigger Timeout Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
+        LOGW("[SyncTaskContext][TimeOut] Trigger TimeOut Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
         SafeExit();
         DecObjRef(this);
     }
@@ -583,16 +584,9 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
         if (isAutoSync_ || mode_ == SUBSCRIBE_QUERY || mode_ == UNSUBSCRIBE_QUERY) {
             syncTaskRetryStatus_ = true;
         }
-        requestSessionId_ = Hash::Hash32Func(deviceId_ + std::to_string(syncId_) +
-            std::to_string(TimeHelper::GetSysCurrentTime()));
-        if (lastRequestSessionId_ == requestSessionId_) {
-            // Hash32Func max is 0x7fffffff and UINT32_MAX is 0xffffffff
-            requestSessionId_++;
-            LOGI("last sessionId is equal to this sessionId!");
-        }
+        requestSessionId_ = GenerateRequestSessionId();
         LOGI("[SyncTaskContext][copyTarget] mode=%d,syncId=%d,isAutoSync=%d,isRetry=%d,dev=%s{private}",
             mode_, syncId_, isAutoSync_, syncTaskRetryStatus_, deviceId_.c_str());
-        lastRequestSessionId_ = requestSessionId_;
         DBDfxAdapter::StartAsyncTrace(syncActionName_, static_cast<int>(syncId_));
     } else {
         isAutoSync_ = false;
@@ -813,5 +807,20 @@ SyncOperation *SyncTaskContext::GetAndIncSyncOperation() const
     }
     RefObject::IncObjRef(syncOperation_);
     return syncOperation_;
+}
+
+uint32_t SyncTaskContext::GenerateRequestSessionId()
+{
+    uint32_t sessionId = 0u;
+    if (lastRequestSessionId_ != 0) {
+        sessionId = lastRequestSessionId_ + 1;
+    }
+    // make sure sessionId is between 0x01 and 0x8fffffff
+    if (sessionId > SESSION_ID_MAX_VALUE || sessionId == 0) {
+        sessionId = Hash::Hash32Func(deviceId_ + std::to_string(syncId_) +
+            std::to_string(TimeHelper::GetSysCurrentTime()));
+    }
+    lastRequestSessionId_ = sessionId;
+    return sessionId;
 }
 } // namespace DistributedDB

@@ -639,7 +639,8 @@ void SQLiteSingleVerNaturalStore::CommitAndReleaseNotifyData(SingleVerNaturalSto
                 CommitNotify(eventType, committedData);
             }
             if (!committedData->IsConflictedDataEmpty()) {
-                CommitNotify(SQLITE_GENERAL_CONFLICT_EVENT, committedData);
+                CommitNotify(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT),
+                    committedData);
             }
         }
     }
@@ -986,6 +987,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         return -E_LOG_OVER_LIMITS;
     }
 
+    bool isNeedHash = true;
     std::set<std::string> removeDevices;
     if (deviceName.empty()) {
         errCode = GetExistsDeviceList(removeDevices);
@@ -993,6 +995,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
             LOGE("[SingleVerNStore] get remove device list failed:%d", errCode);
             return errCode;
         }
+        isNeedHash = false;
     } else {
         removeDevices.insert(deviceName);
     }
@@ -1000,7 +1003,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     LOGD("[SingleVerNStore] remove device data, size=%zu", removeDevices.size());
     for (const auto &iterDevice : removeDevices) {
         // Call the syncer module to erase the water mark.
-        errCode = EraseDeviceWaterMark(iterDevice, true);
+        errCode = EraseDeviceWaterMark(iterDevice, isNeedHash);
         if (errCode != E_OK) {
             LOGE("[SingleVerNStore] erase water mark failed:%d", errCode);
             return errCode;
@@ -1086,7 +1089,8 @@ void SQLiteSingleVerNaturalStore::NotifyRemovedData(std::vector<Entry> &entries)
         }
 
         if ((entries[index].key.size() + entries[index].value.size() + totalSize) > MAX_TOTAL_NOTIFY_DATA_SIZE) {
-            CommitAndReleaseNotifyData(notifyData, true, SQLITE_GENERAL_NS_SYNC_EVENT);
+            CommitAndReleaseNotifyData(notifyData, true,
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
             totalSize = 0;
             notifyData = nullptr;
             continue;
@@ -1097,7 +1101,8 @@ void SQLiteSingleVerNaturalStore::NotifyRemovedData(std::vector<Entry> &entries)
         index++;
     }
     if (notifyData != nullptr) {
-        CommitAndReleaseNotifyData(notifyData, true, SQLITE_GENERAL_NS_SYNC_EVENT);
+        CommitAndReleaseNotifyData(notifyData, true,
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
     }
 }
 
@@ -1147,10 +1152,10 @@ void SQLiteSingleVerNaturalStore::ReleaseHandle(SQLiteSingleVerStorageExecutor *
 int SQLiteSingleVerNaturalStore::RegisterNotification()
 {
     static const std::vector<int> events {
-        static_cast<int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
-        static_cast<int>(SQLITE_GENERAL_NS_PUT_EVENT),
-        static_cast<int>(SQLITE_GENERAL_NS_SYNC_EVENT),
-        static_cast<int>(SQLITE_GENERAL_CONFLICT_EVENT),
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT),
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT),
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT),
     };
 
     for (auto event = events.begin(); event != events.end(); ++event) {
@@ -1174,14 +1179,18 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
 {
     SyncAbleKvDB::Close();
     if (notificationEventsRegistered_) {
-        UnRegisterNotificationEventType(static_cast<EventType>(SQLITE_GENERAL_NS_SYNC_EVENT));
-        UnRegisterNotificationEventType(static_cast<EventType>(SQLITE_GENERAL_NS_PUT_EVENT));
-        UnRegisterNotificationEventType(static_cast<EventType>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
+        UnRegisterNotificationEventType(
+            static_cast<EventType>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
+        UnRegisterNotificationEventType(
+            static_cast<EventType>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+        UnRegisterNotificationEventType(
+            static_cast<EventType>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT));
         notificationEventsRegistered_ = false;
     }
 
     if (notificationConflictEventsRegistered_) {
-        UnRegisterNotificationEventType(static_cast<EventType>(SQLITE_GENERAL_CONFLICT_EVENT));
+        UnRegisterNotificationEventType(static_cast<EventType>(
+            SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT));
         notificationConflictEventsRegistered_ = false;
     }
     {
@@ -1215,14 +1224,14 @@ void SQLiteSingleVerNaturalStore::InitCurrentMaxStamp()
 void SQLiteSingleVerNaturalStore::InitConflictNotifiedFlag(SingleVerNaturalStoreCommitNotifyData *committedData)
 {
     unsigned int conflictFlag = 0;
-    if (GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
+    if (GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
     }
-    if (GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
+    if (GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
     }
-    if (GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_NATIVE_ALL);
+    if (GetRegisterFunctionCount(RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL);
     }
     committedData->SetConflictedNotifiedFlag(static_cast<int>(conflictFlag));
 }
@@ -1277,7 +1286,8 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToMain(const QueryObject &query, st
         SetMaxTimestamp(maxTimestamp);
     }
 
-    CommitAndReleaseNotifyData(committedData, isNeedCommit, SQLITE_GENERAL_NS_SYNC_EVENT);
+    CommitAndReleaseNotifyData(committedData, isNeedCommit,
+        static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
     return errCode;
 }
 
@@ -1376,7 +1386,8 @@ int SQLiteSingleVerNaturalStore::InitStorageEngine(const KvDBProperties &kvDBPro
 
     storageEngine_->SetNotifiedCallback(
         [&](int eventType, KvDBCommitNotifyFilterAbleData *committedData) {
-            if (eventType == SQLITE_GENERAL_FINISH_MIGRATE_EVENT) {
+            if (eventType == static_cast<int>(
+                SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_FINISH_MIGRATE_EVENT)) {
                 return this->TriggerSync(eventType);
             }
             auto commitData = static_cast<SingleVerNaturalStoreCommitNotifyData *>(committedData);
@@ -1625,13 +1636,17 @@ int SQLiteSingleVerNaturalStore::TransObserverTypeToRegisterFunctionType(
     int observerType, RegisterFuncType &type) const
 {
     static constexpr TransPair transMap[] = {
-        { static_cast<int>(SQLITE_GENERAL_NS_PUT_EVENT),       OBSERVER_SINGLE_VERSION_NS_PUT_EVENT },
-        { static_cast<int>(SQLITE_GENERAL_NS_SYNC_EVENT),      OBSERVER_SINGLE_VERSION_NS_SYNC_EVENT },
-        { static_cast<int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), OBSERVER_SINGLE_VERSION_NS_LOCAL_EVENT },
-        { static_cast<int>(SQLITE_GENERAL_CONFLICT_EVENT),     OBSERVER_SINGLE_VERSION_NS_CONFLICT_EVENT },
+        { static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT),
+            RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_PUT_EVENT },
+        { static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT),
+            RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_SYNC_EVENT },
+        { static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+            RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_LOCAL_EVENT },
+        { static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT),
+            RegisterFuncType::OBSERVER_SINGLE_VERSION_NS_CONFLICT_EVENT },
     };
     auto funcType = GetFuncType(observerType, transMap, sizeof(transMap) / sizeof(TransPair));
-    if (funcType == REGISTER_FUNC_TYPE_MAX) {
+    if (funcType == RegisterFuncType::REGISTER_FUNC_TYPE_MAX) {
         return -E_NOT_SUPPORT;
     }
     type = funcType;
@@ -1642,12 +1657,15 @@ int SQLiteSingleVerNaturalStore::TransConflictTypeToRegisterFunctionType(
     int conflictType, RegisterFuncType &type) const
 {
     static constexpr TransPair transMap[] = {
-        { static_cast<int>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY), CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY },
-        { static_cast<int>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG), CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG },
-        { static_cast<int>(SQLITE_GENERAL_NS_NATIVE_ALL),       CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL },
+        { static_cast<int>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY),
+            RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY },
+        { static_cast<int>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG),
+            RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG },
+        { static_cast<int>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL),
+            RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL },
     };
     auto funcType = GetFuncType(conflictType, transMap, sizeof(transMap) / sizeof(TransPair));
-    if (funcType == REGISTER_FUNC_TYPE_MAX) {
+    if (funcType == RegisterFuncType::REGISTER_FUNC_TYPE_MAX) {
         return -E_NOT_SUPPORT;
     }
     type = funcType;
@@ -1670,7 +1688,7 @@ RegisterFuncType SQLiteSingleVerNaturalStore::GetFuncType(int index, const Trans
         }
         return transMap[mid].funcType;
     }
-    return REGISTER_FUNC_TYPE_MAX;
+    return RegisterFuncType::REGISTER_FUNC_TYPE_MAX;
 }
 
 int SQLiteSingleVerNaturalStore::GetSchema(SchemaObject &schema) const
@@ -1931,7 +1949,7 @@ bool SQLiteSingleVerNaturalStore::IsCacheDBMode() const
         return false;
     }
     EngineState engineState = storageEngine_->GetEngineState();
-    return (engineState == CACHEDB);
+    return (engineState == EngineState::CACHEDB);
 }
 
 bool SQLiteSingleVerNaturalStore::IsExtendedCacheDBMode() const
@@ -1941,7 +1959,8 @@ bool SQLiteSingleVerNaturalStore::IsExtendedCacheDBMode() const
         return false;
     }
     EngineState engineState = storageEngine_->GetEngineState();
-    return (engineState == CACHEDB || engineState == MIGRATING || engineState == ATTACHING);
+    return (engineState == EngineState::CACHEDB || engineState == EngineState::MIGRATING ||
+        engineState == EngineState::ATTACHING);
 }
 
 int SQLiteSingleVerNaturalStore::CheckReadDataControlled() const

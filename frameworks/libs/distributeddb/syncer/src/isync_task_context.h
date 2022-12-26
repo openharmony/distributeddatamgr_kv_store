@@ -36,7 +36,7 @@ public:
 
     // Initialize the context
     virtual int Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
-        std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) = 0;
+        const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) = 0;
 
     // Add a sync task target with the operation to the queue
     virtual int AddSyncOperation(SyncOperation *operation) = 0;
@@ -154,6 +154,8 @@ public:
 
     // Judge if the communicator is normal
     virtual bool IsCommNormal() const = 0;
+
+    virtual void ClearSyncOperation() = 0;
 
     // Judge if the sec option check is err
     virtual int GetTaskErrCode() const = 0;

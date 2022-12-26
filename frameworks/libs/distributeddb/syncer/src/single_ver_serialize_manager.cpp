@@ -405,10 +405,9 @@ int SingleVerSerializeManager::DataPacketDeSerialization(const uint8_t *buffer, 
         goto ERROR;
     }
     errCode = inMsg->SetExternalObject<>(packet);
-    if (errCode != E_OK) {
-        goto ERROR;
+    if (errCode == E_OK) {
+        return errCode;
     }
-    return errCode;
 
 ERROR:
     delete packet;

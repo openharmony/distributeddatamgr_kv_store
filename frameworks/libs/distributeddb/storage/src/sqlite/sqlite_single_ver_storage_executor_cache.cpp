@@ -269,7 +269,7 @@ int SQLiteSingleVerStorageExecutor::MigrateDataItem(DataItem &dataItem, const No
     }
     // after solving conflict, the item should not be saved into mainDB
     if (notify.dataStatus.isDefeated) {
-        LOGD("Data status is defeated");
+        LOGD("Data status is defeated:%d", errCode);
         return errCode;
     }
     bool isUpdate = notify.dataStatus.preStatus != DataStatus::NOEXISTED;

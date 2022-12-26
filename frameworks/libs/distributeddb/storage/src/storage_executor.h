@@ -19,7 +19,7 @@
 #include "macro_utils.h"
 
 namespace DistributedDB {
-enum EngineState {
+enum class EngineState {
     INVALID = -1, // default value, representative database is not generated
     CACHEDB,
     ATTACHING, // main db and cache db attach together

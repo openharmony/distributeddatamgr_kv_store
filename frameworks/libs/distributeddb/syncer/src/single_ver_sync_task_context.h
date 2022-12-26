@@ -35,24 +35,23 @@
 namespace DistributedDB {
 class SingleVerSyncTaskContext : public SyncTaskContext {
 public:
-
     explicit SingleVerSyncTaskContext();
 
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncTaskContext);
 
     // Init SingleVerSyncTaskContext
-    int Initialize(const std::string &deviceId, ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
-        ICommunicator *communicator) override;
+    int Initialize(const std::string &deviceId, ISyncInterface *syncInterface,
+        const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) override;
 
     // Add a sync task target with the operation to the queue
     int AddSyncOperation(SyncOperation *operation) override;
 
     bool IsCurrentSyncTaskCanBeSkipped() const override;
 
-    // Set the end water mark of this task
+    // Set the end watermark of this task
     void SetEndMark(WaterMark endMark);
 
-    // Get the end water mark of this task
+    // Get the end watermark of this task
     WaterMark GetEndMark() const;
 
     void GetContinueToken(ContinueToken &outToken) const;
@@ -77,7 +76,7 @@ public:
 
     void ClearAllSyncTask() override;
 
-    // If set true, remote stale data will be clear when remote db rebuiled.
+    // If set true, remote stale data will be clear when remote db rebuilt.
     void EnableClearRemoteStaleData(bool enable);
 
     // Check if need to clear remote device stale data in syncing, when the remote db rebuilt.
@@ -89,12 +88,10 @@ public:
     // stop timer to ResetWatchDog when sync data one (key,value) size bigger than mtu
     void StopFeedDogForSync(SyncDirectionFlag flag);
 
-    virtual int HandleDataRequestRecv(const Message *msg);
-
-    // is receive warterMark err
+    // is receive waterMark err
     bool IsReceiveWaterMarkErr() const;
 
-    // set receive warterMark err
+    // set receive waterMark err
     void SetReceiveWaterMarkErr(bool isErr);
 
     void SetRemoteSeccurityOption(SecurityOption secOption);
@@ -153,8 +150,6 @@ private:
     int GetCorrectedSendWaterMarkForCurrentTask(const SyncOperation *operation, uint64_t &waterMark) const;
 
     bool IsCurrentSyncTaskCanBeSkippedInner(const SyncOperation *operation) const;
-
-    constexpr static int64_t REDUNDACE_WATER_MARK = 1 * 1000LL * 1000LL * 10LL; // 1s
 
     DECLARE_OBJECT_TAG(SingleVerSyncTaskContext);
 

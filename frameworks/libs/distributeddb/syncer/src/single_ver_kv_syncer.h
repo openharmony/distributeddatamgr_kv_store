@@ -33,8 +33,6 @@ public:
     // Remote data changed callback
     void RemoteDataChanged(const std::string &device) override;
 
-    void QueryAutoSync(const InternalSyncParma &param) override;
-
     void TriggerSubscribe(const std::string &device, const QuerySyncObject &query);
 
     SyncerBasicInfo DumpSyncerBasicInfo() override;

@@ -340,6 +340,12 @@ const RelationalDBProperties &VirtualRelationalVerSyncDBInterface::GetRelational
     return rdbProperties_;
 }
 
+int VirtualRelationalVerSyncDBInterface::SaveRemoteDeviceSchema(const std::string &deviceId,
+    const std::string &remoteSchema, uint8_t type)
+{
+    return E_OK;
+}
+
 void VirtualRelationalVerSyncDBInterface::SetPermitCreateDistributedTable(bool permitCreateDistributedTable)
 {
     permitCreateDistributedTable_ = permitCreateDistributedTable;

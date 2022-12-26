@@ -40,7 +40,7 @@ struct ImportFileInfo {
     std::string backValidFile; // the file imply that the backup directory is valid
 };
 
-enum RegisterFuncType {
+enum class RegisterFuncType {
     OBSERVER_SINGLE_VERSION_NS_PUT_EVENT = 0,
     OBSERVER_SINGLE_VERSION_NS_SYNC_EVENT,
     OBSERVER_SINGLE_VERSION_NS_LOCAL_EVENT,
@@ -179,7 +179,7 @@ private:
 
     DECLARE_OBJECT_TAG(GenericKvDB);
 
-    // Databasse  event notify counter.
+    // Databasse event notify counter.
     std::atomic<uint64_t> eventNotifyCounter_;
 
     // Fields for tracking the connection count and invoking callbacks.
