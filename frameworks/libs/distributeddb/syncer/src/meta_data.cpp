@@ -350,7 +350,7 @@ int Metadata::LoadDeviceIdDataToMap(const Key &key)
 void Metadata::GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash)
 {
     if (!isNeedHash) {
-        hashDeviceId = deviceId;
+        hashDeviceId = DBConstant::DEVICEID_PREFIX_KEY + deviceId;
         return;
     }
     if (deviceIdToHashDeviceIdMap_.count(deviceId) == 0) {
