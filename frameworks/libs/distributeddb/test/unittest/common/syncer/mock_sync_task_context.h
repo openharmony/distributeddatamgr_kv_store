@@ -32,6 +32,21 @@ public:
         SingleVerKvSyncTaskContext::SetMode(mode);
     }
 
+    uint32_t CallGenerateRequestSessionId()
+    {
+        return GenerateRequestSessionId();
+    }
+
+    void SetLastRequestSessionId(uint32_t requestSessionId)
+    {
+        lastRequestSessionId_ = requestSessionId;
+    }
+
+    uint32_t GetLastRequestSessionId()
+    {
+        return lastRequestSessionId_;
+    }
+
     MOCK_CONST_METHOD0(GetTimerId, TimerId(void));
 
     MOCK_METHOD0(MoveToNextTarget, void(void));

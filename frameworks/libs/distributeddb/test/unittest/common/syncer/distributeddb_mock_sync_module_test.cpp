@@ -243,7 +243,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
 
+    syncTaskContext.SetLastRequestSessionId(1u);
     EXPECT_CALL(syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
+    EXPECT_CALL(syncTaskContext, Clear()).WillRepeatedly([&syncTaskContext]() {
+        syncTaskContext.SetLastRequestSessionId(0u);
+    });
     EXPECT_CALL(syncTaskContext, MoveToNextTarget()).WillRepeatedly(Return());
     EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped()).WillOnce(Return(true)).WillOnce(Return(false));
     // we expect machine don't change context status when queue not empty
@@ -252,6 +256,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).Times(0);
 
     EXPECT_EQ(stateMachine.CallExecNextTask(), E_OK);
+    EXPECT_EQ(syncTaskContext.GetLastRequestSessionId(), 0u);
 }
 
 /**
@@ -1514,4 +1519,21 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
     std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
     syncer->SetSyncRetry(true);
     syncer = nullptr;
+}
+
+/**
+ * @tc.name: SessionId001
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
+{
+    auto context = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    const uint32_t sessionIdMaxValue = 0x8fffffffu;
+    context->SetLastRequestSessionId(sessionIdMaxValue);
+    EXPECT_LE(context->CallGenerateRequestSessionId(), sessionIdMaxValue);
+    RefObject::KillAndDecObjRef(context);
 }
