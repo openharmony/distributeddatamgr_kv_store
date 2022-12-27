@@ -20,7 +20,9 @@
 #include "distributeddb_communicator_common.h"
 #include "distributeddb_tools_unit_test.h"
 #include "log_print.h"
+#include "network_adapter.h"
 #include "message.h"
+#include "mock_process_communicator.h"
 #include "serial_buffer.h"
 
 using namespace std;
@@ -559,4 +561,299 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
     AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
     AdapterStub::DisconnectAdapterStub(g_envDeviceC.adapterHandle, g_envDeviceA.adapterHandle);
+}
+
+/**
+ * @tc.name: NetworkAdapter001
+ * @tc.desc: Test networkAdapter start func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    EXPECT_CALL(*processCommunicator, Stop).WillRepeatedly([]() {
+        return OK;
+    });
+    /**
+     * @tc.steps: step1. adapter start with empty label
+     * @tc.expected: step1. start failed
+     */
+    auto adapter = std::make_shared<NetworkAdapter>("");
+    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
+    /**
+     * @tc.steps: step2. adapter start with not empty label but processCommunicator is null
+     * @tc.expected: step2. start failed
+     */
+    adapter = std::make_shared<NetworkAdapter>("label");
+    EXPECT_EQ(adapter->StartAdapter(), -E_INVALID_ARGS);
+    /**
+     * @tc.steps: step3. processCommunicator start not ok
+     * @tc.expected: step3. start failed
+     */
+    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
+        return DB_ERROR;
+    });
+    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
+    /**
+     * @tc.steps: step4. processCommunicator reg not ok
+     * @tc.expected: step4. start failed
+     */
+    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
+        return OK;
+    });
+    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly([](const OnDataReceive &) {
+        return DB_ERROR;
+    });
+    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
+    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly([](const OnDataReceive &) {
+        return OK;
+    });
+    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly([](const OnDeviceChange &) {
+        return DB_ERROR;
+    });
+    EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
+    /**
+     * @tc.steps: step5. processCommunicator reg ok
+     * @tc.expected: step5. start success
+     */
+    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly([](const OnDeviceChange &) {
+        return OK;
+    });
+    EXPECT_CALL(*processCommunicator, GetLocalDeviceInfos).WillRepeatedly([]() {
+        DeviceInfos deviceInfos;
+        deviceInfos.identifier = "DEVICES_A"; // local is deviceA
+        return deviceInfos;
+    });
+    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
+        std::vector<DeviceInfos> res;
+        DeviceInfos deviceInfos;
+        deviceInfos.identifier = "DEVICES_A"; // search local is deviceA
+        res.push_back(deviceInfos);
+        deviceInfos.identifier = "DEVICES_B"; // search remote is deviceB
+        res.push_back(deviceInfos);
+        return res;
+    });
+    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
+        return false;
+    });
+    EXPECT_EQ(adapter->StartAdapter(), E_OK);
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
+ * @tc.name: NetworkAdapter002
+ * @tc.desc: Test networkAdapter get mtu func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter002, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    /**
+     * @tc.steps: step1. processCommunicator return 0 mtu
+     * @tc.expected: step1. adapter will adjust to min mtu
+     */
+    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
+        return 0u;
+    });
+    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
+    /**
+     * @tc.steps: step2. processCommunicator return 2 max mtu
+     * @tc.expected: step2. adapter will return min mtu util re make
+     */
+    EXPECT_CALL(*processCommunicator, GetMtuSize).WillRepeatedly([]() {
+        return 2 * DBConstant::MAX_MTU_SIZE;
+    });
+    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MIN_MTU_SIZE);
+    adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    EXPECT_EQ(adapter->GetMtuSize(), DBConstant::MAX_MTU_SIZE);
+}
+
+/**
+ * @tc.name: NetworkAdapter003
+ * @tc.desc: Test networkAdapter get timeout func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter003, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    /**
+     * @tc.steps: step1. processCommunicator return 0 timeout
+     * @tc.expected: step1. adapter will adjust to min timeout
+     */
+    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
+        return 0u;
+    });
+    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MIN_TIMEOUT);
+    /**
+     * @tc.steps: step2. processCommunicator return 2 max timeout
+     * @tc.expected: step2. adapter will adjust to max timeout
+     */
+    EXPECT_CALL(*processCommunicator, GetTimeout).WillRepeatedly([]() {
+        return 2 * DBConstant::MAX_TIMEOUT;
+    });
+    EXPECT_EQ(adapter->GetTimeout(), DBConstant::MAX_TIMEOUT);
+}
+
+/**
+ * @tc.name: NetworkAdapter004
+ * @tc.desc: Test networkAdapter send bytes func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+
+    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
+        return OK;
+    });
+    /**
+     * @tc.steps: step1. adapter send data with error param
+     * @tc.expected: step1. adapter send failed
+     */
+    auto data = std::make_shared<uint8_t>(1u);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1), -E_INVALID_ARGS);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0), -E_INVALID_ARGS);
+    /**
+     * @tc.steps: step2. adapter send data with right param
+     * @tc.expected: step2. adapter send ok
+     */
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1), E_OK);
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+namespace {
+void InitAdapter(const std::shared_ptr<NetworkAdapter> &adapter,
+    const std::shared_ptr<MockProcessCommunicator> &processCommunicator,
+    OnDataReceive &onDataReceive, OnDeviceChange &onDataChange)
+{
+    EXPECT_CALL(*processCommunicator, Stop).WillRepeatedly([]() {
+        return OK;
+    });
+    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
+        return OK;
+    });
+    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(
+        [&onDataReceive](const OnDataReceive &callback) {
+            onDataReceive = callback;
+            return OK;
+    });
+    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(
+        [&onDataChange](const OnDeviceChange &callback) {
+            onDataChange = callback;
+            return OK;
+    });
+    EXPECT_CALL(*processCommunicator, GetRemoteOnlineDeviceInfosList).WillRepeatedly([]() {
+        std::vector<DeviceInfos> res;
+        return res;
+    });
+    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
+        return false;
+    });
+    EXPECT_EQ(adapter->StartAdapter(), E_OK);
+}
+}
+/**
+ * @tc.name: NetworkAdapter005
+ * @tc.desc: Test networkAdapter receive data func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter005, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    OnDataReceive onDataReceive;
+    OnDeviceChange onDeviceChange;
+    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
+    ASSERT_NE(onDataReceive, nullptr);
+    /**
+     * @tc.steps: step1. adapter recv data with error param
+     */
+    auto data = std::make_shared<uint8_t>(1);
+    DeviceInfos deviceInfos;
+    onDataReceive(deviceInfos, nullptr, 1);
+    onDataReceive(deviceInfos, data.get(), 0);
+    /**
+     * @tc.steps: step2. adapter recv data with no permission
+     */
+    EXPECT_CALL(*processCommunicator, CheckAndGetDataHeadInfo).WillRepeatedly(
+        [](const uint8_t *, uint32_t, uint32_t &, std::vector<std::string> &) {
+        return NO_PERMISSION;
+    });
+    onDataReceive(deviceInfos, data.get(), 1);
+    EXPECT_CALL(*processCommunicator, CheckAndGetDataHeadInfo).WillRepeatedly(
+        [](const uint8_t *, uint32_t, uint32_t &, std::vector<std::string> &userIds) {
+            userIds.emplace_back("1");
+            return OK;
+    });
+    /**
+     * @tc.steps: step3. adapter recv data with no callback
+     */
+    onDataReceive(deviceInfos, data.get(), 1);
+    adapter->RegBytesReceiveCallback([](const std::string &, const uint8_t *, uint32_t, const std::string &) {
+    }, nullptr);
+    onDataReceive(deviceInfos, data.get(), 1);
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
+ * @tc.name: NetworkAdapter006
+ * @tc.desc: Test networkAdapter device change func
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
+    OnDataReceive onDataReceive;
+    OnDeviceChange onDeviceChange;
+    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
+    ASSERT_NE(onDeviceChange, nullptr);
+    DeviceInfos deviceInfos;
+    /**
+     * @tc.steps: step1. onDeviceChange with no same process
+     */
+    onDeviceChange(deviceInfos, true);
+    /**
+     * @tc.steps: step2. onDeviceChange with same process
+     */
+    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
+        return true;
+    });
+    onDeviceChange(deviceInfos, true);
+    adapter->RegTargetChangeCallback([](const std::string &, bool) {
+    }, nullptr);
+    onDeviceChange(deviceInfos, false);
+    /**
+     * @tc.steps: step3. adapter send data with db_error
+     * @tc.expected: step3. adapter send failed
+     */
+    onDeviceChange(deviceInfos, true);
+    EXPECT_CALL(*processCommunicator, SendData).WillRepeatedly([](const DeviceInfos &, const uint8_t *, uint32_t) {
+        return DB_ERROR;
+    });
+    EXPECT_CALL(*processCommunicator, IsSameProcessLabelStartedOnPeerDevice).WillRepeatedly([](const DeviceInfos &) {
+        return false;
+    });
+    auto data = std::make_shared<uint8_t>(1);
+    EXPECT_EQ(adapter->SendBytes("", data.get(), 1), -E_PERIPHERAL_INTERFACE_FAIL);
+    RuntimeContext::GetInstance()->StopTaskPool();
+    EXPECT_EQ(adapter->IsDeviceOnline(""), false);
+    ExtendInfo info;
+    EXPECT_EQ(adapter->GetExtendHeaderHandle(info), nullptr);
 }
