@@ -227,4 +227,58 @@ HWTEST_F(AutoSyncTimerTest, SingleWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
 }
+
+/**
+* @tc.name: MultiWriteOvertenKVStores
+* @tc.desc: mulity wirte
+* @tc.type: FUNC
+* @tc.require: I4XVQQ
+* @tc.author: YangQing
+*/
+HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->ResetToZero();
+    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+    instance->endTime = 0;
+    instance->values_.clear();
+    std::atomic_bool finished = false;
+    std::thread thread([&finished] {
+        while (!finished.load()) {
+            AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {
+                                                                   { "ut_test_store0" },
+                                                                   { "ut_test_store1" },
+                                                                   { "ut_test_store2" },
+                                                                   { "ut_test_store3" },
+                                                                   { "ut_test_store4" },
+                                                                   { "ut_test_store5" },
+                                                                   { "ut_test_store6" },
+                                                                   { "ut_test_store7" },
+                                                                   { "ut_test_store8" },
+                                                                   { "ut_test_store9" },
+                                                                   { "ut_test_store10" },
+                                                               });
+            usleep(40);
+        }
+    });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    ASSERT_GE(instance->endTime - instance->startTime, 200);
+    ASSERT_LT(instance->endTime - instance->startTime, 250);
+    finished.store(true);
+    thread.join();
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(11)), 11);
+    auto it = instance->values_.find("ut_test");
+    ASSERT_EQ(it->second.count("ut_test_store0"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store1"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store2"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store3"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store4"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store5"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store6"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store8"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store9"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store10"), 1);
+}
 }
