@@ -218,24 +218,47 @@ int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end,
     const DataSizeSpecInfo &dataSizeInfo) const
 {
     std::vector<VirtualDataItem> dataItems;
-    int errCode = GetSyncData(begin, end, dataSizeInfo.blockSize, dataItems, continueStmtToken);
-    if (errCode != E_OK) {
+    int errCode = GetSyncData(begin, end, dataSizeInfo, dataItems, continueStmtToken);
+    if ((errCode != E_OK) && (errCode != -E_UNFINISHED)) {
         LOGE("[VirtualSingleVerSyncDBInterface][GetSyncData] GetSyncData failed err %d", errCode);
         return errCode;
     }
-    return GetEntriesFromItems(entries, dataItems);
+    int innerCode = GetEntriesFromItems(entries, dataItems);
+    if (innerCode != E_OK) {
+        return innerCode;
+    }
+    return errCode;
 }
 
 int VirtualSingleVerSyncDBInterface::GetSyncDataNext(std::vector<SingleVerKvEntry *> &entries,
     ContinueToken &continueStmtToken, const DataSizeSpecInfo &dataSizeInfo) const
 {
     if (continueStmtToken == nullptr) {
-        return -E_NOT_SUPPORT;
+        return -E_INVALID_ARGS;
     }
-    return 0;
+    int errCode = DataControl();
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    VirtualContinueToken *token = static_cast<VirtualContinueToken *>(continueStmtToken);
+    Timestamp currentWaterMark = 0;
+    std::vector<VirtualDataItem> dataItems;
+    bool isFinished = GetDataInner(token->begin, token->end, currentWaterMark, dataSizeInfo, dataItems);
+    if (isFinished) {
+        delete token;
+        continueStmtToken = nullptr;
+    } else {
+        currentWaterMark++;
+        token->begin = currentWaterMark;
+    }
+    int innerCode = GetEntriesFromItems(entries, dataItems);
+    if (innerCode != E_OK) {
+        return innerCode;
+    }
+    return isFinished ? E_OK : -E_UNFINISHED;
 }
 
-int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize,
+int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
     std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const
 {
     if (getDataDelayTime_ > 0) {
@@ -245,16 +268,22 @@ int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end,
     if (errCode != E_OK) {
         return errCode;
     }
-    for (const auto &data : dbData_) {
-        if (data.isLocal) {
-            if (data.writeTimestamp >= begin && data.writeTimestamp < end) {
-                dataItems.push_back(data);
-            }
+    Timestamp currentWaterMark = 0;
+    bool isFinished = GetDataInner(begin, end, currentWaterMark, dataSizeInfo, dataItems);
+    if (!isFinished) {
+        VirtualContinueToken *token = new VirtualContinueToken();
+        if (token == nullptr) {
+            LOGD("virtual alloc token failed");
+            dataItems.clear();
+            return -E_OUT_OF_MEMORY;
         }
+        currentWaterMark++;
+        token->begin = currentWaterMark;
+        token->end = end;
+        continueStmtToken = static_cast<VirtualContinueToken *>(token);
     }
-    continueStmtToken = nullptr;
     LOGD("dataItems size %zu", dataItems.size());
-    return E_OK;
+    return isFinished ? E_OK : -E_UNFINISHED;
 }
 
 void VirtualSingleVerSyncDBInterface::SetSaveDataDelayTime(uint64_t milliDelayTime)
@@ -517,5 +546,25 @@ void VirtualSingleVerSyncDBInterface::ResetDataControl()
 {
     countDown_ = -1;
     expectedErrCode_ = E_OK;
+}
+
+bool VirtualSingleVerSyncDBInterface::GetDataInner(Timestamp begin, Timestamp end, Timestamp &currentWaterMark,
+    const DataSizeSpecInfo &dataSizeInfo, std::vector<VirtualDataItem> &dataItems) const
+{
+    bool isFinished = true;
+    for (const auto &data : dbData_) {
+        if (dataItems.size() >= dataSizeInfo.packetSize) {
+            LOGD("virtual device dataItem size reach to packetSize=%u", dataSizeInfo.packetSize);
+            isFinished = false;
+            break;
+        }
+        if (data.isLocal) {
+            if (data.writeTimestamp >= begin && data.writeTimestamp < end) {
+                dataItems.push_back(data);
+                currentWaterMark = data.writeTimestamp;
+            }
+        }
+    }
+    return isFinished;
 }
 }  // namespace DistributedDB
