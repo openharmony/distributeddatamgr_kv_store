@@ -36,6 +36,11 @@ struct VirtualDataItem {
     static const uint64_t DELETE_FLAG = 0x01;
     static const uint64_t LOCAL_FLAG = 0x02;
 };
+
+struct VirtualContinueToken {
+    Timestamp begin = 0u;
+    Timestamp end = 0u;
+};
 class VirtualSingleVerSyncDBInterface : public SingleVerKvDBSyncInterface {
 public:
     VirtualSingleVerSyncDBInterface();
@@ -137,8 +142,8 @@ public:
     void SetGetDataErrCode(int whichTime, int errCode, bool isGetDataControl);
     void ResetDataControl();
 private:
-    int GetSyncData(Timestamp begin, Timestamp end, uint32_t blockSize, std::vector<VirtualDataItem>& dataItems,
-        ContinueToken& continueStmtToken) const;
+    int GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
+        std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const;
 
     int GetSyncDataNext(std::vector<VirtualDataItem>& dataItems,
         uint32_t blockSize, ContinueToken& continueStmtToken) const;
@@ -146,6 +151,9 @@ private:
     int PutSyncData(std::vector<VirtualDataItem>& dataItems, const std::string &deviceName);
 
     int DataControl() const;
+
+    bool GetDataInner(Timestamp begin, Timestamp end, Timestamp &currentWaterMark,
+        const DataSizeSpecInfo &dataSizeInfo, std::vector<VirtualDataItem> &dataItems) const;
 
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
     std::vector<VirtualDataItem> dbData_;
