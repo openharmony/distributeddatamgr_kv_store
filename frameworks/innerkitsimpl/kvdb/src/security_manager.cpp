@@ -73,7 +73,7 @@ SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string
 {
     DBPasswordData passwordData;
     auto secKey = LoadKeyFromFile(name, path, passwordData.isKeyOutdated);
-    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", 
+    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d",
         name.c_str(), path.c_str(), needCreate);
     if (secKey.empty()) {
         if (!needCreate) {
@@ -115,7 +115,7 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
     return key;
 }
 
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path, 
+std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
                                                       bool &isKeyOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
@@ -372,7 +372,7 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
     return (oneYearLater > currentTime);
 }
 
-bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData, 
+bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
                             const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
 {
     int32_t rekeyTimes = 0;

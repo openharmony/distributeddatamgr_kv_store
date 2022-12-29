@@ -55,7 +55,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, 
+        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
                                                                          options.baseDir, options.encrypt);
         auto dbOption = GetDBOption(options, passwordData.password);
         if (passwordData.password.GetSize() == 0 && options.encrypt) {
