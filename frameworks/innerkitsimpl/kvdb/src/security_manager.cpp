@@ -355,10 +355,8 @@ int32_t SecurityManager::CheckRootKey()
 
     ret = HksKeyExist(&rootKeyName, params);
     HksFreeParamSet(&params);
-    if (ret != HKS_SUCCESS) {
-        ZLOGE("IsExistRootKey HksEncrypt-client failed with error %{public}d", ret);
-    }
-    return ret == HKS_SUCCESS;
+    ZLOGI("HksKeyExist status: %{public}d", ret);
+    return ret;
 }
 
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
