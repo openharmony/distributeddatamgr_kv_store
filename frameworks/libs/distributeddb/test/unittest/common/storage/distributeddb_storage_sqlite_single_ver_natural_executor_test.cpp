@@ -18,6 +18,8 @@
 #include "db_constant.h"
 #include "db_common.h"
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
+#include "kvdb_pragma.h"
+#include "storage_engine_manager.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -484,4 +486,289 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidSync001,
     item.writeTimestamp = 1;
     item.flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY;
     EXPECT_EQ(g_handle->SaveSyncDataItem(item, info, time, &data, true), E_OK);
+}
+
+/**
+  * @tc.name: ConnectionTest001
+  * @tc.desc: Failed to get the keys
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. the dataType is error
+     * @tc.expected: step1. Expect -E_INVALID_ARGS
+     */
+    IOption option;
+    option.dataType = IOption::SYNC_DATA + 1;
+    vector<Key> keys;
+    EXPECT_EQ(g_connection->GetKeys(option, KEY_1, keys), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. Get keys in cacheDB state
+     * @tc.expected: step2. Expect -E_EKEYREVOKED
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+    option.dataType = IOption::LOCAL_DATA;
+    EXPECT_EQ(g_connection->GetKeys(option, KEY_1, keys), -E_EKEYREVOKED);
+    storageEngine->Release();
+
+    /**
+     * @tc.steps: step3. Get keys in null db connection
+     * @tc.expected: step3. Expect -E_NOT_INIT
+     */
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    ASSERT_NE(emptyConn, nullptr);
+    EXPECT_EQ(emptyConn->GetKeys(option, KEY_1, keys), -E_NOT_INIT);
+}
+
+/**
+  * @tc.name: ConnectionTest002
+  * @tc.desc: Push and delete on empty connect
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest002, TestSize.Level1)
+{
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    IOption option = {IOption::LOCAL_DATA};
+    std::vector<Entry> entries;
+    EXPECT_EQ(emptyConn->PutBatch(option, entries), -E_INVALID_DB);
+    std::vector<Key> keys;
+    EXPECT_EQ(emptyConn->DeleteBatch(option, keys), -E_INVALID_DB);
+    option.dataType = IOption::SYNC_DATA;
+    EXPECT_EQ(emptyConn->PutBatch(option, entries), -E_INVALID_DB);
+    EXPECT_EQ(emptyConn->DeleteBatch(option, keys), -E_INVALID_DB);
+}
+
+/**
+  * @tc.name: ConnectionTest003
+  * @tc.desc: Failed to Put and Delete
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Only change the storageEngine to cacheDB
+     * @tc.expected: step1. Expect -1
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+    IOption option = {IOption::SYNC_DATA};
+    std::vector<Entry> entries;
+    entries.push_back(ENTRY_1);
+    g_store->ReleaseHandle(g_handle);
+    EXPECT_EQ(g_connection->PutBatch(option, entries), -1); // -1 is sqlite error
+    std::vector<Key> keys;
+    keys.push_back(KEY_1);
+    EXPECT_EQ(g_connection->DeleteBatch(option, keys), -1);
+
+    /**
+     * @tc.steps: step2.Change to LOCAL_DATA option
+     * @tc.expected: step2. Expect -1
+     */
+    option.dataType = IOption::LOCAL_DATA;
+    EXPECT_EQ(g_connection->PutBatch(option, entries), -1);
+    EXPECT_EQ(g_connection->DeleteBatch(option, keys), -1);
+
+    /**
+     * @tc.steps: step3. Table sync_data adds a column to make the num of cols equal to the cacheDB
+     * @tc.expected: step3. Expect E_OK
+     */
+    sqlite3 *db;
+    ASSERT_TRUE(sqlite3_open_v2((g_testDir + g_databaseName).c_str(),
+        &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    string addSync = "alter table sync_data add column version INT";
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, addSync) == E_OK);
+    sqlite3_close_v2(db);
+    option.dataType = IOption::SYNC_DATA;
+    EXPECT_EQ(g_connection->PutBatch(option, entries), E_OK);
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: ConnectionTest004
+  * @tc.desc: Failed to GetResultSet
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ConnectionTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. the db is null
+     * @tc.expected: step1. Expect -E_INVALID_DB
+     */
+    g_store->ReleaseHandle(g_handle);
+    IOption option;
+    option.dataType = IOption::SYNC_DATA;
+    IKvDBResultSet *set = nullptr;
+    Query query = Query::Select();
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    EXPECT_EQ(emptyConn->GetResultSet(option, KEY_1, set), -E_INVALID_DB);
+    emptyConn->ReleaseResultSet(set);
+
+    /**
+     * @tc.steps: step2. get in transaction
+     * @tc.expected: step2. Expect -E_BUSY
+     */
+    g_connection->StartTransaction();
+    EXPECT_EQ(g_connection->GetResultSet(option, query, set), -E_BUSY);
+    g_connection->RollBack();
+
+    /**
+     * @tc.steps: step3. change the storageEngine to cacheDB
+     * @tc.expected: step3. Expect -E_EKEYREVOKED
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+    EXPECT_EQ(g_connection->GetResultSet(option, query, set), -E_EKEYREVOKED);
+    EXPECT_EQ(g_connection->GetResultSet(option, KEY_1, set), -E_EKEYREVOKED);
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: PragmaTest001
+  * @tc.desc: Calling Pragma incorrectly
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. the parameter is null
+     * @tc.expected: step1. Expect -E_INVALID_ARGS
+     */
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_RESULT_SET_CACHE_MODE, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_SET_AUTO_LIFE_CYCLE, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_UNPUBLISH_SYNC, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_GET_DEVICE_IDENTIFIER_OF_ENTRY, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_SET_MAX_LOG_LIMIT, nullptr), -E_INVALID_ARGS);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_GET_IDENTIFIER_OF_DEVICE, nullptr), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step2. the option is invalid
+     * @tc.expected: step2. Expect -E_INVALID_ARGS
+     */
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    ASSERT_NE(emptyConn, nullptr);
+    SecurityOption option = {S3, SECE};
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_TRIGGER_TO_MIGRATE_DATA, &option), -E_INVALID_CONNECTION);
+
+    /**
+     * @tc.steps: step3. the size is invalid
+     * @tc.expected: step3. Expect -E_INVALID_ARGS
+     */
+    int size = 0;
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, &size), -E_INVALID_ARGS);
+    size = 1;
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, &size), E_OK);
+
+    /**
+     * @tc.steps: step4. the mode is invalid
+     * @tc.expected: step4. Expect -E_INVALID_ARGS
+     */
+    ResultSetCacheMode mode = ResultSetCacheMode(2); // 2 is invalid mode
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MODE, &mode), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step5. the db is null
+     * @tc.expected: step5. Expect -E_INVALID_DB
+     */
+    int time = 6000; // 6000 is random
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_SET_AUTO_LIFE_CYCLE, &time), -E_INVALID_DB);
+}
+
+/**
+  * @tc.name: PragmaTest002
+  * @tc.desc: Incorrect publishing and unPublishing
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. the db is null
+     * @tc.expected: step1. Expect -E_INVALID_DB
+     */
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    PragmaPublishInfo info;
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_INVALID_DB);
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_UNPUBLISH_SYNC, &info), -E_INVALID_DB);
+
+    /**
+     * @tc.steps: step2. publish in transaction
+     * @tc.expected: step2. Expect -E_NOT_SUPPORT
+     */
+    g_store->ReleaseHandle(g_handle);
+    g_connection->StartTransaction();
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_UNPUBLISH_SYNC, &info), -E_NOT_SUPPORT);
+    g_connection->RollBack();
+
+    /**
+     * @tc.steps: step3. publish in cacheDB
+     * @tc.expected: step3. Expect -E_EKEYREVOKED
+     */
+    int errCode = E_OK;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_PUBLISH_LOCAL, &info), -E_EKEYREVOKED);
+    EXPECT_EQ(g_connection->Pragma(PRAGMA_UNPUBLISH_SYNC, &info), -E_EKEYREVOKED);
+    g_connection->StartTransaction();
+    g_connection->Commit();
+    storageEngine->Release();
+}
+
+/**
+  * @tc.name: PragmaTest003
+  * @tc.desc: Failed to call function with empty connection
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest003, TestSize.Level1)
+{
+    std::unique_ptr<SQLiteSingleVerNaturalStoreConnection> emptyConn =
+        std::make_unique<SQLiteSingleVerNaturalStoreConnection>(nullptr);
+    PragmaEntryDeviceIdentifier identifier = {.key = KEY_1};
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_GET_DEVICE_IDENTIFIER_OF_ENTRY, &identifier), -E_NOT_INIT);
+    EXPECT_EQ(emptyConn->CheckIntegrity(), -E_NOT_INIT);
+
+    int limit = 0;
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_SET_MAX_LOG_LIMIT, &limit), -E_INVALID_DB);
+    CipherPassword pw;
+    EXPECT_EQ(emptyConn->Import("/a.b", pw), -E_INVALID_DB);
+    DatabaseLifeCycleNotifier notifier;
+    EXPECT_EQ(emptyConn->RegisterLifeCycleCallback(notifier), -E_INVALID_DB);
 }
