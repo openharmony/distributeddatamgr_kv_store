@@ -69,11 +69,12 @@ bool SecurityManager::Retry()
 }
 
 SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path , bool needCreate)
+    const std::string &path, bool needCreate)
 {
     DBPasswordData passwordData;
     auto secKey = LoadKeyFromFile(name, path, passwordData.isKeyOutdated);
-    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", name.c_str(), path.c_str(), needCreate);
+    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d", 
+        name.c_str(), path.c_str(), needCreate);
     if (secKey.empty()) {
         if (!needCreate) {
             return {false, DBPassword()};
@@ -114,7 +115,8 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
     return key;
 }
 
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path, bool &isKeyOutdated)
+std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path, 
+                                                      bool &isKeyOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!FileExists(keyPath)) {
@@ -145,9 +147,6 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     ZLOGE("run in key load %{public}d", key.size());
-    // for (auto &ele : key) { ***
-    //     ZLOGE("%{public}02x", ele);
-    // }
     std::vector<uint8_t> secretKey {};
     content.assign(content.size(), 0);
     if(!Decrypt(key, secretKey)) {
@@ -373,24 +372,25 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
     return (oneYearLater > currentTime);
 }
 
-bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData, const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
+bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData, 
+                            const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
 {
     int32_t rekeyTimes = 0;
     DBStatus status = DBStatus::DB_ERROR;
     DBStore *kvStore = nullptr;
     bool isRekeySuccess = false;
     while (passwordData.isKeyOutdated && rekeyTimes < REKET_TIMES) {
-      IsKeyValid(name, status, kvStore, dbManager, dbOption);
-      if (ExecuteRekey(name, path, passwordData, dbManager, kvStore) == Status::SUCCESS) {
-        isRekeySuccess = true;
-        return isRekeySuccess;
-      } else {
-        RekeyRecover(name, path, passwordData, dbManager, dbOption);
-        rekeyTimes++;
-      }
+        IsKeyValid(name, status, kvStore, dbManager, dbOption);
+        if (ExecuteRekey(name, path, passwordData, dbManager, kvStore) == Status::SUCCESS) {
+            isRekeySuccess = true;
+            return isRekeySuccess;
+        } else {
+            RekeyRecover(name, path, passwordData, dbManager, dbOption);
+            rekeyTimes++;
+        }
     }
-    if (rekeyTimes == 3) {
-      isRekeySuccess = false;
+    if (rekeyTimes == REKET_TIMES) {
+        isRekeySuccess = false;
     }
     return isRekeySuccess;
 }
@@ -416,11 +416,11 @@ void SecurityManager::RekeyRecover(const std::string &name, const std::string &p
     }
 }
 
-bool SecurityManager::IsKeyValid(const std::string &name,DBStatus status, DBStore *kvStore,
+bool SecurityManager::IsKeyValid(const std::string &name, DBStatus status, DBStore *kvStore,
     const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
 {
     bool isKeyValid = true;
-    dbManager->GetKvStore(name, dbOption, [&status, &kvStore, &isKeyValid](auto dbStatus, auto *dbStore){
+    dbManager->GetKvStore(name, dbOption, [&status, &kvStore, &isKeyValid](auto dbStatus, auto *dbStore) {
         status = dbStatus;
         kvStore = dbStore;
         if (kvStore == nullptr) {
@@ -442,15 +442,15 @@ Status SecurityManager::ExecuteRekey(const std::string &name, const std::string 
     
     auto dbStatus = dbStore->Export(backupOldFullName, passwordData.password);
     if (dbStatus != DBStatus::OK) {
-      ZLOGE("failed to backup the database.");
-      return ExitRekey(dbStatus, rekeyPath);
+        ZLOGE("failed to backup the database.");
+        return ExitRekey(dbStatus, rekeyPath);
     }
 
     DBStore *backupStore = nullptr;
     dbStatus = backupStore->Import(backupOldFullName, passwordData.password);
     if (dbStatus != DBStatus::OK) {
-      ZLOGE("failed to make the substitute database.");
-      return ExitRekey(dbStatus, rekeyPath);
+        ZLOGE("failed to make the substitute database.");
+        return ExitRekey(dbStatus, rekeyPath);
     }
 
     std::vector<uint8_t> secKey = Random(KEY_SIZE);
@@ -466,20 +466,20 @@ Status SecurityManager::ExecuteRekey(const std::string &name, const std::string 
 
     dbStatus = backupStore->Rekey(password);
     if (dbStatus != DBStatus::OK) {
-      ZLOGE("failed to rekey the substitute database.");
-      return ExitRekey(dbStatus, rekeyPath);
+        ZLOGE("failed to rekey the substitute database.");
+        return ExitRekey(dbStatus, rekeyPath);
     }
 
     dbStatus = backupStore->Export(backupNewFullName, password);
     if (dbStatus != DBStatus::OK) {
-      ZLOGE("failed to export the rekeyed database.");
-      return ExitRekey(dbStatus, rekeyPath);
+        ZLOGE("failed to export the rekeyed database.");
+        return ExitRekey(dbStatus, rekeyPath);
     }
 
     dbStatus = dbStore->Import(backupNewFullName, password);
     if (dbStatus != DBStatus::OK) {
-      ZLOGE("failed to change the database.");
-      return ExitRekey(dbStatus, rekeyPath);
+        ZLOGE("failed to change the database.");
+        return ExitRekey(dbStatus, rekeyPath);
     }
 
     passwordData.password = password;

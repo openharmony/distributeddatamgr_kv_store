@@ -55,7 +55,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+        auto passwordData = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, 
+                                                                         options.baseDir, options.encrypt);
         auto dbOption = GetDBOption(options, passwordData.password);
         if (passwordData.password.GetSize() == 0 && options.encrypt) {
             status = CRYPT_ERROR;
@@ -63,10 +64,10 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         SecurityManager::GetInstance().RekeyRecover(storeId, options.baseDir, passwordData, dbManager, dbOption);
-         if (passwordData.isKeyOutdated &&
+        if (passwordData.isKeyOutdated &&
             !SecurityManager::GetInstance().ReKey(storeId, options.baseDir, passwordData, dbManager, dbOption)) {
-             return !stores.empty();
-         }
+            return !stores.empty();
+        }
 
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, passwordData.password),

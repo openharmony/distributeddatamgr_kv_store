@@ -55,8 +55,6 @@ private:
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
     std::vector<uint8_t> Random(int32_t len);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
-//    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path);
-//    bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
     int32_t GenerateRootKey();
     int32_t CheckRootKey();
     bool Retry();
@@ -64,7 +62,7 @@ private:
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
     Status ExecuteRekey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
                         const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore);
-    static bool IsKeyValid(const std::string &name,DBStatus status, DBStore *kvStore,
+    static bool IsKeyValid(const std::string &name, DBStatus status, DBStore *kvStore,
                            const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
     Status ExitRekey(DBStatus &dbStatus, const std::string &rekeyPath);
 
