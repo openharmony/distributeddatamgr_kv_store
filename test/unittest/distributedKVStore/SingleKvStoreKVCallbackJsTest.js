@@ -2216,12 +2216,19 @@ describe('SingleKvStoreCallbackTest', function () {
     it('SingleKvStoreGetResultSetPredicatesCallbackTest', 0, async function (done) {
         console.log('SingleKvStoreGetResultSetPredicatesCallbackTest');
         try {
+            let resultSet;
             let predicates = new dataShare.DataSharePredicates();
             await kvStore.getResultSet(predicates).then((result) => {
                 console.log('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet success');
+                resultSet = result;
                 expect(true).assertTrue();
             }).catch((err) => {
                 console.error('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet fail ' + err`, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
+            });
+            await kvStore.closeResultSet(resultSet).then((err) => {
+                expect(err == undefined).assertTrue();
+            }).catch((err) => {
                 expect(null).assertFail();
             });
         } catch (e) {
