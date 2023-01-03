@@ -253,14 +253,14 @@ void TestSyncWithUserChange(bool wait)
     CipherPassword passwd;
     bool startSync = false;
     std::condition_variable cv;
-    thread subThread([&startSync, &cv]() {
+    thread subThread([&]() {
         std::mutex notifyLock;
         std::unique_lock<std::mutex> lck(notifyLock);
         cv.wait(lck, [&startSync]() { return startSync; });
         EXPECT_TRUE(KvStoreDelegateManager::NotifyUserChanged() == OK);
     });
     subThread.detach();
-    g_communicatorAggregator->RegOnDispatch([&startSync, &cv](const std::string&, Message *inMsg) {
+    g_communicatorAggregator->RegOnDispatch([&](const std::string&, Message *inMsg) {
         if (!startSync) {
             startSync = true;
             cv.notify_all();

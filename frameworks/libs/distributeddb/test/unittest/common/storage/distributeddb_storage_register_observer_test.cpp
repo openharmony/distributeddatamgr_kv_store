@@ -341,7 +341,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver001, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT), g_entry1.key, nullptr, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT), g_entry1.key,
+        nullptr, result);
     EXPECT_EQ(result, -E_INVALID_ARGS);
     EXPECT_EQ(handle, nullptr);
 
@@ -371,7 +372,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver002, TestSize
      * @tc.expected: step1/2. Returns INVALID_ARGS.
      */
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        g_entry1.key, TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
 
@@ -414,7 +416,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver003, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT), g_entry1.key,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
 
@@ -452,7 +455,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver004, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_entry1.key,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, false, false, true);
@@ -479,8 +483,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver005, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_entry1.key,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, false, true, true);
@@ -503,7 +508,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver006, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, true, false, false);
@@ -526,7 +532,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver007, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, false, true, false);
@@ -549,7 +556,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver008, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, false, false, true);
@@ -572,8 +580,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver009, TestSize
 {
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
     TestForOperation(g_entry1, false, true, true);
@@ -601,8 +610,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver010, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        g_entry1.key, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
     return;
@@ -624,8 +634,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver011, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_entry1.key, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        g_entry1.key, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
     return;
@@ -647,8 +658,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver012, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_PUT_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        g_emptyKey, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
     return;
@@ -670,8 +682,9 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver013, TestSize
      */
     int result;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT) |
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT) |
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT),
+        g_emptyKey, TestFunc, result);
     EXPECT_EQ(result, -E_NOT_SUPPORT);
     EXPECT_EQ(handle, nullptr);
     return;
@@ -735,7 +748,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver014, TestSize
      */
     int result = E_OK;
     KvDBObserverHandle* handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     EXPECT_NE(handle, nullptr);
 
@@ -807,7 +821,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver015, TestSize
      * @tc.steps: step3. Register the observer.
      */
     KvDBObserverHandle *handle = g_singleVerNaturaStoreConnection->RegisterObserver(
-        static_cast<unsigned int>(SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey, TestFunc, result);
+        static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT), g_emptyKey,
+        TestFunc, result);
     EXPECT_EQ(result, E_OK);
     ASSERT_NE(handle, nullptr);
     /**

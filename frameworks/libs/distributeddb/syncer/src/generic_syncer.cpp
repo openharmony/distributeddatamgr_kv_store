@@ -175,7 +175,7 @@ int GenericSyncer::Sync(const SyncParma &param)
 
 int GenericSyncer::Sync(const SyncParma &param, uint64_t connectionId)
 {
-    int errCode = SyncParamCheck(param);
+    int errCode = SyncPreCheck(param);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -211,7 +211,7 @@ int GenericSyncer::PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t
         AddSyncOperation(operation);
         PerformanceAnalysis::GetInstance()->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_SYNC_TOTAL);
     }
-    if (!param.wait && connectionId != DBConstant::IGNORE_CONNECTION_ID) {
+    if (connectionId != DBConstant::IGNORE_CONNECTION_ID) {
         std::lock_guard<std::mutex> lockGuard(syncIdLock_);
         connectionIdMap_[connectionId].push_back(static_cast<int>(syncId));
         syncIdMap_[static_cast<int>(syncId)] = connectionId;
@@ -289,7 +289,23 @@ uint64_t GenericSyncer::GetTimestamp()
 
 void GenericSyncer::QueryAutoSync(const InternalSyncParma &param)
 {
-    (void)param;
+    if (!initialized_) {
+        LOGE("[Syncer] Syncer has not Init");
+        return;
+    }
+    LOGI("[GenericSyncer] trigger query syncmode=%u,dev=%s", param.mode, GetSyncDevicesStr(param.devices).c_str());
+    RefObject::IncObjRef(syncEngine_);
+    int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, param] {
+        int errCode = Sync(param);
+        if (errCode != E_OK) {
+            LOGE("[GenericSyncer] sync start by QueryAutoSync failed err %d", errCode);
+        }
+        RefObject::DecObjRef(syncEngine_);
+    });
+    if (retCode != E_OK) {
+        LOGE("[GenericSyncer] QueryAutoSync triggler sync retCode:%d", retCode);
+        RefObject::DecObjRef(syncEngine_);
+    }
 }
 
 void GenericSyncer::AddSyncOperation(SyncOperation *operation)
@@ -378,7 +394,8 @@ int GenericSyncer::InitSyncEngine(ISyncInterface *syncInterface)
         this, std::placeholders::_1);
     const std::function<void(const InternalSyncParma &param)> queryAutoSyncFunc =
         std::bind(&GenericSyncer::QueryAutoSync, this, std::placeholders::_1);
-    errCode = syncEngine_->Initialize(syncInterface, metadata_, onlineFunc, offlineFunc, queryAutoSyncFunc);
+    const ISyncEngine::InitCallbackParam param = { onlineFunc, offlineFunc, queryAutoSyncFunc };
+    errCode = syncEngine_->Initialize(syncInterface, metadata_, param);
     if (errCode == E_OK) {
         syncInterface->IncRefCount();
         label_ = syncEngine_->GetLabel();
@@ -472,6 +489,11 @@ void GenericSyncer::ClearSyncOperations(bool isClosedOperation)
         TriggerSyncFinished(operation);
         RefObject::DecObjRef(operation);
     }
+    ClearInnerResource(isClosedOperation);
+}
+
+void GenericSyncer::ClearInnerResource(bool isClosedOperation)
+{
     {
         std::lock_guard<std::mutex> lock(operationMapLock_);
         for (auto &iter : syncOperationMap_) {
@@ -482,7 +504,13 @@ void GenericSyncer::ClearSyncOperations(bool isClosedOperation)
     }
     {
         std::lock_guard<std::mutex> lock(syncIdLock_);
-        connectionIdMap_.clear();
+        if (isClosedOperation) {
+            connectionIdMap_.clear();
+        } else { // only need to clear syncid when user change
+            for (auto &item : connectionIdMap_) {
+                item.second.clear();
+            }
+        }
         syncIdMap_.clear();
     }
 }
@@ -752,7 +780,7 @@ int GenericSyncer::StatusCheck() const
     return E_OK;
 }
 
-int GenericSyncer::SyncParamCheck(const SyncParma &param) const
+int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 {
     std::lock_guard<std::mutex> lock(syncerLock_);
     int errCode = StatusCheck();
@@ -808,7 +836,9 @@ void GenericSyncer::Dump(int fd)
     if (syncEngine_ == nullptr) {
         return;
     }
+    RefObject::IncObjRef(syncEngine_);
     syncEngine_->Dump(fd);
+    RefObject::DecObjRef(syncEngine_);
 }
 
 SyncerBasicInfo GenericSyncer::DumpSyncerBasicInfo()

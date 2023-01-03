@@ -44,7 +44,7 @@ public:
     ~TimeHelper();
 
     // Init the TimeHelper
-    int Initialize(const ISyncInterface *inStorage, std::shared_ptr<Metadata> &inMetadata);
+    int Initialize(const ISyncInterface *inStorage, const std::shared_ptr<Metadata> &inMetadata);
 
     // Get Timestamp when write data into db, export interface;
     Timestamp GetTime();

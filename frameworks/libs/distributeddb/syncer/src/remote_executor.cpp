@@ -721,12 +721,10 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
         }
         task = taskMap_[sessionId];
     }
-    PreparedStmt stmt;
-    stmt.SetOpCode(PreparedStmt::ExecutorOperation::QUERY);
-    stmt.SetSql(task.condition.sql);
-    stmt.SetBindArgs(task.condition.bindArgs);
     packet->SetVersion(RemoteExecutorRequestPacket::REQUEST_PACKET_VERSION_CURRENT);
-    packet->SetPreparedStmt(stmt);
+    packet->SetOpCode(PreparedStmt::ExecutorOperation::QUERY);
+    packet->SetSql(task.condition.sql);
+    packet->SetBindArgs(task.condition.bindArgs);
     packet->SetNeedResponse();
     target = task.target;
     return E_OK;
@@ -864,7 +862,7 @@ void RemoteExecutor::RemoveTaskByConnection(uint64_t connectionId, std::vector<u
     }
 }
 
-int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize)
+int RemoteExecutor::GetPacketSize(const std::string &device, size_t &packetSize) const
 {
     auto *communicator = GetAndIncCommunicator();
     if (communicator == nullptr) {

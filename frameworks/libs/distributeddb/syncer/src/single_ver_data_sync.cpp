@@ -46,7 +46,7 @@ SingleVerDataSync::~SingleVerDataSync()
 }
 
 int SingleVerDataSync::Initialize(ISyncInterface *inStorage, ICommunicator *inCommunicateHandle,
-    std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId)
+    const std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId)
 {
     if ((inStorage == nullptr) || (inCommunicateHandle == nullptr) || (inMetadata == nullptr)) {
         return -E_INVALID_ARGS;
@@ -248,6 +248,22 @@ int SingleVerDataSync::Send(SingleVerSyncTaskContext *context, const Message *me
     return errCode;
 }
 
+int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *context,
+    std::vector<SendDataItem> &outData, size_t packetSize)
+{
+    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
+    if (performance != nullptr) {
+        performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_READ_DATA);
+    }
+    context->StartFeedDogForGetData(context->GetResponseSessionId());
+    int errCode = GetData(context, packetSize, outData);
+    context->StopFeedDogForGetData();
+    if (performance != nullptr) {
+        performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);
+    }
+    return errCode;
+}
+
 int SingleVerDataSync::GetData(SingleVerSyncTaskContext *context, size_t packetSize, std::vector<SendDataItem> &outData)
 {
     int errCode;
@@ -277,7 +293,7 @@ int SingleVerDataSync::GetData(SingleVerSyncTaskContext *context, size_t packetS
     return errCode;
 }
 
-int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *context, SyncEntry &syncOutData)
+int SingleVerDataSync::GetMatchData(SingleVerSyncTaskContext *context, SyncEntry &syncOutData)
 {
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     size_t packetSize = (version > SOFTWARE_VERSION_RELEASE_2_0) ?
@@ -285,16 +301,7 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
     bool needCompressOnSync = false;
     uint8_t compressionRate = DBConstant::DEFAULT_COMPTRESS_RATE;
     (void)storage_->GetCompressionOption(needCompressOnSync, compressionRate);
-    PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
-    if (performance != nullptr) {
-        performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_READ_DATA);
-    }
-    context->StartFeedDogForGetData(context->GetResponseSessionId());
-    int errCode = GetData(context, packetSize, syncOutData.entries);
-    context->StopFeedDogForGetData();
-    if (performance != nullptr) {
-        performance->StepTimeRecordEnd(PT_TEST_RECORDS::RECORD_READ_DATA);
-    }
+    int errCode = GetDataWithPerformanceRecord(context, syncOutData.entries, packetSize);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         context->SetTaskErrCode(errCode);
         return errCode;
@@ -320,34 +327,46 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
 int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
     size_t packetSize)
 {
+    SyncTimeRange waterRange;
+    DataSizeSpecInfo syncDataSizeInfo = GetDataSizeSpecInfo(packetSize);
     WaterMark startMark = 0;
     SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     GetLocalWaterMark(curType, context->GetQuerySyncId(), context, startMark);
-    WaterMark endMark = MAX_TIMESTAMP;
-    if ((startMark > endMark)) {
+    if ((waterRange.endTime == 0) || (startMark > waterRange.endTime)) {
         return E_OK;
     }
+    waterRange.beginTime = startMark;
+    if (curType == SyncType::QUERY_SYNC_TYPE) {
+        WaterMark deletedStartMark = 0;
+        GetLocalDeleteSyncWaterMark(context, deletedStartMark);
+        Timestamp lastQueryTimestamp = 0;
+        int errCode = metadata_->GetLastQueryTime(context->GetQuerySyncId(), context->GetDeviceId(),
+            lastQueryTimestamp);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        waterRange.deleteBeginTime = deletedStartMark;
+        waterRange.lastQueryTime = lastQueryTimestamp;
+    }
+    return GetUnsyncData(context, outData, syncDataSizeInfo, waterRange);
+}
+
+int SingleVerDataSync::GetUnsyncData(SingleVerSyncTaskContext *context, std::vector<SendDataItem> &outData,
+    DataSizeSpecInfo syncDataSizeInfo, SyncTimeRange &waterMarkInfo)
+{
+    SyncType curType = (context->IsQuerySync()) ? SyncType::QUERY_SYNC_TYPE : SyncType::MANUAL_FULL_SYNC_TYPE;
     ContinueToken token = nullptr;
     context->GetContinueToken(token);
     if (token != nullptr) {
         storage_->ReleaseContinueToken(token);
     }
-    DataSizeSpecInfo syncDataSizeInfo = GetDataSizeSpecInfo(packetSize);
     int errCode;
     if (curType != SyncType::QUERY_SYNC_TYPE) {
-        errCode = storage_->GetSyncData(startMark, endMark, outData, token, syncDataSizeInfo);
+        errCode = storage_->GetSyncData(waterMarkInfo.beginTime, waterMarkInfo.endTime, outData, token,
+            syncDataSizeInfo);
     } else {
-        WaterMark deletedStartMark = 0;
-        GetLocalDeleteSyncWaterMark(context, deletedStartMark);
-        Timestamp lastQueryTimestamp = 0;
-        errCode = metadata_->GetLastQueryTime(context->GetQuerySyncId(),
-            context->GetDeviceId(), lastQueryTimestamp);
-        if (errCode == E_OK) {
-            QuerySyncObject queryObj = context->GetQuery();
-            errCode = storage_->GetSyncData(queryObj,
-                SyncTimeRange{ startMark, deletedStartMark, endMark, endMark, lastQueryTimestamp},
-                syncDataSizeInfo, token, outData);
-        }
+        QuerySyncObject queryObj = context->GetQuery();
+        errCode = storage_->GetSyncData(queryObj, waterMarkInfo, syncDataSizeInfo, token, outData);
     }
     context->SetContinueToken(token);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
@@ -683,7 +702,7 @@ int SingleVerDataSync::RequestStart(SingleVerSyncTaskContext *context, int mode)
     }
     SyncEntry syncData;
     // get data
-    errCode = GetDataWithPerformanceRecord(context, syncData);
+    errCode = GetMatchData(context, syncData);
     SingleVerDataSyncUtils::TranslateErrCodeIfNeed(mode, context->GetRemoteSoftwareVersion(), errCode);
 
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
@@ -781,6 +800,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     packet->SetQueryId(context->GetQuerySyncId());
     packet->SetLastSequence();
     SingleVerDataSyncUtils::SetPacketId(packet, context, version);
+    context->SetRetryStatus(SyncTaskContext::NO_NEED_RETRY);
 
     LOGD("[DataSync][Pull] curType=%d,local=%" PRIu64 ",del=%" PRIu64 ",end=%" PRIu64 ",peer=%" PRIu64 ",label=%s,"
         "dev=%s", static_cast<int>(syncType), localMark, deleteMark, endMark, peerMark, label_.c_str(),
@@ -796,7 +816,7 @@ int SingleVerDataSync::PullResponseStart(SingleVerSyncTaskContext *context)
     }
     SyncEntry syncData;
     // get data
-    int errCode = GetDataWithPerformanceRecord(context, syncData);
+    int errCode = GetMatchData(context, syncData);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_2_0) {
             SendPullResponseDataPkt(errCode, syncData, context);

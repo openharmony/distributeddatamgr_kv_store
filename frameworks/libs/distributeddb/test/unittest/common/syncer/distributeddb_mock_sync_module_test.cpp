@@ -46,7 +46,6 @@ using namespace testing::ext;
 using namespace testing;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
-
 class TestKvDb {
 public:
     ~TestKvDb()
@@ -60,7 +59,7 @@ public:
     }
     void LocalChange()
     {
-        syncer_.LocalDataChanged(SQLITE_GENERAL_NS_PUT_EVENT);
+        syncer_.LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
     void Close()
     {
@@ -69,7 +68,6 @@ public:
 private:
     SyncerProxy syncer_;
 };
-
 class TestInterface : public TestKvDb, public VirtualSingleVerSyncDBInterface {
 public:
     TestInterface() {}
@@ -85,19 +83,21 @@ public:
     {
         TestKvDb::LocalChange();
     }
-    void TestSetIdentifier(std::vector<uint8_t> &identifier)
+    void TestSetIdentifier(std::vector<uint8_t> &identifierVec)
     {
-        VirtualSingleVerSyncDBInterface::SetIdentifier(identifier);
+        VirtualSingleVerSyncDBInterface::SetIdentifier(identifierVec);
     }
 };
 
 namespace {
+using State = SingleVerSyncStateMachine::State;
 const uint32_t MESSAGE_COUNT = 10u;
 const uint32_t EXECUTE_COUNT = 2u;
-void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTaskContext,
-    MockCommunicator &communicator, VirtualSingleVerSyncDBInterface &dbSyncInterface)
+void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext &syncTaskContext, MockCommunicator &communicator,
+    VirtualSingleVerSyncDBInterface &dbSyncInterface)
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
     (void)syncTaskContext.Initialize("device", &dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(&syncTaskContext, &dbSyncInterface, metadata, &communicator);
 }
@@ -243,15 +243,12 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
 
-    EXPECT_CALL(stateMachine, PrepareNextSyncTask()).WillOnce(Return(E_OK));
-
     EXPECT_CALL(syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
     EXPECT_CALL(syncTaskContext, MoveToNextTarget()).WillRepeatedly(Return());
-    EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped())
-        .WillOnce(Return(true))
-        .WillOnce(Return(false));
+    EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped()).WillOnce(Return(true)).WillOnce(Return(false));
     // we expect machine don't change context status when queue not empty
     EXPECT_CALL(syncTaskContext, SetOperationStatus(_)).WillOnce(Return());
+    EXPECT_CALL(stateMachine, PrepareNextSyncTask()).WillOnce(Return(E_OK));
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).Times(0);
 
     EXPECT_EQ(stateMachine.CallExecNextTask(), E_OK);
@@ -272,7 +269,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck004, TestSize.Level1)
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
 
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_NE(message, nullptr);
     message->SetMessageType(TYPE_RESPONSE);
     message->SetSessionId(1u);
@@ -397,9 +394,9 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck009, TestSize.Level1)
     MockCommunicator communicator;
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
-    stateMachine.CallSwitchMachineState(1u); // START_SYNC_EVENT
+    stateMachine.CallSwitchMachineState(SingleVerSyncStateMachine::Event::START_SYNC_EVENT); // START_SYNC_EVENT
     stateMachine.CommErrAbort(1u);
-    EXPECT_EQ(stateMachine.GetCurrentState(), 1u);
+    EXPECT_EQ(stateMachine.GetCurrentState(), State::TIME_SYNC);
 }
 
 /**
@@ -477,8 +474,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
 {
     MockSingleVerStateMachine stateMachine;
-    auto *syncTaskContext = new(std::nothrow) MockSyncTaskContext();
-    auto *dbSyncInterface = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    auto *syncTaskContext = new (std::nothrow) MockSyncTaskContext();
+    auto *dbSyncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_NE(syncTaskContext, nullptr);
     EXPECT_NE(dbSyncInterface, nullptr);
     if (dbSyncInterface == nullptr) {
@@ -487,7 +484,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
     }
     MockCommunicator communicator;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
-    EXPECT_CALL(*syncTaskContext, Clear()).WillOnce(Return());
+    EXPECT_CALL(*syncTaskContext, Clear()).WillRepeatedly(Return());
     syncTaskContext->RegForkGetDeviceIdFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
     });
@@ -524,7 +521,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck014, TestSize.Level1)
 HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck001, TestSize.Level1)
 {
     SingleVerDataSync dataSync;
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_TRUE(message != nullptr);
     message->SetErrorNo(E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
     EXPECT_EQ(dataSync.AckPacketIdCheck(message), true);
@@ -541,7 +538,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck001, TestSize.Level1)
 HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck002, TestSize.Level1)
 {
     SingleVerDataSync dataSync;
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_TRUE(message != nullptr);
     message->SetMessageType(TYPE_NOTIFY);
     EXPECT_EQ(dataSync.AckPacketIdCheck(message), true);
@@ -568,7 +565,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
     std::shared_ptr<Metadata> metadata = std::static_pointer_cast<Metadata>(mockMetadata);
     mockDataSync.Initialize(&storage, &communicator, metadata, "deviceId");
 
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_TRUE(message != nullptr);
     DataAckPacket packet;
     message->SetSequenceId(1);
@@ -576,10 +573,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
     mockSyncTaskContext.SetQuerySync(true);
 
     EXPECT_CALL(*mockMetadata, GetLastQueryTime(_, _, _)).WillOnce(Return(E_OK));
-    EXPECT_CALL(*mockMetadata, SetLastQueryTime(_, _, _)).WillOnce([&dataTimeRange](const std::string &queryIdentify,
-        const std::string &deviceId, const Timestamp &timestamp) {
-        EXPECT_EQ(timestamp, dataTimeRange.endTime);
-        return E_OK;
+    EXPECT_CALL(*mockMetadata, SetLastQueryTime(_, _, _))
+        .WillOnce([&dataTimeRange](
+                    const std::string &queryIdentify, const std::string &deviceId, const Timestamp &timestamp) {
+            EXPECT_EQ(timestamp, dataTimeRange.endTime);
+            return E_OK;
     });
     EXPECT_CALL(mockSyncTaskContext, SetOperationStatus(_)).WillOnce(Return());
     EXPECT_EQ(mockDataSync.TryContinueSync(&mockSyncTaskContext, message), -E_FINISHED);
@@ -624,9 +622,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck001, TestSize.Level1)
         });
         t.detach();
     }
-    cv.wait(lock, [&finishCount, &loopCount]() {
-        return finishCount == loopCount;
-    });
+    cv.wait(lock, [&finishCount, &loopCount]() { return finishCount == loopCount; });
 }
 
 /**
@@ -700,12 +696,12 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncDataSync003, TestSize.Level1)
     /**
      * @tc.steps: step2. call RemoveDeviceDataIfNeed in diff thread and then put data
      */
-    std::thread thread1([&syncTaskContext, &storage, &dataSync, &deviceId, &k1, &v1]() {
+    std::thread thread1([&]() {
         (void)dataSync.CallRemoveDeviceDataIfNeed(&syncTaskContext);
         storage.PutDeviceData(deviceId, k1, v1);
         LOGD("PUT FINISH");
     });
-    std::thread thread2([&syncTaskContext, &storage, &dataSync, &deviceId, &k2, &v2]() {
+    std::thread thread2([&]() {
         (void)dataSync.CallRemoveDeviceDataIfNeed(&syncTaskContext);
         storage.PutDeviceData(deviceId, k2, v2);
         LOGD("PUT FINISH");
@@ -732,7 +728,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync001, TestSize.Level1)
     MockSyncTaskContext syncTaskContext;
     AbilitySync abilitySync;
 
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_TRUE(message != nullptr);
     AbilitySyncAckPacket packet;
     packet.SetAckCode(-E_BUSY);
@@ -762,7 +758,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync002, TestSize.Level1)
     /**
      * @tc.steps: step1. set AbilitySyncAckPacket ackCode is E_OK for pass the ack check
      */
-    DistributedDB::Message *message = new(std::nothrow) DistributedDB::Message();
+    DistributedDB::Message *message = new (std::nothrow) DistributedDB::Message();
     ASSERT_TRUE(message != nullptr);
     AbilitySyncAckPacket packet;
     packet.SetAckCode(E_OK);
@@ -835,7 +831,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
     std::unique_lock<std::mutex> lock(mutex);
     std::condition_variable cv;
     for (int i = 0; i < loopCount; i++) {
-        std::thread t = std::thread([&context, &finishCount, &loopCount, &cv] {
+        std::thread t = std::thread([&] {
             DbAbility dbAbility;
             context->SetDbAbility(dbAbility);
             finishCount++;
@@ -865,9 +861,50 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
     syncer->Initialize(syncDBInterface, true);
     syncer->EnableAutoSync(true);
     for (int i = 0; i < 1000; i++) { // trigger 1000 times auto sync check
-        syncer->LocalDataChanged(SQLITE_GENERAL_NS_PUT_EVENT);
+        syncer->LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
     syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+}
+
+/**
+ * @tc.name: SyncLifeTest002
+ * @tc.desc: Test autosync when thread still exist.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    const std::string DEVICE_B = "deviceB";
+    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    std::string userId = "userid_0";
+    std::string storeId = "storeId_0";
+    std::string appId = "appid_0";
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
+    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
+    syncDBInterface->SetIdentifier(identifierVec);
+    for (int i = 0; i < 100; i++) { // run 100 times
+        syncer->Initialize(syncDBInterface, true);
+        syncer->EnableAutoSync(true);
+        virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
+        std::thread writeThread([syncer]() {
+            syncer->LocalDataChanged(
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+        });
+        std::thread closeThread([syncer, &syncDBInterface]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            syncer->Close(true);
+        });
+        closeThread.join();
+        writeThread.join();
+    }
+    syncer = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
 }
@@ -920,12 +957,14 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
     syncDBInterface->SetIdentifier(identifier);
     syncer->Initialize(syncDBInterface, true);
     syncer->EnableAutoSync(true);
+    incRefCount = 0;
     syncer->RemoteDataChanged("");
+    EXPECT_EQ(incRefCount, 1); // refCount is 1
     std::this_thread::sleep_for(std::chrono::seconds(1));
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
-    EXPECT_EQ(incRefCount, 2); // refCount is 2
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**
@@ -967,6 +1006,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest005, TestSize.Level3)
 HWTEST_F(DistributedDBMockSyncModuleTest, MessageScheduleTest001, TestSize.Level1)
 {
     MockSyncTaskContext *context = new MockSyncTaskContext();
+    ASSERT_NE(context, nullptr);
     context->SetRemoteSoftwareVersion(SOFTWARE_VERSION_CURRENT);
     bool last = false;
     context->OnLastRef([&last]() {
@@ -995,32 +1035,32 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
         .WillRepeatedly(Return(new (std::nothrow) SingleVerKvSyncTaskContext()));
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
     MockKvSyncInterface syncDBInterface;
-    EXPECT_CALL(syncDBInterface, IncRefCount()).WillOnce(Return());
+    EXPECT_CALL(syncDBInterface, IncRefCount()).WillRepeatedly(Return());
     EXPECT_CALL(syncDBInterface, DecRefCount()).WillRepeatedly(Return());
     std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
     syncDBInterface.SetIdentifier(identifier);
     std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
+    metaData->Initialize(&syncDBInterface);
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
-    EXPECT_EQ(enginePtr->Initialize(nullptr, metaData, nullptr, nullptr, nullptr), -E_INVALID_ARGS);
-    std::shared_ptr<Metadata> nullMetaData = nullptr;
-    EXPECT_EQ(enginePtr->Initialize(&syncDBInterface, nullMetaData, nullptr, nullptr, nullptr), -E_INVALID_ARGS);
-    enginePtr->Initialize(&syncDBInterface, metaData, nullptr, nullptr, nullptr);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&syncDBInterface, metaData, param);
     auto communicator =
         static_cast<VirtualCommunicator *>(virtualCommunicatorAggregator->GetCommunicator("real_device"));
     RefObject::IncObjRef(communicator);
-    std::thread thread1([&communicator]() {
+    std::thread thread1([&]() {
         if (communicator == nullptr) {
             return;
         }
         for (int count = 0; count < 100; count++) { // loop 100 times
-            auto *message = new(std::nothrow) DistributedDB::Message();
+            auto *message = new (std::nothrow) DistributedDB::Message();
+            ASSERT_NE(message, nullptr);
             message->SetMessageId(LOCAL_DATA_CHANGED);
             message->SetErrorNo(E_FEEDBACK_UNKNOWN_MESSAGE);
             communicator->CallbackOnMessage("src", message);
         }
     });
-    std::thread thread2([&enginePtr]() {
+    std::thread thread2([&]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         enginePtr->Close();
     });
@@ -1068,7 +1108,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest002, TestSize.Level1)
     std::shared_ptr<Metadata> metaData = std::make_shared<Metadata>();
     ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
-    enginePtr->Initialize(&syncDBInterface, metaData, nullptr, nullptr, nullptr);
+    ISyncEngine::InitCallbackParam param = { nullptr, nullptr, nullptr };
+    enginePtr->Initialize(&syncDBInterface, metaData, param);
     /**
      * @tc.steps: step2. add sync operation for DEVICE_A and DEVICE_B. It will create two context for A and B
      */
@@ -1341,13 +1382,13 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerKvEntryTest001, TestSize.Leve
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 {
-    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    MockRemoteExecutor *executor = new (std::nothrow) MockRemoteExecutor();
     ASSERT_NE(executor, nullptr);
     uint32_t count = 0u;
     EXPECT_CALL(*executor, ParseOneRequestMessage).WillRepeatedly(
         [&count](const std::string &device, DistributedDB::Message *inMsg) {
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // mock one msg execute 5 s
-        count++;
+            std::this_thread::sleep_for(std::chrono::seconds(5)); // mock one msg execute 5 s
+            count++;
     });
     EXPECT_CALL(*executor, IsPacketValid).WillRepeatedly(Return(true));
     for (uint32_t i = 0; i < MESSAGE_COUNT; i++) {
@@ -1370,7 +1411,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
 {
-    MockRemoteExecutor *executor = new(std::nothrow) MockRemoteExecutor();
+    MockRemoteExecutor *executor = new (std::nothrow) MockRemoteExecutor();
     ASSERT_NE(executor, nullptr);
     executor->CallResponseFailed(0, 0, 0, "DEVICE");
     RefObject::KillAndDecObjRef(executor);
@@ -1459,4 +1500,18 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Le
         EXPECT_EQ(syncer.Close(true), -E_NOT_INIT);
     }
     timeChangeThread.join();
+}
+
+/**
+ * @tc.name: SyncerCheck001
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    syncer->SetSyncRetry(true);
+    syncer = nullptr;
 }

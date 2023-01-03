@@ -22,7 +22,6 @@
 #include "version.h"
 #include "parcel.h"
 
-
 namespace DistributedDB {
 DataRequestPacket::~DataRequestPacket()
 {
@@ -219,7 +218,7 @@ void DataRequestPacket::SetLastSequence()
 
 bool DataRequestPacket::IsNeedUpdateWaterMark() const
 {
-    return !((flag_ & IS_UPDATE_WATER) == IS_UPDATE_WATER);
+    return (flag_ & IS_UPDATE_WATER) != IS_UPDATE_WATER;
 }
 
 void DataRequestPacket::SetUpdateWaterMark()

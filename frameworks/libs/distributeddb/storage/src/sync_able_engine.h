@@ -73,7 +73,7 @@ private:
 
     void UserChangeHandle();
 
-    void ChangeUserListerner();
+    void ChangeUserListener();
 
     SyncerProxy syncer_; // use for sync Interactive
     std::atomic<bool> started_;

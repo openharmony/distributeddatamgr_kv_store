@@ -1429,7 +1429,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject005, TestSize.Level1)
         static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
-    storageEngine->SetEngineState(CACHEDB);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
     DataItem data1{KEY1, VALUE1, 0, DataItem::LOCAL_FLAG, REMOTE_DEVICE_ID};
     EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(g_store, vector{data1}, REMOTE_DEVICE_ID), -1);
     storageEngine->Release();

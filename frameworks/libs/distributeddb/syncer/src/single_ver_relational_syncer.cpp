@@ -32,10 +32,7 @@ int SingleVerRelationalSyncer::Initialize(ISyncInterface *syncInterface, bool is
 
 int SingleVerRelationalSyncer::Sync(const SyncParma &param, uint64_t connectionId)
 {
-    if (param.mode == SYNC_MODE_PUSH_PULL) {
-        return -E_NOT_SUPPORT;
-    }
-    if (param.syncQuery.GetRelationTableName().empty()) {
+    if (QuerySyncPreCheck(param) != E_OK) {
         return -E_NOT_SUPPORT;
     }
     return GenericSyncer::Sync(param, connectionId);
@@ -57,7 +54,14 @@ int SingleVerRelationalSyncer::PrepareSync(const SyncParma &param, uint32_t sync
         return errCode;
     }
     if (param.wait) {
-        DoOnComplete(param, syncId);
+        bool connectionClose = false;
+        {
+            std::lock_guard<std::mutex> lockGuard(syncIdLock_);
+            connectionClose = connectionIdMap_.find(connectionId) == connectionIdMap_.end();
+        }
+        if (!connectionClose) {
+            DoOnComplete(param, syncId);
+        }
     }
     return E_OK;
 }
@@ -160,15 +164,7 @@ void SingleVerRelationalSyncer::SchemaChangeCallback()
     if (syncEngine_ == nullptr) {
         return;
     }
-    RefObject::IncObjRef(syncEngine_);
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this] {
-        syncEngine_->SchemaChange();
-        RefObject::DecObjRef(syncEngine_);
-    });
-    if (errCode != E_OK) {
-        LOGE("[SchemaChangeCallback] SchemaChangeCallback retCode:%d", errCode);
-        RefObject::DecObjRef(syncEngine_);
-    }
+    syncEngine_->SchemaChange();
 }
 
 int SingleVerRelationalSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
@@ -183,6 +179,20 @@ int SingleVerRelationalSyncer::SyncConditionCheck(QuerySyncObject &query, int mo
         return errCode;
     }
     if (mode == SUBSCRIBE_QUERY) {
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
+}
+
+int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
+{
+    if (!param.isQuerySync) {
+        return E_OK;
+    }
+    if (param.mode == SYNC_MODE_PUSH_PULL) {
+        return -E_NOT_SUPPORT;
+    }
+    if (param.syncQuery.GetRelationTableName().empty()) {
         return -E_NOT_SUPPORT;
     }
     return E_OK;

@@ -56,7 +56,7 @@ std::string CollaborationLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key)";
     insertTrigger += " VALUES (new.rowid, '', '',";
-    insertTrigger += " get_sys_time(0), get_sys_time(0),";
+    insertTrigger += " get_sys_time(0), get_last_time(),";
     insertTrigger += " CASE WHEN (SELECT count(*)<>0 FROM " + logTblName + " WHERE hash_key=" +
         CalcPrimaryKeyHash("NEW.", table, identity) + " AND flag&0x02=0x02) THEN 0x22 ELSE 0x02 END,";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ");\n";
@@ -82,7 +82,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
         updateTrigger += " SET data_key=-1, timestamp=get_sys_time(0), device='', flag=0x03";
         updateTrigger += " WHERE data_key = OLD.rowid;\n";
         updateTrigger += "\t INSERT OR REPLACE INTO " + logTblName + " VALUES (NEW.rowid, '', '', get_sys_time(0), "
-            "get_sys_time(0), CASE WHEN (" + CalcPrimaryKeyHash("NEW.", table, identity) + " != " +
+            "get_last_time(), CASE WHEN (" + CalcPrimaryKeyHash("NEW.", table, identity) + " != " +
             CalcPrimaryKeyHash("NEW.", table, identity) + ") THEN 0x02 ELSE 0x22 END, " +
             CalcPrimaryKeyHash("NEW.", table, identity) + ");\n";
     }

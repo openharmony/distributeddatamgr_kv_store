@@ -58,6 +58,12 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
         return errCode;
     }
 
+    errCode = SQLiteUtils::RegisterGetLastTime(db);
+    if (errCode != E_OK) {
+        LOGE("[engine] register get last time failed!");
+        return errCode;
+    }
+
     errCode = SQLiteUtils::RegisterGetSysTime(db);
     if (errCode != E_OK) {
         LOGE("[engine] register get sys time failed!");

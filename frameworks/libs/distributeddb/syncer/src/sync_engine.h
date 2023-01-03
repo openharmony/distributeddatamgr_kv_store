@@ -36,10 +36,8 @@ public:
     ~SyncEngine() override;
 
     // Do some init things
-    int Initialize(ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
-        const std::function<void(std::string)> &onRemoteDataChanged,
-        const std::function<void(std::string)> &offlineChanged,
-        const std::function<void(const InternalSyncParma &param)> &queryAutoSyncCallback) override;
+    int Initialize(ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
+        const InitCallbackParam &callbackParam) override;
 
     // Do some things, when db close.
     int Close() override;
@@ -199,7 +197,7 @@ private:
 
     void SetRemoteExector(RemoteExecutor *executor);
 
-    bool CheckDeviceIdValid(const std::string &deviceId, const std::string &localDeviceId);
+    bool CheckDeviceIdValid(const std::string &checkDeviceId, const std::string &localDeviceId);
 
     int GetLocalDeviceId(std::string &deviceId);
 

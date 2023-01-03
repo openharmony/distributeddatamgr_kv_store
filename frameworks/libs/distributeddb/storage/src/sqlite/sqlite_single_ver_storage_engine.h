@@ -21,14 +21,14 @@
 #include "sqlite_single_ver_storage_executor.h"
 
 namespace DistributedDB {
-enum SQLiteGeneralNSNotificationEventType {
+enum class SQLiteGeneralNSNotificationEventType {
     SQLITE_GENERAL_NS_PUT_EVENT = 0x01,
     SQLITE_GENERAL_NS_SYNC_EVENT = 0x02,
     SQLITE_GENERAL_NS_LOCAL_PUT_EVENT = 0x04,
     SQLITE_GENERAL_CONFLICT_EVENT = 0x08, // Conflict event
     SQLITE_GENERAL_FINISH_MIGRATE_EVENT = 0x10, // Only trigger sync event
 };
-enum SQLiteGeneralNSConflictType {
+enum class SQLiteGeneralNSConflictType {
     SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY = 0x01, // sync conflict for same origin dev
     SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG = 0x02, // sync conflict for different origin dev
     SQLITE_GENERAL_NS_NATIVE_ALL = 0x0c, // native conflict.

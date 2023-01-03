@@ -140,7 +140,6 @@ uint32_t QuerySyncObject::CalculateIdentifyLen() const
     for (const auto &key : keys_) {
         len += Parcel::GetVectorCharLen(key);
     }  // QUERY_SYNC_OBJECT_VERSION_1 end.
-
     return len;
 }
 
@@ -362,4 +361,4 @@ std::string QuerySyncObject::GetRelationTableName() const
     }
     return tableName_;
 }
-}
+} // namespace DistributedDB

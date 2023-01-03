@@ -107,7 +107,7 @@ protected:
 
     void UserChangeHandle();
 
-    void ChangeUserListerner();
+    void ChangeUserListener();
 
     // Get the dataItem's append length, the append length = after-serialized-len - original-dataItem-len
     uint32_t GetAppendedLen() const;

@@ -453,7 +453,7 @@ bool TimeSync::IsPacketValid(const Message *inMsg, uint16_t messageType)
         return false;
     }
     if (messageType != inMsg->GetMessageType()) {
-        LOGD("input Type = %" PRId16 ", inMsg type = %" PRIu16, messageType, inMsg->GetMessageType());
+        LOGD("input Type = %" PRIu16 ", inMsg type = %" PRIu16, messageType, inMsg->GetMessageType());
         return false;
     }
     return true;
@@ -576,7 +576,7 @@ void TimeSync::Close()
     conditionVar_.notify_all();
 }
 
-bool TimeSync::IsClosed()
+bool TimeSync::IsClosed() const
 {
     std::lock_guard<std::mutex> lock(cvLock_);
     return closed_ ;

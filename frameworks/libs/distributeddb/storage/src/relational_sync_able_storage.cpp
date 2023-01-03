@@ -775,5 +775,11 @@ void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &t
     remoteToken = nullptr;
     token = nullptr;
 }
+
+int RelationalSyncAbleStorage::SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema,
+    uint8_t type)
+{
+    return E_OK;
+}
 }
 #endif

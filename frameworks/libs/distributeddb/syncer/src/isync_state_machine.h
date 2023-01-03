@@ -31,7 +31,7 @@ public:
 
     // Init the SyncStateMachine, this function must be called before any other call.
     virtual int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface,
-        std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) = 0;
+        const std::shared_ptr<Metadata> &metadata, ICommunicator *communicator) = 0;
 
     // start a sync step
     virtual int StartSync() = 0;

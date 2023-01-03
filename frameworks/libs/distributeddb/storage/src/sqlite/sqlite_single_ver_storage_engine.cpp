@@ -570,7 +570,8 @@ void SQLiteSingleVerStorageEngine::EndMigrate(SQLiteSingleVerStorageExecutor *&h
     // When time change offset equals 0, SyncEngine can adjust local time offset according to max timestamp.
     RuntimeContext::GetInstance()->NotifyTimestampChanged(0);
     if (isNeedTriggerSync) {
-        commitNotifyFunc_(SQLITE_GENERAL_FINISH_MIGRATE_EVENT, nullptr);
+        commitNotifyFunc_(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_FINISH_MIGRATE_EVENT),
+            nullptr);
     }
     return;
 }
@@ -660,7 +661,7 @@ int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption
         LOGE("singleVerStorageEngine::GetDbHandle get cache handle fail! errCode = [%d]", errCode);
         return errCode;
     }
-    SetEngineState(CACHEDB);
+    SetEngineState(EngineState::CACHEDB);
     executorState_ = ExecutorState::CACHEDB;
 
     ResetCacheRecordVersion();
@@ -948,7 +949,7 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
 
 int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 {
-    if (isUpdated_ || GetEngineState() == CACHEDB) {
+    if (isUpdated_ || GetEngineState() == EngineState::CACHEDB) {
         LOGI("Storage engine is in cache status or has been upgraded[%d]!", isUpdated_);
         return E_OK;
     }
@@ -1094,14 +1095,17 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
         return;
     }
     unsigned int conflictFlag = 0;
-    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
+    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(
+        RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ONLY) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ONLY);
     }
-    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
+    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(
+        RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_FOREIGN_KEY_ORIG) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_FOREIGN_KEY_ORIG);
     }
-    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
-        conflictFlag |= static_cast<unsigned>(SQLITE_GENERAL_NS_NATIVE_ALL);
+    if (static_cast<GenericKvDB *>(kvdb)->GetRegisterFunctionCount(
+        RegisterFuncType::CONFLICT_SINGLE_VERSION_NS_NATIVE_ALL) != 0) {
+        conflictFlag |= static_cast<unsigned>(SQLiteGeneralNSConflictType::SQLITE_GENERAL_NS_NATIVE_ALL);
     }
     RefObject::DecObjRef(kvdb);
     LOGD("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] conflictFlag Flag: %u", conflictFlag);
@@ -1136,7 +1140,9 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
     // Put data. Including insert, update and delete.
     if (!isRemoveDeviceData) {
         if (committedData != nullptr) {
-            int eventType = isRemote ? SQLITE_GENERAL_NS_SYNC_EVENT : SQLITE_GENERAL_NS_PUT_EVENT;
+            int eventType = static_cast<int>(isRemote ?
+                SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT :
+                SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT);
             CommitAndReleaseNotifyData(committedData, eventType);
         }
         return;
@@ -1161,7 +1167,8 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
             continue;
         }
         if (entry.key.size() + entry.value.size() + totalSize > MAX_TOTAL_NOTIFY_DATA_SIZE) {
-            CommitAndReleaseNotifyData(committedData, SQLITE_GENERAL_NS_SYNC_EVENT);
+            CommitAndReleaseNotifyData(committedData,
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
             totalSize = 0;
             continue;
         }
@@ -1170,7 +1177,8 @@ void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSync
         iter++;
     }
     if (committedData != nullptr) {
-        CommitAndReleaseNotifyData(committedData, SQLITE_GENERAL_NS_SYNC_EVENT);
+        CommitAndReleaseNotifyData(committedData,
+            static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_SYNC_EVENT));
     }
 }
 

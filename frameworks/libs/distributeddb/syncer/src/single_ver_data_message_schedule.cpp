@@ -16,8 +16,8 @@
 
 #include "db_common.h"
 #include "log_print.h"
-#include "version.h"
 #include "single_ver_data_sync.h"
+#include "version.h"
 
 namespace DistributedDB {
 SingleVerDataMessageSchedule::~SingleVerDataMessageSchedule()
@@ -81,12 +81,11 @@ void SingleVerDataMessageSchedule::ScheduleInfoHandle(bool isNeedHandleStatus, b
     const Message *inMsg)
 {
     if (isNeedHandleStatus) {
-        const DataRequestPacket *packet = inMsg->GetObject<DataRequestPacket>();
-        if (packet == nullptr) {
+        uint64_t curPacketId = 0;
+        if (GetPacketId(inMsg, curPacketId) != E_OK) {
             LOGE("[DataMsgSchedule] packet is nullptr");
             return;
         }
-        uint64_t curPacketId = packet->GetPacketId();
         {
             std::lock_guard<std::mutex> lock(lock_);
             finishedPacketId_ = curPacketId;
@@ -148,14 +147,13 @@ Message *SingleVerDataMessageSchedule::GetMsgFromMap(bool &isNeedHandle)
         auto iter = messageMap_.begin();
         Message *msg = iter->second;
         messageMap_.erase(iter);
-        const DataRequestPacket *packet = msg->GetObject<DataRequestPacket>();
-        if (packet == nullptr) {
+        uint64_t packetId = 0;
+        if (GetPacketId(msg, packetId) != E_OK) {
             LOGE("[DataMsgSchedule] expected error");
             delete msg;
             continue;
         }
         uint32_t sequenceId = msg->GetSequenceId();
-        uint64_t packetId = packet->GetPacketId();
         if (sequenceId < expectedSequenceId_) {
             uint64_t revisePacketId = finishedPacketId_ - (expectedSequenceId_ - 1 - sequenceId);
             LOGI("[DataMsgSchedule] drop msg because seqId less than exSeqId");
@@ -300,13 +298,12 @@ int SingleVerDataMessageSchedule::UpdateMsgMapIfNeed(Message *msg)
     if (msg == nullptr) {
         return -E_INVALID_ARGS;
     }
-    const DataRequestPacket *packet = msg->GetObject<DataRequestPacket>();
-    if (packet == nullptr) {
+    uint64_t packetId = 0;
+    if (GetPacketId(msg, packetId) != E_OK) {
         return -E_INVALID_ARGS;
     }
     uint32_t sessionId = msg->GetSessionId();
     uint32_t sequenceId = msg->GetSequenceId();
-    uint64_t packetId = packet->GetPacketId();
     if (prevSessionId_ != 0 && sessionId == prevSessionId_) {
         LOGD("[DataMsgSchedule] recv prev sessionId msg, drop msg, label=%s, dev=%s", label_.c_str(),
             STR_MASK(deviceId_));
@@ -323,9 +320,11 @@ int SingleVerDataMessageSchedule::UpdateMsgMapIfNeed(Message *msg)
     if (messageMap_.count(sequenceId) > 0) {
         const auto *cachePacket = messageMap_[sequenceId]->GetObject<DataRequestPacket>();
         if (cachePacket != nullptr) {
-            if (packetId != 0 && packetId < cachePacket->GetPacketId()) {
+            uint64_t cachePacketId;
+            if ((GetPacketId(messageMap_[sequenceId], cachePacketId) == E_OK) &&
+                (packetId != 0) && (packetId < cachePacketId)) {
                 LOGD("[DataMsgSchedule] drop msg packetId=%" PRIu64 ", cachePacketId=%" PRIu64 ", label=%s, dev=%s",
-                    packetId, cachePacket->GetPacketId(), label_.c_str(), STR_MASK(deviceId_));
+                    packetId, cachePacketId, label_.c_str(), STR_MASK(deviceId_));
                 return -E_INVALID_ARGS;
             }
         }
@@ -335,6 +334,16 @@ int SingleVerDataMessageSchedule::UpdateMsgMapIfNeed(Message *msg)
     messageMap_[sequenceId] = msg;
     LOGD("[DataMsgSchedule] put into msgMap seqId=%" PRIu32 ", packetId=%" PRIu64 ", label=%s, dev=%s", sequenceId,
         packetId, label_.c_str(), STR_MASK(deviceId_));
+    return E_OK;
+}
+
+int SingleVerDataMessageSchedule::GetPacketId(const Message *msg, uint64_t &packetId)
+{
+    const DataRequestPacket *packet = msg->GetObject<DataRequestPacket>();
+    if (packet == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    packetId = packet->GetPacketId();
     return E_OK;
 }
 }

@@ -49,14 +49,9 @@ void RemoteExecutorRequestPacket::SetFlag(uint32_t flag)
     flag_ = flag;
 }
 
-PreparedStmt RemoteExecutorRequestPacket::GetPreparedStmt() const
+const PreparedStmt &RemoteExecutorRequestPacket::GetPreparedStmt() const
 {
-    return perparedStmt_;
-}
-
-void RemoteExecutorRequestPacket::SetPreparedStmt(const PreparedStmt &perparedStmt)
-{
-    perparedStmt_ = perparedStmt;
+    return preparedStmt_;
 }
 
 bool RemoteExecutorRequestPacket::IsNeedResponse() const
@@ -83,11 +78,21 @@ uint32_t RemoteExecutorRequestPacket::CalculateLen() const
 {
     uint32_t len = Parcel::GetUInt32Len(); // version
     len += Parcel::GetUInt32Len();  // flag
-    len += perparedStmt_.CalcLength();
+    uint32_t tmpLen = preparedStmt_.CalcLength();
+    if ((len + tmpLen) > static_cast<uint32_t>(INT32_MAX) || tmpLen == 0u) {
+        LOGE("[RemoteExecutorRequestPacket][CalculateLen] Prepared statement is too large");
+        return 0;
+    }
+    len += tmpLen;
     len += Parcel::GetUInt32Len(); // conditions count
     for (const auto &entry : extraConditions_) {
+        // each condition len never greater than 256
         len += Parcel::GetStringLen(entry.first);
         len += Parcel::GetStringLen(entry.second);
+        if (len > static_cast<uint32_t>(INT32_MAX)) {
+            LOGE("[RemoteExecutorRequestPacket][CalculateLen] conditions is too large");
+            return 0;
+        }
     }
     len = Parcel::GetEightByteAlign(len); // 8-byte align
     return len;
@@ -97,7 +102,7 @@ int RemoteExecutorRequestPacket::Serialization(Parcel &parcel) const
 {
     (void) parcel.WriteUInt32(version_);
     (void) parcel.WriteUInt32(flag_);
-    (void) perparedStmt_.Serialize(parcel);
+    (void) preparedStmt_.Serialize(parcel);
     if (parcel.IsError()) {
         LOGE("[RemoteExecutorRequestPacket] Serialization failed");
         return -E_INVALID_ARGS;
@@ -125,7 +130,7 @@ int RemoteExecutorRequestPacket::DeSerialization(Parcel &parcel)
 {
     (void) parcel.ReadUInt32(version_);
     (void) parcel.ReadUInt32(flag_);
-    (void) perparedStmt_.DeSerialize(parcel);
+    (void) preparedStmt_.DeSerialize(parcel);
     if (parcel.IsError()) {
         LOGE("[RemoteExecutorRequestPacket] DeSerialization failed");
         return -E_INVALID_ARGS;
@@ -154,6 +159,21 @@ int RemoteExecutorRequestPacket::DeSerialization(Parcel &parcel)
         return -E_PARSE_FAIL;
     }
     return E_OK;
+}
+
+void RemoteExecutorRequestPacket::SetOpCode(PreparedStmt::ExecutorOperation opCode)
+{
+    preparedStmt_.SetOpCode(opCode);
+}
+
+void RemoteExecutorRequestPacket::SetSql(const std::string &sql)
+{
+    preparedStmt_.SetSql(sql);
+}
+
+void RemoteExecutorRequestPacket::SetBindArgs(const std::vector<std::string> &bindArgs)
+{
+    preparedStmt_.SetBindArgs(bindArgs);
 }
 
 RemoteExecutorRequestPacket* RemoteExecutorRequestPacket::Create()
@@ -231,7 +251,7 @@ uint32_t RemoteExecutorAckPacket::CalculateLen() const
     len += Parcel::GetIntLen();    // ackCode
     len += Parcel::GetUInt32Len();  // flag
     len = Parcel::GetEightByteAlign(len);
-    len += rowDataSet_.CalcLength();
+    len += static_cast<uint32_t>(rowDataSet_.CalcLength());
     len += Parcel::GetIntLen(); // secLabel
     len += Parcel::GetIntLen(); // secFlag
     return len;

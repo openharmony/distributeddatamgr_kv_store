@@ -53,7 +53,7 @@ bool DbAbility::operator==(const DbAbility &other) const
 int DbAbility::Serialize(Parcel &parcel, const DbAbility &curAbility)
 {
     uint32_t div = curAbility.GetAbilityBitsLen() / SERIALIZE_BIT_SIZE;
-    uint32_t buffLen = (curAbility.GetAbilityBitsLen() % SERIALIZE_BIT_SIZE) ? div + 1 : div;
+    uint32_t buffLen = (curAbility.GetAbilityBitsLen() % SERIALIZE_BIT_SIZE != 0) ? div + 1 : div;
     std::vector<uint64_t> dstBuf(buffLen, 0);
     uint32_t buffOffset = 0;
     uint32_t innerBuffOffset = 0;
@@ -80,10 +80,6 @@ int DbAbility::DeSerialize(Parcel &parcel, DbAbility &curAbility)
         LOGE("[DbAbility][DeSerialize] deserialize failed.");
         return -E_LENGTH_ERROR;
     }
-    if (dstBuf.size() == 0) {
-        LOGE("[DbAbility][DeSerialize] buf length get failed.");
-        return -E_LENGTH_ERROR;
-    }
     std::vector<bool> targetBuff(SyncConfig::ABILITYBITS.back().first + SyncConfig::ABILITYBITS.back().second);
     uint32_t buffOffset = 0;
     uint32_t innerBuffOffset = 0;
@@ -102,7 +98,7 @@ int DbAbility::DeSerialize(Parcel &parcel, DbAbility &curAbility)
 uint32_t DbAbility::CalculateLen(const DbAbility &curAbility)
 {
     uint32_t div = curAbility.GetAbilityBitsLen() / SERIALIZE_BIT_SIZE;
-    uint32_t buffLen = (curAbility.GetAbilityBitsLen() % SERIALIZE_BIT_SIZE) ? div + 1 : div;
+    uint32_t buffLen = (curAbility.GetAbilityBitsLen() % SERIALIZE_BIT_SIZE != 0) ? div + 1 : div;
     return Parcel::GetVectorLen<uint64_t>(std::vector<uint64_t>(buffLen, 0));
 }
 

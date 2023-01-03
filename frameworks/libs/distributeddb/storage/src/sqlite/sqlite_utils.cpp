@@ -670,10 +670,11 @@ int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
     return errCode;
 }
 #ifdef RELATIONAL_STORE
+
 namespace { // anonymous namespace for schema analysis
 int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table)
 {
-    std::string sql = "select type, sql from sqlite_master where tbl_name = ?";
+    std::string sql = "select type, sql from sqlite_master where tbl_name = ? COLLATE NOCASE";
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -1383,11 +1384,28 @@ void SQLiteUtils::GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **arg
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetSysCurrentTime());
 }
 
+void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 0 || argv == nullptr) {
+        LOGE("Parameter does not meet restrictions.");
+        return;
+    }
+    // Never used internally, just for sql prepare
+    sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetSysCurrentTime());
+}
+
 int SQLiteUtils::RegisterGetSysTime(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &GetSysTime;
     return SQLiteUtils::RegisterFunction(db, "get_sys_time", 1, nullptr, func);
+}
+
+int SQLiteUtils::RegisterGetLastTime(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &GetLastTime;
+    return SQLiteUtils::RegisterFunction(db, "get_last_time", 0, nullptr, func);
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
@@ -1396,12 +1414,16 @@ int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const
     const std::map<FieldName, FieldInfo> &fields = baseTbl.GetFields();
     for (uint32_t cid = 0; cid < fields.size(); ++cid) {
         std::string fieldName = baseTbl.GetFieldName(cid);
-        sql += "'" + fieldName + "' '" + fields.at(fieldName).GetDataType() + "'";
-        if (fields.at(fieldName).IsNotNull()) {
+        const auto &it = fields.find(fieldName);
+        if (it == fields.end()) {
+            return -E_INVALID_DB;
+        }
+        sql += "'" + fieldName + "' '" + it->second.GetDataType() + "'";
+        if (it->second.IsNotNull()) {
             sql += " NOT NULL";
         }
-        if (fields.at(fieldName).HasDefaultValue()) {
-            sql += " DEFAULT " + fields.at(fieldName).GetDefaultValue();
+        if (it->second.HasDefaultValue()) {
+            sql += " DEFAULT " + it->second.GetDefaultValue();
         }
         sql += ",";
     }
@@ -2261,7 +2283,7 @@ int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, 
             }
             return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         }
-        // try to update sha algo by rekey operation
+        // try to update rekey sha algo by rekey operation
         errCode = SQLiteUtils::ExecuteRawSQL(db, SHA256_ALGO_REKEY_SQL);
         if (errCode != E_OK) {
             LOGE("[SQLiteUtils][UpdateCipherShaAlgo] set rekey sha algo failed:%d", errCode);
@@ -2288,7 +2310,7 @@ int SQLiteUtils::CheckTableExists(sqlite3 *db, const std::string &tableName, boo
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, CHECK_TABLE_CREATED, stmt);
     if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_OK)) {
-        LOGW("Get check table statement failed. err=%d", errCode);
+        LOGE("Get check table statement failed. err=%d", errCode);
         return errCode;
     }
 

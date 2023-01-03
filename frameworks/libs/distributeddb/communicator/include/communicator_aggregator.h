@@ -38,9 +38,9 @@ class SerialBuffer;
 class CommunicatorLinker;
 
 struct TaskConfig {
-    bool nonBlock;
-    uint32_t timeout;
-    Priority prio;
+    bool nonBlock = true;
+    uint32_t timeout = 0u;
+    Priority prio = Priority::NORMAL;
 };
 
 /*

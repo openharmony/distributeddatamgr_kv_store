@@ -15,10 +15,10 @@
 
 #include "single_ver_sync_engine.h"
 #include "db_common.h"
-#include "single_ver_sync_task_context.h"
+#include "log_print.h"
 #include "single_ver_kv_sync_task_context.h"
 #include "single_ver_relational_sync_task_context.h"
-#include "log_print.h"
+#include "single_ver_sync_task_context.h"
 
 namespace DistributedDB {
 ISyncTaskContext *SingleVerSyncEngine::CreateSyncTaskContext()

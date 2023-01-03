@@ -65,6 +65,7 @@ namespace {
             LOGE("active call back1, no need to active user1");
             return false;
         }
+        return true;
     };
     auto g_syncActivationCheckCallback2 = [] (const std::string &userId, const std::string &appId,
         const std::string &storeId)-> bool {
@@ -75,6 +76,7 @@ namespace {
             LOGE("active call back2, no need to active user2");
             return false;
         }
+        return true;
     };
 
     int DropTable(sqlite3 *db, const std::string &tableName)
@@ -225,6 +227,29 @@ namespace {
         statusMap.clear();
     }
 
+    int g_currentStatus = 0;
+    const AutoLaunchNotifier g_notifier = [](const std::string &userId,
+        const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
+            LOGD("notifier status = %d", status);
+            g_currentStatus = static_cast<int>(status);
+        };
+
+    const AutoLaunchRequestCallback g_callback = [](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_identifier != identifier) {
+            LOGD("g_identifier(%s) != identifier(%s)", g_identifier.c_str(), identifier.c_str());
+            return false;
+        }
+        param.path    = g_testDir + "/test2.db";
+        param.appId   = APP_ID;
+        param.storeId = STORE_ID;
+        CipherPassword passwd;
+        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
+            0, nullptr};
+        param.notifier = g_notifier;
+        param.option.syncDualTupleMode = true;
+        return true;
+    };
+
     void DoRemoteQuery()
     {
         RemoteCondition condition;
@@ -286,30 +311,6 @@ namespace {
         CloseStore();
     }
 
-    int g_currentStatus = 0;
-    const AutoLaunchNotifier g_nofifier = [](const std::string &userId,
-        const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
-            LOGE("notifier status = %d", status);
-            g_currentStatus = static_cast<int>(status);
-        };
-
-    const AutoLaunchRequestCallback g_callback = [](const std::string &identifier, AutoLaunchParam &param) {
-        if (g_identifier != identifier) {
-            LOGE("g_identifier(%s) != identifier(%s)", g_identifier.c_str(), identifier.c_str());
-            return false;
-        }
-        param.path    = g_testDir + "/test2.db";
-        param.appId   = APP_ID;
-        param.storeId = STORE_ID;
-        CipherPassword passwd;
-        param.option = {true, false, CipherType::DEFAULT, passwd, "", false, g_testDir, nullptr,
-            0, nullptr};
-        param.notifier = g_nofifier;
-        param.option.syncDualTupleMode = true;
-        return true;
-    };
-
-
     void TestSyncWithUserChange(bool wait, bool isRemoteQuery)
     {
         /**
@@ -358,6 +359,7 @@ namespace {
             if (!startSync) {
                 startSync = true;
                 cv.notify_all();
+                std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME)); // wait for notify user change
             }
         });
 
@@ -391,7 +393,7 @@ namespace {
                 break;
             }
             int columnCount = sqlite3_column_count(statement);
-            EXPECT_EQ(columnCount, 2); // 2： result index
+            EXPECT_EQ(columnCount, 2); // 2: result index
             rowCount++;
         }
         EXPECT_EQ(rowCount, 1);
@@ -561,7 +563,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser002, TestSize.Level0)
      * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
      */
     RuntimeConfig::SetSyncActivationCheckCallback(g_syncActivationCheckCallback1);
-
     /**
      * @tc.steps: step2. openstore1 and openstore2
      * @tc.expected: step2. only user2 sync mode is active
@@ -847,7 +848,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser008, TestSize.Level1)
 
 /**
  * @tc.name: multi user 009
- * @tc.desc: test NotifyUserChanged and remote query concurrently for rdb
+ * @tc.desc: test user change and remote query concurrently for rdb
  * @tc.type: FUNC
  * @tc.require: AR000GK58G
  * @tc.author: zhangshijie

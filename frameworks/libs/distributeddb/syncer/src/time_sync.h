@@ -109,7 +109,7 @@ private:
 
     void ResetTimer();
 
-    bool IsClosed();
+    bool IsClosed() const;
 
     ICommunicator *communicateHandle_;
     std::shared_ptr<Metadata> metadata_;
@@ -121,7 +121,7 @@ private:
     bool isSynced_;
     bool isAckReceived_;
     std::condition_variable conditionVar_;
-    std::mutex cvLock_;
+    mutable std::mutex cvLock_;
     NotificationChain::Listener *timeChangedListener_;
     std::condition_variable timeDriverCond_;
     std::mutex timeDriverLock_;

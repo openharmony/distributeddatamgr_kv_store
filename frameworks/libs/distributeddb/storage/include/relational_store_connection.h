@@ -33,7 +33,7 @@ public:
     struct SyncInfo {
         const std::vector<std::string> &devices;
         SyncMode mode = SYNC_MODE_PUSH_PULL;
-        const SyncStatusCallback &onComplete;
+        const SyncStatusCallback onComplete = nullptr;
         const Query &query;
         bool wait = true;
     };

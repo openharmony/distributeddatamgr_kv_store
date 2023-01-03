@@ -45,6 +45,9 @@ public:
     static int RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, const DataRequestPacket *packet);
 
+    static int RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
+        const std::string &label, int mode);
+
     static bool CheckPermitReceiveData(const SingleVerSyncTaskContext *context, const ICommunicator *communicator);
 
     static void SetPacketId(DataRequestPacket *packet, SingleVerSyncTaskContext *context, uint32_t version);
@@ -87,6 +90,9 @@ public:
 
     static SyncTimeRange GetSyncDataTimeRange(SyncType syncType, WaterMark localMark, WaterMark deleteMark,
         const std::vector<SendDataItem> &inData, UpdateWaterMark &isUpdate);
+private:
+    static int RunPermissionCheckInner(const SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
+        const std::string &label, const DataRequestPacket *packet, int mode);
 };
 }
 #endif // SINGLE_VER_DATA_SYNC_UTIL_H

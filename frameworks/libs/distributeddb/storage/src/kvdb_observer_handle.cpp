@@ -35,7 +35,6 @@ KvDBObserverHandle::~KvDBObserverHandle()
 void KvDBObserverHandle::InsertListener(NotificationChain::Listener *listener)
 {
     listeners_.push_back(listener);
-    return;
 }
 
 uint32_t KvDBObserverHandle::GetObserverMode() const

@@ -32,13 +32,20 @@
 using namespace testing::ext;
 using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
-
 namespace {
     const std::string DEVICE_A = "real_device";
     const std::string DEVICE_B = "deviceB";
     const std::string DEVICE_C = "deviceC";
     const std::string DEVICE_D = "deviceD";
     const std::string g_tableName = "TEST_TABLE";
+
+    const int ONE_HUNDERED = 100;
+    const char DEFAULT_CHAR = 'D';
+    const std::string DEFAULT_TEXT = "This is a text";
+    const std::vector<uint8_t> DEFAULT_BLOB(ONE_HUNDERED, DEFAULT_CHAR);
+    const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1";
+    const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256";
+    const std::string SHA256_ALGO_REKEY_SQL = "PRAGMA codec_rekey_hmac_algo=SHA256";
 
 #ifndef OMIT_ENCRYPT
     bool g_isAfterRekey = false;
@@ -50,15 +57,6 @@ namespace {
     CipherPassword g_incorrectPasswd;
     const int DEFAULT_ITER = 5000;
 #endif
-
-    const int ONE_HUNDERED = 100;
-    const char DEFAULT_CHAR = 'D';
-    const std::string DEFAULT_TEXT = "This is a text";
-    const std::vector<uint8_t> DEFAULT_BLOB(ONE_HUNDERED, DEFAULT_CHAR);
-    const std::string SHA1_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA1";
-    const std::string SHA256_ALGO_SQL = "PRAGMA codec_hmac_algo=SHA256";
-    const std::string SHA256_ALGO_REKEY_SQL = "PRAGMA codec_rekey_hmac_algo=SHA256";
-
     RelationalStoreManager g_mgr(APP_ID, USER_ID);
     std::string g_testDir;
     std::string g_dbDir;
@@ -508,7 +506,6 @@ namespace {
     {
         std::vector<VirtualRowData> targetData;
         g_deviceB->GetAllSyncData(tableName, targetData);
-
         ASSERT_EQ(targetData.size(), 1u);
         for (auto &[field, value] : data) {
             DataValue target;
@@ -1004,6 +1001,23 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync005, TestSize.Level0)
 }
 
 /**
+* @tc.name: Normal Sync 006
+* @tc.desc: Test normal pull sync for add data.
+* @tc.type: FUNC
+* @tc.require: AR000GK58N
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync006, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+
+    BlockSync(SYNC_MODE_PULL_ONLY, OK, {DEVICE_B});
+
+    CheckData(dataMap);
+}
+
+/**
 * @tc.name: Normal Sync 007
 * @tc.desc: Test normal sync for miss query data.
 * @tc.type: FUNC
@@ -1071,23 +1085,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
 }
 
 /**
-* @tc.name: Normal Sync 006
-* @tc.desc: Test normal pull sync for add data.
-* @tc.type: FUNC
-* @tc.require: AR000GK58N
-* @tc.author: zhangqiquan
-*/
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync006, TestSize.Level1)
-{
-    std::map<std::string, DataValue> dataMap;
-    PrepareVirtualEnvironment(dataMap, {g_deviceB});
-
-    BlockSync(SYNC_MODE_PULL_ONLY, OK, {DEVICE_B});
-
-    CheckData(dataMap);
-}
-
-/**
 * @tc.name: Normal Sync 009
 * @tc.desc: Test normal push sync for while create distribute table
 * @tc.type: FUNC
@@ -1117,6 +1114,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level0)
         syncCv.notify_one();
     };
     std::thread t1([] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
         g_rdbDelegatePtr->CreateDistributedTable(g_tableName);
     });
     DBStatus callStatus = OK;
@@ -1126,10 +1124,10 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync009, TestSize.Level0)
         syncCallCv.notify_one();
     });
     {
-        std::unique_lock<std::mutex> lock(syncCallMutex);
-        syncCallCv.wait(lock);
+        std::unique_lock<std::mutex> callLock(syncCallMutex);
+        syncCallCv.wait(callLock);
     }
-    {
+    if (callStatus == OK) {
         std::unique_lock<std::mutex> lock(syncMutex);
         syncCv.wait(lock);
     }
@@ -1263,7 +1261,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, Te
     g_isAfterRekey = true;
 
     /**
-     * @tc.steps: step5. Call sync expect sync failed
+     * @tc.steps: step6. Call sync expect sync failed
      */
     Query query = Query::Select(g_tableName);
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
@@ -1272,7 +1270,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, Te
     EXPECT_EQ(count, 0u);
 
     /**
-     * @tc.steps: step6. Set callback.
+     * @tc.steps: step7. Set callback.
      */
     encryptedParam.option.passwd = g_rekeyPasswd;
     g_mgr.SetAutoLaunchRequestCallback(callback);
@@ -1280,7 +1278,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, Te
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
     /**
-     * @tc.steps: step5. Call sync expect sync success
+     * @tc.steps: step8. Call sync expect sync success
      */
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
@@ -1861,24 +1859,19 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery006, TestSize.Level1)
     PrepareEnvironment(dataMap, {g_deviceB});
     ASSERT_NE(g_deviceB, nullptr);
     ASSERT_NE(g_rdbDelegatePtr, nullptr);
-    std::thread *offlineThread = nullptr;
-    g_communicatorAggregator->RegOnDispatch([&offlineThread](const std::string &device, Message *inMsg) {
+    g_communicatorAggregator->RegOnDispatch([](const std::string &device, Message *inMsg) {
         ASSERT_NE(inMsg, nullptr);
         inMsg->SetMessageId(INVALID_MESSAGE_ID);
-        offlineThread = new std::thread([]() {
+        std::thread t([]() {
             g_deviceB->Offline();
         });
+        t.detach();
     });
     RemoteCondition condition;
     condition.sql = "SELECT * FROM " + g_tableName + " WHERE 1=0";
     std::shared_ptr<ResultSet> result = nullptr;
     EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), COMM_FAILURE);
     ASSERT_EQ(result, nullptr);
-    if (offlineThread != nullptr) {
-        offlineThread->join();
-        delete offlineThread;
-        offlineThread = nullptr;
-    }
 }
 
 /**
@@ -2010,7 +2003,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery010, TestSize.Level1)
 
 /**
 * @tc.name: remote query 010
-* @tc.desc: Test rdb remote query with
+* @tc.desc: Test rdb remote query with error sql
 * @tc.type: FUNC
 * @tc.require: AR000GK58G
 * @tc.author: zhangqiquan
@@ -2237,9 +2230,9 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SecurityOptionCheck001, TestSize
     std::shared_ptr<ProcessSystemApiAdapterImpl> adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     adapter->ForkGetSecurityOption(
         [](const std::string &filePath, SecurityOption &option) {
-        (void)filePath;
-        (void)option;
-        return DB_ERROR;
+            (void)filePath;
+            (void)option;
+            return DB_ERROR;
     });
     RuntimeConfig::SetProcessSystemAPIAdapter(adapter);
 

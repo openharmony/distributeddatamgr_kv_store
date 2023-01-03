@@ -134,7 +134,7 @@ int SyncAbleEngine::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedAct
     if (isSyncDualTupleMode && isCheckSyncActive && !isNeedActive && (userChangeListener_ == nullptr)) {
         // active to non_active
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
-            std::bind(&SyncAbleEngine::ChangeUserListerner, this), UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
+            std::bind(&SyncAbleEngine::ChangeUserListener, this), UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
     } else if (isSyncDualTupleMode && (userChangeListener_ == nullptr)) {
         EventType event = isNeedActive ?
             UserChangeMonitor::USER_ACTIVE_EVENT : UserChangeMonitor::USER_NON_ACTIVE_EVENT;
@@ -176,15 +176,13 @@ void SyncAbleEngine::StopSyncerWithNoLock(bool isClosedOperation)
 
 void SyncAbleEngine::UserChangeHandle()
 {
-    bool isNeedChange = false;
-    bool isNeedActive = true;
     std::unique_lock<std::mutex> lock(syncerOperateLock_);
     if (closed_) {
         LOGI("RDB is already closed");
         return;
     }
-    isNeedActive = RuntimeContext::GetInstance()->IsSyncerNeedActive(store_->GetDbProperties());
-    isNeedChange = (isNeedActive != isSyncNeedActive_) ? true : false;
+    bool isNeedActive = RuntimeContext::GetInstance()->IsSyncerNeedActive(store_->GetDbProperties());
+    bool isNeedChange = (isNeedActive != isSyncNeedActive_);
     // non_active to active or active to non_active
     if (isNeedChange) {
         StopSyncerWithNoLock(); // will drop userChangeListener
@@ -194,17 +192,15 @@ void SyncAbleEngine::UserChangeHandle()
     }
 }
 
-void SyncAbleEngine::ChangeUserListerner()
+void SyncAbleEngine::ChangeUserListener()
 {
     // only active to non_active call, put into USER_NON_ACTIVE_EVENT listener from USER_ACTIVE_TO_NON_ACTIVE_EVENT
     if (userChangeListener_ != nullptr) {
         userChangeListener_->Drop(false);
         userChangeListener_ = nullptr;
     }
-    if (userChangeListener_ == nullptr) {
-        userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
-            std::bind(&SyncAbleEngine::UserChangeHandle, this), UserChangeMonitor::USER_NON_ACTIVE_EVENT);
-    }
+    userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
+        std::bind(&SyncAbleEngine::UserChangeHandle, this), UserChangeMonitor::USER_NON_ACTIVE_EVENT);
 }
 
 void SyncAbleEngine::SetSyncModuleActive()

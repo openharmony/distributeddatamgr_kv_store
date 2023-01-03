@@ -20,6 +20,30 @@
 #include "log_print.h"
 #include "message.h"
 namespace DistributedDB {
+namespace {
+void FillPermissionCheckParam(const SyncGenericInterface* storage, int mode, PermissionCheckParam &param, uint8_t &flag)
+{
+    param.appId = storage->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
+    param.userId = storage->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
+    param.storeId = storage->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
+    param.instanceId = storage->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
+    switch (mode) {
+        case SyncModeType::PUSH:
+            flag = CHECK_FLAG_RECEIVE;
+            break;
+        case SyncModeType::PULL:
+            flag = CHECK_FLAG_SEND;
+            break;
+        case SyncModeType::PUSH_AND_PULL:
+            flag = CHECK_FLAG_SEND | CHECK_FLAG_RECEIVE;
+            break;
+        default:
+            flag = CHECK_FLAG_RECEIVE;
+            break;
+    }
+}
+}
+
 int SingleVerDataSyncUtils::QuerySyncCheck(const SingleVerSyncTaskContext *context, bool &isCheckStatus)
 {
     if (context == nullptr) {
@@ -169,33 +193,13 @@ int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context
     const std::string &label, const DataRequestPacket *packet)
 {
     int mode = SyncOperation::TransferSyncMode(packet->GetMode());
-    std::string appId = storage->GetDbProperties().GetStringProp(DBProperties::APP_ID, "");
-    std::string userId = storage->GetDbProperties().GetStringProp(DBProperties::USER_ID, "");
-    std::string storeId = storage->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "");
-    int32_t instanceId = storage->GetDbProperties().GetIntProp(DBProperties::INSTANCE_ID, 0);
-    uint8_t flag;
-    switch (mode) {
-        case SyncModeType::PUSH:
-            flag = CHECK_FLAG_RECEIVE;
-            break;
-        case SyncModeType::PULL:
-            flag = CHECK_FLAG_SEND;
-            break;
-        case SyncModeType::PUSH_AND_PULL:
-            flag = CHECK_FLAG_SEND | CHECK_FLAG_RECEIVE;
-            break;
-        default:
-            flag = CHECK_FLAG_RECEIVE;
-            break;
-    }
-    int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(
-        { userId, appId, storeId, context->GetDeviceId(), instanceId, packet->GetExtraConditions() },
-        flag);
-    if (errCode != E_OK) {
-        LOGE("[DataSync][RunPermissionCheck] check failed flag=%" PRIu8 ",Label=%s,dev=%s", flag, label.c_str(),
-            STR_MASK(context->GetDeviceId()));
-    }
-    return errCode;
+    return RunPermissionCheckInner(context, storage, label, packet, mode);
+}
+
+int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
+    const std::string &label, int mode)
+{
+    return RunPermissionCheckInner(context, storage, label, nullptr, mode);
 }
 
 bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskContext *context,
@@ -436,5 +440,23 @@ SyncTimeRange SingleVerDataSyncUtils::GetSyncDataTimeRange(SyncType syncType, Wa
         return SingleVerDataSyncUtils::GetFullSyncDataTimeRange(inData, localMark, isUpdate);
     }
     return SingleVerDataSyncUtils::GetQuerySyncDataTimeRange(inData, localMark, deleteMark, isUpdate);
+}
+
+int SingleVerDataSyncUtils::RunPermissionCheckInner(const SingleVerSyncTaskContext *context,
+    const SyncGenericInterface* storage, const std::string &label, const DataRequestPacket *packet, int mode)
+{
+    PermissionCheckParam param;
+    uint8_t flag = 0u;
+    FillPermissionCheckParam(storage, mode, param, flag);
+    param.deviceId = context->GetDeviceId();
+    if (packet != nullptr) {
+        param.extraConditions = packet->GetExtraConditions();
+    }
+    int errCode = RuntimeContext::GetInstance()->RunPermissionCheck(param, flag);
+    if (errCode != E_OK) {
+        LOGE("[DataSync][RunPermissionCheck] check failed flag=%" PRIu8 ",Label=%s,dev=%s", flag, label.c_str(),
+            STR_MASK(context->GetDeviceId()));
+    }
+    return errCode;
 }
 }

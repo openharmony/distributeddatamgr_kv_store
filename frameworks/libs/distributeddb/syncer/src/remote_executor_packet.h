@@ -37,9 +37,7 @@ public:
 
     void SetFlag(uint32_t flag);
 
-    PreparedStmt GetPreparedStmt() const;
-
-    void SetPreparedStmt(const PreparedStmt &perparedStmt);
+    const PreparedStmt &GetPreparedStmt() const;
 
     bool IsNeedResponse() const;
 
@@ -55,6 +53,12 @@ public:
 
     int DeSerialization(Parcel &parcel) override;
 
+    void SetOpCode(PreparedStmt::ExecutorOperation opCode);
+
+    void SetSql(const std::string &sql);
+
+    void SetBindArgs(const std::vector<std::string> &bindArgs);
+
     static RemoteExecutorRequestPacket* Create();
 
     static void Release(RemoteExecutorRequestPacket *&packet);
@@ -65,7 +69,7 @@ public:
 private:
     uint32_t version_ = 0u;
     uint32_t flag_ = 0u; // 0x01 mean need reply ack
-    PreparedStmt perparedStmt_;
+    PreparedStmt preparedStmt_;
     std::map<std::string, std::string> extraConditions_;
 };
 

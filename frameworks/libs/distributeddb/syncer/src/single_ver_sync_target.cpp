@@ -23,8 +23,7 @@
 
 namespace DistributedDB {
 SingleVerSyncTarget::SingleVerSyncTarget()
-    : endWaterMark_(0),
-      query_(QuerySyncObject())
+    : endWaterMark_(0)
 {
 }
 

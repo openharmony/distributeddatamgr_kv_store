@@ -17,11 +17,11 @@
 
 #include <algorithm>
 
+#include "db_errno.h"
+#include "log_print.h"
+#include "message.h"
 #include "message_transform.h"
 #include "parcel.h"
-#include "db_errno.h"
-#include "message.h"
-#include "log_print.h"
 #include "performance_analysis.h"
 #include "sync_types.h"
 

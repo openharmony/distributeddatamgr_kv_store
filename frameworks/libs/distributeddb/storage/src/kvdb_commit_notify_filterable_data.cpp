@@ -76,7 +76,6 @@ bool KvDBCommitNotifyFilterAbleData::IsConflictedDataEmpty() const
 void KvDBCommitNotifyFilterAbleData::SetFilterKey(const Key &key)
 {
     (void)key;
-    return;
 }
 
 void KvDBCommitNotifyFilterAbleData::SetMyDb(GenericKvDB *db, uint64_t notifyID)

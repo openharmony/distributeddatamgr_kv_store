@@ -148,8 +148,8 @@ public:
     int SyncStart(uint32_t sessionId, uint32_t sequenceId, uint16_t remoteCommunicatorVersion,
         const CommErrHandler &handler = nullptr);
 
-    int Initialize(ICommunicator *inCommunicator, ISyncInterface *inStorage, std::shared_ptr<Metadata> &inMetadata,
-        const std::string &deviceId);
+    int Initialize(ICommunicator *inCommunicator, ISyncInterface *inStorage,
+        const std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId);
 
     int AckRecv(const Message *message, ISyncTaskContext *context);
 
@@ -170,7 +170,6 @@ public:
     static int DeSerialization(const uint8_t *buffer, uint32_t length, Message *inMsg); // register to communicator
 
 private:
-
     static int RequestPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg);
 
     static int AckPacketSerialization(uint8_t *buffer, uint32_t length, const Message *inMsg);
@@ -230,9 +229,9 @@ private:
 
     int HandleRequestRecv(const Message *message, ISyncTaskContext *context, bool isCompatible);
 
-    SyncOpinion MakeKvSyncOpnion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema) const;
+    SyncOpinion MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema) const;
 
-    RelationalSyncOpinion MakeRelationSyncOpnion(const AbilitySyncRequestPacket *packet,
+    RelationalSyncOpinion MakeRelationSyncOpinion(const AbilitySyncRequestPacket *packet,
         const std::string &remoteSchema) const;
 
     int AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context, const AbilitySyncAckPacket *packet);

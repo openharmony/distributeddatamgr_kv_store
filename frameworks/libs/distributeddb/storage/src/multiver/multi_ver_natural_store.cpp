@@ -1044,7 +1044,7 @@ Version MultiVerNaturalStore::GetMaxTrimmableVersion() const
 int MultiVerNaturalStore::TransObserverTypeToRegisterFunctionType(int observerType, RegisterFuncType &type) const
 {
     if (observerType == static_cast<uint32_t>(NATURAL_STORE_COMMIT_EVENT)) {
-        type = OBSERVER_MULTI_VERSION_NS_COMMIT_EVENT;
+        type = RegisterFuncType::OBSERVER_MULTI_VERSION_NS_COMMIT_EVENT;
         return E_OK;
     }
     return -E_NOT_SUPPORT;

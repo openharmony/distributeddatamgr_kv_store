@@ -32,7 +32,7 @@ using SubscribedTotalMap = std::map<std::string, std::pair<QuerySyncObject, int>
 class SubscribeManager {
 public:
     SubscribeManager() = default;
-    ~SubscribeManager() {};
+    ~SubscribeManager() = default;
 
     DISABLE_COPY_ASSIGN_MOVE(SubscribeManager);
 

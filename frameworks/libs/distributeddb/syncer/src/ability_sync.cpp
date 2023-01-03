@@ -341,7 +341,7 @@ AbilitySync::~AbilitySync()
 }
 
 int AbilitySync::Initialize(ICommunicator *inCommunicator, ISyncInterface *inStorage,
-    std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId)
+    const std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId)
 {
     if (inCommunicator == nullptr || inStorage == nullptr || deviceId.empty() || inMetadata == nullptr) {
         return -E_INVALID_ARGS;
@@ -1050,9 +1050,9 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     }
     AbilitySyncAckPacket ackPacket;
     if (IsSingleRelationalVer()) {
-        ackPacket.SetRelationalSyncOpinion(MakeRelationSyncOpnion(packet, schema));
+        ackPacket.SetRelationalSyncOpinion(MakeRelationSyncOpinion(packet, schema));
     } else {
-        SetAbilityAckSyncOpinionInfo(ackPacket, MakeKvSyncOpnion(packet, schema));
+        SetAbilityAckSyncOpinionInfo(ackPacket, MakeKvSyncOpinion(packet, schema));
     }
     LOGI("[AbilitySync][RequestRecv] remote dev=%s,ver=%u,schemaCompatible=%d", STR_MASK(deviceId_),
         remoteSoftwareVersion, isCompatible);
@@ -1116,7 +1116,8 @@ int AbilitySync::SendAck(const Message *inMsg, const AbilitySyncAckPacket &ackPa
     return errCode;
 }
 
-SyncOpinion AbilitySync::MakeKvSyncOpnion(const AbilitySyncRequestPacket *packet, const std::string &remoteSchema) const
+SyncOpinion AbilitySync::MakeKvSyncOpinion(const AbilitySyncRequestPacket *packet,
+    const std::string &remoteSchema) const
 {
     uint8_t remoteSchemaType = packet->GetSchemaType();
     SchemaObject localSchema = (static_cast<SingleVerKvDBSyncInterface *>(storageInterface_))->GetSchemaInfo();
@@ -1124,7 +1125,7 @@ SyncOpinion AbilitySync::MakeKvSyncOpnion(const AbilitySyncRequestPacket *packet
     return localSyncOpinion;
 }
 
-RelationalSyncOpinion AbilitySync::MakeRelationSyncOpnion(const AbilitySyncRequestPacket *packet,
+RelationalSyncOpinion AbilitySync::MakeRelationSyncOpinion(const AbilitySyncRequestPacket *packet,
     const std::string &remoteSchema) const
 {
     uint8_t remoteSchemaType = packet->GetSchemaType();
@@ -1157,6 +1158,18 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     auto localStrategy = SchemaNegotiate::ConcludeSyncStrategy(localOpinion,
         recvPacket->GetRelationalSyncOpinion());
     (static_cast<SingleVerRelationalSyncTaskContext *>(context))->SetRelationalSyncStrategy(localStrategy, true);
+    bool permitSync = std::any_of(localStrategy.begin(), localStrategy.end(),
+        [] (const std::pair<std::string, SyncStrategy> &it) {
+        return it.second.permitSync;
+        });
+    if (permitSync) {
+        int innerErrCode = (static_cast<RelationalDBSyncInterface *>(storageInterface_)->SaveRemoteDeviceSchema(
+            deviceId_, remoteSchema, remoteSchemaType));
+        if (innerErrCode != E_OK) {
+            LOGE("[AbilitySync][AckRecv] save remote device Schema failed,errCode=%d", innerErrCode);
+            return innerErrCode;
+        }
+    }
     int errCode = (static_cast<RelationalDBSyncInterface *>(storageInterface_))->
         CreateDistributedDeviceTable(context->GetDeviceId(), localStrategy);
     if (errCode != E_OK) {

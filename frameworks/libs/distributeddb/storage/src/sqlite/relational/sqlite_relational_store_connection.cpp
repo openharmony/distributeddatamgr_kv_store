@@ -61,6 +61,9 @@ int SQLiteRelationalStoreConnection::Close()
 
 std::string SQLiteRelationalStoreConnection::GetIdentifier()
 {
+    if (store_ == nullptr) {
+        return {};
+    }
     return store_->GetProperties().GetStringProp(RelationalDBProperties::IDENTIFIER_DATA, "");
 }
 
@@ -190,25 +193,30 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
 
     {
         AutoLock lockGuard(this);
+        if (IsKilled()) {
+            // If this happens, users are using a closed connection.
+            LOGE("Sync on a closed connection.");
+            return -E_STALE;
+        }
         IncObjRef(this);
-        ISyncer::SyncParma syncParam;
-        syncParam.devices = info.devices;
-        syncParam.mode = info.mode;
-        syncParam.wait = info.wait;
-        syncParam.isQuerySync = true;
-        syncParam.relationOnComplete = info.onComplete;
-        syncParam.syncQuery = QuerySyncObject(info.query);
-        syncParam.onFinalize =  [this]() { DecObjRef(this); };
-        if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
-            LOGE("not support order by timestamp");
-            DecObjRef(this);
-            return -E_NOT_SUPPORT;
-        }
-        int errCode = store->Sync(syncParam, GetConnectionId());
-        if (errCode != E_OK) {
-            DecObjRef(this);
-            return errCode;
-        }
+    }
+    ISyncer::SyncParma syncParam;
+    syncParam.devices = info.devices;
+    syncParam.mode = info.mode;
+    syncParam.wait = info.wait;
+    syncParam.isQuerySync = true;
+    syncParam.relationOnComplete = info.onComplete;
+    syncParam.syncQuery = QuerySyncObject(info.query);
+    syncParam.onFinalize =  [this]() { DecObjRef(this); };
+    if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
+        LOGE("not support order by timestamp");
+        DecObjRef(this);
+        return -E_NOT_SUPPORT;
+    }
+    int errCode = store->Sync(syncParam, GetConnectionId());
+    if (errCode != E_OK) {
+        DecObjRef(this);
+        return errCode;
     }
     return E_OK;
 }

@@ -113,6 +113,8 @@ public:
 
     const RelationalDBProperties &GetRelationalDbProperties() const override;
 
+    int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
+
     void SetPermitCreateDistributedTable(bool permitCreateDistributedTable);
 
     int GetSecurityOption(SecurityOption &option) const override;

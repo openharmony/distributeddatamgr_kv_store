@@ -24,7 +24,7 @@
 
 // db ability config
 namespace DistributedDB {
-// offset, used_bits_num, used_bits_num < 64
+// offset, used_bits_num, used_bits_num < 8
 using AbilityItem = std::pair<uint32_t, uint32_t>;
 // format: {offset, used_bits_num}
 /*

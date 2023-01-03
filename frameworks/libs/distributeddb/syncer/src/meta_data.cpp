@@ -225,7 +225,7 @@ void Metadata::GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValu
 int Metadata::SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue)
 {
     outValue.resize(sizeof(MetaDataValue));
-    errno_t err = memcpy_s(&outValue[0], outValue.size(), &inValue, sizeof(MetaDataValue));
+    errno_t err = memcpy_s(outValue.data(), outValue.size(), &inValue, sizeof(MetaDataValue));
     if (err != EOK) {
         return -E_SECUREC_ERROR;
     }
@@ -238,7 +238,7 @@ int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataV
         return -E_INVALID_ARGS;
     }
 
-    errno_t err = memcpy_s(&outValue, sizeof(MetaDataValue), &inValue[0], inValue.size());
+    errno_t err = memcpy_s(&outValue, sizeof(MetaDataValue), inValue.data(), inValue.size());
     if (err != EOK) {
         return -E_SECUREC_ERROR;
     }
@@ -345,19 +345,6 @@ int Metadata::LoadDeviceIdDataToMap(const Key &key)
     std::lock_guard<std::mutex> lockGuard(metadataLock_);
     PutMetadataToMap(metaKey, metaValue);
     return errCode;
-}
-
-uint64_t Metadata::GetRandTimeOffset() const
-{
-    const int randOffsetLength = 2; // 2 byte
-    uint8_t randBytes[randOffsetLength] = { 0 };
-    RAND_bytes(randBytes, randOffsetLength);
-
-    // use a 16 bit rand data to make a rand timeoffset
-    uint64_t randTimeOffset = (static_cast<uint16_t>(randBytes[1]) << 8) | randBytes[0]; // 16 bit data, 8 is offset
-    randTimeOffset = randTimeOffset * 1000 * 1000 * 10; // second, 1000 is scale
-    LOGD("[Metadata] GetRandTimeOffset %" PRIu64, randTimeOffset);
-    return randTimeOffset;
 }
 
 void Metadata::GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash)
@@ -505,7 +492,7 @@ int Metadata::SetDbCreateTime(const DeviceID &deviceId, uint64_t inValue, bool i
         metadata = metadataMap_[hashDeviceId];
         if (metadata.dbCreateTime != 0 && metadata.dbCreateTime != inValue) {
             metadata.clearDeviceDataMark = REMOVE_DEVICE_DATA_MARK;
-            LOGI("Metadata::SetDbCreateTime,set cleardata mark,dev=%s,dbCreateTime=%" PRIu64,
+            LOGI("Metadata::SetDbCreateTime,set clear data mark,dev=%s,dbCreateTime=%" PRIu64,
                 STR_MASK(deviceId), inValue);
         }
         if (metadata.dbCreateTime == 0) {

@@ -27,11 +27,14 @@
 namespace DistributedDB {
 class ISyncEngine : public virtual RefObject {
 public:
+    struct InitCallbackParam {
+        std::function<void(std::string)> onRemoteDataChanged;
+        std::function<void(std::string)> offlineChanged;
+        std::function<void(const InternalSyncParma &param)> queryAutoSyncCallback;
+    };
     // Do some init things
-    virtual int Initialize(ISyncInterface *syncInterface, std::shared_ptr<Metadata> &metadata,
-        const std::function<void(std::string)> &onRemoteDataChanged,
-        const std::function<void(std::string)> &offlineChanged,
-        const std::function<void(const InternalSyncParma &param)> &queryAutoSyncCallback) = 0;
+    virtual int Initialize(ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
+        const InitCallbackParam &callbackParam) = 0;
 
     // Do some things, when db close.
     virtual int Close() = 0;
@@ -92,7 +95,7 @@ public:
     virtual void AbortMachineIfNeed(uint32_t syncId) = 0;
 
 protected:
-    virtual ~ISyncEngine() {};
+    ~ISyncEngine() override {};
 };
 } // namespace DistributedDB
 

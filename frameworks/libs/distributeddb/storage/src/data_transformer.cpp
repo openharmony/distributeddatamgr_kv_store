@@ -285,15 +285,19 @@ int DataTransformer::SerializeValue(Value &value, const RowData &rowData, const 
         return -E_INVALID_ARGS;
     }
 
-    uint32_t totalLength = Parcel::GetUInt64Len(); // first record field count
+    uint64_t totalLength = Parcel::GetUInt64Len(); // first record field count
     for (uint32_t i = 0; i < rowData.size(); ++i) {
         const auto &dataValue = rowData[i];
         totalLength += Parcel::GetUInt32Len(); // For save the dataValue's type.
         uint32_t dataLength = CalDataValueLength(dataValue);
         totalLength += dataLength;
+        if (totalLength > static_cast<uint64_t>(INT32_MAX)) {
+            LOGE("[DataTransformer][SerializeValue] DataValue is too large!");
+            return -E_INVALID_ARGS;
+        }
     }
-    value.resize(totalLength);
-    if (value.size() != totalLength) {
+    value.resize(static_cast<uint32_t>(totalLength));
+    if (value.size() != static_cast<uint32_t>(totalLength)) {
         return -E_OUT_OF_MEMORY;
     }
     Parcel parcel(value.data(), value.size());
