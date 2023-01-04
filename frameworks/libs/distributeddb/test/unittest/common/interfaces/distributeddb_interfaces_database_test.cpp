@@ -41,12 +41,15 @@ namespace {
     string g_testDir;
     KvStoreConfig g_config;
 
-    // define the g_kvDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
+#ifndef OMIT_MULTI_VER
+    // define the g_kvDelegateCallback, used to get some information when open a kv store.
     KvStoreDelegate *g_kvDelegatePtr = nullptr;
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+#endif // OMIT_MULTI_VER
+
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
@@ -334,8 +337,10 @@ void DistributedDBInterfacesDatabaseTest::TearDownTestCase(void)
 void DistributedDBInterfacesDatabaseTest::SetUp(void)
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
+#ifndef OMIT_MULTI_VER
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesDatabaseTest::TearDown(void)
@@ -345,6 +350,7 @@ void DistributedDBInterfacesDatabaseTest::TearDown(void)
     }
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: GetKvStore001
   * @tc.desc: Get kv store through different parameters.
@@ -539,6 +545,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore002, TestSize.Level1)
     EXPECT_TRUE(retStoreId.compare("distributed_getkvstore_002") == 0);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: GetKvStore003
@@ -671,6 +678,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetKvStore004, TestSize.Level1)
     EXPECT_TRUE(g_mgr.DeleteKvStore("distributed_getkvstore_004") == OK);
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: CloseKvStore001
   * @tc.desc: Test the CloseKvStore Interface and check whether the database file can be closed.
@@ -792,6 +800,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, DeleteKvStore001, TestSize.Level1)
      */
     EXPECT_TRUE(g_mgr.DeleteKvStore(storeId) == NOT_FOUND);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: RepeatCloseKvStore001

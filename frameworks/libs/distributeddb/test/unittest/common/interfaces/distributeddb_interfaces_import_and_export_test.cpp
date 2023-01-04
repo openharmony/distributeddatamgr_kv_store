@@ -38,12 +38,18 @@ namespace {
     // define the g_kvNbDelegateCallback, used to get some information when open a kv store.
     DBStatus g_kvDelegateStatus = INVALID_ARGS;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
-    KvStoreDelegate *g_kvDelegatePtr = nullptr;
     KvStoreNbDelegate *g_kvNbDelegatePtrWithoutPasswd = nullptr;
-    KvStoreDelegate *g_kvDelegatePtrWithoutPasswd = nullptr;
-    KvStoreDelegate::Option g_option;
-    const size_t MAX_PASSWD_SIZE = 128;
 
+#ifndef OMIT_MULTI_VER
+    KvStoreDelegate *g_kvDelegatePtr = nullptr;
+    KvStoreDelegate *g_kvDelegatePtrWithoutPasswd = nullptr;
+    // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
+    auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
+        placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
+    KvStoreDelegate::Option g_option;
+#endif // OMIT_MULTI_VER
+
+    const size_t MAX_PASSWD_SIZE = 128;
     // define the g_valueCallback, used to query a value object data from the kvdb.
     DBStatus g_valueStatus = INVALID_ARGS;
     Value g_value;
@@ -59,10 +65,6 @@ namespace {
     // the type of g_kvNbDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
-
-    // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
-    auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
-        placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvDelegatePtr));
 
     void RemoveJunkFile(const std::vector<std::string> &fileList)
     {
@@ -127,7 +129,9 @@ void DistributedDBInterfacesImportAndExportTest::SetUp(void)
     g_junkFilesList.clear();
     g_kvDelegateStatus = INVALID_ARGS;
     g_kvNbDelegatePtr = nullptr;
+#ifndef OMIT_MULTI_VER
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesImportAndExportTest::TearDown(void)
@@ -160,7 +164,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.L
      */
     CipherPassword passwd;
     EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
-
+#ifndef OMIT_MULTI_VER
     std::string mulitExportFileName = g_exportFileDir + "/mulitNormalExport001.$$";
     std::string multiStoreId = "distributed_ExportMulit_001";
     g_mgr.GetKvStore(multiStoreId, g_option, g_kvDelegateCallback);
@@ -174,12 +178,13 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalExport001, TestSize.L
     EXPECT_EQ(g_kvDelegatePtr->Export(mulitExportFileName, passwd), OK);
 
     // clear resource
-    g_junkFilesList.push_back(singleExportFileName);
     g_junkFilesList.push_back(mulitExportFileName);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
+#endif // OMIT_MULTI_VER
+    g_junkFilesList.push_back(singleExportFileName);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 
 /**
@@ -243,6 +248,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlSingleExport001
     g_junkFilesList.push_back(singleExportFileName);
 }
 
+#ifndef OMIT_MULTI_VER
 static void GetSnapshotUnitTest(KvStoreDelegate *&kvDelegatePtr, KvStoreSnapshotDelegate *&snapshotDelegatePtr)
 {
     DBStatus snapshotDelegateStatus = INVALID_ARGS;
@@ -324,6 +330,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, UndisturbedlMultiExport001,
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
     g_junkFilesList.push_back(mulitExportFileName);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: ExportParameterCheck001
@@ -393,6 +400,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck001, Te
     g_junkFilesList.push_back(singleExportFileName);
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: ExportParameterCheck002
   * @tc.desc: Check the verification of abnormal interface parameters.
@@ -466,6 +474,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExportParameterCheck002, Te
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
     g_junkFilesList.push_back(multiExportFileName);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: NormalImport001
@@ -525,8 +534,9 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport001, TestSize.L
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 
+#ifndef OMIT_MULTI_VER
 /**
-  * @tc.name: NormalImport001
+  * @tc.name: NormalImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
   * @tc.type: FUNC
   * @tc.require: AR000D487A
@@ -589,6 +599,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, NormalImport002, TestSize.L
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: ExceptionFileImport001
@@ -642,6 +653,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport001, Tes
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: ExceptionFileImport002
   * @tc.desc: Normal import capability for multi version, parameter verification capability
@@ -732,6 +744,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport003, Tes
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: ExceptionFileImport004
@@ -753,13 +766,13 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport004, Tes
 
     std::string mulitExportFileName = g_exportFileDir + "/mulitExceptionFileImport004.$$";
     std::string multiStoreId = "distributed_ExportMulit_004";
-
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option multiOption = {true, false, true, CipherType::DEFAULT, g_passwd1};
     g_mgr.GetKvStore(multiStoreId, multiOption, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_EQ(g_kvDelegateStatus, OK);
     EXPECT_EQ(g_kvDelegatePtr->Export(mulitExportFileName, g_passwd2), OK);
-
+#endif // OMIT_MULTI_VER
     /**
      * @tc.steps: step1. Use the diff passwd, try to import database.
      */
@@ -767,18 +780,19 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport004, Tes
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, passwd), INVALID_FILE);
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd1), INVALID_FILE);
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd2), OK);
-
+#ifndef OMIT_MULTI_VER
     EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, passwd), INVALID_FILE);
     EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, g_passwd1), INVALID_FILE);
     EXPECT_EQ(g_kvDelegatePtr->Import(mulitExportFileName, g_passwd2), OK);
 
     // clear resource
-    g_junkFilesList.push_back(singleExportFileName);
     g_junkFilesList.push_back(mulitExportFileName);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
+#endif // OMIT_MULTI_VER
+    g_junkFilesList.push_back(singleExportFileName);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }
 
 static void TryDbForPasswordIndependence001()
@@ -887,6 +901,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence001, Te
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreIdNoPasswd), OK);
 }
 
+#ifndef OMIT_MULTI_VER
 static void TryDbForPasswordIndependence002()
 {
     std::string multiStoreIdNoPasswd = "distributed_ExportMulti_007";
@@ -975,6 +990,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence002, Te
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtrWithoutPasswd), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreIdNoPasswd), OK);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: PasswordIndependence002
@@ -1014,6 +1030,7 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence003, Te
      */
     EXPECT_EQ(g_kvNbDelegatePtr->Import(singleExportFileName, g_passwd1), OK);
 
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step5. Repeat step 1 - 4.
      */
@@ -1025,16 +1042,17 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, PasswordIndependence003, Te
     ASSERT_TRUE(g_kvDelegateStatus == OK);
 
     EXPECT_EQ(g_kvDelegatePtr->Export(multiExportFileName, g_passwd1), OK);
-    remove(singleExportFileName.c_str());
 
     EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, g_passwd3), INVALID_FILE);
     EXPECT_EQ(g_kvDelegatePtr->Import(multiExportFileName, g_passwd1), OK);
 
     // clear resource
     g_junkFilesList.push_back(multiExportFileName);
-    g_junkFilesList.push_back(singleExportFileName);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(multiStoreId), OK);
+#endif // OMIT_MULTI_VER
+    g_junkFilesList.push_back(singleExportFileName);
+    remove(singleExportFileName.c_str());
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
 }

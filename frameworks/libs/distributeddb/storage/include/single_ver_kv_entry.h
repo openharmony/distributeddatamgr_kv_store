@@ -17,6 +17,7 @@
 #define SINGLE_VER_KV_ENTRY_H
 
 #include <vector>
+#include "db_types.h"
 #include "parcel.h"
 
 namespace DistributedDB {

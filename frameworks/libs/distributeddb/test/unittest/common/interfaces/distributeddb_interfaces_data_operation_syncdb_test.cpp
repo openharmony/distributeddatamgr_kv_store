@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include <cstdlib>
 #include <ctime>
 #include <gtest/gtest.h>
@@ -1382,3 +1382,4 @@ HWTEST_F(DistributedDBInterfacesDataOperationSyncDBTest, TransactionException001
     g_snapshotDelegatePtr->Get(KEY_4, g_valueCallback);
     EXPECT_EQ(g_valueStatus, NOT_FOUND);
 }
+#endif

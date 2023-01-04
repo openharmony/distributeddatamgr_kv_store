@@ -122,17 +122,19 @@ public:
     // remove the test db files in the test directory of dir.
     static int RemoveTestDbFiles(const std::string &dir);
 
+#ifndef OMIT_MULTI_VER
     // callback function for get a KvStoreDelegate pointer.
     static void KvStoreDelegateCallback(DistributedDB::DBStatus, DistributedDB::KvStoreDelegate*,
         DistributedDB::DBStatus &, DistributedDB::KvStoreDelegate *&);
 
-    // callback function for get a KvStoreDelegate pointer.
-    static void KvStoreNbDelegateCallback(DistributedDB::DBStatus, DistributedDB::KvStoreNbDelegate*,
-        DistributedDB::DBStatus &, DistributedDB::KvStoreNbDelegate *&);
-
     // callback function for get a KvStoreSnapshotDelegate pointer.
     static void SnapshotDelegateCallback(DistributedDB::DBStatus, DistributedDB::KvStoreSnapshotDelegate*,
         DistributedDB::DBStatus &, DistributedDB::KvStoreSnapshotDelegate *&);
+#endif
+
+    // callback function for get a KvStoreDelegate pointer.
+    static void KvStoreNbDelegateCallback(DistributedDB::DBStatus, DistributedDB::KvStoreNbDelegate*,
+        DistributedDB::DBStatus &, DistributedDB::KvStoreNbDelegate *&);
 
     // callback function for get the value.
     static void ValueCallback(

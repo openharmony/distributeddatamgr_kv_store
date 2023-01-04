@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+#ifndef OMIT_MULTI_VER
 #include "virtual_multi_ver_sync_db_interface.h"
 
 #include "db_common.h"
@@ -235,4 +235,5 @@ int VirtualMultiVerSyncDBInterface::DeleteMetaDataByPrefixKey(const Key &keyPref
     return -E_NOT_SUPPORT;
 }
 }  // namespace DistributedDB
+#endif // OMIT_MULTI_VER
 

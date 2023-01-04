@@ -12,10 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 #ifndef VIRTUAL_MULTI_VER_SYNC_INTERFACE_H
 #define VIRTUAL_MULTI_VER_SYNC_INTERFACE_H
 
+#ifndef OMIT_MULTI_VER
 #include "distributeddb_tools_unit_test.h"
 #include "multi_ver_natural_store.h"
 #include "multi_ver_natural_store_connection.h"
@@ -101,5 +101,6 @@ private:
     KvDBProperties properties_;
 };
 }  // namespace DistributedDB
-
+#endif // OMIT_MULTI_VER
 #endif // VIRTUAL_MULTI_VER_SYNC_INTERFACE
+

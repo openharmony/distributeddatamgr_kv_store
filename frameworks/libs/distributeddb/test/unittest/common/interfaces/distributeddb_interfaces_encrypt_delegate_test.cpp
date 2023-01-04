@@ -41,10 +41,13 @@ namespace {
     KvStoreConfig g_config;
     DBStatus g_errCode = INVALID_ARGS;
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
-    KvStoreDelegate *g_kvDelegatePtr = nullptr;
-
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_errCode), std::ref(g_kvNbDelegatePtr));
+
+#ifndef OMIT_MULTI_VER
+    KvStoreDelegate *g_kvDelegatePtr = nullptr;
+    DBStatus g_valueStatus = INVALID_ARGS;
+    Value g_value;
 
     // define the delegate call back
     auto g_kvDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,
@@ -55,9 +58,6 @@ namespace {
 
     auto g_snapshotDelegateCallback = bind(&DistributedDBToolsUnitTest::SnapshotDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(g_snapshotDelegateStatus), std::ref(g_snapshotDelegatePtr));
-
-    DBStatus g_valueStatus = INVALID_ARGS;
-    Value g_value;
 
     auto g_valueCallback = bind(&DistributedDBToolsUnitTest::ValueCallback,
         placeholders::_1, placeholders::_2, std::ref(g_valueStatus), std::ref(g_value));
@@ -78,7 +78,7 @@ namespace {
             }
         }
     }
-
+#endif // OMIT_MULTI_VER
     void GetNbKvStoreAndCheckFun(const std::string &storeId, const KvStoreNbDelegate::Option &option,
         const Key &testKey, const Value &testValue)
     {
@@ -133,7 +133,9 @@ void DistributedDBInterfacesEncryptDelegateTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     g_errCode = INVALID_ARGS;
     g_kvNbDelegatePtr = nullptr;
+#ifndef OMIT_MULTI_VER
     g_kvDelegatePtr = nullptr;
+#endif // OMIT_MULTI_VER
 }
 
 void DistributedDBInterfacesEncryptDelegateTest::TearDown(void) {}
@@ -215,6 +217,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation001, Te
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: EncryptedDbOperation002
   * @tc.desc: Test the local db encrypted function.
@@ -376,6 +379,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbOperation003, Te
     // finilize logic
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: EncryptedDbSwitch001
@@ -657,6 +661,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch011, TestS
     g_kvNbDelegatePtr = nullptr;
 }
 
+#ifndef OMIT_MULTI_VER
 /**
   * @tc.name: EncryptedDbSwitch012
   * @tc.desc: Test the local db Rekey function from password1 to password2.
@@ -947,6 +952,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch017, TestS
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
     g_kvDelegatePtr = nullptr;
 }
+#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: OpenEncryptedDb001
@@ -965,6 +971,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb001, TestSiz
     g_mgr.GetKvStore(STORE_ID1, option1, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_errCode == OK);
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step2. create multi version encrypted database
      * @tc.expected: step2. Get result OK.
@@ -973,14 +980,16 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb001, TestSiz
     g_mgr.GetKvStore(STORE_ID3, option2, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_EQ(g_errCode, OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
+#endif // OMIT_MULTI_VER
     /**
      * @tc.steps: step3. Close db.
      * @tc.expected: step3. Get result ok.
      */
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
 }
 
 /**
@@ -1000,6 +1009,8 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb002, TestSiz
     g_mgr.GetKvStore(STORE_ID1, option1, g_kvNbDelegateCallback);
     EXPECT_TRUE(g_kvNbDelegatePtr == nullptr);
     EXPECT_EQ(g_errCode, INVALID_ARGS);
+
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step2. create multi version encrypted database
      * @tc.expected: step2. Get result INVALID_ARGS.
@@ -1008,14 +1019,17 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb002, TestSiz
     g_mgr.GetKvStore(STORE_ID3, option2, g_kvDelegateCallback);
     EXPECT_TRUE(g_kvDelegatePtr == nullptr);
     EXPECT_EQ(g_errCode, INVALID_ARGS);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), INVALID_ARGS);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), NOT_FOUND);
+#endif // OMIT_MULTI_VER
+
     /**
      * @tc.steps: step3. Close db.
      * @tc.expected: step3. Get result ok.
      */
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), INVALID_ARGS);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), INVALID_ARGS);
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), NOT_FOUND);
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), NOT_FOUND);
 }
 
 /**
@@ -1033,11 +1047,14 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb003, TestSiz
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option2 = {true, false, true, CipherType::DEFAULT, g_passwd3};
     g_mgr.GetKvStore(STORE_ID3, option2, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
+
     /**
      * @tc.steps: step1. create single version encrypted database
      * @tc.expected: step1. Get result INVALID_ARGS.
@@ -1047,6 +1064,8 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb003, TestSiz
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step2. create multi version encrypted database
      * @tc.expected: step2. Get result INVALID_ARGS.
@@ -1056,12 +1075,13 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb003, TestSiz
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
+#endif // OMIT_MULTI_VER
     /**
      * @tc.steps: step3. Close db.
      * @tc.expected: step3. Get result ok.
      */
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
 }
 
 /**
@@ -1079,11 +1099,14 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb004, TestSiz
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
+#ifndef OMIT_MULTI_VER
     KvStoreDelegate::Option option2 = {true, false, true, CipherType::DEFAULT, g_passwd3};
     g_mgr.GetKvStore(STORE_ID3, option2, g_kvDelegateCallback);
     ASSERT_TRUE(g_kvDelegatePtr != nullptr);
     EXPECT_EQ(g_errCode, OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+#endif // OMIT_MULTI_VER
+
     /**
      * @tc.steps: step1. create single version encrypted database
      * @tc.expected: step1. Get result INVALID_ARGS.
@@ -1093,6 +1116,8 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb004, TestSiz
     EXPECT_TRUE(g_kvNbDelegatePtr == nullptr);
     EXPECT_EQ(g_errCode, INVALID_PASSWD_OR_CORRUPTED_DB);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), INVALID_ARGS);
+
+#ifndef OMIT_MULTI_VER
     /**
      * @tc.steps: step2. create multi version encrypted database
      * @tc.expected: step2. Get result INVALID_ARGS.
@@ -1102,11 +1127,13 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, OpenEncryptedDb004, TestSiz
     EXPECT_TRUE(g_kvDelegatePtr == nullptr);
     EXPECT_EQ(g_errCode, INVALID_PASSWD_OR_CORRUPTED_DB);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), INVALID_ARGS);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
+#endif // OMIT_MULTI_VER
+
     /**
      * @tc.steps: step3. Close db.
      * @tc.expected: step3. Get result ok.
      */
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID1), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID3), OK);
 }
 #endif

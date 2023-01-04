@@ -99,8 +99,13 @@ int GenericVirtualDevice::Initialize(VirtualCommunicatorAggregator *comAggregato
     } else if (storage_->GetInterfaceType() == IKvDBSyncInterface::SYNC_RELATION) {
         context_ = new (std::nothrow) SingleVerRelationalSyncTaskContext;
     } else {
+#ifndef OMIT_MULTI_VER
         context_ = new (std::nothrow) MultiVerSyncTaskContext;
+#else
+	return -E_NOT_SUPPORT;
+#endif // OMIT_MULTI_VER
     }
+
     if (context_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
