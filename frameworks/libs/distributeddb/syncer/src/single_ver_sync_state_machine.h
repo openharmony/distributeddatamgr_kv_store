@@ -72,7 +72,7 @@ public:
     ~SingleVerSyncStateMachine() override;
 
     // Init the SingleVerSyncStateMachine
-    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metadata,
+    int Initialize(ISyncTaskContext *context, ISyncInterface *syncInterface, const std::shared_ptr<Metadata> &metaData,
         ICommunicator *communicator) override;
 
     // send Message to the StateMachine
