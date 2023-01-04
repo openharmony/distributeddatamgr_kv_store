@@ -36,8 +36,8 @@ namespace {
 #ifdef USE_DFX_ABILITY
 constexpr uint64_t HITRACE_LABEL = HITRACE_TAG_DISTRIBUTEDDATA;
 #endif
-constexpr const char *DUMP_PARAM = "--database";
-constexpr const char *DUMP_PARAM_ABBR = "-d";
+constexpr const char *DUMP_LONG_PARAM = "--database";
+constexpr const char *DUMP_SHORT_PARAM = "-d";
 }
 
 const std::string DBDfxAdapter::EVENT_CODE = "ERROR_CODE";
@@ -51,17 +51,14 @@ const std::string DBDfxAdapter::EVENT_OPEN_DATABASE_FAILED = "OPEN_DATABASE_FAIL
 void DBDfxAdapter::Dump(int fd, const std::vector<std::u16string> &args)
 {
     if (!args.empty()) {
-        const std::u16string u16DumpParam =
-            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_PARAM);
-        const std::u16string u16DumpParamAbbr =
-            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_PARAM_ABBR);
-        auto findAbbr = std::any_of(args.begin(), args.end(), [&u16DumpParamAbbr](const std::u16string &arg) {
-            return arg == u16DumpParamAbbr;
+        const std::u16string longParam =
+            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_LONG_PARAM);
+        const std::u16string shortParam =
+            std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(DUMP_SHORT_PARAM);
+        auto find = std::any_of(args.begin(), args.end(), [&longParam, &shortParam](const std::u16string &arg) {
+            return arg == longParam || arg == shortParam;
         });
-        auto find = std::any_of(args.begin(), args.end(), [&u16DumpParam](const std::u16string &arg) {
-            return arg == u16DumpParam;
-        });
-        if (!find && !findAbbr) {
+        if (!find) {
             return;
         }
     }

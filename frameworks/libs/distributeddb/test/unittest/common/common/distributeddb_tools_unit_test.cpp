@@ -673,7 +673,7 @@ void DistributedDBToolsUnitTest::CalcHash(const std::vector<uint8_t> &value, std
 
 void DistributedDBToolsUnitTest::Dump()
 {
-    constexpr const char *rightDumpParam = "dump-distributeddb";
+    constexpr const char *rightDumpParam = "--database";
     constexpr const char *ignoreDumpParam = "ignore-param";
     const std::u16string u16DumpRightParam =
         std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> {}.from_bytes(rightDumpParam);
