@@ -546,7 +546,6 @@ std::string GetKey(VirtualRowData rowData)
 
 void CheckSyncData(sqlite3 *db, const std::string &checkSql, const std::vector<VirtualRowData> &resultData)
 {
-    int i = 0;
     std::set<std::string> keySet;
     keySet.clear();
     for (size_t i = 0; i < resultData.size(); i++) {
@@ -555,7 +554,7 @@ void CheckSyncData(sqlite3 *db, const std::string &checkSql, const std::vector<V
     }
     EXPECT_EQ(keySet.size(), resultData.size());
 
-    RelationalTestUtils::ExecSql(db, checkSql, nullptr, [&i, keySet](sqlite3_stmt *stmt) {
+    RelationalTestUtils::ExecSql(db, checkSql, nullptr, [keySet](sqlite3_stmt *stmt) {
         std::string val;
         SQLiteUtils::GetColumnTextValue(stmt, 0, val);
         EXPECT_NE(keySet.find(val), keySet.end());
