@@ -86,8 +86,7 @@ int BridgeWriter::Write(uint32_t column, const uint8_t *value, size_t size)
 
 int BridgeWriter::Write(uint32_t column, const char *value, size_t size)
 {
-    if (column < 0 || column > 1 || value == nullptr)
-    {
+    if (column < 0 || column > 1 || value == nullptr) {
         return E_ERROR;
     }
     auto vec = std::vector<uint8_t>(value, value + size - 1);
@@ -142,10 +141,11 @@ void KvstoreDatashareBridgeTest::SetUpTestCase(void)
 void KvstoreDatashareBridgeTest::TearDownTestCase(void)
 {
     manager.DeleteKvStore(
-        {"KvstoreDatashareBridgeTest"}, {"test_single"}, "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
-    (void)remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+            {"KvstoreDatashareBridgeTest"}, {"test_single"},
+            "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
+    (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
 }
 
 /**
@@ -231,22 +231,22 @@ HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoAbnormal, TestSize.Level0)
     int32_t start = -1;
     int32_t target = 0;
     BridgeWriter writer;
-    EXPECT_FALSE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
     EXPECT_TRUE(writer.GetKey().Empty());
     EXPECT_TRUE(writer.GetValue().Empty());
     start = 0;
     target = -1;
-    EXPECT_FALSE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
     EXPECT_TRUE(writer.GetKey().Empty());
     EXPECT_TRUE(writer.GetValue().Empty());
     start = 1;
     target = 0;
-    EXPECT_FALSE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
     EXPECT_TRUE(writer.GetKey().Empty());
     EXPECT_TRUE(writer.GetValue().Empty());
     start = 1;
     target = 3;
-    EXPECT_FALSE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
     EXPECT_TRUE(writer.GetKey().Empty());
     EXPECT_TRUE(writer.GetValue().Empty());
 }
@@ -270,11 +270,11 @@ HWTEST_F(KvstoreDatashareBridgeTest, BridgeOnGoNormal, TestSize.Level0)
     int target = 2;
     BridgeWriter writer;
     writer.SetAllocRowStatue(E_ERROR);
-    EXPECT_FALSE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), -1);
     EXPECT_TRUE(writer.GetKey().Empty());
     EXPECT_TRUE(writer.GetValue().Empty());
     writer.SetAllocRowStatue(E_OK);
-    EXPECT_TRUE(bridge->OnGo(start, target, writer));
+    EXPECT_EQ(bridge->OnGo(start, target, writer), target);
     size_t  keySize = 0;
     size_t  valueSize = 0;
     for (auto i = start; i <= target; i++) {

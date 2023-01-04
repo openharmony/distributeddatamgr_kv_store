@@ -79,12 +79,7 @@ describe('DeviceKvStorePromiseTest', function () {
 
     beforeAll(async function (done) {
         console.info('beforeAll config:' + JSON.stringify(config));
-        await factory.createKVManager(config).then((manager) => {
-            kvManager = manager;
-            console.info('beforeAll createKVManager success');
-        }).catch((err) => {
-            console.error('beforeAll createKVManager err ' + `, error code is ${err.code}, message is ${err.message}`);
-        });
+        kvManager = factory.createKVManager(config);
         await kvManager.getKVStore(TEST_STORE_ID, options).then((store) => {
             kvStore = store;
             console.info('beforeAll getKVStore for getDeviceId success');
@@ -1121,7 +1116,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 2).assertTrue();
                     done();
                 });
@@ -1153,7 +1148,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 2).assertTrue();
                     done();
                 }).catch((err) => {
@@ -1190,7 +1185,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 3).assertTrue();
                     done();
                 });
@@ -1219,7 +1214,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 2).assertTrue();
                     done();
                 });
@@ -1251,7 +1246,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 var query = new factory.Query();
                 query.prefixKey("name_");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 2).assertTrue();
                     expect(entrys[0].value == null).assertTrue();
                     done();
@@ -1475,7 +1470,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(err == undefined).assertTrue();
                 let query = new factory.Query();
                 query.prefixKey("batch_test");
-                await kvStore.getEntries(query).then((entrys) => {
+                await kvStore.getEntries(localDeviceId, query).then((entrys) => {
                     expect(entrys.length == 10).assertTrue();
                     expect(entrys[0].value.value.toString() == arr.toString()).assertTrue();
                 }).catch((err) => {
@@ -1529,7 +1524,7 @@ describe('DeviceKvStorePromiseTest', function () {
             })
             let query = new factory.Query();
             query.prefixKey("batch_test");
-            await kvStore.getEntries(query).then(() => {
+            await kvStore.getEntries(localDeviceId, query).then(() => {
                 expect(null).assertFail();
             }).catch((err) => {
                 expect(err.code == 15100005).assertTrue();

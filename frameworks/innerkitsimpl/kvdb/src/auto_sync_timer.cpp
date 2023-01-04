@@ -29,11 +29,11 @@ void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (forceSyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
+        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
         forceSyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
     }
     if (delaySyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::system_clock::now() + std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
+        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
         delaySyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
     } else {
         delaySyncTaskId_ = scheduler_.Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));

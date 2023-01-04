@@ -89,6 +89,11 @@ void JsSingleKVStore::SetSchemaInfo(bool isSchemaStore)
     isSchemaStore_ = isSchemaStore;
 }
 
+bool JsSingleKVStore::IsSystemApp() const
+{
+    return param_->isSystemApp;
+}
+
 JsSingleKVStore::~JsSingleKVStore()
 {
     ZLOGD("no memory leak for JsSingleKVStore");
@@ -216,10 +221,14 @@ napi_value JsSingleKVStore::Delete(napi_env env, napi_callback_info info)
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "The type of key must be string.");
         } else if (ctxt->type == napi_object) {
-            ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->keys);
+            JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->keys);
+            ctxt->status = statusMsg.status;
             ZLOGD("kvStore->Delete status:%{public}d", ctxt->status);
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
                 "The parameters predicates is incorrect.");
+            ASSERT_PERMISSION_ERR(ctxt,
+                !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+                Status::PERMISSION_DENIED, "");
         }
     });
     ASSERT_NULL(!ctxt->isThrowError, "Delete exit");
@@ -303,8 +312,10 @@ napi_value JsSingleKVStore::OffEvent(napi_env env, napi_callback_info info)
  * [JS API Prototype]
  * [AsyncCallback]
  *      putBatch(entries: Entry[], callback: AsyncCallback<void>):void;
+ *      putBatch(valuesBucket: ValuesBucket[], callback: AsyncCallback<void>): void;
  * [Promise]
  *      putBatch(entries: Entry[]):Promise<void>;
+ *      putBatch(valuesBuckets: ValuesBucket[]): Promise<void>;
  */
 napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
 {
@@ -312,13 +323,17 @@ napi_value JsSingleKVStore::PutBatch(napi_env env, napi_callback_info info)
         std::vector<Entry> entries;
     };
     auto ctxt = std::make_shared<PutBatchContext>();
-    ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
+    ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value *argv) {
         // required 1 arguments :: <entries>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        auto isSchemaStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
+        auto isSchemaStore = reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSchemaStore();
+        JSUtil::StatusMsg statusMsg = JSUtil::GetValue(env, argv[0], ctxt->entries, isSchemaStore);
+        ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
             "The type of entries is incorrect.");
+        ASSERT_PERMISSION_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+            Status::PERMISSION_DENIED, "");
     });
     ASSERT_NULL(!ctxt->isThrowError, "PutBatch exit");
 
@@ -641,7 +656,8 @@ void JsSingleKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, 
         }
     }
 
-    Status status = proxy->Subscribe(type, std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
+    Status status = proxy->Subscribe(type,
+                                     std::make_shared<DataObserver>(proxy->uvQueue_, argv[1], proxy->IsSchemaStore()));
     ThrowNapiError(env, status, "", false);
 }
 
@@ -869,53 +885,46 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
 
-enum class ArgsType : uint8_t {
-    /* input arguments' combination type */
-    KEYPREFIX = 0,
-    QUERY,
-    UNKNOWN = 255
-};
 struct VariantArgs {
-    /* input arguments' combinations */
-    std::string keyPrefix;
-    JsQuery* query;
-    ArgsType type = ArgsType::UNKNOWN;
     DataQuery dataQuery;
     std::string errMsg = "";
 };
 
-static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
+static JSUtil::StatusMsg GetVariantArgs(napi_env env, size_t argc, napi_value* argv, VariantArgs& va)
 {
     // required 1 arguments :: <keyPrefix/query>
     napi_valuetype type = napi_undefined;
-    napi_status status = napi_typeof(env, argv[0], &type);
-    if (!(type == napi_string || type == napi_object)) {
+    JSUtil::StatusMsg statusMsg = napi_typeof(env, argv[0], &type);
+    if (statusMsg != napi_ok || (type != napi_string && type != napi_object)) {
         va.errMsg = "The type of parameters keyPrefix/query is incorrect.";
-        return napi_invalid_arg;
+        return statusMsg.status != napi_ok ? statusMsg.status : napi_invalid_arg;
     }
     if (type == napi_string) {
-        status = JSUtil::GetValue(env, argv[0], va.keyPrefix);
-        if (va.keyPrefix.empty()) {
+        std::string keyPrefix;
+        JSUtil::GetValue(env, argv[0], keyPrefix);
+        if (keyPrefix.empty()) {
             va.errMsg = "The type of parameters keyPrefix is incorrect.";
             return napi_invalid_arg;
         }
-        va.type = ArgsType::KEYPREFIX;
+        va.dataQuery.KeyPrefix(keyPrefix);
     } else if (type == napi_object) {
         bool result = false;
-        status = napi_instanceof(env, argv[0], JsQuery::Constructor(env), &result);
-        if ((status == napi_ok) && (result != false)) {
-            status = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void**>(&va.query), JsQuery::Constructor(env));
-            if (va.query == nullptr) {
+        statusMsg = napi_instanceof(env, argv[0], JsQuery::Constructor(env), &result);
+        if ((statusMsg == napi_ok) && (result != false)) {
+            JsQuery *jsQuery = nullptr;
+            statusMsg = JSUtil::Unwrap(env, argv[0], reinterpret_cast<void **>(&jsQuery), JsQuery::Constructor(env));
+            if (jsQuery == nullptr) {
                 va.errMsg = "The parameters query is incorrect.";
                 return napi_invalid_arg;
             }
-            va.type = ArgsType::QUERY;
+            va.dataQuery = jsQuery->GetDataQuery();
         } else {
-            status = JSUtil::GetValue(env, argv[0], va.dataQuery);
-            ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", status);
+            statusMsg = JSUtil::GetValue(env, argv[0], va.dataQuery);
+            ZLOGD("kvStoreDataShare->GetResultSet return %{public}d", statusMsg.status);
+            statusMsg.jsApiType = JSUtil::DATASHARE;
         }
     }
-    return status;
+    return statusMsg;
 };
 
 /*
@@ -944,16 +953,8 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
-        Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::KEYPREFIX) {
-            OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
-            status = kvStore->GetEntries(keyPrefix, ctxt->entries);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            status = kvStore->GetEntries(query, ctxt->entries);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        }
+        Status status = kvStore->GetEntries(ctxt->va.dataQuery, ctxt->entries);
+        ZLOGD("kvStore->GetEntries() return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
     };
@@ -984,8 +985,12 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <keyPrefix/query>
         ASSERT_BUSINESS_ERR(ctxt, argc >= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        ctxt->status = GetVariantArgs(env, argc, argv, ctxt->va);
+        JSUtil::StatusMsg statusMsg = GetVariantArgs(env, argc, argv, ctxt->va);
+        ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
+        ASSERT_PERMISSION_ERR(ctxt,
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
+            Status::PERMISSION_DENIED, "");
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void**>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
@@ -997,19 +1002,8 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
-        Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::KEYPREFIX) {
-            OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
-            status = kvStore->GetResultSet(keyPrefix, kvResultSet);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        } else if (ctxt->va.type == ArgsType::QUERY) {
-            auto query = ctxt->va.query->GetDataQuery();
-            status = kvStore->GetResultSet(query, kvResultSet);
-            ZLOGD("kvStore->GetEntries() return %{public}d", status);
-        } else {
-            status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
-            ZLOGD("ArgsType::PREDICATES GetResultSetWithQuery return %{public}d", status);
-        };
+        Status status = kvStore->GetResultSet(ctxt->va.dataQuery, kvResultSet);
+        ZLOGD("kvStore->GetResultSet() return %{public}d", status);
 
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
