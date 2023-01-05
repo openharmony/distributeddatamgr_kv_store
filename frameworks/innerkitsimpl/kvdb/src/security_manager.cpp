@@ -27,11 +27,6 @@
 #include "store_util.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
-namespace {
-    constexpr const char *REKEY_STORE_POSTFIX = ".bak";
-    constexpr const char *REKEY_OLD = ".old";
-    constexpr const char *REKEY_NEW = ".new";
-}
 SecurityManager::SecurityManager()
 {
     vecRootKeyAlias_ = std::vector<uint8_t>(ROOT_KEY_ALIAS, ROOT_KEY_ALIAS + strlen(ROOT_KEY_ALIAS));
@@ -68,29 +63,26 @@ bool SecurityManager::Retry()
     return false;
 }
 
-SecurityManager::DBPasswordData SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path, bool needCreate)
+SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
+    const std::string &path , bool needCreate)
 {
-    DBPasswordData passwordData;
-    auto secKey = LoadKeyFromFile(name, path, passwordData.isKeyOutdated);
-    ZLOGE("name and path and needCreate is: %{public}s, %{public}s, %{public}d",
-        name.c_str(), path.c_str(), needCreate);
-    if (secKey.empty()) {
-        if (!needCreate) {
-            return {false, DBPassword()};
-        } else {
-            secKey = Random(KEY_SIZE);
-            SaveKeyToFile(name, path, secKey);
+    DBPassword password;
+    auto secKey = LoadKeyFromFile(name, path, password.isKeyOutdated);
+    if (secKey.empty() && needCreate) {
+        secKey = Random(KEY_SIZE);
+        if (!SaveKeyToFile(name, path, secKey)) {
+            secKey.assign(secKey.size(), 0);
+            return password;
         }
     }
 
-    passwordData.password.SetValue(secKey.data(), secKey.size());
+    password.password.SetValue(secKey.data(), secKey.size());
     secKey.assign(secKey.size(), 0);
-    return passwordData;
+    return password;
 }
 
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
-    const SecurityManager::DBPassword &key)
+    const DistributedDB::CipherPassword &key)
 {
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);
@@ -142,18 +134,14 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     std::vector<uint8_t> date;
     date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
     isKeyOutdated = IsKeyOutdated(date);
-    ZLOGE("isKeyOutdated is: %{public}d", isKeyOutdated);
-
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
-    ZLOGE("run in key load %{public}d", key.size());
     std::vector<uint8_t> secretKey {};
     content.assign(content.size(), 0);
     if(!Decrypt(key, secretKey)) {
-        ZLOGE("Decrypt failed");
+        ZLOGE("client decrypt failed");
         return {};
     }
-    ZLOGE("run in secretKey load %{public}d", secretKey.size());
     return secretKey;
 }
 
@@ -362,132 +350,23 @@ int32_t SecurityManager::CheckRootKey()
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 {
     std::vector<uint8_t> timeVec(date);
-    auto createTime = TransferByteArrayToType<time_t>(timeVec);
+    auto createTime = *reinterpret_cast<time_t *>(&timeVec);
     std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
-    auto oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(525600));
+    auto oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(8760));
     std::chrono::system_clock::time_point currentTimePointer = std::chrono::system_clock::now();
     auto currentTime = std::chrono::system_clock::to_time_t(currentTimePointer);
     return (oneYearLater > currentTime);
 }
 
-bool SecurityManager::ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-                            const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
+bool SecurityManager::GetSecKey(DistributedDB::CipherPassword &password)
 {
-    int32_t rekeyTimes = 0;
-    DBStatus status = DBStatus::DB_ERROR;
-    DBStore *kvStore = nullptr;
-    bool isRekeySuccess = false;
-    while (passwordData.isKeyOutdated && rekeyTimes < REKET_TIMES) {
-        IsKeyValid(name, status, kvStore, dbManager, dbOption);
-        if (ExecuteRekey(name, path, passwordData, dbManager, kvStore) == Status::SUCCESS) {
-            isRekeySuccess = true;
-            return isRekeySuccess;
-        } else {
-            RekeyRecover(name, path, passwordData, dbManager, dbOption);
-            rekeyTimes++;
-        }
-    }
-    if (rekeyTimes == REKET_TIMES) {
-        isRekeySuccess = false;
-    }
-    return isRekeySuccess;
-}
-
-void SecurityManager::RekeyRecover(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-    const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
-{
-    DBStatus status = DBStatus::DB_ERROR;
-    DBStore *kvStore = nullptr;
-    auto isKeyValid = IsKeyValid(name, status, kvStore, dbManager, dbOption);
-    if (isKeyValid) {
-        return;
-    }
-    auto newKeyName = name + REKEY_NEW;
-    auto newKeyPath = path + "/rekey";
-    auto newPasswordData = GetDBPassword(newKeyName, newKeyPath);
-    dbOption.passwd = newPasswordData.password;
-    isKeyValid = IsKeyValid(name, status, kvStore, dbManager, dbOption);
-    if (isKeyValid) {
-        passwordData.password = newPasswordData.password;
-        SaveDBPassword(name, path, newPasswordData.password);
-        StoreUtil::Remove(path + "/rekey");
-    }
-}
-
-bool SecurityManager::IsKeyValid(const std::string &name, DBStatus status, DBStore *kvStore,
-    const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
-{
-    bool isKeyValid = true;
-    dbManager->GetKvStore(name, dbOption, [&status, &kvStore, &isKeyValid](auto dbStatus, auto *dbStore) {
-        status = dbStatus;
-        kvStore = dbStore;
-        if (kvStore == nullptr) {
-            isKeyValid = false;
-        }
-    });
-    return isKeyValid;
-}
-
-Status SecurityManager::ExecuteRekey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-    const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore)
-{
-    std::string rekeyPath = path + "/rekey";
-    std::string backupOldFullName = rekeyPath + "/" + name + REKEY_STORE_POSTFIX + REKEY_OLD;
-    std::string backupNewFullName = rekeyPath + "/" + name + REKEY_STORE_POSTFIX + REKEY_NEW;
-    std::string rekeyKeyPath = rekeyPath + "/key";
-    (void)StoreUtil::InitPath(rekeyPath);
-    (void)StoreUtil::InitPath(rekeyKeyPath);
-    
-    auto dbStatus = dbStore->Export(backupOldFullName, passwordData.password);
-    if (dbStatus != DBStatus::OK) {
-        ZLOGE("failed to backup the database.");
-        return ExitRekey(dbStatus, rekeyPath);
-    }
-
-    DBStore *backupStore = nullptr;
-    dbStatus = backupStore->Import(backupOldFullName, passwordData.password);
-    if (dbStatus != DBStatus::OK) {
-        ZLOGE("failed to make the substitute database.");
-        return ExitRekey(dbStatus, rekeyPath);
-    }
-
     std::vector<uint8_t> secKey = Random(KEY_SIZE);
-    DBPassword password;
     auto pwdStatus = password.SetValue(secKey.data(), secKey.size());
-    if (pwdStatus != DBPassword::ErrorCode::OK) {
-        dbStatus = DBStatus::DB_ERROR;
+    if (pwdStatus != DistributedDB::CipherPassword::ErrorCode::OK) {
         ZLOGE("failed to set the passwd.");
-        return ExitRekey(dbStatus, rekeyPath);
+        return false;
     }
-    SaveDBPassword(name + REKEY_NEW, rekeyPath, password);
     secKey.assign(secKey.size(), 0);
-
-    dbStatus = backupStore->Rekey(password);
-    if (dbStatus != DBStatus::OK) {
-        ZLOGE("failed to rekey the substitute database.");
-        return ExitRekey(dbStatus, rekeyPath);
-    }
-
-    dbStatus = backupStore->Export(backupNewFullName, password);
-    if (dbStatus != DBStatus::OK) {
-        ZLOGE("failed to export the rekeyed database.");
-        return ExitRekey(dbStatus, rekeyPath);
-    }
-
-    dbStatus = dbStore->Import(backupNewFullName, password);
-    if (dbStatus != DBStatus::OK) {
-        ZLOGE("failed to change the database.");
-        return ExitRekey(dbStatus, rekeyPath);
-    }
-
-    passwordData.password = password;
-    SaveDBPassword(name, path, password);
-    return ExitRekey(dbStatus, rekeyPath);
-}
-
-Status SecurityManager::ExitRekey(DBStatus &dbStatus, const std::string &rekeyPath)
-{
-    StoreUtil::Remove(rekeyPath);
-    return StoreUtil::ConvertStatus(dbStatus);
+    return true;
 }
 } // namespace OHOS::DistributedKv

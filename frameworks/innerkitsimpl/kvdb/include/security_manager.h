@@ -23,31 +23,26 @@ namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
     using DBStore = DistributedDB::KvStoreNbDelegate;
-    using DBPassword = DistributedDB::CipherPassword;
     using DBStatus = DistributedDB::DBStatus;
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
 
-    struct DBPasswordData {
+    struct DBPassword {
         bool isKeyOutdated  = false;
-        DBPassword password;
+        DistributedDB::CipherPassword password;
     };
 
     static SecurityManager &GetInstance();
-    DBPasswordData GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
-    bool SaveDBPassword(const std::string &name, const std::string &path, const DBPassword &key);
+    DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
+    bool SaveDBPassword(const std::string &name, const std::string &path, const DistributedDB::CipherPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
-    bool ReKey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-               const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
-    void RekeyRecover(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-        const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
+    bool GetSecKey(DistributedDB::CipherPassword &password);
 
 private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
     static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
     static constexpr int KEY_SIZE = 32;
-    static constexpr int REKET_TIMES = 3;
 
     SecurityManager();
     ~SecurityManager();
@@ -60,11 +55,9 @@ private:
     bool Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
-    Status ExecuteRekey(const std::string &name, const std::string &path, DBPasswordData &passwordData,
-                        const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore);
-    static bool IsKeyValid(const std::string &name, DBStatus status, DBStore *kvStore,
-                           const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
-    Status ExitRekey(DBStatus &dbStatus, const std::string &rekeyPath);
+
+
+
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};

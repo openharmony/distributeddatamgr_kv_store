@@ -20,6 +20,7 @@
 #include "convertor.h"
 #include "kv_store_delegate_manager.h"
 #include "single_store_impl.h"
+#include "security_manager.h"
 namespace OHOS::DistributedKv {
 class StoreFactory {
 public:
@@ -33,11 +34,20 @@ private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
     using DBStore = DistributedDB::KvStoreNbDelegate;
-    using DBPassword = DistributedDB::CipherPassword;
+    using DBStatus = DistributedDB::DBStatus;
+    using DBPassword = DistributedKv::SecurityManager::DBPassword;
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
-    DBOption GetDBOption(const Options &options, const DBPassword &password) const;
+    DBOption GetDBOption(const Options &options, const DistributedDB::CipherPassword &password) const;
+    bool ReKey(const std::string &name, const std::string &path, DBPassword &dbPassword,
+        const std::shared_ptr<DBManager>& dbManager, const Options &options);
+    Status RekeyRecover(const std::string &name, const std::string &path, DBPassword &dbPassword,
+        const std::shared_ptr<DBManager>& dbManager, const Options &options);
+    bool ExecuteRekey(const std::string &name, const std::string &path, DBPassword &dbPassword,
+        const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore);
+    Status GetDBStore(const std::string &name, const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
+    void UpdateKeyFile(const std::string &name, const std::string &path);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];

@@ -192,16 +192,16 @@ Status BackupManager::Restore(const std::string &name, const std::string &baseDi
     return status;
 }
 
-SecurityManager::DBPassword BackupManager::GetRestorePassword(const std::string &name, const std::string &baseDir,
+DistributedDB::CipherPassword BackupManager::GetRestorePassword(const std::string &name, const std::string &baseDir,
     const std::string &appId, const std::string &storeId)
 {
     auto backupName = name.substr(0, name.length() - BACKUP_POSTFIX_SIZE);
     auto keyName = BACKUP_KEY_PREFIX + storeId + "_" + backupName;
-    SecurityManager::DBPassword password;
+    DistributedDB::CipherPassword password;
     if (backupName == AUTO_BACKUP_NAME) {
         auto service = KVDBServiceClient::GetInstance();
         if (service == nullptr) {
-            return SecurityManager::DBPassword();
+          return SecurityManager::DBPassword().password;
         }
         std::vector<uint8_t> pwd;
         service->GetBackupPassword({ appId }, { storeId }, pwd);
