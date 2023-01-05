@@ -136,10 +136,10 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     isKeyOutdated = IsKeyOutdated(date);
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
-    std::vector<uint8_t> secretKey {};
     content.assign(content.size(), 0);
+    std::vector<uint8_t> secretKey {};
     if(!Decrypt(key, secretKey)) {
-        ZLOGE("client decrypt failed");
+        ZLOGE("client Decrypt failed");
         return {};
     }
     return secretKey;
@@ -151,7 +151,6 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         ZLOGE("failed! no root key and generation failed");
         return false;
     }
-
     auto secretKey = Encrypt(key);
     auto keyPath = path + "/key";
     StoreUtil::InitPath(keyPath);
@@ -352,7 +351,7 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
     std::vector<uint8_t> timeVec(date);
     auto createTime = *reinterpret_cast<time_t *>(&timeVec);
     std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
-    auto oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(8760));
+    auto oneYearLater = std::chrono::system_clock::to_time_t(createTimePointer + std::chrono::hours(HOURS_PER_YEAR));
     std::chrono::system_clock::time_point currentTimePointer = std::chrono::system_clock::now();
     auto currentTime = std::chrono::system_clock::to_time_t(currentTimePointer);
     return (oneYearLater > currentTime);

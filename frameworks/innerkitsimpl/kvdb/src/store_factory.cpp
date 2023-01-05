@@ -24,8 +24,6 @@
 #include "system_api.h"
 namespace OHOS::DistributedKv {
 using namespace DistributedDB;
-constexpr const int REKET_TIMES = 3;
-constexpr const char *REKEY_NEW = ".new";
 StoreFactory &StoreFactory::GetInstance()
 {
     static StoreFactory instance;

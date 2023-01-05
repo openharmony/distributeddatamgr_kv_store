@@ -22,11 +22,6 @@
 namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
-    using DBStore = DistributedDB::KvStoreNbDelegate;
-    using DBStatus = DistributedDB::DBStatus;
-    using DBManager = DistributedDB::KvStoreDelegateManager;
-    using DBOption = DistributedDB::KvStoreNbDelegate::Option;
-
     struct DBPassword {
         bool isKeyOutdated  = false;
         DistributedDB::CipherPassword password;
@@ -43,6 +38,7 @@ private:
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
     static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
     static constexpr int KEY_SIZE = 32;
+    static constexpr int HOURS_PER_YEAR = (24 * 365);
 
     SecurityManager();
     ~SecurityManager();
@@ -55,9 +51,6 @@ private:
     bool Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
-
-
-
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};

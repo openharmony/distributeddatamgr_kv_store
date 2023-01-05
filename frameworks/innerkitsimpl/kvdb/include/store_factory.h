@@ -37,6 +37,9 @@ private:
     using DBStatus = DistributedDB::DBStatus;
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
 
+    static constexpr const int REKET_TIMES = 3;
+    static constexpr const char *REKEY_NEW = ".new";
+
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
     DBOption GetDBOption(const Options &options, const DistributedDB::CipherPassword &password) const;
