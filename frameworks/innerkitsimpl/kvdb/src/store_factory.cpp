@@ -55,7 +55,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
+         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
             options.baseDir, options.encrypt);
         if (dbPassword.password.GetSize() == 0 && options.encrypt) {
             status = CRYPT_ERROR;
@@ -179,7 +179,7 @@ bool StoreFactory::ReKey(const std::string &name, const std::string &path, DBPas
     DBStore *kvStore;
     bool isRekeySuccess = false;
     auto dbOption = GetDBOption(options, dbPassword.password);
-    dbManager->GetKvStore(name, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore){
+    dbManager->GetKvStore(name, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
         kvStore = dbStore;
     });
@@ -217,11 +217,12 @@ Status StoreFactory::RekeyRecover(const std::string &name, const std::string &pa
     return CRYPT_ERROR;
 }
 
-Status StoreFactory::GetDBStore(const std::string &name, const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption)
+Status StoreFactory::GetDBStore(const std::string &name, const std::shared_ptr<DBManager>& dbManager,
+    DBOption &dbOption)
 {
     DBStatus status;
     DBStore *kvstore;
-    dbManager->GetKvStore(name, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore){
+    dbManager->GetKvStore(name, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
         kvstore = dbStore;
     });
@@ -257,7 +258,8 @@ bool StoreFactory::ExecuteRekey(const std::string &name, const std::string &path
     return true;
 }
 
-void StoreFactory::UpdateKeyFile(const std::string &name, const std::string &path){
+void StoreFactory::UpdateKeyFile(const std::string &name, const std::string &path)
+{
     std::string newKeyFullName = path + "/rekey/key/" + name + REKEY_NEW + ".key";
     std::string oldKeyFullName = path + "/key" + name + ".key";
     StoreUtil::Rename(newKeyFullName, oldKeyFullName);

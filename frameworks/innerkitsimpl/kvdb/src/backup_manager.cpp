@@ -201,7 +201,7 @@ DistributedDB::CipherPassword BackupManager::GetRestorePassword(const std::strin
     if (backupName == AUTO_BACKUP_NAME) {
         auto service = KVDBServiceClient::GetInstance();
         if (service == nullptr) {
-          return SecurityManager::DBPassword().password;
+            return SecurityManager::DBPassword().password;
         }
         std::vector<uint8_t> pwd;
         service->GetBackupPassword({ appId }, { storeId }, pwd);

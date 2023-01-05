@@ -64,7 +64,7 @@ bool SecurityManager::Retry()
 }
 
 SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
-    const std::string &path , bool needCreate)
+    const std::string &path, bool needCreate)
 {
     DBPassword password;
     auto secKey = LoadKeyFromFile(name, path, password.isKeyOutdated);
