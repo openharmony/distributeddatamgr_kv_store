@@ -60,8 +60,15 @@ namespace {
     const std::string NORMAL_CREATE_TABLE_SQL_STUDENT = R""(create table student_1 (
             id      INTEGER PRIMARY KEY,
             name    STRING,
-            level   INTGER,
-            score   INTGER
+            level   INTEGER,
+            score   INTEGER
+        ))"";
+
+    const std::string NORMAL_CREATE_TABLE_SQL_STUDENT_IN_ORDER = R""(create table student_1 (
+            id      INTEGER PRIMARY KEY,
+            name    STRING,
+            score   INTEGER,
+            level   INTEGER
         ))"";
 
     void FakeOldVersionDB(sqlite3 *db)
@@ -664,4 +671,183 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncOrderByTest001, TestSize
     EXPECT_EQ(data.size(), static_cast<size_t>(5000));
     std::string checkSql = "select * from sync_data order by timestamp";
     CheckSyncData(db, checkSql, data);
+}
+
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableNameCaseInsensitiveTest001, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+
+    DBStatus status = delegate->CreateDistributedTable("StUDent_1");
+    EXPECT_EQ(status, OK);
+
+    std::string insertSql = "insert into student_1 (id, name, level, score) values (1001, 'xue', 2, 95);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, insertSql), SQLITE_OK);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sTudENT_1");
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("student_1", data);
+    EXPECT_EQ(data.size(), 1u);
+}
+
+namespace {
+struct StudentInOrder {
+    int id_;
+    std::string name_;
+    int level_;
+    int score_;
+
+    VirtualRowData operator() () const {
+        VirtualRowData virtualRowData;
+        DataValue d1;
+        d1 = (int64_t)id_;
+        virtualRowData.objectData.PutDataValue("id", d1);
+        DataValue d2;
+        d2.SetText(name_);
+        virtualRowData.objectData.PutDataValue("name", d2);
+        DataValue d3;
+        d3 = (int64_t)level_;
+        virtualRowData.objectData.PutDataValue("level", d3);
+        DataValue d4;
+        d4 = (int64_t)score_;
+        virtualRowData.objectData.PutDataValue("score", d4);
+        virtualRowData.logInfo.dataKey = 3; // 3 fake datakey
+        virtualRowData.logInfo.device = DEVICE_B;
+        virtualRowData.logInfo.originDev = DEVICE_B;
+        virtualRowData.logInfo.timestamp = 3170194300890338180; // 3170194300890338180 fake timestamp
+        virtualRowData.logInfo.wTimestamp = 3170194300890338180; // 3170194300890338180 fake timestamp
+        virtualRowData.logInfo.flag = 2; // fake flag
+
+        std::vector<uint8_t> hashKey;
+        DBCommon::CalcValueHash({}, hashKey);
+        virtualRowData.logInfo.hashKey = hashKey;
+        return virtualRowData;
+    }
+};
+}
+
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableNameCaseInsensitiveTest002, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+
+    DBStatus status = delegate->CreateDistributedTable("StUDent_1");
+    EXPECT_EQ(status, OK);
+
+    g_deviceB->PutDeviceData("student_1", std::vector<StudentInOrder> {{1001, "xue", 4, 91}}); // 4, 91 fake data
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sTudENT_1");
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    std::string deviceTableName = g_mgr.GetDistributedTableName(DEVICE_B, "student_1");
+    RelationalTestUtils::ExecSql(db, "select count(*) from " + deviceTableName + ";", nullptr, [] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1);
+        return OK;
+    });
+
+    status = delegate->RemoveDeviceData(DEVICE_B, "sTudENT_1");
+    EXPECT_EQ(status, OK);
+
+    RelationalTestUtils::ExecSql(db, "select count(*) from " + deviceTableName + ";", nullptr, [] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 0);
+        return OK;
+    });
+}
+
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableFieldsOrderTest001, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT_IN_ORDER), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student_1;"), SQLITE_OK);
+
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+
+    DBStatus status = delegate->CreateDistributedTable("StUDent_1");
+    EXPECT_EQ(status, OK);
+
+    std::string insertSql = "insert into student_1 (id, name, level, score) values (1001, 'xue', 4, 95);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, insertSql), SQLITE_OK);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sTudENT_1").EqualTo("ID", 1001); // 1001 : id
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("student_1", data);
+    EXPECT_EQ(data.size(), 1u);
+    DataValue value;
+    data[0].objectData.GetDataValue("id", value);
+    EXPECT_EQ(value.GetType(), StorageType::STORAGE_TYPE_INTEGER);
+    int64_t intVal;
+    value.GetInt64(intVal);
+    EXPECT_EQ(intVal, (int64_t)1001); // 1001 : id
+
+    data[0].objectData.GetDataValue("name", value);
+    EXPECT_EQ(value.GetType(), StorageType::STORAGE_TYPE_TEXT);
+    std::string strVal;
+    value.GetText(strVal);
+    EXPECT_EQ(strVal, "xue");
+
+    data[0].objectData.GetDataValue("level", value);
+    EXPECT_EQ(value.GetType(), StorageType::STORAGE_TYPE_INTEGER);
+    value.GetInt64(intVal);
+    EXPECT_EQ(intVal, (int64_t)4); // 4 level
+
+    data[0].objectData.GetDataValue("score", value);
+    EXPECT_EQ(value.GetType(), StorageType::STORAGE_TYPE_INTEGER);
+    value.GetInt64(intVal);
+    EXPECT_EQ(intVal, (int64_t)95); // 95 score
+}
+
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableFieldsOrderTest002, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT_IN_ORDER), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "student_1");
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student_1;"), SQLITE_OK);
+
+    g_deviceB->PutDeviceData("student_1", std::vector<StudentInOrder> {{1001, "xue", 4, 91}}); // 4, 91 fake data
+
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL_STUDENT), SQLITE_OK);
+
+    DBStatus status = delegate->CreateDistributedTable("StUDent_1");
+    EXPECT_EQ(status, OK);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("sTudENT_1").EqualTo("ID", 1001); // 1001 id
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+
+    std::string deviceTableName = g_mgr.GetDistributedTableName(DEVICE_B, "student_1");
+    RelationalTestUtils::ExecSql(db, "select * from " + deviceTableName + ";", nullptr, [] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1001); // 1001 id
+        std::string value;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, value), E_OK);
+        EXPECT_EQ(value, "xue");
+        EXPECT_EQ(sqlite3_column_int64(stmt, 2), 4); // 4 level
+        EXPECT_EQ(sqlite3_column_int64(stmt, 3), 91); // 91 score
+        return OK;
+    });
 }

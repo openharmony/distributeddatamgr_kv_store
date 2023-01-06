@@ -67,8 +67,6 @@ public:
 
     const RelationalDBProperties &GetDbProperties() const override;
 
-    int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
-
     // Get the data which would be synced with query condition
     int GetSyncData(QueryObject &query, const SyncTimeRange &timeRange,
         const DataSizeSpecInfo &dataSizeInfo, ContinueToken &continueStmtToken,
@@ -117,7 +115,9 @@ public:
     int ExecuteQuery(const PreparedStmt &prepStmt, size_t packetSize, RelationalRowDataSet &data,
         ContinueToken &token) const override;
 
-    const RelationalDBProperties &GetRelationalDbProperties() const override;
+    int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
+
+    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 private:
@@ -143,6 +143,8 @@ private:
     RelationalObserverAction dataChangeDeviceCallback_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
+
+    LruMap<std::string, std::string> remoteDeviceSchema_;
 
     // cache securityOption
     mutable std::mutex securityOptionMutex_;

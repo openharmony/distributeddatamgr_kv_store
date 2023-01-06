@@ -179,6 +179,7 @@ ohos_shared_library("distributeddb") {
     "storage/src/relational_store_connection.cpp",
     "storage/src/relational_store_instance.cpp",
     "storage/src/relational_sync_able_storage.cpp",
+    "storage/src/relational_sync_data_inserter.cpp",
     "storage/src/relationaldb_properties.cpp",
     "storage/src/result_entries_window.cpp",
     "storage/src/single_ver_natural_store_commit_notify_data.cpp",
