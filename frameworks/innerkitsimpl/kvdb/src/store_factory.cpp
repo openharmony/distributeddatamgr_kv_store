@@ -200,19 +200,19 @@ Status StoreFactory::RekeyRecover(const std::string &name, const std::string &pa
 {
     dbPassword = SecurityManager::GetInstance().GetDBPassword(name, path);
     auto dbOption = GetDBOption(options, dbPassword.password);
-    auto CheckKeyValid = GetDBStore(name, dbManager, dbOption);
-    if (CheckKeyValid == SUCCESS) {
+    auto checkKeyValid = GetDBStore(name, dbManager, dbOption);
+    if (checkKeyValid == SUCCESS) {
         StoreUtil::Remove(path + "/rekey");
-        return CheckKeyValid;
+        return checkKeyValid;
     }
     auto newKeyName = name + REKEY_NEW;
     auto newKeyPath = path + "/rekey";
     dbPassword = SecurityManager::GetInstance().GetDBPassword(newKeyName, newKeyPath);
     dbOption.passwd = dbPassword.password;
-    CheckKeyValid = GetDBStore(name, dbManager, dbOption);
-    if (CheckKeyValid == SUCCESS) {
+    checkKeyValid = GetDBStore(name, dbManager, dbOption);
+    if (checkKeyValid == SUCCESS) {
         UpdateKeyFile(name, path);
-        return CheckKeyValid;
+        return checkKeyValid;
     }
     return CRYPT_ERROR;
 }

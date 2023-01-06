@@ -361,11 +361,11 @@ bool SecurityManager::GetSecKey(DistributedDB::CipherPassword &password)
 {
     std::vector<uint8_t> secKey = Random(KEY_SIZE);
     auto pwdStatus = password.SetValue(secKey.data(), secKey.size());
+    secKey.assign(secKey.size(), 0);
     if (pwdStatus != DistributedDB::CipherPassword::ErrorCode::OK) {
         ZLOGE("failed to set the passwd.");
         return false;
     }
-    secKey.assign(secKey.size(), 0);
     return true;
 }
 } // namespace OHOS::DistributedKv
