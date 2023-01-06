@@ -180,6 +180,7 @@ ohos_source_set("src_file") {
     "../storage/src/relational_store_connection.cpp",
     "../storage/src/relational_store_instance.cpp",
     "../storage/src/relational_sync_able_storage.cpp",
+    "../storage/src/relational_sync_data_inserter.cpp",
     "../storage/src/relationaldb_properties.cpp",
     "../storage/src/result_entries_window.cpp",
     "../storage/src/single_ver_natural_store_commit_notify_data.cpp",
@@ -423,18 +424,19 @@ distributeddb_unittest("DistributedDBInterfacesTransactionSyncDBTest") {
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PSimpleSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_simple_sync_test.cpp" ]
+  sources = [
+    "unittest/common/syncer/distributeddb_single_ver_p2p_simple_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PPermissionSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_permission_sync_test.cpp" ]
+  sources = [ "unittest/common/syncer/distributeddb_single_ver_p2p_permission_sync_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PComplexSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_complex_sync_test.cpp" ]
+  sources = [
+    "unittest/common/syncer/distributeddb_single_ver_p2p_complex_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerMsgScheduleTest") {
@@ -824,12 +826,12 @@ group("unittest") {
     ":DistributedDBSingleVerDLPTest",
     ":DistributedDBSingleVerMsgScheduleTest",
     ":DistributedDBSingleVerMultiUserTest",
+    ":DistributedDBSingleVerP2PComplexSyncTest",
+    ":DistributedDBSingleVerP2PPermissionSyncTest",
     ":DistributedDBSingleVerP2PQuerySyncTest",
+    ":DistributedDBSingleVerP2PSimpleSyncTest",
     ":DistributedDBSingleVerP2PSubscribeSyncTest",
     ":DistributedDBSingleVerP2PSyncCheckTest",
-    ":DistributedDBSingleVerP2PSimpleSyncTest",
-    ":DistributedDBSingleVerP2PPermissionSyncTest",
-    ":DistributedDBSingleVerP2PComplexSyncTest",
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBSqliteUtilsTest",

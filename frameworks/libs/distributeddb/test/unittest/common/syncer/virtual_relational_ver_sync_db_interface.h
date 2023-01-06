@@ -111,9 +111,9 @@ public:
     int ExecuteQuery(const PreparedStmt &prepStmt, size_t packetSize, RelationalRowDataSet &data,
         ContinueToken &token) const override;
 
-    const RelationalDBProperties &GetRelationalDbProperties() const override;
-
     int SaveRemoteDeviceSchema(const std::string &deviceId, const std::string &remoteSchema, uint8_t type) override;
+
+    int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
 
     void SetPermitCreateDistributedTable(bool permitCreateDistributedTable);
 
@@ -122,8 +122,8 @@ public:
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 private:
     mutable std::map<std::vector<uint8_t>, std::vector<uint8_t>> metadata_;
-    std::map<std::string, std::map<std::string, VirtualRowData>> syncData_;
-    mutable std::map<std::string, std::map<std::string, VirtualRowData>> localData_;
+    std::map<std::string, std::map<std::string, VirtualRowData>, CaseInsensitiveComparator> syncData_;
+    mutable std::map<std::string, std::map<std::string, VirtualRowData>, CaseInsensitiveComparator> localData_;
     std::string schema_;
     RelationalSchemaObject schemaObj_;
     std::vector<FieldInfo> localFieldInfo_;

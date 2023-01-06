@@ -17,6 +17,7 @@
 #define SQLITE_UTILS_H
 
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 #include "sqlite_import.h"
@@ -201,6 +202,8 @@ public:
     static int SetAuthorizer(sqlite3 *db, int (*xAuth)(void*, int, const char*, const char*, const char*, const char*));
 
     static void GetSelectCols(sqlite3_stmt *stmt, std::vector<std::string> &colNames);
+
+    static int BindDataValueByType(sqlite3_stmt *statement, const std::optional<DataValue> &data, int cid);
 
     static int SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes);
 

@@ -2257,6 +2257,51 @@ int SQLiteUtils::SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword 
 #endif
 }
 
+int SQLiteUtils::BindDataValueByType(sqlite3_stmt *statement, const std::optional<DataValue> &data, int cid)
+{
+    int errCode = E_OK;
+    StorageType type = data.value().GetType();
+    switch (type) {
+        case StorageType::STORAGE_TYPE_INTEGER: {
+            int64_t intData = 0;
+            (void)data.value().GetInt64(intData);
+            errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_int64(statement, cid, intData));
+            break;
+        }
+
+        case StorageType::STORAGE_TYPE_REAL: {
+            double doubleData = 0;
+            (void)data.value().GetDouble(doubleData);
+            errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_double(statement, cid, doubleData));
+            break;
+        }
+
+        case StorageType::STORAGE_TYPE_TEXT: {
+            std::string strData;
+            (void)data.value().GetText(strData);
+            errCode = SQLiteUtils::BindTextToStatement(statement, cid, strData);
+            break;
+        }
+
+        case StorageType::STORAGE_TYPE_BLOB: {
+            Blob blob;
+            (void)data.value().GetBlob(blob);
+            std::vector<uint8_t> blobData(blob.GetData(), blob.GetData() + blob.GetSize());
+            errCode = SQLiteUtils::BindBlobToStatement(statement, cid, blobData, true);
+            break;
+        }
+
+        case StorageType::STORAGE_TYPE_NULL: {
+            errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(statement, cid));
+            break;
+        }
+
+        default:
+            break;
+    }
+    return errCode;
+}
+
 int SQLiteUtils::UpdateCipherShaAlgo(sqlite3 *db, bool setWal, CipherType type, const CipherPassword &passwd,
     uint32_t iterTimes)
 {

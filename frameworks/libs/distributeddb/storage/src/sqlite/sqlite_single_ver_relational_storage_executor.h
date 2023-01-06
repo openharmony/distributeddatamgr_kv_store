@@ -22,6 +22,7 @@
 #include "query_object.h"
 #include "relational_row_data.h"
 #include "relational_store_delegate.h"
+#include "relational_sync_data_inserter.h"
 #include "sqlite_storage_executor.h"
 #include "sqlite_utils.h"
 
@@ -57,8 +58,7 @@ public:
     int GetAllMetaKeys(std::vector<Key> &keys) const;
 
     // For Put sync data
-    int SaveSyncItems(const QueryObject &object, std::vector<DataItem> &dataItems,
-        const std::string &deviceName, const TableInfo &table, bool useTrans = true);
+    int SaveSyncItems(RelationalSyncDataInserter &inserter, bool useTrans = true);
 
     int CheckDBModeForRelational();
 
@@ -80,45 +80,33 @@ public:
     int ExecuteQueryBySqlStmt(const std::string &sql, const std::vector<std::string> &bindArgs, int packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data);
 
+    int SaveSyncDataItems(RelationalSyncDataInserter &inserter);
+
     int CheckEncryptedOrCorrupted() const;
 
 private:
-    struct SaveSyncDataStmt {
-        sqlite3_stmt *saveDataStmt = nullptr;
-        sqlite3_stmt *saveLogStmt = nullptr;
-        sqlite3_stmt *queryStmt = nullptr;
-        sqlite3_stmt *rmDataStmt = nullptr;
-        sqlite3_stmt *rmLogStmt = nullptr;
-
-        int ResetStatements(bool isNeedFinalize);
-    };
-
-    int PrepareForSyncDataByTime(Timestamp begin, Timestamp end,
-        sqlite3_stmt *&statement, bool getDeletedData) const;
-
     int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 
-    int GetSyncDataPre(const DataItem &dataItem, DataItem &itemGet);
+    int GetSyncDataPre(const DataItem &dataItem, sqlite3_stmt *queryStmt, DataItem &itemGet);
 
-    int CheckDataConflictDefeated(const DataItem &item, bool &isDefeated);
+    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,  bool &isDefeated);
 
-    int SaveSyncDataItem(const std::vector<FieldInfo> &fieldInfos, const std::string &deviceName, DataItem &item);
+    int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
-    int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
-    int SaveSyncDataItem(const DataItem &dataItem, sqlite3_stmt *&saveDataStmt, sqlite3_stmt *&rmDataStmt,
-        const std::vector<FieldInfo> &fieldInfos, int64_t &rowid);
+    int SaveSyncDataItem(const DataItem &dataItem, SaveSyncDataStmt &saveStmt, RelationalSyncDataInserter &inserter,
+        int64_t &rowid);
 
-    int DeleteSyncDataItem(const DataItem &dataItem, sqlite3_stmt *&rmDataStmt);
+    int DeleteSyncDataItem(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt);
+
+    int GetLogInfoPre(sqlite3_stmt *queryStmt, const DataItem &dataItem, LogInfo &logInfoGet);
 
     int SaveSyncLog(sqlite3_stmt *statement, sqlite3_stmt *queryStmt, const DataItem &dataItem, int64_t rowid);
-    int PrepareForSavingData(const QueryObject &object, sqlite3_stmt *&statement) const;
-    int PrepareForSavingLog(const QueryObject &object, const std::string &deviceName,
-        sqlite3_stmt *&statement,  sqlite3_stmt *&queryStmt) const;
 
     int AlterAuxTableForUpgrade(const TableInfo &oldTableInfo, const TableInfo &newTableInfo);
 
-    int DeleteSyncLog(const DataItem &item, sqlite3_stmt *&rmLogStmt);
-    int ProcessMissQueryData(const DataItem &item, sqlite3_stmt *&rmDataStmt, sqlite3_stmt *&rmLogStmt);
+    int DeleteSyncLog(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt);
+    int ProcessMissQueryData(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt,
+        sqlite3_stmt *&rmLogStmt);
     int GetMissQueryData(sqlite3_stmt *fullStmt, DataItem &item);
     int GetQueryDataAndStepNext(bool isFirstTime, bool isGettingDeletedData, sqlite3_stmt *queryStmt, DataItem &item,
         Timestamp &queryTime);
@@ -133,8 +121,6 @@ private:
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
-
-    SaveSyncDataStmt saveStmt_;
 
     DistributedTableMode mode_;
 };

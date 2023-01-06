@@ -335,13 +335,14 @@ int VirtualRelationalVerSyncDBInterface::ExecuteQuery(const PreparedStmt &prepSt
     return E_OK;
 }
 
-const RelationalDBProperties &VirtualRelationalVerSyncDBInterface::GetRelationalDbProperties() const
-{
-    return rdbProperties_;
-}
-
 int VirtualRelationalVerSyncDBInterface::SaveRemoteDeviceSchema(const std::string &deviceId,
     const std::string &remoteSchema, uint8_t type)
+{
+    return E_OK;
+}
+
+int VirtualRelationalVerSyncDBInterface::GetRemoteDeviceSchema(const std::string &deviceId,
+    RelationalSchemaObject &schemaObj)
 {
     return E_OK;
 }
