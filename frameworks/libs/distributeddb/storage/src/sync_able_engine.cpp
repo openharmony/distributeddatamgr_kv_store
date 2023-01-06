@@ -176,6 +176,15 @@ void SyncAbleEngine::StopSyncerWithNoLock(bool isClosedOperation)
 
 void SyncAbleEngine::UserChangeHandle()
 {
+    if (store_ == nullptr) {
+        LOGD("[SyncAbleEngine] RDB got null sync interface in userChange.");
+        return;
+    }
+    bool isSyncDualTupleMode = store_->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    if (!isSyncDualTupleMode) {
+        LOGD("[SyncAbleEngine] no use syncDualTupleMode, abort userChange");
+        return;
+    }
     std::unique_lock<std::mutex> lock(syncerOperateLock_);
     if (closed_) {
         LOGI("RDB is already closed");

@@ -232,6 +232,12 @@ void SyncAbleKvDB::UserChangeHandle()
         LOGF("KvDB got null sync interface.");
         return;
     }
+    bool isSyncDualTupleMode = syncInterface->GetDbProperties().
+        GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    if (!isSyncDualTupleMode) {
+        LOGD("[SyncAbleKvDB] no use syncDualTupleMode, abort userChange");
+        return;
+    }
     std::unique_lock<std::mutex> lock(syncerOperateLock_);
     if (closed_) {
         LOGI("kvDB is already closed");

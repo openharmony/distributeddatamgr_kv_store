@@ -844,3 +844,30 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser012, TestSize.Level1)
     subThread.join();
     CloseStore();
 }
+
+/**
+ * @tc.name: MultiUser013
+ * @tc.desc: test dont check sync active when open store with normal store
+ * @tc.type: FUNC
+ * @tc.require: AR000E8S2T
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser013, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count
+     */
+    KvStoreDelegateManager::SetSyncActivationCheckCallback(
+        [&callCount] (const std::string &userId, const std::string &appId, const std::string &storeId) -> bool {
+        callCount++;
+        return true;
+    });
+    /**
+     * @tc.steps: step2. openStore in no dual tuple sync mode
+     * @tc.expected: step2. it should be activity finally, and callCount should be zero
+     */
+    OpenStore1(false);
+    EXPECT_EQ(callCount, 0u);
+    CloseStore();
+}
