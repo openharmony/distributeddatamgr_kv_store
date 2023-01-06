@@ -248,12 +248,6 @@ int SQLiteUtils::BindTextToStatement(sqlite3_stmt *statement, int index, const s
         return -E_INVALID_ARGS;
     }
 
-    // Check empty value.
-    if (str.empty()) {
-        sqlite3_bind_null(statement, index);
-        return E_OK;
-    }
-
     int errCode = sqlite3_bind_text(statement, index, str.c_str(), str.length(), SQLITE_TRANSIENT);
     if (errCode != SQLITE_OK) {
         LOGE("[SQLiteUtil][Bind text]Failed to bind the value:%d", errCode);

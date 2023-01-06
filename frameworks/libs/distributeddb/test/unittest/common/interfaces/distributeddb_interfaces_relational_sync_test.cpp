@@ -71,6 +71,15 @@ namespace {
             level   INTEGER
         ))"";
 
+    const std::string ALL_FIELD_TYPE_TABLE_SQL = R""(CREATE TABLE IF NOT EXISTS tbl_all_type(
+        id INTEGER PRIMARY KEY,
+        f_int INT,
+        f_real REAL,
+        f_text TEXT,
+        f_blob BLOB,
+        f_none
+    ))"";
+
     void FakeOldVersionDB(sqlite3 *db)
     {
         std::string dropTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_student_1_ON_UPDATE;";
@@ -851,4 +860,62 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, TableFieldsOrderTest002, Tes
         EXPECT_EQ(sqlite3_column_int64(stmt, 3), 91); // 91 score
         return OK;
     });
+}
+
+/**
+  * @tc.name: SyncZeroBlobTest001
+  * @tc.desc: Sync device with zero blob
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncZeroBlobTest001, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, ALL_FIELD_TYPE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("tbl_all_type"), OK);
+    AddDeviceSchema(g_deviceB, db, "tbl_all_type");
+
+    // prepare with zero blob data
+    std::string insertSql = "INSERT INTO tbl_all_type VALUES(?, ?, ?, ?, ?, ?)";
+    int ret = RelationalTestUtils::ExecSql(db, insertSql, [] (sqlite3_stmt *stmt) {
+        sqlite3_bind_int64(stmt, 1, 1001); // 1, 1001 bind index, bind value
+        sqlite3_bind_int64(stmt, 2, 12344); // 2, 12344 bind index, bind value
+        sqlite3_bind_double(stmt, 3, 1.234); // 3, 1.234 bind index, bind value
+        SQLiteUtils::BindTextToStatement(stmt, 4, ""); // 4, bind index
+        SQLiteUtils::BindBlobToStatement(stmt, 5, {}); // 5,bind index
+        return E_OK;
+    }, nullptr);
+    EXPECT_EQ(ret, E_OK);
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("tbl_all_type");
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            for (const auto &itDev : devicesMap) {
+                for (const auto &itTbl : itDev.second) {
+                    EXPECT_EQ(itTbl.status, OK);
+                }
+            }
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::vector<VirtualRowData> data;
+    g_deviceB->GetAllSyncData("tbl_all_type", data);
+    EXPECT_EQ(data.size(), 1U);
+    for (const auto &it : data) {
+        DataValue val;
+        it.objectData.GetDataValue("id", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_INTEGER);
+        it.objectData.GetDataValue("f_int", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_INTEGER);
+        it.objectData.GetDataValue("f_real", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_REAL);
+        it.objectData.GetDataValue("f_text", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_TEXT);
+        it.objectData.GetDataValue("f_blob", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_BLOB);
+        it.objectData.GetDataValue("f_none", val);
+        EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_NULL);
+    }
 }
