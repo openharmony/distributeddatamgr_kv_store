@@ -276,12 +276,14 @@ private:
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
     Timestamp currentMaxTimestamp_ = 0;
+
+    mutable std::shared_mutex engineMutex_;
     SQLiteSingleVerStorageEngine *storageEngine_;
+
     bool notificationEventsRegistered_;
     bool notificationConflictEventsRegistered_;
     bool isInitialized_;
     bool isReadOnly_;
-    mutable std::mutex syncerMutex_;
     mutable std::mutex initialMutex_;
     mutable std::mutex maxTimestampMutex_;
     mutable std::mutex lifeCycleMutex_;
