@@ -111,7 +111,7 @@ namespace {
             EXPECT_TRUE(g_kvDelegatePtr->Get(entry.key, resultvalue) == OK);
             EXPECT_TRUE(resultvalue == entry.value);
         }
-        for (int i = 0; i < totalSize / 2; i++) {
+        for (int i = 0; i < totalSize / 2; i++) { // 2: Half of the total
             g_kvDelegatePtr->Delete(entries[i].key);
             Value resultvalue;
             EXPECT_TRUE(g_kvDelegatePtr->Get(entries[i].key, resultvalue) == NOT_FOUND);
