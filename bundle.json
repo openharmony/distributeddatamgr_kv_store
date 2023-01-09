@@ -119,7 +119,8 @@
         "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test:distributeddatamgr_fuzztest",
         "//foundation/distributeddatamgr/kv_store:distributedtest",
         "//foundation/distributeddatamgr/kv_store:build_native_test",
-        "//foundation/distributeddatamgr/kv_store/test/unittest:unittest",
+        "//foundation/distributeddatamgr/kv_store/test/unittest/distributeddata:unittest",
+        "//foundation/distributeddatamgr/kv_store/test/unittest/distributedKVStore:unittest",
         "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/test:unittest"
       ]
     }
