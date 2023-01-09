@@ -704,7 +704,8 @@ struct StudentInOrder {
     int level_;
     int score_;
 
-    VirtualRowData operator() () const {
+    VirtualRowData operator() () const
+    {
         VirtualRowData virtualRowData;
         DataValue d1;
         d1 = (int64_t)id_;

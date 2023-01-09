@@ -172,6 +172,7 @@ distrdb_sources = [
   "${kv_store_distributeddb_path}storage/src/relational_store_connection.cpp",
   "${kv_store_distributeddb_path}storage/src/relational_store_instance.cpp",
   "${kv_store_distributeddb_path}storage/src/relational_sync_able_storage.cpp",
+  "${kv_store_distributeddb_path}storage/src/relational_sync_data_inserter.cpp",
   "${kv_store_distributeddb_path}storage/src/relationaldb_properties.cpp",
   "${kv_store_distributeddb_path}storage/src/result_entries_window.cpp",
   "${kv_store_distributeddb_path}storage/src/single_ver_natural_store_commit_notify_data.cpp",

@@ -1121,7 +1121,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, BlockSync005, TestSize.Level2)
      */
     g_deviceB->Offline();
     g_deviceC->Offline();
-    thread thread([devices](){
+    thread thread([devices]() {
         std::map<std::string, DBStatus> resultInner;
         DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, resultInner, true);
         EXPECT_EQ(status, OK);
@@ -1404,7 +1404,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, SyncQueue005, TestSize.Level3)
     std::mutex lockMutex;
     std::condition_variable conditionVar;
 
-    std::thread threadFirst([devices](){
+    std::thread threadFirst([devices]() {
         std::map<std::string, DBStatus> resultInner;
         DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, resultInner, true);
         EXPECT_EQ(status, OK);
@@ -1416,7 +1416,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, SyncQueue005, TestSize.Level3)
      *      but deviceB & C is offline
      * @tc.expected: step2. Sync will be blocked util timeout, and then return OK
      */
-    std::thread threadSecond([devices, &lockMutex, &conditionVar](){
+    std::thread threadSecond([devices, &lockMutex, &conditionVar]() {
         std::map<std::string, DBStatus> resultInner;
         DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_PULL, resultInner, true);
         EXPECT_EQ(status, OK);
