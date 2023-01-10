@@ -301,6 +301,8 @@ DeviceID QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &devi
 int QuerySyncWaterMarkHelper::GetDeleteSyncWaterMark(const std::string &deviceId, DeleteWaterMark &deleteWaterMark)
 {
     std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
 }
 
@@ -308,9 +310,10 @@ int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceI
 {
     std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     DeleteWaterMark deleteWaterMark;
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.sendWaterMark = waterMark;
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
 
@@ -318,9 +321,10 @@ int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceI
 {
     std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     DeleteWaterMark deleteWaterMark;
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.recvWaterMark = waterMark;
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
 
@@ -340,8 +344,6 @@ int QuerySyncWaterMarkHelper::UpdateDeleteSyncCacheAndSave(const std::string &db
 int QuerySyncWaterMarkHelper::GetDeleteWaterMarkFromCache(const DeviceID &hashDeviceId,
     DeleteWaterMark &deleteWaterMark)
 {
-    // lock prevent different thread visit deleteSyncCache_
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     // if not found
     if (deleteSyncCache_.find(hashDeviceId) == deleteSyncCache_.end()) {
         DeleteWaterMark waterMark;
