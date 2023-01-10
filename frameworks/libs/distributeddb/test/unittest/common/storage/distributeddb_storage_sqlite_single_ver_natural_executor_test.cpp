@@ -54,7 +54,7 @@ public:
 void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    LOGD("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
+    LOGI("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
     std::string oriIdentifier = APP_ID + "-" + USER_ID + "-" + "TestGeneralNBExecutor";
     std::string identifier = DBCommon::TransferHashString(oriIdentifier);
     g_identifier = DBCommon::TransferStringToHex(identifier);
@@ -1059,11 +1059,12 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     EXPECT_EQ(executor->PutLocalDataToCacheDB(item), -E_INVALID_ARGS);
     item.flag = DataItem::DELETE_FLAG;
     EXPECT_EQ(executor->PutLocalDataToCacheDB(item), E_OK);
-    DeviceInfo info;
-    Timestamp maxTime;
     Query query = Query::Select();
     QueryObject object(query);
-    DataItem dataItem = {.flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY};
+    DataItem dataItem;
+    dataItem.flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY;
+    DeviceInfo info;
+    Timestamp maxTime;
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), -E_INVALID_ARGS);
     dataItem.key = KEY_1;
     EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);

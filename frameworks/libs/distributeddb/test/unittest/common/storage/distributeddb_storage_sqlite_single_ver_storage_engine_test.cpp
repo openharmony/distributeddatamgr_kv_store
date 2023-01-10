@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <cstdint>
+
 #include <gtest/gtest.h>
 
 #include "db_common.h"
@@ -38,12 +38,14 @@ namespace {
     const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1);";
     const int SQL_STATE_ERR = -1;
 
-    void CopyCacheDb() {
+    void CopyCacheDb()
+    {
         EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, g_cacheDir), E_OK);
         EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName + "-wal", g_cacheDir + "-wal"), E_OK);
     }
 
-    void GetStorageEngine(SQLiteSingleVerStorageEngine *&storageEngine) {
+    void GetStorageEngine(SQLiteSingleVerStorageEngine *&storageEngine)
+    {
         int errCode;
         storageEngine =
             static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(g_property, errCode));
@@ -62,7 +64,7 @@ public:
 void DistributedDBStorageSQLiteSingleVerStorageEngineTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    LOGD("DistributedDBStorageSQLiteSingleVerStorageEngineTest dir is %s", g_testDir.c_str());
+    LOGI("DistributedDBStorageSQLiteSingleVerStorageEngineTest dir is %s", g_testDir.c_str());
     std::string oriIdentifier = APP_ID + "-" + USER_ID + "-" + "TestGeneralNBStorageEngine";
     std::string identifier = DBCommon::TransferHashString(oriIdentifier);
     g_identifier = DBCommon::TransferStringToHex(identifier);
