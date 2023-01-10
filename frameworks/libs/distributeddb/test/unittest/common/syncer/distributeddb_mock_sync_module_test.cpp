@@ -494,13 +494,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
     syncTaskContext->RegForkGetDeviceIdFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
     });
-    int token = 1;
-    int *tokenPtr = &token;
-    syncTaskContext->SetContinueToken(tokenPtr);
+    VirtualContinueToken *token = new VirtualContinueToken();
+    syncTaskContext->SetContinueToken(static_cast<void *>(token));
     RefObject::KillAndDecObjRef(syncTaskContext);
     delete dbSyncInterface;
     std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
-    tokenPtr = nullptr;
 }
 
 /**
