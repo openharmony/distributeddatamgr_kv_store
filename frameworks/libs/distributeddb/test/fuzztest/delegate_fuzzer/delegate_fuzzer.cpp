@@ -51,6 +51,8 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
         });
     KvStoreObserverTest *observer = new (std::nothrow) KvStoreObserverTest;
     if ((kvDelegatePtr == nullptr) || (observer == nullptr)) {
+        delete observer;
+        observer = nullptr;
         return;
     }
 
@@ -64,6 +66,8 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
             kvStoreSnapshotPtr = std::move(kvStoreSnapshot);
         });
     if (kvStoreSnapshotPtr == nullptr) {
+        kvDelegatePtr->UnRegisterObserver(observer);
+        delete observer;
         return;
     }
     auto valueCallback = [&value] (DBStatus status, const Value &getValue) {
@@ -82,6 +86,7 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
     kvDelegatePtr->UnRegisterObserver(observer);
+    delete observer;
     kvDelegatePtr->ReleaseKvStoreSnapshot(kvStoreSnapshotPtr);
     kvManger.CloseKvStore(kvDelegatePtr);
     kvManger.DeleteKvStore("distributed_delegate_test");

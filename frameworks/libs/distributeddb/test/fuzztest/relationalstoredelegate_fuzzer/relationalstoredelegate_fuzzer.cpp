@@ -23,7 +23,7 @@
 #include "virtual_communicator_aggregator.h"
 #include "query.h"
 #include "store_types.h"
-#include "result_set.h"
+#include "distributeddb/result_set.h"
 #include "runtime_context.h"
 
 namespace OHOS {
