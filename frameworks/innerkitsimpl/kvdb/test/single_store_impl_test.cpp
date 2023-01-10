@@ -826,7 +826,7 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
-    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
+    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().deviceId);
     ASSERT_EQ(status, SUCCESS);
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);

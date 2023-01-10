@@ -22,18 +22,11 @@ namespace OHOS::DistributedKv {
 class DevManager {
 public:
     static constexpr size_t MAX_ID_LEN = 64;
-    struct DetailInfo {
-        std::string uuid;
-        std::string udid;
-        std::string networkId;
-        std::string deviceName;
-        std::string deviceType;
-    };
     static DevManager &GetInstance();
-    std::string ToUUID(const std::string &networkId) const;
-    std::string ToNetworkId(const std::string &uuid) const;
-    const DetailInfo &GetLocalDevice();
-    std::vector<DetailInfo> GetRemoteDevices() const;
+    std::string ToUUID(const std::string &networkId);
+    std::string ToNetworkId(const std::string &uuid);
+    const DeviceInfo &GetLocalDevice();
+    std::vector<DeviceInfo> GetRemoteDevices() const;
     class Observer {
     public:
         Observer() = default;
@@ -55,14 +48,16 @@ private:
     void OnChanged(const std::string &networkId);
     void OnReady(const std::string &networkId);
     void RegisterDevCallback();
+    void UpdateBucket();
+    DeviceInfo GetDvInfoFromBucket(const std::string &id);
 
     int32_t Init();
     std::function<void()> Retry();
     const std::string PKG_NAME;
-    const DetailInfo invalidDetail_ {};
-    DetailInfo localInfo_ {};
+    const DeviceInfo invalidDetail_ {};
+    DeviceInfo localInfo_ {};
     mutable std::mutex mutex_ {};
-    mutable LRUBucket<std::string, DetailInfo> deviceInfos_ {64};
+    mutable LRUBucket<std::string, DeviceInfo> deviceInfos_ {64};
     ConcurrentMap<Observer *, Observer *> observers_;
 };
 } // namespace OHOS::DistributedKv

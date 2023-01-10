@@ -59,6 +59,8 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
+    virtual Status GetLocalDevice(DeviceInfo &dvInfo) = 0;
+    virtual Status GetRemoteDevices(std::vector<DeviceInfo> &dvInfos) = 0;
 
 protected:
     enum TransId : int32_t {
@@ -80,6 +82,8 @@ protected:
         TRANS_SUB,
         TRANS_UNSUB,
         TRANS_GET_PASSWORD,
+        TRANS_GET_LOCAL_DEVICE,
+        TRANS_GET_REMOTE_DEVICE,
         TRANS_BUTT,
     };
 };

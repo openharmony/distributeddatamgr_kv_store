@@ -71,13 +71,13 @@ bool Unmarshalling(Entry &output, MessageParcel &data)
 template<>
 bool Marshalling(const DeviceInfo &entry, MessageParcel &data)
 {
-    return ITypesUtil::Marshal(data, entry.deviceId, entry.deviceName, entry.deviceType);
+    return ITypesUtil::Marshal(data, entry.deviceId, entry.deviceUuid, entry.deviceName, entry.deviceType);
 }
 
 template<>
 bool Unmarshalling(DeviceInfo &output, MessageParcel &data)
 {
-    return ITypesUtil::Unmarshal(data, output.deviceId, output.deviceName, output.deviceType);
+    return ITypesUtil::Unmarshal(data, output.deviceId, output.deviceUuid, output.deviceName, output.deviceType);
 }
 
 template<>

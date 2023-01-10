@@ -197,6 +197,7 @@ enum class DeviceChangeType {
 
 struct DeviceInfo {
     std::string deviceId;
+    std::string deviceUuid;
     std::string deviceName;
     std::string deviceType;
 };

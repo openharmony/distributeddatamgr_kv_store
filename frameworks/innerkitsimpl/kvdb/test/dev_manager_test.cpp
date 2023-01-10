@@ -44,52 +44,66 @@ void DevManagerTest::TearDown(void)
 {}
 
 /**
-* @tc.name: GetLocalDevice001
+* @tc.name: GetLocalDevice
 * @tc.desc: Get local device's infomation
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: taoyuxin
 */
-HWTEST_F(DevManagerTest, GetLocalDevice001, TestSize.Level1)
+HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 {
-    ZLOGI("GetLocalDevice001 begin.");
-    DevManager &devManager = OHOS::DistributedKv::DevManager::GetInstance();
-    DevManager::DetailInfo devInfo = devManager.GetLocalDevice();
-
-    EXPECT_NE(devInfo.networkId, "");
-    EXPECT_NE(devInfo.uuid, "");
-    EXPECT_NE(devInfo.udid, "");
+    ZLOGI("GetLocalDevice begin.");
+    auto dvInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_NE(dvInfo.deviceId, "");
+    EXPECT_NE(dvInfo.deviceUuid, "");
 }
 
 /**
-* @tc.name: ToUUID001
+* @tc.name: ToUUID
 * @tc.desc: Get uuid from networkId
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: taoyuxin
 */
-HWTEST_F(DevManagerTest, ToUUID001, TestSize.Level1)
+HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 {
-    ZLOGI("ToUUID001 begin.");
-    DevManager &devManager = OHOS::DistributedKv::DevManager::GetInstance();
-    DevManager::DetailInfo devInfo = devManager.GetLocalDevice();
-    EXPECT_NE(devInfo.networkId, "");
-    std::string uuid = devManager.ToUUID(devInfo.networkId);
+    ZLOGI("ToUUID begin.");
+    auto &DevMgr = DevManager::GetInstance();
+    auto dvInfo = DevMgr.GetLocalDevice();
+    EXPECT_NE(dvInfo.deviceId, "");
+    auto uuid = DevMgr.ToUUID(dvInfo.deviceId);
     EXPECT_NE(uuid, "");
-    EXPECT_EQ(uuid, devInfo.uuid);
+    EXPECT_EQ(uuid, dvInfo.deviceUuid);
 }
 
 /**
-* @tc.name: GetRemoteDevices001
+* @tc.name: ToNetworkId
+* @tc.desc: Get networkId from uuid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
+{
+    auto &DevMgr = DevManager::GetInstance();
+    auto dvInfo = DevMgr.GetLocalDevice();
+    EXPECT_NE(dvInfo.deviceUuid, "");
+    auto networkId = DevMgr.ToNetworkId(dvInfo.deviceUuid);
+    EXPECT_NE(networkId, "");
+    EXPECT_EQ(networkId, dvInfo.deviceId);
+}
+
+/**
+* @tc.name: GetRemoteDevices
 * @tc.desc: Get remote devices
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: taoyuxin
 */
-HWTEST_F(DevManagerTest, GetRemoteDevices001, TestSize.Level1)
+HWTEST_F(DevManagerTest, GetRemoteDevices, TestSize.Level1)
 {
-    ZLOGI("GetRemoteDevices001 begin.");
+    ZLOGI("GetRemoteDevices begin.");
     DevManager &devManager = OHOS::DistributedKv::DevManager::GetInstance();
-    vector<DevManager::DetailInfo> devInfo = devManager.GetRemoteDevices();
-    EXPECT_EQ(devInfo.size(), 0);
+    auto dvInfos = devManager.GetRemoteDevices();
+    EXPECT_EQ(dvInfos.size(), 0);
 }

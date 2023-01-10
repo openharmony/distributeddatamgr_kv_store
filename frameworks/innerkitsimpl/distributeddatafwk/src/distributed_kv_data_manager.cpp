@@ -169,11 +169,11 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
 Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
 {
     auto dvInfo = DevManager::GetInstance().GetLocalDevice();
-    if (dvInfo.networkId.empty()) {
+    if (dvInfo.deviceId.empty()) {
         ZLOGE("deviceId empty!");
         return Status::ERROR;
     }
-    localDevice.deviceId = dvInfo.networkId;
+    localDevice.deviceId = dvInfo.deviceId;
     localDevice.deviceName = dvInfo.deviceName;
     localDevice.deviceType = dvInfo.deviceType;
     return Status::SUCCESS;
@@ -183,11 +183,11 @@ Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceIn
 {
     auto dvInfos = DevManager::GetInstance().GetRemoteDevices();
     for (const auto &info : dvInfos) {
-        if (info.networkId.empty()) {
+        if (info.deviceId.empty()) {
             ZLOGW("deviceId empty!");
             continue;
         }
-        DeviceInfo devInfo = { info.networkId, info.deviceName, info.deviceType };
+        DeviceInfo devInfo = { info.deviceId, info.deviceUuid, info.deviceName, info.deviceType };
         deviceInfoList.emplace_back(devInfo);
     }
     ZLOGI("strategy is:%{public}d", strategy);
