@@ -108,7 +108,7 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
 }
 
 std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
-                                                      bool &isKeyOutdated)
+    bool &isOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!FileExists(keyPath)) {
@@ -133,7 +133,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     offset++;
     std::vector<uint8_t> date;
     date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
-    isKeyOutdated = IsKeyOutdated(date);
+    isOutdated = IsKeyOutdated(date);
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     content.assign(content.size(), 0);
@@ -348,10 +348,9 @@ int32_t SecurityManager::CheckRootKey()
 
 bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
 {
-    std::vector<uint8_t> timeVec(date);
-    auto createTime = *reinterpret_cast<time_t *>(&timeVec);
-    std::chrono::system_clock::time_point createTimePointer = std::chrono::system_clock::from_time_t(createTime);
-    return ((createTimePointer + std::chrono::hours(HOURS_PER_YEAR)) < std::chrono::system_clock::now());
+    time_t time = *reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0]));
+    auto createTime = std::chrono::system_clock::from_time_t(time);
+    return ((createTime + std::chrono::hours(HOURS_PER_YEAR)) < std::chrono::system_clock::now());
 }
 
 bool SecurityManager::GetSecKey(DistributedDB::CipherPassword &password)

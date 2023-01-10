@@ -37,20 +37,21 @@ private:
     using DBStatus = DistributedDB::DBStatus;
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
 
-    static constexpr const int REKET_TIMES = 3;
+    static constexpr int REKEY_TIMES = 3;
     static constexpr const char *REKEY_NEW = ".new";
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
-    DBOption GetDBOption(const Options &options, const DistributedDB::CipherPassword &password) const;
-    bool ReKey(const std::string &name, const std::string &path, DBPassword &dbPassword,
-        const std::shared_ptr<DBManager>& dbManager, const Options &options);
-    Status RekeyRecover(const std::string &name, const std::string &path, DBPassword &dbPassword,
-        const std::shared_ptr<DBManager>& dbManager, const Options &options);
-    bool ExecuteRekey(const std::string &name, const std::string &path, DBPassword &dbPassword,
-        const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore);
-    Status GetDBStore(const std::string &name, const std::shared_ptr<DBManager>& dbManager, DBOption &dbOption);
-    void UpdateKeyFile(const std::string &name, const std::string &path);
+    DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
+    bool ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        std::shared_ptr<DBManager> dbManager, const Options &options);
+    Status RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        std::shared_ptr<DBManager> dbManager, const Options &options);
+    bool ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        DBStore *dbStore);
+    Status CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+        const Options &options, DBPassword &dbPassword);
+    void UpdateKeyFile(const std::string &storeId, const std::string &path);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];

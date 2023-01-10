@@ -186,31 +186,31 @@ Status BackupManager::Restore(const std::string &name, const std::string &baseDi
         return INVALID_ARGUMENT;
     }
     auto fullName = baseDir + BACKUP_TOP_PATH + "/" + storeId + "/" + backupFile.name;
-    auto password = GetRestorePassword(backupFile.name, baseDir, appId, storeId);
+    auto password = GetRestorePassword(backupFile.name, baseDir, appId, storeId).password;
     auto dbStatus = dbStore->Import(fullName, password);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     return status;
 }
 
-DistributedDB::CipherPassword BackupManager::GetRestorePassword(const std::string &name, const std::string &baseDir,
+BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &name, const std::string &baseDir,
     const std::string &appId, const std::string &storeId)
 {
     auto backupName = name.substr(0, name.length() - BACKUP_POSTFIX_SIZE);
     auto keyName = BACKUP_KEY_PREFIX + storeId + "_" + backupName;
-    DistributedDB::CipherPassword password;
+    DBPassword dbPassword;
     if (backupName == AUTO_BACKUP_NAME) {
         auto service = KVDBServiceClient::GetInstance();
         if (service == nullptr) {
-            return SecurityManager::DBPassword().password;
+            return dbPassword;
         }
         std::vector<uint8_t> pwd;
         service->GetBackupPassword({ appId }, { storeId }, pwd);
-        password.SetValue(pwd.data(), pwd.size());
+        dbPassword.password.SetValue(pwd.data(), pwd.size());
         pwd.assign(pwd.size(), 0);
     } else {
-        password =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir).password;
+        dbPassword.password =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir).password;
     }
-    return password;
+    return dbPassword;
 }
 
 Status BackupManager::DeleteBackup(std::map<std::string, Status> &deleteList, const std::string &baseDir,

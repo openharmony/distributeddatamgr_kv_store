@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "StoreFactory"
+#define REKEY_PATH path + "/rekey"
 #include "store_factory.h"
 
 #include "backup_manager.h"
@@ -57,13 +58,15 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         auto dbManager = GetDBManager(options.baseDir, appId);
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
             options.baseDir, options.encrypt);
-        if (dbPassword.password.GetSize() == 0 && options.encrypt) {
+        if (options.encrypt && dbPassword.password.GetSize() == 0) {
+            ZLOGE("password file corrupted");
             status = CRYPT_ERROR;
             return !stores.empty();
         }
 
         status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
         if (status == CRYPT_ERROR) {
+            ZLOGE("rekey recover error");
             return !stores.empty();
         }
         if (dbPassword.isKeyOutdated && !ReKey(storeId, options.baseDir, dbPassword, dbManager, options)) {
@@ -71,7 +74,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         DBStatus dbStatus = DBStatus::DB_ERROR;
-        dbManager->GetKvStore(storeId, GetDBOption(options, dbPassword.password),
+        dbManager->GetKvStore(storeId, GetDBOption(options, dbPassword),
             [this, &dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
@@ -146,7 +149,7 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
     return dbManager;
 }
 
-StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const CipherPassword &password) const
+StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const DBPassword &dbPassword) const
 {
     DBOption dbOption;
     dbOption.syncDualTupleMode = true; // tuple of (appid+storeid)
@@ -156,7 +159,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const C
     dbOption.isEncryptedDb = options.encrypt;
     if (options.encrypt) {
         dbOption.cipher = DistributedDB::CipherType::AES_256_GCM;
-        dbOption.passwd = password;
+        dbOption.passwd = dbPassword.password;
     }
 
     if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
@@ -171,58 +174,62 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const C
     return dbOption;
 }
 
-bool StoreFactory::ReKey(const std::string &name, const std::string &path, DBPassword &dbPassword,
-    const std::shared_ptr<DBManager>& dbManager, const Options &options)
+bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    std::shared_ptr<DBManager> dbManager, const Options &options)
 {
-    int32_t rekeyTimes = 0;
+    int32_t retry = 0;
     DBStatus status;
     DBStore *kvStore;
     bool isRekeySuccess = false;
-    auto dbOption = GetDBOption(options, dbPassword.password);
-    dbManager->GetKvStore(name, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore) {
+    auto dbOption = GetDBOption(options, dbPassword);
+    dbManager->GetKvStore(storeId, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
         kvStore = dbStore;
     });
-    while (dbPassword.isKeyOutdated && rekeyTimes < REKET_TIMES) {
-        if (ExecuteRekey(name, path, dbPassword, dbManager, kvStore)) {
-            isRekeySuccess = true;
-            return isRekeySuccess;
-        } else {
-            RekeyRecover(name, path, dbPassword, dbManager, options);
-            rekeyTimes++;
+    while(retry < REKEY_TIMES) {
+        auto status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
+        if (status == CRYPT_ERROR) {
+            break;
         }
+        auto succeed = ExecuteRekey(storeId, path, dbPassword, kvStore);
+        if (succeed) {
+            isRekeySuccess = true;
+            break;
+        }
+        ++retry;
     }
+    dbManager->CloseKvStore(kvStore);
+    kvStore = nullptr;
     return isRekeySuccess;
 }
 
-Status StoreFactory::RekeyRecover(const std::string &name, const std::string &path, DBPassword &dbPassword,
-    const std::shared_ptr<DBManager>& dbManager, const Options &options)
+Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    std::shared_ptr<DBManager> dbManager, const Options &options)
 {
-    dbPassword = SecurityManager::GetInstance().GetDBPassword(name, path);
-    auto dbOption = GetDBOption(options, dbPassword.password);
-    auto checkKeyValid = GetDBStore(name, dbManager, dbOption);
-    if (checkKeyValid == SUCCESS) {
-        StoreUtil::Remove(path + "/rekey");
-        return checkKeyValid;
+    dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
+    auto pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+    if (pwdValid == SUCCESS) {
+        StoreUtil::Remove(REKEY_PATH);
+        return pwdValid;
     }
-    auto newKeyName = name + REKEY_NEW;
-    auto newKeyPath = path + "/rekey";
+    auto newKeyName = storeId + REKEY_NEW;
+    auto newKeyPath = REKEY_PATH;
     dbPassword = SecurityManager::GetInstance().GetDBPassword(newKeyName, newKeyPath);
-    dbOption.passwd = dbPassword.password;
-    checkKeyValid = GetDBStore(name, dbManager, dbOption);
-    if (checkKeyValid == SUCCESS) {
-        UpdateKeyFile(name, path);
-        return checkKeyValid;
+    pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+    if (pwdValid == SUCCESS) {
+        UpdateKeyFile(storeId, path);
+        return pwdValid;
     }
     return CRYPT_ERROR;
 }
 
-Status StoreFactory::GetDBStore(const std::string &name, const std::shared_ptr<DBManager>& dbManager,
-    DBOption &dbOption)
+Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+    const Options &options, DBPassword &dbPassword)
 {
     DBStatus status;
     DBStore *kvstore;
-    dbManager->GetKvStore(name, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
+    auto dbOption = GetDBOption(options, dbPassword);
+    dbManager->GetKvStore(storeId, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
         kvstore = dbStore;
     });
@@ -230,16 +237,16 @@ Status StoreFactory::GetDBStore(const std::string &name, const std::shared_ptr<D
     return StoreUtil::ConvertStatus(status);
 }
 
-bool StoreFactory::ExecuteRekey(const std::string &name, const std::string &path, DBPassword &dbPassword,
-    const std::shared_ptr<DBManager>& dbManager, DBStore *dbStore)
+bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword, DBStore *dbStore)
 {
-    std::string rekeyPath = path + "/rekey";
+    std::string rekeyPath = REKEY_PATH;
     (void)StoreUtil::InitPath(rekeyPath);
 
     CipherPassword password;
     if (!SecurityManager::GetInstance().GetSecKey(password) ||
-            !SecurityManager::GetInstance().SaveDBPassword(name + REKEY_NEW, rekeyPath, password)) {
+            !SecurityManager::GetInstance().SaveDBPassword(storeId + REKEY_NEW, rekeyPath, password)) {
         ZLOGE("failed to generate new key.");
+        password.Clear();
         StoreUtil::Remove(rekeyPath);
         return false;
     }
@@ -249,20 +256,21 @@ bool StoreFactory::ExecuteRekey(const std::string &name, const std::string &path
     if (status != SUCCESS) {
         ZLOGE("failed to rekey the substitute database.");
         StoreUtil::Remove(rekeyPath);
+        password.Clear();
         return false;
     }
-
-    UpdateKeyFile(name, path);
+    UpdateKeyFile(storeId, path);
     dbPassword.password = password;
+    password.Clear();
     dbPassword.isKeyOutdated = false;
     return true;
 }
 
-void StoreFactory::UpdateKeyFile(const std::string &name, const std::string &path)
+void StoreFactory::UpdateKeyFile(const std::string &storeId, const std::string &path)
 {
-    std::string newKeyFullName = path + "/rekey/key/" + name + REKEY_NEW + ".key";
-    std::string oldKeyFullName = path + "/key" + name + ".key";
-    StoreUtil::Rename(newKeyFullName, oldKeyFullName);
-    StoreUtil::Remove(newKeyFullName);
+    std::string rekeyFile = path + "/rekey/key/" + storeId + REKEY_NEW + ".key";
+    std::string keyFile = path + "/key/" + storeId + ".key";
+    StoreUtil::Rename(rekeyFile, keyFile);
+    StoreUtil::Remove(rekeyFile);
 }
 } // namespace OHOS::DistributedKv

@@ -42,7 +42,7 @@ private:
 
     SecurityManager();
     ~SecurityManager();
-    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path, bool &isKeyOutdated);
+    std::vector<uint8_t> LoadKeyFromFile(const std::string &name, const std::string &path, bool &isOutdated);
     bool SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key);
     std::vector<uint8_t> Random(int32_t len);
     bool IsKeyOutdated(const std::vector<uint8_t> &date);
