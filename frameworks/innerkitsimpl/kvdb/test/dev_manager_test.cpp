@@ -54,8 +54,8 @@ HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 {
     ZLOGI("GetLocalDevice begin.");
     auto dvInfo = DevManager::GetInstance().GetLocalDevice();
-    EXPECT_NE(dvInfo.deviceId, "");
-    EXPECT_NE(dvInfo.deviceUuid, "");
+    EXPECT_NE(dvInfo.networkId, "");
+    EXPECT_NE(dvInfo.uuid, "");
 }
 
 /**
@@ -68,12 +68,12 @@ HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 {
     ZLOGI("ToUUID begin.");
-    auto &DevMgr = DevManager::GetInstance();
-    auto dvInfo = DevMgr.GetLocalDevice();
-    EXPECT_NE(dvInfo.deviceId, "");
-    auto uuid = DevMgr.ToUUID(dvInfo.deviceId);
+    auto &dvMgr = DevManager::GetInstance();
+    auto dvInfo = dvMgr.GetLocalDevice();
+    EXPECT_NE(dvInfo.networkId, "");
+    auto uuid = dvMgr.ToUUID(dvInfo.networkId);
     EXPECT_NE(uuid, "");
-    EXPECT_EQ(uuid, dvInfo.deviceUuid);
+    EXPECT_EQ(uuid, dvInfo.uuid);
 }
 
 /**
@@ -85,12 +85,12 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 */
 HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 {
-    auto &DevMgr = DevManager::GetInstance();
-    auto dvInfo = DevMgr.GetLocalDevice();
-    EXPECT_NE(dvInfo.deviceUuid, "");
-    auto networkId = DevMgr.ToNetworkId(dvInfo.deviceUuid);
+    auto &dvMgr = DevManager::GetInstance();
+    auto dvInfo = dvMgr.GetLocalDevice();
+    EXPECT_NE(dvInfo.uuid, "");
+    auto networkId = dvMgr.ToNetworkId(dvInfo.uuid);
     EXPECT_NE(networkId, "");
-    EXPECT_EQ(networkId, dvInfo.deviceId);
+    EXPECT_EQ(networkId, dvInfo.networkId);
 }
 
 /**

@@ -27,7 +27,7 @@ std::vector<uint8_t> DeviceConvertor::ToLocalDBKey(const Key &key) const
 
 std::vector<uint8_t> DeviceConvertor::ToLocal(const Key &in, bool withLen) const
 {
-    auto uuid = DevManager::GetInstance().GetLocalDevice().deviceUuid;
+    auto uuid = DevManager::GetInstance().GetLocalDevice().uuid;
     if (uuid.empty()) {
         return {};
     }

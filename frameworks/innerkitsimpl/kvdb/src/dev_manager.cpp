@@ -121,47 +121,47 @@ DevManager &DevManager::GetInstance()
 
 std::string DevManager::ToUUID(const std::string &networkId)
 {
-    return GetDvInfoFromBucket(networkId).deviceUuid;
+    return GetDvInfoFromBucket(networkId).uuid;
 }
 
 std::string DevManager::ToNetworkId(const std::string &uuid)
 {
-    return GetDvInfoFromBucket(uuid).deviceId;
+    return GetDvInfoFromBucket(uuid).networkId;
 }
 
-DeviceInfo DevManager::GetDvInfoFromBucket(const std::string &id)
+DevManager::DetailInfo DevManager::GetDvInfoFromBucket(const std::string &id)
 {
-    DeviceInfo dvInfo;
-    if (!deviceInfos_.Get(id, dvInfo)) {
+    DetailInfo dtInfo;
+    if (!deviceInfos_.Get(id, dtInfo)) {
         UpdateBucket();
-        deviceInfos_.Get(id, dvInfo);
+        deviceInfos_.Get(id, dtInfo);
     }
-    if (dvInfo.deviceUuid.empty()) {
+    if (dtInfo.uuid.empty()) {
         ZLOGE("id:%{public}s", StoreUtil::Anonymous(id).c_str());
     }
-    return dvInfo;
+    return dtInfo;
 }
 
 void DevManager::UpdateBucket()
 {
-    auto dvInfos = GetRemoteDevices();
-    if (dvInfos.empty()) {
+    auto dtInfos = GetRemoteDevices();
+    if (dtInfos.empty()) {
         ZLOGD("no remote device");
     }
-    dvInfos.emplace_back(GetLocalDevice());
-    for (const auto &info : dvInfos) {
-        if (info.deviceId.empty() || info.deviceUuid.empty()) {
+    dtInfos.emplace_back(GetLocalDevice());
+    for (const auto &info : dtInfos) {
+        if (info.uuid.empty() || info.networkId.empty()) {
             continue;
         }
-        deviceInfos_.Set(info.deviceId, info);
-        deviceInfos_.Set(info.deviceUuid, info);
+        deviceInfos_.Set(info.uuid, info);
+        deviceInfos_.Set(info.networkId, info);
     }
 }
 
-const DeviceInfo &DevManager::GetLocalDevice()
+const DevManager::DetailInfo &DevManager::GetLocalDevice()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (!localInfo_.deviceUuid.empty()) {
+    if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
     auto service = KVDBServiceClient::GetInstance();
@@ -169,29 +169,39 @@ const DeviceInfo &DevManager::GetLocalDevice()
         ZLOGE("service unavailable");
         return {};
     }
-    auto status = service->GetLocalDevice(localInfo_);
+    std::pair<std::string, std::string> dvInfo;
+    auto status = service->GetLocalDevice(dvInfo);
     if (status != SUCCESS) {
         return {};
     }
-    ZLOGI("[LocalDevice] id:%{public}s, name:%{public}s, type:%{public}s",
-          StoreUtil::Anonymous(localInfo_.deviceUuid).c_str(),
-          localInfo_.deviceName.c_str(), localInfo_.deviceType.c_str());
+    localInfo_.networkId = std::move(dvInfo.first);
+    localInfo_.uuid = std::move(dvInfo.second);
+    ZLOGI("[LocalDevice] id:%{public}s", StoreUtil::Anonymous(localInfo_.uuid).c_str());
     return localInfo_;
 }
 
-std::vector<DeviceInfo> DevManager::GetRemoteDevices() const
+std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 {
-    std::vector<DeviceInfo> dvInfos;
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         ZLOGE("service unavailable");
         return {};
     }
+    std::vector<std::pair<std::string, std::string>> dvInfos;
     auto status = service->GetRemoteDevices(dvInfos);
     if (status != SUCCESS || dvInfos.empty()) {
         ZLOGD("no remote device");
+        return {};
     }
-    return dvInfos;
+    std::vector<DetailInfo> dtInfos;
+    dtInfos.reserve(dvInfos.size());
+    for (auto &info : dvInfos) {
+        DetailInfo dtInfo;
+        dtInfo.networkId = std::move(info.first);
+        dtInfo.uuid = std::move(info.second);
+        dtInfos.emplace_back(dtInfo);
+    }
+    return dtInfos;
 }
 
 void DevManager::Online(const std::string &networkId)
@@ -202,10 +212,10 @@ void DevManager::Online(const std::string &networkId)
 
 void DevManager::Offline(const std::string &networkId)
 {
-    DeviceInfo dvInfo;
-    if (deviceInfos_.Get(networkId, dvInfo)) {
-        deviceInfos_.Delete(dvInfo.deviceId);
-        deviceInfos_.Delete(dvInfo.deviceUuid);
+    DetailInfo dtInfo;
+    if (deviceInfos_.Get(networkId, dtInfo)) {
+        deviceInfos_.Delete(dtInfo.uuid);
+        deviceInfos_.Delete(dtInfo.networkId);
     }
     ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
     observers_.ForEach([&networkId](const auto &key, auto &value) {

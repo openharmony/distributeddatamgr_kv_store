@@ -290,7 +290,7 @@ Status KVDBServiceClient::GetBackupPassword(
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetLocalDevice(DeviceInfo &dvInfo)
+Status KVDBServiceClient::GetLocalDevice(std::pair<std::string, std::string> &dvInfo)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply, AppId(), StoreId());
@@ -301,7 +301,7 @@ Status KVDBServiceClient::GetLocalDevice(DeviceInfo &dvInfo)
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetRemoteDevices(std::vector<DeviceInfo> &dvInfos)
+Status KVDBServiceClient::GetRemoteDevices(std::vector<std::pair<std::string, std::string>> &dvInfos)
 {
     MessageParcel reply;
     int32_t status = IPC_SEND(TRANS_GET_REMOTE_DEVICE, reply, AppId(), StoreId());
