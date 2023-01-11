@@ -107,6 +107,7 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTask
     MockCommunicator &communicator, VirtualSingleVerSyncDBInterface *dbSyncInterface)
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    ASSERT_EQ(metadata->Initialize(dbSyncInterface), E_OK);
     (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
 }
