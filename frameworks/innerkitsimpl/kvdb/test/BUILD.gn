@@ -203,8 +203,8 @@ group("unittest") {
     ":DevManagerTest",
     ":SingleStoreImplGetTopTest",
     ":SingleStoreImplTest",
-    ":StoreFactoryTest",
     ":StoreUtilTest",
+    ":StoreFactoryTest",
   ]
 }
 ###############################################################################

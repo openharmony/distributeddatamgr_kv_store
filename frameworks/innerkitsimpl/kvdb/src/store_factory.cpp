@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 #define LOG_TAG "StoreFactory"
-#define REKEY_PATH path + "/rekey"
+#define REKEY_PATH (path + "/rekey")
 #include "store_factory.h"
 
 #include "backup_manager.h"
@@ -186,7 +186,7 @@ bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
         status = dbStatus;
         kvStore = dbStore;
     });
-    while(retry < REKEY_TIMES) {
+    while (retry < REKEY_TIMES) {
         auto status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
         if (status == CRYPT_ERROR) {
             break;
@@ -237,7 +237,8 @@ Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<D
     return StoreUtil::ConvertStatus(status);
 }
 
-bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword, DBStore *dbStore)
+bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    DBStore *dbStore)
 {
     std::string rekeyPath = REKEY_PATH;
     (void)StoreUtil::InitPath(rekeyPath);

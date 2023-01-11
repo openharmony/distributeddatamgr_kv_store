@@ -16,8 +16,8 @@
 #include <gtest/gtest.h>
 #include <vector>
 #include <sys/time.h>
-#include <stdio.h>
-#include <errno.h>
+#include <cstdio>
+#include <cerrno>
 #include <sys/types.h>
 #include "sys/stat.h"
 #include "file_ex.h"
@@ -85,9 +85,9 @@ bool StoreFactoryTest::ChangeSystemTime(int num)
 {
     bool isChanged = false;
     timeval p;
-    gettimeofday(&p, NULL);
+    gettimeofday(&p, nullptr);
     p.tv_sec += num;
-    settimeofday(&p, NULL);
+    settimeofday(&p, nullptr);
     isChanged = true;
     return isChanged;
 }
