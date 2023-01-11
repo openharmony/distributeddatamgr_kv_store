@@ -519,7 +519,7 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CreateIndex001, TestSize.Level1)
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_EQ(g_kvDelegateStatus, OK);
     /**
-     * @tc.steps:step2. Use the sql statement to get each index count count from the sqlite_master table;
+     * @tc.steps:step2. Use the sql statement to get each index count count from the table;
      * @tc.expected: step2. count == 1.
      */
     EXPECT_EQ(sqlite3_open_v2(filePath.c_str(), &db, SQLITE_OPEN_READWRITE, nullptr), SQLITE_OK);
@@ -589,7 +589,7 @@ HWTEST_F(DistributedDBInterfacesIndexUnitTest, CreateIndex002, TestSize.Level1)
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_EQ(g_kvDelegateStatus, OK);
     /**
-     * @tc.steps:step2. Use the sql statement to get each index count count from the sqlite_master table;
+     * @tc.steps:step2. Use the sql statement to get each index count count from the table;
      * @tc.expected: step2. count == 1.
      */
     EXPECT_EQ(sqlite3_open_v2(filePath.c_str(), &db, SQLITE_OPEN_READWRITE, nullptr), SQLITE_OK);

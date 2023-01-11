@@ -1474,7 +1474,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex001, TestSize.Level1)
 
     /**
      * @tc.steps: step3. check is the schema_index exist.
-     * @tc.expected: step3. can find 4 schema_indexs in sqlite_master table.
+     * @tc.expected: step3. can find 4 schema_indexs in table.
      */
     EXPECT_TRUE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1511,7 +1511,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex002, TestSize.Level1)
     ASSERT_TRUE(manager != nullptr && delegate != nullptr);
     /**
      * @tc.steps: step2. check is the schema_index exist.
-     * @tc.expected: step2. can find 4 schema_indexs in sqlite_master table.
+     * @tc.expected: step2. can find 4 schema_indexs in table.
      */
     EXPECT_TRUE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1534,7 +1534,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex002, TestSize.Level1)
     ASSERT_TRUE(manager != nullptr && delegate != nullptr);
     /**
      * @tc.steps: step4. check is the schema_index exist.
-     * @tc.expected: step4. can't find the schema_index in sqlite_master table.
+     * @tc.expected: step4. can't find the schema_index in table.
      */
     EXPECT_FALSE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1658,7 +1658,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex004, TestSize.Level2)
 
     /**
      * @tc.steps: step2. check is the schema_index exist.
-     * @tc.expected: step2. can find 4 schema_indexs in sqlite_master table.
+     * @tc.expected: step2. can find 4 schema_indexs in table.
      */
     EXPECT_TRUE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1691,7 +1691,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex004, TestSize.Level2)
 
     /**
      * @tc.steps: step4. check is the schema_index exist.
-     * @tc.expected: step4. can't find the schema_index in sqlite_master table.
+     * @tc.expected: step4. can't find the schema_index in table.
      */
     EXPECT_FALSE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1759,7 +1759,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex005, TestSize.Level1)
 
     /**
      * @tc.steps: step2. check is the schema_index exist.
-     * @tc.expected: step2. can find 1 schema_index in sqlite_master table.
+     * @tc.expected: step2. can find 1 schema_index in table.
      */
     EXPECT_TRUE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
@@ -1782,7 +1782,7 @@ HWTEST_F(DistributeddbNbSchemaTest, SchemaIndex005, TestSize.Level1)
 
     /**
      * @tc.steps: step4. check is the schema_index exist.
-     * @tc.expected: step4. can find the index $.field9 in sqlite_master table.
+     * @tc.expected: step4. can find the index $.field9 in table.
      */
     EXPECT_TRUE(DistributedDBSchemaTestTools::SchemaIndexQuery(g_dbParameter2,
         DistributedDBConstant::NB_DIRECTOR, "$.field9"));
