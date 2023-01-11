@@ -85,6 +85,9 @@ public:
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
 
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
+
+private:
+    static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
 };
 } // namespace OHOS::DistributedKv
 
