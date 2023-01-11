@@ -62,7 +62,7 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    kvDataServiceProxy_ = iface_cast<IKvStoreDataService>(remote);
+    kvDataServiceProxy_ = new (std::nothrow) KvStoreDataServiceProxy(remote);
     if (kvDataServiceProxy_ == nullptr) {
         ZLOGE("initialize proxy failed.");
         return nullptr;
