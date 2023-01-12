@@ -25,13 +25,24 @@ public:
     struct DBPassword {
         bool isKeyOutdated  = false;
         DistributedDB::CipherPassword password;
+        size_t GetSize() const {
+            return password.GetSize();
+        }
+        const uint8_t *GetData() const {
+            return password.GetData();
+        }
+        int SetValue(const uint8_t *inputData, size_t inputSize) {
+            return password.SetValue(inputData, inputSize);
+        }
+        bool IsValid() {
+            return password.GetSize() != 0;
+        }
     };
 
     static SecurityManager &GetInstance();
     DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
-    bool SaveDBPassword(const std::string &name, const std::string &path, const DistributedDB::CipherPassword &key);
+    bool SaveDBPassword(const std::string &name, const std::string &path, DistributedDB::CipherPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
-    bool GetSecKey(DistributedDB::CipherPassword &password);
 
 private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
@@ -51,6 +62,7 @@ private:
     bool Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
+    bool GetSecKey(DistributedDB::CipherPassword &password);
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};

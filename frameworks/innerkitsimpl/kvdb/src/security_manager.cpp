@@ -66,24 +66,27 @@ bool SecurityManager::Retry()
 SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
     const std::string &path, bool needCreate)
 {
-    DBPassword password;
-    auto secKey = LoadKeyFromFile(name, path, password.isKeyOutdated);
+    DBPassword dbPassword;
+    auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
     if (secKey.empty() && needCreate) {
         secKey = Random(KEY_SIZE);
         if (!SaveKeyToFile(name, path, secKey)) {
             secKey.assign(secKey.size(), 0);
-            return password;
+            return dbPassword;
         }
     }
 
-    password.password.SetValue(secKey.data(), secKey.size());
+    dbPassword.SetValue(secKey.data(), secKey.size());
     secKey.assign(secKey.size(), 0);
-    return password;
+    return dbPassword;
 }
 
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
-    const DistributedDB::CipherPassword &key)
+    DistributedDB::CipherPassword &key)
 {
+    if (key.GetSize() == 0) {
+        GetSecKey(key);
+    }
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);
     pwd.assign(pwd.size(), 0);

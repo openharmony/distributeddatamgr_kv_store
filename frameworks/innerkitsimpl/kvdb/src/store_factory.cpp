@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #define LOG_TAG "StoreFactory"
-#define REKEY_PATH (path + "/rekey")
 #include "store_factory.h"
 
 #include "backup_manager.h"
@@ -58,7 +57,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         auto dbManager = GetDBManager(options.baseDir, appId);
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
             options.baseDir, options.encrypt);
-        if (options.encrypt && dbPassword.password.GetSize() == 0) {
+        if (options.encrypt && !dbPassword.IsValid()) {
             ZLOGE("password file corrupted");
             status = CRYPT_ERROR;
             return !stores.empty();
@@ -206,14 +205,15 @@ bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
 Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
     std::shared_ptr<DBManager> dbManager, const Options &options)
 {
+    auto rekeyPath = path + "/rekey";
     dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
     auto pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
     if (pwdValid == SUCCESS) {
-        StoreUtil::Remove(REKEY_PATH);
+        StoreUtil::Remove(rekeyPath);
         return pwdValid;
     }
     auto newKeyName = storeId + REKEY_NEW;
-    auto newKeyPath = REKEY_PATH;
+    auto newKeyPath = rekeyPath;
     dbPassword = SecurityManager::GetInstance().GetDBPassword(newKeyName, newKeyPath);
     pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
     if (pwdValid == SUCCESS) {
@@ -240,12 +240,11 @@ Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<D
 bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
     DBStore *dbStore)
 {
-    std::string rekeyPath = REKEY_PATH;
+    std::string rekeyPath = path + "/rekey";
     (void)StoreUtil::InitPath(rekeyPath);
 
     CipherPassword password;
-    if (!SecurityManager::GetInstance().GetSecKey(password) ||
-            !SecurityManager::GetInstance().SaveDBPassword(storeId + REKEY_NEW, rekeyPath, password)) {
+    if (!SecurityManager::GetInstance().SaveDBPassword(storeId + REKEY_NEW, rekeyPath, password)) {
         ZLOGE("failed to generate new key.");
         password.Clear();
         StoreUtil::Remove(rekeyPath);

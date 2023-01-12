@@ -127,22 +127,22 @@ Status BackupManager::Backup(const std::string &name, const std::string &baseDir
     (void)StoreUtil::InitPath(topPath);
     (void)StoreUtil::InitPath(storePath);
     KeepData(backupFullName, isCreate);
-    auto password = SecurityManager::GetInstance().GetDBPassword(storeId, baseDir).password;
-    if (password.GetSize() != 0) {
+    auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, baseDir);
+    if (dbPassword.IsValid()) {
         KeepData(keyFullName, isCreate);
     }
 
-    auto dbStatus = dbStore->Export(backupFullName, password);
+    auto dbStatus = dbStore->Export(backupFullName, dbPassword.password);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status == SUCCESS) {
-        if (password.GetSize() != 0) {
-            SecurityManager::GetInstance().SaveDBPassword(keyName, baseDir, password);
+        if (dbPassword.IsValid()) {
+            SecurityManager::GetInstance().SaveDBPassword(keyName, baseDir, dbPassword.password);
             CleanTmpData(keyFullName);
         }
         CleanTmpData(backupFullName);
     } else {
         RollBackData(backupFullName, isCreate);
-        if (password.GetSize() != 0) {
+        if (dbPassword.IsValid()) {
             RollBackData(keyFullName, isCreate);
         }
     }
@@ -205,10 +205,10 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &n
         }
         std::vector<uint8_t> pwd;
         service->GetBackupPassword({ appId }, { storeId }, pwd);
-        dbPassword.password.SetValue(pwd.data(), pwd.size());
+        dbPassword.SetValue(pwd.data(), pwd.size());
         pwd.assign(pwd.size(), 0);
     } else {
-        dbPassword.password =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir).password;
+        dbPassword =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir);
     }
     return dbPassword;
 }
