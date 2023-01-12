@@ -919,3 +919,107 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncZeroBlobTest001, TestSiz
         EXPECT_EQ(val.GetType(), StorageType::STORAGE_TYPE_NULL);
     }
 }
+
+namespace {
+struct TblAllType {
+    DataValue id_;
+    DataValue fInt_;
+    DataValue fReal_;
+    DataValue fText_;
+    DataValue fBlob_;
+    DataValue fNone_;
+
+    TblAllType(int64_t id, int64_t fInt, double fReal, const std::string &fText, const Blob &fBlob)
+    {
+        id_ = id;
+        fInt_ = fInt;
+        fReal_ = fReal;
+        fText_ = fText;
+        fBlob_ = fBlob;
+    }
+
+    VirtualRowData operator() () const
+    {
+        VirtualRowData virtualRowData;
+        virtualRowData.objectData.PutDataValue("id", id_);
+        virtualRowData.objectData.PutDataValue("f_int", fInt_);
+        virtualRowData.objectData.PutDataValue("f_real", fReal_);
+        virtualRowData.objectData.PutDataValue("f_text", fText_);
+        virtualRowData.objectData.PutDataValue("f_blob", fBlob_);
+        virtualRowData.objectData.PutDataValue("f_none", fNone_);
+
+        virtualRowData.logInfo.dataKey = 4; // 4 fake datakey
+        virtualRowData.logInfo.device = DEVICE_B;
+        virtualRowData.logInfo.originDev = DEVICE_B;
+        virtualRowData.logInfo.timestamp = 3170194300891338180; // 3170194300891338180 fake timestamp
+        virtualRowData.logInfo.wTimestamp = 3170194300891338180; // 3170194300891338180 fake timestamp
+        virtualRowData.logInfo.flag = 2; // 2 fake flag
+
+        std::vector<uint8_t> hashKey;
+        DBCommon::CalcValueHash({}, hashKey);
+        virtualRowData.logInfo.hashKey = hashKey;
+        return virtualRowData;
+    }
+};
+}
+
+/**
+  * @tc.name: SyncZeroBlobTest002
+  * @tc.desc: Sync device with zero blob
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncZeroBlobTest002, TestSize.Level1)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, ALL_FIELD_TYPE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("tbl_all_type"), OK);
+    AddDeviceSchema(g_deviceB, db, "tbl_all_type");
+
+    std::vector<VirtualRowData> dataList;
+    g_deviceB->PutDeviceData("tbl_all_type",
+        std::vector<TblAllType> {{1001, 12344, 1.234, "", {}}}); // 1001, 12344, 1.234 : fake data
+
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("tbl_all_type");
+    int errCode = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            EXPECT_EQ(devicesMap.size(), devices.size());
+            for (const auto &itDev : devicesMap) {
+                for (const auto &itTbl : itDev.second) {
+                    EXPECT_EQ(itTbl.status, OK);
+                }
+            }
+        }, true);
+    EXPECT_EQ(errCode, OK);
+
+    std::string devictTbl = RelationalStoreManager::GetDistributedTableName(DEVICE_B, "tbl_all_type");
+    std::string insertSql = "SELECT * FROM " + devictTbl;
+    int resCnt = 0;
+    int ret = RelationalTestUtils::ExecSql(db, insertSql, nullptr, [&resCnt](sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_type(stmt, 0), SQLITE_INTEGER);
+        EXPECT_EQ(sqlite3_column_int(stmt, 0), 1001); // 1001: fake data
+
+        EXPECT_EQ(sqlite3_column_type(stmt, 1), SQLITE_INTEGER); // 1: column index
+        EXPECT_EQ(sqlite3_column_int(stmt, 1), 12344); // 1: column index; 12344: fake data
+
+        EXPECT_EQ(sqlite3_column_type(stmt, 2), SQLITE_FLOAT); // 2: column index
+        EXPECT_EQ(sqlite3_column_double(stmt, 2), 1.234); // 2: column index; 1.234: fake data
+
+        EXPECT_EQ(sqlite3_column_type(stmt, 3), SQLITE_TEXT); // 3: column index
+        std::string strVal;
+        SQLiteUtils::GetColumnTextValue(stmt, 3, strVal); // 3: column index
+        EXPECT_EQ(strVal, "");
+
+        EXPECT_EQ(sqlite3_column_type(stmt, 4), SQLITE_BLOB); // 4: column index
+        std::vector<uint8_t> blobVal;
+        SQLiteUtils::GetColumnBlobValue(stmt, 4, blobVal); // 4: column index
+        EXPECT_EQ(blobVal, std::vector<uint8_t> {});
+
+        EXPECT_EQ(sqlite3_column_type(stmt, 5), SQLITE_NULL); // 5: column index
+        resCnt++;
+        return E_OK;
+    });
+    EXPECT_EQ(resCnt, 1);
+    EXPECT_EQ(ret, E_OK);
+}
