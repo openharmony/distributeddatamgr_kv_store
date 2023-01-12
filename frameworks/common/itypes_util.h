@@ -187,11 +187,6 @@ bool Marshalling(const std::vector<T> &val, MessageParcel &parcel);
 template<class T>
 bool Unmarshalling(std::vector<T> &val, MessageParcel &parcel);
 
-template<class K, class V>
-bool Marshalling(const std::pair<K, V> &val, MessageParcel &parcel);
-template<class K, class V>
-bool Unmarshalling(std::pair<K, V> &val, MessageParcel &parcel);
-
 template<class T>
 bool Marshalling(const std::list<T> &val, MessageParcel &parcel);
 template<class T>
@@ -328,30 +323,6 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
             return false;
         }
         val.insert({ key, value });
-    }
-    return true;
-}
-
-template<class K, class V>
-bool ITypesUtil::Marshalling(const std::pair<K, V> &val, MessageParcel &parcel)
-{
-    if (!ITypesUtil::Marshalling(val.first, parcel)) {
-        return false;
-    }
-    if (!ITypesUtil::Marshalling(val.second, parcel)) {
-        return false;
-    }
-    return true;
-}
-
-template<class K, class V>
-bool ITypesUtil::Unmarshalling(std::pair<K, V> &val, MessageParcel &parcel)
-{
-    if (!ITypesUtil::Unmarshalling(val.first, parcel)) {
-        return false;
-    }
-    if (!ITypesUtil::Unmarshalling(val.second, parcel)) {
-        return false;
     }
     return true;
 }
