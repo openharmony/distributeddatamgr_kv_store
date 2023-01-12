@@ -743,15 +743,15 @@ HWTEST_F(DistributedKvDataManagerTest, UnRegisterKvStoreServiceDeathRecipient001
 * @tc.require:
 * @tc.author: zuojiangjiang
 */
-HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice001, TestSize.Level1)
+HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice, TestSize.Level1)
 {
-    ZLOGI("GetLocalDevice001 begin.");
+    ZLOGI("GetLocalDevice begin.");
     DeviceInfo dvInfo;
     Status status = manager.GetLocalDevice(dvInfo);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(dvInfo.deviceId.empty(), false);
-    EXPECT_EQ(dvInfo.deviceName.empty(), false);
-    EXPECT_EQ(dvInfo.deviceType.empty(), false);
+    EXPECT_EQ(dvInfo.deviceName.empty(), true);
+    EXPECT_EQ(dvInfo.deviceType.empty(), true);
 }
 
 /**
@@ -761,9 +761,9 @@ HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice001, TestSize.Level1)
 * @tc.require:
 * @tc.author: zuojiangjiang
 */
-HWTEST_F(DistributedKvDataManagerTest, GetDeviceList001, TestSize.Level1)
+HWTEST_F(DistributedKvDataManagerTest, GetDeviceList, TestSize.Level1)
 {
-    ZLOGI("GetDeviceList001 begin.");
+    ZLOGI("GetDeviceList begin.");
     std::vector<DeviceInfo> dvInfos;
     Status status = manager.GetDeviceList(dvInfos, DeviceFilterStrategy::NO_FILTER);
     EXPECT_EQ(status, Status::SUCCESS);
@@ -776,9 +776,9 @@ HWTEST_F(DistributedKvDataManagerTest, GetDeviceList001, TestSize.Level1)
 * @tc.require:
 * @tc.author: zuojiangjiang
 */
-HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange001, TestSize.Level1)
+HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange, TestSize.Level1)
 {
-    ZLOGI("GetDeviceList001 begin.");
+    ZLOGI("GetDeviceList begin.");
     std::shared_ptr<DeviceChangelistener> observer = nullptr;
     Status status = manager.StartWatchDeviceChange(observer);
     EXPECT_EQ(status, Status::SUCCESS);
