@@ -58,14 +58,15 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
             options.baseDir, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
-            ZLOGE("password file corrupted");
             status = CRYPT_ERROR;
+            ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
+                storeId.storeId.c_str(), static_cast<int>(status));
             return !stores.empty();
         }
-
         status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
-        if (status == CRYPT_ERROR) {
-            ZLOGE("rekey recover error");
+        if (status != SUCCESS) {
+            ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
+                storeId.storeId.c_str(), static_cast<int>(status));
             return !stores.empty();
         }
         if (dbPassword.isKeyOutdated && !ReKey(storeId, options.baseDir, dbPassword, dbManager, options)) {
@@ -187,7 +188,7 @@ bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
     });
     while (retry < REKEY_TIMES) {
         auto status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
-        if (status == CRYPT_ERROR) {
+        if (status != SUCCESS) {
             break;
         }
         auto succeed = ExecuteRekey(storeId, path, dbPassword, kvStore);
@@ -206,21 +207,29 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     std::shared_ptr<DBManager> dbManager, const Options &options)
 {
     auto rekeyPath = path + "/rekey";
-    dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
-    auto pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+    auto keyName = path + "/key/" + storeId + ".key";
+    Status pwdValid;
+    if (StoreUtil::IsFileExist(keyName)) {
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
+        pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+    }
+
     if (pwdValid == SUCCESS) {
         StoreUtil::Remove(rekeyPath);
         return pwdValid;
     }
-    auto newKeyName = storeId + REKEY_NEW;
-    auto newKeyPath = rekeyPath;
-    dbPassword = SecurityManager::GetInstance().GetDBPassword(newKeyName, newKeyPath);
-    pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
-    if (pwdValid == SUCCESS) {
-        UpdateKeyFile(storeId, path);
+    auto reKeyFile = storeId + REKEY_NEW;
+    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
+    if (StoreUtil::IsFileExist(rekeyName)) {
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(reKeyFile, rekeyPath);
+        pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+    } else {
         return pwdValid;
     }
-    return CRYPT_ERROR;
+    if (pwdValid == SUCCESS) {
+        UpdateKeyFile(storeId, path);
+    }
+    return pwdValid;
 }
 
 Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
@@ -243,25 +252,25 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     std::string rekeyPath = path + "/rekey";
     (void)StoreUtil::InitPath(rekeyPath);
 
-    CipherPassword password;
-    if (!SecurityManager::GetInstance().SaveDBPassword(storeId + REKEY_NEW, rekeyPath, password)) {
+    auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
+    if (!newDbPassword.IsValid()) {
         ZLOGE("failed to generate new key.");
-        password.Clear();
+        newDbPassword.Clear();
         StoreUtil::Remove(rekeyPath);
         return false;
     }
 
-    auto dbStatus = dbStore->Rekey(password);
+    auto dbStatus = dbStore->Rekey(newDbPassword.password);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
         ZLOGE("failed to rekey the substitute database.");
         StoreUtil::Remove(rekeyPath);
-        password.Clear();
+        newDbPassword.Clear();
         return false;
     }
     UpdateKeyFile(storeId, path);
-    dbPassword.password = password;
-    password.Clear();
+    dbPassword.password = newDbPassword.password;
+    newDbPassword.Clear();
     dbPassword.isKeyOutdated = false;
     return true;
 }

@@ -23,19 +23,27 @@ namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
     struct DBPassword {
-        bool isKeyOutdated  = false;
+        bool isKeyOutdated = false;
         DistributedDB::CipherPassword password;
-        size_t GetSize() const {
+        size_t GetSize() const
+        {
             return password.GetSize();
         }
-        const uint8_t *GetData() const {
+        const uint8_t *GetData() const
+        {
             return password.GetData();
         }
-        int SetValue(const uint8_t *inputData, size_t inputSize) {
+        int SetValue(const uint8_t *inputData, size_t inputSize)
+        {
             return password.SetValue(inputData, inputSize);
         }
-        bool IsValid() {
+        bool IsValid()
+        {
             return password.GetSize() != 0;
+        }
+        int Clear()
+        {
+            return password.Clear();
         }
     };
 
@@ -62,7 +70,6 @@ private:
     bool Retry();
     std::vector<uint8_t> Encrypt(const std::vector<uint8_t> &key);
     bool Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t> &key);
-    bool GetSecKey(DistributedDB::CipherPassword &password);
 
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};

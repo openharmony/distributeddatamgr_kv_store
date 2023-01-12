@@ -84,9 +84,6 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
     DistributedDB::CipherPassword &key)
 {
-    if (key.GetSize() == 0) {
-        GetSecKey(key);
-    }
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);
     pwd.assign(pwd.size(), 0);
@@ -356,15 +353,4 @@ bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
     return ((createTime + std::chrono::hours(HOURS_PER_YEAR)) < std::chrono::system_clock::now());
 }
 
-bool SecurityManager::GetSecKey(DistributedDB::CipherPassword &password)
-{
-    std::vector<uint8_t> secKey = Random(KEY_SIZE);
-    auto pwdStatus = password.SetValue(secKey.data(), secKey.size());
-    secKey.assign(secKey.size(), 0);
-    if (pwdStatus != DistributedDB::CipherPassword::ErrorCode::OK) {
-        ZLOGE("failed to set the passwd.");
-        return false;
-    }
-    return true;
-}
 } // namespace OHOS::DistributedKv
