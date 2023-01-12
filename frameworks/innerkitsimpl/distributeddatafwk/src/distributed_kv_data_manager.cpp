@@ -170,7 +170,7 @@ Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
 {
     auto dvInfo = DevManager::GetInstance().GetLocalDevice();
     if (dvInfo.networkId.empty()) {
-        ZLOGE("networkId empty!");
+        ZLOGE("deviceId empty!");
         return Status::ERROR;
     }
     localDevice.deviceId = dvInfo.networkId;
@@ -182,7 +182,7 @@ Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceIn
     auto dvInfos = DevManager::GetInstance().GetRemoteDevices();
     for (const auto &info : dvInfos) {
         if (info.networkId.empty()) {
-            ZLOGW("networkId empty!");
+            ZLOGW("deviceId empty!");
             continue;
         }
         DeviceInfo devInfo = {

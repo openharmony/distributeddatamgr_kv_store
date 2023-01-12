@@ -290,26 +290,28 @@ Status KVDBServiceClient::GetBackupPassword(
     return static_cast<Status>(status);
 }
 
-Status KVDBServiceClient::GetLocalDevice(std::pair<std::string, std::string> &dvInfo)
+KVDBService::DevBrief KVDBServiceClient::GetLocalDevice()
 {
+    DevBrief brief;
     MessageParcel reply;
-    int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply, AppId(), StoreId());
-    if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x", status);
-    }
-    ITypesUtil::Unmarshal(reply, dvInfo);
-    return static_cast<Status>(status);
-}
-
-Status KVDBServiceClient::GetRemoteDevices(std::vector<std::pair<std::string, std::string>> &dvInfos)
-{
-    MessageParcel reply;
-    int32_t status = IPC_SEND(TRANS_GET_REMOTE_DEVICE, reply, AppId(), StoreId());
+    int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply);
     if (status != SUCCESS) {
       ZLOGE("status:0x%{public}x", status);
     }
-    ITypesUtil::Unmarshal(reply, dvInfos);
-    return static_cast<Status>(status);
+    ITypesUtil::Unmarshal(reply, brief);
+    return brief;
+}
+
+std::vector<KVDBService::DevBrief> KVDBServiceClient::GetRemoteDevices()
+{
+    std::vector<DevBrief> briefs;
+    MessageParcel reply;
+    int32_t status = IPC_SEND(TRANS_GET_REMOTE_DEVICES, reply);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x", status);
+    }
+    ITypesUtil::Unmarshal(reply, briefs);
+    return briefs;
 }
 
 sptr<KvStoreSyncCallbackClient> KVDBServiceClient::GetSyncAgent(const AppId &appId)

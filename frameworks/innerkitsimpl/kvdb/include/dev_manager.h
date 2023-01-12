@@ -24,7 +24,6 @@ public:
     static constexpr size_t MAX_ID_LEN = 64;
     struct DetailInfo {
         std::string uuid;
-        std::string udid;
         std::string networkId;
         std::string deviceName;
         std::string deviceType;
