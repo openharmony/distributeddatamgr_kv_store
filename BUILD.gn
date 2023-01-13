@@ -35,6 +35,7 @@ group("unittest") {
   deps = []
   deps += [
     "frameworks/innerkitsimpl/kvdb/test:unittest",
-    "test/unittest:unittest",
+    "test/unittest/distributedKVStore:unittest",
+    "test/unittest/distributeddata:unittest",
   ]
 }
