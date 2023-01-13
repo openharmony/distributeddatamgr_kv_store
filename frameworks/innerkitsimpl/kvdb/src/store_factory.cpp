@@ -208,7 +208,7 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
 {
     auto rekeyPath = path + "/rekey";
     auto keyName = path + "/key/" + storeId + ".key";
-    Status pwdValid;
+    Status pwdValid = DB_ERROR;
     if (StoreUtil::IsFileExist(keyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
         pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
