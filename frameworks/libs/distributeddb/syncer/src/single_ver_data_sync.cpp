@@ -781,6 +781,7 @@ int SingleVerDataSync::PullRequestStart(SingleVerSyncTaskContext *context)
     packet->SetQueryId(context->GetQuerySyncId());
     packet->SetLastSequence();
     SingleVerDataSyncUtils::SetPacketId(packet, context, version);
+    context->SetRetryStatus(SyncTaskContext::NO_NEED_RETRY);
 
     LOGD("[DataSync][Pull] curType=%d,local=%" PRIu64 ",del=%" PRIu64 ",end=%" PRIu64 ",peer=%" PRIu64 ",label=%s,"
         "dev=%s", static_cast<int>(syncType), localMark, deleteMark, endMark, peerMark, label_.c_str(),
