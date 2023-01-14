@@ -48,6 +48,8 @@ public:
     Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
+    DevBrief GetLocalDevice() override;
+    std::vector<DevBrief> GetRemoteDevices() override;
     sptr<KvStoreSyncCallbackClient> GetSyncAgent(const AppId &appId);
 
 protected:

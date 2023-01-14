@@ -58,7 +58,6 @@ HWTEST_F(DevManagerTest, GetLocalDevice001, TestSize.Level1)
 
     EXPECT_NE(devInfo.networkId, "");
     EXPECT_NE(devInfo.uuid, "");
-    EXPECT_NE(devInfo.udid, "");
 }
 
 /**
@@ -77,6 +76,23 @@ HWTEST_F(DevManagerTest, ToUUID001, TestSize.Level1)
     std::string uuid = devManager.ToUUID(devInfo.networkId);
     EXPECT_NE(uuid, "");
     EXPECT_EQ(uuid, devInfo.uuid);
+}
+
+/**
+* @tc.name: ToNetworkId
+* @tc.desc: Get networkId from uuid
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zuojiangjiang
+*/
+HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
+{
+    auto &dvMgr = DevManager::GetInstance();
+    auto dvInfo = dvMgr.GetLocalDevice();
+    EXPECT_NE(dvInfo.uuid, "");
+    auto networkId = dvMgr.ToNetworkId(dvInfo.uuid);
+    EXPECT_NE(networkId, "");
+    EXPECT_EQ(networkId, dvInfo.networkId);
 }
 
 /**

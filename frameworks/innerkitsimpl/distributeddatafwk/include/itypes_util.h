@@ -21,6 +21,7 @@
 #include "change_notification.h"
 #include "datashare_predicates.h"
 #include "datashare_values_bucket.h"
+#include "kvdb_service.h"
 #include "message_parcel.h"
 #include "rdb_types.h"
 #include "types.h"
@@ -81,6 +82,9 @@ public:
 
     static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
     static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+
+    static bool Marshalling(const KVDBService::DevBrief &input, MessageParcel &data);
+    static bool Unmarshalling(KVDBService::DevBrief &output, MessageParcel &data);
 
     static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
     static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);

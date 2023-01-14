@@ -174,8 +174,6 @@ Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
         return Status::ERROR;
     }
     localDevice.deviceId = dvInfo.networkId;
-    localDevice.deviceName = dvInfo.deviceName;
-    localDevice.deviceType = dvInfo.deviceType;
     return Status::SUCCESS;
 }
 
@@ -191,7 +189,9 @@ Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceIn
             ZLOGW("deviceId empty!");
             continue;
         }
-        DeviceInfo devInfo = { info.networkId, info.deviceName, info.deviceType };
+        DeviceInfo devInfo = {
+            .deviceId = info.networkId,
+        };
         deviceInfoList.emplace_back(devInfo);
     }
     ZLOGI("strategy is:%{public}d", strategy);
