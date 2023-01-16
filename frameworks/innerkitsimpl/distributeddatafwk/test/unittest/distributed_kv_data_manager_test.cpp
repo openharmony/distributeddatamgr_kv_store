@@ -750,8 +750,8 @@ HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice001, TestSize.Level1)
     Status status = manager.GetLocalDevice(dvInfo);
     EXPECT_EQ(status, Status::SUCCESS);
     EXPECT_EQ(dvInfo.deviceId.empty(), false);
-    EXPECT_EQ(dvInfo.deviceName.empty(), false);
-    EXPECT_EQ(dvInfo.deviceType.empty(), false);
+    EXPECT_EQ(dvInfo.deviceName.empty(), true);
+    EXPECT_EQ(dvInfo.deviceType.empty(), true);
 }
 
 /**

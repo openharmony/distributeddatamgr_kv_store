@@ -464,6 +464,16 @@ bool ITypesUtil::Unmarshalling(SyncPolicy &output, MessageParcel &data)
     return true;
 }
 
+bool ITypesUtil::Marshalling(const KVDBService::DevBrief &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(data, input.uuid, input.networkId);
+}
+
+bool ITypesUtil::Unmarshalling(KVDBService::DevBrief &output, MessageParcel &data)
+{
+    return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
+}
+
 bool ITypesUtil::Marshalling(const sptr<IRemoteObject> &input, MessageParcel &data)
 {
     return data.WriteRemoteObject(input);
