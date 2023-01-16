@@ -38,6 +38,7 @@ namespace {
     SQLiteSingleVerStorageExecutor *g_nullHandle = nullptr;
 
     const char * const ADD_SYNC = "ALTER TABLE sync_data ADD column version INT";
+    const char * const ADD_LOCAL = "ALTER TABLE local_data ADD column flag INT";
     const char * const INSERT_SQL = "INSERT INTO sync_data VALUES('a', 'b', 1, 2, '', '', 'efdef', 100 , 1);";
     const int SQL_STATE_ERR = -1;
 }
@@ -59,7 +60,7 @@ void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::SetUpTestCase(void)
     g_identifier = DBCommon::TransferStringToHex(identifier);
 
     g_databaseName = "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + ".db";
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNBExecutor");
     g_property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
@@ -450,8 +451,10 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, ADD_SYNC) == E_OK);
     ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(sqlHandle, INSERT_SQL) == E_OK);
     std::vector<DataItem> vec;
-    uint64_t count = 0u;
-    EXPECT_EQ(executor->GetMinVersionCacheData(vec, count), E_OK);
+    uint64_t version = 0u;
+    EXPECT_EQ(executor->GetMinVersionCacheData(vec, version), E_OK);
+    EXPECT_EQ(executor->GetMaxVersionInCacheDb(version), E_OK);
+    EXPECT_EQ(executor->RemoveDeviceDataInCacheMode("device1", true, 0u), E_OK);
     sqlite3_close_v2(sqlHandle);
     sqlHandle = nullptr;
 }
@@ -853,7 +856,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, PragmaTest003, 
     EXPECT_EQ(emptyConn->RegisterLifeCycleCallback(notifier), -E_INVALID_DB);
 
     EXPECT_EQ(emptyConn->SetConflictNotifier(0, nullptr), -E_INVALID_ARGS);
-    EXPECT_EQ(emptyConn->SetConflictNotifier(0, [&](const KvDBCommitNotifyData &data) {}), -E_INVALID_DB);
+    KvDBConflictAction func = [&](const KvDBCommitNotifyData &data) {};
+    EXPECT_EQ(emptyConn->SetConflictNotifier(0, func), -E_INVALID_DB);
     IKvDBSnapshot *shot;
     EXPECT_EQ(emptyConn->GetSnapshot(shot), -E_NOT_SUPPORT);
 }
@@ -922,11 +926,13 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
     /**
      * @tc.steps: step3. Change executor to MAIN_ATTACH_CACHE
-     * @tc.expected: step3. Expect SQL_STATE_ERR
      */
     auto executor2 = std::make_unique<SQLiteSingleVerStorageExecutor>(
         sqlHandle, false, false, ExecutorState::MAIN_ATTACH_CACHE);
     ASSERT_NE(executor2, nullptr);
+    items.clear();
+    EXPECT_EQ(executor2->MigrateSyncDataByVersion(0u, syncData, items), -E_INVALID_ARGS);
+    items.push_back(dataItem);
     EXPECT_EQ(executor2->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
     EXPECT_EQ(executor2->GetMinVersionCacheData(items, version), SQL_STATE_ERR);
     EXPECT_EQ(executor2->GetMaxVersionInCacheDb(version), SQL_STATE_ERR);
@@ -948,7 +954,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
      * @tc.steps: step1. Copy empty db, then attach
      */
     string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
-        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + ".db";
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
     EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
     CipherPassword password;
     EXPECT_EQ(g_nullHandle->AttachMainDbAndCacheDb(
@@ -973,7 +979,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
 /**
   * @tc.name: ExecutorCache004
-  * @tc.desc: Test after attaching cache
+  * @tc.desc: Test migrate after attaching
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
@@ -985,7 +991,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
      * @tc.expected: step1. Expect E_OK
      */
     string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
-        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + ".db";
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
     EXPECT_EQ(g_handle->ForceCheckPoint(), E_OK);
     EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
     CipherPassword password;
@@ -994,11 +1000,75 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
     /**
      * @tc.steps: step2. Migrate sync data but param incomplete
-     * @tc.expected: step2. Expect -E_INVALID_ARGS
      */
     NotifyMigrateSyncData syncData;
     DataItem dataItem;
     std::vector<DataItem> items;
     items.push_back(dataItem);
     EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_INVALID_ARGS);
+    Timestamp timestamp;
+    EXPECT_EQ(g_handle->GetMaxTimestampDuringMigrating(timestamp), E_OK);
+    items.front().neglect = true;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
+    items.front().neglect = false;
+    items.front().flag = DataItem::REMOVE_DEVICE_DATA_FLAG;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_INVALID_ARGS);
+    items.front().key = {'r', 'e', 'm', 'o', 'v', 'e'};
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
+    items.front().flag = DataItem::REMOVE_DEVICE_DATA_NOTIFY_FLAG;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
+    items.front().flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_INVALID_DB);
+    string selectSync = "SELECT * FROM sync_data";
+    Value value;
+    value.assign(selectSync.begin(), selectSync.end());
+    items.front().value = value;
+    items.front().flag = DataItem::REMOVE_DEVICE_DATA_NOTIFY_FLAG;
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), SQL_STATE_ERR);
+    EXPECT_EQ(g_handle->MigrateLocalData(), E_OK);
+
+    /**
+     * @tc.steps: step3. Attach maindb
+     */
+    EXPECT_EQ(g_handle->AttachMainDbAndCacheDb(
+        CipherType::DEFAULT, password, cacheDir, EngineState::CACHEDB), E_OK);
+    EXPECT_EQ(g_handle->MigrateLocalData(), E_OK);
+    EXPECT_EQ(g_handle->MigrateSyncDataByVersion(0u, syncData, items), -E_BUSY);
+}
+
+/**
+  * @tc.name: ExecutorCache005
+  * @tc.desc: Alter table then save data in cache mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache005, TestSize.Level1)
+{
+    g_store->ReleaseHandle(g_handle);
+    sqlite3 *db = nullptr;
+    ASSERT_TRUE(sqlite3_open_v2((g_testDir + g_databaseName).c_str(),
+        &db, SQLITE_OPEN_URI | SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) == SQLITE_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_LOCAL) == E_OK);
+    ASSERT_TRUE(SQLiteUtils::ExecuteRawSQL(db, ADD_SYNC) == E_OK);
+    auto executor = std::make_unique<SQLiteSingleVerStorageExecutor>(db, false, false);
+    ASSERT_NE(executor, nullptr);
+    LocalDataItem item;
+    EXPECT_EQ(executor->PutLocalDataToCacheDB(item), -E_INVALID_ARGS);
+    item.hashKey = KEY_1;
+    EXPECT_EQ(executor->PutLocalDataToCacheDB(item), -E_INVALID_ARGS);
+    item.flag = DataItem::DELETE_FLAG;
+    EXPECT_EQ(executor->PutLocalDataToCacheDB(item), E_OK);
+    Query query = Query::Select();
+    QueryObject object(query);
+    DataItem dataItem;
+    dataItem.flag = DataItem::REMOTE_DEVICE_DATA_MISS_QUERY;
+    DeviceInfo info;
+    Timestamp maxTime;
+    EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), -E_INVALID_ARGS);
+    dataItem.key = KEY_1;
+    EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
+    dataItem.flag = DataItem::DELETE_FLAG;
+    EXPECT_EQ(executor->SaveSyncDataItemInCacheMode(dataItem, info, maxTime, 0, object), E_OK);
+    sqlite3_close_v2(db);
 }
