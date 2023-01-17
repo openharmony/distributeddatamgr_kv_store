@@ -1691,6 +1691,10 @@ void SingleVerDataSync::FillRequestReSendPacket(const SingleVerSyncTaskContext *
         std::vector<uint64_t> reserved {reSendInfo.packetId};
         packet->SetReserved(reserved);
     }
+    if (reSendMode == SyncModeType::PULL) {
+        // resend pull packet dont set compress type
+        return;
+    }
     bool needCompressOnSync = false;
     uint8_t compressionRate = DBConstant::DEFAULT_COMPTRESS_RATE;
     (void)storage_->GetCompressionOption(needCompressOnSync, compressionRate);
