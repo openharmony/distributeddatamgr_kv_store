@@ -932,6 +932,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
+    RuntimeContext::GetInstance()->StopTaskPool();
     delete syncDBInterface;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
