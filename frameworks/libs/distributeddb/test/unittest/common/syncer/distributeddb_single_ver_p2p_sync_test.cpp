@@ -3352,7 +3352,7 @@ HWTEST_F(DistributedDBSingleVerP2PSyncTest, RebuildSync003, TestSize.Level1)
      * * @tc.expected: step3. interface return ok
     */
     std::set<std::string> delayDevice = {DEVICE_B};
-    g_communicatorAggregator->SetSendDelayInfo(3000u, DATA_SYNC_MESSAGE, 1u, 0u, delayDevice);// delay 3000ms one time
+    g_communicatorAggregator->SetSendDelayInfo(3000u, DATA_SYNC_MESSAGE, 1u, 0u, delayDevice); // delay 3000ms one time
     /**
      * @tc.steps: step4. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
      * * @tc.expected: step4. interface return ok
