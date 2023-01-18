@@ -63,16 +63,17 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 storeId.storeId.c_str(), static_cast<int>(status));
             return !stores.empty();
         }
-        status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
-        if (status != SUCCESS) {
-            ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
-                storeId.storeId.c_str(), static_cast<int>(status));
-            return !stores.empty();
+        if (options.encrypt) {
+            status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
+            if (status != SUCCESS) {
+                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
+                    storeId.storeId.c_str(), static_cast<int>(status));
+                return !stores.empty();
+            }
+            if (dbPassword.isKeyOutdated && !ReKey(storeId, options.baseDir, dbPassword, dbManager, options)) {
+                return !stores.empty();
+            }
         }
-        if (dbPassword.isKeyOutdated && !ReKey(storeId, options.baseDir, dbPassword, dbManager, options)) {
-            return !stores.empty();
-        }
-
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, dbPassword),
             [this, &dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
