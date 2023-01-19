@@ -14,6 +14,7 @@
  */
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_MANAGER_H
+#include <mutex>
 #include "single_kvstore.h"
 namespace OHOS::DistributedKv {
 class StoreManager {
@@ -25,6 +26,8 @@ public:
     Status CloseAllKVStore(const AppId &appId);
     Status GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
+private:
+    std::mutex mutex_;
 };
 }
 
