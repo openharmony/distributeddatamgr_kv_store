@@ -84,6 +84,7 @@ ohos_fuzztest("SyncFuzzTest") {
     "OMIT_MULTI_VER",
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
 
   deps = [

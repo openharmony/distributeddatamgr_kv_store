@@ -79,6 +79,7 @@ ohos_fuzztest("DelegateFuzzTest") {
     "OMIT_FLATBUFFER",
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
 
   deps = [
