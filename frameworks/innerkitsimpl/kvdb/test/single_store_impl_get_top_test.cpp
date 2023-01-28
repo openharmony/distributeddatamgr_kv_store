@@ -37,7 +37,6 @@ public:
 
     static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status initStatus;
-    static int MAX_VALUE_SIZE;
 };
 
 const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
@@ -50,7 +49,6 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
 
 std::shared_ptr<SingleKvStore> SingleStoreImplGetTopTest::singleKvStore = nullptr;
 Status SingleStoreImplGetTopTest::initStatus = Status::ERROR;
-int SingleStoreImplGetTopTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
 void SingleStoreImplGetTopTest::SetUpTestCase(void)
 {
@@ -285,4 +283,4 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
     ASSERT_EQ(status, NOT_SUPPORT);
     ASSERT_EQ(output, nullptr);
 }
-}
+} // namespace
