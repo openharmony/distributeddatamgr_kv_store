@@ -152,7 +152,7 @@ protected:
     bool isQuerySync_ = false;
     
     // for merge sync task
-    int lastFullSyncTaskStatus_ = SyncOperation::Status::OP_WAITING;
+    volatile int lastFullSyncTaskStatus_ = SyncOperation::Status::OP_WAITING;
 private:
     int GetCorrectedSendWaterMarkForCurrentTask(const SyncOperation *operation, uint64_t &waterMark) const;
 
@@ -182,6 +182,7 @@ private:
     // For subscribe manager
     std::shared_ptr<SubscribeManager> subManager_;
 
+    mutable std::mutex queryTaskStatusMutex_;
     // <queryId, lastExcuStatus>
     std::unordered_map<std::string, int> lastQuerySyncTaskStatusMap_;
 };

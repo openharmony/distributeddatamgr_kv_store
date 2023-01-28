@@ -1153,6 +1153,62 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Leve
     EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
 }
 
+/**
+ * @tc.name: SyncTaskContextCheck002
+ * @tc.desc: test context check task can be skipped in push mode.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create context and operation
+     */
+    auto syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(syncTaskContext, nullptr);
+    auto operation = new SyncOperation(1u, {}, static_cast<int>(SyncModeType::QUERY_PUSH), nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    QuerySyncObject querySyncObject;
+    operation->SetQuery(querySyncObject);
+    syncTaskContext->SetSyncOperation(operation);
+    syncTaskContext->SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FAILED);
+    syncTaskContext->CallSetSyncMode(static_cast<int>(SyncModeType::QUERY_PUSH));
+    EXPECT_CALL(*syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
+
+    const int loopCount = 1000;
+    /**
+     * @tc.steps: step2. loop 1000 times for writing data into lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread writeThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            syncTaskContext->SaveLastPushTaskExecStatus(static_cast<int>(SyncOperation::Status::OP_FAILED));
+        }
+    });
+    /**
+     * @tc.steps: step3. loop 100000 times for clear lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread clearThread([&syncTaskContext]() {
+        for (int i = 0; i < 100000; ++i) { // loop 100000 times
+            syncTaskContext->ResetLastPushTaskStatus();
+        }
+    });
+    /**
+     * @tc.steps: step4. loop 1000 times for read data from lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread readThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            EXPECT_EQ(syncTaskContext->CallIsCurrentSyncTaskCanBeSkipped(), false);
+        }
+    });
+    writeThread.join();
+    clearThread.join();
+    readThread.join();
+    RefObject::KillAndDecObjRef(operation);
+    syncTaskContext->SetSyncOperation(nullptr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+}
+
 #ifdef RUN_AS_ROOT
 /**
  * @tc.name: TimeChangeListenerTest001
