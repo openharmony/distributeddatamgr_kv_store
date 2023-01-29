@@ -13,16 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
-#define DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
+#ifndef TASKSCHEDULER_FUZZER_H
+#define TASKSCHEDULER_FUZZER_H
 
-#include <string>
+#define FUZZ_PROJECT_NAME "taskscheduler_fuzzer"
 
-#include <iremote_broker.h>
-#include "object_service.h"
+#endif // TASKSCHEDULER_FUZZER_H
 
-namespace OHOS::DistributedObject {
-class IObjectService : public ObjectService, public IRemoteBroker {
-};
-} // namespace OHOS::DistributedObject
-#endif

@@ -46,13 +46,14 @@ ohos_shared_library("distributeddata") {
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include/autils",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
   ]
 
   sources = [
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/entry_point.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_const_properties.cpp",
     "../../../frameworks/jskitsimpl/distributeddata/src/js_device_kv_store.cpp",

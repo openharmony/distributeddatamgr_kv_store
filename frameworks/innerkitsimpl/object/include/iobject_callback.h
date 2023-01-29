@@ -31,12 +31,12 @@ public:
     virtual void Completed(const std::map<std::string, int32_t> &results) = 0;
 };
 
-class ObjectSaveCallbackStub : public IRemoteStub<IObjectSaveCallback> {
+class API_EXPORT ObjectSaveCallbackStub : public IRemoteStub<IObjectSaveCallback> {
 public:
     int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
 };
 
-class ObjectSaveCallbackProxy : public IRemoteProxy<IObjectSaveCallback> {
+class API_EXPORT ObjectSaveCallbackProxy : public IRemoteProxy<IObjectSaveCallback> {
 public:
     explicit ObjectSaveCallbackProxy(const sptr<IRemoteObject> &impl);
     ~ObjectSaveCallbackProxy() = default;
@@ -52,12 +52,12 @@ public:
     virtual void Completed(int32_t status) = 0;
 };
 
-class ObjectRevokeSaveCallbackStub : public IRemoteStub<IObjectRevokeSaveCallback> {
+class API_EXPORT ObjectRevokeSaveCallbackStub : public IRemoteStub<IObjectRevokeSaveCallback> {
 public:
     int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
 };
 
-class ObjectRevokeSaveCallbackProxy : public IRemoteProxy<IObjectRevokeSaveCallback> {
+class API_EXPORT ObjectRevokeSaveCallbackProxy : public IRemoteProxy<IObjectRevokeSaveCallback> {
 public:
     explicit ObjectRevokeSaveCallbackProxy(const sptr<IRemoteObject> &impl);
     ~ObjectRevokeSaveCallbackProxy() = default;
@@ -73,12 +73,12 @@ public:
     virtual void Completed(const std::map<std::string, std::vector<uint8_t>> &results) = 0;
 };
 
-class ObjectRetrieveCallbackStub : public IRemoteStub<IObjectRetrieveCallback> {
+class API_EXPORT ObjectRetrieveCallbackStub : public IRemoteStub<IObjectRetrieveCallback> {
 public:
     int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
 };
 
-class ObjectRetrieveCallbackProxy : public IRemoteProxy<IObjectRetrieveCallback> {
+class API_EXPORT ObjectRetrieveCallbackProxy : public IRemoteProxy<IObjectRetrieveCallback> {
 public:
     explicit ObjectRetrieveCallbackProxy(const sptr<IRemoteObject> &impl);
     ~ObjectRetrieveCallbackProxy() = default;
@@ -94,12 +94,12 @@ public:
     virtual void Completed(const std::map<std::string, std::vector<uint8_t>> &results) = 0;
 };
 
-class ObjectChangeCallbackStub : public IRemoteStub<IObjectChangeCallback> {
+class API_EXPORT ObjectChangeCallbackStub : public IRemoteStub<IObjectChangeCallback> {
 public:
     int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply, MessageOption &option) override;
 };
 
-class ObjectChangeCallbackProxy : public IRemoteProxy<IObjectChangeCallback> {
+class API_EXPORT ObjectChangeCallbackProxy : public IRemoteProxy<IObjectChangeCallback> {
 public:
     explicit ObjectChangeCallbackProxy(const sptr<IRemoteObject> &impl);
     ~ObjectChangeCallbackProxy() = default;
@@ -108,7 +108,7 @@ public:
 private:
     static inline BrokerDelegator<ObjectChangeCallbackProxy> delegator_;
 };
-} // namespace DistributedKv
+} // namespace DistributedObject
 } // namespace OHOS
 
 #endif // I_KVSTORE_SYNC_CALLBACK_H

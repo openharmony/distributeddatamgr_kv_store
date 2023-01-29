@@ -44,7 +44,7 @@ public:
     std::mutex mtx_;
 };
 
-class Util{
+class Util {
 public:
     static std::string Anonymous(const std::string &name)
     {
@@ -65,7 +65,6 @@ private:
     static constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
     static constexpr const char *REPLACE_CHAIN = "***";
     static constexpr const char *DEFAULT_ANONYMOUS = "******";
-
 };
 
 void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)

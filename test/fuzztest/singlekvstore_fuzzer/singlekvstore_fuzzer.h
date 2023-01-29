@@ -13,16 +13,10 @@
  * limitations under the License.
  */
 
-#ifndef DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
-#define DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
+#ifndef SINGLEKVSTORE_FUZZER_H
+#define SINGLEKVSTORE_FUZZER_H
 
-#include <string>
+#define FUZZ_PROJECT_NAME "singlekvstore_fuzzer"
 
-#include <iremote_broker.h>
-#include "object_service.h"
+#endif // SINGLEKVSTORE_FUZZER_H
 
-namespace OHOS::DistributedObject {
-class IObjectService : public ObjectService, public IRemoteBroker {
-};
-} // namespace OHOS::DistributedObject
-#endif
