@@ -277,6 +277,7 @@ ohos_shared_library("distributeddb") {
 
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
+  cflags_cc = [ "-fvisibility=hidden" ]
   deps += [
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
