@@ -23,6 +23,7 @@
 #include "store_util.h"
 #include "sys/stat.h"
 #include "types.h"
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 class BackupManagerTest : public testing::Test {
@@ -470,3 +471,4 @@ HWTEST_F(BackupManagerTest, BackUpEntry, TestSize.Level0)
     status = StoreManager::GetInstance().Delete(appId, storeId, baseDir);
     ASSERT_EQ(status, SUCCESS);
 }
+} // namespace OHOS::Test

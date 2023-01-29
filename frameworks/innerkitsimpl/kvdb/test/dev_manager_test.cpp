@@ -19,6 +19,7 @@
 #include "dev_manager.h"
 #include "types.h"
 #include "log_print.h"
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 
@@ -93,3 +94,4 @@ HWTEST_F(DevManagerTest, GetRemoteDevices001, TestSize.Level1)
     vector<DevManager::DetailInfo> devInfo = devManager.GetRemoteDevices();
     EXPECT_EQ(devInfo.size(), 0);
 }
+} // namespace OHOS::Test

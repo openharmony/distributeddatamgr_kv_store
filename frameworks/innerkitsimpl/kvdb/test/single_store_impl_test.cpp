@@ -1293,4 +1293,4 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 }
-}
+} // namespace OHOS::Test
