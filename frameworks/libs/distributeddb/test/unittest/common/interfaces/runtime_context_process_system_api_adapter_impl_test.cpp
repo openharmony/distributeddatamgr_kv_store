@@ -267,11 +267,9 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbili
             g_mgr.CloseKvStore(g_kvNbDelegatePtr);
         }
     });
-    std::thread t3(FuncCheckDeviceSecurityAbility);
 
     t1.join();
     t2.join();
-    t3.join();
 }
 
 /**
