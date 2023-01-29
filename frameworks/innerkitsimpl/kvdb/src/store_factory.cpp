@@ -70,8 +70,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                     storeId.storeId.c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
-            if (dbPassword.isKeyOutdated && !ReKey(storeId, options.baseDir, dbPassword, dbManager, options)) {
-                return !stores.empty();
+            if (dbPassword.isKeyOutdated) {
+                ReKey(storeId, options.baseDir, dbPassword, dbManager, options);
             }
         }
         DBStatus dbStatus = DBStatus::DB_ERROR;
@@ -175,13 +175,12 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     return dbOption;
 }
 
-bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+void StoreFactory::ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
     std::shared_ptr<DBManager> dbManager, const Options &options)
 {
     int32_t retry = 0;
     DBStatus status;
     DBStore *kvStore;
-    bool isRekeySuccess = false;
     auto dbOption = GetDBOption(options, dbPassword);
     dbManager->GetKvStore(storeId, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore) {
         status = dbStatus;
@@ -194,14 +193,12 @@ bool StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
         }
         auto succeed = ExecuteRekey(storeId, path, dbPassword, kvStore);
         if (succeed) {
-            isRekeySuccess = true;
             break;
         }
         ++retry;
     }
     dbManager->CloseKvStore(kvStore);
     kvStore = nullptr;
-    return isRekeySuccess;
 }
 
 Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
