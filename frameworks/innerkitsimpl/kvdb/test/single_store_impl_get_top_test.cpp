@@ -22,7 +22,7 @@
 #include "distributed_kv_data_manager.h"
 #include "types.h"
 
-namespace {
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 class SingleStoreImplGetTopTest : public testing::Test {
@@ -283,4 +283,4 @@ HWTEST_F(SingleStoreImplGetTopTest, GetResultSetOrderByWriteTimeNoPrefix, TestSi
     ASSERT_EQ(status, NOT_SUPPORT);
     ASSERT_EQ(output, nullptr);
 }
-} // namespace
+} // namespace OHOS::Test

@@ -20,7 +20,7 @@
 
 #include "store_manager.h"
 #include "types.h"
-namespace {
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 
@@ -129,4 +129,4 @@ HWTEST_F(StoreUtilTest, GetObserverMode, TestSize.Level1)
     mode = storeUtil_.GetObserverMode(SUBSCRIBE_TYPE_ALL);
     ASSERT_EQ(mode, DistributedDB::OBSERVER_CHANGES_FOREIGN | DistributedDB::OBSERVER_CHANGES_NATIVE);
 }
-} // namespace
+} // namespace OHOS::Test
