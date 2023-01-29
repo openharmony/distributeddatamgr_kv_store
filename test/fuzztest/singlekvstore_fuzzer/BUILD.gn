@@ -20,14 +20,13 @@ ohos_fuzztest("SingleKvStoreFuzzTest") {
   module_out_path = "kv_store/distributeddata"
 
   include_dirs = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/common",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//commonlibrary/c_utils/base/include",
+    "../../../frameworks/common",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
+    "../../../interfaces/innerkits/distributeddata/include",
   ]
 
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/test/fuzztest/singlekvstore_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/blob_fuzzer"
 
   cflags = [
     "-g",

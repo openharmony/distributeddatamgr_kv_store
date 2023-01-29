@@ -19,11 +19,9 @@ import("//build/test.gni")
 ohos_fuzztest("TaskSchedulerFuzzTest") {
   module_out_path = "kv_store/distributeddata"
 
-  include_dirs = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/common",
-  ]
+  include_dirs = [ "../../../frameworks/common" ]
 
-  fuzz_config_file = "//foundation/distributeddatamgr/kv_store/test/fuzztest/taskscheduler_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/blob_fuzzer"
 
   cflags = [
     "-g",
