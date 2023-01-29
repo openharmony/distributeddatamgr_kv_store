@@ -20,7 +20,6 @@
 #include <vector>
 #include "distributed_kv_data_manager.h"
 #include "types.h"
-#include "store_util.h"
 #include "distributed_major.h"
 #include "distributed_test_helper.h"
 #include "refbase.h"
@@ -45,11 +44,35 @@ public:
     std::mutex mtx_;
 };
 
+class Util{
+public:
+    static std::string Anonymous(const std::string &name)
+    {
+        if (name.length() <= HEAD_SIZE) {
+            return DEFAULT_ANONYMOUS;
+        }
+
+        if (name.length() < MIN_SIZE) {
+            return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+        }
+
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
+    }
+
+private:
+    static constexpr int32_t HEAD_SIZE = 3;
+    static constexpr int32_t END_SIZE = 3;
+    static constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    static constexpr const char *REPLACE_CHAIN = "***";
+    static constexpr const char *DEFAULT_ANONYMOUS = "******";
+
+};
+
 void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
 {
     for (const auto &result : results) {
         HiLog::Info(LABEL, "uuid = %{public}s, status = %{public}d",
-                    StoreUtil::Anonymous(result.first).c_str(), result.second);
+            Util::Anonymous(result.first).c_str(), result.second);
     }
     std::lock_guard<std::mutex> lck(mtx_);
     compeleted_ = true;

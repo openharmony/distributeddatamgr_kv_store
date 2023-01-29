@@ -23,7 +23,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class KvStoreDataShareBridge : public DataShare::ResultSetBridge {
+class API_EXPORT KvStoreDataShareBridge : public DataShare::ResultSetBridge {
 public:
     KvStoreDataShareBridge(std::shared_ptr<KvStoreResultSet> kvResultSet);
 
