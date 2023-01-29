@@ -236,8 +236,8 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
 Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
     const Options &options, DBPassword &dbPassword)
 {
-    DBStatus status;
-    DBStore *kvstore;
+    DBStatus status = DistributedDB::DB_ERROR;
+    DBStore *kvstore = nullptr;
     auto dbOption = GetDBOption(options, dbPassword);
     dbManager->GetKvStore(storeId, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
         status = dbStatus;

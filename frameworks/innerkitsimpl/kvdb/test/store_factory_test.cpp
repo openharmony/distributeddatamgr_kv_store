@@ -47,8 +47,8 @@ public:
     using DBPassword = SecurityManager::DBPassword;
     using DBStatus = DistributedDB::DBStatus;
 
-    const int OUTDATED_TIME = (24 * 500);
-    const int NOT_OUTDATED_TIME = (24 * 50);
+    static constexpr int OUTDATED_TIME = (24 * 500);
+    static constexpr int NOT_OUTDATED_TIME = (24 * 50);
 
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -56,13 +56,13 @@ public:
     void TearDown();
 
     bool GetDate(const std::string &name, const std::string &path, std::vector<uint8_t> &date);
-    bool ChangeKeyDate(const std::string &name, const std::string &path, const int duration);
-    bool MoveToRekeyPath(Options options, StoreId storeId, bool &movedToRekeyPath);
+    bool ChangeKeyDate(const std::string &name, const std::string &path, int duration);
+    bool MoveToRekeyPath(Options options, StoreId storeId);
     std::shared_ptr<StoreFactoryTest::DBManager> GetDBManager(const std::string &path, const AppId &appId);
     DBOption GetOption(const Options &options, const DBPassword &dbPassword);
     DBStatus ChangeKVStoreDate(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
         const Options &options, DBPassword &dbPassword, int time);
-    bool ChangePwdDate(int time);
+    bool ModifyDate(int time);
     static void DeleteKVStore();
 };
 
@@ -99,12 +99,13 @@ bool StoreFactoryTest::GetDate(const std::string &name, const std::string &path,
     if (!loaded) {
         return false;
     }
-    size_t offset = 1;
-    date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
+    constexpr uint32_t DATE_FILE_OFFSET = 1;
+    constexpr uint32_t DATE_FILE_LENGTH = sizeof(time_t) / sizeof(uint8_t);
+    date.assign(content.begin() + DATE_FILE_OFFSET, content.begin() + DATE_FILE_LENGTH + DATE_FILE_OFFSET);
     return true;
 }
 
-bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, const int duration)
+bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, int duration)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!OHOS::FileExists(keyPath)) {
@@ -119,31 +120,26 @@ bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string 
     auto time = std::chrono::system_clock::to_time_t(
         std::chrono::system_clock::system_clock::now() - std::chrono::hours(duration));
     std::vector<char> date(reinterpret_cast<uint8_t *>(&time), reinterpret_cast<uint8_t *>(&time) + sizeof(time));
-    for (size_t i = 0; i < date.size(); ++i) {
-        content[i + 1] = date[i];
-    }
+    std::copy(date.begin(), date.end(), ++content.begin());
 
     auto saved = OHOS::SaveBufferToFile(keyPath, content);
     return saved;
 }
 
-bool StoreFactoryTest::MoveToRekeyPath(Options options, StoreId storeId, bool &movedToRekeyPath)
+bool StoreFactoryTest::MoveToRekeyPath(Options options, StoreId storeId)
 {
-    movedToRekeyPath = false;
     std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
     std::string rekeyFileName = options.baseDir + "/rekey/key/" + storeId.storeId + ".new.key";
-    StoreUtil::Rename(keyFileName, rekeyFileName);
-    StoreUtil::Remove(keyFileName);
-    movedToRekeyPath = true;
-    return movedToRekeyPath;
+    bool res = StoreUtil::Rename(keyFileName, rekeyFileName);
+    res = StoreUtil::Remove(keyFileName);
+    return res;
 }
 
 std::shared_ptr<StoreFactoryTest::DBManager> StoreFactoryTest::GetDBManager(const std::string &path, const AppId &appId)
 {
-    std::shared_ptr<DBManager> dbManager;
     std::string fullPath = path + "/kvdb";
     StoreUtil::InitPath(fullPath);
-    dbManager = std::make_shared<DBManager>(appId.appId, "default");
+    std::shared_ptr<DBManager> dbManager = std::make_shared<DBManager>(appId.appId, "default");
     dbManager->SetKvStoreConfig({ fullPath });
     BackupManager::GetInstance().Init(path);
     return dbManager;
@@ -162,11 +158,9 @@ StoreFactoryTest::DBOption StoreFactoryTest::GetOption(const Options &options, c
         dbOption.passwd = dbPassword.password;
     }
 
-    if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
-        dbOption.conflictResolvePolicy = DistributedDB::LAST_WIN;
-    } else if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
-        dbOption.conflictResolvePolicy = DistributedDB::DEVICE_COLLABORATION;
-    }
+    dbOption.conflictResolvePolicy = options.kvStoreType == KvStoreType::SINGLE_VERSION
+                                         ? DistributedDB::LAST_WIN
+                                         : KvStoreType::DEVICE_COLLABORATION;
 
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
@@ -178,7 +172,7 @@ StoreFactoryTest::DBStatus StoreFactoryTest::ChangeKVStoreDate(const std::string
     std::shared_ptr<DBManager> dbManager, const Options &options, DBPassword &dbPassword, int time)
 {
     DBStatus status;
-    auto dbOption = GetOption(options, dbPassword);
+    const auto dbOption = GetOption(options, dbPassword);
     DBStore *store = nullptr;
     dbManager->GetKvStore(storeId, dbOption, [&status, &store](auto dbStatus, auto *dbStore) {
         status = dbStatus;
@@ -193,7 +187,7 @@ StoreFactoryTest::DBStatus StoreFactoryTest::ChangeKVStoreDate(const std::string
     return dbStatus;
 }
 
-bool StoreFactoryTest::ChangePwdDate(int time)
+bool StoreFactoryTest::ModifyDate(int time)
 {
     auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, options.baseDir, false);
     auto dbManager = GetDBManager(options.baseDir, appId);
@@ -210,16 +204,19 @@ bool StoreFactoryTest::ChangePwdDate(int time)
 */
 HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
 {
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
+    Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
-    ASSERT_EQ(ChangePwdDate(OUTDATED_TIME), true);
+    ASSERT_TRUE(ModifyDate(OUTDATED_TIME));
 
     std::vector<uint8_t> date;
     bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_EQ(getDate, true);
+    ASSERT_TRUE(getDate);
+    auto oldKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    ASSERT_FALSE(std::chrono::system_clock::now() - oldKeyTime < std::chrono::seconds(1));
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
@@ -227,13 +224,10 @@ HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
 
     std::vector<uint8_t> newDate;
     getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_EQ(getDate, true);
-
-    auto isDiff = std::lexicographical_compare(newDate.begin(), newDate.end(), date.begin(), date.end(),
-        [](uint8_t newDateNum, uint8_t dateNum) {
-            return newDateNum != dateNum;
-        });
-    ASSERT_EQ(isDiff, true);
+    ASSERT_TRUE(getDate);
+    auto newKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
+    ASSERT_TRUE(std::chrono::system_clock::now() - newKeyTime < std::chrono::seconds(1));
 }
 
 /**
@@ -245,17 +239,16 @@ HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
 */
 HWTEST_F(StoreFactoryTest, RekeyNotOutdated, TestSize.Level1)
 {
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
-    ASSERT_EQ(status, SUCCESS);
+    Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
-    ASSERT_EQ(ChangePwdDate(NOT_OUTDATED_TIME), true);
+    ASSERT_TRUE(ModifyDate(NOT_OUTDATED_TIME));
 
     std::vector<uint8_t> date;
     bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_EQ(getDate, true);
+    ASSERT_TRUE(getDate);
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
@@ -263,12 +256,15 @@ HWTEST_F(StoreFactoryTest, RekeyNotOutdated, TestSize.Level1)
 
     std::vector<uint8_t> newDate;
     getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_EQ(getDate, true);
-    auto isDiff = std::lexicographical_compare(newDate.begin(), newDate.end(), date.begin(), date.end(),
-        [](uint8_t newDateNum, uint8_t dateNum) {
-            return newDateNum != dateNum;
-        });
-    ASSERT_EQ(isDiff, false);
+    ASSERT_TRUE(getDate);
+
+    auto oldKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    auto newKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
+    bool isDiff = (oldKeyTime != newKeyTime);
+
+    ASSERT_FALSE(isDiff);
 }
 
 /**
@@ -281,37 +277,34 @@ HWTEST_F(StoreFactoryTest, RekeyNotOutdated, TestSize.Level1)
 */
 HWTEST_F(StoreFactoryTest, RekeyInterrupted0, TestSize.Level1)
 {
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
-    ASSERT_EQ(status, SUCCESS);
+    Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
 
     std::vector<uint8_t> date;
     bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_EQ(getDate, true);
+    ASSERT_TRUE(getDate);
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
-
-    bool movedToRekeyPath = false;
-    MoveToRekeyPath(options, storeId, movedToRekeyPath);
-    ASSERT_EQ(movedToRekeyPath, true);
+    ASSERT_TRUE(MoveToRekeyPath(options, storeId));
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
     std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
     auto isKeyExist = StoreUtil::IsFileExist(keyFileName);
-    ASSERT_EQ(isKeyExist, true);
+    ASSERT_TRUE(isKeyExist);
 
     std::vector<uint8_t> newDate;
     getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_EQ(getDate, true);
-    auto isDiff = std::lexicographical_compare(newDate.begin(), newDate.end(), date.begin(), date.end(),
-        [](uint8_t newDateNum, uint8_t dateNum) {
-            return newDateNum != dateNum;
-        });
-    ASSERT_EQ(isDiff, false);
+    ASSERT_TRUE(getDate);
+    auto oldKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    auto newKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
+    bool isDiff = (oldKeyTime != newKeyTime);
+    ASSERT_FALSE(isDiff);
 }
 
 /**
@@ -324,21 +317,17 @@ HWTEST_F(StoreFactoryTest, RekeyInterrupted0, TestSize.Level1)
 */
 HWTEST_F(StoreFactoryTest, RekeyInterrupted1, TestSize.Level1)
 {
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
-    ASSERT_EQ(status, SUCCESS);
+    Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
 
     std::vector<uint8_t> date;
     bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_EQ(getDate, true);
+    ASSERT_TRUE(getDate);
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
-
-    bool movedToRekeyPath = false;
-    MoveToRekeyPath(options, storeId, movedToRekeyPath);
-    ASSERT_EQ(movedToRekeyPath, true);
+    ASSERT_EQ(MoveToRekeyPath(options, storeId), true);
 
     StoreId mockStoreId = { "mock" };
     std::string mockPath = options.baseDir;
@@ -349,44 +338,40 @@ HWTEST_F(StoreFactoryTest, RekeyInterrupted1, TestSize.Level1)
     StoreUtil::Rename(mockKeyFileName, keyFileName);
     StoreUtil::Remove(mockKeyFileName);
     auto isKeyExist = StoreUtil::IsFileExist(mockKeyFileName);
-    ASSERT_EQ(isKeyExist, false);
+    ASSERT_FALSE(isKeyExist);
     isKeyExist = StoreUtil::IsFileExist(keyFileName);
-    ASSERT_EQ(isKeyExist, true);
+    ASSERT_TRUE(isKeyExist);
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
     isKeyExist = StoreUtil::IsFileExist(keyFileName);
-    ASSERT_EQ(isKeyExist, true);
+    ASSERT_TRUE(isKeyExist);
 
     std::vector<uint8_t> newDate;
     getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_EQ(getDate, true);
-    auto isDiff = std::lexicographical_compare(newDate.begin(), newDate.end(), date.begin(), date.end(),
-        [](uint8_t newDateNum, uint8_t dateNum) {
-            return newDateNum != dateNum;
-        });
-    ASSERT_EQ(isDiff, false);
+    ASSERT_TRUE(getDate);
+    auto oldKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    auto newKeyTime =
+        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
+    bool isDiff = (oldKeyTime != newKeyTime);
+    ASSERT_FALSE(isDiff);
 }
 
 /**
 * @tc.name: RekeyNoPwdFile
-* @tc.desc: mock the situation that open store after rekey was interrupted last time,
-*           which caused key file not changed but rekey key file exist.
+* @tc.desc: try to open kvstore and execute RekeyRecover() without key and rekey key files.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: Cui Renjie
 */
 HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
 {
-    Status status = StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
-    ASSERT_EQ(status, SUCCESS);
+    Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
-    std::vector<uint8_t> date;
-    bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_EQ(getDate, true);
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
