@@ -26,7 +26,7 @@ ohos_fuzztest("SingleKvStoreFuzzTest") {
     "../../../interfaces/innerkits/distributeddata/include",
   ]
 
-  fuzz_config_file = "../../../test/fuzztest/blob_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/singlekvstore_fuzzer"
 
   cflags = [
     "-g",
@@ -37,12 +37,12 @@ ohos_fuzztest("SingleKvStoreFuzzTest") {
 
   sources = [ "singlekvstore_fuzzer.cpp" ]
 
-  deps = [
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
-  ]
+  deps = []
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "kv_store:distributeddata_inner",
+  ]
 }
 
 ###############################################################################

@@ -21,7 +21,7 @@ ohos_fuzztest("TaskSchedulerFuzzTest") {
 
   include_dirs = [ "../../../frameworks/common" ]
 
-  fuzz_config_file = "../../../test/fuzztest/blob_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/taskscheduler_fuzzer"
 
   cflags = [
     "-g",

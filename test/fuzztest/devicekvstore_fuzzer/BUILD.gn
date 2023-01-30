@@ -21,7 +21,7 @@ ohos_fuzztest("DeviceKvStoreFuzzTest") {
 
   include_dirs = []
 
-  fuzz_config_file = "../../../test/fuzztest/blob_fuzzer"
+  fuzz_config_file = "../../../test/fuzztest/devicekvstore_fuzzer"
 
   cflags = [
     "-g",
@@ -31,12 +31,12 @@ ohos_fuzztest("DeviceKvStoreFuzzTest") {
   ]
   sources = [ "devicekvstore_fuzzer.cpp" ]
 
-  deps = [
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
-  ]
+  deps = []
 
-  external_deps = [ "c_utils:utils" ]
+  external_deps = [
+    "c_utils:utils",
+    "kv_store:distributeddata_inner",
+  ]
 }
 
 ###############################################################################

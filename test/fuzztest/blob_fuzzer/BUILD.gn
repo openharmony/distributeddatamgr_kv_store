@@ -37,7 +37,7 @@ ohos_fuzztest("BlobFuzzTest") {
   ]
 
   sources = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
     "blob_fuzzer.cpp",
   ]
 
