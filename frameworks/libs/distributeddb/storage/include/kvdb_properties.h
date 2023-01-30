@@ -66,6 +66,7 @@ public:
     static const std::string RM_CORRUPTED_DB;
     static const std::string COMPRESS_ON_SYNC;
     static const std::string COMPRESSION_RATE;
+    static const std::string LOCAL_ONLY;
 
     static const int LOCAL_TYPE = 1;
     static const int MULTI_VER_TYPE = 2;

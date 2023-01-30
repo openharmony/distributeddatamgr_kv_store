@@ -192,6 +192,8 @@ protected:
 
     static int SyncResourceInit();
 
+    static bool IsNeedActive(ISyncInterface *syncInterface);
+
     static const int MIN_VALID_SYNC_ID;
     static std::mutex moduleInitLock_;
 
