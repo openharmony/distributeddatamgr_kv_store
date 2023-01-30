@@ -37,6 +37,7 @@ config("module_private_config") {
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
   ]
 }
+
 ###############################################################################
 ohos_source_set("distributeddatafwk_src_file") {
   testonly = true

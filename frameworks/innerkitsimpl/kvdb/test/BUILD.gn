@@ -40,6 +40,7 @@ config("module_private_config") {
   ]
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
+
 ###############################################################################
 ohos_source_set("kvdb_src_file") {
   testonly = true
