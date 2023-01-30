@@ -14,14 +14,15 @@
  */
 
 #define LOG_TAG "DevManagerTest"
+#include "dev_manager.h"
+
 #include <gtest/gtest.h>
 
-#include "dev_manager.h"
-#include "types.h"
 #include "log_print.h"
+#include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class DevManagerTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -32,16 +33,20 @@ public:
 };
 
 void DevManagerTest::SetUpTestCase(void)
-{}
+{
+}
 
 void DevManagerTest::TearDownTestCase(void)
-{}
+{
+}
 
 void DevManagerTest::SetUp(void)
-{}
+{
+}
 
 void DevManagerTest::TearDown(void)
-{}
+{
+}
 
 /**
 * @tc.name: GetLocalDevice001
@@ -109,3 +114,4 @@ HWTEST_F(DevManagerTest, GetRemoteDevices001, TestSize.Level1)
     vector<DevManager::DetailInfo> devInfo = devManager.GetRemoteDevices();
     EXPECT_EQ(devInfo.size(), 0);
 }
+} // namespace OHOS::Test
