@@ -21,7 +21,7 @@ config("distributeddatafwk_config") {
   visibility = [ ":*" ]
 
   cflags = [ "-Wno-multichar" ]
-  
+
   cflags_cc = [ "-fvisibility=hidden" ]
 
   include_dirs = [
