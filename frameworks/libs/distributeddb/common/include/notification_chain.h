@@ -88,6 +88,8 @@ public:
     // Should be call when events happened.
     void NotifyEvent(EventType type, void *arg);
 
+    bool EmptyListener(EventType type);
+
     NotificationChain() = default;
 
     // Delete the copy and assign constructors
@@ -110,6 +112,8 @@ private:
 
         // Clear all listeners
         void ClearListeners();
+
+        bool Empty();
 
         ListenerChain();
 

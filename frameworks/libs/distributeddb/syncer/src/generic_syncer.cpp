@@ -908,6 +908,7 @@ void GenericSyncer::ReleaseInnerResource()
     }
     if (timeChangedListener != nullptr) {
         timeChangedListener->Drop(true);
+        RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
     }
 }
 

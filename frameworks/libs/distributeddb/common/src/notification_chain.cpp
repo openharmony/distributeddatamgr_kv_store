@@ -122,6 +122,15 @@ void NotificationChain::NotifyEvent(EventType type, void *arg)
     listenerChain = nullptr;
 }
 
+bool NotificationChain::EmptyListener(EventType type)
+{
+    NotificationChain::ListenerChain *listenerChain = FindAndGetListenerChainLocked(type);
+    if (listenerChain == nullptr) {
+        return true;
+    }
+    return listenerChain->Empty();
+}
+
 NotificationChain::ListenerChain::ListenerChain() {}
 
 NotificationChain::ListenerChain::~ListenerChain() {}
@@ -229,6 +238,12 @@ void NotificationChain::ListenerChain::ClearListeners()
 
     // Lock it again before leaving.
     LockObj();
+}
+
+bool NotificationChain::ListenerChain::Empty()
+{
+    AutoLock lockGuard(this);
+    return listenerSet_.empty();
 }
 
 void NotificationChain::Listener::NotifyListener(void *arg)
