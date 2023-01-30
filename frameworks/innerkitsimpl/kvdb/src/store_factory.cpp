@@ -209,7 +209,7 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     Status pwdValid = DB_ERROR;
     if (StoreUtil::IsFileExist(keyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
-        pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+        pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
     }
 
     if (pwdValid == SUCCESS) {
@@ -220,7 +220,7 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
     if (StoreUtil::IsFileExist(rekeyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(reKeyFile, rekeyPath);
-        pwdValid = CheckPwdValid(storeId, dbManager, options, dbPassword);
+        pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
     } else {
         return pwdValid;
     }
@@ -230,7 +230,7 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     return pwdValid;
 }
 
-Status StoreFactory::CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+Status StoreFactory::IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
     const Options &options, DBPassword &dbPassword)
 {
     DBStatus status = DistributedDB::DB_ERROR;

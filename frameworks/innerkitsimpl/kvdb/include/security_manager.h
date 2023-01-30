@@ -15,10 +15,11 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SECURITY_MANAGER_H
 #include <atomic>
+
+#include "kv_store_delegate_manager.h"
+#include "kv_store_nb_delegate.h"
 #include "types.h"
 #include "types_export.h"
-#include "kv_store_nb_delegate.h"
-#include "kv_store_delegate_manager.h"
 namespace OHOS::DistributedKv {
 class SecurityManager {
 public:
@@ -49,7 +50,7 @@ public:
 
     static SecurityManager &GetInstance();
     DBPassword GetDBPassword(const std::string &name, const std::string &path, bool needCreate = false);
-    bool SaveDBPassword(const std::string &name, const std::string &path, DistributedDB::CipherPassword &key);
+    bool SaveDBPassword(const std::string &name, const std::string &path, const DistributedDB::CipherPassword &key);
     void DelDBPassword(const std::string &name, const std::string &path);
 
 private:

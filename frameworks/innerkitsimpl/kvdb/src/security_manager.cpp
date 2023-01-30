@@ -82,7 +82,7 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
 }
 
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
-    DistributedDB::CipherPassword &key)
+    const DistributedDB::CipherPassword &key)
 {
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);

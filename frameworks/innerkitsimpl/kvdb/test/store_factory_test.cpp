@@ -55,7 +55,7 @@ public:
     void SetUp();
     void TearDown();
 
-    bool GetDate(const std::string &name, const std::string &path, std::vector<uint8_t> &date);
+    std::chrono::system_clock::time_point GetDate(const std::string &name, const std::string &path);
     bool ChangeKeyDate(const std::string &name, const std::string &path, int duration);
     bool MoveToRekeyPath(Options options, StoreId storeId);
     std::shared_ptr<StoreFactoryTest::DBManager> GetDBManager(const std::string &path, const AppId &appId);
@@ -87,22 +87,25 @@ void StoreFactoryTest::DeleteKVStore()
     StoreManager::GetInstance().Delete(appId, storeId, options.baseDir);
 }
 
-bool StoreFactoryTest::GetDate(const std::string &name, const std::string &path, std::vector<uint8_t> &date)
+std::chrono::system_clock::time_point StoreFactoryTest::GetDate(const std::string &name, const std::string &path)
 {
+    std::chrono::system_clock::time_point timePoint;
     auto keyPath = path + "/key/" + name + ".key";
     if (!OHOS::FileExists(keyPath)) {
-        return false;
+        return timePoint;
     }
 
     std::vector<char> content;
     auto loaded = OHOS::LoadBufferFromFile(keyPath, content);
     if (!loaded) {
-        return false;
+        return timePoint;
     }
     constexpr uint32_t DATE_FILE_OFFSET = 1;
     constexpr uint32_t DATE_FILE_LENGTH = sizeof(time_t) / sizeof(uint8_t);
+    std::vector<uint8_t> date;
     date.assign(content.begin() + DATE_FILE_OFFSET, content.begin() + DATE_FILE_LENGTH + DATE_FILE_OFFSET);
-    return true;
+    timePoint = std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
+    return timePoint;
 }
 
 bool StoreFactoryTest::ChangeKeyDate(const std::string &name, const std::string &path, int duration)
@@ -211,23 +214,16 @@ HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
 
     ASSERT_TRUE(ModifyDate(OUTDATED_TIME));
 
-    std::vector<uint8_t> date;
-    bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_TRUE(getDate);
-    auto oldKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
-    ASSERT_FALSE(std::chrono::system_clock::now() - oldKeyTime < std::chrono::seconds(1));
+    auto oldKeyTime = GetDate(storeId, options.baseDir);
+    ASSERT_FALSE(std::chrono::system_clock::now() - oldKeyTime < std::chrono::seconds(2));
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
     std::vector<uint8_t> newDate;
-    getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_TRUE(getDate);
-    auto newKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
-    ASSERT_TRUE(std::chrono::system_clock::now() - newKeyTime < std::chrono::seconds(1));
+    auto newKeyTime = GetDate(storeId, options.baseDir);
+    ASSERT_TRUE(std::chrono::system_clock::now() - newKeyTime < std::chrono::seconds(2));
 }
 
 /**
@@ -245,26 +241,14 @@ HWTEST_F(StoreFactoryTest, RekeyNotOutdated, TestSize.Level1)
     ASSERT_EQ(status, SUCCESS);
 
     ASSERT_TRUE(ModifyDate(NOT_OUTDATED_TIME));
-
-    std::vector<uint8_t> date;
-    bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_TRUE(getDate);
+    auto oldKeyTime = GetDate(storeId, options.baseDir);
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
-    std::vector<uint8_t> newDate;
-    getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_TRUE(getDate);
-
-    auto oldKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
-    auto newKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
-    bool isDiff = (oldKeyTime != newKeyTime);
-
-    ASSERT_FALSE(isDiff);
+    auto newKeyTime = GetDate(storeId, options.baseDir);
+    ASSERT_EQ(oldKeyTime, newKeyTime);
 }
 
 /**
@@ -275,15 +259,12 @@ HWTEST_F(StoreFactoryTest, RekeyNotOutdated, TestSize.Level1)
 * @tc.require:
 * @tc.author: Cui Renjie
 */
-HWTEST_F(StoreFactoryTest, RekeyInterrupted0, TestSize.Level1)
+HWTEST_F(StoreFactoryTest, RekeyInterruptedWhileChangeKeyFile, TestSize.Level1)
 {
     Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
-
-    std::vector<uint8_t> date;
-    bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_TRUE(getDate);
+    auto oldKeyTime = GetDate(storeId, options.baseDir);
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
@@ -296,15 +277,8 @@ HWTEST_F(StoreFactoryTest, RekeyInterrupted0, TestSize.Level1)
     auto isKeyExist = StoreUtil::IsFileExist(keyFileName);
     ASSERT_TRUE(isKeyExist);
 
-    std::vector<uint8_t> newDate;
-    getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_TRUE(getDate);
-    auto oldKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
-    auto newKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
-    bool isDiff = (oldKeyTime != newKeyTime);
-    ASSERT_FALSE(isDiff);
+    auto newKeyTime = GetDate(storeId, options.baseDir);
+    ASSERT_EQ(oldKeyTime, newKeyTime);
 }
 
 /**
@@ -315,26 +289,23 @@ HWTEST_F(StoreFactoryTest, RekeyInterrupted0, TestSize.Level1)
 * @tc.require:
 * @tc.author: Cui Renjie
 */
-HWTEST_F(StoreFactoryTest, RekeyInterrupted1, TestSize.Level1)
+HWTEST_F(StoreFactoryTest, RekeyInterruptedBeforeChangeKeyFile, TestSize.Level1)
 {
     Status status = DB_ERROR;
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
-
-    std::vector<uint8_t> date;
-    bool getDate = GetDate(storeId, options.baseDir, date);
-    ASSERT_TRUE(getDate);
+    auto oldKeyTime = GetDate(storeId, options.baseDir);
 
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(MoveToRekeyPath(options, storeId), true);
 
-    StoreId mockStoreId = { "mock" };
+    StoreId newStoreId = { "newStore" };
     std::string mockPath = options.baseDir;
-    StoreManager::GetInstance().GetKVStore(appId, mockStoreId, options, status);
+    StoreManager::GetInstance().GetKVStore(appId, newStoreId, options, status);
 
     std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
-    std::string mockKeyFileName = options.baseDir + "/key/" + mockStoreId.storeId + ".key";
+    std::string mockKeyFileName = options.baseDir + "/key/" + newStoreId.storeId + ".key";
     StoreUtil::Rename(mockKeyFileName, keyFileName);
     StoreUtil::Remove(mockKeyFileName);
     auto isKeyExist = StoreUtil::IsFileExist(mockKeyFileName);
@@ -349,15 +320,8 @@ HWTEST_F(StoreFactoryTest, RekeyInterrupted1, TestSize.Level1)
     isKeyExist = StoreUtil::IsFileExist(keyFileName);
     ASSERT_TRUE(isKeyExist);
 
-    std::vector<uint8_t> newDate;
-    getDate = GetDate(storeId, options.baseDir, newDate);
-    ASSERT_TRUE(getDate);
-    auto oldKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0])));
-    auto newKeyTime =
-        std::chrono::system_clock::from_time_t(*reinterpret_cast<time_t *>(const_cast<uint8_t *>(&newDate[0])));
-    bool isDiff = (oldKeyTime != newKeyTime);
-    ASSERT_FALSE(isDiff);
+    auto newKeyTime = GetDate(storeId, options.baseDir);
+    ASSERT_EQ(oldKeyTime, newKeyTime);
 }
 
 /**

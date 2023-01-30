@@ -49,7 +49,7 @@ private:
         std::shared_ptr<DBManager> dbManager, const Options &options);
     bool ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         DBStore *dbStore);
-    Status CheckPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+    Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
         const Options &options, DBPassword &dbPassword);
     void UpdateKeyFile(const std::string &storeId, const std::string &path);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
