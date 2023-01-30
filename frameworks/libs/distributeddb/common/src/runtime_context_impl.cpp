@@ -727,4 +727,16 @@ void RuntimeContextImpl::StopTaskPool()
         taskPool_ = nullptr;
     }
 }
+
+void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
+{
+    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+    if (timeTickMonitor_ == nullptr) {
+        return;
+    }
+    if (timeTickMonitor_->EmptyListener()) {
+        LOGD("[RuntimeContext] TimeTickMonitor exist because no listener");
+        timeTickMonitor_ = nullptr;
+    }
+}
 } // namespace DistributedDB

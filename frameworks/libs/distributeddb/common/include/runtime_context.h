@@ -139,6 +139,8 @@ public:
     virtual std::map<std::string, std::string> GetPermissionCheckParam(const DBProperties &properties) = 0;
 
     virtual void StopTaskPool() = 0;
+
+    virtual void StopTimeTickMonitorIfNeed() = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

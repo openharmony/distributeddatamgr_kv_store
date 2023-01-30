@@ -70,6 +70,7 @@ GenericSyncer::~GenericSyncer()
     if (timeChangedListener_ != nullptr) {
         timeChangedListener_->Drop(true);
         timeChangedListener_ = nullptr;
+        RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
     }
     timeHelper_ = nullptr;
     metadata_ = nullptr;

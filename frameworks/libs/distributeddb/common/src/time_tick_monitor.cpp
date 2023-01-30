@@ -165,4 +165,10 @@ void TimeTickMonitor::NotifyTimeChange(TimeOffset offset) const
     }
     timeChangedNotifier_->NotifyEvent(TIME_CHANGE_EVENT, static_cast<void *>(&offset));
 }
+
+bool TimeTickMonitor::EmptyListener()
+{
+    std::lock_guard<std::mutex> lock(timeTickMonitorLock_);
+    return timeChangedNotifier_->EmptyListener(TIME_CHANGE_EVENT);
+}
 } // namespace DistributedDB
