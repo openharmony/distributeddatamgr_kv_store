@@ -942,10 +942,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
+    syncDBInterface->Close();
     RefObject::KillAndDecObjRef(syncDBInterface);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->StopTaskPool();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 
