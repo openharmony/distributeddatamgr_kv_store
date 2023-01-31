@@ -19,6 +19,7 @@
 #include "device_manager.h"
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
+#include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_util.h"
 #include "task_executor.h"
@@ -118,44 +119,43 @@ DevManager &DevManager::GetInstance()
     return instance;
 }
 
-std::string DevManager::ToUUID(const std::string &networkId) const
+std::string DevManager::ToUUID(const std::string &networkId)
 {
-    DetailInfo deviceInfo;
-    if (deviceInfos_.Get(networkId, deviceInfo)) {
-        return deviceInfo.uuid;
-    }
-
-    std::string uuid;
-    std::string udid;
-    auto &deviceManager = DeviceManager::GetInstance();
-    deviceManager.GetUuidByNetworkId(PKG_NAME, networkId, uuid);
-    deviceManager.GetUdidByNetworkId(PKG_NAME, networkId, udid);
-    if (uuid.empty() || udid.empty() || networkId.empty()) {
-        return "";
-    }
-    deviceInfo = { uuid, std::move(udid), networkId, "", "" };
-    deviceInfos_.Set(networkId, deviceInfo);
-    deviceInfos_.Set(uuid, deviceInfo);
-    return uuid;
+    return GetDevInfoFromBucket(networkId).uuid;
 }
 
-std::string DevManager::ToNetworkId(const std::string &uuid) const
+std::string DevManager::ToNetworkId(const std::string &uuid)
 {
-    DetailInfo deviceInfo;
-    if (deviceInfos_.Get(uuid, deviceInfo)) {
-        return deviceInfo.networkId;
-    }
-    auto infos = GetRemoteDevices();
-    for (auto &info : infos) {
-        if (info.uuid == uuid) {
-            deviceInfos_.Set(info.uuid, info);
-            deviceInfos_.Set(info.networkId, info);
-            return info.networkId;
-        }
-    }
+    return GetDevInfoFromBucket(uuid).networkId;
+}
 
-    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    return (localInfo_.uuid == uuid) ? localInfo_.networkId : "";
+DevManager::DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
+{
+    DetailInfo detailInfo;
+    if (!deviceInfos_.Get(id, detailInfo)) {
+        UpdateBucket();
+        deviceInfos_.Get(id, detailInfo);
+    }
+    if (detailInfo.uuid.empty()) {
+        ZLOGE("id:%{public}s", StoreUtil::Anonymous(id).c_str());
+    }
+    return detailInfo;
+}
+
+void DevManager::UpdateBucket()
+{
+    auto detailInfos = GetRemoteDevices();
+    if (detailInfos.empty()) {
+        ZLOGD("no remote device");
+    }
+    detailInfos.emplace_back(GetLocalDevice());
+    for (const auto &detailInfo : detailInfos) {
+        if (detailInfo.uuid.empty() || detailInfo.networkId.empty()) {
+            continue;
+        }
+        deviceInfos_.Set(detailInfo.uuid, detailInfo);
+        deviceInfos_.Set(detailInfo.networkId, detailInfo);
+    }
 }
 
 const DevManager::DetailInfo &DevManager::GetLocalDevice()
@@ -164,51 +164,42 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-
-    DmDeviceInfo info;
-    auto &deviceManager = DeviceManager::GetInstance();
-    int32_t ret = deviceManager.GetLocalDeviceInfo(PKG_NAME, info);
-    if (ret != DM_OK) {
-        ZLOGE("GetLocalNodeDeviceInfo error");
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        ZLOGE("service unavailable");
         return invalidDetail_;
     }
-    std::string networkId = std::string(info.networkId);
-    std::string uuid;
-    deviceManager.GetUuidByNetworkId(PKG_NAME, networkId, uuid);
-    std::string udid;
-    deviceManager.GetUdidByNetworkId(PKG_NAME, networkId, udid);
-    if (uuid.empty() || udid.empty() || networkId.empty()) {
+    auto device = service->GetLocalDevice();
+    if (device.uuid.empty() || device.networkId.empty()) {
         return invalidDetail_;
     }
-    ZLOGI("[LocalDevice] id:%{public}s, name:%{public}s, type:%{public}d", StoreUtil::Anonymous(uuid).c_str(),
-        info.deviceName, info.deviceTypeId);
-    localInfo_ = { std::move(uuid), std::move(udid), std::move(networkId), std::string(info.deviceName),
-        std::string(info.deviceName) };
+    localInfo_.networkId = std::move(device.networkId);
+    localInfo_.uuid = std::move(device.uuid);
+    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s",
+          StoreUtil::Anonymous(localInfo_.uuid).c_str(), StoreUtil::Anonymous(localInfo_.networkId).c_str());
     return localInfo_;
 }
 
 std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
 {
-    std::vector<DetailInfo> devices;
-    std::vector<DmDeviceInfo> dmDeviceInfos{};
-    auto &deviceManager = DeviceManager::GetInstance();
-    int32_t ret = deviceManager.GetTrustedDeviceList(PKG_NAME, "", dmDeviceInfos);
-    if (ret != DM_OK) {
-        ZLOGE("GetTrustedDeviceList error");
-        return devices;
+    auto service = KVDBServiceClient::GetInstance();
+    if (service == nullptr) {
+        ZLOGE("service unavailable");
+        return {};
     }
-
-    for (const auto &dmDeviceInfo : dmDeviceInfos) {
-        std::string networkId = dmDeviceInfo.networkId;
-        std::string uuid;
-        std::string udid;
-        deviceManager.GetUuidByNetworkId(PKG_NAME, networkId, uuid);
-        deviceManager.GetUdidByNetworkId(PKG_NAME, networkId, udid);
-        DetailInfo deviceInfo = { std::move(uuid), std::move(udid), std::move(networkId),
-            std::string(dmDeviceInfo.deviceName), std::to_string(dmDeviceInfo.deviceTypeId) };
-        devices.push_back(std::move(deviceInfo));
+    auto devices = service->GetRemoteDevices();
+    if (devices.empty()) {
+        ZLOGD("no remote device");
+        return {};
     }
-    return devices;
+    std::vector<DetailInfo> dtInfos;
+    for (auto &device : devices) {
+        DetailInfo dtInfo;
+        dtInfo.networkId = std::move(device.networkId);
+        dtInfo.uuid = std::move(device.uuid);
+        dtInfos.push_back(dtInfo);
+    }
+    return dtInfos;
 }
 
 void DevManager::Online(const std::string &networkId)
