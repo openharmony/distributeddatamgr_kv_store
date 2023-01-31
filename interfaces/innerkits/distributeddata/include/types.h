@@ -235,6 +235,7 @@ struct Options {
     std::string schema = "";
     std::string hapName = "";
     std::string baseDir = "";
+    bool isDistributed = true;
 
     inline bool IsValidType() const
     {

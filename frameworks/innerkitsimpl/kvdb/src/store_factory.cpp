@@ -158,6 +158,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
     dbOption.secOption = StoreUtil::GetDBSecurity(options.securityLevel);
+    dbOption.isLocal = !options.isDistributed;
     return dbOption;
 }
 } // namespace OHOS::DistributedKv
