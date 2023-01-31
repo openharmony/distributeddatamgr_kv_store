@@ -121,40 +121,40 @@ DevManager &DevManager::GetInstance()
 
 std::string DevManager::ToUUID(const std::string &networkId)
 {
-    return GetDvInfoFromBucket(networkId).uuid;
+    return GetDevInfoFromBucket(networkId).uuid;
 }
 
 std::string DevManager::ToNetworkId(const std::string &uuid)
 {
-    return GetDvInfoFromBucket(uuid).networkId;
+    return GetDevInfoFromBucket(uuid).networkId;
 }
 
-DevManager::DetailInfo DevManager::GetDvInfoFromBucket(const std::string &id)
+DevManager::DetailInfo DevManager::GetDevInfoFromBucket(const std::string &id)
 {
-    DetailInfo dtInfo;
-    if (!deviceInfos_.Get(id, dtInfo)) {
+    DetailInfo detailInfo;
+    if (!deviceInfos_.Get(id, detailInfo)) {
         UpdateBucket();
-        deviceInfos_.Get(id, dtInfo);
+        deviceInfos_.Get(id, detailInfo);
     }
-    if (dtInfo.uuid.empty()) {
+    if (detailInfo.uuid.empty()) {
         ZLOGE("id:%{public}s", StoreUtil::Anonymous(id).c_str());
     }
-    return dtInfo;
+    return detailInfo;
 }
 
 void DevManager::UpdateBucket()
 {
-    auto dtInfos = GetRemoteDevices();
-    if (dtInfos.empty()) {
+    auto detailInfos = GetRemoteDevices();
+    if (detailInfos.empty()) {
         ZLOGD("no remote device");
     }
-    dtInfos.emplace_back(GetLocalDevice());
-    for (const auto &dtInfo : dtInfos) {
-        if (dtInfo.uuid.empty() || dtInfo.networkId.empty()) {
+    detailInfos.emplace_back(GetLocalDevice());
+    for (const auto &detailInfo : detailInfos) {
+        if (detailInfo.uuid.empty() || detailInfo.networkId.empty()) {
             continue;
         }
-        deviceInfos_.Set(dtInfo.uuid, dtInfo);
-        deviceInfos_.Set(dtInfo.networkId, dtInfo);
+        deviceInfos_.Set(detailInfo.uuid, detailInfo);
+        deviceInfos_.Set(detailInfo.networkId, detailInfo);
     }
 }
 

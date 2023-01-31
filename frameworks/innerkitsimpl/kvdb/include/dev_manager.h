@@ -55,7 +55,7 @@ private:
     void OnReady(const std::string &networkId);
     void RegisterDevCallback();
     void UpdateBucket();
-    DetailInfo GetDvInfoFromBucket(const std::string &id);
+    DetailInfo GetDevInfoFromBucket(const std::string &id);
 
     int32_t Init();
     std::function<void()> Retry();

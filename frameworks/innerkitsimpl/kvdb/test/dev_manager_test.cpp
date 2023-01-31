@@ -53,9 +53,9 @@ void DevManagerTest::TearDown(void)
 HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 {
     ZLOGI("GetLocalDevice begin.");
-    auto dvInfo = DevManager::GetInstance().GetLocalDevice();
-    EXPECT_NE(dvInfo.networkId, "");
-    EXPECT_NE(dvInfo.uuid, "");
+    auto devInfo = DevManager::GetInstance().GetLocalDevice();
+    EXPECT_NE(devInfo.networkId, "");
+    EXPECT_NE(devInfo.uuid, "");
 }
 
 /**
@@ -68,12 +68,12 @@ HWTEST_F(DevManagerTest, GetLocalDevice, TestSize.Level1)
 HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 {
     ZLOGI("ToUUID begin.");
-    auto &dvMgr = DevManager::GetInstance();
-    auto dvInfo = dvMgr.GetLocalDevice();
-    EXPECT_NE(dvInfo.networkId, "");
-    auto uuid = dvMgr.ToUUID(dvInfo.networkId);
+    auto &devMgr = DevManager::GetInstance();
+    auto devInfo = dvMgr.GetLocalDevice();
+    EXPECT_NE(devInfo.networkId, "");
+    auto uuid = dvMgr.ToUUID(devInfo.networkId);
     EXPECT_NE(uuid, "");
-    EXPECT_EQ(uuid, dvInfo.uuid);
+    EXPECT_EQ(uuid, devInfo.uuid);
 }
 
 /**
@@ -86,11 +86,11 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 {
     auto &dvMgr = DevManager::GetInstance();
-    auto dvInfo = dvMgr.GetLocalDevice();
-    EXPECT_NE(dvInfo.uuid, "");
-    auto networkId = dvMgr.ToNetworkId(dvInfo.uuid);
+    auto devInfo = dvMgr.GetLocalDevice();
+    EXPECT_NE(devInfo.uuid, "");
+    auto networkId = dvMgr.ToNetworkId(devInfo.uuid);
     EXPECT_NE(networkId, "");
-    EXPECT_EQ(networkId, dvInfo.networkId);
+    EXPECT_EQ(networkId, devInfo.networkId);
 }
 
 /**
@@ -104,6 +104,6 @@ HWTEST_F(DevManagerTest, GetRemoteDevices, TestSize.Level1)
 {
     ZLOGI("GetRemoteDevices begin.");
     DevManager &devManager = OHOS::DistributedKv::DevManager::GetInstance();
-    auto dvInfos = devManager.GetRemoteDevices();
-    EXPECT_EQ(dvInfos.size(), 0);
+    auto devInfos = devManager.GetRemoteDevices();
+    EXPECT_EQ(devInfos.size(), 0);
 }

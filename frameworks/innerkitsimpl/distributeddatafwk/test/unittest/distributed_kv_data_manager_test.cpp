@@ -746,12 +746,12 @@ HWTEST_F(DistributedKvDataManagerTest, UnRegisterKvStoreServiceDeathRecipient001
 HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice, TestSize.Level1)
 {
     ZLOGI("GetLocalDevice begin.");
-    DeviceInfo dvInfo;
-    Status status = manager.GetLocalDevice(dvInfo);
+    DeviceInfo devInfo;
+    Status status = manager.GetLocalDevice(devInfo);
     EXPECT_EQ(status, Status::SUCCESS);
-    EXPECT_EQ(dvInfo.deviceId.empty(), false);
-    EXPECT_EQ(dvInfo.deviceName.empty(), true);
-    EXPECT_EQ(dvInfo.deviceType.empty(), true);
+    EXPECT_EQ(devInfo.deviceId.empty(), false);
+    EXPECT_EQ(devInfo.deviceName.empty(), true);
+    EXPECT_EQ(devInfo.deviceType.empty(), true);
 }
 
 /**
@@ -764,8 +764,8 @@ HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice, TestSize.Level1)
 HWTEST_F(DistributedKvDataManagerTest, GetDeviceList, TestSize.Level1)
 {
     ZLOGI("GetDeviceList begin.");
-    std::vector<DeviceInfo> dvInfos;
-    Status status = manager.GetDeviceList(dvInfos, DeviceFilterStrategy::NO_FILTER);
+    std::vector<DeviceInfo> devInfos;
+    Status status = manager.GetDeviceList(devInfos, DeviceFilterStrategy::NO_FILTER);
     EXPECT_EQ(status, Status::SUCCESS);
 }
 
