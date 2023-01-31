@@ -54,7 +54,7 @@ protected:
 
 class KvStoreDataServiceStub : public IRemoteStub<IKvStoreDataService> {
 public:
-    int OnRemoteRequest(uint32_t code, MessageParcel &data,
+    int API_EXPORT OnRemoteRequest(uint32_t code, MessageParcel &data,
                         MessageParcel &reply, MessageOption &option) override;
 
 private:
@@ -78,7 +78,7 @@ private:
     };
 };
 
-class KvStoreDataServiceProxy : public IRemoteProxy<IKvStoreDataService> {
+class API_EXPORT KvStoreDataServiceProxy : public IRemoteProxy<IKvStoreDataService> {
 public:
     explicit KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreDataServiceProxy() = default;

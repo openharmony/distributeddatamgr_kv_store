@@ -31,44 +31,44 @@ using Options = DistributedKv::Options;
 using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
 template<>
-bool Marshalling(const Blob &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
-bool Unmarshalling(Blob &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(Blob &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const AppId &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const AppId &input, MessageParcel &data);
 template<>
-bool Unmarshalling(AppId &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(AppId &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const StoreId &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const StoreId &input, MessageParcel &data);
 template<>
-bool Unmarshalling(StoreId &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(StoreId &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const Entry &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const Entry &input, MessageParcel &data);
 template<>
-bool Unmarshalling(Entry &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(Entry &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const DeviceInfo &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const DeviceInfo &input, MessageParcel &data);
 template<>
-bool Unmarshalling(DeviceInfo &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(DeviceInfo &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const ChangeNotification &notification, MessageParcel &parcel);
+API_EXPORT bool Marshalling(const ChangeNotification &notification, MessageParcel &parcel);
 template<>
-bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel);
+API_EXPORT bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel);
 
 template<>
-bool Marshalling(const Options &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const Options &input, MessageParcel &data);
 template<>
-bool Unmarshalling(Options &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(Options &output, MessageParcel &data);
 
 template<>
-bool Marshalling(const SyncPolicy &input, MessageParcel &data);
+API_EXPORT bool Marshalling(const SyncPolicy &input, MessageParcel &data);
 template<>
-bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+API_EXPORT bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);

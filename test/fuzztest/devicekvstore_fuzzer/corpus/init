@@ -13,16 +13,4 @@
  * limitations under the License.
  */
 
-#ifndef DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
-#define DISTRIBUTEDDATAFWK_IOBJECT_SERVICE_H
-
-#include <string>
-
-#include <iremote_broker.h>
-#include "object_service.h"
-
-namespace OHOS::DistributedObject {
-class IObjectService : public ObjectService, public IRemoteBroker {
-};
-} // namespace OHOS::DistributedObject
-#endif
+FUZZ
