@@ -33,10 +33,6 @@ public:
         std::vector<std::string> devices;
         std::string query;
     };
-    struct DevBrief {
-        std::string uuid;
-        std::string networkId;
-    };
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
     API_EXPORT KVDBService() = default;
@@ -63,8 +59,6 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
-    virtual DevBrief GetLocalDevice() = 0;
-    virtual std::vector<DevBrief> GetRemoteDevices() = 0;
 
 protected:
     enum TransId : int32_t {
@@ -86,11 +80,7 @@ protected:
         TRANS_SUB,
         TRANS_UNSUB,
         TRANS_GET_PASSWORD,
-        TRANS_NO_APPID_BEGIN,
-        TRANS_GET_LOCAL_DEVICE = TRANS_NO_APPID_BEGIN,
-        TRANS_GET_REMOTE_DEVICES,
-        TRANS_NO_APPID_END,
-        TRANS_BUTT = TRANS_NO_APPID_END,
+        TRANS_BUTT,
     };
 };
 } // namespace OHOS::DistributedKv
