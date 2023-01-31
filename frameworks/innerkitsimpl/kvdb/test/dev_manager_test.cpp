@@ -69,9 +69,9 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 {
     ZLOGI("ToUUID begin.");
     auto &devMgr = DevManager::GetInstance();
-    auto devInfo = dvMgr.GetLocalDevice();
+    auto devInfo = devMgr.GetLocalDevice();
     EXPECT_NE(devInfo.networkId, "");
-    auto uuid = dvMgr.ToUUID(devInfo.networkId);
+    auto uuid = devMgr.ToUUID(devInfo.networkId);
     EXPECT_NE(uuid, "");
     EXPECT_EQ(uuid, devInfo.uuid);
 }
@@ -85,10 +85,10 @@ HWTEST_F(DevManagerTest, ToUUID, TestSize.Level1)
 */
 HWTEST_F(DevManagerTest, ToNetworkId, TestSize.Level1)
 {
-    auto &dvMgr = DevManager::GetInstance();
-    auto devInfo = dvMgr.GetLocalDevice();
+    auto &devMgr = DevManager::GetInstance();
+    auto devInfo = devMgr.GetLocalDevice();
     EXPECT_NE(devInfo.uuid, "");
-    auto networkId = dvMgr.ToNetworkId(devInfo.uuid);
+    auto networkId = devMgr.ToNetworkId(devInfo.uuid);
     EXPECT_NE(networkId, "");
     EXPECT_EQ(networkId, devInfo.networkId);
 }
