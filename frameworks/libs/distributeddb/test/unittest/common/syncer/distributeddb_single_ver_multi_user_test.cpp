@@ -871,3 +871,30 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser013, TestSize.Level1)
     EXPECT_EQ(callCount, 0u);
     CloseStore();
 }
+
+/**
+ * @tc.name: MultiUser014
+ * @tc.desc: test active callback call count
+ * @tc.type: FUNC
+ * @tc.require: AR000E8S2T
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser014, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count
+     */
+    KvStoreDelegateManager::SetSyncActivationCheckCallback(
+        [&callCount] (const std::string &userId, const std::string &appId, const std::string &storeId) -> bool {
+            callCount++;
+            return false;
+        });
+    /**
+     * @tc.steps: step2. openStore in no dual tuple sync mode
+     * @tc.expected: step2. it should be activity finally, and callCount should be zero
+     */
+    OpenStore1(true);
+    EXPECT_EQ(callCount, 2u); // 2 is call count
+    CloseStore();
+}

@@ -92,7 +92,7 @@ int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
 
 void SyncAbleKvDB::EnableAutoSync(bool enable)
 {
-    if (!started_) {
+    if (!started_ && !isSyncModuleActiveCheck_) {
         StartSyncer();
     }
     return syncer_.EnableAutoSync(enable);
@@ -100,7 +100,7 @@ void SyncAbleKvDB::EnableAutoSync(bool enable)
 
 void SyncAbleKvDB::WakeUpSyncer()
 {
-    if (!started_) {
+    if (!started_ && !isSyncModuleActiveCheck_) {
         StartSyncer();
     }
 }
@@ -284,7 +284,7 @@ uint32_t SyncAbleKvDB::GetAppendedLen() const
 
 int SyncAbleKvDB::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 {
-    if (!started_) {
+    if (!started_ && !isSyncModuleActiveCheck_) {
         StartSyncer();
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash);

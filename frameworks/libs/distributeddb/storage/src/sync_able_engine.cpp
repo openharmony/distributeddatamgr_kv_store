@@ -93,7 +93,7 @@ uint64_t SyncAbleEngine::GetTimestamp()
 
 int SyncAbleEngine::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
-    if (!started_) {
+    if (!started_ && !isSyncModuleActiveCheck_) {
         StartSyncer();
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
