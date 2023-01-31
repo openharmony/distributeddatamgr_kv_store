@@ -33,7 +33,6 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app/include",
     "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter/include/dfx",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
     "//test/testfwk/developer_test/aw/distributed",
