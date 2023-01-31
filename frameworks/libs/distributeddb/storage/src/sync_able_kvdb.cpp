@@ -176,7 +176,7 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
     if (errCode == E_OK) {
         started_ = true;
     } else {
-        LOGE("KvDB start syncer failed, err:'%d'.", errCode);
+        LOGW("KvDB start syncer failed, err:'%d'.", errCode);
     }
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
         false);

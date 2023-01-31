@@ -280,6 +280,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
             timeTickMonitor_ = nullptr;
             return nullptr;
         }
+        LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
     return timeTickMonitor_->RegisterTimeChangedLister(action, errCode);
 }
