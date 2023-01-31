@@ -16,7 +16,6 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_KV_TYPES_UTIL_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_KV_TYPES_UTIL_H
 #include "change_notification.h"
-#include "kvdb_service.h"
 #include "itypes_util.h"
 #include "types.h"
 namespace OHOS::ITypesUtil {
@@ -29,8 +28,8 @@ using StoreId = DistributedKv::StoreId;
 using DeviceInfo = DistributedKv::DeviceInfo;
 using ChangeNotification = DistributedKv::ChangeNotification;
 using Options = DistributedKv::Options;
+using Options = DistributedKv::Options;
 using SyncPolicy = DistributedKv::SyncPolicy;
-using DevBrief = DistributedKv::KVDBService::DevBrief;
 template<>
 API_EXPORT bool Marshalling(const Blob &input, MessageParcel &data);
 template<>
@@ -70,11 +69,6 @@ template<>
 API_EXPORT bool Marshalling(const SyncPolicy &input, MessageParcel &data);
 template<>
 API_EXPORT bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
-
-template<>
-bool Marshalling(const DevBrief &input, MessageParcel &data);
-template<>
-bool Unmarshalling(DevBrief &output, MessageParcel &data);
 
 int64_t GetTotalSize(const std::vector<Entry> &entries);
 int64_t GetTotalSize(const std::vector<Key> &entries);
