@@ -241,7 +241,7 @@ bool DistributedDBSchemaTestTools::PreInsertRecords(KvStoreNbDelegate *&delegate
 }
 
 // insert query condition between brackets.
-static void SpliceQueryMethod(int flag, Query &query)
+void SpliceQueryMethod(int flag, Query &query)
 {
     switch (flag) {
         case 0: // query condition 0
