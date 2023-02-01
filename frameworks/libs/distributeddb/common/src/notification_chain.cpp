@@ -122,20 +122,22 @@ void NotificationChain::NotifyEvent(EventType type, void *arg)
     listenerChain = nullptr;
 }
 
-bool NotificationChain::EmptyListener(EventType type)
+bool NotificationChain::EmptyListener(EventType type) const
 {
     NotificationChain::ListenerChain *listenerChain = FindAndGetListenerChainLocked(type);
     if (listenerChain == nullptr) {
         return true;
     }
-    return listenerChain->Empty();
+    bool empty = listenerChain->Empty();
+    RefObject::DecObjRef(listenerChain);
+    return empty;
 }
 
 NotificationChain::ListenerChain::ListenerChain() {}
 
 NotificationChain::ListenerChain::~ListenerChain() {}
 
-NotificationChain::ListenerChain *NotificationChain::FindAndGetListenerChainLocked(EventType type)
+NotificationChain::ListenerChain *NotificationChain::FindAndGetListenerChainLocked(EventType type) const
 {
     AutoLock lockGuard(this);
     ListenerChain *listenerChain = FindListenerChain(type);
@@ -240,7 +242,7 @@ void NotificationChain::ListenerChain::ClearListeners()
     LockObj();
 }
 
-bool NotificationChain::ListenerChain::Empty()
+bool NotificationChain::ListenerChain::Empty() const
 {
     AutoLock lockGuard(this);
     return listenerSet_.empty();
