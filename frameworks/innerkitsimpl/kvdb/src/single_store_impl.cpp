@@ -42,7 +42,7 @@ SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &
             continue;
         }
         auto exist = std::get_if<uint32_t>(&policy.value);
-        if (exist == nullptr && *exist <= 0) {
+        if (exist == nullptr || *exist <= 0) {
             break;
         }
         interval_ = *exist;
