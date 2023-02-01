@@ -475,7 +475,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
         delete kvStore;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);
     return ctxt->self;
 }
 } // namespace OHOS::DistributedData

@@ -97,7 +97,7 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
         ASSERT_VOID(field != nullptr, "finalize null!");
         delete field;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr), fieldNode);
     return ctxt->self;
 }
 
