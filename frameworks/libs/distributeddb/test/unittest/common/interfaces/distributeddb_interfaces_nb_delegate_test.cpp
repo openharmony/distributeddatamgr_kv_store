@@ -2069,6 +2069,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
 
+#ifdef RUNNING_ON_SIMULATED_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -2117,6 +2118,39 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest001,
     }
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
+
+/**
+  * @tc.name: TimeChangeWithCloseStoreTest002
+  * @tc.desc: Test close store with time changed
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest002, TestSize.Level3)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    const int threadPoolMax = 10;
+    for (int i = 0; i < threadPoolMax; ++i) {
+        (void) RuntimeContext::GetInstance()->ScheduleTask([]() {
+            std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10s for block thread pool
+        });
+    }
+    OS::SetOffsetBySecond(100); // 100 2 : fake system time change
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for time tick
+
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    RuntimeContext::GetInstance()->StopTaskPool(); // stop all async task
+}
+#endif // RUNNING_ON_SIMULATED_ENV
 
 /**
   * @tc.name: LocalStore001
