@@ -66,7 +66,7 @@ void TimeTickMonitor::Stop()
         return;
     }
 
-    NotificationChain *notifier = nullptr;
+    NotificationChain *notifier;
     {
         std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
         notifier = timeChangedNotifier_;
