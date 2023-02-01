@@ -772,7 +772,11 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     syncAgent->AddSyncCallback(observer, syncInfo.seqId);
-    return service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    if (status != Status::SUCCESS) {
+        syncAgent->DeleteSyncCallback(syncInfo.seqId);
+    }
+    return status;
 }
 
 void SingleStoreImpl::DoAutoSync()
