@@ -185,8 +185,13 @@ void TimeSync::Finalize()
     // Stop the timer
     LOGD("[TimeSync] Finalize enter!");
     RuntimeContext *runtimeContext = RuntimeContext::GetInstance();
+    TimerId timerId;
+    {
+        std::unique_lock<std::mutex> lock(timeDriverLock_);
+        timerId = driverTimerId_;
+    }
+    runtimeContext->RemoveTimer(timerId, true);
     std::unique_lock<std::mutex> lock(timeDriverLock_);
-    runtimeContext->RemoveTimer(driverTimerId_, true);
     timeDriverCond_.wait(lock, [this](){ return this->timeDriverLockCount_ == 0; });
     LOGD("[TimeSync] Finalized!");
 }
@@ -567,6 +572,7 @@ void TimeSync::ResetTimer()
 
 void TimeSync::Close()
 {
+    Finalize();
     {
         std::lock_guard<std::mutex> lock(cvLock_);
         closed_ = true;

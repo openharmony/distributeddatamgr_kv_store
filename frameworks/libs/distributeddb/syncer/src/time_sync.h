@@ -92,7 +92,7 @@ public:
     // Used in send msg, as execution is asynchronous, should use this function to handle result.
     static void CommErrHandlerFunc(int errCode, TimeSync *timeSync);
 
-private:
+protected:
     static const int MAX_RETRY_TIME = 1;
 
     static TimeOffset CalculateTimeOffset(const TimeSyncPacket &timeSyncInfo);
