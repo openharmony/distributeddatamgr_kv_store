@@ -891,10 +891,13 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser014, TestSize.Level1)
             return false;
         });
     /**
-     * @tc.steps: step2. openStore in no dual tuple sync mode
-     * @tc.expected: step2. it should be activity finally, and callCount should be zero
+     * @tc.steps: step2. openStore in dual tuple sync mode
+     * @tc.expected: step2. it should not be activity finally, and callCount should be 2
      */
     OpenStore1(true);
     EXPECT_EQ(callCount, 2u); // 2 is call count
+    callCount = 0u;
+    EXPECT_EQ(g_kvDelegatePtr1->RemoveDeviceData(), OK);
+    EXPECT_EQ(callCount, 0u);
     CloseStore();
 }

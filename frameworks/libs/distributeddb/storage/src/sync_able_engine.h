@@ -75,6 +75,8 @@ private:
 
     void ChangeUserListener();
 
+    bool NeedStartSyncer();
+
     SyncerProxy syncer_; // use for sync Interactive
     std::atomic<bool> started_;
     std::atomic<bool> closed_;

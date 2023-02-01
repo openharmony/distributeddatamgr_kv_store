@@ -66,7 +66,7 @@ void SyncAbleEngine::Close()
 
 void SyncAbleEngine::EnableAutoSync(bool enable)
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EnableAutoSync(enable);
@@ -85,7 +85,7 @@ int SyncAbleEngine::DisableManualSync(void)
 // Get The current virtual timestamp
 uint64_t SyncAbleEngine::GetTimestamp()
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.GetTimestamp();
@@ -93,7 +93,7 @@ uint64_t SyncAbleEngine::GetTimestamp()
 
 int SyncAbleEngine::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
-    if (!started_ && !isSyncModuleActiveCheck_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
@@ -278,5 +278,12 @@ int SyncAbleEngine::RemoteQuery(const std::string &device, const RemoteCondition
         }
     }
     return syncer_.RemoteQuery(device, condition, timeout, connectionId, result);
+}
+
+bool SyncAbleEngine::NeedStartSyncer()
+{
+    // don't start when check callback got not active
+    // !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
+    return !started_ && (isSyncNeedActive_ || !isSyncModuleActiveCheck_);
 }
 }
