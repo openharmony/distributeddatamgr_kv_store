@@ -40,6 +40,8 @@ public:
 
     // Notify TIME_CHANGE_EVENT.
     void NotifyTimeChange(TimeOffset offset) const;
+
+    bool EmptyListener() const;
 private:
     static constexpr  uint64_t MONITOR_INTERVAL = 1 * 1000; // 1s
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms

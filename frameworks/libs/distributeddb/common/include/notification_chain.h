@@ -88,6 +88,8 @@ public:
     // Should be call when events happened.
     void NotifyEvent(EventType type, void *arg);
 
+    bool EmptyListener(EventType type) const;
+
     NotificationChain() = default;
 
     // Delete the copy and assign constructors
@@ -111,6 +113,8 @@ private:
         // Clear all listeners
         void ClearListeners();
 
+        bool Empty() const;
+
         ListenerChain();
 
         // Delete the copy and assign constructors
@@ -129,7 +133,7 @@ private:
 
     // Find a ListenerChain from  the eventChains_ with given type,
     // this function needs to lock.
-    ListenerChain *FindAndGetListenerChainLocked(EventType type);
+    ListenerChain *FindAndGetListenerChainLocked(EventType type) const;
 
     // Find a ListenerChain from  the eventChains_ with given type,
     ListenerChain *FindListenerChain(EventType type) const;
