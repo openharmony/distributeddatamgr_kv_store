@@ -210,7 +210,7 @@ private:
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStoreConnection);
 
     // ResultSet Related Info
-    static constexpr std::size_t MAX_RESULT_SET_SIZE = 4; // Max 4 ResultSet At The Same Time
+    static constexpr std::size_t MAX_RESULT_SET_SIZE = 8; // Max 8 ResultSet At The Same Time
     std::atomic<ResultSetCacheMode> cacheModeForNewResultSet_{ResultSetCacheMode::CACHE_FULL_ENTRY};
     std::atomic<int> cacheMaxSizeForNewResultSet_{0}; // Will be init to default value in constructor
 

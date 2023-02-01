@@ -409,4 +409,60 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, SqliteKeyWord001, TestS
     EXPECT_EQ(g_kvStore->GetEntries(query, entries), OK);
     EXPECT_EQ(entries.size(), 1U);
 }
+
+/**
+  * @tc.name: ResultSetLimitTest001
+  * @tc.desc: Get result set over limit
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, ResultSetLimitTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    g_mgr.GetKvStore(g_storeName, g_strictOpt, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvStore != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step2. Put the random entry into the database.
+     * @tc.expected: step2. Returns OK.
+     */
+    Key key1;
+    std::string valueData = "{\"field_name1\":true,\"field_name2\":1}";
+    Value value(valueData.begin(), valueData.end());
+    DistributedDBToolsUnitTest::GetRandomKeyValue(key1);
+    EXPECT_EQ(g_kvStore->Put(key1, value), OK);
+
+    /**
+     * @tc.steps:step3. Get the resultset overlimit.
+     * @tc.expected: step3. In limit returns OK, else return OVER_MAX_LIMITS.
+     */
+    Query query = Query::Select().EqualTo("$.field_name2", 1);
+    std::vector<KvStoreResultSet *> dataResultSet;
+    for (int i = 0; i < 8; i++) { // 8: max result set count
+        KvStoreResultSet *resultSet = nullptr;
+        EXPECT_EQ(g_kvStore->GetEntries(query, resultSet), OK);
+        dataResultSet.push_back(resultSet);
+        EXPECT_NE(resultSet, nullptr);
+    }
+
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvStore->GetEntries(query, resultSet), OVER_MAX_LIMITS);
+    EXPECT_EQ(resultSet, nullptr);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvStore->CloseResultSet(resultSet), OK);
+    }
+
+    /**
+     * @tc.steps:step4. Close result set.
+     * @tc.expected: step4. Returns OK.
+     */
+    for (auto it : dataResultSet) {
+        EXPECT_EQ(g_kvStore->CloseResultSet(it), OK);
+    }
+}
 #endif // OMIT_JSON
