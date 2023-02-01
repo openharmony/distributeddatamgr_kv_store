@@ -290,6 +290,30 @@ Status KVDBServiceClient::GetBackupPassword(
     return static_cast<Status>(status);
 }
 
+KVDBService::DevBrief KVDBServiceClient::GetLocalDevice()
+{
+    DevBrief brief;
+    MessageParcel reply;
+    int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply);
+    if (status != SUCCESS) {
+      ZLOGE("status:0x%{public}x", status);
+    }
+    ITypesUtil::Unmarshal(reply, brief);
+    return brief;
+}
+
+std::vector<KVDBService::DevBrief> KVDBServiceClient::GetRemoteDevices()
+{
+    std::vector<DevBrief> briefs;
+    MessageParcel reply;
+    int32_t status = IPC_SEND(TRANS_GET_REMOTE_DEVICES, reply);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x", status);
+    }
+    ITypesUtil::Unmarshal(reply, briefs);
+    return briefs;
+}
+
 sptr<KvStoreSyncCallbackClient> KVDBServiceClient::GetSyncAgent(const AppId &appId)
 {
     std::lock_guard<decltype(agentMtx_)> lockGuard(agentMtx_);

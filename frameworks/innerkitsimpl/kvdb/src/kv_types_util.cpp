@@ -160,6 +160,18 @@ bool Unmarshalling(SyncPolicy &output, MessageParcel &data)
     return ITypesUtil::Unmarshal(data, output.type, output.value);
 }
 
+template<>
+bool Marshalling(const DevBrief &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(data, input.uuid, input.networkId);
+}
+
+template<>
+bool Unmarshalling(DevBrief &output, MessageParcel &data)
+{
+    return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
+}
+
 int64_t GetTotalSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 1;
