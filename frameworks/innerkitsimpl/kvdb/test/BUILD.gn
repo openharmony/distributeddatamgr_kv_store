@@ -185,7 +185,7 @@ ohos_unittest("StoreFactoryTest") {
   ]
 
   deps = [
-    "kvdb_src_file"
+    "kvdb_src_file",
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
     "//third_party/googletest:gtest",
