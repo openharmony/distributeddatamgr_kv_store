@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/data_share/datashare.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
 
@@ -23,8 +24,13 @@ config("module_private_config") {
     "../src/",
     "../../kvdb/include/",
     "../../kvdb/src/",
+    "../../object/include",
+    "../../rdb/include",
+    "../../rdb/src",
     "../../../common/",
     "../../../../interfaces/innerkits/distributeddata/include/",
+    "${datashare_innerapi_path}/common/include",
+    "${datashare_innerapi_path}/provider/include",
 
     # TEMP MODIFICATION FOR PMS
     "../../../../services/distributeddataservice/app/include",
@@ -33,7 +39,6 @@ config("module_private_config") {
     "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/common/include",
     "//foundation/distributeddatamgr/data_share/interfaces/inner_api/provider/include",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
     "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
@@ -64,6 +69,13 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/sync_observer.cpp",
   ]
 
+  rdb_sources = [
+    "../../rdb/src/rdb_manager.cpp",
+    "../../rdb/src/rdb_manager_impl.cpp",
+    "../../rdb/src/rdb_notifier.cpp",
+    "../../rdb/src/rdb_service_proxy.cpp",
+  ]
+  
   kvdb_sources = [
     "../../kvdb/src/auto_sync_timer.cpp",
     "../../kvdb/src/backup_manager.cpp",
@@ -82,7 +94,7 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../kvdb/src/task_executor.cpp",
   ]
 
-  sources = old_sources + kvdb_sources
+  sources = old_sources + rdb_sources + kvdb_sources
   configs = [ ":module_private_config" ]
 
   deps = [

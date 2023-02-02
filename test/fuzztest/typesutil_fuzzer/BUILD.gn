@@ -14,6 +14,7 @@
 #####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/data_share/datashare.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("TypesUtilFuzzTest") {
@@ -27,6 +28,8 @@ ohos_fuzztest("TypesUtilFuzzTest") {
     "../../../frameworks/innerkitsimpl/kvdb/include",
     "../../../frameworks/innerkitsimpl/rdb/include",
     "../../../interfaces/innerkits/distributeddata/include",
+    "${datashare_innerapi_path}/common/include",
+    "${datashare_innerapi_path}/provider/include",
   ]
 
   fuzz_config_file = "../../../test/fuzztest/typesutil_fuzzer"

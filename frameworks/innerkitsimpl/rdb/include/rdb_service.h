@@ -21,6 +21,7 @@
 #include "iremote_broker.h"
 #include "iremote_object.h"
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS {
 namespace DistributedRdb {

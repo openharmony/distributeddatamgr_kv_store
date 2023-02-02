@@ -21,6 +21,7 @@
 #include <iremote_stub.h>
 
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS::DistributedRdb {
 class API_EXPORT IRdbNotifier : public IRemoteBroker {

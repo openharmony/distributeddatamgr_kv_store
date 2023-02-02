@@ -22,9 +22,10 @@
 
 #include "rdb_service.h"
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS::DistributedRdb {
-class RdbManager {
+class API_EXPORT RdbManager {
 public:
     static std::shared_ptr<RdbService> GetRdbService(const RdbSyncerParam& param);
 };

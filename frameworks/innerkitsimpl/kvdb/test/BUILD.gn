@@ -20,23 +20,32 @@ config("module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
-    "//commonlibrary/c_utils/base/include",
+    "../include/",
+    "../src/",
+    "../../distributeddatafwk/include/",
+    "../../distributeddatafwk/src/",
+    "../../object/include",
+    "../../rdb/include",
+    "../../rdb/src",
+    "../../../common/",
+    "../../../../interfaces/innerkits/distributeddata/include/",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/common",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/test/distributedtest/single_kvstore_client",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/app_distributeddata/include",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app/include",
+
+    # TEMP MODIFICATION FOR PMS
+    "../../../../services/distributeddataservice/app/include",
+
+    # for ipc_core interfaces.
+    "//commonlibrary/c_utils/base/include",
+
+
     "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp/include",
     "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
-    "//test/testfwk/developer_test/aw/distributed",
+
+
   ]
+
   lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
 
@@ -63,7 +72,14 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/kvstore_sync_callback_client.cpp",
     "../../distributeddatafwk/src/sync_observer.cpp",
   ]
-
+  
+  rdb_sources = [
+    "../../rdb/src/rdb_manager.cpp",
+    "../../rdb/src/rdb_manager_impl.cpp",
+    "../../rdb/src/rdb_notifier.cpp",
+    "../../rdb/src/rdb_service_proxy.cpp",
+  ]
+  
   kvdb_sources = [
     "../src/auto_sync_timer.cpp",
     "../src/backup_manager.cpp",
@@ -82,7 +98,7 @@ ohos_source_set("kvdb_src_file") {
     "../src/task_executor.cpp",
   ]
 
-  sources = old_sources + kvdb_sources
+  sources = old_sources + rdb_sources + kvdb_sources
   configs = [ ":module_private_config" ]
 
   deps = [
