@@ -14,16 +14,18 @@
  */
 #define LOG_TAG "SECURITYMANAGER"
 #include "security_manager.h"
+
+#include <chrono>
 #include <limits>
 #include <random>
 #include <unistd.h>
-#include <chrono>
-#include <store_types.h>
-#include "log_print.h"
+
+#include "file_ex.h"
 #include "hks_api.h"
 #include "hks_param.h"
-#include "file_ex.h"
+#include "log_print.h"
 #include "securec.h"
+#include "store_types.h"
 #include "store_util.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
