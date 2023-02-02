@@ -23,13 +23,16 @@ ContextBase::~ContextBase()
     ZLOGD("no memory leak after callback or promise[resolved/rejected]");
     if (env != nullptr) {
         if (work != nullptr) {
-            napi_delete_async_work(env, work);
+            auto status = napi_delete_async_work(env, work);
+            ZLOGD("status:%{public}d", status);
         }
         if (callbackRef != nullptr) {
-            napi_delete_reference(env, callbackRef);
+            auto status = napi_delete_reference(env, callbackRef);
+            ZLOGD("status:%{public}d", status);
         }
         if (selfRef != nullptr) {
-            napi_delete_reference(env, selfRef);
+            auto status = napi_delete_reference(env, selfRef);
+            ZLOGD("status:%{public}d", status);
         }
         env = nullptr;
     }

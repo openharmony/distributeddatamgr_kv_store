@@ -101,7 +101,7 @@ private:
 #define ASSERT_CALL(env, theCall, object)                              \
     do {                                                               \
         if ((theCall) != napi_ok) {                                    \
-            delete object;                                             \
+            delete (object);                                           \
             GET_AND_THROW_LAST_ERROR((env));                           \
             return nullptr;                                            \
         }                                                              \
