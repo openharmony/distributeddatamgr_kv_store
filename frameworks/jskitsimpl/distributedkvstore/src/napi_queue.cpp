@@ -44,10 +44,10 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
     ASSERT_STATUS(this, "napi_get_cb_info failed!");
     ASSERT_ARGS(this, argc <= ARGC_MAX, "too many arguments!");
     ASSERT_ARGS(this, self != nullptr, "no JavaScript this argument!");
-    napi_create_reference(env, self, 1, &selfRef);
     if (!sync) {
-        status = napi_unwrap(env, self, &native);
+        napi_create_reference(env, self, 1, &selfRef);
     }
+    status = napi_unwrap(env, self, &native);
     ASSERT_STATUS(this, "self unwrap failed!");
 
     if (!sync && (argc > 0)) {
