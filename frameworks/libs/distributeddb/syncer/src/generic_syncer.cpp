@@ -1018,7 +1018,7 @@ bool GenericSyncer::IsNeedActive(ISyncInterface *syncInterface)
 {
     bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);
     if (localOnly) {
-        LOGI("[Syncer] Local only db, don't need active syncer");
+        LOGD("[Syncer] Local only db, don't need active syncer");
         return false;
     }
     return true;

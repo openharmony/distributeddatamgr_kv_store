@@ -128,7 +128,9 @@ bool NotificationChain::EmptyListener(EventType type) const
     if (listenerChain == nullptr) {
         return true;
     }
-    return listenerChain->Empty();
+    bool empty = listenerChain->Empty();
+    RefObject::DecObjRef(listenerChain);
+    return empty;
 }
 
 NotificationChain::ListenerChain::ListenerChain() {}
