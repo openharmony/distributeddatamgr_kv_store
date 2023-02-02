@@ -70,7 +70,6 @@ ohos_source_set("kvdb_src_file") {
     "../src/convertor.cpp",
     "../src/dev_manager.cpp",
     "../src/device_convertor.cpp",
-    "../src/kv_types_util.cpp",
     "../src/kvdb_service_client.cpp",
     "../src/observer_bridge.cpp",
     "../src/security_manager.cpp",

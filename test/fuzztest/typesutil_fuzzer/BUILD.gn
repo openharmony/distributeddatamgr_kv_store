@@ -25,7 +25,7 @@ ohos_fuzztest("TypesUtilFuzzTest") {
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
     "../../../frameworks/innerkitsimpl/kvdb/include",
-    "../../../frameworks/innerkitsimpl/kvdb/src",
+    "../../../frameworks/innerkitsimpl/rdb/include",
     "../../../interfaces/innerkits/distributeddata/include",
   ]
 
@@ -41,7 +41,7 @@ ohos_fuzztest("TypesUtilFuzzTest") {
   sources = [
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
-    "../../../frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/itypes_util.cpp",
     "typesutil_fuzzer.cpp",
   ]
 

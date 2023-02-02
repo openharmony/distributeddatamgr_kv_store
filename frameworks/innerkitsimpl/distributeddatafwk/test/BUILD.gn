@@ -70,7 +70,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../../kvdb/src/convertor.cpp",
     "../../kvdb/src/dev_manager.cpp",
     "../../kvdb/src/device_convertor.cpp",
-    "../../kvdb/src/kv_types_util.cpp",
     "../../kvdb/src/kvdb_service_client.cpp",
     "../../kvdb/src/observer_bridge.cpp",
     "../../kvdb/src/security_manager.cpp",
