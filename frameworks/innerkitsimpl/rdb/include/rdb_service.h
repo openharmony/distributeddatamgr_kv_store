@@ -24,7 +24,7 @@
 
 namespace OHOS {
 namespace DistributedRdb {
-class RdbService {
+class API_EXPORT RdbService {
 public:
     enum {
         RDB_SERVICE_CMD_OBTAIN_TABLE,

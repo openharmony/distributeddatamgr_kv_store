@@ -22,6 +22,8 @@ config("distributeddatafwk_config") {
 
   cflags = [ "-Wno-multichar" ]
 
+  cflags_cc = [ "-fvisibility=hidden" ]
+
   include_dirs = [
     "include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
