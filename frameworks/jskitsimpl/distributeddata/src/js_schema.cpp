@@ -75,7 +75,7 @@ napi_value JsSchema::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(schema != nullptr, "finalize null!");
         delete schema;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, schema, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, schema, finalize, nullptr, nullptr), schema);
     return ctxt->self;
 }
 

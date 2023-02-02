@@ -80,7 +80,7 @@ napi_value JsQuery::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(query != nullptr, "finalize null!");
         delete query;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, query, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, query, finalize, nullptr, nullptr), query);
     return ctxt->self;
 }
 

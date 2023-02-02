@@ -23,12 +23,17 @@ ContextBase::~ContextBase()
     ZLOGD("no memory leak after callback or promise[resolved/rejected]");
     if (env != nullptr) {
         if (work != nullptr) {
-            napi_delete_async_work(env, work);
+            auto status = napi_delete_async_work(env, work);
+            ZLOGD("status:%{public}d", status);
         }
         if (callbackRef != nullptr) {
-            napi_delete_reference(env, callbackRef);
+            auto status = napi_delete_reference(env, callbackRef);
+            ZLOGD("status:%{public}d", status);
         }
-        napi_delete_reference(env, selfRef);
+        if (selfRef != nullptr) {
+            auto status = napi_delete_reference(env, selfRef);
+            ZLOGD("status:%{public}d", status);
+        }
         env = nullptr;
     }
 }
@@ -42,7 +47,9 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
     CHECK_STATUS_RETURN_VOID(this, "napi_get_cb_info failed!");
     CHECK_ARGS_RETURN_VOID(this, argc <= ARGC_MAX, "too many arguments!");
     CHECK_ARGS_RETURN_VOID(this, self != nullptr, "no JavaScript this argument!");
-    napi_create_reference(env, self, 1, &selfRef);
+    if (!sync) {
+        napi_create_reference(env, self, 1, &selfRef);
+    }
     status = napi_unwrap(env, self, &native);
     CHECK_STATUS_RETURN_VOID(this, "self unwrap failed!");
 
@@ -72,8 +79,6 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     NapiAsyncExecute execute, NapiAsyncComplete complete)
 {
     ZLOGD("name=%{public}s", name.c_str());
-    ctxt->execute = std::move(execute);
-    ctxt->complete = std::move(complete);
 
     napi_value promise = nullptr;
     if (ctxt->callbackRef == nullptr) {
@@ -108,8 +113,10 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
             GenerateOutput(ctxt);
         },
         reinterpret_cast<void*>(ctxt.get()), &ctxt->work);
-    napi_queue_async_work(ctxt->env, ctxt->work);
+    ctxt->execute = std::move(execute);
+    ctxt->complete = std::move(complete);
     ctxt->hold = ctxt; // save crossing-thread ctxt.
+    napi_queue_async_work(ctxt->env, ctxt->work);
     return promise;
 }
 
@@ -143,6 +150,8 @@ void NapiQueue::GenerateOutput(ContextBase* ctxt)
         ZLOGD("call callback function");
         napi_call_function(ctxt->env, nullptr, callback, RESULT_ALL, result, &callbackResult);
     }
+    ctxt->execute = nullptr;
+    ctxt->complete = nullptr;
     ctxt->hold.reset(); // release ctxt.
 }
 } // namespace OHOS::DistributedData
