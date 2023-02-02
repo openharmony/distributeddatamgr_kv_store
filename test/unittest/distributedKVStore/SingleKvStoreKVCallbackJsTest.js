@@ -1375,15 +1375,20 @@ describe('SingleKvStoreCallbackTest', function () {
             values.push(vb1);
             values.push(vb2);
             console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 values: ' + JSON.stringify(values));
-            await kvStore.putBatch(values, async function (err, data) {
-                console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 putBatch fail' + `, error code is ${e.code}, message is ${e.message}`);
-                expect(err.code == 202).assertTrue();
+            await kvStore.putBatch(values, async function (err) {
+                if (err == undefined) {
+                    console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch success');
+                    expect(null).assertFail();
+                } else {
+                    console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                }
             });
         } catch (e) {
-            console.error('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
+            console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(err.code == 202).assertTrue();
         }
+        done();
     })
 
     /**
@@ -1429,13 +1434,13 @@ describe('SingleKvStoreCallbackTest', function () {
                     console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch success');
                     expect(null).assertFail();
                 } else {
-                    console.info('SingleKvStorePutBatchCallbackClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-                    expect(err.code == 202).assertTrue();
+                    console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
                 }
             });
         } catch (e) {
-            console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            console.info('SingleKvStorePutBatchCallbackClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(err.code == 202).assertTrue();
         }
         done();
     })
@@ -2222,12 +2227,12 @@ describe('SingleKvStoreCallbackTest', function () {
                 console.log('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.info('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet fail' + err`, error code is ${err.code}, message is ${err.message}`);
-                expect(err.code == 202).assertTrue();
+                console.error('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
+                expect(null).assertFail();
             });
         } catch (e) {
-            console.error('SingleKvStoreGetResultSetPredicatesCallbackTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
+            console.info('SingleKvStoreGetResultSetPredicatesCallbackTest fail' + err`, error code is ${e.code}, message is ${e.message}`);
+            expect(err.code == 202).assertTrue();
         }
         done();
     })
