@@ -682,31 +682,31 @@ describe('DeviceKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreDeletePredicatesCallbackSucTest
-     * @tc.desc Test Js Api DeviceKvStore.Delete() successfully
+     * @tc.name DeviceKvStoreDeletePredicatesCallbackTest
+     * @tc.desc Test Js Api DeviceKvStore.Delete()
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreDeletePredicatesCallbackSucTest', 0, async function (done) {
-        console.log('DeviceKvStoreDeletePredicatesCallbackSucTest');
+    it('DeviceKvStoreDeletePredicatesCallbackTest', 0, async function (done) {
+        console.log('DeviceKvStoreDeletePredicatesCallbackTest');
         try {
             let predicates = new dataShare.DataSharePredicates();
             let arr = ["name"];
             predicates.inKeys(arr);
-            await kvStore.put("name", "Bob", async function (err, data) {
-                console.log('DeviceKvStoreDeletePredicatesCallbackSucTest put success');
-                expect(err == undefined).assertTrue();
-                await kvStore.delete(predicates, function (err, data) {
-                    console.log('DeviceKvStoreDeletePredicatesCallbackSucTest delete success');
-                    expect(err == undefined).assertTrue();
-                    done();
-                });
-            })
+            await kvStore.delete(predicates, function (err, data) {
+                if (err == undefined) {
+                    console.error('DeviceKvStoreDeletePredicatesCallbackTest delete success');
+                    expect(null).assertFail();
+                } else {
+                    console.error('DeviceKvStoreDeletePredicatesCallbackTest delete fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                }
+            });
         } catch (e) {
-            console.error('DeviceKvStoreDeletePredicatesCallbackSucTest e' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
+            console.info('DeviceKvStoreDeletePredicatesCallbackTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
+        done();
     })
 
     /**
@@ -1265,7 +1265,7 @@ describe('DeviceKvStoreCallbackTest', function () {
      * @tc.require: issueNumber
      */
     it('DeviceKvStorePutBatchValueCallbackUint8ArrayTest', 0, async function (done) {
-        console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest001');
+        console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest');
         try {
             let values = [];
             let arr1 = new Uint8Array([4, 5, 6, 7]);
@@ -1274,18 +1274,19 @@ describe('DeviceKvStoreCallbackTest', function () {
             let vb2 = {key: "name_2", value: arr2};
             values.push(vb1);
             values.push(vb2);
-            console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest001 values: ' + JSON.stringify(values));
+            console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest values: ' + JSON.stringify(values));
             await kvStore.putBatch(values, async function (err, data) {
                 if (err == undefined) {
+                    console.error('DeviceKvStorePutBatchValueCallbackUint8ArrayTest putBatch success');
                     expect(null).assertFail();
                 } else {
-                    console.error('DeviceKvStorePutBatchValueCallbackUint8ArrayTest001 fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('DeviceKvStorePutBatchValueCallbackUint8ArrayTest putBatch fail' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 }
             });
         } catch (e) {
-            console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest001 putBatch fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(e.code == 202).assertFail();
+            console.info('DeviceKvStorePutBatchValueCallbackUint8ArrayTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -1338,7 +1339,7 @@ describe('DeviceKvStoreCallbackTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchCallbackClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertFail();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })

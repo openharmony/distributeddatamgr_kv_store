@@ -667,7 +667,7 @@ describe('DeviceKvStorePromiseTest', function () {
 
         } catch (e) {
             console.info('DeviceKvStoreDeletePredicatesPromiseTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -1080,10 +1080,10 @@ describe('DeviceKvStorePromiseTest', function () {
                 expect(null).assertFail();
             });
         } catch (e) {
-            console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest fail' + `, error code is ${err.code}, message is ${err.message}`);
-            expect(err.code == 202).assertTrue();
+            console.info('DeviceKvStorePutBatchValuePromiseUint8ArrayTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
-            done();
+        done();
     })
 
     /**
@@ -1110,7 +1110,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchValuePromiseStringTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -1139,7 +1139,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchValuePromiseNumbersTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -1166,7 +1166,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchValuePromiseBooleanTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
             done();
         }
     })
@@ -1195,7 +1195,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchValuePromiseNullTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
             done();
     })
@@ -1249,7 +1249,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStorePutBatchValuePromiseClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -2148,7 +2148,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 console.info('DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest getResultSet success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.error('DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest getResultSet fail' + `, error code is ${e.code}, message is ${e.message}`);
+                console.error('DeviceKvStoreGetResultSetQueryPromiseClosedKVStoreTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(err.code == 15100005).assertTrue();
             });
         } catch (e) {
@@ -2159,16 +2159,15 @@ describe('DeviceKvStorePromiseTest', function () {
     })
 
     /**
-     * @tc.name DeviceKvStoreGetResultSetPredicatesPromiseSucTest
-     * @tc.desc Test Js Api DeviceKvStore.GetResultSet() with predicates success
+     * @tc.name DeviceKvStoreGetResultSetPredicatesPromiseTest
+     * @tc.desc Test Js Api DeviceKvStore.GetResultSet() with predicates
      * @tc.type: FUNC
      * @tc.require: issueNumber
      */
-    it('DeviceKvStoreGetResultSetPredicatesPromiseSucTest', 0, async function (done) {
-        console.log('DeviceKvStoreGetResultSetPredicatesPromiseSucTest');
+    it('DeviceKvStoreGetResultSetPredicatesPromiseTest', 0, async function (done) {
+        console.log('DeviceKvStoreGetResultSetPredicatesPromiseTest');
         try {
             let entries = [];
-            let resultSet;
             for (let i = 0; i < 10; i++) {
                 let key = 'name_';
                 let value = 'Bob_'
@@ -2189,18 +2188,15 @@ describe('DeviceKvStorePromiseTest', function () {
             let predicates = new dataShare.DataSharePredicates();
             predicates.prefixKey("name_");
             await kvStore.getResultSet(localDeviceId, predicates).then((result) => {
-                resultSet = result;
-                expect(resultSet.getCount() == 10).assertTrue();
-            }).catch((err) => {
+                console.error('DeviceKvStoreGetResultSetPredicatesPromiseTest getResultSet success');
                 expect(null).assertFail();
-            });
-            await kvStore.closeResultSet(resultSet).then((err) => {
-                expect(err == undefined).assertTrue();
             }).catch((err) => {
+                console.error('DeviceKvStoreGetResultSetPredicatesPromiseTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(null).assertFail();
             });
         } catch (e) {
-            expect(null).assertFail();
+            console.info('DeviceKvStoreGetResultSetPredicatesPromiseTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code== 202).assertTrue();
         }
         done();
     })
@@ -2249,7 +2245,7 @@ describe('DeviceKvStorePromiseTest', function () {
             });
         } catch (e) {
             console.info('DeviceKvStoreGetResultSetPredicatesPromiseClosedKVStoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code== 202).assertTrue();
         }
         done();
     })
@@ -2424,7 +2420,7 @@ describe('DeviceKvStorePromiseTest', function () {
                 console.info('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest getResultSet success');
                 expect(null).assertFail();
             }).catch((err) => {
-                console.inbfo('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
+                console.info('DeviceKvStoreGetResultSizePromiseClosedKVStoreTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
                 expect(err.code == 15100005).assertTrue();
             });
         } catch (e) {

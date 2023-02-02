@@ -647,20 +647,20 @@ describe('SingleKvStoreCallbackTest', function () {
             let predicates = new dataShare.DataSharePredicates();
             let arr = ["name"];
             predicates.inKeys(arr);
-            await kvStore.put("name", "Bob", async function (err, data) {
-                console.log('SingleKvStoreDeletePredicatesCallbackSucTest put success');
-                expect(err == undefined).assertTrue();
-                await kvStore.delete(predicates, function (err, data) {
-                    console.log('SingleKvStoreDeletePredicatesCallbackSucTest delete success');
-                    expect(err == undefined).assertTrue();
-                    done();
-                });
-            })
+            await kvStore.delete(predicates, async function (err) {
+                if (err == undefined) {
+                    console.error('SingleKvStoreDeletePredicatesCallbackSucTest delete success');
+                    expect(null).assertFail();
+                } else {
+                    console.error('SingleKvStoreDeletePredicatesCallbackSucTest delete fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                }
+            });
         } catch (e) {
-            console.error('SingleKvStoreDeletePredicatesCallbackSucTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(null).assertFail();
-            done();
+            console.info('SingleKvStoreDeletePredicatesCallbackSucTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
+        done();
     })
 
     /**
@@ -1365,7 +1365,7 @@ describe('SingleKvStoreCallbackTest', function () {
      * @tc.require: issueNumber
      */
     it('SingleKvStorePutBatchValueCallbackUint8ArrayTest', 0, async function (done) {
-        console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001');
+        console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest');
         try {
             let values = [];
             let arr1 = new Uint8Array([4, 5, 6, 7]);
@@ -1377,16 +1377,16 @@ describe('SingleKvStoreCallbackTest', function () {
             console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 values: ' + JSON.stringify(values));
             await kvStore.putBatch(values, async function (err) {
                 if (err == undefined) {
-                    console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch success');
+                    console.error('SingleKvStorePutBatchValueCallbackUint8ArrayTest putBatch success');
                     expect(null).assertFail();
                 } else {
-                    console.error('SingleKvStorePutBatchCallbackClosedKvstoreTest putBatch fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    console.error('SingleKvStorePutBatchValueCallbackUint8ArrayTest putBatch fail' + `, error code is ${err.code}, message is ${err.message}`);
                     expect(null).assertFail();
                 }
             });
         } catch (e) {
-            console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest001 fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            console.info('SingleKvStorePutBatchValueCallbackUint8ArrayTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -1440,7 +1440,7 @@ describe('SingleKvStoreCallbackTest', function () {
             });
         } catch (e) {
             console.info('SingleKvStorePutBatchCallbackClosedKvstoreTest fail' + `, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
@@ -2221,18 +2221,21 @@ describe('SingleKvStoreCallbackTest', function () {
     it('SingleKvStoreGetResultSetPredicatesCallbackTest', 0, async function (done) {
         console.log('SingleKvStoreGetResultSetPredicatesCallbackTest');
         try {
-            let resultSet;
             let predicates = new dataShare.DataSharePredicates();
-            await kvStore.getResultSet(predicates).then((result) => {
-                console.log('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet success');
-                expect(null).assertFail();
-            }).catch((err) => {
-                console.error('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
-                expect(null).assertFail();
+            let arr = ["name"];
+            predicates.inKeys(arr);
+            await kvStore.getResultSet(predicates, async function (err, result) {
+                if (err == undefined) {
+                    console.error('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet success');
+                    expect(null).assertTrue();
+                } else {
+                    console.error('SingleKvStoreGetResultSetPredicatesCallbackTest getResultSet fail' + `, error code is ${err.code}, message is ${err.message}`);
+                    expect(null).assertFail();
+                }
             });
         } catch (e) {
-            console.info('SingleKvStoreGetResultSetPredicatesCallbackTest fail' + err`, error code is ${e.code}, message is ${e.message}`);
-            expect(err.code == 202).assertTrue();
+            console.info('SingleKvStoreGetResultSetPredicatesCallbackTest fail' + `, error code is ${e.code}, message is ${e.message}`);
+            expect(e.code == 202).assertTrue();
         }
         done();
     })
