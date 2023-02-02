@@ -1089,7 +1089,7 @@ napi_status JSUtil::GetCurrentAbilityParam(napi_env env, ContextParam &param)
         param.hapName = hapInfo->moduleName;
     }
     ZLOGI("area:%{public}d hapName:%{public}s baseDir:%{public}s", param.area, param.hapName.c_str(),
-         param.baseDir.c_str());
+        param.baseDir.c_str());
     return napi_ok;
 }
 
