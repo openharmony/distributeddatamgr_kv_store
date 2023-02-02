@@ -60,6 +60,12 @@ int SerialBuffer::AllocBufferByPayloadLength(uint32_t inPayloadLen, uint32_t inH
     if (oringinalBytes_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
+    errno_t errCode = memset_s(oringinalBytes_, totalLen_ + extendHeadLen_, 0, totalLen_ + extendHeadLen_);
+    if (errCode != EOK) {
+        delete[] oringinalBytes_;
+        oringinalBytes_ = nullptr;
+        return -E_SECUREC_ERROR;
+    }
     bytes_ = oringinalBytes_ + extendHeadLen_;
     return E_OK;
 }
@@ -81,6 +87,12 @@ int SerialBuffer::AllocBufferByTotalLength(uint32_t inTotalLen, uint32_t inHeade
     bytes_ = new (std::nothrow) uint8_t[inTotalLen];
     if (bytes_ == nullptr) {
         return -E_OUT_OF_MEMORY;
+    }
+    errno_t errCode = memset_s(bytes_, inTotalLen, 0, inTotalLen);
+    if (errCode != EOK) {
+        delete[] bytes_;
+        bytes_ = nullptr;
+        return -E_SECUREC_ERROR;
     }
     oringinalBytes_ = bytes_;
     return E_OK;
