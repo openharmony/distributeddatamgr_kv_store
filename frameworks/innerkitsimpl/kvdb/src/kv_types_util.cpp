@@ -95,7 +95,7 @@ bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel)
     std::vector<Entry> deletes;
     std::string deviceId;
     bool isClear = false;
-    if(!ITypesUtil::Unmarshal(parcel, inserts, updates, deletes, deviceId, isClear)) {
+    if (!ITypesUtil::Unmarshal(parcel, inserts, updates, deletes, deviceId, isClear)) {
         return false;
     }
     output = ChangeNotification(std::move(inserts), std::move(updates), std::move(deletes), deviceId, isClear);
