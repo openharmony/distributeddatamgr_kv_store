@@ -20,6 +20,7 @@
 #include "convertor.h"
 #include "kv_store_delegate_manager.h"
 #include "single_store_impl.h"
+#include "security_manager.h"
 namespace OHOS::DistributedKv {
 class StoreFactory {
 public:
@@ -33,11 +34,24 @@ private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
     using DBStore = DistributedDB::KvStoreNbDelegate;
-    using DBPassword = DistributedDB::CipherPassword;
+    using DBStatus = DistributedDB::DBStatus;
+    using DBPassword = DistributedKv::SecurityManager::DBPassword;
+
+    static constexpr int REKEY_TIMES = 3;
+    static constexpr const char *REKEY_NEW = ".new";
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
-    DBOption GetDBOption(const Options &options, const DBPassword &password) const;
+    DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
+    void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        std::shared_ptr<DBManager> dbManager, const Options &options);
+    Status RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        std::shared_ptr<DBManager> dbManager, const Options &options);
+    bool ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+        DBStore *dbStore);
+    Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+        const Options &options, DBPassword &dbPassword);
+    void UpdateKeyFile(const std::string &storeId, const std::string &path);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
