@@ -234,8 +234,8 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->status = statusMsg.status;
         ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, ctxt->va.errMsg);
         ASSERT_PERMISSION_ERR(ctxt,
-            !JSUtil::IsSystemApi(statusMsg.jsApiType) || reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(),
-            Status::PERMISSION_DENIED, "");
+            !JSUtil::IsSystemApi(statusMsg.jsApiType) ||
+                reinterpret_cast<JsSingleKVStore *>(ctxt->native)->IsSystemApp(), Status::PERMISSION_DENIED, "");
         ctxt->ref = JSUtil::NewWithRef(env, 0, nullptr, reinterpret_cast<void **>(&ctxt->resultSet),
             JsKVStoreResultSet::Constructor(env));
         ASSERT_BUSINESS_ERR(ctxt, ctxt->resultSet != nullptr, Status::INVALID_ARGUMENT,
@@ -315,7 +315,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     ASSERT_NULL(!ctxt->isThrowError, "New JsDeviceKVStore exit");
 
     JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId);
-    ASSERT_ERR(env, kvStore != nullptr,Status::INVALID_ARGUMENT, "no memory for kvStore");
+    ASSERT_ERR(env, kvStore != nullptr, Status::INVALID_ARGUMENT, "no memory for kvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("deviceKvStore finalize.");

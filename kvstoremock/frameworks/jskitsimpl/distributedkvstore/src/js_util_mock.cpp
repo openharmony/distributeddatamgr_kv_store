@@ -56,8 +56,7 @@ public:
         bool isSystemApp = true;
     };
     
-    class ContextMcok
-    {        
+    class ContextMcok {
     public:
         int GetArea()
         {
@@ -91,7 +90,7 @@ public:
     std::shared_ptr<ContextMcok> GetAbilityContext()
     {
         return std::make_shared<ContextMcok>();
-    }    
+    }
 };
 
 namespace AbilityRuntime {

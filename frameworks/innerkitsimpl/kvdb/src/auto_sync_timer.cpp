@@ -82,7 +82,7 @@ std::map<std::string, std::vector<StoreId>> AutoSyncTimer::GetStoreIds()
             it++;
             count--;
         }
-        value.erase(value.begin(),it);
+        value.erase(value.begin(), it);
         return value.empty();
     });
     return stores;

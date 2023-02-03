@@ -29,7 +29,7 @@ using Status = OHOS::DistributedKv::Status;
 struct JsErrorCode {
     int32_t status;
     int32_t jsCode;
-    const char * message;
+    const char *message;
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode);

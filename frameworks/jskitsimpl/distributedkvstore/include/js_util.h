@@ -41,12 +41,12 @@ public:
         INVALID = 255
     };
 	
-    enum JsApiType{
+    enum JsApiType {
         NORMAL = 0,
         DATASHARE = 1
     };
 	
-    struct StatusMsg{
+    struct StatusMsg {
         napi_status status = napi_ok;
         JsApiType jsApiType = NORMAL;
         StatusMsg(napi_status status) : status(status) {}
