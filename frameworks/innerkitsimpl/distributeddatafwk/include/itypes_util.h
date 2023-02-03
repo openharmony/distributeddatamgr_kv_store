@@ -30,71 +30,71 @@ namespace OHOS {
 namespace DistributedKv {
 class ITypesUtil final {
 public:
-    static bool Marshal(MessageParcel &data);
-    static bool Unmarshal(MessageParcel &data);
+    API_EXPORT static bool Marshal(MessageParcel &data);
+    API_EXPORT static bool Unmarshal(MessageParcel &data);
 
-    static bool Marshalling(uint32_t input, MessageParcel &data);
-    static bool Unmarshalling(uint32_t &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(uint32_t input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(uint32_t &output, MessageParcel &data);
 
-    static bool Marshalling(int32_t input, MessageParcel &data);
-    static bool Unmarshalling(int32_t &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(int32_t input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(int32_t &output, MessageParcel &data);
 
-    static bool Marshalling(uint64_t input, MessageParcel &data);
-    static bool Unmarshalling(uint64_t &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(uint64_t input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(uint64_t &output, MessageParcel &data);
 
-    static bool Marshalling(const std::monostate &input, MessageParcel &data);
-    static bool Unmarshalling(std::monostate &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const std::monostate &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(std::monostate &output, MessageParcel &data);
 
-    static bool Marshalling(const std::string &input, MessageParcel &data);
-    static bool Unmarshalling(std::string &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const std::string &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(std::string &output, MessageParcel &data);
 
-    static bool Marshalling(const std::vector<uint8_t> &input, MessageParcel &data);
-    static bool Unmarshalling(std::vector<uint8_t> &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const std::vector<uint8_t> &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(std::vector<uint8_t> &output, MessageParcel &data);
 
-    static bool Marshalling(const Blob &blob, MessageParcel &data);
-    static bool Unmarshalling(Blob &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const Blob &blob, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(Blob &output, MessageParcel &data);
 
-    static bool Marshalling(const Entry &entry, MessageParcel &data);
-    static bool Unmarshalling(Entry &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const Entry &entry, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(Entry &output, MessageParcel &data);
 
-    static bool Marshalling(const DeviceInfo &entry, MessageParcel &data);
-    static bool Unmarshalling(DeviceInfo &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const DeviceInfo &entry, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(DeviceInfo &output, MessageParcel &data);
 
-    static bool Marshalling(const ChangeNotification &notification, MessageParcel &parcel);
-    static bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel);
+    API_EXPORT static bool Marshalling(const ChangeNotification &notification, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel);
 
-    static bool Marshalling(const DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel);
-    static bool Unmarshalling(DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel);
+    API_EXPORT static bool Marshalling(const DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DistributedRdb::RdbSyncerParam &param, MessageParcel &parcel);
 
-    static bool Marshalling(const DistributedRdb::SyncOption &option, MessageParcel &parcel);
-    static bool Unmarshalling(DistributedRdb::SyncOption &option, MessageParcel &parcel);
+    API_EXPORT static bool Marshalling(const DistributedRdb::SyncOption &option, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DistributedRdb::SyncOption &option, MessageParcel &parcel);
 
-    static bool Marshalling(const DistributedRdb::RdbPredicates &predicates, MessageParcel &parcel);
-    static bool Unmarshalling(DistributedRdb::RdbPredicates &predicates, MessageParcel &parcel);
+    API_EXPORT static bool Marshalling(const DistributedRdb::RdbPredicates &predicates, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DistributedRdb::RdbPredicates &predicates, MessageParcel &parcel);
 
-    static bool Marshalling(const Options &input, MessageParcel &data);
-    static bool Unmarshalling(Options &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const Options &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(Options &output, MessageParcel &data);
 
-    static bool Marshalling(const sptr<IRemoteObject> &input, MessageParcel &data);
-    static bool Unmarshalling(sptr<IRemoteObject> &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const sptr<IRemoteObject> &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(sptr<IRemoteObject> &output, MessageParcel &data);
 
-    static bool Marshalling(IRemoteObject* input, MessageParcel &data);
+    API_EXPORT static bool Marshalling(IRemoteObject* input, MessageParcel &data);
 
-    static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
-    static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const SyncPolicy &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(SyncPolicy &output, MessageParcel &data);
 
-    static bool Marshalling(const KVDBService::DevBrief &input, MessageParcel &data);
-    static bool Unmarshalling(KVDBService::DevBrief &output, MessageParcel &data);
+    API_EXPORT static bool Marshalling(const KVDBService::DevBrief &input, MessageParcel &data);
+    API_EXPORT static bool Unmarshalling(KVDBService::DevBrief &output, MessageParcel &data);
 
-    static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
-    static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicates &predicates, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
 
-    static int64_t GetTotalSize(const std::vector<Entry> &entries);
-    static int64_t GetTotalSize(const std::vector<Key> &entries);
+    API_EXPORT static int64_t GetTotalSize(const std::vector<Entry> &entries);
+    API_EXPORT static int64_t GetTotalSize(const std::vector<Key> &entries);
 
     template<typename ..._Types>
     static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)

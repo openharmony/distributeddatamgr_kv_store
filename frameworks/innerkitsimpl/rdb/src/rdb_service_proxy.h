@@ -22,9 +22,10 @@
 #include "irdb_service.h"
 #include "rdb_notifier.h"
 #include "concurrent_map.h"
+#include "visibility.h"
 
 namespace OHOS::DistributedRdb {
-class RdbServiceProxy : public IRemoteProxy<IRdbService> {
+class API_EXPORT RdbServiceProxy : public IRemoteProxy<IRdbService> {
 public:
     using ObserverMapValue = std::pair<std::list<RdbStoreObserver*>, RdbSyncerParam>;
     using ObserverMap = ConcurrentMap<std::string, ObserverMapValue>;

@@ -24,6 +24,7 @@
 #include "iremote_object.h"
 #include "concurrent_map.h"
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS::DistributedKv {
 class KvStoreDataServiceProxy;
@@ -32,7 +33,7 @@ class KvStoreDataServiceProxy;
 namespace OHOS::DistributedRdb {
 class RdbService;
 class RdbServiceProxy;
-class RdbManagerImpl {
+class API_EXPORT RdbManagerImpl {
 public:
     static constexpr int GET_SA_RETRY_TIMES = 3;
     static constexpr int RETRY_INTERVAL = 1;

@@ -21,10 +21,11 @@
 #include "iremote_broker.h"
 #include "iremote_object.h"
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS {
 namespace DistributedRdb {
-class RdbService {
+class API_EXPORT RdbService {
 public:
     enum {
         RDB_SERVICE_CMD_OBTAIN_TABLE,

@@ -26,16 +26,16 @@ class Query;
 }
 namespace OHOS {
 namespace DistributedKv {
-class DataQuery {
+class API_EXPORT DataQuery {
 public:
-    API_EXPORT DataQuery();
+    DataQuery();
 
-    API_EXPORT ~DataQuery() = default;
+    ~DataQuery() = default;
 
     // Reset the query.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &Reset();
+    DataQuery &Reset();
 
     // Equal to int value.
     // Parameters:
@@ -43,7 +43,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EqualTo(const std::string &field, const int value);
+    DataQuery &EqualTo(const std::string &field, const int value);
 
     // Equal to long value.
     // Parameters:
@@ -51,7 +51,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EqualTo(const std::string &field, const int64_t value);
+    DataQuery &EqualTo(const std::string &field, const int64_t value);
 
     // Equal to double value.
     // Parameters:
@@ -59,7 +59,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EqualTo(const std::string &field, const double value);
+    DataQuery &EqualTo(const std::string &field, const double value);
 
     // Equal to String value.
     // Parameters:
@@ -67,7 +67,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EqualTo(const std::string &field, const std::string &value);
+    DataQuery &EqualTo(const std::string &field, const std::string &value);
 
     // Equal to boolean value.
     // Parameters:
@@ -75,7 +75,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EqualTo(const std::string &field, const bool value);
+    DataQuery &EqualTo(const std::string &field, const bool value);
 
     // Not equal to int value.
     // Parameters:
@@ -83,7 +83,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotEqualTo(const std::string &field, const int value);
+    DataQuery &NotEqualTo(const std::string &field, const int value);
 
     // Not equal to long value.
     // Parameters:
@@ -91,7 +91,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotEqualTo(const std::string &field, const int64_t value);
+    DataQuery &NotEqualTo(const std::string &field, const int64_t value);
 
     // Not equal to double value.
     // Parameters:
@@ -99,7 +99,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotEqualTo(const std::string &field, const double value);
+    DataQuery &NotEqualTo(const std::string &field, const double value);
 
     // Not equal to String value.
     // Parameters:
@@ -107,7 +107,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotEqualTo(const std::string &field, const std::string &value);
+    DataQuery &NotEqualTo(const std::string &field, const std::string &value);
 
     // Not equal to boolean value.
     // Parameters:
@@ -115,7 +115,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotEqualTo(const std::string &field, const bool value);
+    DataQuery &NotEqualTo(const std::string &field, const bool value);
 
     // Greater than int value.
     // Parameters:
@@ -123,7 +123,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThan(const std::string &field, const int value);
+    DataQuery &GreaterThan(const std::string &field, const int value);
 
     // Greater than long value.
     // Parameters:
@@ -131,7 +131,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThan(const std::string &field, const int64_t value);
+    DataQuery &GreaterThan(const std::string &field, const int64_t value);
 
     // Greater than double value.
     // Parameters:
@@ -139,7 +139,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThan(const std::string &field, const double value);
+    DataQuery &GreaterThan(const std::string &field, const double value);
 
     // Greater than String value.
     // Parameters:
@@ -147,7 +147,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThan(const std::string &field, const std::string &value);
+    DataQuery &GreaterThan(const std::string &field, const std::string &value);
 
     // Less than int value.
     // Parameters:
@@ -155,7 +155,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThan(const std::string &field, const int value);
+    DataQuery &LessThan(const std::string &field, const int value);
 
     // Less than long value.
     // Parameters:
@@ -163,7 +163,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThan(const std::string &field, const int64_t value);
+    DataQuery &LessThan(const std::string &field, const int64_t value);
 
     // Less than double value.
     // Parameters:
@@ -171,7 +171,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThan(const std::string &field, const double value);
+    DataQuery &LessThan(const std::string &field, const double value);
 
     // Less than String value.
     // Parameters:
@@ -179,7 +179,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThan(const std::string &field, const std::string &value);
+    DataQuery &LessThan(const std::string &field, const std::string &value);
 
     // Greater than or equal to int value.
     // Parameters:
@@ -187,7 +187,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThanOrEqualTo(const std::string &field, const int value);
+    DataQuery &GreaterThanOrEqualTo(const std::string &field, const int value);
 
     // Greater than or equal to long value.
     // Parameters:
@@ -195,7 +195,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThanOrEqualTo(const std::string &field, const int64_t value);
+    DataQuery &GreaterThanOrEqualTo(const std::string &field, const int64_t value);
 
     // Greater than or equal to double value.
     // Parameters:
@@ -203,7 +203,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThanOrEqualTo(const std::string &field, const double value);
+    DataQuery &GreaterThanOrEqualTo(const std::string &field, const double value);
 
     // Greater than or equal to String value.
     // Parameters:
@@ -211,7 +211,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &GreaterThanOrEqualTo(const std::string &field, const std::string &value);
+    DataQuery &GreaterThanOrEqualTo(const std::string &field, const std::string &value);
 
     // Less than or equal to int value.
     // Parameters:
@@ -219,7 +219,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThanOrEqualTo(const std::string &field, const int value);
+    DataQuery &LessThanOrEqualTo(const std::string &field, const int value);
 
     // Less than or equal to long value.
     // Parameters:
@@ -227,7 +227,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThanOrEqualTo(const std::string &field, const int64_t value);
+    DataQuery &LessThanOrEqualTo(const std::string &field, const int64_t value);
 
     // Less than or equal to double value.
     // Parameters:
@@ -235,7 +235,7 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThanOrEqualTo(const std::string &field, const double value);
+    DataQuery &LessThanOrEqualTo(const std::string &field, const double value);
 
     // Less than or equal to String value.
     // Parameters:
@@ -243,21 +243,21 @@ public:
     //     value: the field value.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &LessThanOrEqualTo(const std::string &field, const std::string &value);
+    DataQuery &LessThanOrEqualTo(const std::string &field, const std::string &value);
 
     // Is null field value.
     // Parameters:
     //     field: the field name.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &IsNull(const std::string &field);
+    DataQuery &IsNull(const std::string &field);
 
     // Is not null field value.
     // Parameters:
     //     field: the field name.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &IsNotNull(const std::string &field);
+    DataQuery &IsNotNull(const std::string &field);
 
     // In int value list.
     // Parameters:
@@ -265,7 +265,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &In(const std::string &field, const std::vector<int> &valueList);
+    DataQuery &In(const std::string &field, const std::vector<int> &valueList);
 
     // In long value list.
     // Parameters:
@@ -273,7 +273,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &In(const std::string &field, const std::vector<int64_t> &valueList);
+    DataQuery &In(const std::string &field, const std::vector<int64_t> &valueList);
 
     // In Double value list.
     // Parameters:
@@ -281,7 +281,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &In(const std::string &field, const std::vector<double> &valueList);
+    DataQuery &In(const std::string &field, const std::vector<double> &valueList);
 
     // In String value list.
     // Parameters:
@@ -289,7 +289,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &In(const std::string &field, const std::vector<std::string> &valueList);
+    DataQuery &In(const std::string &field, const std::vector<std::string> &valueList);
 
     // Not in int value list.
     // Parameters:
@@ -297,7 +297,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotIn(const std::string &field, const std::vector<int> &valueList);
+    DataQuery &NotIn(const std::string &field, const std::vector<int> &valueList);
 
     // Not in long value list.
     // Parameters:
@@ -305,7 +305,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotIn(const std::string &field, const std::vector<int64_t> &valueList);
+    DataQuery &NotIn(const std::string &field, const std::vector<int64_t> &valueList);
 
     // Not in Double value list.
     // Parameters:
@@ -313,7 +313,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotIn(const std::string &field, const std::vector<double> &valueList);
+    DataQuery &NotIn(const std::string &field, const std::vector<double> &valueList);
 
     // Not in String value list.
     // Parameters:
@@ -321,7 +321,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &NotIn(const std::string &field, const std::vector<std::string> &valueList);
+    DataQuery &NotIn(const std::string &field, const std::vector<std::string> &valueList);
 
     // Like String value.
     // Parameters:
@@ -329,7 +329,7 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &Like(const std::string &field, const std::string &value);
+    DataQuery &Like(const std::string &field, const std::string &value);
 
     // Unlike String value.
     // Parameters:
@@ -337,38 +337,38 @@ public:
     //     value: the field value list.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &Unlike(const std::string &field, const std::string &value);
+    DataQuery &Unlike(const std::string &field, const std::string &value);
 
     // And operator.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &And();
+    DataQuery &And();
 
     // Or operator.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &Or();
+    DataQuery &Or();
 
     // Order by ascent.
     // Parameters:
     //     field: the field name.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &OrderByAsc(const std::string &field);
+    DataQuery &OrderByAsc(const std::string &field);
 
     // Order by descent.
     // Parameters:
     //     field: the field name.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &OrderByDesc(const std::string &field);
+    DataQuery &OrderByDesc(const std::string &field);
 
     // Order by write time.
     // Parameters:
     //     isAsc: isAsc.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &OrderByWriteTime(bool isAsc);
+    DataQuery &OrderByWriteTime(bool isAsc);
 
     // Limit result size.
     // Parameters:
@@ -376,50 +376,50 @@ public:
     //     offset: the start position.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &Limit(const int number, const int offset);
+    DataQuery &Limit(const int number, const int offset);
 
     // Begin group.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &BeginGroup();
+    DataQuery &BeginGroup();
 
     // End group.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &EndGroup();
+    DataQuery &EndGroup();
 
     // Select results with specified key prefix.
     // Parameters:
     //     prefix: key prefix.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &KeyPrefix(const std::string &prefix);
+    DataQuery &KeyPrefix(const std::string &prefix);
 
     // Select results with specified device Identifier.
     // Parameters:
     //     deviceId: device Identifier.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &DeviceId(const std::string &deviceId);
+    DataQuery &DeviceId(const std::string &deviceId);
 
     // Select results with suggested index.
     // Parameters:
     //     index: suggested index.
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &SetSuggestIndex(const std::string &index);
+    DataQuery &SetSuggestIndex(const std::string &index);
 
     // Select results with many keys.
     // Parameters:
     //     keys: the vector of keys for query
     // Return:
     //     This Query.
-    API_EXPORT DataQuery &InKeys(const std::vector<std::string> &keys);
+    DataQuery &InKeys(const std::vector<std::string> &keys);
 
     // Get string representation
     // Return:
     //     String representation of this query.
-    API_EXPORT std::string ToString() const;
+    std::string ToString() const;
 
 private:
 

@@ -26,23 +26,28 @@ public:
     ~BlockData() {}
 
 public:
-    void SetValue(T &data) {
-        std::lock_guard <std::mutex> lock(mutex_);
+    void SetValue(const T &data)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
         data_ = data;
         isSet_ = true;
         cv_.notify_one();
     }
 
-    T GetValue() {
-        std::unique_lock <std::mutex> lock(mutex_);
-        cv_.wait_for(lock, std::chrono::seconds(INTERVAL), [this]() { return isSet_; });
+    T GetValue()
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        cv_.wait_for(lock, std::chrono::seconds(INTERVAL), [this]() {
+            return isSet_;
+        });
         T data = data_;
         cv_.notify_one();
         return data;
     }
 
-    void Clear(const T &invalid = T()) {
-        std::lock_guard <std::mutex> lock(mutex_);
+    void Clear(const T &invalid = T())
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
         isSet_ = false;
         data_ = invalid;
         cv_.notify_one();

@@ -21,9 +21,10 @@
 #include <iremote_stub.h>
 
 #include "rdb_types.h"
+#include "visibility.h"
 
 namespace OHOS::DistributedRdb {
-class IRdbNotifier : public IRemoteBroker {
+class API_EXPORT IRdbNotifier : public IRemoteBroker {
 public:
     enum {
         RDB_NOTIFIER_CMD_SYNC_COMPLETE,
@@ -38,7 +39,7 @@ public:
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedRdb.IRdbNotifier");
 };
 
-class RdbNotifierProxy : public IRemoteProxy<IRdbNotifier> {
+class API_EXPORT RdbNotifierProxy : public IRemoteProxy<IRdbNotifier> {
 public:
     explicit RdbNotifierProxy(const sptr<IRemoteObject>& object);
     virtual ~RdbNotifierProxy() noexcept;
@@ -54,7 +55,7 @@ private:
 using RdbSyncCompleteNotifier = std::function<void(uint32_t, const SyncResult&)>;
 using RdbDataChangeNotifier = std::function<void(const std::string&, const std::vector<std::string>&)>;
 
-class RdbNotifierStub : public IRemoteStub<IRdbNotifier> {
+class API_EXPORT RdbNotifierStub : public IRemoteStub<IRdbNotifier> {
 public:
     RdbNotifierStub(const RdbSyncCompleteNotifier&, const RdbDataChangeNotifier&);
     virtual ~RdbNotifierStub() noexcept;
