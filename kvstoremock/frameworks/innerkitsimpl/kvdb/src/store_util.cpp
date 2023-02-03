@@ -136,7 +136,7 @@ Status StoreUtil::ConvertStatus(DBStatus status)
         case DBStatus::TIME_OUT:
             return Status::TIME_OUT;
         case DBStatus::OVER_MAX_LIMITS:
-            return Status::OVER_MAX_SUBSCRIBE_LIMITS;
+            return Status::OVER_MAX_LIMITS;
         case DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB:
             return Status::CRYPT_ERROR;
         case DBStatus::SCHEMA_MISMATCH:

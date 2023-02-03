@@ -43,6 +43,7 @@ public:
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
     ~SingleStoreImpl();
     StoreId GetStoreId() const override;
+    Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     Status Put(const Key &key, const Value &value) override;
     Status PutBatch(const std::vector<Entry> &entries) override;
     Status Delete(const Key &key) override;

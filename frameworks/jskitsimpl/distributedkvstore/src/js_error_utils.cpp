@@ -21,16 +21,18 @@ namespace OHOS::DistributedKVStore {
 using JsErrorCode = OHOS::DistributedKVStore::JsErrorCode;
 
 static constexpr JsErrorCode JS_ERROR_CODE_MSGS[] = {
-        {Status::INVALID_ARGUMENT,          401,      "Parameter error."},
-        {Status::STORE_NOT_OPEN,            0,        ""},
-        {Status::STORE_ALREADY_SUBSCRIBE,   0,        ""},
-        {Status::STORE_NOT_SUBSCRIBE,       0,        ""},
-        {Status::NOT_FOUND,                 15100004, "Not found."},
-        {Status::STORE_META_CHANGED,        15100002, "Open existed database with changed options."},
-        {Status::PERMISSION_DENIED,         202,      "Permission denied"},
-        {Status::CRYPT_ERROR,               15100003, "Database corrupted."},
-        {Status::OVER_MAX_SUBSCRIBE_LIMITS, 15100001, "Over max subscribe limits."},
-        {Status::ALREADY_CLOSED,            15100005, "Database or result set already closed."},
+    { Status::INVALID_ARGUMENT, 401, "Parameter error." },
+    { Status::STORE_NOT_OPEN, 0, "" },
+    { Status::STORE_ALREADY_SUBSCRIBE, 0, "" },
+    { Status::STORE_NOT_SUBSCRIBE, 0, "" },
+    { Status::NOT_FOUND, 15100004, "Not found." },
+    { Status::STORE_META_CHANGED, 15100002, "Open existed database with changed options." },
+    { Status::PERMISSION_DENIED, 202, "Permission denied" },
+    { Status::CRYPT_ERROR, 15100003, "Database corrupted." },
+    { Status::OVER_MAX_LIMITS, 15100001, "Over max subscribe limits." },
+    { Status::ALREADY_CLOSED, 15100005, "Database or result set already closed." },
+    { Status::WAL_OVER_LIMITS, 15100006,
+        "the size of Wal is over max size,close all the opened resultsets or transmation,then retry the action" },
 };
 
 const std::optional<JsErrorCode> GetJsErrorCode(int32_t errorCode)

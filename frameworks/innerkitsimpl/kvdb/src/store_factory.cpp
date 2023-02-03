@@ -40,6 +40,16 @@ StoreFactory::StoreFactory()
     }
     (void)DBManager::SetProcessSystemAPIAdapter(std::make_shared<SystemApi>());
 }
+Status StoreFactory::SetDbConfig(uint64_t maxWalSize, std::shared_ptr<DBStore> dbStore)
+{
+    PragmaData data =
+        static_cast<DistributedDB::PragmaData>(const_cast<void *>(static_cast<const void *>(&maxWalSize)));
+    auto status = dbStore->Pragma(DistributedDB::SET_MAX_LOG_LIMIT, data);
+    if (status != DistributedDB::DBStatus::OK) {
+        ZLOGE("failed to set max log limit! status:%{public}d", status);
+    }
+    return StoreUtil::ConvertStatus(status);
+}
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
     const Options &options, Status &status, bool &isCreate)
@@ -83,6 +93,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
+                SetDbConfig(MAX_WAL_SIZE, dbStore);
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
