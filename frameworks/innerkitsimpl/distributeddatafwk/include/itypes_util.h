@@ -97,7 +97,7 @@ public:
     API_EXPORT static int64_t GetTotalSize(const std::vector<Key> &entries);
 
     template<typename ..._Types>
-    API_EXPORT static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)
+    static bool Marshalling(const std::variant<_Types...> &input, MessageParcel &data)
     {
         uint32_t index = static_cast<uint32_t>(input.index());
         if (!data.WriteUint32(index)) {
@@ -108,7 +108,7 @@ public:
     }
 
     template<typename ..._Types>
-    API_EXPORT static bool Unmarshalling(std::variant<_Types...> &output, MessageParcel &data)
+    static bool Unmarshalling(std::variant<_Types...> &output, MessageParcel &data)
     {
         uint32_t index = data.ReadUint32();
         if (index >= sizeof ...(_Types)) {
@@ -119,30 +119,30 @@ public:
     }
 
     template<class T>
-    API_EXPORT static bool Marshalling(const std::vector<T> &val, MessageParcel &parcel);
+    static bool Marshalling(const std::vector<T> &val, MessageParcel &parcel);
     template<class T>
-    API_EXPORT static bool Unmarshalling(std::vector<T> &val, MessageParcel &parcel);
+    static bool Unmarshalling(std::vector<T> &val, MessageParcel &parcel);
 
     template<class K, class V>
-    API_EXPORT static bool Marshalling(const std::map<K, V> &val, MessageParcel &parcel);
+    static bool Marshalling(const std::map<K, V> &val, MessageParcel &parcel);
     template<class K, class V>
-    API_EXPORT static bool Unmarshalling(std::map<K, V> &val, MessageParcel &parcel);
+    static bool Unmarshalling(std::map<K, V> &val, MessageParcel &parcel);
 
     template<typename T, typename... Types>
-    API_EXPORT static bool Marshal(MessageParcel &parcel, const T &first, const Types &...others);
+    static bool Marshal(MessageParcel &parcel, const T &first, const Types &...others);
     template<typename T, typename... Types>
-    API_EXPORT static bool Unmarshal(MessageParcel &parcel, T &first, Types &...others);
+    static bool Unmarshal(MessageParcel &parcel, T &first, Types &...others);
 
     template<typename T>
-    API_EXPORT static bool MarshalToBuffer(const T &input, int size, MessageParcel &data);
+    static bool MarshalToBuffer(const T &input, int size, MessageParcel &data);
 
     template<typename T>
-    API_EXPORT static bool MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data);
+    static bool MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data);
 
     template<typename T>
-    API_EXPORT static bool UnmarshalFromBuffer(MessageParcel &data, T &output);
+    static bool UnmarshalFromBuffer(MessageParcel &data, T &output);
     template<typename T>
-    API_EXPORT static bool UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output);
+    static bool UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output);
 
 private:
     static bool Marshalling(bool input, MessageParcel &data) = delete;
