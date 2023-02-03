@@ -2069,6 +2069,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BusyTest001, TestSize.Level1)
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
 
+#ifdef RUNNING_ON_SIMULATED_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -2116,4 +2117,119 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest001,
         it.join();
     }
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+
+/**
+  * @tc.name: TimeChangeWithCloseStoreTest002
+  * @tc.desc: Test close store with time changed
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest002, TestSize.Level3)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    const int threadPoolMax = 10;
+    for (int i = 0; i < threadPoolMax; ++i) {
+        (void) RuntimeContext::GetInstance()->ScheduleTask([]() {
+            std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10s for block thread pool
+        });
+    }
+    OS::SetOffsetBySecond(100); // 100 2 : fake system time change
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for time tick
+
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+    RuntimeContext::GetInstance()->StopTaskPool(); // stop all async task
+}
+#endif // RUNNING_ON_SIMULATED_ENV
+
+/**
+  * @tc.name: LocalStore001
+  * @tc.desc: Test get kv store with localOnly
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore001, TestSize.Level1)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    /**
+     * @tc.steps:step1. Create database with localOnly.
+     * @tc.expected: step1. Returns a non-null store.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.localOnly = true;
+    DBStatus openStatus = DBStatus::DB_ERROR;
+    KvStoreNbDelegate *openDelegate = nullptr;
+    mgr.GetKvStore(STORE_ID_1, option, [&openStatus, &openDelegate](DBStatus status, KvStoreNbDelegate *delegate) {
+        openStatus = status;
+        openDelegate = delegate;
+    });
+    ASSERT_TRUE(openDelegate != nullptr);
+    EXPECT_EQ(openStatus, OK);
+    /**
+     * @tc.steps:step2. call sync and put/get interface.
+     * @tc.expected: step2. sync return NOT_ACTIVE.
+     */
+    DBStatus actionStatus = openDelegate->Sync({}, SyncMode::SYNC_MODE_PUSH_ONLY, nullptr);
+    EXPECT_EQ(actionStatus, DBStatus::NOT_ACTIVE);
+    Key key = {'k'};
+    Value expectValue = {'v'};
+    EXPECT_EQ(openDelegate->Put(key, expectValue), OK);
+    Value actualValue;
+    EXPECT_EQ(openDelegate->Get(key, actualValue), OK);
+    EXPECT_EQ(actualValue, expectValue);
+    EXPECT_EQ(mgr.CloseKvStore(openDelegate), OK);
+}
+
+/**
+  * @tc.name: LocalStore002
+  * @tc.desc: Test get kv store different local mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore002, TestSize.Level1)
+{
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+
+    /**
+     * @tc.steps:step1. Create database with localOnly.
+     * @tc.expected: step1. Returns a non-null store.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.localOnly = true;
+    DBStatus openStatus = DBStatus::DB_ERROR;
+    KvStoreNbDelegate *localDelegate = nullptr;
+    mgr.GetKvStore(STORE_ID_1, option, [&openStatus, &localDelegate](DBStatus status, KvStoreNbDelegate *delegate) {
+        openStatus = status;
+        localDelegate = delegate;
+    });
+    ASSERT_TRUE(localDelegate != nullptr);
+    EXPECT_EQ(openStatus, OK);
+    /**
+     * @tc.steps:step2. Create database without localOnly.
+     * @tc.expected: step2. Returns a null store.
+     */
+    option.localOnly = false;
+    KvStoreNbDelegate *syncDelegate = nullptr;
+    mgr.GetKvStore(STORE_ID_1, option, [&openStatus, &syncDelegate](DBStatus status, KvStoreNbDelegate *delegate) {
+        openStatus = status;
+        syncDelegate = delegate;
+    });
+    EXPECT_EQ(syncDelegate, nullptr);
+    EXPECT_EQ(openStatus, INVALID_ARGS);
+    EXPECT_EQ(mgr.CloseKvStore(localDelegate), OK);
 }

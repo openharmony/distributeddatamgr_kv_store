@@ -279,6 +279,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
             timeTickMonitor_ = nullptr;
             return nullptr;
         }
+        LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
     return timeTickMonitor_->RegisterTimeChangedLister(action, errCode);
 }
@@ -725,6 +726,18 @@ void RuntimeContextImpl::StopTaskPool()
         taskPool_->Stop();
         TaskPool::Release(taskPool_);
         taskPool_ = nullptr;
+    }
+}
+
+void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
+{
+    std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+    if (timeTickMonitor_ == nullptr) {
+        return;
+    }
+    if (timeTickMonitor_->EmptyListener()) {
+        LOGD("[RuntimeContext] TimeTickMonitor exist because no listener");
+        timeTickMonitor_ = nullptr;
     }
 }
 } // namespace DistributedDB

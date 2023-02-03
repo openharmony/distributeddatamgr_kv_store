@@ -66,10 +66,17 @@ void TimeTickMonitor::Stop()
         return;
     }
 
-    timeChangedNotifier_->UnRegisterEventType(TIME_CHANGE_EVENT);
-    RefObject::KillAndDecObjRef(timeChangedNotifier_);
-    timeChangedNotifier_ = nullptr;
-    runtimeCxt_->RemoveTimer(monitorTimerId_);
+    NotificationChain *notifier;
+    {
+        std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+        notifier = timeChangedNotifier_;
+        timeChangedNotifier_ = nullptr;
+    }
+    if (notifier != nullptr) {
+        notifier->UnRegisterEventType(TIME_CHANGE_EVENT);
+        RefObject::KillAndDecObjRef(notifier);
+    }
+    runtimeCxt_->RemoveTimer(monitorTimerId_, true);
     isStarted_ = false;
 }
 
@@ -123,9 +130,19 @@ int TimeTickMonitor::TimeTick(TimerId timerId)
     int64_t changedOffset = systemOffset - monotonicOffset;
     if (std::abs(changedOffset) > MAX_NOISE) {
         LOGI("Local system time may be changed! changedOffset %ld", changedOffset);
-        int ret = RuntimeContext::GetInstance()->ScheduleTask([this, changedOffset](){
+        NotificationChain *notifier = nullptr;
+        {
+            std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
+            notifier = timeChangedNotifier_;
+            RefObject::IncObjRef(notifier);
+        }
+        int ret = RuntimeContext::GetInstance()->ScheduleTask([notifier, changedOffset](){
+            if (notifier == nullptr) {
+                return;
+            }
             int64_t offset = changedOffset;
-            timeChangedNotifier_->NotifyEvent(TIME_CHANGE_EVENT, &offset);
+            notifier->NotifyEvent(TIME_CHANGE_EVENT, &offset);
+            RefObject::DecObjRef(notifier);
         });
         if (ret != E_OK) {
             LOGE("TimeTickMonitor ScheduleTask failed %d", ret);
@@ -164,5 +181,11 @@ void TimeTickMonitor::NotifyTimeChange(TimeOffset offset) const
         return;
     }
     timeChangedNotifier_->NotifyEvent(TIME_CHANGE_EVENT, static_cast<void *>(&offset));
+}
+
+bool TimeTickMonitor::EmptyListener() const
+{
+    std::lock_guard<std::mutex> lock(timeTickMonitorLock_);
+    return timeChangedNotifier_->EmptyListener(TIME_CHANGE_EVENT);
 }
 } // namespace DistributedDB

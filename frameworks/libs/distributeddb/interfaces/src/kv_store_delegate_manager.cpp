@@ -110,6 +110,7 @@ namespace {
                 ParamCheckUtils::GetValidCompressionRate(option.compressionRate));
         }
         properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
+        properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
     }
 
     bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)

@@ -70,6 +70,7 @@ GenericSyncer::~GenericSyncer()
     if (timeChangedListener_ != nullptr) {
         timeChangedListener_->Drop(true);
         timeChangedListener_ = nullptr;
+        RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
     }
     timeHelper_ = nullptr;
     metadata_ = nullptr;
@@ -104,6 +105,9 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         // It will be clear in destructor.
         int errCodeTimeHelper = InitTimeHelper(syncInterface);
 
+        if (!IsNeedActive(syncInterface)) {
+            return -E_NO_NEED_ACTIVE;
+        }
         // As timeChangedListener_ will record time change, it should not be clear even if engine init failed.
         // It will be clear in destructor.
         int errCodeTimeChangedListener = InitTimeChangedListener();
@@ -899,5 +903,15 @@ int GenericSyncer::InitTimeChangedListener()
         return errCode;
     }
     return E_OK;
+}
+
+bool GenericSyncer::IsNeedActive(ISyncInterface *syncInterface)
+{
+    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);
+    if (localOnly) {
+        LOGD("[Syncer] Local only db, don't need active syncer");
+        return false;
+    }
+    return true;
 }
 } // namespace DistributedDB

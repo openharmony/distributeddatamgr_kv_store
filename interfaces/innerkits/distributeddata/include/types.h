@@ -223,7 +223,7 @@ struct Options {
     bool persistent = true;
     bool backup = true;
     bool autoSync = true;
-    bool syncable = true; // let bms delete first
+    bool syncable = true; // true if is distributed store, false if is local store
     bool rebuild = false;
     int32_t securityLevel = NO_LABEL;
     int32_t area = EL1;
