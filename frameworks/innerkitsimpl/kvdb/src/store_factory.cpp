@@ -93,7 +93,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
-                SetDbConfig(MAX_WAL_SIZE, dbStore);
+                SetDbConfig(dbStore);
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
