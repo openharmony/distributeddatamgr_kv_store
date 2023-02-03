@@ -14,6 +14,7 @@
  */
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
+
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
 #include "dds_trace.h"
@@ -90,9 +91,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
         return INVALID_ARGUMENT;
     }
 
-    auto status = RetryWithCheckPoint([this, &dbKey, &value]() {
-        return dbStore_->Put(dbKey, value);
-    });
+    auto status = RetryWithCheckPoint([this, &dbKey, &value]() { return dbStore_->Put(dbKey, value); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
@@ -123,9 +122,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
         dbEntries.push_back(std::move(dbEntry));
     }
 
-    auto status = RetryWithCheckPoint([this, &dbEntries]() {
-        return dbStore_->PutBatch(dbEntries);
-    });
+    auto status = RetryWithCheckPoint([this, &dbEntries]() { return dbStore_->PutBatch(dbEntries); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
@@ -148,9 +145,7 @@ Status SingleStoreImpl::Delete(const Key &key)
         return INVALID_ARGUMENT;
     }
 
-    auto status = RetryWithCheckPoint([this, &dbKey]() {
-        return dbStore_->Delete(dbKey);
-    });
+    auto status = RetryWithCheckPoint([this, &dbKey]() { return dbStore_->Delete(dbKey); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -177,9 +172,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
         dbKeys.push_back(std::move(dbKey));
     }
 
-    auto status = RetryWithCheckPoint([this, &dbKeys]() {
-        return dbStore_->DeleteBatch(dbKeys);
-    });
+    auto status = RetryWithCheckPoint([this, &dbKeys]() { return dbStore_->DeleteBatch(dbKeys); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
@@ -196,9 +189,7 @@ Status SingleStoreImpl::StartTransaction()
         return ALREADY_CLOSED;
     }
 
-    auto status = RetryWithCheckPoint([this]() {
-        return dbStore_->StartTransaction();
-    });
+    auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
     }

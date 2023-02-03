@@ -13,13 +13,15 @@
  * limitations under the License.
  */
 #define LOG_TAG "StoreUtil"
+#include "store_util.h"
+
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
+
 #include "log_print.h"
 #include "types.h"
-#include "store_util.h"
 namespace OHOS::DistributedKv {
 constexpr mode_t DEFAULT_UMASK = 0002;
 constexpr int32_t HEAD_SIZE = 3;

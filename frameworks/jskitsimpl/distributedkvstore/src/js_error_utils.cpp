@@ -15,6 +15,7 @@
 #define LOG_TAG "JS_ERROR_UTILS"
 
 #include "js_error_utils.h"
+
 #include <algorithm>
 
 namespace OHOS::DistributedKVStore {

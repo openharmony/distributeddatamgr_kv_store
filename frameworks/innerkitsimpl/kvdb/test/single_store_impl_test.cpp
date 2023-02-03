@@ -14,12 +14,13 @@
  */
 #include <condition_variable>
 #include <gtest/gtest.h>
-#include <vector>
-#include "kv_store_nb_delegate.h"
 #include <random>
+#include <vector>
+
 #include "block_data.h"
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "kv_store_nb_delegate.h"
 #include "store_manager.h"
 #include "sys/stat.h"
 #include "types.h"
@@ -498,7 +499,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
     auto status = kvStore->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::vector<Entry> output;
-    status = kvStore->GetEntries({"1"}, output);
+    status = kvStore->GetEntries({ "1" }, output);
     ASSERT_NE(output.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 
@@ -512,7 +513,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
     status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::vector<Entry> output1;
-    status = kvStore_->GetEntries({"1"}, output1);
+    status = kvStore_->GetEntries({ "1" }, output1);
     ASSERT_NE(output1.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 }
@@ -808,14 +809,14 @@ HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
     std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE + 1);
     for (int i = 0; i < MAX_RESULTSET_SIZE; i++) {
         std::shared_ptr<KvStoreResultSet> output;
-        status = kvStore_->GetResultSet({"k_i"}, outputs[i]);
+        status = kvStore_->GetResultSet({ "k_i" }, outputs[i]);
         ASSERT_EQ(status, SUCCESS);
     }
     /**
      * @tc.steps:step3. Get the resultset while resultset size is over the limit.
      * @tc.expected: step3. Returns OVER_MAX_LIMITS.
      */
-    status = kvStore_->GetResultSet({""}, outputs[MAX_RESULTSET_SIZE]);
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
     ASSERT_EQ(status, OVER_MAX_LIMITS);
     /**
      * @tc.steps:step4. Close the resultset and getting the resultset is retried
@@ -823,8 +824,8 @@ HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
      */
     status = kvStore_->CloseResultSet(outputs[0]);
     ASSERT_EQ(status, SUCCESS);
-        status = kvStore_->GetResultSet({""}, outputs[MAX_RESULTSET_SIZE]);
-        ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, SUCCESS);
 
     for (int i = 1; i <= MAX_RESULTSET_SIZE; i++) {
         status = kvStore_->CloseResultSet(outputs[i]);
@@ -848,13 +849,13 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      */
     std::vector<uint8_t> key;
     std::vector<uint8_t> value;
-    key = Random(24);                     // for 24B random key
-    value = Random(3 * 1024 * 1024);      // 3M value
+    key = Random(24);                // for 24B random key
+    value = Random(3 * 1024 * 1024); // 3M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(40);                     // for 40B random key
+    key = Random(40); // for 40B random key
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(24);                     // for 24B random key
-    value = Random(4 * 1024 * 1024);      // 4M value
+    key = Random(24);                // for 24B random key
+    value = Random(4 * 1024 * 1024); // 4M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     /**
      * @tc.steps:step2. Get the resultset.
@@ -871,16 +872,16 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.expected: step3. Returns SUCCESS.
      */
     for (int i = 0; i < 50; i++) {
-        key = Random(16);                 // for 16B random key
-        value = Random(4 * 1024 * 1024);  // 4M value
+        key = Random(16);                // for 16B random key
+        value = Random(4 * 1024 * 1024); // 4M value
         EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     }
     /**
      * @tc.steps:step4. Put more data into the database while the log size is over the limit.
      * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
      */
-    key = Random(10);                    // for 16B random key
-    value = Random(4 * 1024 * 1024);     // 1M value
+    key = Random(10);                // for 16B random key
+    value = Random(4 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
@@ -891,7 +892,7 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
 
     status = kvStore_->CloseResultSet(output);
     ASSERT_EQ(status, SUCCESS);
-    value = Random(1 * 1024 * 1024);      // 1M value
+    value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
 }
 
@@ -1202,9 +1203,7 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) {
-        return entry.Data() < sentry.Data();
-    };
+    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;

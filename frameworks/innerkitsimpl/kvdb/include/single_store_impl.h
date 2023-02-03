@@ -43,7 +43,6 @@ public:
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
     ~SingleStoreImpl();
     StoreId GetStoreId() const override;
-    Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     Status Put(const Key &key, const Value &value) override;
     Status PutBatch(const std::vector<Entry> &entries) override;
     Status Delete(const Key &key) override;
@@ -96,6 +95,7 @@ private:
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
     Status GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const;
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
+    Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
