@@ -390,7 +390,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(kvManager != nullptr, "finalize null!");
         delete kvManager;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr), kvManager);
     return ctxt->self;
 }
 

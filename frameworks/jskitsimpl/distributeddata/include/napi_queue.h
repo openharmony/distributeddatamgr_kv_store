@@ -98,6 +98,15 @@ private:
         }                                                    \
     } while (0)
 
+#define ASSERT_CALL(env, theCall, object)                    \
+    do {                                                     \
+        if ((theCall) != napi_ok) {                          \
+            delete (object);                                 \
+            GET_AND_THROW_LAST_ERROR((env));                 \
+            return nullptr;                                  \
+        }                                                    \
+    } while (0)
+
 class NapiQueue {
 public:
     static napi_value AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt, const std::string& name,
