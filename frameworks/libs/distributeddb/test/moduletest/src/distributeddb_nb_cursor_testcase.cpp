@@ -1404,8 +1404,41 @@ void DistributeddbNbCursorTestcase::ResultSetDb020(KvStoreNbDelegate *delegate, 
     Key keyPrefixKC = kc;
     EXPECT_EQ(delegate->GetEntries(keyPrefixKC, resultSetKC), OK);
     /**
-     * @tc.steps: step1. call GetEntries interface with "" parameter to get KvStoreResultSet.
-     * @tc.expected: step1. get success.
+     * @tc.steps: step4. call GetEntries interface with "kd" parameter to get KvStoreResultSet.
+     * @tc.expected: step4. get success.
+     */
+    KvStoreResultSet *resultSetKD = nullptr;
+    std::vector<uint8_t> kd = { 'k', 'd' };
+    Key keyPrefixKD = kd;
+    EXPECT_EQ(delegate->GetEntries(keyPrefixKD, resultSetKD), OK);
+    /**
+     * @tc.steps: step5. call GetEntries interface with "ke" parameter to get KvStoreResultSet.
+     * @tc.expected: step5. get success.
+     */
+    KvStoreResultSet *resultSetKE = nullptr;
+    std::vector<uint8_t> ke = { 'k', 'e' };
+    Key keyPrefixKE = ke;
+    EXPECT_EQ(delegate->GetEntries(keyPrefixKE, resultSetKE), OK);
+    /**
+     * @tc.steps: step6. call GetEntries interface with "kf" parameter to get KvStoreResultSet.
+     * @tc.expected: step6. get success.
+     */
+    KvStoreResultSet *resultSetKF = nullptr;
+    std::vector<uint8_t> kf = { 'k', 'f' };
+    Key keyPrefixKF = kf;
+    EXPECT_EQ(delegate->GetEntries(keyPrefixKF, resultSetKF), OK);
+
+    /**
+     * @tc.steps: step7. call GetEntries interface with "kg" parameter to get KvStoreResultSet.
+     * @tc.expected: step7. get success.
+     */
+    KvStoreResultSet *resultSetKG = nullptr;
+    std::vector<uint8_t> kg = { 'k', 'g' };
+    Key keyPrefixKG = kg;
+    EXPECT_EQ(delegate->GetEntries(keyPrefixKG, resultSetKG), OK);
+    /**
+     * @tc.steps: step8. call GetEntries interface with "" parameter to get KvStoreResultSet.
+     * @tc.expected: step8. get success.
      */
     KvStoreResultSet *resultSetAll2 = nullptr;
     EXPECT_EQ(delegate->GetEntries(KEY_EMPTY, resultSetAll2), OVER_MAX_LIMITS);
@@ -1414,6 +1447,13 @@ void DistributeddbNbCursorTestcase::ResultSetDb020(KvStoreNbDelegate *delegate, 
     EXPECT_EQ(delegate->CloseResultSet(resultSetKA), OK);
     EXPECT_EQ(delegate->CloseResultSet(resultSetKB), OK);
     EXPECT_EQ(delegate->CloseResultSet(resultSetKC), OK);
+    EXPECT_EQ(delegate->CloseResultSet(resultSetKD), OK);
+    EXPECT_EQ(delegate->CloseResultSet(resultSetKE), OK);
+    EXPECT_EQ(delegate->CloseResultSet(resultSetKF), OK);
+    EXPECT_EQ(delegate->CloseResultSet(resultSetKG), OK);
+    if (resultSetAll2 != nullptr) {
+        EXPECT_EQ(delegate->CloseResultSet(resultSetAll2), OK);
+    }
 }
 
 void DistributeddbNbCursorTestcase::ResultSetDb021(KvStoreNbDelegate *delegate,
