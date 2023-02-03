@@ -135,7 +135,7 @@ Status StoreUtil::ConvertStatus(DBStatus status)
         case DBStatus::TIME_OUT:
             return Status::TIME_OUT;
         case DBStatus::OVER_MAX_LIMITS:
-            return Status::OVER_MAX_SUBSCRIBE_LIMITS;
+            return Status::OVER_MAX_LIMITS;
         case DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB:
             return Status::CRYPT_ERROR;
         case DBStatus::SCHEMA_MISMATCH:
@@ -145,6 +145,8 @@ Status StoreUtil::ConvertStatus(DBStatus status)
         case DBStatus::EKEYREVOKED_ERROR: // fallthrough
         case DBStatus::SECURITY_OPTION_CHECK_ERROR:
             return Status::SECURITY_LEVEL_ERROR;
+        case DBStatus::LOG_OVER_LIMITS:
+            return Status::WAL_OVER_LIMITS;
         default:
             ZLOGE("unknown db error:0x%{public}x", status);
             break;

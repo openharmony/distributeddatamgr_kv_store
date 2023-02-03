@@ -40,6 +40,16 @@ StoreFactory::StoreFactory()
     }
     (void)DBManager::SetProcessSystemAPIAdapter(std::make_shared<SystemApi>());
 }
+Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
+{
+    PragmaData data =
+        static_cast<DistributedDB::PragmaData>(const_cast<void *>(static_cast<const void *>(&MAX_WAL_SIZE)));
+    auto status = dbStore->Pragma(DistributedDB::SET_MAX_LOG_LIMIT, data);
+    if (status != DistributedDB::DBStatus::OK) {
+        ZLOGE("failed to set max log limit! status:%{public}d", status);
+    }
+    return StoreUtil::ConvertStatus(status);
+}
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
     const Options &options, Status &status, bool &isCreate)
@@ -55,8 +65,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
-            options.baseDir, options.encrypt);
+        auto dbPassword =
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
             ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
@@ -66,8 +76,8 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         if (options.encrypt) {
             status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
             if (status != SUCCESS) {
-                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
-                    storeId.storeId.c_str(), static_cast<int>(status));
+                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d", storeId.storeId.c_str(),
+                    static_cast<int>(status));
                 return !stores.empty();
             }
             if (dbPassword.isKeyOutdated) {
@@ -83,6 +93,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
+                SetDbConfig(dbStore);
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
