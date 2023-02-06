@@ -107,7 +107,7 @@ public:
 
 protected:
     static BrokerDelegator<KVDBServiceMock> delegator_;
-    static const int SLEEP_TIME = 10;
+    static constexpr int SLEEP_TIME = 10;
 };
 BrokerDelegator<AutoSyncTimerTest::KVDBServiceMock> AutoSyncTimerTest::delegator_;
 AutoSyncTimerTest::KVDBServiceMock *AutoSyncTimerTest::KVDBServiceMock::instance_ = nullptr;
