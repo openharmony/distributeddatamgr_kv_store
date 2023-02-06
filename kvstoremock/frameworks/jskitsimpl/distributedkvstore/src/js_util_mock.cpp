@@ -89,7 +89,7 @@ public:
 
     std::shared_ptr<ContextMock> GetAbilityContext()
     {
-        return std::make_shared<ContextMocks>();
+        return std::make_shared<ContextMock>();
     }
 };
 
