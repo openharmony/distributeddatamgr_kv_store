@@ -81,7 +81,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     aCtx->execute = std::move(execute);
     aCtx->complete = std::move(complete);
     napi_value promise = nullptr;
-    if (ctxt->callbackRef == nullptr) {
+    if (aCtx->ctx->callbackRef == nullptr) {
         napi_create_promise(env, &aCtx->deferred, &promise);
         ZLOGD("create deferred promise");
     } else {
@@ -95,20 +95,20 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
         [](napi_env env, void* data) {
             CHECK_RETURN_VOID(data != nullptr, "napi_async_execute_callback nullptr");
             auto actx = reinterpret_cast<AsyncContext*>(data);
-            ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", actx.ctx->status);
-            if (actx->execute && actx.ctx->status == napi_ok) {
+            ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", actx->ctx->status);
+            if (actx->execute && actx->ctx->status == napi_ok) {
                 actx->execute();
             }
         },
         [](napi_env env, napi_status status, void* data) {
             CHECK_RETURN_VOID(data != nullptr, "napi_async_complete_callback nullptr");
             auto actx = reinterpret_cast<AsyncContext*>(data);
-            ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, actx.ctx->status);
-            if ((status != napi_ok) && (actx.ctx->status == napi_ok)) {
-                actx.ctx->status = status;
+            ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, actx->ctx->status);
+            if ((status != napi_ok) && (actx->ctx->status == napi_ok)) {
+                actx->ctx->status = status;
             }
             napi_value output = nullptr;
-            if ((actx->complete) && (status == napi_ok) && (actx.ctx->status == napi_ok)) {
+            if ((actx->complete) && (status == napi_ok) && (actx->ctx->status == napi_ok)) {
                 actx->complete(output);
             }
             GenerateOutput(*actx, output);
@@ -117,7 +117,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
         reinterpret_cast<void*>(aCtx), &aCtx->work);
     auto status = napi_queue_async_work(env, aCtx->work);
     if (status != napi_ok) {
-        napi_get_undifined(env, &promise);
+        napi_get_undefined(env, &promise);
         delete aCtx;
     }
     return promise;

@@ -81,11 +81,11 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     aCtx->execute = std::move(execute);
     aCtx->complete = std::move(complete);
     napi_value promise = nullptr;
-    if (ctxt->callbackRef == nullptr) {
-        napi_create_promise(ctxt->env, &ctxt->deferred, &promise);
+    if (aCtx->ctx->callbackRef == nullptr) {
+        napi_create_promise(env, &aCtx->deferred, &promise);
         ZLOGD("create deferred promise");
     } else {
-        napi_get_undefined(ctxt->env, &promise);
+        napi_get_undefined(env, &promise);
     }
 
     napi_value resource = nullptr;
@@ -94,7 +94,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
         env, nullptr, resource,
         [](napi_env env, void* data) {
             ASSERT_VOID(data != nullptr, "napi_async_execute_callback nullptr");
-            auto actx = reinterpret_cast<ContextBase*>(data);
+            auto actx = reinterpret_cast<AsyncContext*>(data);
             ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", actx->ctx->status);
             if (actx->execute && actx->ctx->status == napi_ok) {
                 actx->execute();
@@ -102,7 +102,7 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
         },
         [](napi_env env, napi_status status, void* data) {
             ASSERT_VOID(data != nullptr, "napi_async_complete_callback nullptr");
-            auto actx = reinterpret_cast<ContextBase*>(data);
+            auto actx = reinterpret_cast<AsyncContext*>(data);
             ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, actx->ctx->status);
             if ((status != napi_ok) && (actx->ctx->status == napi_ok)) {
                 actx->ctx->status = status;
