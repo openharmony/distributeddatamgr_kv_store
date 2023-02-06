@@ -163,7 +163,7 @@ StoreFactoryTest::DBOption StoreFactoryTest::GetOption(const Options &options, c
 
     dbOption.conflictResolvePolicy = options.kvStoreType == KvStoreType::SINGLE_VERSION
                                          ? DistributedDB::LAST_WIN
-                                         : KvStoreType::DEVICE_COLLABORATION;
+                                         : DistributedDB::DEVICE_COLLABORATION;
 
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
