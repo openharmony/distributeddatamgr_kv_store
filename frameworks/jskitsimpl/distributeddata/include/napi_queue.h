@@ -41,6 +41,7 @@ struct ContextBase {
     }
 
     napi_env env = nullptr;
+    napi_value output = nullptr;
     napi_status status = napi_invalid_arg;
     std::string error;
 
@@ -122,7 +123,7 @@ private:
         ~AsyncContext() {
             execute = nullptr;
             complete = nullptr;
-            ctxt = nullptr;
+            ctx = nullptr;
             if (env != nullptr) {
                 if (work != nullptr) {
                     napi_delete_async_work(env, work);
