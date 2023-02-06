@@ -136,7 +136,7 @@ int TimeTickMonitor::TimeTick(TimerId timerId)
             notifier = timeChangedNotifier_;
             RefObject::IncObjRef(notifier);
         }
-        int ret = RuntimeContext::GetInstance()->ScheduleTask([notifier, changedOffset](){
+        int ret = RuntimeContext::GetInstance()->ScheduleTask([notifier, changedOffset]() {
             if (notifier == nullptr) {
                 return;
             }
