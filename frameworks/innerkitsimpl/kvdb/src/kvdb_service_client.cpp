@@ -296,7 +296,7 @@ KVDBService::DevBrief KVDBServiceClient::GetLocalDevice()
     MessageParcel reply;
     int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply);
     if (status != SUCCESS) {
-      ZLOGE("status:0x%{public}x", status);
+        ZLOGE("status:0x%{public}x", status);
     }
     ITypesUtil::Unmarshal(reply, brief);
     return brief;

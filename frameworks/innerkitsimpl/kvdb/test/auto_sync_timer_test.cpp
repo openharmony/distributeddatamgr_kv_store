@@ -107,6 +107,7 @@ public:
 
 protected:
     static BrokerDelegator<KVDBServiceMock> delegator_;
+    static constexpr int SLEEP_TIME = 10;
 };
 BrokerDelegator<AutoSyncTimerTest::KVDBServiceMock> AutoSyncTimerTest::delegator_;
 AutoSyncTimerTest::KVDBServiceMock *AutoSyncTimerTest::KVDBServiceMock::instance_ = nullptr;
@@ -124,7 +125,7 @@ void AutoSyncTimerTest::SetUp(void)
 
 void AutoSyncTimerTest::TearDown(void)
 {
-    sleep(10); // make sure the case has executed completely
+    sleep(SLEEP_TIME); // make sure the case has executed completely
 }
 
 /**
