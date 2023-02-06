@@ -90,7 +90,8 @@ public:
     API_EXPORT static bool Unmarshalling(DataShare::DataShareValuesBucket &valuesBucket, MessageParcel &parcel);
     API_EXPORT static bool Unmarshalling(DataShare::OperationItem &operationItem, MessageParcel &parcel);
     API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicatesObject &predicatesObject, MessageParcel &parcel);
-    API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject, MessageParcel &parcel);
+    API_EXPORT static bool Unmarshalling(DataShare::DataSharePredicatesObjects &predicatesObject,
+        MessageParcel &parcel);
     API_EXPORT static bool Unmarshalling(DataShare::DataShareValueObject &valueObject, MessageParcel &parcel);
 
     API_EXPORT static int64_t GetTotalSize(const std::vector<Entry> &entries);
