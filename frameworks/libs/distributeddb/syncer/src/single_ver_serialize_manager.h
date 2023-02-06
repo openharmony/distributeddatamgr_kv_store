@@ -16,6 +16,7 @@
 #ifndef SINGLE_VER_SERIALIZE_MANAGER_NEW_H
 #define SINGLE_VER_SERIALIZE_MANAGER_NEW_H
 
+#include <mutex>
 #include "icommunicator.h"
 #include "isync_packet.h"
 #include "message_transform.h"
