@@ -194,7 +194,7 @@ void GetResultSetFuzz1(const uint8_t *data, size_t size)
         deviceKvStore_->Put(prefix + keys + std::to_string(i), keys + std::to_string(i));
     }
     auto status = deviceKvStore_->GetResultSet(prefix, resultSet);
-    if (status != Status::SUCCESS) {
+    if (status != Status::SUCCESS || resultSet == nullptr) {
         return;
     }
     resultSet->Move(position);
@@ -237,7 +237,7 @@ void GetResultSetFuzz3(const uint8_t *data, size_t size)
     }
     deviceKvStore_->GetResultSet(dataQuery, resultSet);
     auto status = deviceKvStore_->GetResultSet(prefix, resultSet);
-    if (status != Status::SUCCESS) {
+    if (status != Status::SUCCESS || resultSet == nullptr) {
         return;
     }
     int cnt = resultSet->GetCount();
