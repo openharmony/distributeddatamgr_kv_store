@@ -191,13 +191,16 @@ void StoreFactory::ReKey(const std::string &storeId, const std::string &path, DB
     std::shared_ptr<DBManager> dbManager, const Options &options)
 {
     int32_t retry = 0;
-    DBStatus status;
+    DBStatus dbStatus;
     DBStore *kvStore;
     auto dbOption = GetDBOption(options, dbPassword);
-    dbManager->GetKvStore(storeId, dbOption, [&status, &kvStore](auto dbStatus, auto *dbStore) {
-        status = dbStatus;
+    dbManager->GetKvStore(storeId, dbOption, [&dbStatus, &kvStore](auto status, auto *dbStore) {
+        dbStatus = status;
         kvStore = dbStore;
     });
+    if (dbStatus != DBStatus::OK || kvStore == nullptr) {
+        return;
+    }
     while (retry < REKEY_TIMES) {
         auto status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
         if (status != SUCCESS) {
