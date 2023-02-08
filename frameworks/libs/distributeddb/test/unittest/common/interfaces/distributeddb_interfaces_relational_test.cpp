@@ -705,6 +705,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
      * @tc.steps:step3. Remove device data
      * @tc.expected: step3. ok
      */
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
     EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_A"), OK);
     EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_B"), OK);
     EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_C", "sync_data"), OK);
@@ -714,6 +715,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
      * @tc.expected: step4. invalid
      */
     EXPECT_EQ(delegate->RemoveDeviceData(""), INVALID_ARGS);
+    EXPECT_EQ(delegate->RemoveDeviceData("", "sync_data"), INVALID_ARGS);
     EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_A", "Handle-J@^."), INVALID_ARGS);
 
     /**

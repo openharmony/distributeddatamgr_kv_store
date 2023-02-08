@@ -1228,31 +1228,39 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTable(const
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTableLog(const std::string &device,
-    const std::string &tableName)
+    const std::string &tableName, const std::map<std::string, TableInfo> &tables)
 {
-    std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE device = ?";
-    sqlite3_stmt *deleteLogStmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, deleteLogSql, deleteLogStmt);
-    if (errCode != E_OK) {
-        LOGE("Get delete device data log statement failed. %d", errCode);
-        return errCode;
-    }
+    int errCode = E_OK;
+    for (const auto &it : tables) {
+        if (!tableName.empty() && it.second.GetTableName() != tableName) {
+            continue; // Table name is specified, skip others
+        }
+        std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + it.second.GetTableName() +
+            "_log WHERE device = ?";
+        sqlite3_stmt *deleteLogStmt = nullptr;
+        errCode = SQLiteUtils::GetStatement(dbHandle_, deleteLogSql, deleteLogStmt);
+        if (errCode != E_OK) {
+            LOGE("Get delete device data log statement failed. %d", errCode);
+            return errCode;
+        }
 
-    errCode = SQLiteUtils::BindTextToStatement(deleteLogStmt, 1, device);
-    if (errCode != E_OK) {
-        LOGE("Bind device to delete data log statement failed. %d", errCode);
+        errCode = SQLiteUtils::BindTextToStatement(deleteLogStmt, 1, device);
+        if (errCode != E_OK) {
+            LOGE("Bind device to delete data log statement failed. %d", errCode);
+            SQLiteUtils::ResetStatement(deleteLogStmt, true, errCode);
+            return errCode;
+        }
+
+        errCode = SQLiteUtils::StepWithRetry(deleteLogStmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+        } else {
+            LOGE("Delete data log failed. %d", errCode);
+        }
+
         SQLiteUtils::ResetStatement(deleteLogStmt, true, errCode);
-        return errCode;
     }
 
-    errCode = SQLiteUtils::StepWithRetry(deleteLogStmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
-        LOGE("Delete data log failed. %d", errCode);
-    }
-
-    SQLiteUtils::ResetStatement(deleteLogStmt, true, errCode);
     return errCode;
 }
 

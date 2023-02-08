@@ -66,7 +66,8 @@ public:
 
     int DeleteDistributedDeviceTable(const std::string &device, const std::string &tableName);
 
-    int DeleteDistributedDeviceTableLog(const std::string &device, const std::string &tableName);
+    int DeleteDistributedDeviceTableLog(const std::string &device, const std::string &tableName,
+        const std::map<std::string, TableInfo> &tables);
 
     int DeleteDistributedLogTable(const std::string &tableName);
 

@@ -459,14 +459,9 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         goto END;
     }
 
-    for (const auto &it : tables) {
-        if (tableName.empty() || it.second.GetTableName() == tableName) {
-            errCode = handle->DeleteDistributedDeviceTableLog(device, it.second.GetTableName());
-            if (errCode != E_OK) {
-                LOGE("delete device data failed. %d", errCode);
-                break;
-            }
-        }
+    errCode = handle->DeleteDistributedDeviceTableLog(device, tableName, tables);
+    if (errCode != E_OK) {
+        LOGE("delete device data failed. %d", errCode);
     }
 
 END:
