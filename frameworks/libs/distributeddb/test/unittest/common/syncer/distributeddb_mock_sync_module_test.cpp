@@ -1592,6 +1592,51 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SyncerCheck002
+ * @tc.desc: Test syncer call get timestamp with close and open.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create context and syncer
+     */
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    auto virtualCommunicatorAggregator = new(std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    auto syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface->SetIdentifier(identifier);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    /**
+     * @tc.steps: step2. get timestamp by syncer over and over again
+     */
+    std::atomic<bool> finish = false;
+    std::thread t([&finish, &syncer]() {
+        while (!finish) {
+            (void) syncer->GetTimestamp();
+        }
+    });
+    /**
+     * @tc.steps: step3. re init syncer over and over again
+     * @tc.expected: step3. dont crash here.
+     */
+    for (int i = 0; i < 100; ++i) { // loop 100 times
+        syncer->Initialize(syncDBInterface, false);
+        syncer->Close(true);
+    }
+    finish = true;
+    t.join();
+    delete syncDBInterface;
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/**
  * @tc.name: SessionId001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
