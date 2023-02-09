@@ -414,7 +414,7 @@ int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
     return syncer_.GetSyncDataSize(device, size);
 }
 
-bool SyncAbleKvDB::NeedStartSyncer()
+bool SyncAbleKvDB::NeedStartSyncer() const
 {
     // don't start when check callback got not active
     // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
