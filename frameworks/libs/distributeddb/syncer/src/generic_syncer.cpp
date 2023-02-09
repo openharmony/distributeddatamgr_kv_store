@@ -284,10 +284,26 @@ int GenericSyncer::StopSync(uint64_t connectionId)
 
 uint64_t GenericSyncer::GetTimestamp()
 {
-    if (timeHelper_ == nullptr) {
+    std::shared_ptr<TimeHelper> timeHelper = nullptr;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        timeHelper = timeHelper_;
+        if (syncInterface_ != nullptr) {
+            storage = syncInterface_;
+            storage->IncRefCount();
+        }
+    }
+    if (storage == nullptr) {
         return TimeHelper::GetSysCurrentTime();
     }
-    return timeHelper_->GetTime();
+    if (timeHelper == nullptr) {
+        storage->DecRefCount();
+        return TimeHelper::GetSysCurrentTime();
+    }
+    uint64_t timestamp = timeHelper->GetTime();
+    storage->DecRefCount();
+    return timestamp;
 }
 
 void GenericSyncer::QueryAutoSync(const InternalSyncParma &param)
