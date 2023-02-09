@@ -273,7 +273,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     if (timeTickMonitor_ == nullptr) {
         timeTickMonitor_ = std::make_unique<TimeTickMonitor>();
-        errCode = timeTickMonitor_->Start();
+        errCode = timeTickMonitor_->StartTimeTickMonitor();
         if (errCode != E_OK) {
             LOGE("TimeTickMonitor start failed!");
             timeTickMonitor_ = nullptr;
