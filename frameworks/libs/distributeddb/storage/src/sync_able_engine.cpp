@@ -280,7 +280,7 @@ int SyncAbleEngine::RemoteQuery(const std::string &device, const RemoteCondition
     return syncer_.RemoteQuery(device, condition, timeout, connectionId, result);
 }
 
-bool SyncAbleEngine::NeedStartSyncer()
+bool SyncAbleEngine::NeedStartSyncer() const
 {
     // don't start when check callback got not active
     // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
