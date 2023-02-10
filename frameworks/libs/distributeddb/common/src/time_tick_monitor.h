@@ -30,10 +30,10 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(TimeTickMonitor);
 
     // Start the TimeTickMonitor
-    int Start();
+    int StartTimeTickMonitor();
 
     // Stop the TimeTickMonitor
-    void Stop();
+    void StopTimeTickMonitor();
 
     // Register a time changed lister, it will be callback when local time changed.
     NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode);
