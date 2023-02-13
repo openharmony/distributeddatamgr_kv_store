@@ -133,9 +133,12 @@ bool StoreFactoryTest::MoveToRekeyPath(Options options, StoreId storeId)
 {
     std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";
     std::string rekeyFileName = options.baseDir + "/rekey/key/" + storeId.storeId + ".new.key";
-    bool res = StoreUtil::Rename(keyFileName, rekeyFileName);
-    res = StoreUtil::Remove(keyFileName);
-    return res;
+    bool result = StoreUtil::Rename(keyFileName, rekeyFileName);
+    if (!result) {
+        return false;
+    }
+    result = StoreUtil::Remove(keyFileName);
+    return result;
 }
 
 std::shared_ptr<StoreFactoryTest::DBManager> StoreFactoryTest::GetDBManager(const std::string &path, const AppId &appId)
@@ -163,7 +166,7 @@ StoreFactoryTest::DBOption StoreFactoryTest::GetOption(const Options &options, c
 
     dbOption.conflictResolvePolicy = options.kvStoreType == KvStoreType::SINGLE_VERSION
                                          ? DistributedDB::LAST_WIN
-                                         : KvStoreType::DEVICE_COLLABORATION;
+                                         : DistributedDB::DEVICE_COLLABORATION;
 
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
@@ -221,7 +224,6 @@ HWTEST_F(StoreFactoryTest, Rekey, TestSize.Level1)
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 
-    std::vector<uint8_t> newDate;
     auto newKeyTime = GetDate(storeId, options.baseDir);
     ASSERT_TRUE(std::chrono::system_clock::now() - newKeyTime < std::chrono::seconds(2));
 }
@@ -301,7 +303,6 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedBeforeChangeKeyFile, TestSize.Level1)
     ASSERT_EQ(MoveToRekeyPath(options, storeId), true);
 
     StoreId newStoreId = { "newStore" };
-    std::string mockPath = options.baseDir;
     StoreManager::GetInstance().GetKVStore(appId, newStoreId, options, status);
 
     std::string keyFileName = options.baseDir + "/key/" + storeId.storeId + ".key";

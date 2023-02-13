@@ -632,7 +632,8 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::map<std::st
     return napi_invalid_arg;
 }
 
-JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::map<std::string, DistributedKv::Status>& in, napi_value& out)
+JSUtil::StatusMsg JSUtil::SetValue(
+    napi_env env, const std::map<std::string, DistributedKv::Status>& in, napi_value& out)
 {
     ZLOGD("napi_value <- std::map<std::string, int32_t> ");
     napi_status status = napi_create_array_with_length(env, in.size(), &out);
@@ -761,7 +762,8 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::list<Distri
     return statusMsg;
 }
 
-JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::list<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
+JSUtil::StatusMsg JSUtil::SetValue(
+    napi_env env, const std::list<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
 {
     ZLOGD("napi_value <- std::list<DistributedKv::Entry> %{public}d", static_cast<int>(in.size()));
     napi_status status = napi_create_array_with_length(env, in.size(), &out);
@@ -839,7 +841,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
         napi_value item = nullptr;
         statusMsg.status = napi_get_element(env, in, i, &item);
         ASSERT(statusMsg.status == napi_ok, "get_element failed", statusMsg);
-        if(item == nullptr){
+        if (item == nullptr) {
             continue;
         }
         DistributedKv::Entry entry;
@@ -870,7 +872,8 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Dist
     return statusMsg;
 }
 
-JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
+JSUtil::StatusMsg JSUtil::SetValue(
+    napi_env env, const std::vector<DistributedKv::Entry>& in, napi_value& out, bool hasSchema)
 {
     ZLOGD("napi_value <- std::vector<DistributedKv::Entry> %{public}d", static_cast<int>(in.size()));
     napi_status status = napi_create_array_with_length(env, in.size(), &out);
@@ -936,11 +939,13 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::C
     return napi_invalid_arg;
 }
 
-JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const DistributedKv::ChangeNotification& in, napi_value& out, bool hasSchema)
+JSUtil::StatusMsg JSUtil::SetValue(
+    napi_env env, const DistributedKv::ChangeNotification& in, napi_value& out, bool hasSchema)
 {
     ZLOGD("napi_value <- DistributedKv::ChangeNotification ");
     JSUtil::StatusMsg statusMsg = napi_create_object(env, &out);
-    ASSERT((statusMsg.status == napi_ok), "napi_create_object for DistributedKv::ChangeNotification failed!", statusMsg);
+    ASSERT((statusMsg.status == napi_ok),
+        "napi_create_object for DistributedKv::ChangeNotification failed!", statusMsg);
     napi_value deviceId = nullptr;
     statusMsg = SetValue(env, in.GetDeviceId(), deviceId);
     ASSERT((statusMsg.status == napi_ok) || (deviceId == nullptr), "GetDeviceId failed!", statusMsg);

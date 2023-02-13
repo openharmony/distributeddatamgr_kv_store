@@ -95,6 +95,7 @@ private:
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
     Status GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const;
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
+    Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
