@@ -242,8 +242,7 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     if (pwdValid != SUCCESS) {
         return pwdValid;
     }
-    if (!UpdateKeyFile(storeId, path))
-    {
+    if (!UpdateKeyFile(storeId, path)) {
         return DB_ERROR;
     }
     return pwdValid;
