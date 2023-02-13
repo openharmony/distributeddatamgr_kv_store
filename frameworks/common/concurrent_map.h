@@ -21,7 +21,12 @@
 namespace OHOS {
 template<typename _Key, typename _Tp>
 class ConcurrentMap {
+    template<typename _First, typename... _Rest>
+    static _First First();
+
 public:
+    using map_type = typename std::map<_Key, _Tp>;
+    using filter_type = typename std::function<bool(map_type &)>;
     using key_type = typename std::map<_Key, _Tp>::key_type;
     using mapped_type = typename std::map<_Key, _Tp>::mapped_type;
     using value_type = typename std::map<_Key, _Tp>::value_type;
@@ -67,12 +72,32 @@ public:
         return *this;
     }
 
+    bool Emplace() noexcept
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        auto it = entries_.emplace();
+        return it.second;
+    }
+
     template<typename... _Args>
-    bool Emplace(_Args &&...__args) noexcept
+    typename std::enable_if<!std::is_convertible_v<decltype(First<_Args...>()), filter_type>, bool>::type
+    Emplace(_Args &&...__args) noexcept
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         auto it = entries_.emplace(std::forward<_Args>(__args)...);
-        return it->second;
+        return it.second;
+    }
+
+    template<typename _Filter, typename... _Args>
+    typename std::enable_if<std::is_convertible_v<_Filter, filter_type>, bool>::type
+    Emplace(const _Filter &filter, _Args &&...__args) noexcept
+    {
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        if (!filter(entries_)) {
+            return false;
+        }
+        auto it = entries_.emplace(std::forward<_Args>(__args)...);
+        return it.second;
     }
 
     std::pair<bool, mapped_type> Find(const key_type &key) const noexcept

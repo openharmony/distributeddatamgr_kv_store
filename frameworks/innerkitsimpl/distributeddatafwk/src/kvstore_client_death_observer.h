@@ -20,7 +20,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class KvStoreClientDeathObserver : public KvStoreClientDeathObserverStub {
+class API_EXPORT KvStoreClientDeathObserver : public KvStoreClientDeathObserverStub {
 public:
     KvStoreClientDeathObserver();
 

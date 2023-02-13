@@ -261,14 +261,6 @@ int Metadata::SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector
     return naturalStoragePtr_->PutMetaData(key, inValue);
 }
 
-int Metadata::DeleteMetaDataFromDB(const std::vector<Key> &keys) const
-{
-    if (naturalStoragePtr_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    return naturalStoragePtr_->DeleteMetaData(keys);
-}
-
 void Metadata::PutMetadataToMap(const DeviceID &deviceId, const MetaDataValue &value)
 {
     metadataMap_[deviceId] = value;
@@ -537,14 +529,6 @@ void Metadata::GetRemoveDataMark(const DeviceID &deviceId, uint64_t &outValue)
         return;
     }
     outValue = 0;
-}
-
-int Metadata::DeleteMetaDataByPrefixKey(const Key &keyPrefix) const
-{
-    if (naturalStoragePtr_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    return naturalStoragePtr_->DeleteMetaDataByPrefixKey(keyPrefix);
 }
 
 uint64_t Metadata::GetQueryLastTimestamp(const DeviceID &deviceId, const std::string &queryId) const

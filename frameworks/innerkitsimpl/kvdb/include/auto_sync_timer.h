@@ -15,6 +15,7 @@
 #ifndef SDB_AUTO_SYNC_TIMER_H
 #define SDB_AUTO_SYNC_TIMER_H
 #include <set>
+#include <vector>
 
 #include "concurrent_map.h"
 #include "kvdb_service.h"
@@ -32,13 +33,13 @@ private:
     static constexpr size_t SYNC_STORE_NUM = 10;
     AutoSyncTimer() = default;
     ~AutoSyncTimer() = default;
-    std::map<std::string, std::set<StoreId>> GetStoreIds();
+    std::map<std::string, std::vector<StoreId>> GetStoreIds();
     std::function<void()> ProcessTask();
     void StartTimer();
     void StopTimer();
     void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
     bool HasSyncStores();
-    ConcurrentMap<std::string, std::set<StoreId>> stores_;
+    ConcurrentMap<std::string, std::vector<StoreId>> stores_;
     TaskScheduler::TaskId delaySyncTaskId_;
     TaskScheduler::TaskId forceSyncTaskId_;
     std::mutex mutex_;

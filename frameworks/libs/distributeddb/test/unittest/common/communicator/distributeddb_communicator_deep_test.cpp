@@ -14,6 +14,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <new>
 #include <thread>
 #include "db_errno.h"
@@ -573,9 +574,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, ReliableOnline001, TestSize.Level2)
 HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
 {
     auto processCommunicator = std::make_shared<MockProcessCommunicator>();
-    EXPECT_CALL(*processCommunicator, Stop).WillRepeatedly([]() {
-        return OK;
-    });
+    EXPECT_CALL(*processCommunicator, Stop()).WillRepeatedly(testing::Return(OK));
     /**
      * @tc.steps: step1. adapter start with empty label
      * @tc.expected: step1. start failed
@@ -593,35 +592,23 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter001, TestSize.Level1)
      * @tc.expected: step3. start failed
      */
     adapter = std::make_shared<NetworkAdapter>("label", processCommunicator);
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
-        return DB_ERROR;
-    });
+    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(DB_ERROR));
     EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
     /**
      * @tc.steps: step4. processCommunicator reg not ok
      * @tc.expected: step4. start failed
      */
-    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly([](const std::string &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly([](const OnDataReceive &) {
-        return DB_ERROR;
-    });
+    EXPECT_CALL(*processCommunicator, Start).WillRepeatedly(testing::Return(OK));
+    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(DB_ERROR));
     EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
-    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly([](const OnDataReceive &) {
-        return OK;
-    });
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly([](const OnDeviceChange &) {
-        return DB_ERROR;
-    });
+    EXPECT_CALL(*processCommunicator, RegOnDataReceive).WillRepeatedly(testing::Return(OK));
+    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(DB_ERROR));
     EXPECT_EQ(adapter->StartAdapter(), -E_PERIPHERAL_INTERFACE_FAIL);
     /**
      * @tc.steps: step5. processCommunicator reg ok
      * @tc.expected: step5. start success
      */
-    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly([](const OnDeviceChange &) {
-        return OK;
-    });
+    EXPECT_CALL(*processCommunicator, RegOnDeviceChange).WillRepeatedly(testing::Return(OK));
     EXPECT_CALL(*processCommunicator, GetLocalDeviceInfos).WillRepeatedly([]() {
         DeviceInfos deviceInfos;
         deviceInfos.identifier = "DEVICES_A"; // local is deviceA

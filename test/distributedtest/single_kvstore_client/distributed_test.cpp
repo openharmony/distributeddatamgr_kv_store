@@ -20,7 +20,6 @@
 #include <vector>
 #include "distributed_kv_data_manager.h"
 #include "types.h"
-#include "store_util.h"
 #include "distributed_major.h"
 #include "distributed_test_helper.h"
 #include "refbase.h"
@@ -45,11 +44,34 @@ public:
     std::mutex mtx_;
 };
 
+class Util {
+public:
+    static std::string Anonymous(const std::string &name)
+    {
+        if (name.length() <= HEAD_SIZE) {
+            return DEFAULT_ANONYMOUS;
+        }
+
+        if (name.length() < MIN_SIZE) {
+            return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+        }
+
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
+    }
+
+private:
+    static constexpr int32_t HEAD_SIZE = 3;
+    static constexpr int32_t END_SIZE = 3;
+    static constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    static constexpr const char *REPLACE_CHAIN = "***";
+    static constexpr const char *DEFAULT_ANONYMOUS = "******";
+};
+
 void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
 {
     for (const auto &result : results) {
         HiLog::Info(LABEL, "uuid = %{public}s, status = %{public}d",
-                    StoreUtil::Anonymous(result.first).c_str(), result.second);
+            Util::Anonymous(result.first).c_str(), result.second);
     }
     std::lock_guard<std::mutex> lck(mtx_);
     compeleted_ = true;
@@ -108,11 +130,11 @@ HWTEST_F(DistributedTest, SyncData001, TestSize.Level1)
     Key key = { "single1_001" };
     Value val = { "value1_001" };
     auto status = singleKvStore_->Put(key, val);
-    EXPECT_EQ(Status::SUCCESS, status)<< "Put failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Put failed";
 
     auto syncCallback = std::make_shared<KvStoreSyncCallbackTestImpl>();
     status = singleKvStore_->RegisterSyncCallback(syncCallback);
-    EXPECT_EQ(Status::SUCCESS, status)<< "SyncCallback failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "SyncCallback failed";
 
     std::vector<std::string> deviceIds;
     for (const auto &device : deviceInfos_) {
@@ -124,12 +146,12 @@ HWTEST_F(DistributedTest, SyncData001, TestSize.Level1)
         [&syncCallback]() { return syncCallback->compeleted_; })) {
         status = Status::TIME_OUT;
     }
-    EXPECT_EQ(Status::SUCCESS, status)<< "Sync failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Sync failed";
 
     Value value;
     status = helper_.GetRemote(key, value);
     HiLog::Info(LABEL_TEST, "value = %{public}s", value.ToString().c_str());
-    EXPECT_EQ(Status::SUCCESS, status)<< "Get failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Get failed";
     EXPECT_STREQ(value.ToString().c_str(), val.ToString().c_str())<< "failed";
 }
 
@@ -139,7 +161,7 @@ HWTEST_F(DistributedTest, SyncData002, TestSize.Level1)
     Key key = { "single1_002" };
     Value val = { "value1_002" };
     auto status = singleKvStore_->Put(key, val);
-    EXPECT_EQ(Status::SUCCESS, status)<< "Put failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Put failed";
 
     SyncMode mode = SyncMode::PULL;
     EXPECT_EQ(Status::SUCCESS, helper_.SyncRemote(mode))<< "Sync failed";
@@ -147,8 +169,8 @@ HWTEST_F(DistributedTest, SyncData002, TestSize.Level1)
     Value value;
     status = helper_.GetRemote(key, value);
     HiLog::Info(LABEL_TEST, "value = %{public}s", value.ToString().c_str());
-    EXPECT_EQ(Status::SUCCESS, status)<< "Get failed";
-    EXPECT_STREQ(value.ToString().c_str(), val.ToString().c_str())<< "failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Get failed";
+    EXPECT_STREQ(value.ToString().c_str(), val.ToString().c_str()) << "failed";
 }
 
 HWTEST_F(DistributedTest, SyncData003, TestSize.Level1)
@@ -157,17 +179,36 @@ HWTEST_F(DistributedTest, SyncData003, TestSize.Level1)
     Key key = { "single1_003" };
     Value val = { "value1_003" };
     auto status = singleKvStore_->Put(key, val);
-    EXPECT_EQ(Status::SUCCESS, status)<< "Put failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Put failed";
 
     SyncMode mode = SyncMode::PULL;
     uint32_t delay = 200;
-    EXPECT_EQ(Status::SUCCESS, helper_.SyncRemote(mode, delay))<< "Sync failed";
+    EXPECT_EQ(Status::SUCCESS, helper_.SyncRemote(mode, delay)) << "Sync failed";
 
     Value value;
     status = helper_.GetRemote(key, value);
     HiLog::Info(LABEL_TEST, "value = %{public}s", value.ToString().c_str());
-    EXPECT_EQ(Status::SUCCESS, status)<< "Get failed";
+    EXPECT_EQ(Status::SUCCESS, status) << "Get failed";
     EXPECT_STREQ(value.ToString().c_str(), val.ToString().c_str())<< "failed";
+}
+
+HWTEST_F(DistributedTest, SyncData004, TestSize.Level1)
+{
+    EXPECT_NE(singleKvStore_, nullptr) << "kvStorePtr is null";
+    Key key = { "single1_004" };
+    Value val = { "value1_004" };
+    auto status = singleKvStore_->Put(key, val);
+    EXPECT_EQ(Status::SUCCESS, status) << "Put failed";
+
+    std::vector<std::string> deviceIds;
+    for (const auto &device : deviceInfos_) {
+        deviceIds.push_back(device.deviceId);
+    }
+    status = singleKvStore_->Sync(deviceIds, SyncMode::PUSH);
+    EXPECT_EQ(Status::SUCCESS, status) << "Sync failed";
+
+    status = manager_.DeleteKvStore({ "odmf" }, { "student_single" }, "/data/service/el1/public/database/odmf");
+    EXPECT_EQ(Status::SUCCESS, status) << "Sync failed";
 }
 }
 

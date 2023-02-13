@@ -34,10 +34,10 @@ namespace {
     DefaultFactory g_defaultFactory;
 
     static const KvDBType g_dbTypeArr[] = {
-            LOCAL_KVDB,
-            SINGER_VER_KVDB,
+        LOCAL_KVDB,
+        SINGER_VER_KVDB,
 #ifndef OMIT_MULTI_VER
-            MULTI_VER_KVDB
+        MULTI_VER_KVDB
 #endif // OMIT_MULTI_VER
     };
 
@@ -926,7 +926,13 @@ int KvDBManager::CheckKvDBProperties(const IKvDB *kvDB, const KvDBProperties &pr
         properties.GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false)) {
             LOGE("Different dual tuple sync mode");
             return -E_MODE_MISMATCH;
-        }
+    }
+
+    if (kvDB->GetMyProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false) !=
+        properties.GetBoolProp(KvDBProperties::LOCAL_ONLY, false)) {
+        LOGE("Different local only mode");
+        return -E_INVALID_ARGS;
+    }
 
     if (!CheckSecOptions(properties, kvDB->GetMyProperties())) {
         return -E_INVALID_ARGS;

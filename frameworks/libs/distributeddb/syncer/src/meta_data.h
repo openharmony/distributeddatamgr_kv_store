@@ -126,9 +126,6 @@ private:
 
     int SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector<uint8_t> &inValue);
 
-    int DeleteMetaDataFromDB(const std::vector<Key> &keys) const;
-    int DeleteMetaDataByPrefixKey(const Key &keyPrefix) const;
-
     void PutMetadataToMap(const DeviceID &deviceId, const MetaDataValue &value);
 
     void GetMetadataFromMap(const DeviceID &deviceId, MetaDataValue &outValue);

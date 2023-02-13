@@ -685,7 +685,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSi
     QuerySyncObject queryObj(Query::Select().PrefixKey({'b'}));
     EXPECT_EQ(subManager.ReserveLocalSubscribeQuery("test_dev", queryObj), E_OK);
     subManager.DeleteLocalSubscribeQuery(DEVICE_A, queryObj);
-    
+
     EXPECT_EQ(subManager.ActiveLocalSubscribeQuery(DEVICE_B, queryObj), -E_INTERNAL_ERROR);
     subManager.DeleteLocalSubscribeQuery(DEVICE_A, queryCommonObj);
     ASSERT_TRUE(subManager.ReserveRemoteSubscribeQuery(DEVICE_A, queryCommonObj) == E_OK);
@@ -693,7 +693,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSi
     EXPECT_EQ(subManager.IsLastRemoteContainSubscribe(DEVICE_A, queryId), false);
     deviceAQueies.push_back(DEVICE_A);
     EXPECT_EQ(subManager.LocalSubscribeLimitCheck(deviceAQueies, queryCommonObj), E_OK);
-    
+
     /**
      * @tc.steps: step4. add MAX_DEVICES_NUM device, then call LocalSubscribeLimitCheck
      * @tc.expected: step4 return -E_MAX_LIMITS

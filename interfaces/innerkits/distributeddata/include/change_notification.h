@@ -24,7 +24,7 @@ namespace DistributedKv {
 class ChangeNotification final {
 public:
     // Constructor of ChangeNotification.
-    ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
+    API_EXPORT ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
                        std::vector<Entry> &&deleteEntries, const std::string &deviceId, bool isClear);
 
     API_EXPORT ~ChangeNotification();

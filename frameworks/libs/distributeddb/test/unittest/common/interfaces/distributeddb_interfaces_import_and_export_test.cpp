@@ -66,8 +66,6 @@ namespace {
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
         placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
 
-
-
     void RemoveJunkFile(const std::vector<std::string> &fileList)
     {
         for (auto &junkFile : fileList) {
@@ -795,7 +793,6 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ExceptionFileImport004, Tes
     g_junkFilesList.push_back(singleExportFileName);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
-
 }
 
 static void TryDbForPasswordIndependence001()

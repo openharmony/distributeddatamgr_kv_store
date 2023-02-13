@@ -323,7 +323,7 @@ HWTEST_F(DistributedDBInterfacesNBTransactionTest, start004, TestSize.Level4)
     delete observer;
     observer = nullptr;
 
-    std::string filePath = g_testDir + "test.txt";
+    std::string filePath = g_testDir + "/test.txt";
     EXPECT_EQ(g_kvNbDelegatePtr->Export(filePath, password), BUSY);
 
     KvStoreResultSet *readResultSet = nullptr;

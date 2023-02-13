@@ -129,4 +129,3 @@ HWTEST_F(DistributedDBInterfacesRelationalRoutinesTest, DBMaxTimeStampTest001, T
     EXPECT_GT(logTime, fakeTimestamp);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
-

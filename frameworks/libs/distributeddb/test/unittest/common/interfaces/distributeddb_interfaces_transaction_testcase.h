@@ -12,10 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef OMIT_MULTI_VER
 #ifndef DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H
 #define DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H
 
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
@@ -82,5 +82,5 @@ public:
     static void RollBack008(DistributedDB::KvStoreDelegate *&kvDelegatePtr,
         DistributedDB::KvStoreSnapshotDelegate *&snapshotDelegatePtr);
 };
-#endif
 #endif // OMIT_MULTI_VER
+#endif // DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H

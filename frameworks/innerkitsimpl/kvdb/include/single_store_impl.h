@@ -39,7 +39,7 @@ public:
     using DBQuery = DistributedDB::Query;
     using SyncInfo = KVDBService::SyncInfo;
     using Convert = std::function<Key(const DBKey &key, std::string &deviceId)>;
-    using TimePoint = std::chrono::system_clock::time_point;
+    using TimePoint = std::chrono::steady_clock::time_point;
     SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt);
     ~SingleStoreImpl();
     StoreId GetStoreId() const override;
@@ -95,6 +95,7 @@ private:
     static constexpr size_t MAX_OBSERVER_SIZE = 8;
     Status GetResultSet(const DBQuery &query, std::shared_ptr<ResultSet> &resultSet) const;
     Status GetEntries(const DBQuery &query, std::vector<Entry> &entries) const;
+    Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();

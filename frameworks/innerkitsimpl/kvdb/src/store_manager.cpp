@@ -51,8 +51,9 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     bool isCreate = false;
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
     if (isCreate && options.persistent) {
-        auto password = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
-        std::vector<uint8_t> pwd(password.GetData(), password.GetData() + password.GetSize());
+        auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
+            options.baseDir, options.encrypt);
+        std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
         if (service != nullptr) {
             // delay notify
             service->AfterCreate(appId, storeId, options, pwd);
@@ -69,17 +70,6 @@ Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
         return INVALID_ARGUMENT;
     }
 
-    return StoreFactory::GetInstance().Close(appId, storeId);
-}
-
-Status StoreManager::CloseKVStore(const AppId &appId, std::shared_ptr<SingleKvStore> &kvStore)
-{
-    if (!appId.IsValid() || kvStore == nullptr) {
-        return INVALID_ARGUMENT;
-    }
-
-    StoreId storeId{ kvStore->GetStoreId() };
-    kvStore = nullptr;
     return StoreFactory::GetInstance().Close(appId, storeId);
 }
 

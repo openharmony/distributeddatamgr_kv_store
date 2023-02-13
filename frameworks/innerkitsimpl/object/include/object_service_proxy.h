@@ -22,7 +22,7 @@
 #include "iobject_service.h"
 
 namespace OHOS::DistributedObject {
-class ObjectServiceProxy : public IRemoteProxy<IObjectService> {
+class API_EXPORT ObjectServiceProxy : public IRemoteProxy<IObjectService> {
 public:
     explicit ObjectServiceProxy(const sptr<IRemoteObject> &impl);
     ~ObjectServiceProxy() = default;
@@ -40,5 +40,5 @@ public:
 private:
     static inline BrokerDelegator<ObjectServiceProxy> delegator_;
 };
-} // namespace OHOS::DistributedRdb
+} // namespace OHOS::DistributedObject
 #endif

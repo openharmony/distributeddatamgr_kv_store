@@ -52,8 +52,11 @@ public:
         std::string moduleName = "com.example.myapplication";
     };
     
-    class ContextMcok
-    {        
+    struct ApplicationInfo {
+        bool isSystemApp = true;
+    };
+    
+    class ContextMock {
     public:
         int GetArea()
         {
@@ -77,12 +80,17 @@ public:
         {
             return std::make_shared<ModuleInfo>();
         }
+
+        std::shared_ptr<ApplicationInfo> GetApplicationInfo()
+        {
+            return std::make_shared<ApplicationInfo>();
+        }
     };
 
-    std::shared_ptr<ContextMcok> GetAbilityContext()
+    std::shared_ptr<ContextMock> GetAbilityContext()
     {
-        return std::make_shared<ContextMcok>();
-    }    
+        return std::make_shared<ContextMock>();
+    }
 };
 
 namespace AbilityRuntime {

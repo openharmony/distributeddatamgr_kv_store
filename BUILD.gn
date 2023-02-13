@@ -25,6 +25,7 @@ group("build_native_test") {
   deps = [
     "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
     "frameworks/libs/distributeddb/test:unittest",
+    "frameworks/libs/distributeddb/test/moduletest:moduletest",
   ]
 }
 
@@ -34,6 +35,23 @@ group("unittest") {
   deps = []
   deps += [
     "frameworks/innerkitsimpl/kvdb/test:unittest",
-    "test/unittest:unittest",
+    "test/unittest/distributedKVStore:unittest",
+    "test/unittest/distributeddata:unittest",
   ]
 }
+
+###############################################################################
+
+group("fuzztest") {
+  testonly = true
+  deps = []
+  deps += [
+    "test/fuzztest/blob_fuzzer:fuzztest",
+    "test/fuzztest/devicekvstore_fuzzer:fuzztest",
+    "test/fuzztest/distributedkvdatamanager_fuzzer:fuzztest",
+    "test/fuzztest/singlekvstore_fuzzer:fuzztest",
+    "test/fuzztest/taskscheduler_fuzzer:fuzztest",
+    "test/fuzztest/typesutil_fuzzer:fuzztest",
+  ]
+}
+###############################################################################

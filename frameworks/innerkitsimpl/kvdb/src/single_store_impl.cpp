@@ -14,6 +14,7 @@
  */
 #define LOG_TAG "SingleStoreImpl"
 #include "single_store_impl.h"
+
 #include "auto_sync_timer.h"
 #include "backup_manager.h"
 #include "dds_trace.h"
@@ -42,7 +43,7 @@ SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &
             continue;
         }
         auto exist = std::get_if<uint32_t>(&policy.value);
-        if (exist == nullptr && *exist <= 0) {
+        if (exist == nullptr || *exist <= 0) {
             break;
         }
         interval_ = *exist;
@@ -62,6 +63,18 @@ StoreId SingleStoreImpl::GetStoreId() const
     return { storeId_ };
 }
 
+Status SingleStoreImpl::RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda)
+{
+    auto dbStatus = lambda();
+    if (dbStatus != DistributedDB::LOG_OVER_LIMITS) {
+        return StoreUtil::ConvertStatus(dbStatus);
+    }
+    DistributedDB::PragmaData data;
+    dbStore_->Pragma(DistributedDB::EXEC_CHECKPOINT, data);
+    dbStatus = lambda();
+    return StoreUtil::ConvertStatus(dbStatus);
+}
+
 Status SingleStoreImpl::Put(const Key &key, const Value &value)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
@@ -78,8 +91,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
         return INVALID_ARGUMENT;
     }
 
-    auto dbStatus = dbStore_->Put(dbKey, value);
-    auto status = StoreUtil::ConvertStatus(dbStatus);
+    auto status = RetryWithCheckPoint([this, &dbKey, &value]() { return dbStore_->Put(dbKey, value); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s, value size:%{public}zu", status,
             StoreUtil::Anonymous(key.ToString()).c_str(), value.Size());
@@ -109,8 +121,8 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
         dbEntry.value = entry.value;
         dbEntries.push_back(std::move(dbEntry));
     }
-    auto dbStatus = dbStore_->PutBatch(dbEntries);
-    auto status = StoreUtil::ConvertStatus(dbStatus);
+
+    auto status = RetryWithCheckPoint([this, &dbEntries]() { return dbStore_->PutBatch(dbEntries); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x entries size:%{public}zu", status, entries.size());
     }
@@ -133,8 +145,7 @@ Status SingleStoreImpl::Delete(const Key &key)
         return INVALID_ARGUMENT;
     }
 
-    auto dbStatus = dbStore_->Delete(dbKey);
-    auto status = StoreUtil::ConvertStatus(dbStatus);
+    auto status = RetryWithCheckPoint([this, &dbKey]() { return dbStore_->Delete(dbKey); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x key:%{public}s", status, StoreUtil::Anonymous(key.ToString()).c_str());
     }
@@ -161,8 +172,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
         dbKeys.push_back(std::move(dbKey));
     }
 
-    auto dbStatus = dbStore_->DeleteBatch(dbKeys);
-    auto status = StoreUtil::ConvertStatus(dbStatus);
+    auto status = RetryWithCheckPoint([this, &dbKeys]() { return dbStore_->DeleteBatch(dbKeys); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x keys size:%{public}zu", status, keys.size());
     }
@@ -179,8 +189,7 @@ Status SingleStoreImpl::StartTransaction()
         return ALREADY_CLOSED;
     }
 
-    auto dbStatus = dbStore_->StartTransaction();
-    auto status = StoreUtil::ConvertStatus(dbStatus);
+    auto status = RetryWithCheckPoint([this]() { return dbStore_->StartTransaction(); });
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
     }
@@ -238,7 +247,7 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     uint32_t realType = type;
     std::shared_ptr<ObserverBridge> bridge = PutIn(realType, observer);
     if (bridge == nullptr) {
-        return (realType == type) ? OVER_MAX_SUBSCRIBE_LIMITS : STORE_ALREADY_SUBSCRIBE;
+        return (realType == type) ? OVER_MAX_LIMITS : STORE_ALREADY_SUBSCRIBE;
     }
 
     Status status = SUCCESS;
@@ -772,7 +781,11 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     syncAgent->AddSyncCallback(observer, syncInfo.seqId);
-    return service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    if (status != Status::SUCCESS) {
+        syncAgent->DeleteSyncCallback(syncInfo.seqId);
+    }
+    return status;
 }
 
 void SingleStoreImpl::DoAutoSync()
@@ -782,12 +795,12 @@ void SingleStoreImpl::DoAutoSync()
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
-    expiration_ = system_clock::now() + seconds(interval_);
+    expiration_ = steady_clock::now() + seconds(interval_);
 }
 
 void SingleStoreImpl::Online(const std::string &device)
 {
-    if (!autoSync_ || system_clock::now() >= expiration_) {
+    if (!autoSync_ || steady_clock::now() >= expiration_) {
         return;
     }
 

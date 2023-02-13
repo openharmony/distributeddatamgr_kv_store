@@ -149,8 +149,9 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
-        napi_delete_reference(env, ctxt->ref);
-        CHECK_STATUS_RETURN_VOID(ctxt, "output KvStore failed");
+        CHECK_STATUS_RETURN_VOID(ctxt, "output get ref value failed");
+        ctxt->status = napi_delete_reference(env, ctxt->ref);
+        CHECK_STATUS_RETURN_VOID(ctxt, "output del ref failed");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -390,7 +391,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(kvManager != nullptr, "finalize null!");
         delete kvManager;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr), kvManager);
     return ctxt->self;
 }
 

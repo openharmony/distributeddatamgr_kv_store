@@ -55,8 +55,12 @@ uint64_t FuzzerData::GetUInt64()
     return *r;
 }
 
-std::vector<uint8_t> FuzzerData::GetSequence(size_t size)
+std::vector<uint8_t> FuzzerData::GetSequence(size_t size, uint32_t mod)
 {
+    if (mod == 0) {
+        return {};
+    }
+    size = size % mod;
     if (curr_ + size > data_ + size_) {
         return {};
     }
@@ -71,7 +75,7 @@ std::string FuzzerData::GetString(size_t len)
         return "";
     }
 
-    std::string res = std::string(curr_, curr_ + len - 1);
+    std::string res = std::string(curr_, curr_ + len);
     curr_ += len;
     return res;
 }

@@ -74,7 +74,10 @@ std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
         return nullptr;
     }
 
-    sptr<KVDBServiceClient> client = new (std::nothrow) KVDBServiceClient(service);
+    sptr<KVDBServiceClient> client = iface_cast<KVDBServiceClient>(service);
+    if (client == nullptr) {
+        client = new (std::nothrow) KVDBServiceClient(service);
+    }
     if (client == nullptr) {
         return nullptr;
     }
@@ -285,6 +288,30 @@ Status KVDBServiceClient::GetBackupPassword(
     }
     ITypesUtil::Unmarshal(reply, password);
     return static_cast<Status>(status);
+}
+
+KVDBService::DevBrief KVDBServiceClient::GetLocalDevice()
+{
+    DevBrief brief;
+    MessageParcel reply;
+    int32_t status = IPC_SEND(TRANS_GET_LOCAL_DEVICE, reply);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x", status);
+    }
+    ITypesUtil::Unmarshal(reply, brief);
+    return brief;
+}
+
+std::vector<KVDBService::DevBrief> KVDBServiceClient::GetRemoteDevices()
+{
+    std::vector<DevBrief> briefs;
+    MessageParcel reply;
+    int32_t status = IPC_SEND(TRANS_GET_REMOTE_DEVICES, reply);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x", status);
+    }
+    ITypesUtil::Unmarshal(reply, briefs);
+    return briefs;
 }
 
 sptr<KvStoreSyncCallbackClient> KVDBServiceClient::GetSyncAgent(const AppId &appId)

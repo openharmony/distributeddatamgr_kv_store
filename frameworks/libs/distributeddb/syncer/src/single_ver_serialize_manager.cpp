@@ -486,7 +486,7 @@ int SingleVerSerializeManager::DataPacketSyncerPartDeSerialization(Parcel &parce
         return -E_LENGTH_ERROR;
     }
     parcel.EightByteAlign();
-    packLen = Parcel::GetEightByteAlign(packLen);
+    totPacketLen = Parcel::GetEightByteAlign(totPacketLen);
     if (parcel.IsError()) {
         LOGE("[DataSync][DataPacketDeSerialization] deserialize failed! input len=%" PRIu32 ", totPackLen=%" PRIu64,
             length, totPacketLen);

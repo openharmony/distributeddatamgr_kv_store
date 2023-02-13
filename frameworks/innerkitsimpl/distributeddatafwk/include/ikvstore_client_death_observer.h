@@ -19,6 +19,7 @@
 #include "iremote_broker.h"
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
+#include "visibility.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -28,10 +29,9 @@ public:
 };
 
 class KvStoreClientDeathObserverStub : public IRemoteStub<IKvStoreClientDeathObserver> {
-public:
 };
 
-class KvStoreClientDeathObserverProxy : public IRemoteProxy<IKvStoreClientDeathObserver> {
+class API_EXPORT KvStoreClientDeathObserverProxy : public IRemoteProxy<IKvStoreClientDeathObserver> {
 public:
     explicit KvStoreClientDeathObserverProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreClientDeathObserverProxy() = default;
