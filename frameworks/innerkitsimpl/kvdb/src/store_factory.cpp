@@ -225,8 +225,12 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     } else {
         return pwdValid;
     }
-    if (pwdValid == SUCCESS) {
-        UpdateKeyFile(storeId, path);
+    if (pwdValid != SUCCESS) {
+        return pwdValid;
+    }
+    if (!UpdateKeyFile(storeId, path))
+    {
+        return DB_ERROR;
     }
     return pwdValid;
 }
@@ -267,18 +271,24 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
         newDbPassword.Clear();
         return false;
     }
-    UpdateKeyFile(storeId, path);
+    if (!UpdateKeyFile(storeId, path)) {
+        dbStore->Rekey(dbPassword.password);
+        return false;
+    };
     dbPassword.password = newDbPassword.password;
     newDbPassword.Clear();
     dbPassword.isKeyOutdated = false;
     return true;
 }
 
-void StoreFactory::UpdateKeyFile(const std::string &storeId, const std::string &path)
+bool StoreFactory::UpdateKeyFile(const std::string &storeId, const std::string &path)
 {
     std::string rekeyFile = path + "/rekey/key/" + storeId + REKEY_NEW + ".key";
     std::string keyFile = path + "/key/" + storeId + ".key";
-    StoreUtil::Rename(rekeyFile, keyFile);
-    StoreUtil::Remove(rekeyFile);
+    if (!StoreUtil::Rename(rekeyFile, keyFile)) {
+        ZLOGE("failed to rename the key file.");
+        return false;
+    }
+    return true;
 }
 } // namespace OHOS::DistributedKv

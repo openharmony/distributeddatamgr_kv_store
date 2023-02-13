@@ -51,7 +51,7 @@ private:
         DBStore *dbStore);
     Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
         const Options &options, DBPassword &dbPassword);
-    void UpdateKeyFile(const std::string &storeId, const std::string &path);
+    bool UpdateKeyFile(const std::string &storeId, const std::string &path);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
