@@ -111,7 +111,7 @@ namespace {
             EXPECT_TRUE(g_kvDelegatePtr->Get(entry.key, resultvalue) == OK);
             EXPECT_TRUE(resultvalue == entry.value);
         }
-        for (int i = 0; i < totalSize / 2; i++) {
+        for (int i = 0; i < totalSize / 2; i++) { // 2: Half of the total
             g_kvDelegatePtr->Delete(entries[i].key);
             Value resultvalue;
             EXPECT_TRUE(g_kvDelegatePtr->Get(entries[i].key, resultvalue) == NOT_FOUND);
@@ -316,20 +316,22 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SametimeSync001, TestSize.Lev
      */
     g_communicatorAggregator->RegOnDispatch([&responseCount, &requestCount, &key, &value](
         const std::string &target, DistributedDB::Message *msg) {
-        if (target == "real_device" && msg->GetMessageId() == DATA_SYNC_MESSAGE) {
-            if (msg->GetMessageType() == TYPE_RESPONSE) {
-                responseCount++;
-                if (responseCount == 1) { // 1 is the ack which B response A's push task
-                    EXPECT_EQ(g_kvDelegatePtr->Put(key, value), DBStatus::OK);
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                } else if (responseCount == 2) { // 2 is the ack which B response A's response_pull task
-                    msg->SetErrorNo(E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
-                }
-            } if (msg->GetMessageType() == TYPE_REQUEST) {
-                requestCount++;
-                if (requestCount == 1) { // 1 is A push task
-                    std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 sec
-                }
+        if (target != "real_device" || msg->GetMessageId() != DATA_SYNC_MESSAGE) {
+            return;
+        }
+
+        if (msg->GetMessageType() == TYPE_RESPONSE) {
+            responseCount++;
+            if (responseCount == 1) { // 1 is the ack which B response A's push task
+                EXPECT_EQ(g_kvDelegatePtr->Put(key, value), DBStatus::OK);
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            } else if (responseCount == 2) { // 2 is the ack which B response A's response_pull task
+                msg->SetErrorNo(E_FEEDBACK_COMMUNICATOR_NOT_FOUND);
+            }
+        } else if (msg->GetMessageType() == TYPE_REQUEST) {
+            requestCount++;
+            if (requestCount == 1) { // 1 is A push task
+                std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 sec
             }
         }
     });

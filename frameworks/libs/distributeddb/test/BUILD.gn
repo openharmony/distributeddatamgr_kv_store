@@ -423,18 +423,19 @@ distributeddb_unittest("DistributedDBInterfacesTransactionSyncDBTest") {
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PSimpleSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_simple_sync_test.cpp" ]
+  sources = [
+    "unittest/common/syncer/distributeddb_single_ver_p2p_simple_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PPermissionSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_permission_sync_test.cpp" ]
+  sources = [ "unittest/common/syncer/distributeddb_single_ver_p2p_permission_sync_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerP2PComplexSyncTest") {
-  sources =
-      [ "unittest/common/syncer/distributeddb_single_ver_p2p_complex_sync_test.cpp" ]
+  sources = [
+    "unittest/common/syncer/distributeddb_single_ver_p2p_complex_sync_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBSingleVerMsgScheduleTest") {
@@ -828,12 +829,12 @@ group("unittest") {
     ":DistributedDBSingleVerDLPTest",
     ":DistributedDBSingleVerMsgScheduleTest",
     ":DistributedDBSingleVerMultiUserTest",
+    ":DistributedDBSingleVerP2PComplexSyncTest",
+    ":DistributedDBSingleVerP2PPermissionSyncTest",
     ":DistributedDBSingleVerP2PQuerySyncTest",
+    ":DistributedDBSingleVerP2PSimpleSyncTest",
     ":DistributedDBSingleVerP2PSubscribeSyncTest",
     ":DistributedDBSingleVerP2PSyncCheckTest",
-    ":DistributedDBSingleVerP2PSimpleSyncTest",
-    ":DistributedDBSingleVerP2PPermissionSyncTest",
-    ":DistributedDBSingleVerP2PComplexSyncTest",
     ":DistributedDBSingleVersionResultSetTest",
     ":DistributedDBSqliteRegisterTest",
     ":DistributedDBSqliteUtilsTest",
