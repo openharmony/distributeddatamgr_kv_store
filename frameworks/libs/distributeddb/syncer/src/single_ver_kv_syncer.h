@@ -38,8 +38,7 @@ public:
     SyncerBasicInfo DumpSyncerBasicInfo() override;
 
 protected:
-    int SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-        const std::vector<std::string> &devices) const override;
+    int SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const override;
 
 private:
     // if trigger full sync, no need to trigger query sync again

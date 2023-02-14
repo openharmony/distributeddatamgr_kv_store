@@ -159,29 +159,29 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
 }
 
-int SingleVerKVSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-    const std::vector<std::string> &devices) const
+int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const
 {
-    if (!isQuerySync) {
+    if (!param.isQuerySync) {
         return E_OK;
     }
-    int errCode = static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->CheckAndInitQueryCondition(query);
+    QuerySyncObject query = param.syncQuery;
+    int errCode = static_cast<SingleVerKvDBSyncInterface *>(storage)->CheckAndInitQueryCondition(query);
     if (errCode != E_OK) {
         LOGE("[SingleVerKVSyncer] QuerySyncObject check failed");
         return errCode;
     }
-    if (mode != SUBSCRIBE_QUERY) {
+    if (param.mode != SUBSCRIBE_QUERY) {
         return E_OK;
     }
     if (query.HasLimit() || query.HasOrderBy()) {
         LOGE("[SingleVerKVSyncer] subscribe query not support limit,offset or orderby");
         return -E_NOT_SUPPORT;
     }
-    if (devices.size() > MAX_DEVICES_NUM) {
+    if (param.devices.size() > MAX_DEVICES_NUM) {
         LOGE("[SingleVerKVSyncer] devices is overlimit");
         return -E_MAX_LIMITS;
     }
-    return syncEngine_->SubscribeLimitCheck(devices, query);
+    return engine->SubscribeLimitCheck(param.devices, query);
 }
 
 void SingleVerKVSyncer::TriggerSubscribe(const std::string &device, const QuerySyncObject &query)

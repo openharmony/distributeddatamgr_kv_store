@@ -462,13 +462,11 @@ bool GenericSyncer::IsValidMode(int mode) const
     return true;
 }
 
-int GenericSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-    const std::vector<std::string> &devices) const
+int GenericSyncer::SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const
 {
-    (void)query;
-    (void)mode;
-    (void)isQuerySync;
-    (void)(devices);
+    (void)param;
+    (void)engine;
+    (void)storage;
     return E_OK;
 }
 
@@ -801,20 +799,33 @@ int GenericSyncer::StatusCheck() const
 
 int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 {
-    std::lock_guard<std::mutex> lock(syncerLock_);
-    int errCode = StatusCheck();
-    if (errCode != E_OK) {
-        return errCode;
+    ISyncEngine *engine = nullptr;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        int errCode = StatusCheck();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) {
+            return -E_INVALID_ARGS;
+        }
+        if (IsQueuedManualSyncFull(param.mode, param.wait)) {
+            LOGE("[Syncer] -E_BUSY");
+            return -E_BUSY;
+        }
+        storage = syncInterface_;
+        engine = syncEngine_;
+        if (storage == nullptr || engine == nullptr) {
+            return -E_BUSY;
+        }
+        storage->IncRefCount();
+        RefObject::IncObjRef(engine);
     }
-    if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) {
-        return -E_INVALID_ARGS;
-    }
-    if (IsQueuedManualSyncFull(param.mode, param.wait)) {
-        LOGE("[Syncer] -E_BUSY");
-        return -E_BUSY;
-    }
-    QuerySyncObject syncQuery = param.syncQuery;
-    return SyncConditionCheck(syncQuery, param.mode, param.isQuerySync, param.devices);
+    bool res = SyncConditionCheck(param, engine, storage);
+    storage->DecRefCount();
+    RefObject::DecObjRef(engine);
+    return res;
 }
 
 void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)

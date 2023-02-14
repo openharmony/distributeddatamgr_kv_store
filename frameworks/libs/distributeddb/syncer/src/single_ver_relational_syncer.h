@@ -35,8 +35,7 @@ protected:
 
     int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId) override;
 
-    int SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-        const std::vector<std::string> &devices) const override;
+    int SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const override;
 
 private:
 
