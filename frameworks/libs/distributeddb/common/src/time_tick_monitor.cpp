@@ -32,11 +32,11 @@ TimeTickMonitor::TimeTickMonitor()
 
 TimeTickMonitor::~TimeTickMonitor()
 {
-    Stop();
+    StopTimeTickMonitor();
     runtimeCxt_ = nullptr;
 }
 
-int TimeTickMonitor::Start()
+int TimeTickMonitor::StartTimeTickMonitor()
 {
     if (isStarted_) {
         return E_OK;
@@ -60,7 +60,7 @@ int TimeTickMonitor::Start()
     return E_OK;
 }
 
-void TimeTickMonitor::Stop()
+void TimeTickMonitor::StopTimeTickMonitor()
 {
     if (!isStarted_) {
         return;
