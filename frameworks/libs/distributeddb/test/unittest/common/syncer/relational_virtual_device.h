@@ -34,6 +34,16 @@ public:
     void SetTableInfo(const TableInfo &tableInfo);
     int Sync(SyncMode mode, bool wait) override;
     void EraseSyncData(const std::string &tableName);
+
+    template<typename T>
+    void PutDeviceData(const std::string &tableName, const std::vector<T> &data)
+    {
+        std::vector<VirtualRowData> dataList;
+        for (const auto &it : data) {
+            dataList.emplace_back(it());
+        }
+        this->PutData(tableName, dataList);
+    }
 };
 }
 #endif

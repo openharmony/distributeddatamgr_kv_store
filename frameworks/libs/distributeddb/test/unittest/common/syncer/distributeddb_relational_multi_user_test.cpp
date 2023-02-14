@@ -293,7 +293,7 @@ namespace {
 
     const AutoLaunchRequestCallback g_callback = [](const std::string &identifier, AutoLaunchParam &param) {
         if (g_identifier != identifier) {
-            LOGE("g_identifier(%s) != identifier(%s)", g_identifier, identifier);
+            LOGE("g_identifier(%s) != identifier(%s)", g_identifier.c_str(), identifier.c_str());
             return false;
         }
         param.path    = g_testDir + "/test2.db";

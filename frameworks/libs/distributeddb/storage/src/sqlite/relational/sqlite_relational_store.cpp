@@ -456,6 +456,16 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     errCode = handle->DeleteDistributedDeviceTable(device, tableName);
     if (errCode != E_OK) {
         LOGE("delete device data failed. %d", errCode);
+        goto END;
+    }
+
+    errCode = handle->DeleteDistributedDeviceTableLog(device, tableName, tables);
+    if (errCode != E_OK) {
+        LOGE("delete device data failed. %d", errCode);
+    }
+
+END:
+    if (errCode != E_OK) {
         (void)handle->Rollback();
         ReleaseHandle(handle);
         return errCode;
