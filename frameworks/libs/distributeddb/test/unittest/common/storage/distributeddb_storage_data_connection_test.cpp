@@ -69,10 +69,6 @@ namespace {
             g_invalidDb = nullptr;
         }
     }
-
-    void TestFunc(const KvDBCommitNotifyData &data)
-    {
-    }
 }
 
 class DistributedDBStorageDataConnectionTest : public testing::Test {
@@ -437,11 +433,12 @@ HWTEST_F(DistributedDBStorageDataConnectionTest, ConnectionTest008, TestSize.Lev
     int result;
     Key key;
     key.push_back('a');
-    KvDBObserverHandle* handle = g_connection->RegisterObserver(
+    KvDBObserverAction func = [&](const KvDBCommitNotifyData &data) {};
+    KvDBObserverHandle *handle = g_connection->RegisterObserver(
         static_cast<unsigned int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_LOCAL_PUT_EVENT), key,
-        TestFunc, result);
+        func, result);
     EXPECT_EQ(result, E_OK);
-    EXPECT_NE(handle, nullptr);
+    ASSERT_NE(handle, nullptr);
     EXPECT_EQ(g_connection->Rekey(passwd), -E_BUSY);
     EXPECT_EQ(g_connection->Import(filePath, passwd), -E_BUSY);
     g_connection->UnRegisterObserver(handle);

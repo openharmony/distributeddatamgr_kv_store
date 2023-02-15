@@ -14,17 +14,31 @@
  */
 #include <condition_variable>
 #include <gtest/gtest.h>
+#include <random>
 #include <vector>
 
 #include "block_data.h"
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "kv_store_nb_delegate.h"
 #include "store_manager.h"
 #include "sys/stat.h"
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
+
+std::vector<uint8_t> Random(int32_t len)
+{
+    std::random_device randomDevice;
+    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<uint8_t>::max());
+    std::vector<uint8_t> key(len);
+    for (int32_t i = 0; i < len; i++) {
+        key[i] = static_cast<uint8_t>(distribution(randomDevice));
+    }
+    return key;
+}
+
 class SingleStoreImplTest : public testing::Test {
 public:
     class TestObserver : public KvStoreObserver {
@@ -57,6 +71,7 @@ public:
 
     std::shared_ptr<SingleKvStore> CreateKVStore(std::string storeIdTest, KvStoreType type, bool encrypt, bool backup);
     std::shared_ptr<SingleKvStore> kvStore_;
+    static constexpr int MAX_RESULTSET_SIZE = 8;
 };
 
 void SingleStoreImplTest::SetUpTestCase(void)
@@ -360,8 +375,8 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
             ASSERT_EQ(status2, SUCCESS);
             subscribedObserver = observer;
         } else {
-            ASSERT_EQ(status1, OVER_MAX_SUBSCRIBE_LIMITS);
-            ASSERT_EQ(status2, OVER_MAX_SUBSCRIBE_LIMITS);
+            ASSERT_EQ(status1, OVER_MAX_LIMITS);
+            ASSERT_EQ(status2, OVER_MAX_LIMITS);
             unSubscribedObserver = observer;
         }
     }
@@ -397,7 +412,7 @@ HWTEST_F(SingleStoreImplTest, SubscribeKvStore002, TestSize.Level0)
     ASSERT_EQ(status, SUCCESS);
     observer = std::make_shared<TestObserver>();
     status = kvStore_->SubscribeKvStore(SUBSCRIBE_TYPE_ALL, observer);
-    ASSERT_EQ(status, OVER_MAX_SUBSCRIBE_LIMITS);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
 }
 
 /**
@@ -484,7 +499,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
     auto status = kvStore->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::vector<Entry> output;
-    status = kvStore->GetEntries({"1"}, output);
+    status = kvStore->GetEntries({ "1" }, output);
     ASSERT_NE(output.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 
@@ -498,7 +513,7 @@ HWTEST_F(SingleStoreImplTest, GetEntries_Less_Prefix, TestSize.Level0)
     status = kvStore_->PutBatch(input);
     ASSERT_EQ(status, SUCCESS);
     std::vector<Entry> output1;
-    status = kvStore_->GetEntries({"1"}, output1);
+    status = kvStore_->GetEntries({ "1" }, output1);
     ASSERT_NE(output1.empty(), true);
     ASSERT_EQ(status, SUCCESS);
 }
@@ -709,6 +724,179 @@ HWTEST_F(SingleStoreImplTest, CloseResultSet, TestSize.Level0)
 }
 
 /**
+ * @tc.name: ResultSetMaxSizeTest
+ * @tc.desc: test if kv supports 8 resultSets at the same time
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Query, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "k_" + std::to_string(i);
+        entry.value = "v_" + std::to_string(i);
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    DataQuery query;
+    query.KeyPrefix("k_");
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE + 1);
+    for (int i = 0; i < MAX_RESULTSET_SIZE; i++) {
+        std::shared_ptr<KvStoreResultSet> output;
+        status = kvStore_->GetResultSet(query, outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+    /**
+     * @tc.steps:step3. Get the resultset while resultset size is over the limit.
+     * @tc.expected: step3. Returns OVER_MAX_LIMITS.
+     */
+    status = kvStore_->GetResultSet(query, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
+    /**
+     * @tc.steps:step4. Close the resultset and getting the resultset is retried
+     * @tc.expected: step4. Returns SUCCESS.
+     */
+    status = kvStore_->CloseResultSet(outputs[0]);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->GetResultSet(query, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, SUCCESS);
+
+    for (int i = 1; i <= MAX_RESULTSET_SIZE; i++) {
+        status = kvStore_->CloseResultSet(outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+}
+
+/**
+ * @tc.name: ResultSetMaxSizeTest
+ * @tc.desc: test if kv supports 8 resultSets at the same time
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, ResultSetMaxSizeTest_Prefix, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<Entry> input;
+    for (int i = 0; i < 10; ++i) {
+        Entry entry;
+        entry.key = "k_" + std::to_string(i);
+        entry.value = "v_" + std::to_string(i);
+        input.push_back(entry);
+    }
+    auto status = kvStore_->PutBatch(input);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::vector<std::shared_ptr<KvStoreResultSet>> outputs(MAX_RESULTSET_SIZE + 1);
+    for (int i = 0; i < MAX_RESULTSET_SIZE; i++) {
+        std::shared_ptr<KvStoreResultSet> output;
+        status = kvStore_->GetResultSet({ "k_i" }, outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+    /**
+     * @tc.steps:step3. Get the resultset while resultset size is over the limit.
+     * @tc.expected: step3. Returns OVER_MAX_LIMITS.
+     */
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, OVER_MAX_LIMITS);
+    /**
+     * @tc.steps:step4. Close the resultset and getting the resultset is retried
+     * @tc.expected: step4. Returns SUCCESS.
+     */
+    status = kvStore_->CloseResultSet(outputs[0]);
+    ASSERT_EQ(status, SUCCESS);
+    status = kvStore_->GetResultSet({ "" }, outputs[MAX_RESULTSET_SIZE]);
+    ASSERT_EQ(status, SUCCESS);
+
+    for (int i = 1; i <= MAX_RESULTSET_SIZE; i++) {
+        status = kvStore_->CloseResultSet(outputs[i]);
+        ASSERT_EQ(status, SUCCESS);
+    }
+}
+
+/**
+ * @tc.name: MaxLogSizeTest
+ * @tc.desc: test if the default max limit of wal is 200MB
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the random entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<uint8_t> key;
+    std::vector<uint8_t> value;
+    key = Random(24);                // for 24B random key
+    value = Random(3 * 1024 * 1024); // 3M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = Random(40); // for 40B random key
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = Random(24);                // for 24B random key
+    value = Random(4 * 1024 * 1024); // 4M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_EQ(output->GetCount(), 3);
+    EXPECT_EQ(output->MoveToFirst(), true);
+    /**
+     * @tc.steps:step3. Put more data into the database.
+     * @tc.expected: step3. Returns SUCCESS.
+     */
+    for (int i = 0; i < 50; i++) {
+        key = Random(16);                // for 16B random key
+        value = Random(4 * 1024 * 1024); // 4M value
+        EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    }
+    /**
+     * @tc.steps:step4. Put more data into the database while the log size is over the limit.
+     * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
+     */
+    key = Random(10);                // for 16B random key
+    value = Random(4 * 1024 * 1024); // 1M value
+    EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
+    /**
+     * @tc.steps:step5. Close the resultset and put again.
+     * @tc.expected: step4. Return SUCCESS.
+     */
+
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    value = Random(1 * 1024 * 1024); // 1M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+}
+
+/**
  * @tc.name: Move_Offset
  * @tc.desc: Move the ResultSet Relative Distance
  * @tc.type: FUNC
@@ -826,7 +1014,7 @@ HWTEST_F(SingleStoreImplTest, RemoveDeviceData, TestSize.Level0)
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
     ASSERT_EQ(count, 10);
-    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().networkId);
+    status = store->RemoveDeviceData(DevManager::GetInstance().GetLocalDevice().uuid);
     ASSERT_EQ(status, SUCCESS);
     status = store->GetCount({}, count);
     ASSERT_EQ(status, SUCCESS);
@@ -1015,9 +1203,7 @@ HWTEST_F(SingleStoreImplTest, RemoveNullDeviceData, TestSize.Level0)
     auto store = CreateKVStore("DeviceKVStore", DEVICE_COLLABORATION, false, true);
     ASSERT_NE(store, nullptr);
     std::vector<Entry> input;
-    auto cmp = [](const Key &entry, const Key &sentry) {
-        return entry.Data() < sentry.Data();
-    };
+    auto cmp = [](const Key &entry, const Key &sentry) { return entry.Data() < sentry.Data(); };
     std::map<Key, Value, decltype(cmp)> dictionary(cmp);
     for (int i = 0; i < 10; ++i) {
         Entry entry;
@@ -1293,4 +1479,4 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
     status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
     ASSERT_EQ(status, SUCCESS);
 }
-}
+} // namespace OHOS::Test

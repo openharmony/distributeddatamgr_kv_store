@@ -30,16 +30,18 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(TimeTickMonitor);
 
     // Start the TimeTickMonitor
-    int Start();
+    int StartTimeTickMonitor();
 
     // Stop the TimeTickMonitor
-    void Stop();
+    void StopTimeTickMonitor();
 
     // Register a time changed lister, it will be callback when local time changed.
     NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode);
 
     // Notify TIME_CHANGE_EVENT.
     void NotifyTimeChange(TimeOffset offset) const;
+
+    bool EmptyListener() const;
 private:
     static constexpr  uint64_t MONITOR_INTERVAL = 1 * 1000; // 1s
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms

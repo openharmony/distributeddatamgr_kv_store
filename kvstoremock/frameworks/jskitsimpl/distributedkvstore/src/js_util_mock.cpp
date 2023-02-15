@@ -56,8 +56,7 @@ public:
         bool isSystemApp = true;
     };
     
-    class ContextMcok
-    {        
+    class ContextMock {
     public:
         int GetArea()
         {
@@ -88,10 +87,10 @@ public:
         }
     };
 
-    std::shared_ptr<ContextMcok> GetAbilityContext()
+    std::shared_ptr<ContextMock> GetAbilityContext()
     {
-        return std::make_shared<ContextMcok>();
-    }    
+        return std::make_shared<ContextMock>();
+    }
 };
 
 namespace AbilityRuntime {

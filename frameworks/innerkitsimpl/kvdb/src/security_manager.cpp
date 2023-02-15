@@ -14,14 +14,18 @@
  */
 #define LOG_TAG "SECURITYMANAGER"
 #include "security_manager.h"
+
+#include <chrono>
 #include <limits>
 #include <random>
 #include <unistd.h>
-#include "log_print.h"
+
+#include "file_ex.h"
 #include "hks_api.h"
 #include "hks_param.h"
-#include "file_ex.h"
+#include "log_print.h"
 #include "securec.h"
+#include "store_types.h"
 #include "store_util.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
@@ -61,26 +65,26 @@ bool SecurityManager::Retry()
     return false;
 }
 
-SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name, const std::string &path,
-    bool needCreate)
+SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &name,
+    const std::string &path, bool needCreate)
 {
-    DBPassword password;
-    auto secKey = LoadKeyFromFile(name, path);
+    DBPassword dbPassword;
+    auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
     if (secKey.empty() && needCreate) {
         secKey = Random(KEY_SIZE);
         if (!SaveKeyToFile(name, path, secKey)) {
             secKey.assign(secKey.size(), 0);
-            return password;
+            return dbPassword;
         }
     }
 
-    password.SetValue(secKey.data(), secKey.size());
+    dbPassword.SetValue(secKey.data(), secKey.size());
     secKey.assign(secKey.size(), 0);
-    return password;
+    return dbPassword;
 }
 
 bool SecurityManager::SaveDBPassword(const std::string &name, const std::string &path,
-    const SecurityManager::DBPassword &key)
+    const DistributedDB::CipherPassword &key)
 {
     std::vector<uint8_t> pwd(key.GetData(), key.GetData() + key.GetSize());
     auto result = SaveKeyToFile(name, path, pwd);
@@ -105,7 +109,8 @@ std::vector<uint8_t> SecurityManager::Random(int32_t len)
     return key;
 }
 
-std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path)
+std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, const std::string &path,
+    bool &isOutdated)
 {
     auto keyPath = path + "/key/" + name + ".key";
     if (!FileExists(keyPath)) {
@@ -130,6 +135,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     offset++;
     std::vector<uint8_t> date;
     date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
+    isOutdated = IsKeyOutdated(date);
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     content.assign(content.size(), 0);
@@ -147,7 +153,6 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
         ZLOGE("failed! no root key and generation failed");
         return false;
     }
-    
     auto secretKey = Encrypt(key);
     auto keyPath = path + "/key";
     StoreUtil::InitPath(keyPath);
@@ -342,4 +347,12 @@ int32_t SecurityManager::CheckRootKey()
     ZLOGI("HksKeyExist status: %{public}d", ret);
     return ret;
 }
+
+bool SecurityManager::IsKeyOutdated(const std::vector<uint8_t> &date)
+{
+    time_t time = *reinterpret_cast<time_t *>(const_cast<uint8_t *>(&date[0]));
+    auto createTime = std::chrono::system_clock::from_time_t(time);
+    return ((createTime + std::chrono::hours(HOURS_PER_YEAR)) < std::chrono::system_clock::now());
+}
+
 } // namespace OHOS::DistributedKv

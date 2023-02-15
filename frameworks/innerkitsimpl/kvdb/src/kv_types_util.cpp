@@ -95,7 +95,7 @@ bool Unmarshalling(ChangeNotification &output, MessageParcel &parcel)
     std::vector<Entry> deletes;
     std::string deviceId;
     bool isClear = false;
-    if(!ITypesUtil::Unmarshal(parcel, inserts, updates, deletes, deviceId, isClear)) {
+    if (!ITypesUtil::Unmarshal(parcel, inserts, updates, deletes, deviceId, isClear)) {
         return false;
     }
     output = ChangeNotification(std::move(inserts), std::move(updates), std::move(deletes), deviceId, isClear);
@@ -158,6 +158,18 @@ template<>
 bool Unmarshalling(SyncPolicy &output, MessageParcel &data)
 {
     return ITypesUtil::Unmarshal(data, output.type, output.value);
+}
+
+template<>
+bool Marshalling(const DevBrief &input, MessageParcel &data)
+{
+    return ITypesUtil::Marshal(data, input.uuid, input.networkId);
+}
+
+template<>
+bool Unmarshalling(DevBrief &output, MessageParcel &data)
+{
+    return ITypesUtil::Unmarshal(data, output.uuid, output.networkId);
 }
 
 int64_t GetTotalSize(const std::vector<Entry> &entries)

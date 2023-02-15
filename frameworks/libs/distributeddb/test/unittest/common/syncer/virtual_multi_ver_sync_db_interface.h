@@ -103,4 +103,3 @@ private:
 }  // namespace DistributedDB
 #endif // OMIT_MULTI_VER
 #endif // VIRTUAL_MULTI_VER_SYNC_INTERFACE
-

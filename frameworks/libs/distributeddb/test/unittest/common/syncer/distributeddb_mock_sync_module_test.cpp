@@ -69,7 +69,7 @@ public:
 private:
     SyncerProxy syncer_;
 };
-class TestInterface : public TestKvDb, public VirtualSingleVerSyncDBInterface {
+class TestInterface : public TestKvDb, public VirtualSingleVerSyncDBInterface, public RefObject {
 public:
     TestInterface() {}
     ~TestInterface()
@@ -87,6 +87,16 @@ public:
     void TestSetIdentifier(std::vector<uint8_t> &identifierVec)
     {
         VirtualSingleVerSyncDBInterface::SetIdentifier(identifierVec);
+    }
+
+    void IncRefCount() override
+    {
+        RefObject::IncObjRef(this);
+    }
+
+    void DecRefCount() override
+    {
+        RefObject::DecObjRef(this);
     }
 };
 
@@ -937,7 +947,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
     syncDBInterface->Initialize();
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
-    delete syncDBInterface;
+    virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
+    syncDBInterface->Close();
+    RefObject::KillAndDecObjRef(syncDBInterface);
+    RuntimeContext::GetInstance()->StopTaskPool();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 

@@ -13,13 +13,15 @@
  * limitations under the License.
  */
 #define LOG_TAG "StoreUtil"
+#include "store_util.h"
+
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <fcntl.h>
+
 #include "log_print.h"
 #include "types.h"
-#include "store_util.h"
 namespace OHOS::DistributedKv {
 constexpr mode_t DEFAULT_UMASK = 0002;
 constexpr int32_t HEAD_SIZE = 3;
@@ -136,7 +138,7 @@ Status StoreUtil::ConvertStatus(DBStatus status)
         case DBStatus::TIME_OUT:
             return Status::TIME_OUT;
         case DBStatus::OVER_MAX_LIMITS:
-            return Status::OVER_MAX_SUBSCRIBE_LIMITS;
+            return Status::OVER_MAX_LIMITS;
         case DBStatus::INVALID_PASSWD_OR_CORRUPTED_DB:
             return Status::CRYPT_ERROR;
         case DBStatus::SCHEMA_MISMATCH:

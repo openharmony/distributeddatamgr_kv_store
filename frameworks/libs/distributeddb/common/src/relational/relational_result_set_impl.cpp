@@ -14,6 +14,7 @@
  */
 #ifdef RELATIONAL_STORE
 #include "relational_result_set_impl.h"
+#include <mutex>
 #include "kv_store_errno.h"
 
 namespace DistributedDB {

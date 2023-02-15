@@ -24,5 +24,5 @@
 namespace OHOS::DistributedObject {
 class IObjectService : public ObjectService, public IRemoteBroker {
 };
-} // namespace OHOS::DistributedRdb
+} // namespace OHOS::DistributedObject
 #endif

@@ -71,7 +71,7 @@ napi_value JsKVStoreResultSet::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(resultSet != nullptr, "finalize null!");
         delete resultSet;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, resultSet, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, resultSet, finalize, nullptr, nullptr), resultSet);
     return ctxt->self;
 }
 

@@ -107,6 +107,7 @@ public:
 
 protected:
     static BrokerDelegator<KVDBServiceMock> delegator_;
+    static constexpr int SLEEP_TIME = 10;
 };
 BrokerDelegator<AutoSyncTimerTest::KVDBServiceMock> AutoSyncTimerTest::delegator_;
 AutoSyncTimerTest::KVDBServiceMock *AutoSyncTimerTest::KVDBServiceMock::instance_ = nullptr;
@@ -124,12 +125,12 @@ void AutoSyncTimerTest::SetUp(void)
 
 void AutoSyncTimerTest::TearDown(void)
 {
-    sleep(10); // make sure the case has executed completely
+    sleep(SLEEP_TIME); // make sure the case has executed completely
 }
 
 /**
 * @tc.name: SingleWrite
-* @tc.desc: get the store id of the kv store
+* @tc.desc:  single write
 * @tc.type: FUNC
 * @tc.require: I4XVQQ
 * @tc.author: Yang Qing
@@ -151,13 +152,13 @@ HWTEST_F(AutoSyncTimerTest, SingleWrite, TestSize.Level0)
 }
 
 /**
-* @tc.name: MultiWrite
-* @tc.desc: get the store id of the kv store
+* @tc.name: MultiWriteBelowDelayTime
+* @tc.desc: write every 40 milliseconds
 * @tc.type: FUNC
 * @tc.require: I4XVQQ
 * @tc.author: Yang Qing
 */
-HWTEST_F(AutoSyncTimerTest, MultiWrite, TestSize.Level1)
+HWTEST_F(AutoSyncTimerTest, MultiWriteBelowDelayTime, TestSize.Level1)
 {
     auto *instance = KVDBServiceMock::GetInstance();
     ASSERT_NE(instance, nullptr);
@@ -169,12 +170,74 @@ HWTEST_F(AutoSyncTimerTest, MultiWrite, TestSize.Level1)
     std::thread thread([&finished] {
         while (!finished.load()) {
             AutoSyncTimer::GetInstance().DoAutoSync("ut_test", { { "ut_test_store" } });
-            usleep(40);
+            std::this_thread::sleep_for(std::chrono::milliseconds(40));
         }
     });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
     ASSERT_GE(instance->endTime - instance->startTime, 200);
     ASSERT_LT(instance->endTime - instance->startTime, 250);
+    finished.store(true);
+    thread.join();
+    auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
+    ASSERT_EQ(it->second.count("ut_test_store"), 1);
+}
+
+/**
+* @tc.name: MultiWriteOverDelayTime
+* @tc.desc: write every 150 milliseconds
+* @tc.type: FUNC
+* @tc.require: I4XVQQ
+* @tc.author: Yang Qing
+ */
+HWTEST_F(AutoSyncTimerTest, MultiWriteOverDelayTime, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->ResetToZero();
+    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+    instance->endTime = 0;
+    instance->values_.clear();
+    std::atomic_bool finished = false;
+    std::thread thread([&finished] {
+        while (!finished.load()) {
+            AutoSyncTimer::GetInstance().DoAutoSync("ut_test", { { "ut_test_store" } });
+            std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        }
+    });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    ASSERT_LT(instance->endTime - instance->startTime, 100);
+    finished.store(true);
+    thread.join();
+    auto it = instance->values_.find("ut_test");
+    ASSERT_NE(it, instance->values_.end());
+    ASSERT_EQ(it->second.count("ut_test_store"), 1);
+}
+
+/**
+* @tc.name: MultiWriteOverForceTime
+* @tc.desc: write every 400 milliseconds
+* @tc.type: FUNC
+* @tc.require: I4XVQQ
+* @tc.author: Yang Qing
+ */
+HWTEST_F(AutoSyncTimerTest, MultiWriteOverForceTime, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->ResetToZero();
+    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+    instance->endTime = 0;
+    instance->values_.clear();
+    std::atomic_bool finished = false;
+    std::thread thread([&finished] {
+        while (!finished.load()) {
+            AutoSyncTimer::GetInstance().DoAutoSync("ut_test", { { "ut_test_store" } });
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        }
+    });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    ASSERT_LT(instance->endTime - instance->startTime, 100);
     finished.store(true);
     thread.join();
     auto it = instance->values_.find("ut_test");
@@ -227,4 +290,123 @@ HWTEST_F(AutoSyncTimerTest, SingleWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
 }
+
+/**
+* @tc.name: MultiWriteOvertenKVStores
+* @tc.desc: mulity wirte
+* @tc.type: FUNC
+* @tc.require: I4XVQQ
+* @tc.author: YangQing
+*/
+HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->ResetToZero();
+    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+    instance->endTime = 0;
+    instance->values_.clear();
+    std::atomic_bool finished = false;
+    std::thread thread([&finished] {
+        while (!finished.load()) {
+            AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {
+                                                                   { "ut_test_store0" },
+                                                                   { "ut_test_store1" },
+                                                                   { "ut_test_store2" },
+                                                                   { "ut_test_store3" },
+                                                                   { "ut_test_store4" },
+                                                                   { "ut_test_store5" },
+                                                                   { "ut_test_store6" },
+                                                                   { "ut_test_store7" },
+                                                                   { "ut_test_store8" },
+                                                                   { "ut_test_store9" },
+                                                                   { "ut_test_store10" },
+                                                               });
+            usleep(40);
+        }
+    });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    ASSERT_GE(instance->endTime - instance->startTime, 200);
+    ASSERT_LT(instance->endTime - instance->startTime, 250);
+    finished.store(true);
+    thread.join();
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(11)), 11);
+    auto it = instance->values_.find("ut_test");
+    ASSERT_EQ(it->second.count("ut_test_store0"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store1"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store2"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store3"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store4"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store5"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store6"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store8"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store9"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store10"), 1);
 }
+
+/**
+* @tc.name: DoubleWrite
+* @tc.desc: double wirte
+* @tc.type: FUNC
+* @tc.require: I4XVQQ
+* @tc.author: YangQing
+ */
+HWTEST_F(AutoSyncTimerTest, DoubleWrite, TestSize.Level1)
+{
+    auto *instance = KVDBServiceMock::GetInstance();
+    ASSERT_NE(instance, nullptr);
+    instance->ResetToZero();
+    instance->startTime = time_point_cast<milliseconds>(system_clock::now()).time_since_epoch().count();
+    instance->endTime = 0;
+    instance->values_.clear();
+    AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {
+                                                           { "ut_test_store0" },
+                                                           { "ut_test_store1" },
+                                                           { "ut_test_store2" },
+                                                           { "ut_test_store3" },
+                                                           { "ut_test_store4" },
+                                                           { "ut_test_store5" },
+                                                           { "ut_test_store6" },
+                                                           { "ut_test_store7" },
+                                                           { "ut_test_store8" },
+                                                           { "ut_test_store9" },
+                                                           { "ut_test_store10" },
+                                                       });
+    AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {
+                                                           { "ut_test_store-0" },
+                                                           { "ut_test_store-1" },
+                                                           { "ut_test_store-2" },
+                                                           { "ut_test_store-3" },
+                                                           { "ut_test_store-4" },
+                                                           { "ut_test_store-5" },
+                                                           { "ut_test_store-6" },
+                                                           { "ut_test_store-7" },
+                                                           { "ut_test_store-8" },
+                                                       });
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
+    ASSERT_LT(instance->endTime - instance->startTime, 100);
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(20)), 20);
+    auto it = instance->values_.find("ut_test");
+    ASSERT_EQ(it->second.count("ut_test_store0"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store1"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store2"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store3"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store4"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store5"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store6"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store8"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store9"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store10"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-0"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-1"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-2"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-3"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-4"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-5"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-6"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-8"), 1);
+}
+} // namespace OHOS::Test

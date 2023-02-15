@@ -39,7 +39,7 @@ public:
                         MessageParcel &reply, MessageOption &option) override;
 };
 
-class KvStoreObserverProxy : public IRemoteProxy<IKvStoreObserver> {
+class API_EXPORT KvStoreObserverProxy : public IRemoteProxy<IKvStoreObserver> {
 public:
     explicit KvStoreObserverProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreObserverProxy() = default;

@@ -53,9 +53,14 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
                 delete data;
                 delete work;
             });
+            napi_handle_scope scope = nullptr;
+            napi_open_handle_scope(entry->env, &scope);
             napi_value method = entry->callback(entry->env);
             if (method == nullptr) {
                 ZLOGE("the callback is invalid, maybe is cleared!");
+                if (scope != nullptr) {
+                    napi_close_handle_scope(entry->env, scope);
+                }
                 return ;
             }
             int argc = 0;
@@ -71,6 +76,9 @@ void UvQueue::AsyncCall(NapiCallbackGetter getter, NapiArgsGenerator genArgs)
             napi_status status = napi_call_function(entry->env, global, method, argc, argv, &result);
             if (status != napi_ok) {
                 ZLOGE("notify data change failed status:%{public}d.", status);
+            }
+            if (scope != nullptr) {
+                napi_close_handle_scope(entry->env, scope);
             }
         });
 }
