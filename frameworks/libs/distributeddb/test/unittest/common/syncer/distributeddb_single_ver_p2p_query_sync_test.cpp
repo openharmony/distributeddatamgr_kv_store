@@ -549,7 +549,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, NormalSync006, TestSize.Level1)
      * @tc.steps: step1. init db and 32 devices
      */
     InitNormalDb();
-    uint32_t syncDevCount = 1u;
+    uint32_t syncDevCount = 32u;
     std::vector<KvVirtualDevice *> virtualDeviceVec(syncDevCount, nullptr);
     const std::string device = "deviceTmp_";
     std::vector<std::string> devices;

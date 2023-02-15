@@ -254,7 +254,11 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     VirtualSingleVerSyncDBInterface dbSyncInterface;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
 
+    syncTaskContext.SetLastRequestSessionId(1u);
     EXPECT_CALL(syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
+    EXPECT_CALL(syncTaskContext, Clear()).WillRepeatedly([&syncTaskContext]() {
+        syncTaskContext.SetLastRequestSessionId(0u);
+    });
     EXPECT_CALL(syncTaskContext, MoveToNextTarget()).WillRepeatedly(Return());
     EXPECT_CALL(syncTaskContext, IsCurrentSyncTaskCanBeSkipped()).WillOnce(Return(true)).WillOnce(Return(false));
     // we expect machine don't change context status when queue not empty
@@ -263,6 +267,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck003, TestSize.Level1)
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).Times(0);
 
     EXPECT_EQ(stateMachine.CallExecNextTask(), E_OK);
+    EXPECT_EQ(syncTaskContext.GetLastRequestSessionId(), 0u);
 }
 
 /**

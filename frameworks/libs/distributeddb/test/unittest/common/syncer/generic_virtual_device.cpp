@@ -105,7 +105,6 @@ int GenericVirtualDevice::Initialize(VirtualCommunicatorAggregator *comAggregato
 	return -E_NOT_SUPPORT;
 #endif // OMIT_MULTI_VER
     }
-
     if (context_ == nullptr) {
         return -E_OUT_OF_MEMORY;
     }

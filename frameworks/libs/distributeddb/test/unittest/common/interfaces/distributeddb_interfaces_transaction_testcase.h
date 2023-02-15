@@ -82,5 +82,5 @@ public:
     static void RollBack008(DistributedDB::KvStoreDelegate *&kvDelegatePtr,
         DistributedDB::KvStoreSnapshotDelegate *&snapshotDelegatePtr);
 };
-#endif
 #endif // OMIT_MULTI_VER
+#endif // DISTRIBUTEDDB_INTERFACES_TRANSACTION_TESTCASE_H
