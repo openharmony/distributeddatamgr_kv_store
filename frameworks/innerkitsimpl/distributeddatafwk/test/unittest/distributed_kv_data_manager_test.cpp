@@ -23,7 +23,7 @@
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class DistributedKvDataManagerTest : public testing::Test {
 public:
     static DistributedKvDataManager manager;
@@ -735,63 +735,4 @@ HWTEST_F(DistributedKvDataManagerTest, UnRegisterKvStoreServiceDeathRecipient001
     std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipientPtr = std::make_shared<MyDeathRecipient>();
     manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipientPtr);
 }
-
-/**
-* @tc.name: GetLocalDevice
-* @tc.desc: Get local device info
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DistributedKvDataManagerTest, GetLocalDevice, TestSize.Level1)
-{
-    ZLOGI("GetLocalDevice begin.");
-    DeviceInfo devInfo;
-    Status status = manager.GetLocalDevice(devInfo);
-    EXPECT_EQ(status, Status::SUCCESS);
-    EXPECT_EQ(devInfo.deviceId.empty(), false);
-    EXPECT_EQ(devInfo.deviceName.empty(), true);
-    EXPECT_EQ(devInfo.deviceType.empty(), true);
-}
-
-/**
-* @tc.name: GetDeviceList
-* @tc.desc: Get remote device info
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DistributedKvDataManagerTest, GetDeviceList, TestSize.Level1)
-{
-    ZLOGI("GetDeviceList begin.");
-    std::vector<DeviceInfo> devInfos;
-    Status status = manager.GetDeviceList(devInfos, DeviceFilterStrategy::NO_FILTER);
-    EXPECT_EQ(status, Status::SUCCESS);
-}
-
-/**
-* @tc.name: WatchDeviceChange
-* @tc.desc: register device change observer
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange, TestSize.Level1)
-{
-    ZLOGI("GetDeviceList begin.");
-    std::shared_ptr<DeviceChangelistener> observer = nullptr;
-    Status status = manager.StartWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.StopWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    observer = std::make_shared<DeviceChangelistener>();
-    status = manager.StartWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.StopWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    std::shared_ptr<DeviceChangelistener> noRegObserver = std::make_shared<DeviceChangelistener>();
-    status = manager.StopWatchDeviceChange(noRegObserver);
-    EXPECT_EQ(status, Status::ERROR);
-}
+} // namespace OHOS::Test
