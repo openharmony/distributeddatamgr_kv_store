@@ -22,7 +22,6 @@
 #include "kvstore_observer.h"
 #include "single_kvstore.h"
 #include "types.h"
-#include "device_status_change_listener.h"
 
 namespace OHOS {
 namespace DistributedKv {
