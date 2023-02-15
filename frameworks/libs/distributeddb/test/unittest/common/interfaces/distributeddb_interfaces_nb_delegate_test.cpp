@@ -2465,3 +2465,54 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore002, TestSize.Level1)
     EXPECT_EQ(openStatus, INVALID_ARGS);
     EXPECT_EQ(mgr.CloseKvStore(localDelegate), OK);
 }
+
+/**
+  * @tc.name: PutSync001
+  * @tc.desc: put data and sync at same time
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutSync001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Create database with localOnly.
+     * @tc.expected: step1. Returns a non-null store.
+     */
+    KvStoreDelegateManager mgr(APP_ID, USER_ID);
+    mgr.SetKvStoreConfig(g_config);
+    const KvStoreNbDelegate::Option option = {true, false, false};
+    mgr.GetKvStore(STORE_ID_1, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    /**
+     * @tc.steps:step2. Put data async.
+     * @tc.expected: step2. Always returns OK.
+     */
+    std::atomic<bool> finish = false;
+    std::thread putThread([&finish]() {
+        while (!finish) {
+            EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+        }
+    });
+    /**
+     * @tc.steps:step3. Call sync async.
+     * @tc.expected: step3. Always returns OK.
+     */
+    std::thread syncThread([]() {
+        std::vector<std::string> devices;
+        devices.emplace_back("");
+        Key key = {'k'};
+        for (int i = 0; i < 100; ++i) { // sync 100 times
+            Query query = Query::Select().PrefixKey(key);
+            DBStatus status = g_kvNbDelegatePtr->Sync(devices, SYNC_MODE_PULL_ONLY, nullptr, query, true);
+            EXPECT_EQ(status, OK);
+        }
+    });
+    syncThread.join();
+    finish = true;
+    putThread.join();
+    EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}

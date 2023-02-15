@@ -801,9 +801,10 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 {
     ISyncEngine *engine = nullptr;
     ISyncInterface *storage = nullptr;
+    int errCode = E_OK;
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
-        int errCode = StatusCheck();
+        errCode = StatusCheck();
         if (errCode != E_OK) {
             return errCode;
         }
@@ -822,10 +823,10 @@ int GenericSyncer::SyncPreCheck(const SyncParma &param) const
         storage->IncRefCount();
         RefObject::IncObjRef(engine);
     }
-    bool res = SyncConditionCheck(param, engine, storage);
+    errCode = SyncConditionCheck(param, engine, storage);
     storage->DecRefCount();
     RefObject::DecObjRef(engine);
-    return res;
+    return errCode;
 }
 
 void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)
