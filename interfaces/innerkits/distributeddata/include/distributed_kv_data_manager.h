@@ -97,6 +97,23 @@ public:
     API_EXPORT void RegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
 
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
+
+    // Get all connected devices.
+    // Client can use this method to retrieve all devices that have already connected,
+    // and then call StartWatchDeviceChange to watch device status change later.
+    // Parameters:
+    //     deviceInfoList: list of all connected device will be returned by this parameter.
+    // Return:
+    //     Status of this get device list operation.
+    API_EXPORT Status GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy);
+
+    // Get device.
+    // Client can use this method to retrieve local device,
+    // Parameters:
+    //     localDevice: DeviceInfo will be returned by this parameter.
+    // Return:
+    //     Status of this get device operation.
+    API_EXPORT Status GetLocalDevice(DeviceInfo &localDevice);
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

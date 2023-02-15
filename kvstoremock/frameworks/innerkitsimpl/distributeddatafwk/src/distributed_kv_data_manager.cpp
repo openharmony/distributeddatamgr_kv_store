@@ -142,15 +142,5 @@ Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceIn
 {
     return SUCCESS;
 }
-
-Status DistributedKvDataManager::StartWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
-{
-    return Status::SUCCESS;
-}
-
-Status DistributedKvDataManager::StopWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
-{
-    return SUCCESS;
-}
 }  // namespace DistributedKv
 }  // namespace OHOS

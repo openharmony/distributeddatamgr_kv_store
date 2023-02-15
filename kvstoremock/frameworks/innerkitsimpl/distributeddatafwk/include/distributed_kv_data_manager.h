@@ -98,24 +98,6 @@ public:
 
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
 
-    // Subscribe device status change, like online or offline.
-    // Client should override AppDeviceChangeListener and register it by this function, observer->OnDeviceChanged
-    // will be called on remote device status change.
-    // Parameters:
-    //     observer: callback for device status change event.
-    // Return:
-    //     Status of this subscribe operation.
-    API_EXPORT Status StartWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer);
-
-    // Unsubscribe device status change, like online or offline.
-    // client should override AppDeviceChangeListener and register it by calling this function, then
-    // observer->OnDeviceChanged will no longer be called on remote device status change.
-    // Parameters:
-    //     observer: callback for device status change event.
-    // Return:
-    //     Status of this unsubscribe operation.
-    API_EXPORT Status StopWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer);
-
     // Get all connected devices.
     // Client can use this method to retrieve all devices that have already connected,
     // and then call StartWatchDeviceChange to watch device status change later.
