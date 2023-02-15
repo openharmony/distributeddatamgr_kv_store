@@ -57,15 +57,6 @@ public:
     void OnRemoteDied() override {}
 };
 
-class DeviceChangelistener : public DeviceStatusChangeListener {
-public:
-    void OnDeviceChanged(const DeviceInfo &info, const DeviceChangeType &type) const override {}
-    DeviceFilterStrategy GetFilterStrategy() const override
-    {
-        return DeviceFilterStrategy::NO_FILTER;
-    }
-};
-
 DistributedKvDataManager DistributedKvDataManagerTest::manager;
 Options DistributedKvDataManagerTest::create;
 Options DistributedKvDataManagerTest::noCreate;
