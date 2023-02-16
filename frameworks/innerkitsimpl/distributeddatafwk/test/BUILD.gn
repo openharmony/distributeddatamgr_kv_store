@@ -45,7 +45,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/blob.cpp",
     "../src/change_notification.cpp",
     "../src/data_query.cpp",
-    "../src/device_status_change_listener_client.cpp",
     "../src/distributed_kv_data_manager.cpp",
     "../src/ikvstore_client_death_observer.cpp",
     "../src/ikvstore_data_service.cpp",

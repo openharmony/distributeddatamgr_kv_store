@@ -17,13 +17,12 @@
 #include <gtest/gtest.h>
 #include <vector>
 
-#include "device_status_change_listener.h"
 #include "kvstore_death_recipient.h"
 #include "log_print.h"
 #include "types.h"
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
-
+namespace OHOS::Test {
 class DistributedKvDataManagerTest : public testing::Test {
 public:
     static DistributedKvDataManager manager;
@@ -56,15 +55,6 @@ public:
     MyDeathRecipient() {}
     virtual ~MyDeathRecipient() {}
     void OnRemoteDied() override {}
-};
-
-class DeviceChangelistener : public DeviceStatusChangeListener {
-public:
-    void OnDeviceChanged(const DeviceInfo &info, const DeviceChangeType &type) const override {}
-    DeviceFilterStrategy GetFilterStrategy() const override
-    {
-        return DeviceFilterStrategy::NO_FILTER;
-    }
 };
 
 DistributedKvDataManager DistributedKvDataManagerTest::manager;
@@ -768,30 +758,4 @@ HWTEST_F(DistributedKvDataManagerTest, GetDeviceList, TestSize.Level1)
     Status status = manager.GetDeviceList(devInfos, DeviceFilterStrategy::NO_FILTER);
     EXPECT_EQ(status, Status::SUCCESS);
 }
-
-/**
-* @tc.name: WatchDeviceChange
-* @tc.desc: register device change observer
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(DistributedKvDataManagerTest, WatchDeviceChange, TestSize.Level1)
-{
-    ZLOGI("GetDeviceList begin.");
-    std::shared_ptr<DeviceChangelistener> observer = nullptr;
-    Status status = manager.StartWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.StopWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    observer = std::make_shared<DeviceChangelistener>();
-    status = manager.StartWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-    status = manager.StopWatchDeviceChange(observer);
-    EXPECT_EQ(status, Status::SUCCESS);
-
-    std::shared_ptr<DeviceChangelistener> noRegObserver = std::make_shared<DeviceChangelistener>();
-    status = manager.StopWatchDeviceChange(noRegObserver);
-    EXPECT_EQ(status, Status::ERROR);
-}
+} // namespace OHOS::Test

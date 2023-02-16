@@ -190,11 +190,6 @@ struct KvSyncParam {
     uint32_t allowedDelayMs { 0 };
 };
 
-enum class DeviceChangeType {
-    DEVICE_OFFLINE = 0,
-    DEVICE_ONLINE = 1,
-};
-
 struct DeviceInfo {
     std::string deviceId;
     std::string deviceName;
