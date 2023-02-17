@@ -62,6 +62,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
     return { LOG_CORE, 0xD001651, "DataShare" };
 }
 } // end namespace DataShare
+
+namespace DistributedObject {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001654, "DOBJECT" };
+}
+} // end namespace DistributedObject
 } // end namespace OHOS
 
 #define ZLOGD(fmt, ...) \
