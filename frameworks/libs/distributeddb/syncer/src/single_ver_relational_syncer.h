@@ -35,7 +35,7 @@ protected:
 
     int PrepareSync(const SyncParma &param, uint32_t syncId, uint64_t connectionId) override;
 
-    int SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const override;
+    int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
 
 private:
 

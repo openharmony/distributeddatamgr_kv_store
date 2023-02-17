@@ -159,7 +159,8 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
 }
 
-int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const
+int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
+    ISyncInterface *storage) const
 {
     if (!param.isQuerySync) {
         return E_OK;

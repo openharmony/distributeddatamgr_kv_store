@@ -38,7 +38,7 @@ public:
     SyncerBasicInfo DumpSyncerBasicInfo() override;
 
 protected:
-    int SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const override;
+    int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
 
 private:
     // if trigger full sync, no need to trigger query sync again

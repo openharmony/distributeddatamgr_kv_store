@@ -167,7 +167,7 @@ void SingleVerRelationalSyncer::SchemaChangeCallback()
     syncEngine_->SchemaChange();
 }
 
-int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, ISyncEngine *engine,
+int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
     ISyncInterface *storage) const
 {
     if (!param.isQuerySync) {

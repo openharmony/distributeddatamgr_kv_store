@@ -462,7 +462,7 @@ bool GenericSyncer::IsValidMode(int mode) const
     return true;
 }
 
-int GenericSyncer::SyncConditionCheck(const SyncParma &param, ISyncEngine *engine, ISyncInterface *storage) const
+int GenericSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const
 {
     (void)param;
     (void)engine;
