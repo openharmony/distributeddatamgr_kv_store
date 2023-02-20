@@ -15,6 +15,7 @@
 #ifndef SCHEMA_NEGOTIATE_H
 #define SCHEMA_NEGOTIATE_H
 
+#include "db_types.h"
 #include "relational_schema_object.h"
 #include "schema_object.h"
 
@@ -32,8 +33,8 @@ struct SyncStrategy {
     bool checkOnReceive = false;
 };
 
-using RelationalSyncOpinion = std::map<std::string, SyncOpinion>;
-using RelationalSyncStrategy = std::map<std::string, SyncStrategy>;
+using RelationalSyncOpinion = std::map<std::string, SyncOpinion, CaseInsensitiveComparator>;
+using RelationalSyncStrategy = std::map<std::string, SyncStrategy, CaseInsensitiveComparator>;
 
 class SchemaNegotiate {
 public:

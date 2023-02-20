@@ -1411,7 +1411,7 @@ int SQLiteUtils::RegisterGetLastTime(sqlite3 *db)
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
 {
     std::string sql = "CREATE TABLE IF NOT EXISTS '" + newTableName + "' (";
-    const std::map<FieldName, FieldInfo> &fields = baseTbl.GetFields();
+    const FieldInfoMap &fields = baseTbl.GetFields();
     for (uint32_t cid = 0; cid < fields.size(); ++cid) {
         std::string fieldName = baseTbl.GetFieldName(cid);
         const auto &it = fields.find(fieldName);

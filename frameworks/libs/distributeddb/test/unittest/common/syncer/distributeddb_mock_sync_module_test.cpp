@@ -1537,6 +1537,23 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SessionId001
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
+{
+    auto context = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    const uint32_t sessionIdMaxValue = 0x8fffffffu;
+    context->SetLastRequestSessionId(sessionIdMaxValue);
+    EXPECT_LE(context->CallGenerateRequestSessionId(), sessionIdMaxValue);
+    RefObject::KillAndDecObjRef(context);
+}
+
+/**
  * @tc.name: TimeSync001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC

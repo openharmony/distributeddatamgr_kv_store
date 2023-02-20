@@ -24,6 +24,7 @@
 #include "table_info.h"
 
 namespace DistributedDB {
+using TableInfoMap = std::map<std::string, TableInfo, CaseInsensitiveComparator>;
 class RelationalSchemaObject : public ISchema {
 public:
     RelationalSchemaObject() = default;
@@ -42,7 +43,7 @@ public:
 
     void RemoveRelationalTable(const std::string &tableName);
 
-    const std::map<std::string, TableInfo> &GetTables() const;
+    const TableInfoMap &GetTables() const;
 
     std::vector<std::string> GetTableNames() const;
 
@@ -79,7 +80,7 @@ private:
     SchemaType schemaType_ = SchemaType::RELATIVE; // Default RELATIVE
     std::string schemaString_; // The minified and valid schemaString
     std::string schemaVersion_ = SchemaConstant::SCHEMA_SUPPORT_VERSION_V2; // Default version 2.0
-    std::map<std::string, TableInfo> tables_;
+    TableInfoMap tables_;
 
     DistributedTableMode tableMode_ = DistributedTableMode::SPLIT_BY_DEVICE;
 };

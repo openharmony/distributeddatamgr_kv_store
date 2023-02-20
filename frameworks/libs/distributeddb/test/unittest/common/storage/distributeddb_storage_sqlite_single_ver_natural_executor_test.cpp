@@ -926,6 +926,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
     /**
      * @tc.steps: step3. Change executor to MAIN_ATTACH_CACHE
+     * @tc.expected: step3. Expect SQL_STATE_ERR
      */
     auto executor2 = std::make_unique<SQLiteSingleVerStorageExecutor>(
         sqlHandle, false, false, ExecutorState::MAIN_ATTACH_CACHE);

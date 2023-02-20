@@ -540,3 +540,12 @@ HWTEST_F(DistributedDBCommonTest, DiffProcessGetAndDeleteDB, TestSize.Level1)
 }
 #endif
 #endif
+
+HWTEST_F(DistributedDBCommonTest, StringCaseTest002, TestSize.Level0)
+{
+    EXPECT_TRUE(DBCommon::CaseInsensitiveCompare("HELLO WORLD.", "hello world."));
+    EXPECT_TRUE(DBCommon::CaseInsensitiveCompare("ABCDEFGHIJKLMN", "abcdefghijklmn"));
+    EXPECT_TRUE(DBCommon::CaseInsensitiveCompare("OPQRSTUVWXYZ", "opqrstuvwxyz"));
+    EXPECT_FALSE(DBCommon::CaseInsensitiveCompare("sqlite", "sqlite3"));
+    EXPECT_FALSE(DBCommon::CaseInsensitiveCompare("gitee", "git"));
+}

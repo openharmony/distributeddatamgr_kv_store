@@ -1831,3 +1831,30 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
         key.pop_back();
     }
 }
+
+/**
+ * @tc.name: GetQueryWaterMark 003
+ * @tc.desc: check time offset after remove water mark
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark003, TestSize.Level1)
+{
+    VirtualSingleVerSyncDBInterface storage;
+    Metadata meta;
+
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+
+    const std::string DEVICE_B = "DEVICE_B";
+    TimeOffset offset = 100; // 100: offset
+    meta.SaveTimeOffset(DEVICE_B, offset);
+
+    WaterMark w1 = 2; // 2: watermark
+    meta.SavePeerWaterMark(DBCommon::TransferHashString(DEVICE_B), w1, false);
+
+    TimeOffset offsetGot;
+    meta.GetTimeOffset(DEVICE_B, offsetGot);
+    EXPECT_EQ(offsetGot, offset);
+}

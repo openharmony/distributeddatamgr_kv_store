@@ -290,9 +290,9 @@ int UpgradeFields(sqlite3 *db, const std::vector<std::string> &tables, std::vect
     return errCode;
 }
 
-std::map<std::string, CompositeFields> GetChangedIndexes(const TableInfo &oldTableInfo, const TableInfo &newTableInfo)
+IndexInfoMap GetChangedIndexes(const TableInfo &oldTableInfo, const TableInfo &newTableInfo)
 {
-    std::map<std::string, CompositeFields> indexes;
+    IndexInfoMap indexes;
     auto itOld = oldTableInfo.GetIndexDefine().begin();
     auto itNew = newTableInfo.GetIndexDefine().begin();
     auto itOldEnd = oldTableInfo.GetIndexDefine().end();
@@ -327,8 +327,7 @@ std::map<std::string, CompositeFields> GetChangedIndexes(const TableInfo &oldTab
     return indexes;
 }
 
-int UpgradeIndexes(sqlite3 *db, const std::vector<std::string> &tables,
-    const std::map<std::string, CompositeFields> &indexes)
+int UpgradeIndexes(sqlite3 *db, const std::vector<std::string> &tables, const IndexInfoMap &indexes)
 {
     if (db == nullptr) {
         return -E_INVALID_ARGS;
@@ -374,7 +373,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AlterAuxTableForUpgrade(const Tabl
     const TableInfo &newTableInfo)
 {
     std::vector<FieldInfo> upgradeFields = GetUpgradeFields(oldTableInfo, newTableInfo);
-    std::map<std::string, CompositeFields> upgradeIndexces = GetChangedIndexes(oldTableInfo, newTableInfo);
+    IndexInfoMap upgradeIndexces = GetChangedIndexes(oldTableInfo, newTableInfo);
     std::vector<std::string> deviceTables;
     int errCode = GetDeviceTableName(dbHandle_, oldTableInfo.GetTableName(), {}, deviceTables);
     if (errCode != E_OK) {

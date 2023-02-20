@@ -290,8 +290,11 @@ int QueryObject::CheckEqualFormat(const std::list<QueryObjNode>::iterator &iter)
         return -E_NOT_SUPPORT;
     }
 
+    // use lower case in relational schema
+    std::string inPathString = isTableNameSpecified_ ? DBCommon::ToLowerCase(iter->fieldName) : iter->fieldName;
+
     FieldPath fieldPath;
-    int errCode = SchemaUtils::ParseAndCheckFieldPath(iter->fieldName, fieldPath);
+    int errCode = SchemaUtils::ParseAndCheckFieldPath(inPathString, fieldPath);
     if (errCode != E_OK) {
         return -E_INVALID_QUERY_FIELD;
     }
