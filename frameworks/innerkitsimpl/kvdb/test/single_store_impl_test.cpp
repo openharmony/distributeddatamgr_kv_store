@@ -897,6 +897,84 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
 }
 
 /**
+ * @tc.name: MaxTest002
+ * @tc.desc: test if the default max limit of wal is 200MB
+ * @tc.type: FUNC
+ * @tc.require: I4XVQQ
+ * @tc.author: Yang Qing
+ */
+HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
+{
+    ASSERT_NE(kvStore_, nullptr);
+    /**
+     * @tc.steps:step1. Put the random entry into the database.
+     * @tc.expected: step1. Returns SUCCESS.
+     */
+    std::vector<uint8_t> key;
+    std::vector<uint8_t> value;
+    key = Random(24);                // for 24B random key
+    value = Random(3 * 1024 * 1024); // 3M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = Random(40); // for 40B random key
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    key = Random(24);                // for 24B random key
+    value = Random(4 * 1024 * 1024); // 4M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    /**
+     * @tc.steps:step2. Get the resultset.
+     * @tc.expected: step2. Returns SUCCESS.
+     */
+    std::shared_ptr<KvStoreResultSet> output;
+    auto status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    ASSERT_EQ(output->GetCount(), 3);
+    EXPECT_EQ(output->MoveToFirst(), true);
+    /**
+     * @tc.steps:step3. Put more data into the database.
+     * @tc.expected: step3. Returns SUCCESS.
+     */
+    for (int i = 0; i < 50; i++) {
+        key = Random(16);                // for 16B random key
+        value = Random(4 * 1024 * 1024); // 4M value
+        EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    }
+    /**
+     * @tc.steps:step4. Put more data into the database while the log size is over the limit.
+     * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
+     */
+    key = Random(10);                // for 16B random key
+    value = Random(4 * 1024 * 1024); // 1M value
+    EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
+    EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
+    /**
+     * @tc.steps:step5. Close the database and then open the database,put again.
+     * @tc.expected: step4. Return SUCCESS.
+     */
+    AppId appId = { "SingleStoreImplTest" };
+    StoreId storeId = { "SingleKVStore" };
+    Options options;
+    options.kvStoreType = SINGLE_VERSION;
+    options.securityLevel = S1;
+    options.encrypt = false;
+    options.area = EL1;
+    options.backup = true;
+    options.baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
+
+    status = StoreManager::GetInstance().CloseKVStore(appId, storeId);
+    ASSERT_EQ(status, SUCCESS);
+    kvStore_ = nullptr;
+    kvStore_ = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
+    ASSERT_EQ(status, SUCCESS);
+
+    value = Random(1 * 1024 * 1024); // 1M value
+    EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+}
+
+/**
  * @tc.name: Move_Offset
  * @tc.desc: Move the ResultSet Relative Distance
  * @tc.type: FUNC
