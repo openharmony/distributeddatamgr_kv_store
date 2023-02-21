@@ -970,8 +970,15 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
     kvStore_ = StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, SUCCESS);
 
+    status = kvStore_->GetResultSet({ "" }, output);
+    ASSERT_EQ(status, SUCCESS);
+    ASSERT_NE(output, nullptr);
+    EXPECT_EQ(output->MoveToFirst(), true);
+
     value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
+    status = kvStore_->CloseResultSet(output);
+    ASSERT_EQ(status, SUCCESS);
 }
 
 /**
