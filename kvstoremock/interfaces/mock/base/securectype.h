@@ -121,10 +121,6 @@ long __builtin_expect(long exp, long c);
 #endif
 #endif
 
-#ifndef SECUREC_MALLOC
-#define SECUREC_MALLOC(x) malloc((size_t)(x))
-#endif
-
 #ifndef SECUREC_FREE
 #define SECUREC_FREE(x)   free((void *)(x))
 #endif
