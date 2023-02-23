@@ -704,7 +704,8 @@ struct StudentInOrder {
     int level_;
     int score_;
 
-    VirtualRowData operator() () const {
+    VirtualRowData operator() () const
+    {
         VirtualRowData virtualRowData;
         DataValue d1;
         d1 = (int64_t)id_;
@@ -723,7 +724,7 @@ struct StudentInOrder {
         virtualRowData.logInfo.originDev = DEVICE_B;
         virtualRowData.logInfo.timestamp = 3170194300890338180; // 3170194300890338180 fake timestamp
         virtualRowData.logInfo.wTimestamp = 3170194300890338180; // 3170194300890338180 fake timestamp
-        virtualRowData.logInfo.flag = 2; // fake flag
+        virtualRowData.logInfo.flag = 2; // 2 fake flag
 
         std::vector<uint8_t> hashKey;
         DBCommon::CalcValueHash({}, hashKey);
