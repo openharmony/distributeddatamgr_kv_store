@@ -14,7 +14,6 @@
  */
 #include <condition_variable>
 #include <gtest/gtest.h>
-#include <random>
 #include <vector>
 
 #include "block_data.h"
@@ -30,13 +29,7 @@ namespace OHOS::Test {
 
 std::vector<uint8_t> Random(int32_t len)
 {
-    std::random_device randomDevice;
-    std::uniform_int_distribution<int> distribution(0, std::numeric_limits<uint8_t>::max());
-    std::vector<uint8_t> key(len);
-    for (int32_t i = 0; i < len; i++) {
-        key[i] = static_cast<uint8_t>(distribution(randomDevice));
-    }
-    return key;
+    return std::vector<uint8_t>(len,'a');
 }
 
 class SingleStoreImplTest : public testing::Test {
@@ -847,14 +840,14 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.steps:step1. Put the random entry into the database.
      * @tc.expected: step1. Returns SUCCESS.
      */
-    std::vector<uint8_t> key;
+    std::string key;
     std::vector<uint8_t> value;
-    key = Random(24);                // for 24B random key
+    key = "test0";
     value = Random(3 * 1024 * 1024); // 3M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(40); // for 40B random key
+    key = "test1";
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(24);                // for 24B random key
+    key = "test2";
     value = Random(4 * 1024 * 1024); // 4M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     /**
@@ -872,7 +865,7 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.expected: step3. Returns SUCCESS.
      */
     for (int i = 0; i < 50; i++) {
-        key = Random(16);                // for 16B random key
+        key = "test_" + std::to_string(i);
         value = Random(4 * 1024 * 1024); // 4M value
         EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     }
@@ -880,7 +873,7 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.steps:step4. Put more data into the database while the log size is over the limit.
      * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
      */
-    key = Random(10);                // for 16B random key
+    key = "test3";
     value = Random(4 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
@@ -910,14 +903,14 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      * @tc.steps:step1. Put the random entry into the database.
      * @tc.expected: step1. Returns SUCCESS.
      */
-    std::vector<uint8_t> key;
+    std::string key;
     std::vector<uint8_t> value;
-    key = Random(24);                // for 24B random key
+    key = "test0";
     value = Random(3 * 1024 * 1024); // 3M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(40); // for 40B random key
+    key = "test1";
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
-    key = Random(24);                // for 24B random key
+    key = "test2";
     value = Random(4 * 1024 * 1024); // 4M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     /**
@@ -935,7 +928,7 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      * @tc.expected: step3. Returns SUCCESS.
      */
     for (int i = 0; i < 50; i++) {
-        key = Random(16);                // for 16B random key
+        key = "test_" + std::to_string(i);
         value = Random(4 * 1024 * 1024); // 4M value
         EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     }
@@ -943,8 +936,8 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      * @tc.steps:step4. Put more data into the database while the log size is over the limit.
      * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
      */
-    key = Random(10);                // for 16B random key
-    value = Random(4 * 1024 * 1024); // 1M value
+    key = "test3";
+    value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
