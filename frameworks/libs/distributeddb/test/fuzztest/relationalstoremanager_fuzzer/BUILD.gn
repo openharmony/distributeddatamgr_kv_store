@@ -282,6 +282,7 @@ ohos_fuzztest("RelationalstoremanagerFuzzTest") {
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "SQLITE_EXPORT_SYMBOLS",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
 
   deps = [

@@ -277,6 +277,7 @@ ohos_fuzztest("IProcessCommunicatorFuzzTest") {
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
 
   deps = [
