@@ -276,6 +276,7 @@ config("distrdb_config") {
   defines += [
     "EVLOOP_TIMER_ONLY",
     "USING_PRINTF_LOGGER",
+    "OPENSSL_SUPPRESS_DEPRECATED",
   ]
   if (use_platform_win) {
     defines += [ "OS_TYPE_WINDOWS" ]
