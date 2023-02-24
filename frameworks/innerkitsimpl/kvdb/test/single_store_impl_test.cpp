@@ -29,7 +29,7 @@ namespace OHOS::Test {
 
 std::vector<uint8_t> Random(int32_t len)
 {
-    return std::vector<uint8_t>(len,'a');
+    return std::vector<uint8_t>(len, 'a');
 }
 
 class SingleStoreImplTest : public testing::Test {
