@@ -136,6 +136,7 @@ void KvStoreServiceDeathNotifier::ServiceDeathRecipient::OnRemoteDied(const wptr
         }
 
         std::thread th = std::thread([watcher]() {
+            pthread_setname_np(pthread_self(), "ServiceDeath");
             watcher->OnRemoteDied();
         });
         th.detach();

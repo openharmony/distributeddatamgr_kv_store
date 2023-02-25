@@ -56,7 +56,7 @@ ohos_distributedtest("DistributedTest") {
   deps = [
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner_static",
     "//third_party/googletest:gtest",
   ]
 }
@@ -79,7 +79,7 @@ ohos_distributedtest("DistributedTestAgent") {
   deps = [
     "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/:distributeddata_inner",
+    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner_static",
     "//third_party/googletest:gtest",
   ]
 }

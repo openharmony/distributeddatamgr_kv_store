@@ -20,8 +20,14 @@
 
 namespace OHOS {
 namespace DistributedKv {
+// client implement this class to watch kvstore service death.
 class API_EXPORT KvStoreDeathRecipient {
 public:
+    /**
+     * @brief Would called when kvstore service died.
+     * 
+     * client should override this function.
+    */
     virtual void OnRemoteDied() = 0;
 };
 }  // namespace DistributedKv

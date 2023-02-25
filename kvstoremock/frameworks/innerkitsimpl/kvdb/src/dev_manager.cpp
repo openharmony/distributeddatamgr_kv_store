@@ -41,6 +41,7 @@ void DevManager::RegisterDevCallback()
         ZLOGE("register device failed, try again");
     }
     std::thread th = std::thread([this]() {
+        pthread_setname_np(pthread_self(), "Init_DevManager_Mock");
         constexpr int RETRY_TIMES = 300;
         int i = 0;
         int32_t errNo = DM_ERROR;

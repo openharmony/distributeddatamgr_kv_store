@@ -14,7 +14,6 @@
  */
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
-#include <thread>
 #include <unistd.h>
 #include "device_manager.h"
 #include "device_manager_callback.h"

@@ -92,7 +92,7 @@ ohos_source_set("distributeddatafwk_src_file") {
     "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
     "huks:libhukssdk",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -109,7 +109,7 @@ ohos_unittest("DistributedKvDataManagerTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -130,7 +130,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -151,7 +151,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -172,7 +172,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -193,7 +193,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -214,7 +214,7 @@ ohos_unittest("SingleKvStoreClientTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -235,7 +235,7 @@ ohos_unittest("DeviceKvStoreTest") {
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -261,7 +261,7 @@ ohos_unittest("BlobTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
   ]
 }
 
@@ -280,7 +280,7 @@ ohos_unittest("TypesUtilTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
   ]
 }
 
@@ -299,7 +299,7 @@ ohos_unittest("KvUtilTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
   ]
 }
 
@@ -318,7 +318,7 @@ ohos_unittest("KvstoreDatashareBridgeTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
   ]
 }
 

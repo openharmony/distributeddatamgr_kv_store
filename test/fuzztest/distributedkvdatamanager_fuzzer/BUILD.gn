@@ -36,11 +36,13 @@ ohos_fuzztest("DistributedKvDataManagerFuzzTest") {
   ]
   sources = [ "distributedkvdatamanager_fuzzer.cpp" ]
 
-  deps = []
+  deps = [
+    "../../../interfaces/innerkits/distributeddata:distributeddata_inner_static",
+  ]
 
   external_deps = [
     "c_utils:utils",
-    "kv_store:distributeddata_inner",
+    "hiviewdfx_hilog_native:libhilog",
   ]
 }
 

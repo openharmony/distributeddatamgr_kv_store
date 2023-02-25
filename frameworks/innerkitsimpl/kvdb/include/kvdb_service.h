@@ -39,9 +39,9 @@ public:
     };
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.KVFeature");
 
-    API_EXPORT KVDBService() = default;
+    KVDBService() = default;
 
-    API_EXPORT virtual ~KVDBService() = default;
+    virtual ~KVDBService() = default;
 
     virtual Status GetStoreIds(const AppId &appId, std::vector<StoreId> &storeIds) = 0;
     virtual Status BeforeCreate(const AppId &appId, const StoreId &storeId, const Options &options) = 0;

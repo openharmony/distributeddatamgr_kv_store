@@ -74,7 +74,7 @@ ohos_shared_library("distributeddata") {
     "ability_runtime:napi_base_context",
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "kv_store:distributeddata_inner",
     "napi:ace_napi",
   ]

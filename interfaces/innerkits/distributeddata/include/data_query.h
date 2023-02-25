@@ -32,393 +32,399 @@ public:
 
     ~DataQuery() = default;
 
-    // Reset the query.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Reset the query.
+     * @return This query.
+    */
     DataQuery &Reset();
 
-    // Equal to int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Equal to int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &EqualTo(const std::string &field, const int value);
 
-    // Equal to long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Equal to long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &EqualTo(const std::string &field, const int64_t value);
 
-    // Equal to double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Equal to double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &EqualTo(const std::string &field, const double value);
 
-    // Equal to String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Equal to string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &EqualTo(const std::string &field, const std::string &value);
 
-    // Equal to boolean value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Equal to boolean value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &EqualTo(const std::string &field, const bool value);
 
-    // Not equal to int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not equal to int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &NotEqualTo(const std::string &field, const int value);
 
-    // Not equal to long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not equal to long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &NotEqualTo(const std::string &field, const int64_t value);
 
-    // Not equal to double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not equal to double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &NotEqualTo(const std::string &field, const double value);
 
-    // Not equal to String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not equal to string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &NotEqualTo(const std::string &field, const std::string &value);
 
-    // Not equal to boolean value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not equal to boolean value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &NotEqualTo(const std::string &field, const bool value);
 
-    // Greater than int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThan(const std::string &field, const int value);
 
-    // Greater than long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThan(const std::string &field, const int64_t value);
 
-    // Greater than double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThan(const std::string &field, const double value);
 
-    // Greater than String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThan(const std::string &field, const std::string &value);
 
-    // Less than int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThan(const std::string &field, const int value);
 
-    // Less than long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThan(const std::string &field, const int64_t value);
 
-    // Less than double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThan(const std::string &field, const double value);
 
-    // Less than String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThan(const std::string &field, const std::string &value);
 
-    // Greater than or equal to int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than or equal to int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThanOrEqualTo(const std::string &field, const int value);
 
-    // Greater than or equal to long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than or equal to long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThanOrEqualTo(const std::string &field, const int64_t value);
 
-    // Greater than or equal to double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than or equal to double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThanOrEqualTo(const std::string &field, const double value);
 
-    // Greater than or equal to String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Greater than or equal to string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &GreaterThanOrEqualTo(const std::string &field, const std::string &value);
 
-    // Less than or equal to int value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than or equal to int value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThanOrEqualTo(const std::string &field, const int value);
 
-    // Less than or equal to long value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than or equal to long value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThanOrEqualTo(const std::string &field, const int64_t value);
 
-    // Less than or equal to double value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than or equal to double value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThanOrEqualTo(const std::string &field, const double value);
 
-    // Less than or equal to String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Less than or equal to string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &LessThanOrEqualTo(const std::string &field, const std::string &value);
 
-    // Is null field value.
-    // Parameters:
-    //     field: the field name.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Is null field value.
+     * @param field The field name.
+     * @return This query
+    */
     DataQuery &IsNull(const std::string &field);
 
-    // Is not null field value.
-    // Parameters:
-    //     field: the field name.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Is not null field value.
+     * @param field The field name.
+     * @return This query
+    */
     DataQuery &IsNotNull(const std::string &field);
 
-    // In int value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief In int value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &In(const std::string &field, const std::vector<int> &valueList);
 
-    // In long value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief In long value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &In(const std::string &field, const std::vector<int64_t> &valueList);
 
-    // In Double value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief In double value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &In(const std::string &field, const std::vector<double> &valueList);
 
-    // In String value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief In string value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &In(const std::string &field, const std::vector<std::string> &valueList);
 
-    // Not in int value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not in int value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &NotIn(const std::string &field, const std::vector<int> &valueList);
 
-    // Not in long value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not in long value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &NotIn(const std::string &field, const std::vector<int64_t> &valueList);
 
-    // Not in Double value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not in double value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &NotIn(const std::string &field, const std::vector<double> &valueList);
 
-    // Not in String value list.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Not in string value list.
+     * @param field The field name.
+     * @param valueList The field value list.
+     * @return This query
+    */
     DataQuery &NotIn(const std::string &field, const std::vector<std::string> &valueList);
 
-    // Like String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Like string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &Like(const std::string &field, const std::string &value);
 
-    // Unlike String value.
-    // Parameters:
-    //     field: the field name.
-    //     value: the field value list.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Unlike string value.
+     * @param field The field name.
+     * @param value The field value.
+     * @return This query
+    */
     DataQuery &Unlike(const std::string &field, const std::string &value);
 
-    // And operator.
-    // Return:
-    //     This Query.
+    /**
+     * @brief And operator.
+     * @return This query
+    */
     DataQuery &And();
 
-    // Or operator.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Or operator.
+     * @return This query
+    */
     DataQuery &Or();
 
-    // Order by ascent.
-    // Parameters:
-    //     field: the field name.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Order by ascent.
+     * @param field The field name.
+     * @return This query
+    */
     DataQuery &OrderByAsc(const std::string &field);
 
-    // Order by descent.
-    // Parameters:
-    //     field: the field name.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Order by descent.
+     * @param field The field name.
+     * @return This query
+    */
     DataQuery &OrderByDesc(const std::string &field);
 
-    // Order by write time.
-    // Parameters:
-    //     isAsc: isAsc.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Order by write time.
+     * @param isAsc Is ascent.
+     * @return This query
+    */
     DataQuery &OrderByWriteTime(bool isAsc);
 
-    // Limit result size.
-    // Parameters:
-    //     number: the number of results.
-    //     offset: the start position.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Limit result size.
+     * @param number The number of results.
+     * @param offset Start position.
+     * @return This query
+    */
     DataQuery &Limit(const int number, const int offset);
 
-    // Begin group.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Begin group.
+     * @return This query
+    */
     DataQuery &BeginGroup();
 
-    // End group.
-    // Return:
-    //     This Query.
+    /**
+     * @brief End group.
+     * @return This query
+    */
     DataQuery &EndGroup();
 
-    // Select results with specified key prefix.
-    // Parameters:
-    //     prefix: key prefix.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Select results with specified key prefix.
+     * @param prefix key prefix.
+     * @return This query
+    */
     DataQuery &KeyPrefix(const std::string &prefix);
 
-    // Select results with specified device Identifier.
-    // Parameters:
-    //     deviceId: device Identifier.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Select results with specified device Identifier.
+     * @param deviceId Device Identifier.
+     * @return This query
+    */
     DataQuery &DeviceId(const std::string &deviceId);
 
-    // Select results with suggested index.
-    // Parameters:
-    //     index: suggested index.
-    // Return:
-    //     This Query.
+    /**
+     * @brief Select results with suggested index.
+     * @param index Suggested index.
+     * @return This query
+    */
     DataQuery &SetSuggestIndex(const std::string &index);
 
-    // Select results with many keys.
-    // Parameters:
-    //     keys: the vector of keys for query
-    // Return:
-    //     This Query.
+    /**
+     * @brief Select results with many keys.
+     * @param keys The vector of keys for query.
+     * @return This query
+    */
     DataQuery &InKeys(const std::vector<std::string> &keys);
 
-    // Get string representation
-    // Return:
-    //     String representation of this query.
+    /**
+     * @brief Get string representation
+     * @return String representation of this query.
+    */
     std::string ToString() const;
 
 private:
@@ -426,124 +432,205 @@ private:
     friend class QueryHelper;
     friend class DeviceConvertor;
     friend class Convertor;
-    // equal to
+
+    /**
+     * @brief equal to
+    */
     static const char * const EQUAL_TO;
 
-    // not equal to
+    /**
+     * @brief not equal to
+    */
     static const char * const NOT_EQUAL_TO;
 
-    // greater than
+    /**
+     * @brief greater than
+    */
     static const char * const GREATER_THAN;
 
-    // less than
+    /**
+     * @brief less than
+    */
     static const char * const LESS_THAN;
 
-    // greater than or equal to
+    /**
+     * @brief greater than or equal to
+    */
     static const char * const GREATER_THAN_OR_EQUAL_TO;
 
-    // less than or equal to
+    /**
+     * @brief less than or equal to
+    */
     static const char * const LESS_THAN_OR_EQUAL_TO;
 
-    // is null
+    /**
+     * @brief is null
+    */
     static const char * const IS_NULL;
 
-    // in
+    /**
+     * @brief in
+    */
     static const char * const IN;
 
-    // not in
+    /**
+     * @brief not in
+    */
     static const char * const NOT_IN;
 
-    // like
+    /**
+     * @brief like
+    */
     static const char * const LIKE;
 
-    // not like
+    /**
+     * @brief not like
+    */
     static const char * const NOT_LIKE;
 
-    // and
+    /**
+     * @brief and
+    */
     static const char * const AND;
 
-    // or
+    /**
+     * @brief or
+    */
     static const char * const OR;
 
-    // order by asc
+    /**
+     * @brief order by asc
+    */ 
     static const char * const ORDER_BY_ASC;
 
-    // order by desc
+    /**
+     * @brief order by desc
+    */
     static const char * const ORDER_BY_DESC;
 
-    // order by write time
+    /**
+     * @brief order by write time
+    */
     static const char * const ORDER_BY_WRITE_TIME;
 
-    // order by write time asc
+    /**
+     * @brief order by write time asc
+    */
     static const char * const IS_ASC;
 
-    // order by write time desc
+    /**
+     * @brief order by write time desc
+    */
     static const char * const IS_DESC;
 
-    // limit
+    /**
+     * @brief limit
+    */
     static const char * const LIMIT;
 
-    // space
+    /**
+     * @brief space
+    */
     static const char * const SPACE;
 
-    // '^'
+    /**
+     * @brief '^'
+    */
     static const char * const SPECIAL;
 
-    // '^' escape
+    /**
+     * @brief '^' escape
+    */
     static const char * const SPECIAL_ESCAPE;
 
-    // space escape
+    /**
+     * @brief space escape
+    */
     static const char * const SPACE_ESCAPE;
 
-    // empty string
+    /**
+     * @brief empty string
+    */
     static const char * const EMPTY_STRING;
 
-    // start in
+    /**
+     * @brief start in
+    */
     static const char * const START_IN;
 
-    // end in
+    /**
+     * @brief end in
+    */
     static const char * const END_IN;
 
-    // begin group
+    /**
+     * @brief begin group
+    */
     static const char * const BEGIN_GROUP;
 
-    // end group
+    /**
+     * @brief end group
+    */
     static const char * const END_GROUP;
 
-    // key prefix
+    /**
+     * @brief key prefix
+    */
     static const char * const KEY_PREFIX;
 
-    // device id
+    /**
+     * @brief device id
+    */
     static const char * const DEVICE_ID;
 
-    // is not null
+    /**
+     * @brief is not null
+    */
     static const char * const IS_NOT_NULL;
 
-    // type string
+    /**
+     * @brief type string
+    */
     static const char * const TYPE_STRING;
 
-    // type integer
+    /**
+     * @brief type integer
+    */
     static const char * const TYPE_INTEGER;
 
-    // type long
+    /**
+     * @brief type long
+    */
     static const char * const TYPE_LONG;
 
-    // type double
+    /**
+     * @brief type double
+    */
     static const char * const TYPE_DOUBLE;
 
-    // type boolean
+    /**
+     * @brief type boolean
+    */
     static const char * const TYPE_BOOLEAN;
 
-    // value true
+    /**
+     * @brief value true
+    */
     static const char * const VALUE_TRUE;
 
-    // value false
+    /**
+     * @brief value false
+    */
     static const char * const VALUE_FALSE;
 
-    // suggested index
+    /**
+     * @brief suggested index
+    */
     static const char * const SUGGEST_INDEX;
 
-    // in keys
+    /**
+     * @brief in keys
+    */
     static const char * const IN_KEYS;
 
     std::string str_;
