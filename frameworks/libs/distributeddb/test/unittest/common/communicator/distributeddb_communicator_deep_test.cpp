@@ -146,11 +146,16 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
     g_commBB->RegOnMessageCallback([&msgForBB](const std::string &srcTarget, Message *inMsg) {
         msgForBB = inMsg;
     }, nullptr);
+    Message *msgForCA = nullptr;
+    g_commCA->RegOnMessageCallback([&msgForCA](const std::string &srcTarget, Message *inMsg) {
+        msgForCA = inMsg;
+    }, nullptr);
 
     /**
      * @tc.steps: step1. connect device A with device B
      */
     AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceC.adapterHandle);
     std::this_thread::sleep_for(std::chrono::milliseconds(200)); // Wait 200 ms to make sure quiet
 
     /**
@@ -167,8 +172,16 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, WaitAndRetrySend001, TestSize.Level2
     SendConfig conf = {true, false, 0};
     int errCode = g_commAB->SendMessage(DEVICE_NAME_B, msgForAB, conf);
     EXPECT_EQ(errCode, E_OK);
+
+    Message *msgForAA = BuildRegedTinyMessage();
+    ASSERT_NE(msgForAA, nullptr);
+    errCode = g_commAA->SendMessage(DEVICE_NAME_C, msgForAA, conf);
+    EXPECT_EQ(errCode, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Wait 100 ms
     EXPECT_EQ(msgForBB, nullptr);
+    EXPECT_NE(msgForCA, nullptr);
+    delete msgForCA;
+    msgForCA = nullptr;
 
     /**
      * @tc.steps: step4. device A simulate sendable feedback

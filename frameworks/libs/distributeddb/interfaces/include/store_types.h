@@ -65,6 +65,7 @@ enum DBStatus {
     NONEXISTENT,  // for row record, pass invalid column name or invalid column index.
     TYPE_MISMATCH,  // for row record, get value with mismatch func.
     REMOTE_OVER_SIZE, // for remote query, the data is too many, only get part or data.
+    RATE_LIMIT,
 };
 
 struct KvStoreConfig {
