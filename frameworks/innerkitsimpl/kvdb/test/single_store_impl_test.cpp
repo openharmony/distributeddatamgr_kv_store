@@ -841,14 +841,12 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.expected: step1. Returns SUCCESS.
      */
     std::string key;
-    std::vector<uint8_t> value;
+    std::vector<uint8_t> value = Random(4 * 1024 * 1024);
     key = "test0";
-    value = Random(3 * 1024 * 1024); // 3M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     key = "test1";
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     key = "test2";
-    value = Random(4 * 1024 * 1024); // 4M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     /**
      * @tc.steps:step2. Get the resultset.
@@ -866,7 +864,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      */
     for (int i = 0; i < 50; i++) {
         key = "test_" + std::to_string(i);
-        value = Random(4 * 1024 * 1024); // 4M value
         EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     }
     /**
@@ -874,7 +871,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
      * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
      */
     key = "test3";
-    value = Random(4 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
@@ -885,7 +881,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest, TestSize.Level0)
 
     status = kvStore_->CloseResultSet(output);
     ASSERT_EQ(status, SUCCESS);
-    value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
 }
 
@@ -904,14 +899,12 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      * @tc.expected: step1. Returns SUCCESS.
      */
     std::string key;
-    std::vector<uint8_t> value;
+    std::vector<uint8_t> value = Random(4 * 1024 * 1024);
     key = "test0";
-    value = Random(3 * 1024 * 1024); // 3M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     key = "test1";
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     key = "test2";
-    value = Random(4 * 1024 * 1024); // 4M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     /**
      * @tc.steps:step2. Get the resultset.
@@ -929,7 +922,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      */
     for (int i = 0; i < 50; i++) {
         key = "test_" + std::to_string(i);
-        value = Random(4 * 1024 * 1024); // 4M value
         EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     }
     /**
@@ -937,7 +929,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
      * @tc.expected: step4. Returns LOG_LIMITS_ERROR.
      */
     key = "test3";
-    value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->Delete(key), WAL_OVER_LIMITS);
     EXPECT_EQ(kvStore_->StartTransaction(), WAL_OVER_LIMITS);
@@ -968,7 +959,6 @@ HWTEST_F(SingleStoreImplTest, MaxLogSizeTest002, TestSize.Level0)
     ASSERT_NE(output, nullptr);
     EXPECT_EQ(output->MoveToFirst(), true);
 
-    value = Random(1 * 1024 * 1024); // 1M value
     EXPECT_EQ(kvStore_->Put(key, value), SUCCESS);
     status = kvStore_->CloseResultSet(output);
     ASSERT_EQ(status, SUCCESS);
