@@ -221,6 +221,8 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
 {
     auto rekeyPath = path + "/rekey";
     auto keyName = path + "/key/" + storeId + ".key";
+    auto reKeyFile = storeId + REKEY_NEW;
+    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
     Status pwdValid = DB_ERROR;
     if (StoreUtil::IsFileExist(keyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
@@ -228,20 +230,19 @@ Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string 
     }
 
     if (pwdValid == SUCCESS) {
-        StoreUtil::Remove(rekeyPath);
+        StoreUtil::Remove(rekeyName);
         return pwdValid;
     }
-    auto reKeyFile = storeId + REKEY_NEW;
-    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
     if (StoreUtil::IsFileExist(rekeyName)) {
         dbPassword = SecurityManager::GetInstance().GetDBPassword(reKeyFile, rekeyPath);
         pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
     } else {
         return pwdValid;
     }
-    if (pwdValid == SUCCESS) {
-        UpdateKeyFile(storeId, path);
+    if (pwdValid != SUCCESS) {
+        return pwdValid;
     }
+    SecurityManager::GetInstance().SaveDBPassword(storeId, path, dbPassword.password);
     return pwdValid;
 }
 
@@ -263,13 +264,14 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     DBStore *dbStore)
 {
     std::string rekeyPath = path + "/rekey";
+    std::string rekeyName = rekeyPath + "/key/" + storeId + REKEY_NEW + ".key";
     (void)StoreUtil::InitPath(rekeyPath);
 
     auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
     if (!newDbPassword.IsValid()) {
         ZLOGE("failed to generate new key.");
         newDbPassword.Clear();
-        StoreUtil::Remove(rekeyPath);
+        StoreUtil::Remove(rekeyName);
         return false;
     }
 
@@ -277,22 +279,20 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
         ZLOGE("failed to rekey the substitute database.");
-        StoreUtil::Remove(rekeyPath);
+        StoreUtil::Remove(rekeyName);
         newDbPassword.Clear();
         return false;
     }
-    UpdateKeyFile(storeId, path);
+    if (!SecurityManager::GetInstance().SaveDBPassword(storeId, path, newDbPassword.password)) {
+        ZLOGE("save new password failed");
+        dbStore->Rekey(dbPassword.password);
+        StoreUtil::Remove(rekeyName);
+        return false;
+    };
     dbPassword.password = newDbPassword.password;
     newDbPassword.Clear();
     dbPassword.isKeyOutdated = false;
+    StoreUtil::Remove(rekeyName);
     return true;
-}
-
-void StoreFactory::UpdateKeyFile(const std::string &storeId, const std::string &path)
-{
-    std::string rekeyFile = path + "/rekey/key/" + storeId + REKEY_NEW + ".key";
-    std::string keyFile = path + "/key/" + storeId + ".key";
-    StoreUtil::Rename(rekeyFile, keyFile);
-    StoreUtil::Remove(rekeyFile);
 }
 } // namespace OHOS::DistributedKv
