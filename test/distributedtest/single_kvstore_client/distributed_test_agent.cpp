@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "types.h"
 #include "distributed_agent.h"
@@ -100,7 +101,7 @@ public:
 
 private:
     DistributedKvDataManager manager_;
-    std::vector<DeviceInfo> deviceInfos_;
+    std::vector<DevManager::DetailInfo> detailInfos_;
     using CmdFunc = int (DistributedTestAgent::*)(const std::string &) const;
     std::map<std::string, CmdFunc> cmdFunMap_;
     using MsgFunc = int (DistributedTestAgent::*)(const std::string &, std::string &) const;
@@ -131,7 +132,7 @@ bool DistributedTestAgent::SetUp()
     StoreId storeId = { "student_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     manager_.GetSingleKvStore(options, appId, storeId, singleKvStore_);
-    manager_.GetDeviceList(deviceInfos_, DeviceFilterStrategy::NO_FILTER);
+    detailInfos_ = DevManager::GetInstance().GetRemoteDevices();
     OHOS::ChangeModeDirectory(options.baseDir, FILE_PERMISSION);
     return true;
 }
@@ -207,8 +208,8 @@ int DistributedTestAgent::RemoveDeviceData(const std::string &args) const
         HiLog::Error(LABEL, "agent ERROR.");
         return Status::INVALID_ARGUMENT;
     }
-    HiLog::Info(LABEL, "deviceId = %{public}s", Util::Anonymous(deviceInfos_[0].deviceId).c_str());
-    auto status = singleKvStore_->RemoveDeviceData(deviceInfos_[0].deviceId);
+    HiLog::Info(LABEL, "deviceId = %{public}s", Util::Anonymous(detailInfos_[0].networkId).c_str());
+    auto status = singleKvStore_->RemoveDeviceData(detailInfos_[0].networkId);
     return status;
 }
 
@@ -225,8 +226,8 @@ int DistributedTestAgent::Sync(const std::string &args) const
         return Status::INVALID_ARGUMENT;
     }
     std::vector<std::string> deviceIds;
-    for (const auto &device : deviceInfos_) {
-        deviceIds.push_back(device.deviceId);
+    for (const auto &device : detailInfos_) {
+        deviceIds.push_back(device.networkId);
     }
     int32_t delay = std::stoi(args);
     HiLog::Info(LABEL, "delay = %{public}d", delay);

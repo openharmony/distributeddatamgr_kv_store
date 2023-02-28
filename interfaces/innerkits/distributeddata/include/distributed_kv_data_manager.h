@@ -140,27 +140,6 @@ public:
      * @param deathRecipient The pointer of the observer.
     */
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
-
-    /**
-     * @brief Get all connected devices.
-     * 
-     * Client can use this method to retrieve all devices that have already connected,
-     *
-     * @param deviceInfoList List of all connected device will be returned by this parameter.
-     * @param strategy       Startegy for filter.
-     * @return Return SUCCESS for success, others for failure.
-    */
-    API_EXPORT Status GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy);
-
-    /**
-     * @brief Get device.
-     * 
-     * Client can use this method to retrieve local device.
-     * 
-     * @param localDevice DeviceInfo will be returned by this parameter.
-     * @return Return SUCCESS for success, others for failure.
-    */
-    API_EXPORT Status GetLocalDevice(DeviceInfo &localDevice);
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

@@ -164,33 +164,5 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
     }
     KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(kvStoreDeathRecipient);
 }
-
-Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
-{
-    auto devInfo = DevManager::GetInstance().GetLocalDevice();
-    if (devInfo.networkId.empty()) {
-        ZLOGE("deviceId empty!");
-        return Status::ERROR;
-    }
-    localDevice.deviceId = devInfo.networkId;
-    return Status::SUCCESS;
-}
-
-Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy)
-{
-    auto devInfos = DevManager::GetInstance().GetRemoteDevices();
-    for (const auto &info : devInfos) {
-        if (info.networkId.empty()) {
-            ZLOGW("deviceId empty!");
-            continue;
-        }
-        DeviceInfo devInfo = {
-            .deviceId = info.networkId,
-        };
-        deviceInfoList.emplace_back(devInfo);
-    }
-    ZLOGI("strategy is:%{public}d", strategy);
-    return Status::SUCCESS;
-}
 }  // namespace DistributedKv
 }  // namespace OHOS

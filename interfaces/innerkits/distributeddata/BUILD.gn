@@ -52,7 +52,7 @@ config("distributeddatafwk_public_config") {
 }
 
 old_source_config = [
- "../../../frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
+  "../../../frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/data_query.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
@@ -89,9 +89,7 @@ kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/task_executor.cpp",
 ]
 
-deps_config = [
-  "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-]
+deps_config = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb" ]
 
 external_deps_config = [
   "c_utils:utils",
@@ -106,7 +104,6 @@ external_deps_config = [
 ]
 
 ohos_shared_library("distributeddata_inner") {
-
   sources = old_source_config + kvdb_source_config
 
   configs = [ ":distributeddatafwk_config" ]
@@ -117,13 +114,4 @@ ohos_shared_library("distributeddata_inner") {
   innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
-}
-
-ohos_static_library("distributeddata_inner_static") {
-  sources = old_source_config + kvdb_source_config
-
-  configs = [ ":distributeddatafwk_config" ]
-  public_configs = [ ":distributeddatafwk_public_config" ]
-  deps = deps_config
-  external_deps = external_deps_config
 }

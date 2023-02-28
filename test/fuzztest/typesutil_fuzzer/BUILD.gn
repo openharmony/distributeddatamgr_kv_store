@@ -44,14 +44,13 @@ ohos_fuzztest("TypesUtilFuzzTest") {
     "typesutil_fuzzer.cpp",
   ]
 
-  deps = [
-    "../../../interfaces/innerkits/distributeddata:distributeddata_inner_static",
-  ]
+  deps = []
 
   external_deps = [
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_single",
+    "ipc:ipc_core",
+    "kv_store:distributeddata_inner",
   ]
 }
 
