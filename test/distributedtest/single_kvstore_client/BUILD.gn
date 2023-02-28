@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/data_share/datashare.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
 
