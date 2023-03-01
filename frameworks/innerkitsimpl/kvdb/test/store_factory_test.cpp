@@ -280,7 +280,7 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedWhileChangeKeyFile, TestSize.Level1)
     ASSERT_TRUE(isKeyExist);
 
     auto newKeyTime = GetDate(storeId, options.baseDir);
-    ASSERT_TRUE(newKeyTime - oldKeyTime< std::chrono::seconds(2));
+    ASSERT_TRUE(newKeyTime - oldKeyTime < std::chrono::seconds(2));
 }
 
 /**
@@ -322,7 +322,7 @@ HWTEST_F(StoreFactoryTest, RekeyInterruptedBeforeChangeKeyFile, TestSize.Level1)
     ASSERT_TRUE(isKeyExist);
 
     auto newKeyTime = GetDate(storeId, options.baseDir);
-    ASSERT_TRUE(newKeyTime - oldKeyTime< std::chrono::seconds(2));
+    ASSERT_TRUE(newKeyTime - oldKeyTime < std::chrono::seconds(2));
 }
 
 /**
