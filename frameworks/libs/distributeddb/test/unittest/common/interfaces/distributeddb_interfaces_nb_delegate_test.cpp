@@ -2535,7 +2535,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey001, TestSize.Level0)
      * @tc.expected: step1. Returns a non-null kvstore.
      */
     KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("UpdateKey001", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("UpdateKey002", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     /**
@@ -2626,6 +2626,51 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey002, TestSize.Level0)
      * @tc.expected: step6. Returns OK.
      */
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey001"), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey002"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: UpdateKey003
+  * @tc.desc: Test update key with invalid args
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("UpdateKey003", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Put (k1, v1) into the database .
+     * @tc.expected: step2. Returns OK.
+     */
+    Key k1 = {'k', '1'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k1, VALUE_1), OK);
+    /**
+     * @tc.steps:step3. Update key with nullptr or invalid key.
+     * @tc.expected: step3. Returns INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->UpdateKey(nullptr), INVALID_ARGS);
+    DBStatus status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey.clear();
+    });
+    EXPECT_EQ(status, INVALID_ARGS);
+    status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey.assign(2048u, '0'); // 2048 is invalid len
+    });
+    EXPECT_EQ(status, INVALID_ARGS);
+    /**
+     * @tc.steps:step4. Close store.
+     * @tc.expected: step4. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey003"), OK);
     g_kvNbDelegatePtr = nullptr;
 }

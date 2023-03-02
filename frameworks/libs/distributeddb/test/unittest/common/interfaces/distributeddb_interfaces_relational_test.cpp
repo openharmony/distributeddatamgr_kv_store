@@ -907,7 +907,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
         return E_OK;
     });
     EXPECT_EQ(logCnt, 0);
-    std::string deviceTable = RelationalStoreManager::GetDistributedTableName(DEVICE_B, "t1");
+    std::string deviceTable = RelationalStoreManager::GetDistributedTableName(DEVICE_B + "_" + APP_ID, "t1");
     std::string checkDataSql = "SELECT count(*) FROM " + deviceTable;
     EXPECT_NE(RelationalTestUtils::ExecSql(db, checkDataSql, nullptr, nullptr), SQLITE_OK);
     /**
