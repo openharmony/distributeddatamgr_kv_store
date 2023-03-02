@@ -23,25 +23,43 @@ namespace OHOS {
 namespace DistributedKv {
 class ChangeNotification final {
 public:
-    // Constructor of ChangeNotification.
+    /**
+     * @brief Constructor of ChangeNotification.
+     * @param insertEntries Inserted entries.
+     * @param updateEntries Updated entries.
+     * @param deleteEntries Deleted entries.
+     * @param deviceId The device ID.
+     * @param icClear Indicate whether the clear function cause this change.
+    */
     API_EXPORT ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
                        std::vector<Entry> &&deleteEntries, const std::string &deviceId, bool isClear);
 
     API_EXPORT ~ChangeNotification();
 
-    // Get all inserted entries in this change.
+    /**
+     * @brief Get all inserted entries in this change.
+    */
     API_EXPORT const std::vector<Entry> &GetInsertEntries() const;
 
-    // Get all updated entries in this changing.
+    /**
+     * @brief Get all updated entries in this changing.
+    */
     API_EXPORT const std::vector<Entry> &GetUpdateEntries() const;
 
-    // Get all deleted entries in this changing.
+    /**
+     * @brief Get all deleted entries in this changing.
+    */
     API_EXPORT const std::vector<Entry> &GetDeleteEntries() const;
 
-    // Get the device ID.
+    /**
+     * @brief Get the device ID.
+    */
     API_EXPORT const std::string &GetDeviceId() const;
 
-    // Check if this change is made by calling the Clear function.
+    /**
+     * @brief Check if this change is made by calling the clear function.
+     * @return Return true if caused by clear function, otherwise false.
+    */
     API_EXPORT bool IsClear() const;
 
 private:

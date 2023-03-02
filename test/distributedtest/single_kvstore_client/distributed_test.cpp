@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "types.h"
 #include "distributed_major.h"
@@ -87,7 +88,7 @@ public:
 
     static std::shared_ptr<SingleKvStore> singleKvStore_; // declare kvstore instance.
     static DistributedKvDataManager manager_;
-    static std::vector <DeviceInfo> deviceInfos_;
+    static std::vector <DevManager::DetailInfo> detailInfos_;
     DistributedTestHelper helper_;
     static constexpr int WAIT_FOR_TIME = 3; // wait for synccallback time is 3s.
     static constexpr int FILE_PERMISSION = 0777; // 0777 is to modify the permissions of the file.
@@ -95,7 +96,7 @@ public:
 
 std::shared_ptr<SingleKvStore> DistributedTest::singleKvStore_ = nullptr;
 DistributedKvDataManager DistributedTest::manager_;
-std::vector<DeviceInfo> DistributedTest::deviceInfos_;
+std::vector<DevManager::DetailInfo> DistributedTest::detailInfos_;
 
 void DistributedTest::SetUpTestCase(void)
 {
@@ -107,7 +108,7 @@ void DistributedTest::SetUpTestCase(void)
     StoreId storeId = { "student_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     manager_.GetSingleKvStore(options, appId, storeId, singleKvStore_);
-    manager_.GetDeviceList(deviceInfos_, DeviceFilterStrategy::NO_FILTER);
+    detailInfos_ = DevManager::GetInstance().GetRemoteDevices();
     OHOS::ChangeModeDirectory(options.baseDir, FILE_PERMISSION);
 }
 
@@ -137,8 +138,8 @@ HWTEST_F(DistributedTest, SyncData001, TestSize.Level1)
     EXPECT_EQ(Status::SUCCESS, status) << "SyncCallback failed";
 
     std::vector<std::string> deviceIds;
-    for (const auto &device : deviceInfos_) {
-        deviceIds.push_back(device.deviceId);
+    for (const auto &device : detailInfos_) {
+        deviceIds.push_back(device.networkId);
     }
     std::unique_lock<std::mutex> lck(syncCallback->mtx_);
     status = singleKvStore_->Sync(deviceIds, SyncMode::PUSH);
@@ -201,8 +202,8 @@ HWTEST_F(DistributedTest, SyncData004, TestSize.Level1)
     EXPECT_EQ(Status::SUCCESS, status) << "Put failed";
 
     std::vector<std::string> deviceIds;
-    for (const auto &device : deviceInfos_) {
-        deviceIds.push_back(device.deviceId);
+    for (const auto &device : detailInfos_) {
+        deviceIds.push_back(device.networkId);
     }
     status = singleKvStore_->Sync(deviceIds, SyncMode::PUSH);
     EXPECT_EQ(Status::SUCCESS, status) << "Sync failed";

@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "types.h"
 
@@ -65,9 +66,8 @@ void DeviceKvStoreTest::SetUpTestCase(void)
     StoreId storeId = { "student_device" }; // define kvstore(database) name.
     // [create and] open and initialize kvstore instance.
     status_ = manager.GetSingleKvStore(options_, appId, storeId, kvStore_);
-    DeviceInfo deviceInfo;
-    manager.GetLocalDevice(deviceInfo);
-    deviceId_ = deviceInfo.deviceId;
+    auto deviceInfo = DevManager::GetInstance().GetLocalDevice();
+    deviceId_ = deviceInfo.networkId;
 }
 
 void DeviceKvStoreTest::TearDownTestCase(void)

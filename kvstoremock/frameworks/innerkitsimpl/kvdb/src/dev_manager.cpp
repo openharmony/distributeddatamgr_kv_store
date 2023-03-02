@@ -40,20 +40,6 @@ void DevManager::RegisterDevCallback()
     if (errNo != DM_OK) {
         ZLOGE("register device failed, try again");
     }
-    std::thread th = std::thread([this]() {
-        constexpr int RETRY_TIMES = 300;
-        int i = 0;
-        int32_t errNo = DM_ERROR;
-        while (i++ < RETRY_TIMES) {
-            errNo = Init();
-            if (errNo == DM_OK) {
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-        ZLOGI("reg device exit now: %{public}d times, errNo: %{public}d", i, errNo);
-    });
-    th.detach();
 }
 
 DevManager &DevManager::GetInstance()

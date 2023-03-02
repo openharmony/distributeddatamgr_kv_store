@@ -95,7 +95,7 @@ ohos_source_set("kvdb_src_file") {
     "hitrace_native:libhitracechain",
     "hiviewdfx_hilog_native:libhilog",
     "huks:libhukssdk",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
 
@@ -112,7 +112,7 @@ ohos_unittest("SingleStoreImplTest") {
   external_deps = [
     "c_utils:utils",
     "hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -134,7 +134,7 @@ ohos_unittest("StoreUtilTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -156,7 +156,7 @@ ohos_unittest("BackupManagerTest") {
 
   external_deps = [
     "c_utils:utils",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -179,7 +179,7 @@ ohos_unittest("AutoSyncTimerTest") {
   external_deps = [
     "c_utils:utils",
     "hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -202,7 +202,7 @@ ohos_unittest("DevManagerTest") {
   external_deps = [
     "c_utils:utils",
     "hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -225,7 +225,7 @@ ohos_unittest("SingleStoreImplGetTopTest") {
   external_deps = [
     "c_utils:utils",
     "hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]
@@ -248,7 +248,7 @@ ohos_unittest("StoreFactoryTest") {
   external_deps = [
     "c_utils:utils",
     "hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
   ]

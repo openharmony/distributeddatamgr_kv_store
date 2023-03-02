@@ -26,48 +26,92 @@ public:
     inline static constexpr int INVALID_POSITION = -ALREADY_CLOSED;
     API_EXPORT virtual ~KvStoreResultSet() {}
 
-    // Returns the count of rows in the result set.
+    /**
+     * @brief Get the count of rows in the result set.
+     * @return the count of rows.
+    */
     virtual int GetCount() const = 0;
 
-    // Returns the current read position of the result set.
+    /**
+     * @brief Get the current read position of the result set.
+     * @return The position value.
+    */
     virtual int GetPosition() const = 0;
 
-    // Move the read position to the first row, return false if the result set is empty.
+    /**
+     * @brief Move the read position to first row.
+     * @return Return false If the result set is empty.
+    */
     virtual bool MoveToFirst() = 0;
 
-    // Move the read position to the last row, return false if the result set is empty.
+    /**
+     * @brief Move the read position to the last row.
+     * @return Return false if the result set is empty.
+    */
     virtual bool MoveToLast() = 0;
 
-    // Move the read position to the next row,
-    // return false if the result set is empty or the read position is already past the last entry in the result set.
+    /**
+     * @brief Move the read position to the next row.
+     * @return Return false if the result set is empty
+     *         or the read position is already past the last entry in the result set.
+    */
     virtual bool MoveToNext() = 0;
 
-    // Move the read position to the previous row,
-    // return false if result set is empty or the read position is already before the first entry in the result set.
+    /**
+     * @brief Move the read position to the previous row.
+     * @return Return false if result set is empty
+     *         or the read position is already before the first entry in the result set.
+    */
     virtual bool MoveToPrevious() = 0;
 
-    // Move the read position by a relative amount from the current position.
+    /**
+     * @brief Move the read position by a relative amount from the current position.
+     * @param offset Relative amount.
+     * @return Return true for success, false for failure.
+    */
     virtual bool Move(int offset) = 0;
 
-    // Move the read position to an absolute position value.
+    /**
+     * @brief Move the read position to an absolute position value.
+     * @param position The absolute position.
+     * @return Return true for success, false for failure.
+    */
     virtual bool MoveToPosition(int position) = 0;
 
-    // Returns whether the read position is pointing to the first row.
+    /**
+     * @brief Returns whether the read position is pointing to the first row.
+     * @return Return true for success, false for failure.
+    */
     virtual bool IsFirst() const = 0;
 
-    // Returns whether the read position is pointing to the last row.
+    /**
+     * @brief Returns whether the read position is pointing to the last row.
+     * @return Return true for success, false for failure.
+    */
     virtual bool IsLast() const = 0;
 
-    // Returns whether the read position is before the first row.
+    /**
+     * @brief Returns whether the read position is before the first row.
+     * @return Return true for success, false for failure.
+    */
     virtual bool IsBeforeFirst() const = 0;
 
-    // Returns whether the read position is after the last row.
+    /**
+     * @brief Returns whether the read position is after the last row.
+     * @return Return true for success, false for failure.
+    */
     virtual bool IsAfterLast() const = 0;
 
-    // Get a key-value entry.
+    /**
+     * @brief Get a key-value entry.
+     * @return Return SUCCESS for success, others for failure.
+    */
     virtual Status GetEntry(Entry &entry) const = 0;
 
-    // Close.
+    /**
+     * @brief Close.
+     * @return Return SUCCESS for success, others for failure.
+    */
     virtual Status Close() = 0;
 };
 }  // namespace DistributedKv

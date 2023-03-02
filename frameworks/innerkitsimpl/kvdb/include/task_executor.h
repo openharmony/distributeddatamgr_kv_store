@@ -19,8 +19,8 @@
 namespace OHOS::DistributedKv {
 class TaskExecutor {
 public:
-    API_EXPORT static TaskExecutor &GetInstance();
-    API_EXPORT bool Execute(TaskScheduler::Task &&task, int32_t interval = 0);
+    static TaskExecutor &GetInstance();
+    bool Execute(TaskScheduler::Task &&task, int32_t interval = 0);
 
 private:
     TaskExecutor();

@@ -53,12 +53,12 @@
         "sqlite",
         "libz",
         "jsoncpp",
-        "libcrypto_shared"
+        "libcrypto_shared",
+        "libuv"
       ],
       "kernel_special": {},
       "board_special": {},
       "components": [
-        "libuv",
         "common_event_service",
         "bundle_framework",
         "safwk",
