@@ -253,7 +253,14 @@ void ExpectMissQueryCnt(const std::vector<SingleVerKvEntry *> &entries, size_t e
         }
     }
     EXPECT_EQ(count, expectCount);
-};
+}
+
+void SetRemoteSchema(const RelationalSyncAbleStorage *store, const std::string &deviceID)
+{
+    std::string remoteSchema = store->GetSchemaInfo().ToSchemaString();
+    uint8_t remoteSchemaType = static_cast<uint8_t>(store->GetSchemaInfo().GetSchemaType());
+    const_cast<RelationalSyncAbleStorage *>(store)->SaveRemoteDeviceSchema(deviceID, remoteSchema, remoteSchemaType);
+}
 }
 
 class DistributedDBRelationalGetDataTest : public testing::Test {
@@ -472,11 +479,11 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetSyncData3, TestSize.Level1)
      */
     QueryObject gQuery(Query::Select(g_tableName));
     DeviceID deviceA = "deviceA";
+    DeviceID deviceB = "deviceB";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(g_tableName),
         DBCommon::GetDistributedTableName(deviceA, g_tableName)));
-    EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(gQuery, entries, deviceA), E_OK);
-
-    DeviceID deviceB = "deviceB";
+    SetRemoteSchema(store, deviceA);
+    SetRemoteSchema(store, deviceB);
     auto rEntries = std::vector<SingleVerKvEntry *>(entries.rbegin(), entries.rend());
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(g_tableName),
         DBCommon::GetDistributedTableName(deviceB, g_tableName)));
@@ -686,6 +693,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, GetIncorrectTypeData1, TestSize.Lev
         DBCommon::GetDistributedTableName(deviceID, g_tableName)));
     ASSERT_EQ(E_OK, SQLiteUtils::CloneIndexes(db, g_tableName,
         DBCommon::GetDistributedTableName(deviceID, g_tableName)));
+
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(queryPlus, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
 
@@ -768,6 +777,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateData1, TestSize.Level1)
     const DeviceID deviceID = "deviceA";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(g_tableName),
         DBCommon::GetDistributedTableName(deviceID, g_tableName)));
+
+    SetRemoteSchema(store, deviceID);
     for (uint32_t i = 0; i < 10; ++i) {  // 10 for test.
         EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID), E_OK);
     }
@@ -838,6 +849,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, UpdateDataWithMulDevData1, TestSize
     const DeviceID deviceID = "deviceA";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(g_tableName),
         DBCommon::GetDistributedTableName(deviceID, g_tableName)));
+
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
     /**
@@ -909,6 +922,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, MissQuery1, TestSize.Level1)
     const DeviceID deviceID = "deviceA";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(g_tableName),
         DBCommon::GetDistributedTableName(deviceID, g_tableName)));
+
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
 
@@ -944,6 +959,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, MissQuery1, TestSize.Level1)
      * @tc.steps: step8. Put data into "data" table from deviceA for 10 times.
      * @tc.expected: Succeed, return OK.
      */
+    SetRemoteSchema(store, deviceID);
     query = QueryObject(Query::Select(g_tableName));
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
@@ -1008,6 +1024,8 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CompatibleData1, TestSize.Level1)
     const DeviceID deviceID = "deviceA";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(tableName),
         DBCommon::GetDistributedTableName(deviceID, tableName)));
+
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(queryPlus, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
     /**
@@ -1240,6 +1258,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, PutSyncDataConflictDataTest001, Tes
     int errCode = store->GetSyncData(query, {}, sizeInfo, token, entries);
     EXPECT_EQ(errCode, E_OK);
 
+    SetRemoteSchema(store, deviceID_B);
     errCode = store->PutSyncDataWithQuery(query, entries, deviceID_B);
     EXPECT_EQ(errCode, E_OK);
     GenericSingleVerKvEntry::Release(entries);
@@ -1306,6 +1325,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SaveNonexistDevdata1, TestSize.Leve
      */
     query = QueryObject(Query::Select(tableName));
     const DeviceID deviceID = "deviceA";
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(query, entries, deviceID),
         -1);  // -1 means error
     SingleVerKvEntry::Release(entries);
@@ -1440,6 +1460,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, NoPkData1, TestSize.Level1)
     const DeviceID deviceID = "deviceA";
     ASSERT_EQ(E_OK, SQLiteUtils::CreateSameStuTable(db, store->GetSchemaInfo().GetTable(tableName),
         DBCommon::GetDistributedTableName(deviceID, tableName)));
+    SetRemoteSchema(store, deviceID);
     EXPECT_EQ(const_cast<RelationalSyncAbleStorage *>(store)->PutSyncDataWithQuery(queryPlus, entries, deviceID), E_OK);
     SingleVerKvEntry::Release(entries);
 

@@ -17,6 +17,7 @@
 #ifdef RELATIONAL_STORE
 
 #include "data_transformer.h"
+#include "db_common.h"
 #include "generic_virtual_device.h"
 #include "relational_schema_object.h"
 #include "virtual_relational_ver_sync_db_interface.h"
