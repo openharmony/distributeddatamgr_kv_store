@@ -29,72 +29,122 @@ public:
 
     API_EXPORT ~Blob() = default;
 
-    // copy constructor for Blob.
+    /**
+     * @brief Copy constructor for Blob.
+     */ 
     API_EXPORT Blob(const Blob &blob);
     API_EXPORT Blob &operator=(const Blob &blob);
 
-    // move constructor for Blob.
+    /**
+     * @brief Move constructor for Blob.
+     */
     API_EXPORT Blob(Blob &&blob);
     API_EXPORT Blob &operator=(Blob &&blob);
 
-    // construct a Blob use std::string.
+    /**
+     * @brief Construct a Blob use std::string.
+    */
     API_EXPORT Blob(const std::string &str);
     API_EXPORT Blob &operator=(const std::string &str);
 
-    // construct a Blob use char pointer and len.
+    /**
+     * @brief Construct a Blob use char pointer and len.
+    */
     API_EXPORT Blob(const char *str, size_t n);
 
-    // construct a Blob use char pointer.
+    /**
+     * @brief Construct a Blob use char pointer.
+    */
     API_EXPORT Blob(const char *str);
     API_EXPORT Blob &operator=(const char *str);
 
-    // construct a Blob use std::vector<uint8_t>
+    /**
+     * @brief Construct a Blob use std::vector<uint8_t>.
+    */
     API_EXPORT Blob(const std::vector<uint8_t> &bytes);
 
-    // construct a Blob use std::vector<uint8_t>
+    /**
+     * @brief Construct a Blob use std::vector<uint8_t>.
+    */
     API_EXPORT Blob(std::vector<uint8_t> &&bytes);
 
-    // Return a reference to the data of the blob.
+    /**
+     * @brief Return a reference to the data of the blob.
+    */
     API_EXPORT const std::vector<uint8_t> &Data() const;
 
     API_EXPORT operator const std::vector<uint8_t> &() const;
 
     API_EXPORT operator std::vector<uint8_t> &&() noexcept;
 
-    // Return the length (in bytes) of the referenced data
+    /**
+     * @brief Return the length of the referenced data(unit: byte).
+     * @return The length of the referenced data.
+    */
     API_EXPORT size_t Size() const;
 
-    // Return the occupied length when write this blob to rawdata
+    /**
+     * @brief Return the occupied length when write this blob to rawdata.
+     * @return The occupied length.
+    */
     int RawSize() const;
 
-    // Return true if the length of the referenced data is zero
+    /**
+     * @brief Indicate the referenced data is zero or not.
+     * @return Return true if the length of the referenced data is zero
+     *         otherwise return false.
+    */
     API_EXPORT bool Empty() const;
 
-    // Return the the byte in the referenced data.
-    // REQUIRES: n < size()
+    /**
+     * @brief  Return the the byte in the referenced data.
+     * @param n the number of byte(n < {@link size_t Size()})
+    */
     API_EXPORT uint8_t operator[](size_t n) const;
 
     API_EXPORT bool operator==(const Blob &) const;
 
-    // Change this blob to refer to an empty array
+    /**
+     * @brief Change this blob to refer to an empty array.
+    */
     API_EXPORT void Clear();
 
-    // change vector<uint8_t> to std::string
+    /**
+     * @brief Change vector<uint8_t> to std::string.
+     * @return The string value.
+    */
     API_EXPORT std::string ToString() const;
 
-    // comparison.  Returns value:
-    //   <  0 if "*this" <  "blob",
-    //   == 0 if "*this" == "blob",
-    //   >  0 if "*this" >  "blob"
+    /**
+     * @brief Comparison. Returns value.
+     * 
+     * <  0 if "*this" <  "blob".
+     * == 0 if "*this" == "blob".
+     * >  0 if "*this" >  "blob".
+    */
     API_EXPORT int Compare(const Blob &blob) const;
 
-    // Return true if "blob" is a prefix of "*this"
+    /**
+     * @brief Whether the input blob is a prefix of "*this" or not. 
+     * @param blob The input blob value.
+     * @return True if "blob" is a prefix of "*this", otherwise false.
+    */
     API_EXPORT bool StartsWith(const Blob &blob) const;
 
-    /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
+    /**
+     * @brief Write blob size and data to memory buffer.
+     * @param cursorPtr The pointer of the buffer.
+     * @param bufferLeftSize The size of unused buffer.
+     * @return Return false if bufferLeftSize not enough, otherwise true.
+    */
     bool WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const;
 
-    /* read a blob from memory buffer. */
+    /**
+     * @brief Read a blob from memory buffer.
+     * @param cursorPtr The pointer of the buffer.
+     * @param bufferLeftSize The available buffer.
+     * @return Return false if bufferLeftSize not enough, otherwise true.
+    */
     bool ReadFromBuffer(const uint8_t *&cursorPtr, int &bufferLeftSize);
 
 private:

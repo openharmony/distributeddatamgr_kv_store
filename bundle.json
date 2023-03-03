@@ -53,12 +53,12 @@
         "sqlite",
         "libz",
         "jsoncpp",
-        "libcrypto_shared"
+        "libcrypto_shared",
+        "libuv"
       ],
       "kernel_special": {},
       "board_special": {},
       "components": [
-        "libuv",
         "common_event_service",
         "bundle_framework",
         "safwk",
@@ -108,7 +108,6 @@
               "types.h",
               "visibility.h",
               "data_query.h",
-              "device_status_change_listener.h",
               "store_errno.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
@@ -119,7 +118,9 @@
         "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test:distributeddatamgr_fuzztest",
         "//foundation/distributeddatamgr/kv_store:distributedtest",
         "//foundation/distributeddatamgr/kv_store:build_native_test",
-        "//foundation/distributeddatamgr/kv_store/test/unittest:unittest",
+        "//foundation/distributeddatamgr/kv_store:fuzztest",
+        "//foundation/distributeddatamgr/kv_store/test/unittest/distributeddata:unittest",
+        "//foundation/distributeddatamgr/kv_store/test/unittest/distributedKVStore:unittest",
         "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/test:unittest"
       ]
     }

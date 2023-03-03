@@ -2330,61 +2330,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest002,
 #endif // RUNNING_ON_SIMULATED_ENV
 
 /**
-  * @tc.name: ResultSetLimitTest001
-  * @tc.desc: Get result set over limit
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: lianhuix
-  */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, ResultSetLimitTest001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Create database.
-     * @tc.expected: step1. Returns a non-null kvstore.
-     */
-    KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("ResultSetLimitTest001", option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
-
-    /**
-     * @tc.steps:step2. Put the random entry into the database.
-     * @tc.expected: step2. Returns OK.
-     */
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_3, VALUE_3), OK);
-
-    /**
-     * @tc.steps:step3. Get the resultset overlimit.
-     * @tc.expected: step3. In limit returns OK, else return OVER_MAX_LIMITS.
-     */
-    std::vector<KvStoreResultSet *> dataResultSet;
-    for (int i = 0; i < 8; i++) { // 8: max result set count
-        KvStoreResultSet *resultSet = nullptr;
-        EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(Key{}, resultSet), OK);
-        dataResultSet.push_back(resultSet);
-        EXPECT_NE(resultSet, nullptr);
-    }
-
-    KvStoreResultSet *resultSet = nullptr;
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(Key{}, resultSet), OVER_MAX_LIMITS);
-    EXPECT_EQ(resultSet, nullptr);
-
-    /**
-     * @tc.steps:step4. Close result set and store.
-     * @tc.expected: step4. Returns OK.
-     */
-    for (auto it : dataResultSet) {
-        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(it), OK);
-    }
-
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore("ResultSetLimitTest001"), OK);
-    g_kvNbDelegatePtr = nullptr;
-}
-
-/**
   * @tc.name: LocalStore001
   * @tc.desc: Test get kv store with localOnly
   * @tc.type: FUNC
@@ -2515,4 +2460,62 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, PutSync001, TestSize.Level3)
     EXPECT_EQ(mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
+}
+
+/**
+  * @tc.name: ResultSetLimitTest001
+  * @tc.desc: Get result set over limit
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, ResultSetLimitTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("ResultSetLimitTest001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps:step2. Put the random entry into the database.
+     * @tc.expected: step2. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_2, VALUE_2), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_3, VALUE_3), OK);
+
+    /**
+     * @tc.steps:step3. Get the resultset overlimit.
+     * @tc.expected: step3. In limit returns OK, else return OVER_MAX_LIMITS.
+     */
+    std::vector<KvStoreResultSet *> dataResultSet;
+    for (int i = 0; i < 8; i++) { // 8: max result set count
+        KvStoreResultSet *resultSet = nullptr;
+        EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(Key{}, resultSet), OK);
+        dataResultSet.push_back(resultSet);
+        EXPECT_NE(resultSet, nullptr);
+    }
+
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(Key{}, resultSet), OVER_MAX_LIMITS);
+    EXPECT_EQ(resultSet, nullptr);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    }
+
+    /**
+     * @tc.steps:step4. Close result set and store.
+     * @tc.expected: step4. Returns OK.
+     */
+    for (auto it : dataResultSet) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(it), OK);
+    }
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("ResultSetLimitTest001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }

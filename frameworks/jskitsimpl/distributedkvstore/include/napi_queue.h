@@ -51,15 +51,8 @@ struct ContextBase {
     void* native = nullptr;
 
 private:
-    napi_deferred deferred = nullptr;
-    napi_async_work work = nullptr;
     napi_ref callbackRef = nullptr;
     napi_ref selfRef = nullptr;
-
-    NapiAsyncExecute execute = nullptr;
-    NapiAsyncComplete complete = nullptr;
-    std::shared_ptr<ContextBase> hold; /* cross thread data */
-
     friend class NapiQueue;
 };
 
@@ -102,6 +95,15 @@ private:
 
 #define ASSERT_NULL(condition, message)      ASSERT(condition, message, nullptr)         \
 
+#define ASSERT_CALL(env, theCall, object)                              \
+    do {                                                               \
+        if ((theCall) != napi_ok) {                                    \
+            delete (object);                                           \
+            GET_AND_THROW_LAST_ERROR((env));                           \
+            return nullptr;                                            \
+        }                                                              \
+    } while (0)
+
 class NapiQueue {
 public:
     static napi_value AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt, const std::string& name,
@@ -114,7 +116,27 @@ private:
         RESULT_DATA = 1,
         RESULT_ALL = 2
     };
-    static void GenerateOutput(ContextBase* ctxt);
+
+    struct AsyncContext {
+        napi_env env = nullptr;
+        std::shared_ptr<ContextBase> ctx;
+        NapiAsyncExecute execute = nullptr;
+        NapiAsyncComplete complete = nullptr;
+        napi_deferred deferred = nullptr;
+        napi_async_work work = nullptr;
+        ~AsyncContext()
+        {
+            execute = nullptr;
+            complete = nullptr;
+            ctx = nullptr;
+            if (env != nullptr) {
+                if (work != nullptr) {
+                    napi_delete_async_work(env, work);
+                }
+            }
+        }
+    };
+    static void GenerateOutput(AsyncContext &ctx, napi_value output);
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_NAPI_QUEUE_H

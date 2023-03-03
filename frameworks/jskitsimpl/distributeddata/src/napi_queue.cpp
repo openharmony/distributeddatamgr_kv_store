@@ -22,13 +22,14 @@ ContextBase::~ContextBase()
 {
     ZLOGD("no memory leak after callback or promise[resolved/rejected]");
     if (env != nullptr) {
-        if (work != nullptr) {
-            napi_delete_async_work(env, work);
-        }
         if (callbackRef != nullptr) {
-            napi_delete_reference(env, callbackRef);
+            auto status = napi_delete_reference(env, callbackRef);
+            ZLOGD("status:%{public}d", status);
         }
-        napi_delete_reference(env, selfRef);
+        if (selfRef != nullptr) {
+            auto status = napi_delete_reference(env, selfRef);
+            ZLOGD("status:%{public}d", status);
+        }
         env = nullptr;
     }
 }
@@ -42,7 +43,9 @@ void ContextBase::GetCbInfo(napi_env envi, napi_callback_info info, NapiCbInfoPa
     CHECK_STATUS_RETURN_VOID(this, "napi_get_cb_info failed!");
     CHECK_ARGS_RETURN_VOID(this, argc <= ARGC_MAX, "too many arguments!");
     CHECK_ARGS_RETURN_VOID(this, self != nullptr, "no JavaScript this argument!");
-    napi_create_reference(env, self, 1, &selfRef);
+    if (!sync) {
+        napi_create_reference(env, self, 1, &selfRef);
+    }
     status = napi_unwrap(env, self, &native);
     CHECK_STATUS_RETURN_VOID(this, "self unwrap failed!");
 
@@ -72,77 +75,83 @@ napi_value NapiQueue::AsyncWork(napi_env env, std::shared_ptr<ContextBase> ctxt,
     NapiAsyncExecute execute, NapiAsyncComplete complete)
 {
     ZLOGD("name=%{public}s", name.c_str());
-    ctxt->execute = std::move(execute);
-    ctxt->complete = std::move(complete);
-
+    AsyncContext *aCtx = new AsyncContext;
+    aCtx->env = env;
+    aCtx->ctx = std::move(ctxt);
+    aCtx->execute = std::move(execute);
+    aCtx->complete = std::move(complete);
     napi_value promise = nullptr;
-    if (ctxt->callbackRef == nullptr) {
-        napi_create_promise(ctxt->env, &ctxt->deferred, &promise);
+    if (aCtx->ctx->callbackRef == nullptr) {
+        napi_create_promise(env, &aCtx->deferred, &promise);
         ZLOGD("create deferred promise");
     } else {
-        napi_get_undefined(ctxt->env, &promise);
+        napi_get_undefined(env, &promise);
     }
 
     napi_value resource = nullptr;
-    napi_create_string_utf8(ctxt->env, name.c_str(), NAPI_AUTO_LENGTH, &resource);
+    napi_create_string_utf8(env, name.c_str(), NAPI_AUTO_LENGTH, &resource);
     napi_create_async_work(
-        ctxt->env, nullptr, resource,
+        env, nullptr, resource,
         [](napi_env env, void* data) {
             CHECK_RETURN_VOID(data != nullptr, "napi_async_execute_callback nullptr");
-            auto ctxt = reinterpret_cast<ContextBase*>(data);
-            ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", ctxt->status);
-            if (ctxt->execute && ctxt->status == napi_ok) {
-                ctxt->execute();
+            auto actx = reinterpret_cast<AsyncContext*>(data);
+            ZLOGD("napi_async_execute_callback ctxt->status=%{public}d", actx->ctx->status);
+            if (actx->execute && actx->ctx->status == napi_ok) {
+                actx->execute();
             }
         },
         [](napi_env env, napi_status status, void* data) {
             CHECK_RETURN_VOID(data != nullptr, "napi_async_complete_callback nullptr");
-            auto ctxt = reinterpret_cast<ContextBase*>(data);
-            ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, ctxt->status);
-            if ((status != napi_ok) && (ctxt->status == napi_ok)) {
-                ctxt->status = status;
+            auto actx = reinterpret_cast<AsyncContext*>(data);
+            ZLOGD("napi_async_complete_callback status=%{public}d, ctxt->status=%{public}d", status, actx->ctx->status);
+            if ((status != napi_ok) && (actx->ctx->status == napi_ok)) {
+                actx->ctx->status = status;
             }
-            if ((ctxt->complete) && (status == napi_ok) && (ctxt->status == napi_ok)) {
-                ctxt->complete(ctxt->output);
+            napi_value output = nullptr;
+            if ((actx->complete) && (status == napi_ok) && (actx->ctx->status == napi_ok)) {
+                actx->complete(output);
             }
-            GenerateOutput(ctxt);
+            GenerateOutput(*actx, output);
+            delete actx;
         },
-        reinterpret_cast<void*>(ctxt.get()), &ctxt->work);
-    napi_queue_async_work(ctxt->env, ctxt->work);
-    ctxt->hold = ctxt; // save crossing-thread ctxt.
+        reinterpret_cast<void*>(aCtx), &aCtx->work);
+    auto status = napi_queue_async_work(env, aCtx->work);
+    if (status != napi_ok) {
+        napi_get_undefined(env, &promise);
+        delete aCtx;
+    }
     return promise;
 }
 
-void NapiQueue::GenerateOutput(ContextBase* ctxt)
+void NapiQueue::GenerateOutput(AsyncContext &ctx, napi_value output)
 {
     napi_value result[RESULT_ALL] = { nullptr };
-    if (ctxt->status == napi_ok) {
-        napi_get_undefined(ctxt->env, &result[RESULT_ERROR]);
-        if (ctxt->output == nullptr) {
-            napi_get_undefined(ctxt->env, &ctxt->output);
+    if (ctx.ctx->status == napi_ok) {
+        napi_get_undefined(ctx.env, &result[RESULT_ERROR]);
+        if (output == nullptr) {
+            napi_get_undefined(ctx.env, &output);
         }
-        result[RESULT_DATA] = ctxt->output;
+        result[RESULT_DATA] = output;
     } else {
         napi_value message = nullptr;
-        napi_create_string_utf8(ctxt->env, ctxt->error.c_str(), NAPI_AUTO_LENGTH, &message);
-        napi_create_error(ctxt->env, nullptr, message, &result[RESULT_ERROR]);
-        napi_get_undefined(ctxt->env, &result[RESULT_DATA]);
+        napi_create_string_utf8(ctx.env, ctx.ctx->error.c_str(), NAPI_AUTO_LENGTH, &message);
+        napi_create_error(ctx.env, nullptr, message, &result[RESULT_ERROR]);
+        napi_get_undefined(ctx.env, &result[RESULT_DATA]);
     }
-    if (ctxt->deferred != nullptr) {
-        if (ctxt->status == napi_ok) {
+    if (ctx.deferred != nullptr) {
+        if (ctx.ctx->status == napi_ok) {
             ZLOGD("deferred promise resolved");
-            napi_resolve_deferred(ctxt->env, ctxt->deferred, result[RESULT_DATA]);
+            napi_resolve_deferred(ctx.env, ctx.deferred, result[RESULT_DATA]);
         } else {
             ZLOGD("deferred promise rejected");
-            napi_reject_deferred(ctxt->env, ctxt->deferred, result[RESULT_ERROR]);
+            napi_reject_deferred(ctx.env, ctx.deferred, result[RESULT_ERROR]);
         }
     } else {
         napi_value callback = nullptr;
-        napi_get_reference_value(ctxt->env, ctxt->callbackRef, &callback);
+        napi_get_reference_value(ctx.env, ctx.ctx->callbackRef, &callback);
         napi_value callbackResult = nullptr;
         ZLOGD("call callback function");
-        napi_call_function(ctxt->env, nullptr, callback, RESULT_ALL, result, &callbackResult);
+        napi_call_function(ctx.env, nullptr, callback, RESULT_ALL, result, &callbackResult);
     }
-    ctxt->hold.reset(); // release ctxt.
 }
 } // namespace OHOS::DistributedData

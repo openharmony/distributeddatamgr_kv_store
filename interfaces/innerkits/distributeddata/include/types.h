@@ -27,27 +27,40 @@
 
 namespace OHOS {
 namespace DistributedKv {
-// key set by client, can be any non-empty bytes array, and less than 1024 size.
+/**
+ * @brief Key set by client, can be any non-empty bytes array, and less than 1024 size.
+*/
 using Key = OHOS::DistributedKv::Blob;
 
-// value set by client, can be any bytes array.
+/**
+ * @brief Value set by client, can be any bytes array.
+*/
 using Value = OHOS::DistributedKv::Blob;
 
-// user identifier from user-account
+/**
+ * @brief User identifier from user-account.
+*/
 struct UserId {
     std::string userId;
 };
 
-// app identifier from Bms
+/**
+ * @brief App identifier from bms.
+*/
 struct API_EXPORT AppId {
     std::string appId;
 
-    // support AppId convert to std::string
+    /**
+     * @brief Support appId convert to std::string.
+    */
     operator std::string &() noexcept
     {
         return appId;
     }
-    // support AppId convert to const std::string
+
+    /**
+     * @brief Support appId convert to const std::string.
+    */
     operator const std::string &() const noexcept
     {
         return appId;
@@ -73,18 +86,26 @@ private:
     static constexpr char SEPARATOR_CHAR = '#';
 };
 
-// kvstore name set by client by calling GetKvStore,
-// storeId len must be less or equal than 256,
-// and can not be empty and all space.
+/**
+ * @brief Kvstore name set by client by calling GetKvStore.
+ * 
+ * storeId length must be less or equal than 256,
+ * and can not be empty and all space.
+*/
 struct API_EXPORT StoreId {
     std::string storeId;
 
-    // support StoreId convert to std::string
+    /**
+     * @brief Support storeId convert to std::string.
+    */
     operator std::string &() noexcept
     {
         return storeId;
     }
-    // support StoreId convert to const std::string
+
+    /**
+     * @brief Support storeId convert to const std::string.
+    */
     operator const std::string &() const noexcept
     {
         return storeId;
@@ -108,35 +129,63 @@ private:
     static constexpr int MAX_STORE_ID_LEN = 128;
 };
 
+/**
+ * @brief Identifier unique database.
+*/
 struct KvStoreTuple {
     std::string userId;
     std::string appId;
     std::string storeId;
 };
 
+/**
+ * @brief App thread information.
+*/
 struct AppThreadInfo {
     std::int32_t pid;
     std::int32_t uid;
 };
 
+/**
+ * @brief The type for observer database change.
+*/
 enum SubscribeType : uint32_t {
-    SUBSCRIBE_TYPE_LOCAL = 1, // local changes of syncable kv store
-    SUBSCRIBE_TYPE_REMOTE = 2, // synced data changes from remote devices
-    SUBSCRIBE_TYPE_ALL = 3, // both local changes and synced data changes
+    /**
+     * Local changes of syncable kv store.
+    */
+    SUBSCRIBE_TYPE_LOCAL = 1,
+    /**
+     * Synced data changes from remote devices
+    */
+    SUBSCRIBE_TYPE_REMOTE = 2,
+    /**
+     * Both local changes and synced data changes.
+    */
+    SUBSCRIBE_TYPE_ALL = 3,
 };
 
+/**
+ * @brief Data is organized by entry definition.
+*/
 struct Entry {
     Key key;
     Value value;
 
     static constexpr size_t MAX_KEY_LENGTH = 1024;
     static constexpr size_t MAX_VALUE_LENGTH = 4 * 1024 * 1024;
-    /* write blob size and data to memory buffer. return error when bufferLeftSize not enough. */
+
+    /**
+     * Write blob size and data to memory buffer.
+     * Return error when bufferLeftSize not enough.
+    */
     bool WriteToBuffer(uint8_t *&cursorPtr, int &bufferLeftSize) const
     {
         return key.WriteToBuffer(cursorPtr, bufferLeftSize) && value.WriteToBuffer(cursorPtr, bufferLeftSize);
     }
-    /* read a blob from memory buffer. */
+
+    /**
+     * Read a blob from memory buffer.
+    */
     bool ReadFromBuffer(const uint8_t *&cursorPtr, int &bufferLeftSize)
     {
         return key.ReadFromBuffer(cursorPtr, bufferLeftSize) && value.ReadFromBuffer(cursorPtr, bufferLeftSize);
@@ -148,19 +197,50 @@ struct Entry {
     }
 };
 
+/**
+ * @brief Indicate how to sync data on sync operation.
+*/
 enum SyncMode : int32_t {
+    /**
+     * Sync remote data to local.
+    */
     PULL,
+    /**
+     * Sync local data to remote.
+    */
     PUSH,
+    /**
+     * Both push and pull.
+    */
     PUSH_PULL,
 };
 
+/**
+ * @brief The kvstore type.
+*/
 enum KvStoreType : int32_t {
+    /**
+     * Multi-device collaboration.
+     * The data is managed by the dimension of the device,
+     * and there is no conflict.
+     * Support to query data according to the dimension of equipment.
+    */
     DEVICE_COLLABORATION,
+    /**
+     * Data is not divided into devices.
+     * Modifying the same key between devices will overwrite.
+    */
     SINGLE_VERSION,
+    /**
+     * Not support type.
+    */
     MULTI_VERSION,
     INVALID_TYPE,
 };
 
+/**
+ * @brief Enumeration of database security level.
+*/
 enum SecurityLevel : int32_t {
     NO_LABEL,
     S0,
@@ -171,6 +251,9 @@ enum SecurityLevel : int32_t {
     S4,
 };
 
+/**
+ * @brief Enumeration of database base directory.
+*/
 enum Area : int32_t {
     EL0,
     EL1,
@@ -190,52 +273,126 @@ struct KvSyncParam {
     uint32_t allowedDelayMs { 0 };
 };
 
-enum class DeviceChangeType {
-    DEVICE_OFFLINE = 0,
-    DEVICE_ONLINE = 1,
-};
-
+/**
+ * @brief Device basic information.
+ * 
+ * Including device id, name and type.
+*/
 struct DeviceInfo {
     std::string deviceId;
     std::string deviceName;
     std::string deviceType;
 };
 
+/**
+ * @brief Device filter strategy.
+*/
 enum class DeviceFilterStrategy {
     FILTER = 0,
     NO_FILTER = 1,
 };
 
+/**
+ * @brief Indicate how and when to sync data with other device.
+*/
 enum PolicyType : uint32_t {
+    /**
+     * Data synchronization within valid time.
+    */
     TERM_OF_SYNC_VALIDITY,
+    /**
+     * Data synchronization when device manager module call online operation.
+    */
     IMMEDIATE_SYNC_ON_ONLINE,
+    /**
+     * Data synchronization when put, delete or update database.
+    */
     IMMEDIATE_SYNC_ON_CHANGE,
+    /**
+     * Data synchronization when device manager module call onready operation.
+    */
     IMMEDIATE_SYNC_ON_READY,
     POLICY_BUTT
 };
 
+/**
+ * @brief Policy Type value.
+*/
 struct SyncPolicy {
     uint32_t type;
     std::variant<std::monostate, uint32_t> value;
 };
 
+/**
+ * @brief Provide configuration information for database creation.
+*/
 struct Options {
+    /**
+     * Whether to create a database when the database file does not exist.
+     * It is created by default.
+    */
     bool createIfMissing = true;
+    /**
+     * Set whether the database file is encrypted.
+     * It is not encrypted by default.
+    */
     bool encrypt = false;
+    /**
+     * Data storage disk by default.
+    */
     bool persistent = true;
+    /**
+     * Set whether the database file is backed up.
+     * It is back up by default.
+    */
     bool backup = true;
+    /**
+     * Set whether the database file is automatically synchronized.
+     * It is not automatically synchronized by default.
+     * 'ohos.permission.DISTRIBUTED_DATASYNC' permission is necessary.
+    */
     bool autoSync = true;
-    bool syncable = true; // let bms delete first
+    /**
+     * True if is distributed store, false if is local store
+    */
+    bool syncable = true;
+    /**
+     * Set Whether rebuild the database.
+    */
     bool rebuild = false;
+    /**
+     * Set database security level.
+    */
     int32_t securityLevel = NO_LABEL;
+    /**
+     * Set database directory area.
+    */
     int32_t area = EL1;
+    /**
+     * Set the type of database to be created.
+     * The default is multi-device collaboration database.
+    */
     KvStoreType kvStoreType = DEVICE_COLLABORATION;
-
+    /**
+     * The sync policy vector.
+    */
     std::vector<SyncPolicy> policies{ { IMMEDIATE_SYNC_ON_CHANGE } };
+    /**
+     * Set the value stored in the database.
+     * Schema is not used by default.
+    */
     std::string schema = "";
+    /**
+     * Set database directory hapName.
+    */
     std::string hapName = "";
+    /**
+     * Set database directory baseDir.
+    */
     std::string baseDir = "";
-
+    /**
+     * Whether the kvstore type is valid.
+    */
     inline bool IsValidType() const
     {
         return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION;

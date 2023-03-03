@@ -14,6 +14,7 @@
 #####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("../../../distributeddb.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("FileOperFuzzTest") {
@@ -26,18 +27,23 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/multiver",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/operation",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/relational",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/upgrader",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/syncer/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
     "//third_party/jsoncpp/include/json",
     "//third_party/skia/third_party/externals/spirv-headers/tools/buildHeaders/jsoncpp/dist/json",
     "//third_party/skia/third_party/externals/swiftshader/third_party/SPIRV-Headers/tools/buildHeaders/jsoncpp/dist/json",
@@ -57,10 +63,8 @@ ohos_fuzztest("FileOperFuzzTest") {
 
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/fileoper_fuzzer"
 
-  sources = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/platform_specific.cpp",
+  sources = distributeddb_src
+  sources += [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "fileoper_fuzzer.cpp",
@@ -70,6 +74,8 @@ ohos_fuzztest("FileOperFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
+    "//third_party/sqlite:sqlite",
+    "//third_party/zlib:shared_libz",
   ]
 
   defines = [
@@ -86,6 +92,7 @@ ohos_fuzztest("FileOperFuzzTest") {
     "OMIT_FLATBUFFER",
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
   ]
 
   external_deps = [

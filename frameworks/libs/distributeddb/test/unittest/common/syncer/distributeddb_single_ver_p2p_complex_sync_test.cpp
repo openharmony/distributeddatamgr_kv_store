@@ -472,7 +472,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DatabaseOfflineCallback001, T
      */
     std::string targetDev = "DEVICE_X";
     bool isCheckOk = false;
-    auto databaseStatusNotifyCallback = [targetDev, &isCheckOk] (std::string userId,
+    auto databaseStatusNotifyCallback = [targetDev, &isCheckOk] (const std::string &userId,
         const std::string &appId, const std::string &storeId, const std::string &deviceId, bool onlineStatus) -> void {
         if (userId == USER_ID && appId == APP_ID && storeId == STORE_ID && deviceId == targetDev &&
             onlineStatus == false) {

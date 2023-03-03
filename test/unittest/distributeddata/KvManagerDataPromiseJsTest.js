@@ -900,6 +900,7 @@ describe('KvManagerPromiseTest', function () {
                 console.info('CreateKVManagerPromiseTest001 createKVManager success');
                 await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
                     console.info("testcreateKVManager001 getKVStore success");
+                    kvStore = store;
                     await store.put(STORE_KEY, STORE_VALUE).then(async (data) => {
                         console.info('CreateKVManagerPromiseTest001 put data success');
                         await store.get(STORE_KEY).then((data) => {
@@ -948,6 +949,7 @@ describe('KvManagerPromiseTest', function () {
                 console.info('CreateKVManagerPromiseTest002 createKVManager success');
                 await kvManager.getKVStore(TEST_STORE_ID, options).then(async (store) => {
                     console.info("testcreateKVManager002 getKVStore success");
+                    kvStore = store;
                     await store.put(STORE_KEY, STORE_VALUE).then(async (data) => {
                         console.info('CreateKVManagerPromiseTest002 put data success');
                         await store.get(STORE_KEY).then((data) => {

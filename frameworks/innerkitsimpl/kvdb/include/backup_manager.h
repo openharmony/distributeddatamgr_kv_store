@@ -26,6 +26,7 @@ namespace OHOS::DistributedKv {
 class BackupManager {
 public:
     using DBStore = DistributedDB::KvStoreNbDelegate;
+    using DBPassword = DistributedKv::SecurityManager::DBPassword;
     struct ResidueInfo {
         size_t tmpBackupSize;
         size_t tmpKeySize;
@@ -59,7 +60,7 @@ private:
     void CleanTmpData(const std::string &name);
     StoreUtil::FileInfo GetBackupFileInfo(const std::string &name,
         const std::string &baseDir, const std::string &storeId);
-    SecurityManager::DBPassword GetRestorePassword(const std::string &name, const std::string &baseDir,
+    DBPassword GetRestorePassword(const std::string &name, const std::string &baseDir,
         const std::string &appId, const std::string &storeId);
     bool HaveResidueFile(const std::vector<StoreUtil::FileInfo> &files);
     bool HaveResidueKey(const std::vector<StoreUtil::FileInfo> &files, std::string storeId);

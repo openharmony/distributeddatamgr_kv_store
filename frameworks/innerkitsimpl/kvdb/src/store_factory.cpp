@@ -40,6 +40,16 @@ StoreFactory::StoreFactory()
     }
     (void)DBManager::SetProcessSystemAPIAdapter(std::make_shared<SystemApi>());
 }
+Status StoreFactory::SetDbConfig(std::shared_ptr<DBStore> dbStore)
+{
+    PragmaData data =
+        static_cast<DistributedDB::PragmaData>(const_cast<void *>(static_cast<const void *>(&MAX_WAL_SIZE)));
+    auto status = dbStore->Pragma(DistributedDB::SET_MAX_LOG_LIMIT, data);
+    if (status != DistributedDB::DBStatus::OK) {
+        ZLOGE("failed to set max log limit! status:%{public}d", status);
+    }
+    return StoreUtil::ConvertStatus(status);
+}
 
 std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, const StoreId &storeId,
     const Options &options, Status &status, bool &isCreate)
@@ -55,13 +65,27 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
 
         auto dbManager = GetDBManager(options.baseDir, appId);
-        auto password = SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
-        if (password.GetSize() == 0 && options.encrypt) {
+        auto dbPassword =
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+        if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
+            ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
+                storeId.storeId.c_str(), static_cast<int>(status));
             return !stores.empty();
         }
+        if (options.encrypt) {
+            status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
+            if (status != SUCCESS) {
+                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d", storeId.storeId.c_str(),
+                    static_cast<int>(status));
+                return !stores.empty();
+            }
+            if (dbPassword.isKeyOutdated) {
+                ReKey(storeId, options.baseDir, dbPassword, dbManager, options);
+            }
+        }
         DBStatus dbStatus = DBStatus::DB_ERROR;
-        dbManager->GetKvStore(storeId, GetDBOption(options, password),
+        dbManager->GetKvStore(storeId, GetDBOption(options, dbPassword),
             [this, &dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
@@ -69,6 +93,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 }
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
+                SetDbConfig(dbStore);
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
@@ -136,7 +161,7 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
     return dbManager;
 }
 
-StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const DBPassword &password) const
+StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const DBPassword &dbPassword) const
 {
     DBOption dbOption;
     dbOption.syncDualTupleMode = true; // tuple of (appid+storeid)
@@ -146,7 +171,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.isEncryptedDb = options.encrypt;
     if (options.encrypt) {
         dbOption.cipher = DistributedDB::CipherType::AES_256_GCM;
-        dbOption.passwd = password;
+        dbOption.passwd = dbPassword.password;
     }
 
     if (options.kvStoreType == KvStoreType::SINGLE_VERSION) {
@@ -158,6 +183,116 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.schema = options.schema;
     dbOption.createDirByStoreIdOnly = true;
     dbOption.secOption = StoreUtil::GetDBSecurity(options.securityLevel);
+    dbOption.localOnly = !options.syncable;
     return dbOption;
+}
+
+void StoreFactory::ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    std::shared_ptr<DBManager> dbManager, const Options &options)
+{
+    int32_t retry = 0;
+    DBStatus dbStatus;
+    DBStore *kvStore;
+    auto dbOption = GetDBOption(options, dbPassword);
+    dbManager->GetKvStore(storeId, dbOption, [&dbStatus, &kvStore](auto status, auto *dbStore) {
+        dbStatus = status;
+        kvStore = dbStore;
+    });
+    if (dbStatus != DBStatus::OK || kvStore == nullptr) {
+        return;
+    }
+    while (retry < REKEY_TIMES) {
+        auto status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
+        if (status != SUCCESS) {
+            break;
+        }
+        auto succeed = ExecuteRekey(storeId, path, dbPassword, kvStore);
+        if (succeed) {
+            break;
+        }
+        ++retry;
+    }
+    dbManager->CloseKvStore(kvStore);
+    kvStore = nullptr;
+}
+
+Status StoreFactory::RekeyRecover(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    std::shared_ptr<DBManager> dbManager, const Options &options)
+{
+    auto rekeyPath = path + "/rekey";
+    auto keyName = path + "/key/" + storeId + ".key";
+    auto reKeyFile = storeId + REKEY_NEW;
+    auto rekeyName = path + "/rekey/key/" + reKeyFile + ".key";
+    Status pwdValid = DB_ERROR;
+    if (StoreUtil::IsFileExist(keyName)) {
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId, path);
+        pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
+    }
+
+    if (pwdValid == SUCCESS) {
+        StoreUtil::Remove(rekeyName);
+        return pwdValid;
+    }
+    if (StoreUtil::IsFileExist(rekeyName)) {
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(reKeyFile, rekeyPath);
+        pwdValid = IsPwdValid(storeId, dbManager, options, dbPassword);
+    } else {
+        return pwdValid;
+    }
+    if (pwdValid != SUCCESS) {
+        return pwdValid;
+    }
+    SecurityManager::GetInstance().SaveDBPassword(storeId, path, dbPassword.password);
+    return pwdValid;
+}
+
+Status StoreFactory::IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager,
+    const Options &options, DBPassword &dbPassword)
+{
+    DBStatus status = DistributedDB::DB_ERROR;
+    DBStore *kvstore = nullptr;
+    auto dbOption = GetDBOption(options, dbPassword);
+    dbManager->GetKvStore(storeId, dbOption, [&status, &kvstore](auto dbStatus, auto *dbStore) {
+        status = dbStatus;
+        kvstore = dbStore;
+    });
+    dbManager->CloseKvStore(kvstore);
+    return StoreUtil::ConvertStatus(status);
+}
+
+bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
+    DBStore *dbStore)
+{
+    std::string rekeyPath = path + "/rekey";
+    std::string rekeyName = rekeyPath + "/key/" + storeId + REKEY_NEW + ".key";
+    (void)StoreUtil::InitPath(rekeyPath);
+
+    auto newDbPassword = SecurityManager::GetInstance().GetDBPassword(storeId + REKEY_NEW, rekeyPath, true);
+    if (!newDbPassword.IsValid()) {
+        ZLOGE("failed to generate new key.");
+        newDbPassword.Clear();
+        StoreUtil::Remove(rekeyName);
+        return false;
+    }
+
+    auto dbStatus = dbStore->Rekey(newDbPassword.password);
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("failed to rekey the substitute database.");
+        StoreUtil::Remove(rekeyName);
+        newDbPassword.Clear();
+        return false;
+    }
+    if (!SecurityManager::GetInstance().SaveDBPassword(storeId, path, newDbPassword.password)) {
+        ZLOGE("save new password failed");
+        dbStore->Rekey(dbPassword.password);
+        StoreUtil::Remove(rekeyName);
+        return false;
+    };
+    dbPassword.password = newDbPassword.password;
+    newDbPassword.Clear();
+    dbPassword.isKeyOutdated = false;
+    StoreUtil::Remove(rekeyName);
+    return true;
 }
 } // namespace OHOS::DistributedKv

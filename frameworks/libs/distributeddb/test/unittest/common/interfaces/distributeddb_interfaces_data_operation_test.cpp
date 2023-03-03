@@ -25,7 +25,6 @@ using namespace std;
 
 namespace {
     string g_testDir;
-    const bool LOCAL_ONLY = true;
     const string STORE_ID = STORE_ID_LOCAL;
 
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
@@ -34,6 +33,7 @@ namespace {
     DBStatus g_kvDelegateStatusForQuery = INVALID_ARGS;
 
 #ifndef OMIT_MULTI_VER
+    const bool LOCAL_ONLY = true;
     KvStoreDelegate *g_kvDelegatePtrForQuery = nullptr;
     // the type of g_kvDelegateCallback is function<void(DBStatus, KvStoreDelegate*)>
     auto g_kvDelegateCallbackForQuery = bind(&DistributedDBToolsUnitTest::KvStoreDelegateCallback, placeholders::_1,

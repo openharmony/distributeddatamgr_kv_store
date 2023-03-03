@@ -17,7 +17,6 @@
 
 #include "dds_trace.h"
 #include "dev_manager.h"
-#include "device_status_change_listener_client.h"
 #include "ikvstore_data_service.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
@@ -164,66 +163,6 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
         return;
     }
     KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(kvStoreDeathRecipient);
-}
-
-Status DistributedKvDataManager::GetLocalDevice(DeviceInfo &localDevice)
-{
-    auto dvInfo = DevManager::GetInstance().GetLocalDevice();
-    if (dvInfo.networkId.empty()) {
-        ZLOGE("deviceId empty!");
-        return Status::ERROR;
-    }
-    localDevice.deviceId = dvInfo.networkId;
-    localDevice.deviceName = dvInfo.deviceName;
-    localDevice.deviceType = dvInfo.deviceType;
-    return Status::SUCCESS;
-}
-
-Status DistributedKvDataManager::GetDeviceList(std::vector<DeviceInfo> &deviceInfoList, DeviceFilterStrategy strategy)
-{
-    auto dvInfos = DevManager::GetInstance().GetRemoteDevices();
-    for (const auto &info : dvInfos) {
-        if (info.networkId.empty()) {
-            ZLOGW("deviceId empty!");
-            continue;
-        }
-        DeviceInfo devInfo = { info.networkId, info.deviceName, info.deviceType };
-        deviceInfoList.emplace_back(devInfo);
-    }
-    ZLOGI("strategy is:%{public}d", strategy);
-    return Status::SUCCESS;
-}
-
-static std::map<DeviceStatusChangeListener *, DeviceStatusChangeListenerClient *> deviceObservers_;
-static std::mutex deviceObserversMapMutex_;
-Status DistributedKvDataManager::StartWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
-{
-    DeviceStatusChangeListenerClient *observerClient = new(std::nothrow) DeviceStatusChangeListenerClient(observer);
-    if (observerClient == nullptr) {
-        ZLOGW("new DeviceStatusChangeListenerClient failed");
-        return Status::ERROR;
-    }
-
-    DevManager::GetInstance().Register(observerClient);
-    {
-        std::lock_guard<std::mutex> lck(deviceObserversMapMutex_);
-        deviceObservers_.insert({ observer.get(), observerClient });
-    }
-    return Status::SUCCESS;
-}
-
-Status DistributedKvDataManager::StopWatchDeviceChange(std::shared_ptr<DeviceStatusChangeListener> observer)
-{
-    std::lock_guard<std::mutex> lck(deviceObserversMapMutex_);
-    auto it = deviceObservers_.find(observer.get());
-    if (it == deviceObservers_.end()) {
-        ZLOGW(" not start watch device change.");
-        return Status::ERROR;
-    }
-
-    DevManager::GetInstance().Unregister(it->second);
-    deviceObservers_.erase(it->first);
-    return Status::SUCCESS;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

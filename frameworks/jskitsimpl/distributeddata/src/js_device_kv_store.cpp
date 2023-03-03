@@ -174,13 +174,6 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
             CHECK_RETURN(va.query != nullptr, "invalid arg[0], i.e. invalid query!", napi_invalid_arg);
             va.type = ArgsType::QUERY;
         } else {
-            DeviceInfo info;
-            DistributedKvDataManager manager;
-            Status daviceStatus = manager.GetLocalDevice(info);
-            if (daviceStatus != Status::SUCCESS) {
-                ZLOGD("GetLocalDevice return %{public}d", daviceStatus);
-            }
-            va.deviceId = info.deviceId;
             status = JSUtil::GetValue(env, argv[0], va.dataQuery);
             ZLOGD("GetResultSet arguement[0] return %{public}d", status);
         }
@@ -475,7 +468,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
         CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
         delete kvStore;
     };
-    NAPI_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr));
+    ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);
     return ctxt->self;
 }
 } // namespace OHOS::DistributedData

@@ -21,6 +21,7 @@
 #include "iremote_proxy.h"
 #include "iremote_stub.h"
 #include "types.h"
+#include "visibility.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -36,7 +37,7 @@ public:
                         MessageParcel &reply, MessageOption &option) override;
 };
 
-class KvStoreSyncCallbackProxy : public IRemoteProxy<IKvStoreSyncCallback> {
+class API_EXPORT KvStoreSyncCallbackProxy : public IRemoteProxy<IKvStoreSyncCallback> {
 public:
     explicit KvStoreSyncCallbackProxy(const sptr<IRemoteObject> &impl);
     ~KvStoreSyncCallbackProxy() = default;

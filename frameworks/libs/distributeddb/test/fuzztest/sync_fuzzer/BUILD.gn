@@ -14,6 +14,7 @@
 #####################hydra-fuzz###################
 import("//build/config/features.gni")
 import("//build/test.gni")
+import("../../../distributeddb.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("SyncFuzzTest") {
@@ -26,12 +27,18 @@ ohos_fuzztest("SyncFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/multiver",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/operation",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/relational",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/upgrader",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/include/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/communicator/src",
@@ -56,10 +63,8 @@ ohos_fuzztest("SyncFuzzTest") {
 
   fuzz_config_file = "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/sync_fuzzer"
 
-  sources = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/db_common.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/log_print.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/common/src/platform_specific.cpp",
+  sources = distributeddb_src
+  sources += [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common/distributeddb_tools_test.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/generic_virtual_device.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer/kv_virtual_device.cpp",
@@ -81,14 +86,18 @@ ohos_fuzztest("SyncFuzzTest") {
     "LOW_LEVEL_MEM_DEV",
     "JSONCPP_USE_BUILDER",
     "OMIT_FLATBUFFER",
+    "OMIT_MULTI_VER",
     "RELATIONAL_STORE",
     "SQLITE_DISTRIBUTE_RELATIONAL",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
   ]
 
   deps = [
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
+    "//third_party/sqlite:sqlite",
+    "//third_party/zlib:shared_libz",
   ]
 
   external_deps = [

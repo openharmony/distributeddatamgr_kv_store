@@ -38,21 +38,17 @@ ohos_copy("distributeddatamgr_declaration") {
 
 ohos_shared_library("distributedkvstore") {
   include_dirs = [
-    "//third_party/json/single_include",
-    "//third_party/libuv/include",
-    "//third_party/node/src",
-    "//commonlibrary/c_utils/base/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributedkvstore/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include/autils",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
   ]
 
   sources = [
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/entry_point.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_const_properties.cpp",
     "../../../frameworks/jskitsimpl/distributedkvstore/src/js_device_kv_store.cpp",
@@ -69,12 +65,7 @@ ohos_shared_library("distributedkvstore") {
     "../../../frameworks/jskitsimpl/distributedkvstore/src/uv_queue.cpp",
   ]
 
-  deps = [
-    #":distributed_data_js",
-    "//foundation/arkui/napi:ace_napi",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_inner",
-    "//third_party/libuv:uv",
-  ]
+  deps = []
 
   external_deps = [
     "ability_base:want",
@@ -83,7 +74,9 @@ ohos_shared_library("distributedkvstore") {
     "ability_runtime:napi_base_context",
     "c_utils:utils",
     "hiviewdfx_hilog_native:libhilog",
-    "ipc:ipc_core",
+    "ipc:ipc_single",
+    "kv_store:distributeddata_inner",
+    "napi:ace_napi",
   ]
 
   subsystem_name = "distributeddatamgr"

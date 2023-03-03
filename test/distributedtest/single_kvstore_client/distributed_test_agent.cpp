@@ -19,9 +19,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <vector>
+#include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "types.h"
-#include "store_util.h"
 #include "distributed_agent.h"
 #include "refbase.h"
 #include "hilog/log.h"
@@ -45,11 +45,34 @@ public:
     std::mutex mtx_;
 };
 
+class Util {
+public:
+    static std::string Anonymous(const std::string &name)
+    {
+        if (name.length() <= HEAD_SIZE) {
+            return DEFAULT_ANONYMOUS;
+        }
+
+        if (name.length() < MIN_SIZE) {
+            return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
+        }
+
+        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
+    }
+
+private:
+    static constexpr int32_t HEAD_SIZE = 3;
+    static constexpr int32_t END_SIZE = 3;
+    static constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
+    static constexpr const char *REPLACE_CHAIN = "***";
+    static constexpr const char *DEFAULT_ANONYMOUS = "******";
+};
+
 void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
 {
     for (const auto &result : results) {
         HiLog::Info(LABEL_TEST, "uuid = %{public}s, status = %{public}d",
-                    StoreUtil::Anonymous(result.first).c_str(), result.second);
+            Util::Anonymous(result.first).c_str(), result.second);
     }
     std::lock_guard<std::mutex> lck(mtx_);
     compeleted_ = true;
@@ -78,7 +101,7 @@ public:
 
 private:
     DistributedKvDataManager manager_;
-    std::vector<DeviceInfo> deviceInfos_;
+    std::vector<DevManager::DetailInfo> detailInfos_;
     using CmdFunc = int (DistributedTestAgent::*)(const std::string &) const;
     std::map<std::string, CmdFunc> cmdFunMap_;
     using MsgFunc = int (DistributedTestAgent::*)(const std::string &, std::string &) const;
@@ -109,7 +132,7 @@ bool DistributedTestAgent::SetUp()
     StoreId storeId = { "student_single" }; // define kvstore(database) name.
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     manager_.GetSingleKvStore(options, appId, storeId, singleKvStore_);
-    manager_.GetDeviceList(deviceInfos_, DeviceFilterStrategy::NO_FILTER);
+    detailInfos_ = DevManager::GetInstance().GetRemoteDevices();
     OHOS::ChangeModeDirectory(options.baseDir, FILE_PERMISSION);
     return true;
 }
@@ -185,8 +208,8 @@ int DistributedTestAgent::RemoveDeviceData(const std::string &args) const
         HiLog::Error(LABEL, "agent ERROR.");
         return Status::INVALID_ARGUMENT;
     }
-    HiLog::Info(LABEL, "deviceId = %{public}s", StoreUtil::Anonymous(deviceInfos_[0].deviceId).c_str());
-    auto status = singleKvStore_->RemoveDeviceData(deviceInfos_[0].deviceId);
+    HiLog::Info(LABEL, "deviceId = %{public}s", Util::Anonymous(detailInfos_[0].networkId).c_str());
+    auto status = singleKvStore_->RemoveDeviceData(detailInfos_[0].networkId);
     return status;
 }
 
@@ -203,8 +226,8 @@ int DistributedTestAgent::Sync(const std::string &args) const
         return Status::INVALID_ARGUMENT;
     }
     std::vector<std::string> deviceIds;
-    for (const auto &device : deviceInfos_) {
-        deviceIds.push_back(device.deviceId);
+    for (const auto &device : detailInfos_) {
+        deviceIds.push_back(device.networkId);
     }
     int32_t delay = std::stoi(args);
     HiLog::Info(LABEL, "delay = %{public}d", delay);

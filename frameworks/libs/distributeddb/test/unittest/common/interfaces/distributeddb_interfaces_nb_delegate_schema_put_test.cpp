@@ -453,6 +453,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateSchemaPutTest, ResultSetLimitTest001, 
     KvStoreResultSet *resultSet = nullptr;
     EXPECT_EQ(g_kvStore->GetEntries(query, resultSet), OVER_MAX_LIMITS);
     EXPECT_EQ(resultSet, nullptr);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvStore->CloseResultSet(resultSet), OK);
+    }
 
     /**
      * @tc.steps:step4. Close result set.
