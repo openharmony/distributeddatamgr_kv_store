@@ -403,7 +403,7 @@ private:
 
     int CreateFuncUpdateKey(UpdateContext &context,
         void(*translateFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv),
-        void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv));
+        void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const;
 
     static void Translate(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 

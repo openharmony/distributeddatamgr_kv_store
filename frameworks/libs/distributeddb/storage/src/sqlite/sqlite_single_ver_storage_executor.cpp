@@ -2208,7 +2208,7 @@ int SQLiteSingleVerStorageExecutor::UpdateKey(const UpdateKeyCallback &callback)
 
 int SQLiteSingleVerStorageExecutor::CreateFuncUpdateKey(UpdateContext &context,
     void(*translateFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv),
-    void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv))
+    void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const
 {
     int errCode = sqlite3_create_function_v2(dbHandle_, FUNC_NAME_TRANSLATE_KEY, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
         &context, translateFunc, nullptr, nullptr, nullptr);

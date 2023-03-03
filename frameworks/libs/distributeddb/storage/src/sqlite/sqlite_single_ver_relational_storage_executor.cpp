@@ -579,33 +579,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Ke
     return CheckCorruptedStatus(errCode);
 }
 
-static int GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys)
-{
-    if (statement == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode;
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, false);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            Key key;
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key);
-            if (errCode != E_OK) {
-                break;
-            }
-
-            keys.push_back(std::move(key));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step for getting all keys failed:%d", errCode);
-            break;
-        }
-    } while (true);
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 {
     static const std::string SELECT_ALL_META_KEYS = "SELECT key FROM " + DBConstant::RELATIONAL_PREFIX + "metadata;";
@@ -615,7 +588,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &k
         LOGE("[Relational][GetAllKey] Get statement failed:%d", errCode);
         return errCode;
     }
-    errCode = GetAllKeys(statement, keys);
+    errCode = SqliteMetaExecutor::GetAllKeys(statement, isMemDb_, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }

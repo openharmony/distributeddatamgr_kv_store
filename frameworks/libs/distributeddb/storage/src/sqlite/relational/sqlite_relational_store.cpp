@@ -446,14 +446,8 @@ int SQLiteRelationalStore::RemoveDeviceData()
     }
 
     int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
+    auto *handle = GetHandleAndStartTransaction(errCode);
     if (handle == nullptr) {
-        return errCode;
-    }
-
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseHandle(handle);
         return errCode;
     }
 
@@ -763,6 +757,21 @@ std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, co
         devTableName = hashDev;
     }
     return devTableName;
+}
+
+SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndStartTransaction(int &errCode) const
+{
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return nullptr;
+    }
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return nullptr;
+    }
+    return handle;
 }
 }
 #endif

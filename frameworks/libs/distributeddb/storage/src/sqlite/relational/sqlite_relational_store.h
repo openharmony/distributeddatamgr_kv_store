@@ -103,6 +103,8 @@ private:
 
     std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
 
+    SQLiteSingleVerRelationalStorageExecutor *GetHandleAndStartTransaction(int &errCode) const;
+
     // use for sync Interactive
     std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
