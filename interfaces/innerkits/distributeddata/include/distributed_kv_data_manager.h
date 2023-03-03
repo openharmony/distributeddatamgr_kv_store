@@ -33,10 +33,10 @@ public:
 
     /**
      * @brief Open kvstore instance with the given storeId, creating it if needed.
-     * 
+     *
      * It is allowed to open the same kvstore concurrently
      * multiple times, but only one KvStoreImpl will be created.
-     * 
+     *
      * @param options The config of the kvstore, including encrypt,
      *                create if needed and whether need sync between devices.
      * @param appId   The name of the application.
@@ -48,7 +48,8 @@ public:
      *         STORE_NOT_FOUND and nullptr,
      *         if storeId is invalid, INVALID_ARGUMENT and nullptr,
      *         if appId has no permission, PERMISSION_DENIED and nullptr,
-     *         otherwise, SUCCESS and the unipue_ptr of kvstore, which client can use to operate kvstore, will be returned.
+     *         otherwise, SUCCESS and the unipue_ptr of kvstore,
+     *         which client can use to operate kvstore, will be returned.
     */
     API_EXPORT Status GetSingleKvStore(const Options &options, const AppId &appId, const StoreId &storeId,
                                        std::shared_ptr<SingleKvStore> &singleKvStore);
@@ -65,13 +66,13 @@ public:
 
     /**
      * @brief Disconnect kvstore instance from kvstoreimpl with the given storeId.
-     * 
+     *
      * if all kvstore created for a single kvsotreimpl, kvstoreimpl and resource below will be freed.
      * before this call, all KvStoreSnapshot must be released firstly,
      * otherwise this call will fail.
      * after this call, kvstore and kvstoresnapshot become invalid.
      * call to it will return nullptr exception.
-     * 
+     *
      * @warning Try to close a KvStore while other thread(s) still using it may cause process crash.
      * @param appId   The name of the application.
      * @param storeId The name of the kvstore.
@@ -81,13 +82,13 @@ public:
 
     /**
      * @brief Disconnect kvstore instance from kvstoreimpl.
-     * 
+     *
      * if all kvstore created for a single kvsotreimpl, kvstoreimpl and resource below will be freed.
      * before this call, all KvStoreResultSet must be released firstly,
      * otherwise this call will fail.
      * after this call, kvstore and KvStoreResultSet become invalid.
      * call to it will return nullptr exception.
-     * 
+     *
      * @warning Try to close a KvStore while other thread(s) still using it may cause process crash.
      * @param appId      The name of the application.
      * @param kvStorePtr The pointer of the kvstore.
@@ -105,12 +106,12 @@ public:
 
     /**
      * @brief Delete kvstore file with the given storeId.
-     * 
+     *
      * client should first close all connections to it and then delete it,
      * otherwise delete may return error.
      * after this call, kvstore and kvstoresnapshot become invalid.
      * call to it will return error.
-     * 
+     *
      * @param appId   The name of the application.
      * @param storeId The name of the kvstore.
      * @param path    The base directory of the kvstore, it must be available.
@@ -120,9 +121,9 @@ public:
 
     /**
      * @brief Delete all kvstore for this appId.
-     * 
+     *
      * delete all kvstore belong to this appId unless the kvstore is opened or not.
-     * 
+     *
      * @param appId The name of the application.
      * @param path  The base directory of the application, it must be available.
      * @return Return SUCCESS for success, others for failure.
