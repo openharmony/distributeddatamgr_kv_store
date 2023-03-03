@@ -33,7 +33,7 @@ bool TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
 
 TaskExecutor::TaskExecutor()
 {
-    pool_ = std::make_shared<TaskScheduler>();
+    pool_ = std::make_shared<TaskScheduler>("task_executor");
 }
 
 TaskExecutor::~TaskExecutor()
