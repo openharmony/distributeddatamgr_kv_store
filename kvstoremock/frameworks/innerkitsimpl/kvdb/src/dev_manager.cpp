@@ -21,7 +21,6 @@
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
 constexpr int32_t DM_OK = 0;
-constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
 
 DevManager::DevManager()
