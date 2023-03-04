@@ -314,6 +314,11 @@ public:
     static int GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value);
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
 };
+
+class DeathTestUtils {
+public:
+    static void NoFatalTest(const std::function<void(void)> &testFunc);
+};
 } // namespace DistributedDBUnitTest
 
 #endif // DISTRIBUTEDDB_TOOLS_UNIT_TEST_H

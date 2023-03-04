@@ -1084,4 +1084,9 @@ END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }
+
+void DeathTestUtils::NoFatalTest(const std::function<void()> &testFunc)
+{
+    ASSERT_NO_FATAL_FAILURE(testFunc());
+}
 } // namespace DistributedDBUnitTest

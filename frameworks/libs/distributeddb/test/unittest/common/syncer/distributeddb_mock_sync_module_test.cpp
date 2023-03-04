@@ -166,6 +166,208 @@ void ConstructPacel(Parcel &parcel, uint32_t conditionCount, const std::string &
     parcel.WriteString(key);
     parcel.WriteString(value);
 }
+
+void StateMachineCheck013()
+{
+    MockSingleVerStateMachine stateMachine;
+    auto *syncTaskContext = new (std::nothrow) MockSyncTaskContext();
+    auto *dbSyncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncTaskContext, nullptr);
+    EXPECT_NE(dbSyncInterface, nullptr);
+    if (dbSyncInterface == nullptr) {
+        RefObject::KillAndDecObjRef(syncTaskContext);
+        return;
+    }
+    MockCommunicator communicator;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+    EXPECT_CALL(*syncTaskContext, Clear()).WillRepeatedly(Return());
+    syncTaskContext->RegForkGetDeviceIdFunc([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
+    });
+    int token = 1;
+    int *tokenPtr = &token;
+    syncTaskContext->SetContinueToken(tokenPtr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+    delete dbSyncInterface;
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
+    tokenPtr = nullptr;
+}
+
+void AutoLaunchCheck001()
+{
+    MockAutoLaunch mockAutoLaunch;
+    /**
+     * @tc.steps: step1. put AutoLaunchItem in cache to simulate a connection was auto launched
+     */
+    std::string id = "TestAutoLaunch";
+    std::string userId = "userId";
+    AutoLaunchItem item;
+    mockAutoLaunch.SetAutoLaunchItem(id, userId, item);
+    EXPECT_CALL(mockAutoLaunch, TryCloseConnection(_)).WillOnce(Return());
+    /**
+     * @tc.steps: step2. send close signal to simulate a connection was unused in 1 min
+     * @tc.expected: 10 thread try to close the connection and one thread close success
+     */
+    const int loopCount = 10;
+    int finishCount = 0;
+    std::mutex mutex;
+    std::unique_lock<std::mutex> lock(mutex);
+    std::condition_variable cv;
+    for (int i = 0; i < loopCount; i++) {
+        std::thread t = std::thread([&finishCount, &mockAutoLaunch, &id, &userId, &mutex, &cv] {
+            mockAutoLaunch.CallExtConnectionLifeCycleCallbackTask(id, userId);
+            finishCount++;
+            if (finishCount == loopCount) {
+                std::unique_lock<std::mutex> lockInner(mutex);
+                cv.notify_one();
+            }
+        });
+        t.detach();
+    }
+    cv.wait(lock, [&finishCount, &loopCount]() { return finishCount == loopCount; });
+}
+
+void AbilitySync004()
+{
+    /**
+     * @tc.steps: step1. set table TEST is permitSync
+     */
+    auto *context = new (std::nothrow) SingleVerKvSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    /**
+     * @tc.steps: step2. test context recv dbAbility in diff thread
+     */
+    const int loopCount = 1000;
+    std::atomic<int> finishCount = 0;
+    std::mutex mutex;
+    std::unique_lock<std::mutex> lock(mutex);
+    std::condition_variable cv;
+    for (int i = 0; i < loopCount; i++) {
+        std::thread t = std::thread([&] {
+            DbAbility dbAbility;
+            context->SetDbAbility(dbAbility);
+            finishCount++;
+            if (finishCount == loopCount) {
+                cv.notify_one();
+            }
+        });
+        t.detach();
+    }
+    cv.wait(lock, [&]() { return finishCount == loopCount; });
+    RefObject::KillAndDecObjRef(context);
+}
+
+void SyncLifeTest001()
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    syncer->Initialize(syncDBInterface, true);
+    syncer->EnableAutoSync(true);
+    for (int i = 0; i < 1000; i++) { // trigger 1000 times auto sync check
+        syncer->LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+    }
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+}
+
+void SyncLifeTest002()
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    const std::string DEVICE_B = "deviceB";
+    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    std::string userId = "userid_0";
+    std::string storeId = "storeId_0";
+    std::string appId = "appid_0";
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
+    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
+    syncDBInterface->SetIdentifier(identifierVec);
+    for (int i = 0; i < 100; i++) { // run 100 times
+        syncer->Initialize(syncDBInterface, true);
+        syncer->EnableAutoSync(true);
+        virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
+        std::thread writeThread([syncer]() {
+            syncer->LocalDataChanged(
+                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
+        });
+        std::thread closeThread([syncer, &syncDBInterface]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            syncer->Close(true);
+        });
+        closeThread.join();
+        writeThread.join();
+    }
+    syncer = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    delete syncDBInterface;
+}
+
+void SyncLifeTest003()
+{
+    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    TestInterface *syncDBInterface = new TestInterface();
+    const std::string DEVICE_B = "deviceB";
+    std::string userId = "userId_0";
+    std::string storeId = "storeId_0";
+    std::string appId = "appId_0";
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
+    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
+    syncDBInterface->TestSetIdentifier(identifierVec);
+    syncDBInterface->Initialize();
+    virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
+    syncDBInterface->TestLocalChange();
+    virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
+    syncDBInterface->Close();
+    RefObject::KillAndDecObjRef(syncDBInterface);
+    RuntimeContext::GetInstance()->StopTaskPool();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+}
+
+void MockRemoteQuery002()
+{
+    MockRemoteExecutor *executor = new (std::nothrow) MockRemoteExecutor();
+    ASSERT_NE(executor, nullptr);
+    executor->CallResponseFailed(0, 0, 0, "DEVICE");
+    RefObject::KillAndDecObjRef(executor);
+}
+
+void SyncerCheck001()
+{
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    syncer->SetSyncRetry(true);
+    syncer = nullptr;
+}
+
+void TimeSync001()
+{
+    auto *communicator = new(std::nothrow) MockCommunicator();
+    ASSERT_NE(communicator, nullptr);
+    auto *storage = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(storage, nullptr);
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+
+    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(DB_ERROR));
+    const int loopCount = 100;
+    const int timeDriverMs = 100;
+    for (int i = 0; i < loopCount; ++i) {
+        MockTimeSync timeSync;
+        timeSync.Initialize(communicator, metadata, storage, "DEVICES_A");
+        timeSync.ModifyTimer(timeDriverMs);
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
+        timeSync.Close();
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    metadata = nullptr;
+    delete storage;
+    delete communicator;
+}
 }
 
 class DistributedDBMockSyncModuleTest : public testing::Test {
@@ -489,28 +691,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
 {
-    MockSingleVerStateMachine stateMachine;
-    auto *syncTaskContext = new (std::nothrow) MockSyncTaskContext();
-    auto *dbSyncInterface = new (std::nothrow) VirtualSingleVerSyncDBInterface();
-    ASSERT_NE(syncTaskContext, nullptr);
-    EXPECT_NE(dbSyncInterface, nullptr);
-    if (dbSyncInterface == nullptr) {
-        RefObject::KillAndDecObjRef(syncTaskContext);
-        return;
-    }
-    MockCommunicator communicator;
-    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
-    EXPECT_CALL(*syncTaskContext, Clear()).WillRepeatedly(Return());
-    syncTaskContext->RegForkGetDeviceIdFunc([]() {
-        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
-    });
-    int token = 1;
-    int *tokenPtr = &token;
-    syncTaskContext->SetContinueToken(tokenPtr);
-    RefObject::KillAndDecObjRef(syncTaskContext);
-    delete dbSyncInterface;
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
-    tokenPtr = nullptr;
+    DeathTestUtils::NoFatalTest([]() { StateMachineCheck013(); });
 }
 
 /**
@@ -600,6 +781,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
     delete message;
 }
 #endif
+
 /**
  * @tc.name: AutoLaunchCheck001
  * @tc.desc: Test autoLaunch close connection.
@@ -609,36 +791,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck001, TestSize.Level1)
 {
-    MockAutoLaunch mockAutoLaunch;
-    /**
-     * @tc.steps: step1. put AutoLaunchItem in cache to simulate a connection was auto launched
-     */
-    std::string id = "TestAutoLaunch";
-    std::string userId = "userId";
-    AutoLaunchItem item;
-    mockAutoLaunch.SetAutoLaunchItem(id, userId, item);
-    EXPECT_CALL(mockAutoLaunch, TryCloseConnection(_)).WillOnce(Return());
-    /**
-     * @tc.steps: step2. send close signal to simulate a connection was unused in 1 min
-     * @tc.expected: 10 thread try to close the connection and one thread close success
-     */
-    const int loopCount = 10;
-    int finishCount = 0;
-    std::mutex mutex;
-    std::unique_lock<std::mutex> lock(mutex);
-    std::condition_variable cv;
-    for (int i = 0; i < loopCount; i++) {
-        std::thread t = std::thread([&finishCount, &mockAutoLaunch, &id, &userId, &mutex, &cv] {
-            mockAutoLaunch.CallExtConnectionLifeCycleCallbackTask(id, userId);
-            finishCount++;
-            if (finishCount == loopCount) {
-                std::unique_lock<std::mutex> lockInner(mutex);
-                cv.notify_one();
-            }
-        });
-        t.detach();
-    }
-    cv.wait(lock, [&finishCount, &loopCount]() { return finishCount == loopCount; });
+    DeathTestUtils::NoFatalTest([]() { AutoLaunchCheck001(); });
 }
 
 /**
@@ -833,32 +986,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
 {
-    /**
-     * @tc.steps: step1. set table TEST is permitSync
-     */
-    auto *context = new (std::nothrow) SingleVerKvSyncTaskContext();
-    ASSERT_NE(context, nullptr);
-    /**
-     * @tc.steps: step2. test context recv dbAbility in diff thread
-     */
-    const int loopCount = 1000;
-    std::atomic<int> finishCount = 0;
-    std::mutex mutex;
-    std::unique_lock<std::mutex> lock(mutex);
-    std::condition_variable cv;
-    for (int i = 0; i < loopCount; i++) {
-        std::thread t = std::thread([&] {
-            DbAbility dbAbility;
-            context->SetDbAbility(dbAbility);
-            finishCount++;
-            if (finishCount == loopCount) {
-                cv.notify_one();
-            }
-        });
-        t.detach();
-    }
-    cv.wait(lock, [&]() { return finishCount == loopCount; });
-    RefObject::KillAndDecObjRef(context);
+    DeathTestUtils::NoFatalTest([]() { AbilitySync004(); });
 }
 
 /**
@@ -870,18 +998,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
 {
-    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
-    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
-    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
-    syncer->Initialize(syncDBInterface, true);
-    syncer->EnableAutoSync(true);
-    for (int i = 0; i < 1000; i++) { // trigger 1000 times auto sync check
-        syncer->LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
-    }
-    syncer = nullptr;
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
-    delete syncDBInterface;
+    DeathTestUtils::NoFatalTest([]() { SyncLifeTest001(); });
 }
 
 /**
@@ -893,36 +1010,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
 {
-    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
-    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
-    const std::string DEVICE_B = "deviceB";
-    VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
-    std::string userId = "userid_0";
-    std::string storeId = "storeId_0";
-    std::string appId = "appid_0";
-    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
-    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
-    syncDBInterface->SetIdentifier(identifierVec);
-    for (int i = 0; i < 100; i++) { // run 100 times
-        syncer->Initialize(syncDBInterface, true);
-        syncer->EnableAutoSync(true);
-        virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
-        std::thread writeThread([syncer]() {
-            syncer->LocalDataChanged(
-                static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
-        });
-        std::thread closeThread([syncer, &syncDBInterface]() {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            syncer->Close(true);
-        });
-        closeThread.join();
-        writeThread.join();
-    }
-    syncer = nullptr;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
-    delete syncDBInterface;
+    DeathTestUtils::NoFatalTest([]() { SyncLifeTest002(); });
 }
 
 /**
@@ -934,25 +1022,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
 {
-    VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
-    TestInterface *syncDBInterface = new TestInterface();
-    const std::string DEVICE_B = "deviceB";
-    std::string userId = "userId_0";
-    std::string storeId = "storeId_0";
-    std::string appId = "appId_0";
-    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(userId, appId, storeId);
-    std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
-    syncDBInterface->TestSetIdentifier(identifierVec);
-    syncDBInterface->Initialize();
-    virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
-    syncDBInterface->TestLocalChange();
-    virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
-    syncDBInterface->Close();
-    RefObject::KillAndDecObjRef(syncDBInterface);
-    RuntimeContext::GetInstance()->StopTaskPool();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    DeathTestUtils::NoFatalTest([]() { SyncLifeTest003(); });
 }
 
 /**
@@ -1431,10 +1501,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
 {
-    MockRemoteExecutor *executor = new (std::nothrow) MockRemoteExecutor();
-    ASSERT_NE(executor, nullptr);
-    executor->CallResponseFailed(0, 0, 0, "DEVICE");
-    RefObject::KillAndDecObjRef(executor);
+    DeathTestUtils::NoFatalTest([]() { MockRemoteQuery002(); });
 }
 
 /**
@@ -1531,9 +1598,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Le
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
 {
-    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
-    syncer->SetSyncRetry(true);
-    syncer = nullptr;
+    DeathTestUtils::NoFatalTest([]() { SyncerCheck001(); });
 }
 
 /**
@@ -1562,24 +1627,5 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync001, TestSize.Level1)
 {
-    auto *communicator = new(std::nothrow) MockCommunicator();
-    ASSERT_NE(communicator, nullptr);
-    auto *storage = new(std::nothrow) VirtualSingleVerSyncDBInterface();
-    ASSERT_NE(storage, nullptr);
-    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
-
-    EXPECT_CALL(*communicator, SendMessage(_, _, _, _)).WillRepeatedly(Return(DB_ERROR));
-    const int loopCount = 100;
-    const int timeDriverMs = 100;
-    for (int i = 0; i < loopCount; ++i) {
-        MockTimeSync timeSync;
-        timeSync.Initialize(communicator, metadata, storage, "DEVICES_A");
-        timeSync.ModifyTimer(timeDriverMs);
-        std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
-        timeSync.Close();
-    }
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    metadata = nullptr;
-    delete storage;
-    delete communicator;
+    DeathTestUtils::NoFatalTest([]() { TimeSync001(); });
 }

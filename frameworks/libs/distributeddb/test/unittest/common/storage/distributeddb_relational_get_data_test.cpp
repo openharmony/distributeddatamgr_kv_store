@@ -261,6 +261,22 @@ void SetRemoteSchema(const RelationalSyncAbleStorage *store, const std::string &
     uint8_t remoteSchemaType = static_cast<uint8_t>(store->GetSchemaInfo().GetSchemaType());
     const_cast<RelationalSyncAbleStorage *>(store)->SaveRemoteDeviceSchema(deviceID, remoteSchema, remoteSchemaType);
 }
+
+void SetNextBeginTime001()
+{
+    QueryObject query(Query::Select(g_tableName));
+    std::unique_ptr<SQLiteSingleVerRelationalContinueToken> token =
+        std::make_unique<SQLiteSingleVerRelationalContinueToken>(SyncTimeRange {}, query);
+    ASSERT_TRUE(token != nullptr);
+
+    DataItem dataItem;
+    dataItem.timestamp = INT64_MAX;
+    token->SetNextBeginTime(dataItem);
+
+    dataItem.flag = DataItem::DELETE_FLAG;
+    token->FinishGetData();
+    token->SetNextBeginTime(dataItem);
+}
 }
 
 class DistributedDBRelationalGetDataTest : public testing::Test {
@@ -1596,18 +1612,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level1)
 {
-    QueryObject query(Query::Select(g_tableName));
-    std::unique_ptr<SQLiteSingleVerRelationalContinueToken> token =
-        std::make_unique<SQLiteSingleVerRelationalContinueToken>(SyncTimeRange {}, query);
-    ASSERT_TRUE(token != nullptr);
-
-    DataItem dataItem;
-    dataItem.timestamp = INT64_MAX;
-    token->SetNextBeginTime(dataItem);
-
-    dataItem.flag = DataItem::DELETE_FLAG;
-    token->FinishGetData();
-    token->SetNextBeginTime(dataItem);
+    DeathTestUtils::NoFatalTest([]() { SetNextBeginTime001(); });
 }
 
 /**

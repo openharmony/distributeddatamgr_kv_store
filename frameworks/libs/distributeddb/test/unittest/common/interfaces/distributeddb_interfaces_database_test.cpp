@@ -1303,6 +1303,33 @@ namespace {
         }
         LOGD("Succeed %d times", totalNum);
     }
+
+    void FreqOpenClose001()
+    {
+        std::string storeId = "FrqOpenClose001";
+        std::thread t1(OpenCloseDatabase, storeId);
+        std::thread t2(OpenCloseDatabase, storeId);
+        std::thread t3(OpenCloseDatabase, storeId);
+        std::thread t4(OpenCloseDatabase, storeId);
+        t1.join();
+        t2.join();
+        t3.join();
+        t4.join();
+        EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    }
+
+    void FreqOpenCloseDel001()
+    {
+        std::string storeId = "FrqOpenCloseDelete001";
+        std::thread t1(OpenCloseDatabase, storeId);
+        std::thread t2([&]() {
+            for (int i = 0; i < 10000; i++) { // loop 10000 times
+                g_mgr.DeleteKvStore(storeId);
+            }
+        });
+        t1.join();
+        t2.join();
+    }
 }
 
 /**
@@ -1314,15 +1341,7 @@ namespace {
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Level2)
 {
-    std::string storeId = "FrqOpenCloseDelete001";
-    std::thread t1(OpenCloseDatabase, storeId);
-    std::thread t2([&]() {
-        for (int i = 0; i < 10000; i++) {
-            g_mgr.DeleteKvStore(storeId);
-        }
-    });
-    t1.join();
-    t2.join();
+    DeathTestUtils::NoFatalTest([]() { FreqOpenCloseDel001(); });
 }
 
 /**
@@ -1334,16 +1353,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Leve
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenClose001, TestSize.Level2)
 {
-    std::string storeId = "FrqOpenClose001";
-    std::thread t1(OpenCloseDatabase, storeId);
-    std::thread t2(OpenCloseDatabase, storeId);
-    std::thread t3(OpenCloseDatabase, storeId);
-    std::thread t4(OpenCloseDatabase, storeId);
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    DeathTestUtils::NoFatalTest([]() { FreqOpenClose001(); });
 }
 
 /**
