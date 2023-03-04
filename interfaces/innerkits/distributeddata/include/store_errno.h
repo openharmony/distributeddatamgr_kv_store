@@ -20,7 +20,7 @@ namespace OHOS::DistributedKv {
 constexpr ErrCode DISTRIBUTEDDATAMGR_ERR_OFFSET = ErrCodeOffset(SUBSYS_DISTRIBUTEDDATAMNG, 3);
 /**
  * @brief Flags for kvstore operation.
- * 
+ *
  * SUCCESS for success return, others for failure.
 */
 enum Status : int32_t {

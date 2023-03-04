@@ -25,7 +25,7 @@ class API_EXPORT KvStoreDeathRecipient {
 public:
     /**
      * @brief Would called when kvstore service died.
-     * 
+     *
      * client should override this function.
     */
     virtual void OnRemoteDied() = 0;

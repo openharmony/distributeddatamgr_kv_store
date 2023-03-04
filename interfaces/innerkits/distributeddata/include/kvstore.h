@@ -40,7 +40,7 @@ public:
 
     /**
      * @brief Put one entry with key-value into kvstore.
-     * 
+     *
      * Mutation operations.
      * Key level operations.
      * Mutations are bundled together into atomic commits. If a transaction is in
@@ -55,11 +55,11 @@ public:
 
     /**
      * @brief Put a list of entries to kvstore.
-     * 
+     *
      * all entries will be put in a transaction,
      * if entries contains invalid entry, PutBatch will all fail.
      * entries's size should be less than 128 and memory size must be less than IPC transport limit.
-     * 
+     *
      * @param entries The entries.
      * @return Return SUCCESS for success, others for failure.
     */
@@ -75,11 +75,11 @@ public:
 
     /**
      * @brief Delete a list of entries in the kvstore.
-     * 
+     *
      * key length should not be greater than 256, and can not be empty.
      * if keys contains invalid key, all delete will fail.
      * keys memory size should not be greater than IPC transport limit, and can not be empty.
-     * 
+     *
      * @param keys The keys.
      * @return Return SUCCESS for success, others for failure.
      *         delete key not exist still return success,
@@ -88,43 +88,43 @@ public:
 
     /**
      * @brief Start transaction.
-     * 
+     *
      * all changes to this kvstore will be in a same transaction
      * and will not change the store until #Commit() or #Rollback() is called.
      * before this transaction is committed or rollbacked,
      * all attemption to close this store will fail.
-     * 
+     *
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status StartTransaction() = 0;
 
     /**
      * @brief Commit current transaction.
-     * 
+     *
      * all changes to this store will be done after calling this method.
      * any calling of this method outside a transaction will fail.
-     * 
+     *
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status Commit() = 0;
 
     /**
      * @brief Rollback current transaction.
-     * 
+     *
      * all changes to this store during this transaction will be rollback after calling this method.
      * any calling of this method outside a transaction will fail.
-     * 
+     *
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status Rollback() = 0;
 
     /**
      * @brief Subscribe kvstore to watch data change in the kvstore.
-     * 
+     *
      * OnChange in he observer will be called when data changed, with all the changed contents.
      * client is responsible for free observer after and only after call UnSubscribeKvStore.
      * otherwise, codes in sdk may use a freed memory and cause unexpected result.
-     * 
+     *
      * @param type     Strategy for this subscribe, default right now.
      * @param observer Callback client provided, client must implement KvStoreObserver and
      *                 override OnChange function, when data changed in store,
@@ -135,11 +135,11 @@ public:
 
     /**
      * @brief Unsubscribe kvstore to un-watch data change in the kvstore.
-     * 
+     *
      * after this call, no message will be received even data change in the kvstore.
      * client is responsible for free observer after and only after call UnSubscribeKvStore.
      * otherwise, codes in sdk may use a freed memory and cause unexpected result.
-     * 
+     *
      * @param type     Strategy for this subscribe, default right now.
      * @param observer Callback client provided in #SubscribeKvStore().
      * @return Return SUCCESS for success, others for failure.

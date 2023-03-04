@@ -117,7 +117,7 @@ public:
 
     /**
      * @brief Comparison. Returns value.
-     * 
+     *
      * <  0 if "*this" <  "blob".
      * == 0 if "*this" == "blob".
      * >  0 if "*this" >  "blob".
