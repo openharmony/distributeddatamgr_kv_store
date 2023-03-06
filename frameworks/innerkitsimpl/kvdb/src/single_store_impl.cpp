@@ -60,6 +60,7 @@ SingleStoreImpl::~SingleStoreImpl()
     if (taskId_ > 0) {
         TaskExecutor::GetInstance().RemoveTask(taskId_);
     }
+    observers_.Clear();
 }
 
 StoreId SingleStoreImpl::GetStoreId() const
