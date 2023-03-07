@@ -413,13 +413,13 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
     }
 
     if (storageEngine_->IsEngineCorrupted()) {
-        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted, not need continue to open!");
+        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid passwd, stop open!");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
 
     errCode = InitDatabaseContext(kvDBProp);
     if (errCode != E_OK) {
-        LOGE("[SqlSinStore][Open] Init database context fail! errCode = [%d]", errCode);
+        LOGE("[SqlSinStore][GetAndInitStorageEngine] Init database context fail! errCode = [%d]", errCode);
     }
     return errCode;
 }
@@ -1120,7 +1120,7 @@ SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStore::GetHandle(bool isWr
         CorruptNotify();
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         engineMutex_.unlock_shared(); // unlock when get handle failed.
-        LOGI("Handle is corrupted can not to get! errCode = [%d]", errCode);
+        LOGI("Handle is corrupted or invalid passwd, can not to get! errCode = [%d]", errCode);
         return nullptr;
     }
 
