@@ -45,9 +45,9 @@ public:
 
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
         const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-        const std::vector<DataItem> &entries);
+        const std::string &appId);
 
-    void SetDeviceId(std::string deviceId);
+    void SetHashDevId(const std::string &hashDevId);
     // Set remote fields in cid order
     void SetRemoteFields(std::vector<FieldInfo> remoteFields);
     void SetEntries(std::vector<DataItem> entries);
@@ -73,7 +73,7 @@ private:
 
     int GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt);
 
-    std::string deviceId_;
+    std::string hashDevId_;
     std::vector<FieldInfo> remoteFields_;
     std::vector<DataItem> entries_;
     TableInfo localTable_;

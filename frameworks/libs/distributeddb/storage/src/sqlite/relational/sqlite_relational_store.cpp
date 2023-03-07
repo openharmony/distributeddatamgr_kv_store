@@ -431,6 +431,60 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName)
     return errCode;
 }
 
+int SQLiteRelationalStore::RemoveDeviceData()
+{
+    auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    if (mode == DistributedTableMode::COLLABORATION) {
+        LOGE("Not support remove device data in collaboration mode.");
+        return -E_NOT_SUPPORT;
+    }
+
+    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
+    if (tables.empty()) {
+        return E_OK;
+    }
+
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    std::vector<std::string> tableNameList;
+    for (const auto &table: tables) {
+        errCode = handle->DeleteDistributedDeviceTable("", table.second.GetTableName());
+        if (errCode != E_OK) {
+            LOGE("delete device data failed. %d", errCode);
+            break;
+        }
+
+        errCode = handle->DeleteDistributedAllDeviceTableLog(table.second.GetTableName());
+        if (errCode != E_OK) {
+            LOGE("delete device data failed. %d", errCode);
+            break;
+        }
+        tableNameList.push_back(table.second.GetTableName());
+    }
+
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    errCode = handle->Commit();
+    ReleaseHandle(handle);
+    storageEngine_->NotifySchemaChanged();
+    return (errCode != E_OK) ? errCode : EraseAllDeviceWatermark(tableNameList);
+}
+
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
@@ -458,7 +512,9 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         return errCode;
     }
 
-    errCode = handle->DeleteDistributedDeviceTable(device, tableName);
+    std::string hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+    std::string devTableName = GetDevTableName(device, hashDev);
+    errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
     if (errCode != E_OK) {
         LOGE("delete device data failed. %d", errCode);
         goto END;
@@ -466,7 +522,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
 
     for (const auto &it : tables) {
         if (tableName.empty() || it.second.GetTableName() == tableName) {
-            errCode = handle->DeleteDistributedDeviceTableLog(device, it.second.GetTableName());
+            errCode = handle->DeleteDistributedDeviceTableLog(hashDev, it.second.GetTableName());
             if (errCode != E_OK) {
                 LOGE("delete device data failed. %d", errCode);
                 break;
@@ -672,6 +728,41 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
     }
 
     return syncAbleEngine_->RemoteQuery(device, condition, timeout, connectionId, result);
+}
+
+int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerRDBStore] GetExistsDeviceList get handle failed:%d", errCode);
+        return errCode;
+    }
+    std::set<std::string> devices;
+    errCode = handle->GetExistsDeviceList(devices);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerRDBStore] Get remove device list from meta failed. err=%d", errCode);
+    }
+    ReleaseHandle(handle);
+    for (const auto &tableName: tableNameList) {
+        for (const auto &device: devices) {
+            errCode = syncAbleEngine_->EraseDeviceWaterMark(device, false, tableName);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+    }
+    return errCode;
+}
+
+std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, const std::string &hashDev) const
+{
+    std::string devTableName;
+    const auto &appId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(device, appId, devTableName) != E_OK) {
+        devTableName = hashDev;
+    }
+    return devTableName;
 }
 }
 #endif

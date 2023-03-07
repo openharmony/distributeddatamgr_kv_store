@@ -156,6 +156,8 @@ public:
 
     size_t GetSyncDataSize(const std::string &device) const override;
 
+    // update all key in sync_data which is not deleted data
+    DBStatus UpdateKey(const UpdateKeyCallback &callback) override;
 private:
     DBStatus GetInner(const IOption &option, const Key &key, Value &value) const;
     DBStatus PutInner(const IOption &option, const Key &key, const Value &value);

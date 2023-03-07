@@ -129,5 +129,7 @@ struct RemoteCondition {
     std::string sql;  // The sql statement;
     std::vector<std::string> bindArgs;  // The bind args.
 };
+
+using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

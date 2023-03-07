@@ -136,7 +136,7 @@ std::string RelationalStoreManager::GetDistributedTableName(const std::string &d
     if (device.empty() || tableName.empty()) {
         return {};
     }
-    return DBCommon::GetDistributedTableName(device, tableName);
+    return DBCommon::GetDistributedTableName(device, tableName, "", true);
 }
 
 void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)

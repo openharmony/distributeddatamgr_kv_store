@@ -1833,5 +1833,31 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
     return errCode;
 }
 
+int SQLiteSingleVerNaturalStoreConnection::UpdateKey(const DistributedDB::UpdateKeyCallback &callback)
+{
+    if (IsExtendedCacheDBMode()) {
+        LOGE("[Connection] Not support update key in cache mode");
+        return -E_NOT_SUPPORT;
+    }
+    int errCode = E_OK;
+    {
+        std::lock_guard<std::mutex> lock(transactionMutex_);
+        if (writeHandle_ != nullptr) {
+            LOGD("[Connection] Transaction started already.");
+            errCode = writeHandle_->UpdateKey(callback);
+            return errCode;
+        }
+    }
+
+    SQLiteSingleVerStorageExecutor *handle = GetExecutor(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[Connection]::[UpdateKey] Get executor failed, errCode = [%d]", errCode);
+        return errCode;
+    }
+
+    errCode = handle->UpdateKey(callback);
+    ReleaseExecutor(handle);
+    return errCode;
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStoreConnection)
 }

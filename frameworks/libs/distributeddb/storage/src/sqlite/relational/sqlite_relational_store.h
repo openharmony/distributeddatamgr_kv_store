@@ -58,6 +58,7 @@ public:
 
     int CreateDistributedTable(const std::string &tableName);
 
+    int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
 
     void RegisterObserverAction(const RelationalObserverAction &action);
@@ -97,6 +98,10 @@ private:
 
     void IncreaseConnectionCounter();
     int InitStorageEngine(const RelationalDBProperties &kvDBProp);
+
+    int EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList);
+
+    std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
 
     // use for sync Interactive
     std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

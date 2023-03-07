@@ -974,4 +974,21 @@ size_t KvStoreNbDelegateImpl::GetSyncDataSize(const std::string &device) const
     }
     return size;
 }
+
+DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
+{
+    if (conn_ == nullptr) {
+        LOGE("%s", INVALID_CONNECTION);
+        return DB_ERROR;
+    }
+    if (callback == nullptr) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->UpdateKey(callback);
+    if (errCode == E_OK) {
+        return OK;
+    }
+    LOGW("[KvStoreNbDelegate] update keys failed:%d", errCode);
+    return TransferDBErrno(errCode);
+}
 } // namespace DistributedDB

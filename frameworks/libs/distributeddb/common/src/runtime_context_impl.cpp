@@ -746,4 +746,32 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
         timeTickMonitor_ = nullptr;
     }
 }
+
+void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback)
+{
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    translateToDeviceIdCallback_ = callback;
+    deviceIdCache_.clear();
+}
+
+int RuntimeContextImpl::TranslateDeviceId(const std::string &deviceId,
+    const std::string &appId, std::string &newDeviceId)
+{
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    if (translateToDeviceIdCallback_ == nullptr) {
+        return -E_NOT_SUPPORT;
+    }
+    if (deviceIdCache_.find(deviceId) == deviceIdCache_.end() ||
+        deviceIdCache_[deviceId].find(appId) == deviceIdCache_[deviceId].end()) {
+        deviceIdCache_[deviceId][appId] = translateToDeviceIdCallback_(deviceId, appId);
+    }
+    newDeviceId = deviceIdCache_[deviceId][appId];
+    return E_OK;
+}
+
+bool RuntimeContextImpl::ExistTranslateDevIdCallback() const
+{
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    return translateToDeviceIdCallback_ != nullptr;
+}
 } // namespace DistributedDB

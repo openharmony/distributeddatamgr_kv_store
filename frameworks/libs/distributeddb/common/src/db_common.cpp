@@ -21,6 +21,7 @@
 #include "db_errno.h"
 #include "platform_specific.h"
 #include "hash.h"
+#include "runtime_context.h"
 #include "value_hash_calc.h"
 
 namespace DistributedDB {
@@ -320,9 +321,18 @@ std::string DBCommon::StringMasking(const std::string &oriStr, size_t remain)
     return oriStr;
 }
 
-std::string DBCommon::GetDistributedTableName(const std::string &device, const std::string &tableName)
+std::string DBCommon::GetDistributedTableName(const std::string &device, const std::string &tableName,
+    const std::string &appId, bool useOriDev)
 {
-    std::string deviceHashHex = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+    std::string deviceHashHex;
+    std::string newDeviceId;
+    if (useOriDev && RuntimeContext::GetInstance()->ExistTranslateDevIdCallback()) {
+        deviceHashHex = device;
+    } else if (appId.empty() || RuntimeContext::GetInstance()->TranslateDeviceId(device, appId, newDeviceId) != E_OK) {
+        deviceHashHex = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+    } else {
+        deviceHashHex = newDeviceId;
+    }
     return DBConstant::RELATIONAL_PREFIX + tableName + "_" + deviceHashHex;
 }
 

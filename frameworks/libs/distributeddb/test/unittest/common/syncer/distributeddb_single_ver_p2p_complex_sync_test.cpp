@@ -1934,3 +1934,53 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
     VirtualDataItem item;
     EXPECT_EQ(g_deviceB->GetData(key, item), -E_NOT_FOUND);
 }
+
+/**
+  * @tc.name: UpdateKey001
+  * @tc.desc: test update key can effect local data and sync data, without delete data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, UpdateKey001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device A set sync data (k1, v1) local data (k2, v2) (k3, v3) and delete (k4, v4)
+     * @tc.expected: step1. put data return ok
+     */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    g_deviceB->PutData(k1, v1, 1, 0);
+    ASSERT_EQ(g_deviceB->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    Key k3 = {'k', '3'};
+    Value v3 = {'v', '3'};
+    Key k4 = {'k', '4'};
+    Value v4 = {'v', '4'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(k2, v2), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k3, v3), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k4, v4), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Delete(k4), OK);
+    /**
+     * @tc.steps: step2. device A update key and set
+     * @tc.expected: step2. put data return ok
+     */
+    DBStatus status = g_kvDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    EXPECT_EQ(status, OK);
+    k1.push_back('0');
+    k2.push_back('0');
+    k3.push_back('0');
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k2, actualValue), OK);
+    EXPECT_EQ(v2, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k3, actualValue), OK);
+    EXPECT_EQ(v3, actualValue);
+}

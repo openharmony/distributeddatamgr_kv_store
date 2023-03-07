@@ -478,8 +478,10 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
+    const auto &appId = storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
     auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
-        remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), dataItems);
+        remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), appId);
+    inserter.SetEntries(dataItems);
 
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -604,12 +606,13 @@ int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &d
         return errCode;
     }
 
+    auto appId = storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
     for (const auto &[table, strategy] : syncStrategy) {
         if (!strategy.permitSync) {
             continue;
         }
 
-        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table));
+        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table), appId);
         if (errCode != E_OK) {
             LOGE("Create distributed device table failed. %d", errCode);
             break;

@@ -24,11 +24,11 @@
 #include "parcel.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
+#include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
 namespace {
-const int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus)
@@ -1405,41 +1405,8 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
         return errCode;
     }
 
-    errCode = GetAllKeys(statement, keys);
+    errCode = SqliteMetaExecutor::GetAllKeys(statement, isMemDb_, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
-    return errCode;
-}
-
-int SQLiteSingleVerStorageExecutor::GetMetaKeysByKeyPrefix(const std::string &keyPre,
-    std::set<std::string> &outKeys) const
-{
-    sqlite3_stmt *statement = nullptr;
-    const std::string &sqlStr = (attachMetaMode_ ? SELECT_ATTACH_META_KEYS_BY_PREFIX : SELECT_META_KEYS_BY_PREFIX);
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sqlStr, statement);
-    if (errCode != E_OK) {
-        LOGE("[SingleVerExe][GetAllKey] Get statement failed:%d", errCode);
-        return errCode;
-    }
-
-    Key keyPrefix;
-    DBCommon::StringToVector(keyPre + '%', keyPrefix);
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, keyPrefix); // 1: bind index for prefix key
-    if (errCode != E_OK) {
-        LOGE("[SingleVerExe][GetAllKey] Bind statement failed:%d", errCode);
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return errCode;
-    }
-
-    std::vector<Key> keys;
-    errCode = GetAllKeys(statement, keys);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    for (const auto &it : keys) {
-        if (it.size() >= keyPre.size() + HASH_KEY_SIZE) {
-            outKeys.insert({it.begin() + keyPre.size(), it.begin() + keyPre.size() + HASH_KEY_SIZE});
-        } else {
-            LOGW("[SingleVerExe][GetAllKey] Get invalid key, size=%zu", it.size());
-        }
-    }
     return errCode;
 }
 
@@ -1507,34 +1474,6 @@ int SQLiteSingleVerStorageExecutor::GetAllEntries(sqlite3_stmt *statement, std::
             break;
         } else {
             LOGE("SQLite step for all entries failed:%d", errCode);
-            break;
-        }
-    } while (true);
-
-    return errCode;
-}
-
-int SQLiteSingleVerStorageExecutor::GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys) const
-{
-    if (statement == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode;
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            Key key;
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key);
-            if (errCode != E_OK) {
-                break;
-            }
-
-            keys.push_back(std::move(key));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step for getting all keys failed:%d", errCode);
             break;
         }
     } while (true);
@@ -2236,20 +2175,90 @@ uint64_t SQLiteSingleVerStorageExecutor::GetLogFileSize() const
 
 int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::set<std::string> &devices)
 {
-    int errCode = GetMetaKeysByKeyPrefix(DBConstant::DEVICEID_PREFIX_KEY, devices);
+    return SqliteMetaExecutor::GetExistsDevicesFromMeta(dbHandle_,
+        attachMetaMode_ ? SqliteMetaExecutor::MetaMode::KV_ATTACH : SqliteMetaExecutor::MetaMode::KV,
+        isMemDb_, devices);
+}
+
+int SQLiteSingleVerStorageExecutor::UpdateKey(const UpdateKeyCallback &callback)
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    UpdateContext context;
+    context.callback = callback;
+    int errCode = CreateFuncUpdateKey(context, &Translate, &CalHashKey);
     if (errCode != E_OK) {
-        LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::QUERY_SYNC_PREFIX_KEY, devices);
+    int executeErrCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, UPDATE_SYNC_DATA_KEY_SQL);
+    context.callback = nullptr;
+    errCode = CreateFuncUpdateKey(context, nullptr, nullptr);
+    if (context.errCode != E_OK) {
+        return context.errCode;
+    }
+    if (executeErrCode != E_OK) {
+        return executeErrCode;
+    }
     if (errCode != E_OK) {
-        LOGE("Get meta data key failed. err=%d", errCode);
         return errCode;
     }
-    errCode = GetMetaKeysByKeyPrefix(DBConstant::DELETE_SYNC_PREFIX_KEY, devices);
-    if (errCode != E_OK) {
-        LOGE("Get meta data key failed. err=%d", errCode);
+    return E_OK;
+}
+
+int SQLiteSingleVerStorageExecutor::CreateFuncUpdateKey(UpdateContext &context,
+    void(*translateFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv),
+    void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv))
+{
+    int errCode = sqlite3_create_function_v2(dbHandle_, FUNC_NAME_TRANSLATE_KEY, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        &context, translateFunc, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SqlSinExe][UpdateKey] Create func=translate_key failed=%d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
     }
-    return errCode;
+    errCode = sqlite3_create_function_v2(dbHandle_, FUNC_NAME_CAL_HASH_KEY, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        &context, calHashFunc, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SqlSinExe][UpdateKey] Create func=translate_key failed=%d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    return E_OK;
+}
+
+void SQLiteSingleVerStorageExecutor::Translate(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 1 || argv == nullptr) { // i parameters, which are key
+        LOGW("[SqlSinExe][Translate] invalid param=%d", argc);
+        return;
+    }
+    auto context = static_cast<UpdateContext *>(sqlite3_user_data(ctx));
+    auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
+    int keyBlobLen = sqlite3_value_bytes(argv[0]);
+    Key oldKey;
+    if (keyBlob != nullptr && keyBlobLen > 0) {
+        oldKey = Key(keyBlob, keyBlob + keyBlobLen);
+    }
+    Key newKey;
+    context->callback(oldKey, newKey);
+    if (newKey.size() >= DBConstant::MAX_KEY_SIZE || newKey.empty()) {
+        LOGE("[SqlSinExe][Translate] invalid key len=%zu", newKey.size());
+        context->errCode = -E_INVALID_ARGS;
+        sqlite3_result_error(ctx, "Update key is invalid", -1);
+        return;
+    }
+    context->newKey = newKey;
+    sqlite3_result_blob(ctx, newKey.data(), static_cast<int>(newKey.size()), SQLITE_TRANSIENT);
+}
+
+void SQLiteSingleVerStorageExecutor::CalHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 1 || argv == nullptr) {
+        LOGW("[SqlSinExe][Translate] invalid param=%d", argc);
+        return;
+    }
+    auto context = static_cast<UpdateContext *>(sqlite3_user_data(ctx));
+    Key hashKey;
+    DBCommon::CalcValueHash(context->newKey, hashKey);
+    sqlite3_result_blob(ctx, hashKey.data(), static_cast<int>(hashKey.size()), SQLITE_TRANSIENT);
 }
 } // namespace DistributedDB
