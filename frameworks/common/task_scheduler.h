@@ -52,7 +52,6 @@ public:
     }
     TaskScheduler(const std::string &name) : TaskScheduler(std::numeric_limits<size_t>::max(), name) {}
     TaskScheduler(size_t capacity = std::numeric_limits<size_t>::max()) : TaskScheduler(capacity, "") {}
-
     ~TaskScheduler()
     {
         isRunning_ = false;
@@ -60,11 +59,10 @@ public:
         Execute([]() {});
         thread_->join();
     }
-
     // execute task at specific time
-    TaskId At(const Time &time, Task task)
+    TaskId At(const Time &begin, Task task, Duration interval = INVALID_INTERVAL, uint64_t times = UNLIMITED_TIMES)
     {
-        std::unique_lock<std::mutex> lock(mutex_);
+        std::unique_lock<decltype(mutex_)> lock(mutex_);
         if (tasks_.size() >= capacity_) {
             return INVALID_TASK_ID;
         }
@@ -80,7 +78,6 @@ public:
         indexes_[innerTask.taskId] = it;
         return innerTask.taskId;
     }
-
     TaskId Reset(TaskId taskId, const Duration &interval)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
@@ -88,17 +85,14 @@ public:
             running_.interval = interval;
             return running_.taskId;
         }
-
         auto index = indexes_.find(taskId);
         if (index == indexes_.end()) {
             return INVALID_TASK_ID;
         }
-
         auto &innerTask = index->second->second;
         if (innerTask.interval != INVALID_INTERVAL) {
             innerTask.interval = interval;
         }
-
         auto it = tasks_.insert({ std::chrono::steady_clock::now() + interval, std::move(innerTask) });
         if (it == tasks_.begin() || index->second == tasks_.begin()) {
             condition_.notify_one();
@@ -107,20 +101,17 @@ public:
         indexes_[taskId] = it;
         return taskId;
     }
-
     void Clean()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         indexes_.clear();
         tasks_.clear();
     }
-
     // execute task periodically with duration
     TaskId Every(Duration interval, Task task)
     {
         return At(std::chrono::steady_clock::now() + interval, task, interval);
     }
-
     // remove task in SchedulerTask
     void Remove(TaskId taskId, bool wait = false)
     {
@@ -136,24 +127,20 @@ public:
         indexes_.erase(index);
         condition_.notify_one();
     }
-
     // execute task periodically with duration after delay
     TaskId Every(Duration delay, Duration interval, Task task)
     {
         return At(std::chrono::steady_clock::now() + delay, task, interval);
     }
-
     // execute task for some times periodically with duration after delay
     TaskId Every(int32_t times, Duration delay, Duration interval, Task task)
     {
         return At(std::chrono::steady_clock::now() + delay, task, interval, times);
     }
-
     TaskId Execute(Task task)
     {
         return At(std::chrono::steady_clock::now(), std::move(task));
     }
-
 private:
     struct InnerTask {
         TaskId taskId = INVALID_TASK_ID;
@@ -182,11 +169,9 @@ private:
                 tasks_.erase(it);
                 running_.times--;
             }
-
             if (exec) {
                 exec();
             }
-
             {
                 std::unique_lock<decltype(mutex_)> lock(mutex_);
                 if (running_.interval != INVALID_INTERVAL && running_.times > 0) {
