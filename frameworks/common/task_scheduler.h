@@ -120,7 +120,7 @@ public:
             return (!wait || running_.taskId != taskId);
         });
         auto index = indexes_.find(taskId);
-        if (index != indexes_.end()) {
+        if (index == indexes_.end()) {
             return;
         }
         tasks_.erase(index->second);
