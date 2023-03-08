@@ -24,8 +24,8 @@ using namespace OHOS;
 using duration = std::chrono::steady_clock::duration;
 class TaskSchedulerTest : public testing::Test {
 public:
-    static constexpr uint32_t SHORT_INTERVAL = 100;
-    static constexpr uint32_t LONG_INTERVAL = 300;
+    static constexpr uint32_t SHORT_INTERVAL = 100; // ms
+    static constexpr uint32_t LONG_INTERVAL = 1;    // s
     static void SetUpTestCase(void){};
     static void TearDownTestCase(void){};
     void SetUp(){};
