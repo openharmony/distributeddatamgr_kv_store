@@ -828,8 +828,8 @@ void SingleStoreImpl::OnRemoteDied()
         }
         return false;
     });
-    taskId_ = TaskExecutor::GetInstance().Execute([obj = shared_from_this()]() {
-        obj->Register();
+    taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+        Register();
     }, INTERVAL);
 }
 
@@ -847,8 +847,8 @@ void SingleStoreImpl::Register()
         return false;
     });
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Execute([obj = shared_from_this()]() {
-            obj->Register();
+        taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+            Register();
         }, INTERVAL);
     }
 }
