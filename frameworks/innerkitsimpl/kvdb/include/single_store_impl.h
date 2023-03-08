@@ -30,8 +30,7 @@
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,
                         public DevManager::Observer,
-                        public KvStoreDeathRecipient,
-                        public std::enable_shared_from_this<SingleStoreImpl> {
+                        public KvStoreDeathRecipient {
 public:
     using Observer = KvStoreObserver;
     using SyncCallback = KvStoreSyncCallback;

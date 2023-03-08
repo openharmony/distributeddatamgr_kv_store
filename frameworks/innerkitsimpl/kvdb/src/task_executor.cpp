@@ -35,7 +35,7 @@ void TaskExecutor::RemoveTask(TaskScheduler::TaskId taskId)
     if (pool_ == nullptr) {
         return;
     }
-    pool_->Remove(taskId);
+    pool_->Remove(taskId, true);
 }
 
 TaskExecutor::TaskExecutor()
