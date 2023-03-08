@@ -822,6 +822,9 @@ void SingleStoreImpl::Offline(const std::string &device)
 void SingleStoreImpl::OnRemoteDied()
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (taskId_ > 0) {
+        return;
+    }
     observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
         if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) {
             pair.second->OnServiceDeath();
@@ -850,6 +853,8 @@ void SingleStoreImpl::Register()
         taskId_ = TaskExecutor::GetInstance().Execute([this]() {
             Register();
         }, INTERVAL);
+    } else {
+        taskId_ = 0;
     }
 }
 } // namespace OHOS::DistributedKv
