@@ -210,10 +210,12 @@ HWTEST_F(TaskSchedulerTest, RemoveWaitExecute, TestSize.Level0)
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 1;
     auto taskId = taskScheduler.At(expiredTime, [blockData, testData]() {
+        std::this_thread::sleep_for(std::chrono::seconds(LONG_INTERVAL));
         blockData->Clear(testData);
-        blockData->GetValue();
     });
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
+    int tmpData = testData - 1;
+    blockData->SetValue(tmpData);
     taskScheduler.Remove(taskId, true);
     ASSERT_EQ(blockData->GetValue(), testData);
 }
