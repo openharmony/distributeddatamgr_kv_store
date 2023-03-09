@@ -166,7 +166,7 @@ HWTEST_F(TaskSchedulerTest, EveryExecuteTimes, TestSize.Level0)
     int testData = 0;
     int times = 5;
     taskScheduler.Every(
-        times, std::chrono::milliseconds(0), std::chrono::milliseconds(SHORT_INTERVAL), blockData, &testData]() {
+        times, std::chrono::milliseconds(0), std::chrono::milliseconds(SHORT_INTERVAL), [blockData, &testData]() {
         testData++;
         blockData->SetValue(testData);
     });
