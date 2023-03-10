@@ -57,6 +57,7 @@ private:
     static constexpr const char *ROOT_KEY_ALIAS = "distributeddb_client_root_key";
     static constexpr const char *HKS_BLOB_TYPE_NONCE = "Z5s0Bo571KoqwIi6";
     static constexpr const char *HKS_BLOB_TYPE_AAD = "distributeddata_client";
+    static constexpr const char *HKS_BLOB_TYPE_AEAD = "HKS_BLOB_TYPE_AEAD_TEST";
     static constexpr int KEY_SIZE = 32;
     static constexpr int HOURS_PER_YEAR = (24 * 365);
 
@@ -75,6 +76,7 @@ private:
     std::vector<uint8_t> vecRootKeyAlias_{};
     std::vector<uint8_t> vecNonce_{};
     std::vector<uint8_t> vecAad_{};
+    std::vector<uint8_t> vecAead_{};
     std::atomic_bool hasRootKey_ = false;
 };
 } // namespace OHOS::DistributedKv

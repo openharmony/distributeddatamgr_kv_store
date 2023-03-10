@@ -34,6 +34,7 @@ SecurityManager::SecurityManager()
     vecRootKeyAlias_ = std::vector<uint8_t>(ROOT_KEY_ALIAS, ROOT_KEY_ALIAS + strlen(ROOT_KEY_ALIAS));
     vecNonce_ = std::vector<uint8_t>(HKS_BLOB_TYPE_NONCE, HKS_BLOB_TYPE_NONCE + strlen(HKS_BLOB_TYPE_NONCE));
     vecAad_ = std::vector<uint8_t>(HKS_BLOB_TYPE_AAD, HKS_BLOB_TYPE_AAD + strlen(HKS_BLOB_TYPE_AAD));
+    vecAead_ = std::vector<uint8_t>(HKS_BLOB_TYPE_AEAD, HKS_BLOB_TYPE_AEAD + strlen(HKS_BLOB_TYPE_AEAD));
 }
 
 SecurityManager::~SecurityManager()
@@ -176,6 +177,7 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
 {
     struct HksBlob blobAad = { uint32_t(vecAad_.size()), vecAad_.data() };
     struct HksBlob blobNonce = { uint32_t(vecNonce_.size()), vecNonce_.data() };
+    struct HksBlob blobAead = { uint32_t(vecAead_.size()), vecAead_.data() };
     struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), vecRootKeyAlias_.data() };
     struct HksBlob plainKey = { uint32_t(key.size()), const_cast<uint8_t *>(key.data()) };
     struct HksParamSet *params = nullptr;
@@ -192,6 +194,7 @@ std::vector<uint8_t> SecurityManager::Encrypt(const std::vector<uint8_t> &key)
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_NONCE, .blob = blobNonce },
         { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AE_TAG, .blob = blobAead },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
@@ -224,6 +227,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
 {
     struct HksBlob blobAad = { uint32_t(vecAad_.size()), &(vecAad_[0]) };
     struct HksBlob blobNonce = { uint32_t(vecNonce_.size()), &(vecNonce_[0]) };
+    struct HksBlob blobAead = { uint32_t(vecAead_.size()), vecAead_.data() };
     struct HksBlob rootKeyName = { uint32_t(vecRootKeyAlias_.size()), &(vecRootKeyAlias_[0]) };
     struct HksBlob encryptedKeyBlob = { uint32_t(source.size()), source.data() };
 
@@ -241,6 +245,7 @@ bool SecurityManager::Decrypt(std::vector<uint8_t> &source, std::vector<uint8_t>
         { .tag = HKS_TAG_PADDING, .uint32Param = HKS_PADDING_NONE },
         { .tag = HKS_TAG_NONCE, .blob = blobNonce },
         { .tag = HKS_TAG_ASSOCIATED_DATA, .blob = blobAad },
+        { .tag = HKS_TAG_AE_TAG, .blob = blobAead },
     };
     ret = HksAddParams(params, hksParam, sizeof(hksParam) / sizeof(hksParam[0]));
     if (ret != HKS_SUCCESS) {
