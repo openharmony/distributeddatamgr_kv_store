@@ -184,13 +184,11 @@ void StateMachineCheck013()
     syncTaskContext->RegForkGetDeviceIdFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
     });
-    int token = 1;
-    int *tokenPtr = &token;
-    syncTaskContext->SetContinueToken(tokenPtr);
+    auto token = new VirtualContinueToken();
+    syncTaskContext->SetContinueToken(static_cast<void *>(token));
     RefObject::KillAndDecObjRef(syncTaskContext);
     delete dbSyncInterface;
     std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
-    tokenPtr = nullptr;
 }
 
 void AutoLaunchCheck001()
@@ -691,7 +689,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck012, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck013, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { StateMachineCheck013(); });
+    ASSERT_NO_FATAL_FAILURE(StateMachineCheck013());
 }
 
 /**
@@ -791,7 +789,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AutoLaunchCheck001, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { AutoLaunchCheck001(); });
+    ASSERT_NO_FATAL_FAILURE(AutoLaunchCheck001());
 }
 
 /**
@@ -986,7 +984,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync003, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { AbilitySync004(); });
+    ASSERT_NO_FATAL_FAILURE(AbilitySync004());
 }
 
 /**
@@ -998,7 +996,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, AbilitySync004, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
 {
-    DeathTestUtils::NoFatalTest([]() { SyncLifeTest001(); });
+    ASSERT_NO_FATAL_FAILURE(SyncLifeTest001());
 }
 
 /**
@@ -1010,7 +1008,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest001, TestSize.Level3)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
 {
-    DeathTestUtils::NoFatalTest([]() { SyncLifeTest002(); });
+    ASSERT_NO_FATAL_FAILURE(SyncLifeTest002());
 }
 
 /**
@@ -1022,7 +1020,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
 {
-    DeathTestUtils::NoFatalTest([]() { SyncLifeTest003(); });
+    ASSERT_NO_FATAL_FAILURE(SyncLifeTest003());
 }
 
 /**
@@ -1501,7 +1499,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery001, TestSize.Level3)
 */
 HWTEST_F(DistributedDBMockSyncModuleTest, MockRemoteQuery002, TestSize.Level3)
 {
-    DeathTestUtils::NoFatalTest([]() { MockRemoteQuery002(); });
+    ASSERT_NO_FATAL_FAILURE(MockRemoteQuery002());
 }
 
 /**
@@ -1598,7 +1596,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Le
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { SyncerCheck001(); });
+    ASSERT_NO_FATAL_FAILURE(SyncerCheck001());
 }
 
 /**
@@ -1627,5 +1625,5 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SessionId001, TestSize.Level1)
  */
 HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync001, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { TimeSync001(); });
+    ASSERT_NO_FATAL_FAILURE(TimeSync001());
 }

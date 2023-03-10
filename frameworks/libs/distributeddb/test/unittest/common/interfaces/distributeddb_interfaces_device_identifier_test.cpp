@@ -540,7 +540,7 @@ void StorageEngineTest002()
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest002, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { StorageEngineTest002(); });
+    ASSERT_NO_FATAL_FAILURE(StorageEngineTest002());
 }
 
 /**

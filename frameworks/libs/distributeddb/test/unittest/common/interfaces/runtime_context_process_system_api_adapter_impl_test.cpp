@@ -276,7 +276,7 @@ void CheckDeviceSecurityAbility002()
  */
 HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbility002, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { CheckDeviceSecurityAbility002(); });
+    ASSERT_NO_FATAL_FAILURE(CheckDeviceSecurityAbility002());
 }
 
 /**

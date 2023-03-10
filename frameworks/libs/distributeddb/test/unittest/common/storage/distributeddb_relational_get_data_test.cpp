@@ -1612,7 +1612,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, SetSchema1, TestSize.Level1)
   */
 HWTEST_F(DistributedDBRelationalGetDataTest, SetNextBeginTime001, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { SetNextBeginTime001(); });
+    ASSERT_NO_FATAL_FAILURE(SetNextBeginTime001());
 }
 
 /**

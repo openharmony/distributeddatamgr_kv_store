@@ -1341,7 +1341,7 @@ namespace {
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Level2)
 {
-    DeathTestUtils::NoFatalTest([]() { FreqOpenCloseDel001(); });
+    ASSERT_NO_FATAL_FAILURE(FreqOpenCloseDel001());
 }
 
 /**
@@ -1353,7 +1353,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Leve
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenClose001, TestSize.Level2)
 {
-    DeathTestUtils::NoFatalTest([]() { FreqOpenClose001(); });
+    ASSERT_NO_FATAL_FAILURE(FreqOpenClose001());
 }
 
 /**

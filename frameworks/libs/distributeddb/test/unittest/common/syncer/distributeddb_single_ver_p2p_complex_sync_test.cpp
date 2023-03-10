@@ -1020,7 +1020,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync004, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync005, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { DataSync005(); });
+    ASSERT_NO_FATAL_FAILURE(DataSync005());
 }
 
 /**
@@ -1080,7 +1080,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync007, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync008, TestSize.Level1)
 {
-    DeathTestUtils::NoFatalTest([]() { DataSync008(); });
+    ASSERT_NO_FATAL_FAILURE(DataSync008());
 }
 
 /**
@@ -1285,7 +1285,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, ReSetWaterDogTest001, TestSize.Level3)
 {
-    DeathTestUtils::NoFatalTest([]() { ReSetWaterDogTest001(); });
+    ASSERT_NO_FATAL_FAILURE(ReSetWaterDogTest001());
 }
 
 /**
