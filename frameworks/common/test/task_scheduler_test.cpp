@@ -62,21 +62,23 @@ HWTEST_F(TaskSchedulerTest, At, TestSize.Level0)
 
 /**
 * @tc.name: Every
-* @tc.desc:
+* @tc.desc:execute task periodically with duration
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: ht
 */
-HWTEST_F(TaskSchedulerTest, Every, TestSize.Level0)
+HWTEST_F(TaskSchedulerTest, ExecuteDuration, TestSize.Level0)
 {
     TaskScheduler taskScheduler("everyTest");
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
-    taskScheduler.Every(std::chrono::milliseconds(SHORT_INTERVAL), [blockData]() {
-        int testData = 1;
+    int testData = 0;
+    taskScheduler.Every(std::chrono::milliseconds(SHORT_INTERVAL), [blockData, &testData]() {
+        testData++;
         blockData->SetValue(testData);
     });
-    for (int i = 1; i < 5; ++i) {
-        ASSERT_EQ(blockData->GetValue(), 1);
+    for (int i = 1; i < 10; ++i) {
+        ASSERT_EQ(blockData->GetValue(), i);
+        blockData->Clear(0);
     }
 }
 
@@ -165,14 +167,19 @@ HWTEST_F(TaskSchedulerTest, EveryExecuteTimes, TestSize.Level0)
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 0;
     int times = 5;
-    taskScheduler.Every(
-        times, std::chrono::milliseconds(0), std::chrono::milliseconds(SHORT_INTERVAL), [blockData, &testData]() {
+    auto taskId = taskScheduler.Every(times, std::chrono::milliseconds(0),
+	    std::chrono::milliseconds(SHORT_INTERVAL), [blockData, times, &testData]() {
         testData++;
+        if (testData < times) {
+            blockData->Clear(testData);
+            return;
+        }
         blockData->SetValue(testData);
     });
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * times));
-    ASSERT_EQ(times, testData);
-    ASSERT_EQ(blockData->GetValue(), testData);
+    ASSERT_EQ(blockData->GetValue(), times);
+    auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(resetId, TaskScheduler::INVALID_TASK_ID);
+    ASSERT_EQ(blockData->GetValue(), times);
 }
 
 /**
@@ -191,8 +198,10 @@ HWTEST_F(TaskSchedulerTest, RemoveBeforeExecute, TestSize.Level0)
     auto taskId = taskScheduler.At(expiredTime, [blockData, testData]() {
         int tmpData = testData + 1;
         blockData->SetValue(tmpData);
-    });
+    }, std::chrono::milliseconds(SHORT_INTERVAL));
     taskScheduler.Remove(taskId);
+    auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(resetId, TaskScheduler::INVALID_TASK_ID);
     ASSERT_EQ(blockData->GetValue(), testData);
 }
 
@@ -207,22 +216,25 @@ HWTEST_F(TaskSchedulerTest, RemoveWaitExecute, TestSize.Level0)
 {
     TaskScheduler taskScheduler("RemoveWaitExecute");
     auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(0);
-    auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
+    auto blockDataTest = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
+    auto blockDataWait = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 1;
-    auto taskId = taskScheduler.At(expiredTime, [blockData, testData]() {
-        std::this_thread::sleep_for(std::chrono::seconds(LONG_INTERVAL));
-        blockData->Clear(testData);
-    });
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
-    int tmpData = testData - 1;
-    blockData->SetValue(tmpData);
+    auto taskId = taskScheduler.At(expiredTime, [blockDataTest, blockDataWait, &testData]() {
+        blockDataTest->SetValue(testData);
+        blockDataWait->GetValue();
+        int tmpData = testData + 1;
+        blockDataTest->SetValue(tmpData);
+    }, std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(blockDataTest->GetValue(), testData);
+    auto resetId = taskScheduler.Reset(taskId, std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(taskId, resetId);
     taskScheduler.Remove(taskId, true);
-    ASSERT_EQ(blockData->GetValue(), testData);
+    ASSERT_EQ(blockDataTest->GetValue(), testData + 1);
 }
 
 /**
 * @tc.name: Remove
-* @tc.desc: remove task during execute, and don't wait.
+* @tc.desc: remove task during execute, but no wait.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: zuojiangjiang
@@ -231,41 +243,18 @@ HWTEST_F(TaskSchedulerTest, RemoveNoWaitExecute, TestSize.Level0)
 {
     TaskScheduler taskScheduler("RemoveNoWaitExecute");
     auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(0);
-    auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
+    auto blockDataTest = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
+    auto blockDataWait = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
     int testData = 1;
-    auto taskId = taskScheduler.At(expiredTime, [blockData, testData]() {
-        std::this_thread::sleep_for(std::chrono::seconds(LONG_INTERVAL));
-        blockData->Clear(testData);
+    auto taskId = taskScheduler.At(expiredTime, [blockDataTest, blockDataWait, &testData]() {
+        blockDataTest->SetValue(testData);
+        blockDataWait->GetValue();
+        int tmpData = testData + 1;
+        blockDataTest->SetValue(tmpData);
     });
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(blockDataTest->GetValue(), testData);
+    blockDataTest->Clear(0);
     taskScheduler.Remove(taskId);
-    int tmpData = testData + 1;
-    blockData->SetValue(tmpData);
-    ASSERT_EQ(blockData->GetValue(), tmpData);
-    tmpData = testData - 1;
-    blockData->Clear(tmpData);
-    ASSERT_EQ(blockData->GetValue(), testData);
-}
-
-/**
-* @tc.name: Remove
-* @tc.desc: remove task after execute.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: zuojiangjiang
-*/
-HWTEST_F(TaskSchedulerTest, RemoveAfterExecute, TestSize.Level0)
-{
-    TaskScheduler taskScheduler("RemoveAfterExecute");
-    auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(0);
-    auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, 0);
-    int testData = 0;
-    auto taskId = taskScheduler.At(expiredTime, [blockData, &testData]() {
-        testData++;
-        blockData->SetValue(testData);
-    });
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
-    taskScheduler.Remove(taskId);
-    ASSERT_EQ(1, testData);
-    ASSERT_EQ(blockData->GetValue(), testData);
+    blockDataWait->SetValue(testData);
+    ASSERT_EQ(blockDataTest->GetValue(), testData + 1);
 }
