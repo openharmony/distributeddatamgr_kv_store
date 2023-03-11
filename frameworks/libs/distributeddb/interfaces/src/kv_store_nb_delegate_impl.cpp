@@ -986,9 +986,13 @@ DBStatus KvStoreNbDelegateImpl::UpdateKey(const UpdateKeyCallback &callback)
     }
     int errCode = conn_->UpdateKey(callback);
     if (errCode == E_OK) {
+        LOGI("[KvStoreNbDelegate] update keys success");
         return OK;
     }
     LOGW("[KvStoreNbDelegate] update keys failed:%d", errCode);
+    if (errCode == -E_CONSTRAINT) {
+        return KEY_CONFLICT;
+    }
     return TransferDBErrno(errCode);
 }
 } // namespace DistributedDB

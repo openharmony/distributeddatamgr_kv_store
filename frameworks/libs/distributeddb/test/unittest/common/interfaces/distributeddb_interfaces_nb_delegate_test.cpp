@@ -2652,7 +2652,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
      * @tc.expected: step2. Returns OK.
      */
     Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
     EXPECT_EQ(g_kvNbDelegatePtr->Put(k1, VALUE_1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k2, VALUE_1), OK);
     /**
      * @tc.steps:step3. Update key with nullptr or invalid key.
      * @tc.expected: step3. Returns INVALID_ARGS.
@@ -2666,6 +2668,10 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
         newKey.assign(2048u, '0'); // 2048 is invalid len
     });
     EXPECT_EQ(status, INVALID_ARGS);
+    status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = {'k', '3'};
+    });
+    EXPECT_EQ(status, KEY_CONFLICT);
     /**
      * @tc.steps:step4. Close store.
      * @tc.expected: step4. Returns OK.
