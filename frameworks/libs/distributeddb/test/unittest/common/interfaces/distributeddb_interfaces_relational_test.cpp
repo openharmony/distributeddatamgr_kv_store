@@ -1159,5 +1159,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, Test
     });
     devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
     EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + deviceName);
+    devTableName = RelationalStoreManager::GetDistributedTableName("", tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_");
     RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
 }
