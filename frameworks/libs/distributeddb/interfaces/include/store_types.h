@@ -67,7 +67,7 @@ enum DBStatus {
     REMOTE_OVER_SIZE, // for remote query, the data is too many, only get part or data.
     RATE_LIMIT,
     DATA_HANDLE_ERROR, // remote handle data failed
-    KEY_CONFLICT, // key conflict in kv store
+    CONSTRAINT, // constraint check failed in sqlite
 };
 
 struct KvStoreConfig {

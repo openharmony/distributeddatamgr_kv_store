@@ -2671,7 +2671,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
     status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
         newKey = {'k', '3'};
     });
-    EXPECT_EQ(status, KEY_CONFLICT);
+    EXPECT_EQ(status, CONSTRAINT);
     /**
      * @tc.steps:step4. Close store.
      * @tc.expected: step4. Returns OK.
