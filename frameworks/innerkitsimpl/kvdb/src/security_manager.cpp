@@ -70,21 +70,23 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
 {
     DBPassword dbPassword;
     auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
+    std::vector<uint8_t> key{};
+
     if (secKey.empty() && needCreate) {
-        secKey = Random(KEY_SIZE);
-        if (!SaveKeyToFile(name, path, secKey)) {
+        key = Random(KEY_SIZE);
+        if (!SaveKeyToFile(name, path, key)) {
             secKey.assign(secKey.size(), 0);
+            key.assign(key.size(), 0);
             return dbPassword;
         }
     }
 
-    std::vector<uint8_t> secretKey{};
-    if (Decrypt(secKey, secretKey)) {
+    if (!key.empty() || (!secKey.empty() && Decrypt(secKey, key))) {
         dbPassword.SetValue(secKey.data(), secKey.size());
     }
 
     secKey.assign(secKey.size(), 0);
-    secretKey.assign(secKey.size(), 0);
+    key.assign(key.size(), 0);
     return dbPassword;
 }
 
