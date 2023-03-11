@@ -45,7 +45,7 @@ public:
 
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
         const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-        const std::string &appId);
+        const StoreInfo &info);
 
     void SetHashDevId(const std::string &hashDevId);
     // Set remote fields in cid order

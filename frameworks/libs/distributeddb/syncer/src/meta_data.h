@@ -32,7 +32,8 @@ struct MetaDataValue {
     uint64_t localWaterMark = 0;
     uint64_t peerWaterMark = 0;
     Timestamp dbCreateTime = 0;
-    uint64_t clearDeviceDataMark = 0; // Default 0 for not remove device data.
+    uint64_t reservedMark = 0; // Default 0 for not remove device data.
+    std::string clientId;
 };
 
 class Metadata {
@@ -111,6 +112,10 @@ public:
     uint64_t GetQueryLastTimestamp(const DeviceID &deviceId, const std::string &queryId) const;
 
     void RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::string &queryId);
+
+    int SaveClientId(const std::string &deviceId, const std::string &clientId);
+
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
@@ -118,9 +123,9 @@ private:
     // sync module need hash devices id
     void GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
 
-    int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
+    static int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
 
-    int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const;
+    static int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue);
 
     int GetMetadataFromDb(const std::vector<uint8_t> &key, std::vector<uint8_t> &outValue) const;
 
@@ -144,6 +149,10 @@ private:
 
     // reset the waterMark to zero
     int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
+
+    int ReloadMetaDataValue();
+
+    static uint64_t CalculateMetaDataValueSize(const MetaDataValue &value);
 
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock

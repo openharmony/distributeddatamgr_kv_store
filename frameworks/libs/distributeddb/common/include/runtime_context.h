@@ -145,7 +145,7 @@ public:
     virtual void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) = 0;
 
     virtual int TranslateDeviceId(const std::string &deviceId,
-        const std::string &appId, std::string &newDeviceId) = 0;
+        const StoreInfo &info, std::string &newDeviceId) = 0;
 
     virtual bool ExistTranslateDevIdCallback() const = 0;
 protected:

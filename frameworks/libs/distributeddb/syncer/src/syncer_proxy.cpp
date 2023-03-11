@@ -231,4 +231,12 @@ int SyncerProxy::GetSyncDataSize(const std::string &device, size_t &size) const
     }
     return syncer_->GetSyncDataSize(device, size);
 }
+
+int SyncerProxy::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->GetHashDeviceId(clientId, hashDevId);
+}
 } // namespace DistributedDB

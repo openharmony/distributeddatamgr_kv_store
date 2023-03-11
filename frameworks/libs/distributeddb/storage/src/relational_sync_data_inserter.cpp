@@ -50,7 +50,7 @@ RelationalSyncDataInserter::~RelationalSyncDataInserter()
 
 RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std::string &deviceName,
     const QueryObject &query, const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-    const std::string &appId)
+    const StoreInfo &info)
 {
     RelationalSyncDataInserter inserter;
     inserter.SetHashDevId(DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName)));
@@ -62,7 +62,7 @@ RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std:
     if (localSchema.GetTableMode() == DistributedTableMode::COLLABORATION) {
         inserter.SetInsertTableName(localTable.GetTableName());
     } else {
-        inserter.SetInsertTableName(DBCommon::GetDistributedTableName(deviceName, localTable.GetTableName(), appId));
+        inserter.SetInsertTableName(DBCommon::GetDistributedTableName(deviceName, localTable.GetTableName(), info));
     }
     return inserter;
 }

@@ -58,8 +58,14 @@ public:
 
     static std::string StringMasking(const std::string &oriStr, size_t remain = 3); // remain 3 unmask
 
+    static std::string GetDistributedTableName(const std::string &device, const std::string &tableName);
+
     static std::string GetDistributedTableName(const std::string &device, const std::string &tableName,
-        const std::string &appId = "", bool useOriDev = false);
+        const StoreInfo &info);
+
+    static std::string GetDistributedTableNameWithHash(const std::string &device, const std::string &tableName);
+
+    static std::string CalDistributedTableName(const std::string &device, const std::string &tableName);
 
     static void GetDeviceFromName(const std::string &deviceTableName, std::string &deviceHash, std::string &tableName);
 

@@ -321,19 +321,33 @@ std::string DBCommon::StringMasking(const std::string &oriStr, size_t remain)
     return oriStr;
 }
 
-std::string DBCommon::GetDistributedTableName(const std::string &device, const std::string &tableName,
-    const std::string &appId, bool useOriDev)
+std::string DBCommon::GetDistributedTableName(const std::string &device, const std::string &tableName)
 {
-    std::string deviceHashHex;
-    std::string newDeviceId;
-    if (useOriDev && RuntimeContext::GetInstance()->ExistTranslateDevIdCallback()) {
-        deviceHashHex = device;
-    } else if (appId.empty() || RuntimeContext::GetInstance()->TranslateDeviceId(device, appId, newDeviceId) != E_OK) {
-        deviceHashHex = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
-    } else {
-        deviceHashHex = newDeviceId;
+    if (!RuntimeContext::GetInstance()->ExistTranslateDevIdCallback()) {
+        return GetDistributedTableNameWithHash(device, tableName);
     }
-    return DBConstant::RELATIONAL_PREFIX + tableName + "_" + deviceHashHex;
+    return CalDistributedTableName(device, tableName);
+}
+
+std::string DBCommon::GetDistributedTableName(const std::string &device, const std::string &tableName,
+    const StoreInfo &info)
+{
+    std::string newDeviceId;
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(device, info, newDeviceId) != E_OK) {
+        return GetDistributedTableNameWithHash(device, tableName);
+    }
+    return CalDistributedTableName(newDeviceId, tableName);
+}
+
+std::string DBCommon::GetDistributedTableNameWithHash(const std::string &device, const std::string &tableName)
+{
+    std::string deviceHashHex = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+    return CalDistributedTableName(deviceHashHex, tableName);
+}
+
+std::string DBCommon::CalDistributedTableName(const std::string &device, const std::string &tableName)
+{
+    return DBConstant::RELATIONAL_PREFIX + tableName + "_" + device;
 }
 
 void DBCommon::GetDeviceFromName(const std::string &deviceTableName, std::string &deviceHash, std::string &tableName)

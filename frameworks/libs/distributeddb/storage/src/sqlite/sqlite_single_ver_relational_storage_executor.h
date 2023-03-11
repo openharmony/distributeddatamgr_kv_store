@@ -73,7 +73,7 @@ public:
     int CheckAndCleanDistributedTable(const std::vector<std::string> &tableNames,
         std::vector<std::string> &missingTables);
 
-    int CreateDistributedDeviceTable(const std::string &device, const TableInfo &baseTbl, const std::string &appId);
+    int CreateDistributedDeviceTable(const std::string &device, const TableInfo &baseTbl, const StoreInfo &info);
 
     int CheckQueryObjectLegal(const TableInfo &table, QueryObject &query, const std::string &schemaVersion);
 

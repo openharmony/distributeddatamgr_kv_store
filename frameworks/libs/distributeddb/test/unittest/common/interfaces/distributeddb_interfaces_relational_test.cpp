@@ -870,8 +870,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
      * @tc.steps:step1. Prepare db and data
      * @tc.expected: step1. Return OK.
      */
-    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const std::string &appId) {
-        return oriDevId + "_" + appId;
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        return oriDevId + "_" + info.appId;
     });
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -1153,8 +1153,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, Test
 
     std::string devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
     EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + hashDev);
-    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const std::string &appId) {
-        EXPECT_EQ(appId, "");
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        EXPECT_EQ(info.appId, "");
         return oriDevId;
     });
     devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);

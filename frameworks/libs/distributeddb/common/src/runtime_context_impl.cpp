@@ -14,6 +14,7 @@
  */
 
 #include "runtime_context_impl.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "db_dfx_adapter.h"
 #include "log_print.h"
@@ -755,17 +756,18 @@ void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceI
 }
 
 int RuntimeContextImpl::TranslateDeviceId(const std::string &deviceId,
-    const std::string &appId, std::string &newDeviceId)
+    const StoreInfo &info, std::string &newDeviceId)
 {
+    const std::string id = DBCommon::GenerateIdentifierId(info.storeId, info.appId, info.userId);
     std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
     if (translateToDeviceIdCallback_ == nullptr) {
         return -E_NOT_SUPPORT;
     }
     if (deviceIdCache_.find(deviceId) == deviceIdCache_.end() ||
-        deviceIdCache_[deviceId].find(appId) == deviceIdCache_[deviceId].end()) {
-        deviceIdCache_[deviceId][appId] = translateToDeviceIdCallback_(deviceId, appId);
+        deviceIdCache_[deviceId].find(id) == deviceIdCache_[deviceId].end()) {
+        deviceIdCache_[deviceId][id] = translateToDeviceIdCallback_(deviceId, info);
     }
-    newDeviceId = deviceIdCache_[deviceId][appId];
+    newDeviceId = deviceIdCache_[deviceId][id];
     return E_OK;
 }
 

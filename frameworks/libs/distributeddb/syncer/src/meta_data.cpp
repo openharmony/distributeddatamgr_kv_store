@@ -30,6 +30,7 @@ namespace {
     const int STR_TO_LL_BY_DEVALUE = 10;
     // store local timeoffset;this is a special key;
     const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
+    const int CLIENT_ID_MARK = 0X02;
 }
 
 Metadata::Metadata()
@@ -224,23 +225,40 @@ void Metadata::GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValu
 
 int Metadata::SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue)
 {
-    outValue.resize(sizeof(MetaDataValue));
-    errno_t err = memcpy_s(outValue.data(), outValue.size(), &inValue, sizeof(MetaDataValue));
-    if (err != EOK) {
-        return -E_SECUREC_ERROR;
+    outValue.resize(CalculateMetaDataValueSize(inValue));
+    Parcel parcel(outValue.data(), outValue.size());
+    (void) parcel.WriteInt64(inValue.timeOffset);
+    (void) parcel.WriteUInt64(inValue.lastUpdateTime);
+    (void) parcel.WriteUInt64(inValue.localWaterMark);
+    (void) parcel.WriteUInt64(inValue.peerWaterMark);
+    (void) parcel.WriteUInt64(inValue.dbCreateTime);
+    (void) parcel.WriteUInt64(inValue.reservedMark);
+    (void) parcel.WriteString(inValue.clientId);
+    if (parcel.IsError()) {
+        return -E_PARSE_FAIL;
     }
     return E_OK;
 }
 
-int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const
+int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue)
 {
     if (inValue.empty()) {
         return -E_INVALID_ARGS;
     }
-
-    errno_t err = memcpy_s(&outValue, sizeof(MetaDataValue), inValue.data(), inValue.size());
-    if (err != EOK) {
-        return -E_SECUREC_ERROR;
+    Parcel parcel(const_cast<uint8_t *>(inValue.data()), inValue.size());
+    (void) parcel.ReadInt64(outValue.timeOffset);
+    (void) parcel.ReadUInt64(outValue.lastUpdateTime);
+    (void) parcel.ReadUInt64(outValue.localWaterMark);
+    (void) parcel.ReadUInt64(outValue.peerWaterMark);
+    (void) parcel.ReadUInt64(outValue.dbCreateTime);
+    (void) parcel.ReadUInt64(outValue.reservedMark);
+    if (!parcel.IsContinueRead()) {
+        return E_OK;
+    }
+    (void) parcel.ReadString(outValue.clientId);
+    if (parcel.IsError()) {
+        LOGE("[Meta] Parcel error when deserialize metaDataValue");
+        return -E_PARSE_FAIL;
     }
     return E_OK;
 }
@@ -491,7 +509,7 @@ int Metadata::SetDbCreateTime(const DeviceID &deviceId, uint64_t inValue, bool i
     if (metadataMap_.find(hashDeviceId) != metadataMap_.end()) {
         metadata = metadataMap_[hashDeviceId];
         if (metadata.dbCreateTime != 0 && metadata.dbCreateTime != inValue) {
-            metadata.clearDeviceDataMark = REMOVE_DEVICE_DATA_MARK;
+            metadata.reservedMark |= REMOVE_DEVICE_DATA_MARK;
             LOGI("Metadata::SetDbCreateTime,set clear data mark,dev=%s,dbCreateTime=%" PRIu64,
                 STR_MASK(deviceId), inValue);
         }
@@ -511,7 +529,7 @@ int Metadata::ResetMetaDataAfterRemoveData(const DeviceID &deviceId)
     GetHashDeviceId(deviceId, hashDeviceId, true);
     if (metadataMap_.find(hashDeviceId) != metadataMap_.end()) {
         metadata = metadataMap_[hashDeviceId];
-        metadata.clearDeviceDataMark = 0;
+        metadata.reservedMark &= ~0x1; // clear mark
         return SaveMetaDataValue(deviceId, metadata);
     }
     return -E_NOT_FOUND;
@@ -525,7 +543,7 @@ void Metadata::GetRemoveDataMark(const DeviceID &deviceId, uint64_t &outValue)
     GetHashDeviceId(deviceId, hashDeviceId, true);
     if (metadataMap_.find(hashDeviceId) != metadataMap_.end()) {
         metadata = metadataMap_[hashDeviceId];
-        outValue = metadata.clearDeviceDataMark;
+        outValue = metadata.reservedMark & REMOVE_DEVICE_DATA_MARK;
         return;
     }
     outValue = 0;
@@ -569,5 +587,76 @@ void Metadata::RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::str
     if (iter != queryIdMap_.end() && iter->second.find(hashqueryId) != iter->second.end()) {
         iter->second.erase(hashqueryId);
     }
+}
+
+int Metadata::SaveClientId(const std::string &deviceId, const std::string &clientId)
+{
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    GetMetaDataValue(deviceId, metadata, true);
+    if (metadata.clientId == clientId && (metadata.reservedMark & CLIENT_ID_MARK) == CLIENT_ID_MARK) {
+        return E_OK;
+    }
+    metadata.clientId = clientId;
+    metadata.reservedMark |= CLIENT_ID_MARK;
+    return SaveMetaDataValue(deviceId, metadata);
+}
+
+int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    // should reload meta_data avoid invalid cache
+    int errCode = ReloadMetaDataValue();
+    if (errCode != E_OK) {
+        LOGE("[Metadata] reload meta data value failed %d", errCode);
+        return errCode;
+    }
+    MetaDataValue metadata;
+    std::lock_guard<std::mutex> lockGuard(metadataLock_);
+    for (const auto &[hashId, metaValue]: metadataMap_) {
+        if ((metaValue.reservedMark & CLIENT_ID_MARK) != CLIENT_ID_MARK) {
+            continue;
+        }
+        if (metaValue.clientId != clientId) {
+            continue;
+        }
+        if (hashId.size() < DBConstant::DEVICEID_PREFIX_KEY.size()) {
+            continue;
+        }
+        size_t hashLen = hashId.size() - DBConstant::DEVICEID_PREFIX_KEY.size();
+        hashDevId = hashId.substr(DBConstant::DEVICEID_PREFIX_KEY.size(), hashLen);
+        return E_OK;
+    }
+    return -E_NOT_SUPPORT;
+}
+
+uint64_t Metadata::CalculateMetaDataValueSize(const MetaDataValue &value)
+{
+    uint64_t len = Parcel::GetInt64Len(); // timeOffset
+    len += Parcel::GetUInt64Len(); // lastUpdateTime
+    len += Parcel::GetUInt64Len(); // localWaterMark
+    len += Parcel::GetUInt64Len(); // peerWaterMark
+    len += Parcel::GetUInt64Len(); // dbCreateTime
+    len += Parcel::GetUInt64Len(); // reservedMark
+    len += Parcel::GetStringLen(value.clientId); // clientId
+    return Parcel::GetEightByteAlign(len);
+}
+
+int Metadata::ReloadMetaDataValue()
+{
+    std::vector<std::vector<uint8_t>> metaDataKeys;
+    int errCode = GetAllMetadataKey(metaDataKeys);
+    if (errCode != E_OK) {
+        LOGW("[Metadata] get all metadata key failed err=%d", errCode);
+        return errCode;
+    }
+    for (const auto &deviceId : metaDataKeys) {
+        if (IsMetaDataKey(deviceId, DBConstant::DEVICEID_PREFIX_KEY)) {
+            errCode = LoadDeviceIdDataToMap(deviceId);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+    }
+    return E_OK;
 }
 }  // namespace DistributedDB

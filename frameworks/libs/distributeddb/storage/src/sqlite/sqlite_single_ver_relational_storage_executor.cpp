@@ -1158,7 +1158,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const std::string &device,
-    const TableInfo &baseTbl, const std::string &appId)
+    const TableInfo &baseTbl, const StoreInfo &info)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -1168,7 +1168,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const
         return -E_INVALID_ARGS;
     }
 
-    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName(), appId);
+    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName(), info);
     int errCode = SQLiteUtils::CreateSameStuTable(dbHandle_, baseTbl, deviceTableName);
     if (errCode != E_OK) {
         LOGE("Create device table failed. %d", errCode);

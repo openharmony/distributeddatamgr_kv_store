@@ -395,6 +395,19 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     if (inData.empty()) {
         return E_OK;
     }
+    StoreInfo info = {
+        storage_->GetDbProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storage_->GetDbProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storage_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
+    std::string clientId;
+    int errCode = E_OK;
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(context->GetDeviceId(), info, clientId) == E_OK) {
+        errCode = metadata_->SaveClientId(context->GetDeviceId(), clientId);
+        if (errCode != E_OK) {
+            LOGW("[DataSync] record clientId failed %d", errCode);
+        }
+    }
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SAVE_DATA);
@@ -402,7 +415,6 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
 
     const std::string localHashName = DBCommon::TransferHashString(GetLocalDeviceName());
     SingleVerDataSyncUtils::TransSendDataItemToLocal(context, localHashName, inData);
-    int errCode = E_OK;
     // query only support prefix key and don't have query in packet in 104 version
     errCode = storage_->PutSyncDataWithQuery(query, inData, context->GetDeviceId());
     if (performance != nullptr) {

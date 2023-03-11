@@ -133,7 +133,7 @@ public:
     void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) override;
 
     int TranslateDeviceId(const std::string &deviceId,
-        const std::string &appId, std::string &newDeviceId) override;
+        const StoreInfo &info, std::string &newDeviceId) override;
 
     bool ExistTranslateDevIdCallback() const override;
 private:

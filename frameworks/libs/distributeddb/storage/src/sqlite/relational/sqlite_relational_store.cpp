@@ -494,46 +494,18 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
     }
 
-    int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
+    bool isNeedHash = false;
+    std::string hashDeviceId;
+    int errCode = syncAbleEngine_->GetHashDeviceId(device, hashDeviceId);
+    if (errCode == -E_NOT_SUPPORT) {
+        isNeedHash = true;
+        hashDeviceId = device;
+        errCode = E_OK;
+    }
+    if (errCode != E_OK) {
         return errCode;
     }
-
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseHandle(handle);
-        return errCode;
-    }
-
-    std::string hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
-    std::string devTableName = GetDevTableName(device, hashDev);
-    errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
-    if (errCode != E_OK) {
-        LOGE("delete device data failed. %d", errCode);
-        goto END;
-    }
-
-    for (const auto &it : tables) {
-        if (tableName.empty() || it.second.GetTableName() == tableName) {
-            errCode = handle->DeleteDistributedDeviceTableLog(hashDev, it.second.GetTableName());
-            if (errCode != E_OK) {
-                LOGE("delete device data failed. %d", errCode);
-                break;
-            }
-        }
-    }
-
-END:
-    if (errCode != E_OK) {
-        (void)handle->Rollback();
-        ReleaseHandle(handle);
-        return errCode;
-    }
-    errCode = handle->Commit();
-    ReleaseHandle(handle);
-    storageEngine_->NotifySchemaChanged();
-    return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(device, true, tableName);
+    return RemoveDeviceDataInner(hashDeviceId, tableName, isNeedHash);
 }
 
 void SQLiteRelationalStore::RegisterObserverAction(const RelationalObserverAction &action)
@@ -752,8 +724,13 @@ int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string
 std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, const std::string &hashDev) const
 {
     std::string devTableName;
+    StoreInfo info = {
+        sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
     const auto &appId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
-    if (RuntimeContext::GetInstance()->TranslateDeviceId(device, appId, devTableName) != E_OK) {
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(device, info, devTableName) != E_OK) {
         devTableName = hashDev;
     }
     return devTableName;
@@ -772,6 +749,57 @@ SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndSta
         return nullptr;
     }
     return handle;
+}
+
+int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &device, const std::string &tableName,
+    bool isNeedHash)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    std::string hashDev;
+    if (!isNeedHash) {
+        hashDev = DBCommon::TransferStringToHex(device);
+    } else {
+        hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+    }
+    std::string devTableName = GetDevTableName(device, hashDev);
+    errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
+    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
+    if (errCode != E_OK) {
+        LOGE("delete device data failed. %d", errCode);
+        goto END;
+    }
+
+    for (const auto &it : tables) {
+        if (tableName.empty() || it.second.GetTableName() == tableName) {
+            errCode = handle->DeleteDistributedDeviceTableLog(hashDev, it.second.GetTableName());
+            if (errCode != E_OK) {
+                LOGE("delete device data failed. %d", errCode);
+                break;
+            }
+        }
+    }
+
+END:
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    errCode = handle->Commit();
+    ReleaseHandle(handle);
+    storageEngine_->NotifySchemaChanged();
+    return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(hashDev, isNeedHash, tableName);
 }
 }
 #endif

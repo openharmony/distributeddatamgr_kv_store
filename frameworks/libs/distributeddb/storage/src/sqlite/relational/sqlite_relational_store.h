@@ -105,6 +105,8 @@ private:
 
     SQLiteSingleVerRelationalStorageExecutor *GetHandleAndStartTransaction(int &errCode) const;
 
+    int RemoveDeviceDataInner(const std::string &device, const std::string &tableName, bool isNeedHash);
+
     // use for sync Interactive
     std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

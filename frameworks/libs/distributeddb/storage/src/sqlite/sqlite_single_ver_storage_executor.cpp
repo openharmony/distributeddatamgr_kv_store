@@ -1432,10 +1432,8 @@ int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &devic
             return errCode;
         }
 
-        // When removing device data in cache mode, key is "remove", value is deviceID's hash string.
-        // Therefore, no need to transfer hash string when migrating.
-        std::string devName = isSyncMigrating_ ? deviceName : DBCommon::TransferHashString(deviceName);
-        std::vector<uint8_t> devVect(devName.begin(), devName.end());
+        // deviceName always hash string
+        std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
         errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
         if (errCode != E_OK) {
             LOGE("Failed to bind the synced device for all entries:%d", errCode);
@@ -1735,9 +1733,8 @@ int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceNa
             goto ERROR;
         }
     } else {
-        // Transfer the device name.
-        std::string devName = DBCommon::TransferHashString(deviceName);
-        std::vector<uint8_t> devVect(devName.begin(), devName.end());
+        // device name always hash string.
+        std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
         errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
         if (errCode != E_OK) {
             goto ERROR;

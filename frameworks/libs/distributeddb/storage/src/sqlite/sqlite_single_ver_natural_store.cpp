@@ -974,55 +974,26 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     if (!isInSync && !CheckWritePermission()) {
         return -E_NOT_PERMIT;
     }
-    int errCode = E_OK;
-    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
-        return errCode;
-    }
-    uint64_t logFileSize = handle->GetLogFileSize();
-    ReleaseHandle(handle);
-    if (logFileSize > GetMaxLogSize()) {
-        LOGW("[SingleVerNStore] RmDevData log size[%" PRIu64 "] over the limit", logFileSize);
-        return -E_LOG_OVER_LIMITS;
-    }
-
-    bool isNeedHash = true;
-    std::set<std::string> removeDevices;
-    if (deviceName.empty()) {
-        errCode = GetExistsDeviceList(removeDevices);
+    std::string hashDeviceId;
+    bool hash = false;
+    if (!deviceName.empty() && !isInSync) {
+        int errCode = GetHashDeviceId(deviceName, hashDeviceId);
+        if (errCode == -E_NOT_SUPPORT) {
+            errCode = E_OK;
+        }
         if (errCode != E_OK) {
-            LOGE("[SingleVerNStore] get remove device list failed:%d", errCode);
             return errCode;
         }
-        isNeedHash = false;
-    } else {
-        removeDevices.insert(deviceName);
+        hash = true;
+    }
+    if (!hash) {
+        hashDeviceId = DBCommon::TransferHashString(deviceName);
     }
 
-    LOGD("[SingleVerNStore] remove device data, size=%zu", removeDevices.size());
-    for (const auto &iterDevice : removeDevices) {
-        // Call the syncer module to erase the water mark.
-        errCode = EraseDeviceWaterMark(iterDevice, isNeedHash);
-        if (errCode != E_OK) {
-            LOGE("[SingleVerNStore] erase water mark failed:%d", errCode);
-            return errCode;
-        }
-    }
-
-    if (IsExtendedCacheDBMode()) {
-        errCode = RemoveDeviceDataInCacheMode(deviceName, isNeedNotify);
-    } else {
-        errCode = RemoveDeviceDataNormally(deviceName, isNeedNotify);
-    }
-    if (errCode != E_OK) {
-        LOGE("[SingleVerNStore] RemoveDeviceData failed:%d", errCode);
-    }
-
-    return errCode;
+    return RemoveDeviceDataInner(hashDeviceId, isNeedNotify, isInSync);
 }
 
-int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &deviceName, bool isNeedNotify)
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify)
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
@@ -1032,7 +1003,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &
     }
     uint64_t recordVersion = GetAndIncreaseCacheRecordVersion();
     LOGI("Remove device data in cache mode isNeedNotify:%d, recordVersion:%" PRIu64, isNeedNotify, recordVersion);
-    errCode = handle->RemoveDeviceDataInCacheMode(deviceName, isNeedNotify, recordVersion);
+    errCode = handle->RemoveDeviceDataInCacheMode(hashDev, isNeedNotify, recordVersion);
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] RemoveDeviceDataInCacheMode failed:%d", errCode);
     }
@@ -2410,5 +2381,54 @@ void SQLiteSingleVerNaturalStore::Dump(int fd)
     SyncAbleKvDB::Dump(fd);
 }
 
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify, bool isInSync)
+{
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerNStore] RemoveDeviceData get handle failed:%d", errCode);
+        return errCode;
+    }
+    uint64_t logFileSize = handle->GetLogFileSize();
+    ReleaseHandle(handle);
+    if (logFileSize > GetMaxLogSize()) {
+        LOGW("[SingleVerNStore] RmDevData log size[%" PRIu64 "] over the limit", logFileSize);
+        return -E_LOG_OVER_LIMITS;
+    }
+
+    bool isNeedHash = false;
+    std::set<std::string> removeDevices;
+    if (hashDev.empty()) {
+        errCode = GetExistsDeviceList(removeDevices);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore] get remove device list failed:%d", errCode);
+            return errCode;
+        }
+        isNeedHash = true;
+    } else {
+        removeDevices.insert(hashDev);
+    }
+
+    LOGD("[SingleVerNStore] remove device data, size=%zu", removeDevices.size());
+    for (const auto &iterDevice : removeDevices) {
+        // Call the syncer module to erase the water mark.
+        errCode = EraseDeviceWaterMark(iterDevice, isNeedHash);
+        if (errCode != E_OK) {
+            LOGE("[SingleVerNStore] erase water mark failed:%d", errCode);
+            return errCode;
+        }
+    }
+
+    if (IsExtendedCacheDBMode()) {
+        errCode = RemoveDeviceDataInCacheMode(hashDev, isNeedNotify);
+    } else {
+        errCode = RemoveDeviceDataNormally(hashDev, isNeedNotify);
+    }
+    if (errCode != E_OK) {
+        LOGE("[SingleVerNStore] RemoveDeviceData failed:%d", errCode);
+    }
+
+    return errCode;
+}
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

@@ -136,7 +136,7 @@ std::string RelationalStoreManager::GetDistributedTableName(const std::string &d
     if ((!RuntimeContext::GetInstance()->ExistTranslateDevIdCallback() && device.empty()) || tableName.empty()) {
         return {};
     }
-    return DBCommon::GetDistributedTableName(device, tableName, "", true);
+    return DBCommon::GetDistributedTableName(device, tableName);
 }
 
 void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)
