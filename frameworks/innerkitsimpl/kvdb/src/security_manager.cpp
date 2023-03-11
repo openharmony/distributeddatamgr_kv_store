@@ -81,8 +81,8 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
         }
     }
 
-    if (!key.empty() || (!secKey.empty() && Decrypt(secKey, key))) {
-        dbPassword.SetValue(secKey.data(), secKey.size());
+    if ((!secKey.empty() && Decrypt(secKey, key)) || !key.empty()) {
+        dbPassword.SetValue(key.data(), key.size());
     }
 
     secKey.assign(secKey.size(), 0);
