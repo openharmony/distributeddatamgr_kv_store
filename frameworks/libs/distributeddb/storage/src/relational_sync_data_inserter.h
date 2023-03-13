@@ -49,11 +49,11 @@ public:
 
     void SetDeviceId(std::string deviceId);
     // Set remote fields in cid order
-    void SetRemoteFields(std::vector<FieldInfo> fields);
+    void SetRemoteFields(std::vector<FieldInfo> remoteFields);
     void SetEntries(std::vector<DataItem> entries);
 
     void SetLocalTable(TableInfo localTable);
-    const TableInfo &GetLocalTable();
+    const TableInfo &GetLocalTable() const;
 
     void SetQuery(QueryObject query);
     void SetInsertTableName(std::string tableName);

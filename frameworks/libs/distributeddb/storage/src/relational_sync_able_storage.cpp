@@ -827,7 +827,7 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
             LOGE("Get remote device schema from meta failed. err=%d", errCode);
             return errCode;
         }
-        std::string remoteSchema(remoteSchemaBuff.begin(), remoteSchemaBuff.end());
+        remoteSchema = std::string(remoteSchemaBuff.begin(), remoteSchemaBuff.end());
         errCode = remoteDeviceSchema_.Put(deviceId, remoteSchema);
     }
 

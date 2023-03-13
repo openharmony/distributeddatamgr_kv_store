@@ -88,7 +88,7 @@ void RelationalSyncDataInserter::SetLocalTable(TableInfo localTable)
     localTable_ = std::move(localTable);
 }
 
-const TableInfo &RelationalSyncDataInserter::GetLocalTable()
+const TableInfo &RelationalSyncDataInserter::GetLocalTable() const
 {
     return localTable_;
 }
@@ -208,7 +208,6 @@ int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt 
 
 int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt)
 {
-    std::string devName = DBCommon::TransferHashString(deviceId_);
     const std::string tableName = DBConstant::RELATIONAL_PREFIX + query_.GetTableName() + "_log";
     std::string dataFormat = "?, '" + deviceId_ + "', ?, ?, ?, ?, ?";
     std::string columnList = "data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key";

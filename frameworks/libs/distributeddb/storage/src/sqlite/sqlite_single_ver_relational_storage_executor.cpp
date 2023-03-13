@@ -683,33 +683,33 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncLog(sqlite3_stmt *statemen
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncDataItem(const DataItem &dataItem,
-    RelationalSyncDataInserter &inserter, sqlite3_stmt *&stmt)
+    RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt)
 {
-    if (stmt == nullptr) {
-        int errCode = inserter.GetDeleteSyncDataStmt(dbHandle_, stmt);
+    if (rmDataStmt == nullptr) {
+        int errCode = inserter.GetDeleteSyncDataStmt(dbHandle_, rmDataStmt);
         if (errCode != E_OK) {
             LOGE("[DeleteSyncDataItem] Get statement fail!, errCode:%d", errCode);
             return errCode;
         }
     }
 
-    int errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, dataItem.hashKey); // 1 means hash_key index
+    int errCode = SQLiteUtils::BindBlobToStatement(rmDataStmt, 1, dataItem.hashKey); // 1 means hash_key index
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(rmDataStmt, true, errCode);
         return errCode;
     }
     if (mode_ != DistributedTableMode::COLLABORATION) {
-        errCode = SQLiteUtils::BindTextToStatement(stmt, 2, dataItem.dev); // 2 means device index
+        errCode = SQLiteUtils::BindTextToStatement(rmDataStmt, 2, dataItem.dev); // 2 means device index
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            SQLiteUtils::ResetStatement(rmDataStmt, true, errCode);
             return errCode;
         }
     }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    errCode = SQLiteUtils::StepWithRetry(rmDataStmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, false, errCode);  // Finalize outside.
+    SQLiteUtils::ResetStatement(rmDataStmt, false, errCode);  // Finalize outside.
     return errCode;
 }
 
@@ -745,33 +745,33 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &d
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncLog(const DataItem &dataItem,
-    RelationalSyncDataInserter &inserter, sqlite3_stmt *&stmt)
+    RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt)
 {
-    if (stmt == nullptr) {
-        int errCode = inserter.GetDeleteLogStmt(dbHandle_, stmt);
+    if (rmLogStmt == nullptr) {
+        int errCode = inserter.GetDeleteLogStmt(dbHandle_, rmLogStmt);
         if (errCode != E_OK) {
             LOGE("[DeleteSyncLog] Get statement fail!");
             return errCode;
         }
     }
 
-    int errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, dataItem.hashKey); // 1 means hashkey index
+    int errCode = SQLiteUtils::BindBlobToStatement(rmLogStmt, 1, dataItem.hashKey); // 1 means hashkey index
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(rmLogStmt, true, errCode);
         return errCode;
     }
     if (mode_ != DistributedTableMode::COLLABORATION) {
-        errCode = SQLiteUtils::BindTextToStatement(stmt, 2, dataItem.dev); // 2 means device index
+        errCode = SQLiteUtils::BindTextToStatement(rmLogStmt, 2, dataItem.dev); // 2 means device index
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            SQLiteUtils::ResetStatement(rmLogStmt, true, errCode);
             return errCode;
         }
     }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    errCode = SQLiteUtils::StepWithRetry(rmLogStmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, false, errCode);  // Finalize outside.
+    SQLiteUtils::ResetStatement(rmLogStmt, false, errCode);  // Finalize outside.
     return errCode;
 }
 
