@@ -543,17 +543,6 @@ HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch004, TestS
 }
 
 /**
-  * @tc.name: EncryptedDbSwitch008
-  * @tc.desc: Test the multi version db Rekey function return BUSY because of Snapshot not close.
-  * @tc.type: FUNC
-  * @tc.require: AR000CQDT7
-  * @tc.author: wumin
-  */
-HWTEST_F(DistributedDBInterfacesEncryptDelegateTest, EncryptedDbSwitch008, TestSize.Level1)
-{
-}
-
-/**
   * @tc.name: EncryptedDbSwitch009
   * @tc.desc: Test the single version db Rekey function from password1 to password2.
   * @tc.type: FUNC
