@@ -30,7 +30,7 @@ public:
 
     /**
      * @brief Would called when kvstore data change.
-     * 
+     *
      * client should override this function to receive change notification.
     */
     API_EXPORT virtual void OnChange(const ChangeNotification &changeNotification) {}

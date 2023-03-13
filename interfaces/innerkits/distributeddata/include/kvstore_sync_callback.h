@@ -30,9 +30,9 @@ public:
 
     /**
      * @brief This virtual function will be called on sync callback.
-     * 
+     *
      * client should override this function to receive sync results.
-     * 
+     *
      * @param results sync results for devices set in sync function.
     */
     API_EXPORT virtual void SyncCompleted(const std::map<std::string, Status> &results) = 0;

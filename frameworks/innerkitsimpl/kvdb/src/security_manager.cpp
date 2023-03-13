@@ -70,16 +70,23 @@ SecurityManager::DBPassword SecurityManager::GetDBPassword(const std::string &na
 {
     DBPassword dbPassword;
     auto secKey = LoadKeyFromFile(name, path, dbPassword.isKeyOutdated);
+    std::vector<uint8_t> key{};
+
     if (secKey.empty() && needCreate) {
-        secKey = Random(KEY_SIZE);
-        if (!SaveKeyToFile(name, path, secKey)) {
+        key = Random(KEY_SIZE);
+        if (!SaveKeyToFile(name, path, key)) {
             secKey.assign(secKey.size(), 0);
+            key.assign(key.size(), 0);
             return dbPassword;
         }
     }
 
-    dbPassword.SetValue(secKey.data(), secKey.size());
+    if ((!secKey.empty() && Decrypt(secKey, key)) || !key.empty()) {
+        dbPassword.SetValue(key.data(), key.size());
+    }
+
     secKey.assign(secKey.size(), 0);
+    key.assign(key.size(), 0);
     return dbPassword;
 }
 
@@ -139,12 +146,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     offset += (sizeof(time_t) / sizeof(uint8_t));
     std::vector<uint8_t> key{content.begin() + offset, content.end()};
     content.assign(content.size(), 0);
-    std::vector<uint8_t> secretKey {};
-    if(!Decrypt(key, secretKey)) {
-        ZLOGE("client Decrypt failed");
-        return {};
-    }
-    return secretKey;
+    return key;
 }
 
 bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &path, std::vector<uint8_t> &key)

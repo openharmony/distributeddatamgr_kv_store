@@ -88,7 +88,7 @@ private:
 
 /**
  * @brief Kvstore name set by client by calling GetKvStore.
- * 
+ *
  * storeId length must be less or equal than 256,
  * and can not be empty and all space.
 */
@@ -275,7 +275,7 @@ struct KvSyncParam {
 
 /**
  * @brief Device basic information.
- * 
+ *
  * Including device id, name and type.
 */
 struct DeviceInfo {

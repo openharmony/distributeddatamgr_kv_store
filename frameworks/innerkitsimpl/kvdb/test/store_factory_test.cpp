@@ -68,19 +68,23 @@ public:
 
 void StoreFactoryTest::SetUpTestCase(void)
 {
-    std::string baseDir = "/data/service/el1/public/database/rekey";
-    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void StoreFactoryTest::TearDownTestCase(void)
 {
+}
+
+void StoreFactoryTest::SetUp(void)
+{
+    std::string baseDir = "/data/service/el1/public/database/rekey";
+    mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
+}
+
+void StoreFactoryTest::TearDown(void)
+{
     DeleteKVStore();
     (void)remove("/data/service/el1/public/database/rekey");
 }
-
-void StoreFactoryTest::SetUp(void) {}
-
-void StoreFactoryTest::TearDown(void) {}
 
 void StoreFactoryTest::DeleteKVStore()
 {

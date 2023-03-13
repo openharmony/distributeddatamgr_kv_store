@@ -125,6 +125,49 @@ namespace {
             EXPECT_TRUE(resultvalue == value);
         }
     }
+
+    void DataSync005()
+    {
+        SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+        ASSERT_TRUE(dataSync != nullptr);
+        dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+        delete dataSync;
+    }
+
+    void DataSync008()
+    {
+        SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+        ASSERT_TRUE(dataSync != nullptr);
+        dataSync->PutDataMsg(nullptr);
+        delete dataSync;
+    }
+
+    void ReSetWaterDogTest001()
+    {
+        /**
+         * @tc.steps: step1. put 10 key/value
+         * @tc.expected: step1, put return OK.
+         */
+        for (int i = 0; i < 5; i++) { // put 5 key
+            Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 1024); // rand num 1024 for test
+            Value value;
+            DistributedDBToolsUnitTest::GetRandomKeyValue(value, 10 * 50 * 1024u); // 10 * 50 * 1024 = 500k
+            EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+        }
+        /**
+         * @tc.steps: step2. SetDeviceMtuSize
+         * @tc.expected: step2, return OK.
+         */
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 50 * 1024u = 50k
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 50 * 1024u); // 50 * 1024u = 50k
+        /**
+         * @tc.steps: step3. deviceA,deviceB sync to each other at same time
+         * @tc.expected: step3. sync should return OK.
+         */
+        g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
+    }
 }
 
 class DistributedDBSingleVerP2PComplexSyncTest : public testing::Test {
@@ -977,10 +1020,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync004, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync005, TestSize.Level1)
 {
-    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
-    ASSERT_TRUE(dataSync != nullptr);
-    dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
-    delete dataSync;
+    ASSERT_NO_FATAL_FAILURE(DataSync005());
 }
 
 /**
@@ -1040,10 +1080,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync007, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync008, TestSize.Level1)
 {
-    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
-    ASSERT_TRUE(dataSync != nullptr);
-    dataSync->PutDataMsg(nullptr);
-    delete dataSync;
+    ASSERT_NO_FATAL_FAILURE(DataSync008());
 }
 
 /**
@@ -1301,29 +1338,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry005, TestSize.Level3
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, ReSetWaterDogTest001, TestSize.Level3)
 {
-    /**
-     * @tc.steps: step1. put 10 key/value
-     * @tc.expected: step1, put return OK.
-     */
-    for (int i = 0; i < 5; i++) {
-        Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 1024); // rand num 1024 for test
-        Value value;
-        DistributedDBToolsUnitTest::GetRandomKeyValue(value, 10 * 50 * 1024u);
-        EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
-    }
-    /**
-     * @tc.steps: step1. SetDeviceMtuSize
-     * @tc.expected: step1, return OK.
-     */
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 4k
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 50 * 1024u); // 4k
-    /**
-     * @tc.steps: step2. deviceA,deviceB sync to each other at same time
-     * @tc.expected: step2. sync should return OK.
-     */
-    g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 4k
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 4k
+    ASSERT_NO_FATAL_FAILURE(ReSetWaterDogTest001());
 }
 
 /**

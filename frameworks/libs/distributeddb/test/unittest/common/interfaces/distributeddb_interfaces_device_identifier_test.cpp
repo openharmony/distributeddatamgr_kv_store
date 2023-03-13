@@ -519,6 +519,18 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
     storageEngine->Release();
 }
 
+namespace {
+void StorageEngineTest002()
+{
+    std::string exportFileName = g_testDir + "/" + STORE_ID + ".dump";
+    int fd = open(exportFileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
+    ASSERT_TRUE(fd >= 0);
+    g_store->Dump(fd);
+    close(fd);
+    OS::RemoveDBDirectory(exportFileName);
+}
+}
+
 /**
   * @tc.name: StorageEngineTest002
   * @tc.desc: Test the interface of Dump
@@ -528,12 +540,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
   */
 HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest002, TestSize.Level1)
 {
-    std::string exportFileName = g_testDir + "/" + STORE_ID + ".dump";
-    int fd = open(exportFileName.c_str(), (O_WRONLY | O_CREAT), (S_IRUSR | S_IWUSR | S_IRGRP));
-    ASSERT_TRUE(fd >= 0);
-    g_store->Dump(fd);
-    close(fd);
-    OS::RemoveDBDirectory(exportFileName);
+    ASSERT_NO_FATAL_FAILURE(StorageEngineTest002());
 }
 
 /**

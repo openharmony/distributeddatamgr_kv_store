@@ -91,9 +91,9 @@ public:
 
     /**
      * @brief Remove the device data synced from remote.
-     * 
+     *
      * Remove all the other devices data synced from remote if device is empty.
-     * 
+     *
      * @param device Device id.
      * @return Return SUCCESS for success, others for failure.
     */
@@ -101,9 +101,9 @@ public:
 
     /**
      * @brief Get the kvstore security level.
-     * 
+     *
      * The security level is set when create store by options parameter.
-     * 
+     *
      * @param secLevel The security level will be returned.
      * @return Return SUCCESS for success, others for failure.
     */
@@ -111,10 +111,10 @@ public:
 
     /**
      * @brief Sync store with other devices.
-     * 
+     *
      * This is an asynchronous method.
      * sync will fail if there is a syncing operation in progress.
-     * 
+     *
      * @param devices Device list to sync.
      * @param mode    Mode can be set to SyncMode::PUSH, SyncMode::PULL and SyncMode::PUTH_PULL.
      *                PUSH_PULL will firstly push all not-local store to listed devices,
@@ -126,10 +126,10 @@ public:
 
     /**
      * @brief Sync store with other devices only syncing the data which is satisfied with the condition.
-     * 
+     *
      * This is an asynchronous method.
      * sync will fail if there is a syncing operation in progress.
-     * 
+     *
      * @param devices      Device list to sync.
      * @param mode         Mode can be set to SyncMode::PUSH, SyncMode::PULL and SyncMode::PUSH_PULL.
      *                     PUSH_PULL will firstly push all not-local store to listed devices,
@@ -151,7 +151,7 @@ public:
 
     /**
      * @brief Sync store with other device.
-     * 
+     *
      * which is satisfied with the condition.
      * the callback pointer is nullptr.
     */
@@ -189,10 +189,10 @@ public:
 
     /**
      * @brief Set capability available for sync.
-     * 
+     *
      * If enabled is true, it will check permission before sync operation.
      * only local labels and remote labels overlapped syncing works.
-     * 
+     *
      * @param enabled Bool paramater
      * @return Return SUCCESS for success, others for failure.
     */
@@ -200,9 +200,9 @@ public:
 
     /**
      * @brief Set capability range for syncing.
-     * 
+     *
      * Should set capability available firstly.
-     * 
+     *
      * @param localLabels  Local labels defined by a list of string value.
      * @param remoteLabels Remote labels defined by a list of string value.
      * @return Return SUCCESS for success, others for failure.
