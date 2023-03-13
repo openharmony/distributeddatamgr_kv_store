@@ -22,12 +22,15 @@
 #include "dev_manager.h"
 #include "kv_store_nb_delegate.h"
 #include "kvdb_service.h"
+#include "kvstore_death_recipient.h"
 #include "observer_bridge.h"
 #include "single_kvstore.h"
 #include "sync_observer.h"
 
 namespace OHOS::DistributedKv {
-class SingleStoreImpl : public SingleKvStore, public DevManager::Observer {
+class SingleStoreImpl : public SingleKvStore,
+                        public DevManager::Observer,
+                        public KvStoreDeathRecipient {
 public:
     using Observer = KvStoreObserver;
     using SyncCallback = KvStoreSyncCallback;
@@ -67,6 +70,7 @@ public:
         std::map<std::string, DistributedKv::Status> &status) override;
     void Online(const std::string &device) override;
     void Offline(const std::string &device) override;
+    void OnRemoteDied() override;
 
     // normal function
     int32_t Close(bool isForce = false);
@@ -99,6 +103,7 @@ private:
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
+    void Register();
 
     bool autoSync_ = false;
     int32_t ref_ = 1;
@@ -111,6 +116,8 @@ private:
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;
+    static constexpr int32_t INTERVAL = 500; // ms
+    uint64_t taskId_ = 0;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H

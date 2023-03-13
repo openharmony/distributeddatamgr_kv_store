@@ -106,4 +106,12 @@ std::vector<Entry> ObserverBridge::ConvertDB(const T &dbEntries, std::string &de
     }
     return entries;
 }
+
+void ObserverBridge::OnServiceDeath()
+{
+    if (remote_ == nullptr) {
+        return;
+    }
+    remote_ = nullptr;
+}
 } // namespace OHOS::DistributedKv

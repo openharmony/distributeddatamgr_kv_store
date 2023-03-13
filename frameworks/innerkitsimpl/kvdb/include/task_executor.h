@@ -20,7 +20,8 @@ namespace OHOS::DistributedKv {
 class TaskExecutor {
 public:
     static TaskExecutor &GetInstance();
-    bool Execute(TaskScheduler::Task &&task, int32_t interval = 0);
+    TaskScheduler::TaskId Execute(TaskScheduler::Task &&task, int32_t interval = 0);
+    void RemoveTask(TaskScheduler::TaskId taskId);
 
 private:
     TaskExecutor();

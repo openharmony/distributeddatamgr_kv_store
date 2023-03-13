@@ -33,6 +33,7 @@ public:
     Status RegisterRemoteObserver();
     Status UnregisterRemoteObserver();
     void OnChange(const DBChangedData &data) override;
+    void OnServiceDeath();
 
 private:
     class ObserverClient : public KvStoreObserverClient {
