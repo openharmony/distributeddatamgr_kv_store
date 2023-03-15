@@ -25,6 +25,7 @@ namespace OHOS::DistributedRdb {
 enum RdbStatus {
     RDB_OK,
     RDB_ERROR,
+    RDB_NOT_SUPPORTED = 801,
 };
 
 enum RdbDistributedType {

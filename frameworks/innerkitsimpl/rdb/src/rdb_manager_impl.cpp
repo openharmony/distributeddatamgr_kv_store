@@ -26,10 +26,8 @@
 #include "ikvstore_data_service.h"
 #include "irdb_service.h"
 #include "rdb_service_proxy.h"
-#include "rdb_errno.h"
 
 namespace OHOS::DistributedRdb {
-using namespace OHOS::NativeRdb;
 static sptr<DistributedKv::KvStoreDataServiceProxy> GetDistributedDataManager()
 {
     int retry = 0;
@@ -85,36 +83,36 @@ int RdbManagerImpl::GetRdbService(const RdbSyncerParam& param, std::shared_ptr<R
     std::lock_guard<std::mutex> lock(mutex_);
     if (rdbService_ != nullptr) {
         service = rdbService_;
-        return E_OK;
+        return RDB_OK;
     }
     if (distributedDataMgr_ == nullptr) {
         distributedDataMgr_ = GetDistributedDataManager();
     }
     if (distributedDataMgr_ == nullptr) {
         ZLOGE("get distributed data manager failed");
-        return E_ERROR;
+        return RDB_ERROR;
     }
 
     auto remote = distributedDataMgr_->GetFeatureInterface("relational_store");
     if (remote == nullptr) {
         ZLOGE("get rdb service failed");
-        return E_NOT_SUPPORTED;
+        return RDB_NOT_SUPPORTED;
     }
     sptr<RdbServiceProxy> serviceProxy = iface_cast<DistributedRdb::RdbServiceProxy>(remote);
     if (serviceProxy->InitNotifier(param) != RDB_OK) {
         ZLOGE("init notifier failed");
-        return E_ERROR;
+        return RDB_ERROR;
     }
     sptr<IRdbService> serviceBase = serviceProxy;
     LinkToDeath(serviceBase->AsObject().GetRefPtr());
     rdbService_ = std::shared_ptr<RdbService>(serviceProxy.GetRefPtr(), [holder = serviceProxy] (const auto*) {});
     if (rdbService_ == nullptr) {
         ZLOGE("RdbService is nullptr.");
-        return E_ERROR;
+        return RDB_ERROR;
     }
     bundleName_ = param.bundleName_;
     service = rdbService_;
-    return E_OK;
+    return RDB_OK;
 }
 
 void RdbManagerImpl::OnRemoteDied()
@@ -129,7 +127,7 @@ void RdbManagerImpl::OnRemoteDied()
     param.bundleName_ = bundleName_;
     std::shared_ptr<DistributedRdb::RdbService> service = nullptr;
     int errCode = GetRdbService(param, service);
-    if (errCode != E_OK) {
+    if (errCode != RDB_OK) {
         ZLOGI("GetRdbService failed, err is %{public}d.", errCode);
         return;
     }
