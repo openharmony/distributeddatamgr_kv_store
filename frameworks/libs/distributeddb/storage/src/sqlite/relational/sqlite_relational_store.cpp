@@ -766,13 +766,16 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &device, cons
         return errCode;
     }
 
+    std::string hashHexDev;
     std::string hashDev;
     if (!isNeedHash) {
-        hashDev = DBCommon::TransferStringToHex(device);
+        hashHexDev = DBCommon::TransferStringToHex(device);
+        hashDev = device;
     } else {
-        hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
+        hashDev = DBCommon::TransferHashString(device);
+        hashHexDev = DBCommon::TransferStringToHex(hashDev);
     }
-    std::string devTableName = GetDevTableName(device, hashDev);
+    std::string devTableName = GetDevTableName(device, hashHexDev);
     errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (errCode != E_OK) {
@@ -782,7 +785,7 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &device, cons
 
     for (const auto &it : tables) {
         if (tableName.empty() || it.second.GetTableName() == tableName) {
-            errCode = handle->DeleteDistributedDeviceTableLog(hashDev, it.second.GetTableName());
+            errCode = handle->DeleteDistributedDeviceTableLog(hashHexDev, it.second.GetTableName());
             if (errCode != E_OK) {
                 LOGE("delete device data failed. %d", errCode);
                 break;
@@ -799,7 +802,7 @@ END:
     errCode = handle->Commit();
     ReleaseHandle(handle);
     storageEngine_->NotifySchemaChanged();
-    return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(hashDev, isNeedHash, tableName);
+    return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
 }
 }
 #endif

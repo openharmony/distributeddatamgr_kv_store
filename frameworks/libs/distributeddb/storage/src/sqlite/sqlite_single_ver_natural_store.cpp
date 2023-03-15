@@ -976,16 +976,18 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
     }
     std::string hashDeviceId;
     bool hash = false;
-    if (!deviceName.empty() && !isInSync) {
-        int errCode = GetHashDeviceId(deviceName, hashDeviceId);
-        if (errCode == -E_NOT_SUPPORT) {
-            errCode = E_OK;
+    do {
+        if (!deviceName.empty() && !isInSync) {
+            int errCode = GetHashDeviceId(deviceName, hashDeviceId);
+            if (errCode == -E_NOT_SUPPORT) {
+                break;
+            }
+            if (errCode != E_OK) {
+                return errCode;
+            }
+            hash = true;
         }
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        hash = true;
-    }
+    } while (false);
     if (!hash) {
         hashDeviceId = DBCommon::TransferHashString(deviceName);
     }
