@@ -32,8 +32,7 @@ struct MetaDataValue {
     uint64_t localWaterMark = 0;
     uint64_t peerWaterMark = 0;
     Timestamp dbCreateTime = 0;
-    uint64_t reservedMark = 0; // Default 0 for not remove device data.
-    std::string clientId;
+    uint64_t clearDeviceDataMark = 0; // Default 0 for not remove device data.
 };
 
 class Metadata {
@@ -149,10 +148,6 @@ private:
 
     // reset the waterMark to zero
     int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
-
-    int ReloadMetaDataValue();
-
-    static uint64_t CalculateMetaDataValueSize(const MetaDataValue &value);
 
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
