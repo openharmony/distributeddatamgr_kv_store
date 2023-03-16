@@ -99,7 +99,7 @@ external_deps_config = [
   "hitrace_native:libhitracechain",
   "hiviewdfx_hilog_native:libhilog",
   "huks:libhukssdk",
-  "ipc:ipc_core",
+  "ipc:ipc_single",
   "samgr:samgr_proxy",
 ]
 
