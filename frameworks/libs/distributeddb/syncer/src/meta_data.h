@@ -171,6 +171,9 @@ private:
     // queryId is not in set while key is not found from db first time, and return lastTimestamp = INT64_MAX
     // if query is in set return 0 while not found from db, means already sync before, don't trigger again
     mutable std::map<DeviceID, std::set<std::string>> queryIdMap_;
+
+    std::mutex clientIdLock_;
+    std::map<DeviceID, std::string> clientIdCache_;
 };
 }  // namespace DistributedDB
 #endif

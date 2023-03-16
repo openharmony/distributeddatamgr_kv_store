@@ -573,6 +573,13 @@ void Metadata::RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::str
 
 int Metadata::SaveClientId(const std::string &deviceId, const std::string &clientId)
 {
+    {
+        // already save in cache
+        std::lock_guard<std::mutex> autoLock(clientIdLock_);
+        if (clientIdCache_[deviceId] == clientId) {
+            return E_OK;
+        }
+    }
     std::string keyStr;
     keyStr.append(CLIENT_ID_PREFIX_KEY).append(clientId);
     std::string valueStr = DBCommon::TransferHashString(deviceId);
@@ -580,7 +587,13 @@ int Metadata::SaveClientId(const std::string &deviceId, const std::string &clien
     DBCommon::StringToVector(keyStr, key);
     Value value;
     DBCommon::StringToVector(valueStr, value);
-    return SetMetadataToDb(key, value);
+    int errCode = SetMetadataToDb(key, value);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::lock_guard<std::mutex> autoLock(clientIdLock_);
+    clientIdCache_[deviceId] = clientId;
+    return E_OK;
 }
 
 int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
