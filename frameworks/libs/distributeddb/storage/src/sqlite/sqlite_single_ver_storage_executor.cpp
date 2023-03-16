@@ -1410,12 +1410,12 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
     return errCode;
 }
 
-int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &deviceName,
+int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &hashDev,
     std::vector<Entry> &entries) const
 {
     int errCode = E_OK;
     sqlite3_stmt *statement = nullptr;
-    if (deviceName.empty()) {
+    if (hashDev.empty()) {
         std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
         SELECT_ALL_SYNC_ENTRIES_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES);
         errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
@@ -1433,7 +1433,7 @@ int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &devic
         }
 
         // deviceName always hash string
-        std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
+        std::vector<uint8_t> devVect(hashDev.begin(), hashDev.end());
         errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
         if (errCode != E_OK) {
             LOGE("Failed to bind the synced device for all entries:%d", errCode);

@@ -246,7 +246,7 @@ private:
 
     int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify);
 
-    int RemoveDeviceDataNormally(const std::string &deviceName, bool isNeedNotify);
+    int RemoveDeviceDataNormally(const std::string &hashDev, bool isNeedNotify);
 
     int SaveSyncDataToMain(const QueryObject &query, std::vector<DataItem> &dataItems, const DeviceInfo &deviceInfo);
 

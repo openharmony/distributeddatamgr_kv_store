@@ -77,11 +77,11 @@ int SQLiteSingleVerStorageExecutor::ResetForMigrateCacheData()
     return CheckCorruptedStatus(errCode);
 }
 
-int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInCacheMode(const std::string &deviceName,
+int SQLiteSingleVerStorageExecutor::RemoveDeviceDataInCacheMode(const std::string &hashDev,
     bool isNeedNotify, uint64_t recordVersion) const
 {
     // device name always hash string.
-    std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
+    std::vector<uint8_t> devVect(hashDev.begin(), hashDev.end());
 
     Key hashKey;
     int errCode = DBCommon::CalcValueHash(REMOVE_DEVICE_DATA_KEY, hashKey);

@@ -1013,7 +1013,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStore::RemoveDeviceDataNormally(const std::string &deviceName, bool isNeedNotify)
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataNormally(const std::string &hashDev, bool isNeedNotify)
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
@@ -1024,11 +1024,11 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataNormally(const std::string &dev
 
     std::vector<Entry> entries;
     if (isNeedNotify) {
-        handle->GetAllSyncedEntries(deviceName, entries);
+        handle->GetAllSyncedEntries(hashDev, entries);
     }
 
     LOGI("Remove device data:%d", isNeedNotify);
-    errCode = handle->RemoveDeviceData(deviceName);
+    errCode = handle->RemoveDeviceData(hashDev);
     ReleaseHandle(handle);
     if (errCode == E_OK && isNeedNotify) {
         NotifyRemovedData(entries);

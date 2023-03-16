@@ -122,7 +122,7 @@ public:
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
 
-    int GetAllSyncedEntries(const std::string &deviceName, std::vector<Entry> &entries) const;
+    int GetAllSyncedEntries(const std::string &hashDev, std::vector<Entry> &entries) const;
 
     int SaveSyncDataItem(DataItem &dataItem, const DeviceInfo &deviceInfo,
         Timestamp &maxStamp, SingleVerNaturalStoreCommitNotifyData *committedData, bool isPermitForceWrite = true);
@@ -135,7 +135,7 @@ public:
 
     int RemoveDeviceData(const std::string &deviceName);
 
-    int RemoveDeviceDataInCacheMode(const std::string &deviceName, bool isNeedNotify, uint64_t recordVersion) const;
+    int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify, uint64_t recordVersion) const;
 
     void InitCurrentMaxStamp(Timestamp &maxStamp);
 
