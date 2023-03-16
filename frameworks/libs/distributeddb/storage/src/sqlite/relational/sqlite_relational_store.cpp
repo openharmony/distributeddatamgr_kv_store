@@ -729,7 +729,6 @@ std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, co
         sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
         sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
     };
-    const auto &appId = sqliteStorageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, "");
     if (RuntimeContext::GetInstance()->TranslateDeviceId(device, info, devTableName) != E_OK) {
         devTableName = hashDev;
     }

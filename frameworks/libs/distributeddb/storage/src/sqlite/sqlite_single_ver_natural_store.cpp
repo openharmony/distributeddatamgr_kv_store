@@ -2398,7 +2398,6 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
         return -E_LOG_OVER_LIMITS;
     }
 
-    bool isNeedHash = false;
     std::set<std::string> removeDevices;
     if (hashDev.empty()) {
         errCode = GetExistsDeviceList(removeDevices);
@@ -2406,7 +2405,6 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
             LOGE("[SingleVerNStore] get remove device list failed:%d", errCode);
             return errCode;
         }
-        isNeedHash = true;
     } else {
         removeDevices.insert(hashDev);
     }
@@ -2414,7 +2412,7 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
     LOGD("[SingleVerNStore] remove device data, size=%zu", removeDevices.size());
     for (const auto &iterDevice : removeDevices) {
         // Call the syncer module to erase the water mark.
-        errCode = EraseDeviceWaterMark(iterDevice, isNeedHash);
+        errCode = EraseDeviceWaterMark(iterDevice, false);
         if (errCode != E_OK) {
             LOGE("[SingleVerNStore] erase water mark failed:%d", errCode);
             return errCode;
