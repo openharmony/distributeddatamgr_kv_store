@@ -78,43 +78,41 @@ RdbManagerImpl& RdbManagerImpl::GetInstance()
     return manager;
 }
 
-sptr<RdbServiceProxy> RdbManagerImpl::GetRdbService()
+int RdbManagerImpl::GetRdbService(const RdbSyncerParam& param, std::shared_ptr<RdbService> &service)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (rdbService_ != nullptr) {
+        service = rdbService_;
+        return RDB_OK;
+    }
     if (distributedDataMgr_ == nullptr) {
         distributedDataMgr_ = GetDistributedDataManager();
     }
     if (distributedDataMgr_ == nullptr) {
         ZLOGE("get distributed data manager failed");
-        return nullptr;
+        return RDB_ERROR;
     }
 
     auto remote = distributedDataMgr_->GetFeatureInterface("relational_store");
     if (remote == nullptr) {
         ZLOGE("get rdb service failed");
-        return nullptr;
+        return RDB_NOT_SUPPORTED;
     }
-    return iface_cast<DistributedRdb::RdbServiceProxy>(remote);
-}
-
-std::shared_ptr<RdbService> RdbManagerImpl::GetRdbService(const RdbSyncerParam& param)
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (rdbService_ != nullptr) {
-        return rdbService_;
-    }
-    auto service = GetRdbService();
-    if (service == nullptr) {
-        return nullptr;
-    }
-    if (service->InitNotifier(param) != RDB_OK) {
+    sptr<RdbServiceProxy> serviceProxy = iface_cast<DistributedRdb::RdbServiceProxy>(remote);
+    if (serviceProxy->InitNotifier(param) != RDB_OK) {
         ZLOGE("init notifier failed");
-        return nullptr;
+        return RDB_ERROR;
     }
-    sptr<IRdbService> serviceBase = service;
+    sptr<IRdbService> serviceBase = serviceProxy;
     LinkToDeath(serviceBase->AsObject().GetRefPtr());
-    rdbService_ = std::shared_ptr<RdbService>(service.GetRefPtr(), [holder = service] (const auto*) {});
+    rdbService_ = std::shared_ptr<RdbService>(serviceProxy.GetRefPtr(), [holder = serviceProxy] (const auto*) {});
+    if (rdbService_ == nullptr) {
+        ZLOGE("RdbService is nullptr.");
+        return RDB_ERROR;
+    }
     bundleName_ = param.bundleName_;
-    return rdbService_;
+    service = rdbService_;
+    return RDB_OK;
 }
 
 void RdbManagerImpl::OnRemoteDied()
@@ -127,8 +125,10 @@ void RdbManagerImpl::OnRemoteDied()
     std::this_thread::sleep_for(std::chrono::seconds(WAIT_TIME));
     RdbSyncerParam param;
     param.bundleName_ = bundleName_;
-    auto service = GetRdbService(param);
-    if (service == nullptr) {
+    std::shared_ptr<DistributedRdb::RdbService> service = nullptr;
+    int errCode = GetRdbService(param, service);
+    if (errCode != RDB_OK) {
+        ZLOGI("GetRdbService failed, err is %{public}d.", errCode);
         return;
     }
     proxy = std::static_pointer_cast<RdbServiceProxy>(service);
