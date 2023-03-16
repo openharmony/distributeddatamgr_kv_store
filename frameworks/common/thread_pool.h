@@ -46,11 +46,17 @@ public:
     ~ThreadPool()
     {
         isRunning_ = false;
-        std::unique_lock<decltype(mutex_)> lock(mutex_);
-        indexes_.clear();
-        runningIndexes_.clear();
-        tasks_.clear();
-        condition_.notify_all();
+        {
+            std::unique_lock<decltype(mutex_)> lock(mutex_);
+            indexes_.clear();
+            runningIndexes_.clear();
+            tasks_.clear();
+            condition_.notify_all();
+        }
+        std::cout << "enter xigou" << std::endl;
+        for (auto &item : threads_) {
+            item.join();
+        }
     }
 
     TaskId Execute(Task task)
@@ -94,7 +100,7 @@ public:
         condition_.notify_one();
     }
 
-    TaskId Reset(TaskId taskId, Duration interval)
+    TaskId Reset(TaskId taskId, Duration &interval)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         auto runningIndex = runningIndexes_.find(taskId);
@@ -160,30 +166,36 @@ private:
 
     void CreateThread()
     {
-        auto thread = std::thread([this]() {
-            threadNum_++;
+        threadNum_++;
+        threads_.emplace_back(std::thread([this]() {
             idleThread_++;
             while (isRunning_) {
-                std::unique_lock<decltype(mutex_)> lock(mutex_);
-                if (tasks_.empty() && isRunning_) {
-                    condition_.wait_until(lock, std::chrono::steady_clock::now() + idleTime_);
-                    if (tasks_.empty() && this->threadNum_ > this->minThread_) {
-                        break;
-                    } else {
-                        continue;
+                InnerTask innerTask;
+                {
+                    std::unique_lock<decltype(mutex_)> lock(mutex_);
+                    if (tasks_.empty() && isRunning_) {
+                        condition_.wait_until(lock, std::chrono::steady_clock::now() + idleTime_);
+                        if (tasks_.empty() && this->threadNum_ > this->minThread_) {
+                            break;
+                        } else {
+                            continue;
+                        }
                     }
+                    idleThread_--;
+
+                    auto it = tasks_.begin();
+                    innerTask = it->second;
+                    indexes_.erase(innerTask.taskId);
+                    runningIndexes_[innerTask.taskId] = it;
+                    tasks_.erase(it);
+                    innerTask.times--;
                 }
-                idleThread_--;
+
                 if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
                     auto time = tasks_.begin()->first;
-                    cond_.wait_until(lock, time);
+                    std::unique_lock<decltype(delayMutex_)> lock(delayMutex_);
+                    delayCond_.wait_until(lock, time);
                 }
-                auto it = tasks_.begin();
-                InnerTask innerTask = it->second;
-                indexes_.erase(innerTask.taskId);
-                runningIndexes_[innerTask.taskId] = it;
-                tasks_.erase(it);
-                innerTask.times--;
 
                 if (innerTask.exec) {
                     innerTask.exec();
@@ -192,7 +204,7 @@ private:
                 idleThread_++;
                 {
                     std::unique_lock<decltype(mutex_)> lock(mutex_);
-                    if (innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
+                    if (isRunning_ && innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
                         auto it = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
                         indexes_[innerTask.taskId] = it;
                     }
@@ -200,13 +212,12 @@ private:
                     delCond_.notify_all();
                 }
             }
-        });
-        threadNum_--;
+            threadNum_--;
+        }));
     }
 
     TaskId GenTaskId()
     {
-        std::unique_lock<decltype(mutex_)> lock(mutex_);
         auto taskId = ++taskId_;
         if (taskId == INVALID_ID) {
             return ++taskId_;
@@ -216,15 +227,17 @@ private:
 
     size_t maxThread_;
     size_t minThread_;
+    std::atomic<size_t> threadNum_;
     size_t idleThread_ = 0;
-    size_t threadNum_;
-    Duration idleTime_ = std::chrono::seconds(60);
+    Duration idleTime_ = std::chrono::seconds(2);
     std::mutex mutex_;
+    std::mutex delayMutex_;
     bool isRunning_;
     std::condition_variable condition_;
     std::condition_variable delCond_;
-    std::condition_variable cond_;
+    std::condition_variable delayCond_;
     std::multimap<Time, InnerTask> tasks_;
+    std::vector<std::thread> threads_;
     std::map<TaskId, decltype(tasks_)::iterator> indexes_;
     std::map<TaskId, decltype(tasks_)::iterator> runningIndexes_;
     std::atomic<uint64_t> taskId_;
