@@ -31,6 +31,9 @@ public:
     }
 
 private:
+    static constexpr size_t maxThreads = 12;
+    static constexpr size_t minThreads = 5;
+	
     ThreadManager()
     {
         threadPool_ = std::make_shared<KVThreadPool>(12, 5);

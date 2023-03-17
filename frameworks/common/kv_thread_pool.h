@@ -178,7 +178,6 @@ private:
                     auto waitRes = condition_.wait_until(lock, startIdle + idleTime_, [this] {
                         return (!tasks_.empty() || !isRunning_);
                     });
-
                     if (!waitRes && threadNum_ > minThread_) {
                         threadNum_--;
                         break;
