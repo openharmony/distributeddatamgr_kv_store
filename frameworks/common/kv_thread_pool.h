@@ -180,8 +180,8 @@ private:
                     });
 
                     if (!waitRes && threadNum_ > minThread_) {
-                            threadNum_--;
-                            break;
+                        threadNum_--;
+                        break;
                     }
                     if (tasks_.empty()) {
                         continue;
