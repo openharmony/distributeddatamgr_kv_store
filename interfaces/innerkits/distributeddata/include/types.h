@@ -66,6 +66,9 @@ struct API_EXPORT AppId {
         return appId;
     }
 
+    /**
+     * @brief Check appId.
+     */
     inline bool IsValid() const
     {
         if (appId.empty() || appId.size() > MAX_APP_ID_LEN) {
@@ -111,11 +114,17 @@ struct API_EXPORT StoreId {
         return storeId;
     }
 
+    /**
+     * @brief Operator <.
+     */
     bool operator<(const StoreId &id) const noexcept
     {
         return this->storeId < id.storeId;
     }
 
+    /**
+     * @brief Check storeId.
+     */
     inline bool IsValid() const
     {
         if (storeId.empty() || storeId.size() > MAX_STORE_ID_LEN) {
