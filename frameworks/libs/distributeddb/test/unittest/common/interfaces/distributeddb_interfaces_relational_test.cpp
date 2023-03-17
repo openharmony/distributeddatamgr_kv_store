@@ -857,14 +857,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
-/**
-  * @tc.name: RelationalRemoveDeviceDataTest003
-  * @tc.desc: Test remove all device data and sync again
-  * @tc.type: FUNC
-  * @tc.require: AR000GK58F
-  * @tc.author: zhangqiquan
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest003, TestSize.Level1)
+void TestRemoveDeviceDataWithCallback(bool removeAll)
 {
     /**
      * @tc.steps:step1. Prepare db and data
@@ -899,7 +892,11 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
      * @tc.expected: step2. dev table not exist and log not exist device b.
      */
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    EXPECT_EQ(delegate->RemoveDeviceData(), OK);
+    if (removeAll) {
+        EXPECT_EQ(delegate->RemoveDeviceData(), OK);
+    } else {
+        EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B + "_" + APP_ID), OK);
+    }
     int logCnt = -1;
     std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log";
     RelationalTestUtils::ExecSql(db, checkLogSql, nullptr, [&logCnt](sqlite3_stmt *stmt) {
@@ -918,6 +915,29 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(status, OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+}
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest003
+  * @tc.desc: Test remove all device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest003, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(true);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest004
+  * @tc.desc: Test remove one device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest004, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(false);
 }
 
 /**
