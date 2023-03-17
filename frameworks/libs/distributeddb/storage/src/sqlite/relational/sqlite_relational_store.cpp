@@ -505,7 +505,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     if (errCode != E_OK) {
         return errCode;
     }
-    return RemoveDeviceDataInner(hashDeviceId, tableName, isNeedHash);
+    return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
 
 void SQLiteRelationalStore::RegisterObserverAction(const RelationalObserverAction &action)
@@ -750,8 +750,8 @@ SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndSta
     return handle;
 }
 
-int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &device, const std::string &tableName,
-    bool isNeedHash)
+int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
+    const std::string &tableName, bool isNeedHash)
 {
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode);
@@ -767,14 +767,18 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &device, cons
 
     std::string hashHexDev;
     std::string hashDev;
+    std::string devTableName;
     if (!isNeedHash) {
-        hashHexDev = DBCommon::TransferStringToHex(device);
-        hashDev = device;
+        // if is not need hash mappingDev mean hash(uuid) device is param device
+        hashHexDev = DBCommon::TransferStringToHex(mappingDev);
+        hashDev = mappingDev;
+        devTableName = device;
     } else {
-        hashDev = DBCommon::TransferHashString(device);
+        // if is need hash mappingDev mean uuid
+        hashDev = DBCommon::TransferHashString(mappingDev);
         hashHexDev = DBCommon::TransferStringToHex(hashDev);
+        devTableName = GetDevTableName(mappingDev, hashHexDev);
     }
-    std::string devTableName = GetDevTableName(device, hashHexDev);
     errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (errCode != E_OK) {
