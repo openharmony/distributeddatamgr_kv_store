@@ -13,8 +13,8 @@
 * limitations under the License.
 */
 
-#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_THREAD_POOL_H
-#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_THREAD_POOL_H
+#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
+#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -25,7 +25,7 @@
 #include <thread>
 
 namespace OHOS {
-class ThreadPool {
+class KVThreadPool {
 public:
     using TaskId = uint64_t;
     using Duration = std::chrono::steady_clock::duration;
@@ -35,25 +35,27 @@ public:
     static constexpr Duration INVALID_INTERVAL = std::chrono::milliseconds(0);
     static constexpr uint64_t UNLIMITED_TIMES = std::numeric_limits<uint64_t>::max();
 
-    ThreadPool(size_t maxThread, size_t minThread)
+    KVThreadPool(size_t maxThread, size_t minThread, Duration idleTime = std::chrono::seconds(2))
     {
         maxThread_ = maxThread;
         minThread_ = minThread;
-        isRunning_ = true;
         threadNum_ = 0;
-        Start();
+        idleThread_ = 0;
+        idleTime_ = idleTime;
+        for (int i = 0; i < minThread_; ++i) {
+            AutoScaling();
+        }
     }
-    ~ThreadPool()
+    ~KVThreadPool()
     {
-        isRunning_ = false;
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
+            isRunning_ = false;
             indexes_.clear();
             runningIndexes_.clear();
             tasks_.clear();
             condition_.notify_all();
         }
-        std::cout << "enter xigou" << std::endl;
         for (auto &item : threads_) {
             item.join();
         }
@@ -88,11 +90,15 @@ public:
     {
         std::unique_lock<std::mutex> lock(mutex_);
         auto runningIndex = runningIndexes_.find(taskId);
-        delCond_.wait(lock, [this, runningIndex, wait] {
-            return (!wait || runningIndex == indexes_.end());
-        });
+        if (runningIndex != runningIndexes_.end()) {
+            runningIndex->second->second.needDelete = true;
+            delCond_.wait(lock, [this, taskId, wait] {
+                return (!wait || runningIndexes_.find(taskId) == runningIndexes_.end());
+            });
+            return;
+        }
         auto index = indexes_.find(taskId);
-        if (index != indexes_.end()) {
+        if (index == indexes_.end()) {
             return;
         }
         tasks_.erase(index->second);
@@ -100,7 +106,7 @@ public:
         condition_.notify_one();
     }
 
-    TaskId Reset(TaskId taskId, Duration &interval)
+    TaskId Reset(TaskId taskId, Duration interval)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         auto runningIndex = runningIndexes_.find(taskId);
@@ -135,6 +141,7 @@ private:
         TaskId taskId = INVALID_ID;
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
+        bool needDelete = false;
         std::function<void()> exec;
     };
 
@@ -150,39 +157,42 @@ private:
         if (it == tasks_.begin()) {
             condition_.notify_one();
         }
-        if (!idleThread_ && threadNum_ < maxThread_) {
-            CreateThread();
-        }
+        AutoScaling();
         indexes_[innerTask.taskId] = it;
         return innerTask.taskId;
     }
 
-    void Start()
+    void AutoScaling()
     {
-        for (int i = 0; i < minThread_; ++i) {
-            CreateThread();
+        if (idleThread_ != 0 || threadNum_ >= maxThread_) {
+            return;
         }
-    }
-
-    void CreateThread()
-    {
         threadNum_++;
         threads_.emplace_back(std::thread([this]() {
+            Time startIdle = std::chrono::steady_clock::now();
             idleThread_++;
             while (isRunning_) {
                 InnerTask innerTask;
                 {
                     std::unique_lock<decltype(mutex_)> lock(mutex_);
-                    if (tasks_.empty() && isRunning_) {
-                        condition_.wait_until(lock, std::chrono::steady_clock::now() + idleTime_);
-                        if (tasks_.empty() && this->threadNum_ > this->minThread_) {
-                            break;
-                        } else {
-                            continue;
-                        }
-                    }
-                    idleThread_--;
+                    auto waitRes = condition_.wait_until(lock, startIdle + idleTime_, [this] {
+                        return (!tasks_.empty() || !isRunning_);
+                    });
 
+                    if (!waitRes && threadNum_ > minThread_) {
+                            threadNum_--;
+                            break;
+                    }
+                    if (tasks_.empty()) {
+                        continue;
+                    }
+                    if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
+                        auto time = tasks_.begin()->first;
+                        condition_.wait_until(lock, time);
+                        continue;
+                    }
+
+                    idleThread_--;
                     auto it = tasks_.begin();
                     innerTask = it->second;
                     indexes_.erase(innerTask.taskId);
@@ -191,28 +201,23 @@ private:
                     innerTask.times--;
                 }
 
-                if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
-                    auto time = tasks_.begin()->first;
-                    std::unique_lock<decltype(delayMutex_)> lock(delayMutex_);
-                    delayCond_.wait_until(lock, time);
-                }
-
                 if (innerTask.exec) {
                     innerTask.exec();
                 }
+
+                std::unique_lock<decltype(mutex_)> lock(mutex_);
                 runningIndexes_.erase(innerTask.taskId);
                 idleThread_++;
-                {
-                    std::unique_lock<decltype(mutex_)> lock(mutex_);
-                    if (isRunning_ && innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
-                        auto it = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
-                        indexes_[innerTask.taskId] = it;
-                    }
-                    innerTask = InnerTask();
-                    delCond_.notify_all();
+                startIdle = std::chrono::steady_clock::now();
+
+                if (isRunning_ && !innerTask.needDelete && innerTask.interval != INVALID_INTERVAL &&
+                    innerTask.times > 0) {
+                    auto it = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
+                    indexes_[innerTask.taskId] = it;
                 }
+                innerTask = InnerTask();
+                delCond_.notify_all();
             }
-            threadNum_--;
         }));
     }
 
@@ -228,14 +233,12 @@ private:
     size_t maxThread_;
     size_t minThread_;
     std::atomic<size_t> threadNum_;
-    size_t idleThread_ = 0;
-    Duration idleTime_ = std::chrono::seconds(2);
+    std::atomic<size_t> idleThread_;
+    Duration idleTime_;
     std::mutex mutex_;
-    std::mutex delayMutex_;
-    bool isRunning_;
+    bool isRunning_ = true;
     std::condition_variable condition_;
     std::condition_variable delCond_;
-    std::condition_variable delayCond_;
     std::multimap<Time, InnerTask> tasks_;
     std::vector<std::thread> threads_;
     std::map<TaskId, decltype(tasks_)::iterator> indexes_;
@@ -243,4 +246,4 @@ private:
     std::atomic<uint64_t> taskId_;
 };
 } // namespace OHOS
-#endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_THREAD_POOL_H
+#endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
