@@ -18,7 +18,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <mutex>
+#include <shared_mutex>
 #include "message.h"
 #include "frame_header.h"
 #include "parse_result.h"
@@ -131,7 +131,9 @@ private:
     static int FillExtendHeadDataIfNeed(std::shared_ptr<ExtendHeaderHandle> &extendHandle, SerialBuffer *buffer,
         uint32_t headSize);
 
-    static std::mutex msgIdMutex_;
+    static int GetTransformFunc(uint32_t messageId, TransformFunc &function);
+
+    static std::shared_mutex msgIdMutex_;
     static std::map<uint32_t, TransformFunc> msgIdMapFunc_;
 };
 } // namespace DistributedDB
