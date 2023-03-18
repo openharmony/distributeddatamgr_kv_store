@@ -29,6 +29,7 @@ std::atomic<KvDBManager *> KvDBManager::instance_{nullptr};
 std::mutex KvDBManager::kvDBLock_;
 std::mutex KvDBManager::instanceLock_;
 std::map<std::string, OS::FileHandle> KvDBManager::locks_;
+std::mutex KvDBManager::fileHandleMutex_;
 
 namespace {
     DefaultFactory g_defaultFactory;
@@ -194,9 +195,12 @@ int KvDBManager::TryLockDB(const KvDBProperties &kvDBProp, int retryTimes)
         return E_OK;
     }
 
-    if (locks_.count(id) != 0) {
-        LOGI("db has been locked!");
-        return E_OK;
+    {
+        std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
+        if (locks_.count(id) != 0) {
+            LOGI("db has been locked!");
+            return E_OK;
+        }
     }
 
     std::string hexHashId = DBCommon::TransferStringToHex((id));
@@ -211,6 +215,7 @@ int KvDBManager::TryLockDB(const KvDBProperties &kvDBProp, int retryTimes)
         errCode = OS::FileLock(handle, false); // not block process
         if (errCode == E_OK) {
             LOGI("[%s]locked!", STR_MASK(DBCommon::TransferStringToHex(KvDBManager::GenerateKvDBIdentifier(kvDBProp))));
+            std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
             locks_[id] = handle;
             return errCode;
         } else if (errCode == -E_BUSY) {
@@ -234,6 +239,7 @@ int KvDBManager::UnlockDB(const KvDBProperties &kvDBProp)
         return E_OK;
     }
     std::string identifierDir = KvDBManager::GenerateKvDBIdentifier(kvDBProp);
+    std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
     if (locks_.count(identifierDir) == 0) {
         return E_OK;
     }
