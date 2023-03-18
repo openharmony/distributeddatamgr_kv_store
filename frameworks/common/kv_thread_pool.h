@@ -42,9 +42,6 @@ public:
         threadNum_ = 0;
         idleThread_ = 0;
         idleTime_ = idleTime;
-        for (int i = 0; i < minThread_; ++i) {
-            AutoScaling();
-        }
     }
     ~KVThreadPool()
     {
@@ -90,13 +87,9 @@ public:
     {
         std::unique_lock<std::mutex> lock(mutex_);
         auto runningIndex = runningIndexes_.find(taskId);
-        if (runningIndex != runningIndexes_.end()) {
-            runningIndex->second->second.needDelete = true;
-            delCond_.wait(lock, [this, taskId, wait] {
-                return (!wait || runningIndexes_.find(taskId) == runningIndexes_.end());
-            });
-            return;
-        }
+        delCond_.wait(lock, [this, taskId, wait] {
+            return (!wait || runningIndexes_.find(taskId) == runningIndexes_.end());
+        });
         auto index = indexes_.find(taskId);
         if (index == indexes_.end()) {
             return;
@@ -141,7 +134,6 @@ private:
         TaskId taskId = INVALID_ID;
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
-        bool needDelete = false;
         std::function<void()> exec;
     };
 
@@ -209,8 +201,7 @@ private:
                 idleThread_++;
                 startIdle = std::chrono::steady_clock::now();
 
-                if (isRunning_ && !innerTask.needDelete && innerTask.interval != INVALID_INTERVAL &&
-                    innerTask.times > 0) {
+                if (isRunning_ && innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
                     auto it = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
                     indexes_[innerTask.taskId] = it;
                 }
