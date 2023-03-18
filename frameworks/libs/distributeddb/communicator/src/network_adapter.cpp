@@ -214,6 +214,10 @@ int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes
     DeviceInfos dstDevInfo;
     dstDevInfo.identifier = dstTarget;
     DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length);
+    if (errCode == DBStatus::RATE_LIMIT) {
+        LOGD("[NAdapt][SendBytes] rate limit!");
+        return -E_WAIT_RETRY;
+    }
     if (errCode != DBStatus::OK) {
         LOGE("[NAdapt][SendBytes] SendData Fail, errCode=%d.", static_cast<int>(errCode));
         // These code is compensation for the probable defect of IProcessCommunicator implementation.

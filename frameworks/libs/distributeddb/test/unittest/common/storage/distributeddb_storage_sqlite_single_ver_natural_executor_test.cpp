@@ -54,7 +54,7 @@ public:
 void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    LOGD("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
+    LOGI("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
     std::string oriIdentifier = APP_ID + "-" + USER_ID + "-" + "TestGeneralNBExecutor";
     std::string identifier = DBCommon::TransferHashString(oriIdentifier);
     g_identifier = DBCommon::TransferStringToHex(identifier);
@@ -926,7 +926,6 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
     /**
      * @tc.steps: step3. Change executor to MAIN_ATTACH_CACHE
-     * @tc.expected: step3. Expect SQL_STATE_ERR
      */
     auto executor2 = std::make_unique<SQLiteSingleVerStorageExecutor>(
         sqlHandle, false, false, ExecutorState::MAIN_ATTACH_CACHE);

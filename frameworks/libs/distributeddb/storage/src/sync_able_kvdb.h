@@ -119,6 +119,8 @@ protected:
 private:
     int RegisterEventType(EventType type);
 
+    bool NeedStartSyncer() const;
+
     SyncerProxy syncer_;
     std::atomic<bool> started_;
     std::atomic<bool> closed_;

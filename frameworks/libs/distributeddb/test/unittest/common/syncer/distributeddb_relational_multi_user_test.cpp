@@ -878,7 +878,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
     });
     /**
      * @tc.steps: step2. openstore1 in dual tuple sync mode
-     * @tc.expected: step2. it should be activity finally
+     * @tc.expected: step2. it should be activated finally
      */
     OpenStore1(true);
     /**
@@ -913,4 +913,61 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser011, TestSize.Level1)
         EXPECT_EQ(rdbDeletegatePtr, nullptr);
         CloseStore();
     }
+}
+
+/**
+ * @tc.name: multi user 012
+ * @tc.desc: test dont check sync active when open store with normal store
+ * @tc.type: FUNC
+ * @tc.require: AR000GK58G
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser012, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count
+     */
+    RuntimeConfig::SetSyncActivationCheckCallback([&callCount] (const std::string &userId, const std::string &appId,
+        const std::string &storeId) -> bool {
+        callCount++;
+        return true;
+    });
+    /**
+     * @tc.steps: step2. openStore in no dual tuple sync mode
+     * @tc.expected: step2. it should be activated finally, and callCount should be zero
+     */
+    OpenStore1(false);
+    EXPECT_EQ(callCount, 0u);
+    CloseStore();
+}
+
+/**
+ * @tc.name: multi user 013
+ * @tc.desc: test dont check sync active when open store with normal store
+ * @tc.type: FUNC
+ * @tc.require: AR000GK58G
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser013, TestSize.Level1)
+{
+    uint32_t callCount = 0u;
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and record call count
+     */
+    RuntimeConfig::SetSyncActivationCheckCallback([&callCount] (const std::string &userId, const std::string &appId,
+        const std::string &storeId) -> bool {
+        callCount++;
+        return true;
+    });
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode
+     * @tc.expected: step2. it should not be activated finally, and callCount should be 2
+     */
+    OpenStore1(true);
+    EXPECT_EQ(callCount, 2u);
+    callCount = 0u;
+    EXPECT_EQ(g_rdbDelegatePtr1->RemoveDeviceData("DEVICE"), OK);
+    EXPECT_EQ(callCount, 0u);
+    CloseStore();
 }

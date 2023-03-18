@@ -284,10 +284,26 @@ int GenericSyncer::StopSync(uint64_t connectionId)
 
 uint64_t GenericSyncer::GetTimestamp()
 {
-    if (timeHelper_ == nullptr) {
+    std::shared_ptr<TimeHelper> timeHelper = nullptr;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        timeHelper = timeHelper_;
+        if (syncInterface_ != nullptr) {
+            storage = syncInterface_;
+            storage->IncRefCount();
+        }
+    }
+    if (storage == nullptr) {
         return TimeHelper::GetSysCurrentTime();
     }
-    return timeHelper_->GetTime();
+    if (timeHelper == nullptr) {
+        storage->DecRefCount();
+        return TimeHelper::GetSysCurrentTime();
+    }
+    uint64_t timestamp = timeHelper->GetTime();
+    storage->DecRefCount();
+    return timestamp;
 }
 
 void GenericSyncer::QueryAutoSync(const InternalSyncParma &param)
@@ -446,13 +462,11 @@ bool GenericSyncer::IsValidMode(int mode) const
     return true;
 }
 
-int GenericSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-    const std::vector<std::string> &devices) const
+int GenericSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const
 {
-    (void)query;
-    (void)mode;
-    (void)isQuerySync;
-    (void)(devices);
+    (void)param;
+    (void)engine;
+    (void)storage;
     return E_OK;
 }
 
@@ -785,20 +799,34 @@ int GenericSyncer::StatusCheck() const
 
 int GenericSyncer::SyncPreCheck(const SyncParma &param) const
 {
-    std::lock_guard<std::mutex> lock(syncerLock_);
-    int errCode = StatusCheck();
-    if (errCode != E_OK) {
-        return errCode;
+    ISyncEngine *engine = nullptr;
+    ISyncInterface *storage = nullptr;
+    int errCode = E_OK;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        errCode = StatusCheck();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) {
+            return -E_INVALID_ARGS;
+        }
+        if (IsQueuedManualSyncFull(param.mode, param.wait)) {
+            LOGE("[Syncer] -E_BUSY");
+            return -E_BUSY;
+        }
+        storage = syncInterface_;
+        engine = syncEngine_;
+        if (storage == nullptr || engine == nullptr) {
+            return -E_BUSY;
+        }
+        storage->IncRefCount();
+        RefObject::IncObjRef(engine);
     }
-    if (!IsValidDevices(param.devices) || !IsValidMode(param.mode)) {
-        return -E_INVALID_ARGS;
-    }
-    if (IsQueuedManualSyncFull(param.mode, param.wait)) {
-        LOGE("[Syncer] -E_BUSY");
-        return -E_BUSY;
-    }
-    QuerySyncObject syncQuery = param.syncQuery;
-    return SyncConditionCheck(syncQuery, param.mode, param.isQuerySync, param.devices);
+    errCode = SyncConditionCheck(param, engine, storage);
+    storage->DecRefCount();
+    RefObject::DecObjRef(engine);
+    return errCode;
 }
 
 void GenericSyncer::InitSyncOperation(SyncOperation *operation, const SyncParma &param)

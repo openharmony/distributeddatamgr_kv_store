@@ -1277,6 +1277,59 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3
 }
 
 /**
+ * @tc.name: SyncRetry005
+ * @tc.desc: use sync retry sync use pull by compress
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry005, TestSize.Level3)
+{
+    if (g_kvDelegatePtr != nullptr) {
+        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+        g_kvDelegatePtr = nullptr;
+    }
+    /**
+     * @tc.steps: step1. open db use Compress
+     * @tc.expected: step1, Pragma return OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.isNeedCompressOnSync = true;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step2. set sync retry
+     * @tc.expected: step2, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step3. deviceA call sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_EQ(pair.second, OK);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
  * @tc.name: ReSetWatchDogTest001
  * @tc.desc: trigger resetWatchDog while pull
  * @tc.type: FUNC

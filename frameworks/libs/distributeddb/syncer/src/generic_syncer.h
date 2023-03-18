@@ -143,8 +143,7 @@ protected:
     // Check if the mode arg is valid
     bool IsValidMode(int mode) const;
 
-    virtual int SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-        const std::vector<std::string> &devices) const;
+    virtual int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const;
 
     // Check if the devices arg is valid
     bool IsValidDevices(const std::vector<std::string> &devices) const;

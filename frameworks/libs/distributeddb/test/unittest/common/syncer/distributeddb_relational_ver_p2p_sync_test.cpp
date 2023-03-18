@@ -1082,6 +1082,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
     std::vector<VirtualRowData> targetData;
     g_deviceB->GetAllSyncData(g_tableName, targetData);
     ASSERT_EQ(targetData.size(), 0u);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 /**

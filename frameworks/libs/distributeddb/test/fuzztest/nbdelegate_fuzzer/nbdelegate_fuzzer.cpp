@@ -178,6 +178,8 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     }
     kvNbDelegatePtr->DeleteBatch(keys);
     kvNbDelegatePtr->UnRegisterObserver(observer);
+    delete observer;
+    observer = nullptr;
     kvNbDelegatePtr->PutLocalBatch(tmp);
     kvNbDelegatePtr->DeleteLocalBatch(keys);
     std::string tmpStoreId = kvNbDelegatePtr->GetStoreId();

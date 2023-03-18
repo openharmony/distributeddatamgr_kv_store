@@ -349,7 +349,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, ControlAckTest001, TestSize
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager001, TestSize.Level1)
 {
     SubscribeManager subManager;
     std::string device = "device_A";
@@ -420,7 +420,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager001, TestSi
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager002, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager002, TestSize.Level1)
 {
     SubscribeManager subManager;
     std::string device = "device_A";
@@ -476,7 +476,7 @@ ASSERT_TRUE(subscribeQueryId.size() == 4);
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager003, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager003, TestSize.Level1)
 {
     SubscribeManager subManager;
     std::string device = "device_";
@@ -526,7 +526,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager003, TestSi
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager004, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager004, TestSize.Level1)
 {
     SubscribeManager subManager;
     std::string device = "device_";
@@ -577,7 +577,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager004, TestSi
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager005, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager005, TestSize.Level1)
 {
     SubscribeManager subManager;
     std::vector<QuerySyncObject> subscribeQueries;
@@ -647,7 +647,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager005, TestSi
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeManager006, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. active a query sync object which is not in local subscribe map
@@ -711,7 +711,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeManager006, TestSi
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync001, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -776,7 +776,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync001, TestSize.
  * @tc.require: AR000FN6G9
  * @tc.author: zhuwentao
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync002, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync002, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -820,7 +820,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync002, TestSize.
  * @tc.require: AR000GOHO7
  * @tc.author: lidongwei
  */
-HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync003, TestSize.Level1)
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync003, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. InitSchemaDb
@@ -829,6 +829,7 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync003, TestSize.
     InitSubSchemaDb();
     std::vector<std::string> devices;
     devices.push_back(g_deviceB->GetDeviceId());
+    g_deviceB->Online();
 
     /**
      * @tc.steps: step2. deviceB subscribe inkeys(k2k4) query to deviceA
