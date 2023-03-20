@@ -174,7 +174,7 @@ int SyncStateMachine::ExecNextTask()
 {
     syncContext_->Clear();
     while (!syncContext_->IsTargetQueueEmpty()) {
-        int errCode = syncContext_->GetNextTarget(false);
+        int errCode = syncContext_->GetNextTarget();
         if (errCode != E_OK) {
             continue;
         }
