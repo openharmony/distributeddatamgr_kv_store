@@ -41,6 +41,7 @@ public:
         minThread_ = minThread;
         threadNum_ = 0;
         idleThread_ = 0;
+        taskId_ = 0;
         idleTime_ = idleTime;
     }
     ~KVThreadPool()
@@ -220,8 +221,8 @@ private:
                      threadIndexes[it->second->get_id()] = it;
 
                      if (isRunning_ && innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
-                         auto it = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
-                         indexes_[innerTask.taskId] = it;
+                         auto tasksIt = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
+                         indexes_[innerTask.taskId] = tasksIt;
                      }
                      innerTask = InnerTask();
                      delCond_.notify_all();
