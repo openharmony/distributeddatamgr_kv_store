@@ -1167,3 +1167,49 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync012, TestSize.
         EXPECT_EQ(g_deviceC->GetData(key, item), -E_NOT_FOUND);
     }
 }
+
+/**
+ * @tc.name: SubscribeSync014
+ * @tc.desc: test device subscribe with put a lot of times
+ * @tc.type: FUNC
+ * @tc.require: AR000GOHO7
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync014, TestSize.Level3)
+{
+    /**
+    * @tc.steps: step1. InitSchemaDb
+    */
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    /**
+     * @tc.steps: step2. deviceB unsubscribe inkeys(k1, key6) and prefix key "k" query to deviceA
+     */
+    LOGI("============step 2============");
+    Key key6 { 'k', '6' };
+    Query query = Query::Select();
+    g_deviceB->Online();
+    g_deviceB->Subscribe(QuerySyncObject(query), true, 1);
+    /**
+     * @tc.steps: step3. deviceA put a lot of time
+     * @tc.expected: step3 put performance was not effected by subscribe
+     */
+    LOGI("============step 4============");
+    std::vector<Key> dataKeys;
+    const uint64_t PUT_LIMIT_30S = 30 * 1000000; // 30s = 30 * 1000000us
+    LOGD("BEGIN PUT");
+    for (uint8_t i = 0u; i < 10u; ++i) { // loop 10 times
+        Key key = { i };
+        dataKeys.push_back(key);
+        uint64_t curTime = 0;
+        uint64_t lastTime = 0;
+        EXPECT_EQ(OS::GetCurrentSysTimeInMicrosecond(curTime), E_OK);
+        lastTime = curTime;
+        EXPECT_EQ(g_schemaKvDelegatePtr->Put(key, Value(SCHEMA_VALUE1.begin(), SCHEMA_VALUE1.end())), OK);
+        EXPECT_EQ(OS::GetCurrentSysTimeInMicrosecond(curTime), E_OK);
+        EXPECT_LE(curTime - lastTime, PUT_LIMIT_30S);
+    }
+    LOGD("END PUT");
+}
