@@ -94,8 +94,8 @@ public:
     {
         std::unique_lock<std::mutex> lock(mutex_);
         auto runningIndex = runningIndexes_.find(taskId);
-        delCond_.wait(lock, [this, taskId, wait] {
-            return (!wait || runningIndexes_.find(taskId) == runningIndexes_.end());
+        delCond_.wait(lock, [this, runningIndex, wait] {
+            return (!wait || runningIndex == runningIndexes_.end());
         });
         auto index = indexes_.find(taskId);
         if (index == indexes_.end()) {
@@ -178,7 +178,7 @@ private:
                      {
                          std::unique_lock<decltype(mutex_)> lock(mutex_);
                          auto waitRes = threadCon->wait_until(lock, startIdle + idleTime_, [this] {
-                             return (tasks_.empty() || !isRunning_);
+                             return (!tasks_.empty() || !isRunning_);
                          });
                          if (!waitRes && threadNum_ > minThread_) {
                              threadNum_--;
@@ -221,7 +221,8 @@ private:
                      threadIndexes[it->second->get_id()] = it;
 
                      if (isRunning_ && innerTask.interval != INVALID_INTERVAL && innerTask.times > 0) {
-                         auto tasksIt = tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
+                         auto tasksIt =
+                             tasks_.insert({ std::chrono::steady_clock::now() + innerTask.interval, innerTask });
                          indexes_[innerTask.taskId] = tasksIt;
                      }
                      innerTask = InnerTask();
