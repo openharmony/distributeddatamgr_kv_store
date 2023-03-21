@@ -1048,8 +1048,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
     syncer->EnableAutoSync(true);
     incRefCount = 0;
     syncer->RemoteDataChanged("");
-    EXPECT_EQ(incRefCount, 1); // refCount is 1
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(incRefCount, 2); // refCount is 2
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
