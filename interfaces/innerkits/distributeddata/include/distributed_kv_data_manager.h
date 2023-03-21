@@ -27,8 +27,14 @@ namespace OHOS {
 namespace DistributedKv {
 class API_EXPORT DistributedKvDataManager final {
 public:
+    /**
+     * @brief Constructor.
+     */
     API_EXPORT DistributedKvDataManager();
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT ~DistributedKvDataManager();
 
     /**

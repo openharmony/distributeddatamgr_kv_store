@@ -24,12 +24,24 @@ namespace OHOS {
 namespace DistributedKv {
 class API_EXPORT KvStore {
 public:
+    /**
+     * @brief Constructor.
+     */
     API_EXPORT KvStore() = default;
 
-    // forbidden copy constructor.
+    /**
+     * @brief Forbidden copy constructor.
+     */
     KvStore(const KvStore &) = delete;
+
+    /**
+     * @brief Forbidden copy constructor.
+     */
     KvStore &operator=(const KvStore &) = delete;
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT virtual ~KvStore() {}
 
     /**
