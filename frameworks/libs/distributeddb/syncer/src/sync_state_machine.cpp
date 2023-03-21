@@ -180,12 +180,15 @@ int SyncStateMachine::ExecNextTask()
         }
         if (syncContext_->IsCurrentSyncTaskCanBeSkipped()) {
             syncContext_->SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
+            syncContext_->Clear();
             continue;
         }
         errCode = PrepareNextSyncTask();
         if (errCode != E_OK) {
             LOGE("[SyncStateMachine] PrepareSync failed");
             syncContext_->SetOperationStatus(SyncOperation::OP_FAILED);
+            syncContext_->Clear();
+            continue; // try to execute next task
         }
         return errCode;
     }

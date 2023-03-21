@@ -547,7 +547,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck006, TestSize.Level1)
     // we expect machine don't change context status when queue not empty
     EXPECT_CALL(syncTaskContext, SetOperationStatus(_)).WillOnce(Return());
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).WillOnce(Return());
-    EXPECT_CALL(syncTaskContext, Clear()).WillOnce(Return());
+    EXPECT_CALL(syncTaskContext, Clear()).WillRepeatedly(Return());
 
     EXPECT_EQ(stateMachine.CallExecNextTask(), -E_NO_SYNC_TASK);
 }

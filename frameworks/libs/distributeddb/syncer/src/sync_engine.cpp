@@ -683,10 +683,11 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
         errCode = context->StartStateMachine();
         context->LockObj();
         if (errCode != E_OK) {
-            // machine start failed because it is running, we just return here
-            // next task will be executed after current task finished
-            LOGE("[SyncEngine] machine StartSync failed");
+            // machine start failed because timer start failed, try to execute next task
+            LOGW("[SyncEngine] machine StartSync failed");
             context->SetOperationStatus(SyncOperation::OP_FAILED);
+            context->ClearSyncOperation();
+            continue;
         }
         // now task is running just return here
         return errCode;
