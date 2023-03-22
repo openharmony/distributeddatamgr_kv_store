@@ -89,13 +89,20 @@ int SyncTaskContext::AddSyncTarget(ISyncTarget *target)
             return -E_INVALID_ARGS;
         }
     }
-    CancelCurrentSyncRetryIfNeed(targetMode);
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, targetMode]() {
+        CancelCurrentSyncRetryIfNeed(targetMode);
+        RefObject::DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        RefObject::DecObjRef(this);
+    }
     if (taskExecStatus_ == RUNNING) {
         return E_OK;
     }
     if (onSyncTaskAdd_) {
         RefObject::IncObjRef(this);
-        int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
+        errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
             onSyncTaskAdd_();
             RefObject::DecObjRef(this);
         });
