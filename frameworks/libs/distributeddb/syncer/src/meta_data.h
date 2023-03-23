@@ -93,7 +93,7 @@ public:
     // if the sendWatermark less than device watermark
     int GetSendDeleteSyncWaterMark(const std::string &deviceId, WaterMark &waterMark, bool isAutoLift = true);
 
-    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
+    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark, bool isNeedHash = true);
 
     // the deleteSync's recvWatermark will increase by the device watermark
     // if the recvWatermark less than device watermark
@@ -113,7 +113,7 @@ public:
     void RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::string &queryId);
 private:
 
-    int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue);
+    int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
 
     // sync module need hash devices id
     void GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
@@ -143,7 +143,7 @@ private:
     int LoadDeviceIdDataToMap(const Key &key);
 
     // reset the waterMark to zero
-    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName = "");
+    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
 
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
