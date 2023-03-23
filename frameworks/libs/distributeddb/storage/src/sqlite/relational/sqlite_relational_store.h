@@ -108,6 +108,8 @@ private:
     int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
         const std::string &tableName, bool isNeedHash);
 
+    int GetExistDevices(std::set<std::string> &hashDevices);
+
     // use for sync Interactive
     std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

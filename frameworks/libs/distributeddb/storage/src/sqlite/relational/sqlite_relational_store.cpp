@@ -505,6 +505,18 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     if (errCode != E_OK) {
         return errCode;
     }
+    if (isNeedHash) {
+        // check device is uuid in meta
+        std::set<std::string> hashDevices;
+        errCode = GetExistDevices(hashDevices);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (hashDevices.find(DBCommon::TransferHashString(device)) == hashDevices.end()) {
+            LOGD("[SQLiteRelationalStore] not match device, just return");
+            return E_OK;
+        }
+    }
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
 
@@ -698,18 +710,11 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
 
 int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList)
 {
-    int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        LOGE("[SingleVerRDBStore] GetExistsDeviceList get handle failed:%d", errCode);
+    std::set<std::string> devices;
+    int errCode = GetExistDevices(devices);
+    if (errCode != E_OK) {
         return errCode;
     }
-    std::set<std::string> devices;
-    errCode = handle->GetExistsDeviceList(devices);
-    if (errCode != E_OK) {
-        LOGE("[SingleVerRDBStore] Get remove device list from meta failed. err=%d", errCode);
-    }
-    ReleaseHandle(handle);
     for (const auto &tableName: tableNameList) {
         for (const auto &device: devices) {
             errCode = syncAbleEngine_->EraseDeviceWaterMark(device, false, tableName);
@@ -806,6 +811,22 @@ END:
     ReleaseHandle(handle);
     storageEngine_->NotifySchemaChanged();
     return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
+}
+
+int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        LOGE("[SingleVerRDBStore] GetExistsDeviceList get handle failed:%d", errCode);
+        return errCode;
+    }
+    errCode = handle->GetExistsDeviceList(hashDevices);
+    if (errCode != E_OK) {
+        LOGE("[SingleVerRDBStore] Get remove device list from meta failed. err=%d", errCode);
+    }
+    ReleaseHandle(handle);
+    return errCode;
 }
 }
 #endif
