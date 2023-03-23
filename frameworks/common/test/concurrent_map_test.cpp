@@ -125,4 +125,4 @@ HWTEST_F(ConcurrentMapTest, EmplaceWithArgs, TestSize.Level0)
     ASSERT_EQ(it.second.name, value.name);
     ASSERT_EQ(it.second.testCase, value.testCase);
 }
-}
+} // namespace OHOS::Test

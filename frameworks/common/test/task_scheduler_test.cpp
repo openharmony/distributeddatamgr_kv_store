@@ -18,7 +18,7 @@
 #include <gtest/gtest.h>
 
 #include "block_data.h"
-
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS;
 using duration = std::chrono::steady_clock::duration;
@@ -258,3 +258,4 @@ HWTEST_F(TaskSchedulerTest, RemoveNoWaitExecute, TestSize.Level0)
     blockDataWait->SetValue(testData);
     ASSERT_EQ(blockDataTest->GetValue(), testData + 1);
 }
+} // namespace OHOS::Test

@@ -17,7 +17,7 @@
 
 #include "lru_bucket.h"
 #include "gtest/gtest.h"
-
+namespace OHOS::Test {
 using namespace testing::ext;
 template<typename _Key, typename _Tp> using LRUBucket = OHOS::LRUBucket<_Key, _Tp>;
 
@@ -317,3 +317,4 @@ HWTEST_F(LRUBucketTest, update_several, TestSize.Level0)
     ASSERT_TRUE(bucket_.Get("test_8", value));
     ASSERT_TRUE(bucket_.Get("test_7", value));
 }
+} // namespace OHOS::Test
