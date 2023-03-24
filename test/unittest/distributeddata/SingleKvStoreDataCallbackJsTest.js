@@ -1952,27 +1952,6 @@ describe('singleKvStoreCallbackTest', function () {
     })
 
     /**
-     * @tc.name SingleKvStoreGetSecurityLevelCallbackTest001
-     * @tc.desc Test Js Api SingleKvStore.GetSecurityLevel() testcase 001
-     * @tc.type: FUNC
-     * @tc.require: issueNumber
-     */
-    // it('SingleKvStoreGetSecurityLevelCallbackTest001', 0, async function (done) {
-    //     console.info('SingleKvStoreGetSecurityLevelCallbackTest001');
-    //     try {
-    //         await kvStore.getSecurityLevel(function (err,data) {
-    //             console.info('SingleKvStoreGetSecurityLevelCallbackTest001 getSecurityLevel success');
-    //             expect(data == factory.SecurityLevel.S2).assertTrue();
-    //             done();
-    //         });
-    //     }catch(e) {
-    //         console.error('SingleKvStoreGetSecurityLevelCallbackTest001 e ' + `, error code is ${e.code}, message is ${e.message}`);
-    //         expect(null).assertFail();
-    //         done();
-    //     }
-    // })
-
-    /**
      * @tc.name SingleKvStoreGetSecurityLevelCallbackTest002
      * @tc.desc Test Js Api SingleKvStore.GetSecurityLevel() testcase 002
      * @tc.type: FUNC
