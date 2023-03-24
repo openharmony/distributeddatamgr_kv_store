@@ -134,7 +134,6 @@ public:
 
 private:
     using Time = std::chrono::steady_clock::time_point;
-    using Id = std::thread::id;
 
     struct MessageQueue {
         void Push(TaskId message)
