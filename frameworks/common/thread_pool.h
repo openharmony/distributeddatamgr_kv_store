@@ -99,18 +99,23 @@ public:
         return At(std::move(task), std::chrono::steady_clock::now() + delay, interval, times);
     }
 
-    void Remove(TaskId taskId, bool wait = false)
+    bool Remove(TaskId taskId, bool wait = false)
     {
         std::unique_lock<decltype(mtx_)> lock(mtx_);
+        bool res = false;
+        if (taskNodeMap_.find(taskId) != taskNodeMap_.end()) {
+            res = true;
+        }
         delCond_.wait(lock, [this, taskId, wait] {
             return (!wait || taskNodeMap_.find(taskId) == taskNodeMap_.end());
         });
         auto index = indexes_.find(taskId);
         if (index == indexes_.end()) {
-            return;
+            return res;
         }
         tasks_.erase(index->second);
         indexes_.erase(index);
+        return res;
     }
 
     TaskId Reset(TaskId taskId, Duration interval)
