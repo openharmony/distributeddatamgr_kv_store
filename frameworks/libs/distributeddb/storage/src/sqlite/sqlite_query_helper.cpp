@@ -848,7 +848,19 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
         conditionStr += " (1 = 1) ";
         return E_OK;
     }
-    conditionStr += "(";
+
+    bool hasQueryByValue = std::any_of(queryObjNodes_.begin(), queryObjNodes_.end(), [](const QueryObjNode &it) {
+        return GetSymbolType(it.operFlag) == SymbolType::COMPARE_SYMBOL ||
+            GetSymbolType(it.operFlag) == SymbolType::RELATIONAL_SYMBOL ||
+            GetSymbolType(it.operFlag) == SymbolType::RANGE_SYMBOL;
+    });
+    if (hasQueryByValue) {
+        // json_extract_by_path function will return error when value is empty, check it before when query by value
+        conditionStr += "((length(" + accessStr + "value) != 0 AND " + accessStr + "value IS NOT NULL) AND ";
+    } else {
+        conditionStr += "(";
+    }
+
     if (hasPrefixKey_) {
         conditionStr += "(hex(" + accessStr + "key) LIKE '" + DBCommon::VectorToHexString(prefixKey_) + "%')";
     }

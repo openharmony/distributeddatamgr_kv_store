@@ -246,6 +246,34 @@ int KvDBManager::UnlockDB(const KvDBProperties &kvDBProp)
     return E_OK;
 }
 
+bool KvDBManager::CheckOpenDBOptionWithCached(const KvDBProperties &properties, IKvDB *kvDB)
+{
+    bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    std::string canonicalDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
+    if (!isMemoryDb && (canonicalDir.empty() || canonicalDir != kvDB->GetStorePath())) {
+        LOGE("Failed to check store path, the input path does not match with cached store.");
+        return false;
+    }
+
+    bool compressOnSyncUser = properties.GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
+    bool compressOnSyncGet = kvDB->GetMyProperties().GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
+    if (compressOnSyncUser != compressOnSyncGet) {
+        LOGE("Failed to check compress option, the input %d not match with cached %d.", compressOnSyncUser,
+            compressOnSyncGet);
+        return false;
+    }
+    if (compressOnSyncUser) {
+        int compressRateUser = properties.GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
+        int compressRateGet = kvDB->GetMyProperties().GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
+        if (compressRateUser != compressRateGet) {
+            LOGE("Failed to check compress rate, the input %d not match with cached %d.", compressRateUser,
+                compressRateGet);
+            return false;
+        }
+    }
+    return true;
+}
+
 // Used to open a kvdb with the given property
 IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &properties, int &errCode,
     bool isNeedIfOpened)
@@ -266,10 +294,8 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
             LOGE("Failed to open the db:%d", errCode);
         }
     } else {
-        bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-        std::string canonicalDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
-        if (!isMemoryDb && (canonicalDir.empty() || canonicalDir != kvDB->GetStorePath())) {
-            LOGE("Failed to check store path, the input path does not match with cached store.");
+        if (!CheckOpenDBOptionWithCached(properties, kvDB)) {
+            LOGE("Failed to check open db option");
             errCode = -E_INVALID_ARGS;
         } else {
             connection = kvDB->GetDBConnection(errCode);

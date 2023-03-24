@@ -89,6 +89,8 @@ protected:
 
     static bool CheckEngineAttr(const StorageEngineAttr &poolSize);
 
+    int InitReadWriteExecutors();
+
     StorageEngineAttr engineAttr_;
     bool isUpdated_;
     std::atomic<bool> isMigrating_;
@@ -114,7 +116,9 @@ private:
     static const int MAX_WRITE_SIZE;
     static const int MAX_READ_SIZE;
 
-    bool isInitialized_;
+    std::mutex initMutex_;
+    std::condition_variable initCondition_;
+    std::atomic<bool> isInitialized_;
     OperatePerm perm_;
     bool operateAbort_;
 

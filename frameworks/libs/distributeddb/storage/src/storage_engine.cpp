@@ -42,20 +42,16 @@ StorageEngine::~StorageEngine()
     CloseExecutor();
 }
 
-int StorageEngine::Init()
+int StorageEngine::InitReadWriteExecutors()
 {
-    if (isInitialized_) {
-        LOGD("Storage engine has been initialized!");
-        return E_OK;
-    }
-
-    // only for create the database avoid the minimum number is 0.
     int errCode = E_OK;
+    std::scoped_lock initLock(writeMutex_, readMutex_);
+    // only for create the database avoid the minimum number is 0.
     StorageExecutor *handle = nullptr;
     if (engineAttr_.minReadNum == 0 && engineAttr_.minWriteNum == 0) {
         errCode = CreateNewExecutor(true, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            return errCode;
         }
 
         if (handle != nullptr) {
@@ -68,7 +64,7 @@ int StorageEngine::Init()
         handle = nullptr;
         errCode = CreateNewExecutor(true, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            return errCode;
         }
         AddStorageExecutor(handle);
     }
@@ -77,20 +73,38 @@ int StorageEngine::Init()
         handle = nullptr;
         errCode = CreateNewExecutor(false, handle);
         if (errCode != E_OK) {
-            goto ERROR;
+            return errCode;
         }
         AddStorageExecutor(handle);
     }
-    isInitialized_ = true;
+    return E_OK;
+}
 
-ERROR:
-    if (errCode != E_OK) {
+
+int StorageEngine::Init()
+{
+    if (isInitialized_) {
+        LOGD("Storage engine has been initialized!");
+        return E_OK;
+    }
+
+    int errCode = InitReadWriteExecutors();
+    if (errCode == E_OK) {
+        isInitialized_.store(true);
+        initCondition_.notify_all();
+        return E_OK;
+    } else if (errCode == -E_EKEYREVOKED) {
         // Assumed file system has classification function, can only get one write handle
-        if (errCode == -E_EKEYREVOKED && !writeIdleList_.empty()) {
+        std::unique_lock<std::mutex> lock(writeMutex_);
+        if (!writeIdleList_.empty() || !writeUsingList_.empty()) {
+            isInitialized_.store(true);
+            initCondition_.notify_all();
             return E_OK;
         }
         Release();
     }
+    initCondition_.notify_all();
+    Release();
     return errCode;
 }
 
@@ -100,6 +114,18 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
         LOGI("Storage engine is busy!");
         errCode = -E_BUSY;
         return nullptr;
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(initMutex_);
+        bool result = initCondition_.wait_for(lock, std::chrono::seconds(waitTime), [this]() {
+            return isInitialized_.load();
+        });
+        if (!result || !isInitialized_.load()) {
+            LOGE("Storage engine is not initialized");
+            errCode = -E_BUSY; // Usually in reinitialize engine, return BUSY
+            return nullptr;
+        }
     }
 
     if (writable) {

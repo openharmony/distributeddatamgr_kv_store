@@ -691,3 +691,173 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeErrTest001, TestSiz
     EXPECT_EQ(store->RemoveSubscribe(SUBSCRIBE_ID), -E_INVALID_DB);
     store->DecObjRef(store);
 }
+
+namespace {
+void PutSyncData(SQLiteSingleVerNaturalStore *store, const Key &key, const std::string &valStr)
+{
+    Value value(valStr.begin(), valStr.end());
+    std::vector<DataItem> data;
+    Timestamp now = store->GetCurrentTimestamp();
+    DataItem item{key, value, now, DataItem::LOCAL_FLAG, REMOTE_DEVICE_A, now};
+    data.push_back(item);
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID), E_OK);
+}
+}
+
+/**
+  * @tc.name: GetSyncDataTransTest001
+  * @tc.desc: Get sync data with put
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, GetSyncDataTransTest001, TestSize.Level3)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Put data when sync
+     * @tc.expected: step2. Get sync data correct
+     */
+    std::string data1(R""({"field_name1":false,"field_name2":true,"field_name3":100})"");
+    PutSyncData(store, KEY1, data1);
+
+    std::thread th([store]() {
+        std::string data2(R""({"field_name1":false,"field_name2":true,"field_name3":101})"");
+        PutSyncData(store, KEY2, data2);
+    });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5)); // wait for 5 ms
+    Query query = Query::Select().EqualTo("field_name1", false);
+    QueryObject queryObj(query);
+    DataSizeSpecInfo  specInfo = {4 * 1024 * 1024, DBConstant::MAX_HPMODE_PACK_ITEM_SIZE};
+    std::vector<SingleVerKvEntry *> entries;
+    ContinueToken token = nullptr;
+    EXPECT_EQ(store->GetSyncData(queryObj, SyncTimeRange{}, specInfo, token, entries), E_OK);
+
+    th.join();
+
+    if (entries.size() == 1U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+    } else if (entries.size() == 2U) {
+        EXPECT_EQ(entries[0]->GetKey(), KEY1);
+        EXPECT_EQ(entries[0]->GetFlag(), 0U);
+        EXPECT_EQ(entries[1]->GetKey(), KEY2);
+        EXPECT_EQ(entries[1]->GetFlag(), 0U);
+    }
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: AddSubscribeTest003
+  * @tc.desc: Test put sync data with subscribe trigger
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("AddSubscribeErrTest002", SCHEMA_STRING, conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().EqualTo("field_name2", false);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps:step3. Reput same data with delete flag
+     * @tc.expected: step3. put data success
+     */
+    Key key ;
+    Value value;
+    std::string validJsonData(R"({"field_name1":false,"field_name2":false,"field_name3":100})");
+    DBCommon::StringToVector(validJsonData, value);
+    Timestamp now = store->GetCurrentTimestamp();
+    std::vector<DataItem> data;
+    data.push_back({{'K', '0'}, value, now, 0, REMOTE_DEVICE_ID, now});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    data.clear();
+    Key hashKey;
+    DBCommon::CalcValueHash({'K', '0'}, hashKey);
+    data.push_back({hashKey, {}, now + 1, 1, REMOTE_DEVICE_ID, now + 1});
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    // repeat put with delete flag
+    EXPECT_EQ(DistributedDBToolsUnitTest::PutSyncDataTest(store, data, REMOTE_DEVICE_ID, queryObj), E_OK);
+
+    /**
+     * @tc.steps:step4. Close natural store
+     * @tc.expected: step4. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}
+
+/**
+  * @tc.name: AddSubscribeTest004
+  * @tc.desc: Add subscribe with query by prefixKey
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", "", conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query by prefixKey
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().PrefixKey(NULL_KEY_1);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    IOption syncIOpt {IOption::SYNC_DATA};
+    EXPECT_EQ(conn->Put(syncIOpt, KEY_1, {}), E_OK);
+
+    Value valGot;
+    EXPECT_EQ(conn->Get(syncIOpt, KEY_1, valGot), E_OK);
+    EXPECT_EQ(valGot, Value {});
+
+    std::string subKey = DBConstant::SUBSCRIBE_QUERY_PREFIX + DBCommon::TransferHashString(SUBSCRIBE_ID);
+    Key metaKey(subKey.begin(), subKey.end());
+    EXPECT_EQ(store->GetMetaData(metaKey, valGot), E_OK);
+    EXPECT_NE(valGot.size(), 0u);
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}

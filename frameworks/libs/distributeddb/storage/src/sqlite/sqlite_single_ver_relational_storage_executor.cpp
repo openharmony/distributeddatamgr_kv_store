@@ -165,7 +165,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std::string &tableName,
-    DistributedTableMode mode, RelationalSchemaObject &schema)
+    DistributedTableMode mode, bool &schemaChanged, RelationalSchemaObject &schema)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -188,8 +188,12 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std:
     if (errCode == -E_RELATIONAL_TABLE_INCOMPATIBLE) {
         LOGE("[UpgradeDistributedTable] Not support with incompatible upgrade.");
         return -E_SCHEMA_MISMATCH;
+    } else if (errCode == -E_RELATIONAL_TABLE_EQUAL) {
+        LOGD("[UpgradeDistributedTable] schema has not changed.");
+        return E_OK;
     }
 
+    schemaChanged = true;
     errCode = AlterAuxTableForUpgrade(tableInfo, newTableInfo);
     if (errCode != E_OK) {
         LOGE("[UpgradeDistributedTable] Alter aux table for upgrade failed. %d", errCode);

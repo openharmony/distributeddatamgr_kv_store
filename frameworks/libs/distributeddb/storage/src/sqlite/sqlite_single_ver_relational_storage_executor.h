@@ -38,7 +38,7 @@ public:
     int CreateDistributedTable(const std::string &tableName, DistributedTableMode mode, bool isUpgraded,
         const std::string &identity, TableInfo &table);
 
-    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode,
+    int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema);
 
     int StartTransaction(TransactType type);

@@ -32,7 +32,7 @@ public:
 
     void SetSchema(const RelationalSchemaObject &schema);
 
-    const RelationalSchemaObject &GetSchemaRef() const;
+    RelationalSchemaObject GetSchema() const;
 
     int CreateDistributedTable(const std::string &tableName, const std::string &identity, bool &schemaChanged);
 
@@ -53,9 +53,9 @@ private:
     // For db.
     int RegisterFunction(sqlite3 *db) const;
 
-    int UpgradeDistributedTable(const std::string &tableName);
+    int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged);
     int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
-        bool &schemaChanged, RelationalSchemaObject &tmpSchema);
+        RelationalSchemaObject &tmpSchema);
 
     RelationalSchemaObject schema_;
     mutable std::mutex schemaMutex_;

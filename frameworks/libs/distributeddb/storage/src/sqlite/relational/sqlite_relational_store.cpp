@@ -32,7 +32,6 @@ namespace {
 
 SQLiteRelationalStore::~SQLiteRelationalStore()
 {
-    delete sqliteStorageEngine_;
     sqliteStorageEngine_ = nullptr;
 }
 
@@ -87,7 +86,7 @@ void SQLiteRelationalStore::ReleaseResources()
 {
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_->ClearEnginePasswd();
-        (void)StorageEngineManager::ReleaseStorageEngine(sqliteStorageEngine_);
+        sqliteStorageEngine_ = nullptr;
     }
     RefObject::DecObjRef(storageEngine_);
 }
@@ -194,7 +193,7 @@ int SQLiteRelationalStore::SaveSchemaToMeta()
     Key schemaKey;
     DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, schemaKey);
     Value schemaVal;
-    DBCommon::StringToVector(sqliteStorageEngine_->GetSchemaRef().ToSchemaString(), schemaVal);
+    DBCommon::StringToVector(sqliteStorageEngine_->GetSchema().ToSchemaString(), schemaVal);
     int errCode = storageEngine_->PutMetaData(schemaKey, schemaVal);
     if (errCode != E_OK) {
         LOGE("Save relational schema to meta table failed. %d", errCode);
@@ -255,7 +254,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         return E_OK;
     }
 
-    sqliteStorageEngine_ = new (std::nothrow) SQLiteSingleRelationalStorageEngine(properties);
+    sqliteStorageEngine_ = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
     if (sqliteStorageEngine_ == nullptr) {
         LOGE("[RelationalStore][Open] Create storage engine failed");
         return -E_OUT_OF_MEMORY;
@@ -370,7 +369,6 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     syncAbleEngine_->Close();
 
     if (sqliteStorageEngine_ != nullptr) {
-        delete sqliteStorageEngine_;
         sqliteStorageEngine_ = nullptr;
     }
     // close will dec sync ref of storageEngine_
@@ -435,7 +433,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         return -E_NOT_SUPPORT;
     }
 
-    std::map<std::string, TableInfo> tables = sqliteStorageEngine_->GetSchemaRef().GetTables();
+    std::map<std::string, TableInfo> tables = sqliteStorageEngine_->GetSchema().GetTables();
     if (!tableName.empty() && tables.find(tableName) == tables.end()) {
         LOGW("Remove device data with table name which is not a distributed table or not exist.");
         return E_OK;
@@ -633,7 +631,7 @@ int SQLiteRelationalStore::RemoteQuery(const std::string &device, const RemoteCo
         return -E_INVALID_DB;
     }
 
-    if (!sqliteStorageEngine_->GetSchemaRef().IsSchemaValid()) {
+    if (!sqliteStorageEngine_->GetSchema().IsSchemaValid()) {
         LOGW("not a distributed relational store.");
         return -E_NOT_SUPPORT;
     }
