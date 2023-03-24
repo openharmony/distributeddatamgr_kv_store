@@ -85,8 +85,8 @@ public:
             value_.Clear(0);
         }
 
-        uint64_t startTime;
-        uint64_t endTime;
+        uint64_t startTime = 0;
+        uint64_t endTime = 0;
         uint32_t callCount = 0;
         std::map<std::string, std::set<std::string>> values_;
         BlockData<uint32_t> value_{ 1, 0 };
