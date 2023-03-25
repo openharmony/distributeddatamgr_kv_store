@@ -772,3 +772,51 @@ HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck009, TestSi
     PermissionCheckCallbackV2 nullCallback;
     EXPECT_EQ(g_mgr.SetPermissionCheckCallback(nullCallback), OK);
 }
+
+/**
+  * @tc.name: PermissionCheck010
+  * @tc.desc: permission check cost lot of time and return false
+  * @tc.type: FUNC
+  * @tc.require: AR000D4876
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PPermissionSyncTest, PermissionCheck010, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetPermissionCheckCallback
+     * @tc.expected: step1. return OK.
+     */
+    int count = 0;
+    auto permissionCheckCallback = [&count] (const std::string &userId, const std::string &appId,
+        const std::string &storeId, const std::string &deviceId, uint8_t flag) -> bool {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        count++;
+        LOGD("check permission %d", count);
+        return count > 1;
+    };
+    EXPECT_EQ(g_mgr.SetPermissionCheckCallback(permissionCheckCallback), OK);
+    /**
+     * @tc.steps: step2. put (k1, v1)
+     * @tc.expected: step2. return OK.
+     */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(k1, v1), OK);
+    /**
+     * @tc.steps: step3. sync to DEVICE_B twice
+     * @tc.expected: step3. return OK.
+     */
+    std::vector<std::string> devices;
+    devices.push_back(DEVICE_B);
+    EXPECT_TRUE(g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY, nullptr, false) == OK);
+    EXPECT_TRUE(g_kvDelegatePtr->Sync(devices, SYNC_MODE_PUSH_ONLY, nullptr, true) == OK);
+    /**
+     * @tc.steps: step4. (k1, v1) exist in DeviceB
+     * @tc.expected: step4. get return OK.
+     */
+    VirtualDataItem actualValue;
+    EXPECT_EQ(g_deviceB->GetData(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue.value);
+    PermissionCheckCallbackV2 nullCallback = nullptr;
+    EXPECT_EQ(g_mgr.SetPermissionCheckCallback(nullCallback), OK);
+}

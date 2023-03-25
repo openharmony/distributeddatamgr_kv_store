@@ -239,6 +239,17 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         LOGE("[Syncer] Syncer has not Init");
         return;
     }
+    std::shared_ptr<Metadata> metadata = nullptr;
+    ISyncInterface *syncInterface = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr || syncInterface_ == nullptr) {
+            return;
+        }
+        metadata = metadata_;
+        syncInterface = syncInterface_;
+        syncInterface->IncRefCount();
+    }
     int errCode;
     for (auto &device : devices) {
         std::vector<QuerySyncObject> queries;
@@ -246,15 +257,8 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         for (auto &query : queries) {
             std::string queryId = query.GetIdentify();
             WaterMark queryWaterMark = 0;
-            uint64_t lastTimestamp = 0;
-            {
-                std::lock_guard<std::mutex> lock(syncerLock_);
-                if (metadata_ == nullptr) {
-                    return;
-                }
-                lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
-                errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
-            }
+            uint64_t lastTimestamp = metadata->GetQueryLastTimestamp(device, queryId);
+            errCode = metadata->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
             if (errCode != E_OK) {
                 LOGE("[Syncer] get queryId=%s,dev=%s watermark failed", STR_MASK(queryId), STR_MASK(device));
                 continue;
@@ -274,6 +278,7 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
             QueryAutoSync(param);
         }
     }
+    syncInterface->DecRefCount();
 }
 
 SyncerBasicInfo SingleVerKVSyncer::DumpSyncerBasicInfo()

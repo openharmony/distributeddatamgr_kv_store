@@ -12,6 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
+#define DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
 
 #include <gtest/gtest.h>
 #include "db_errno.h"
@@ -23,8 +25,6 @@
 #include "sqlite_single_ver_natural_store_connection.h"
 #include "sqlite_utils.h"
 
-#ifndef DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
-#define DISTRIBUTEDDB_STORAGE_SINGLE_VER_NATURAL_STORE_TESTCASE_H
 struct SyncData {
     std::vector<uint8_t> hashKey;
     std::vector<uint8_t> key;

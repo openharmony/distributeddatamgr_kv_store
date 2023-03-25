@@ -392,7 +392,7 @@ int SQLiteSingleVerStorageEngine::ReleaseExecutor(SQLiteSingleVerStorageExecutor
     Recycle(databaseHandle);
     handle = nullptr;
     if (isCorrupted_) {
-        LOGE("Database is corrupted!");
+        LOGE("Database is corrupted or invalid passwd!");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB; // Externally imperceptible, used to terminate migration
     }
     return E_OK;

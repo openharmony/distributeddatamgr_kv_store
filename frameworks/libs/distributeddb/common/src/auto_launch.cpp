@@ -34,6 +34,7 @@
 namespace DistributedDB {
 namespace {
     constexpr int MAX_AUTO_LAUNCH_ITEM_NUM = 8;
+    const char *AUTO_LAUNCH_ID = "AutoLaunchID";
 }
 
 void AutoLaunch::SetCommunicatorAggregator(ICommunicatorAggregator *aggregator)
@@ -1029,6 +1030,7 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
         }
         propertiesPtr->SetCipherArgs(param.option.cipher, param.option.passwd, param.option.iterateTimes);
     }
+    propertiesPtr->SetIntProp(AUTO_LAUNCH_ID, static_cast<int>(RuntimeContext::GetInstance()->GenerateSessionId()));
     return E_OK;
 }
 
@@ -1296,14 +1298,26 @@ void AutoLaunch::CloseConnection(DBType type, const DBProperties &properties)
         return;
     }
     std::string identifier = properties.GetStringProp(DBProperties::IDENTIFIER_DATA, "");
-    std::lock_guard<std::mutex> lock(dataLock_);
+    int closeId = properties.GetIntProp(AUTO_LAUNCH_ID, 0);
+    std::lock_guard<std::mutex> lock(extLock_);
     auto itemMapIter = extItemMap_.find(identifier);
     if (itemMapIter == extItemMap_.end()) {
+        LOGD("[AutoLaunch] Abort close because not found id");
         return;
     }
     std::string userId = properties.GetStringProp(DBProperties::USER_ID, "");
     auto itemIter = itemMapIter->second.find(userId);
     if (itemIter == itemMapIter->second.end()) {
+        LOGD("[AutoLaunch] Abort close because not found user id");
+        return;
+    }
+    if (itemIter->second.propertiesPtr == nullptr) {
+        LOGD("[AutoLaunch] Abort close because properties is invalid");
+        return;
+    }
+    int targetId = itemIter->second.propertiesPtr->GetIntProp(AUTO_LAUNCH_ID, 0);
+    if (closeId != targetId) {
+        LOGD("[AutoLaunch] Abort close because connection has been closed");
         return;
     }
     TryCloseConnection(itemIter->second);

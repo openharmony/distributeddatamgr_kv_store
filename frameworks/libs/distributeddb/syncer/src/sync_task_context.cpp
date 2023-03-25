@@ -267,15 +267,12 @@ void SyncTaskContext::MoveToNextTarget()
     }
 }
 
-int SyncTaskContext::GetNextTarget(bool isNeedSetFinished)
+int SyncTaskContext::GetNextTarget()
 {
     MoveToNextTarget();
     int checkErrCode = RunPermissionCheck(GetPermissionCheckFlag(IsAutoSync(), GetMode()));
     if (checkErrCode != E_OK) {
         SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
-        if (isNeedSetFinished) {
-            SetTaskExecStatus(ISyncTaskContext::FINISHED);
-        }
         return checkErrCode;
     }
     return E_OK;

@@ -177,7 +177,7 @@ namespace {
             return false;
         }
 
-        static const std::string selectSQL = "select timestamp from sync_data order by rowid;";
+        std::string selectSQL = "select timestamp from sync_data order by rowid;";
         sqlite3_stmt *statement = nullptr;
         EXPECT_EQ(sqlite3_prepare(db, selectSQL.c_str(), -1, &statement, NULL), SQLITE_OK);
         std::vector<int64_t> timeVect;
