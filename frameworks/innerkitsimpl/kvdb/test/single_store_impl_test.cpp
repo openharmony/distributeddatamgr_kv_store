@@ -1152,7 +1152,6 @@ HWTEST_F(SingleStoreImplTest, DeleteWithInvalidStoreId, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
 {
-    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStorePersistentFalse" };
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1176,7 +1175,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithPersistentFalse, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
 {
-    std::string baseDir = "/data/service/el1/public/database/SingleStoreImpStore";
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreInvalidType" };
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1199,7 +1197,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithInvalidType, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level0)
 {
-    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreCreateIfMissingFalse" };
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1223,7 +1220,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithCreateIfMissingFalse, TestSize.Level
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithAutoSync, TestSize.Level0)
 {
-    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreAutoSync" };
     std::shared_ptr<SingleKvStore> kvStore;
@@ -1276,7 +1272,6 @@ HWTEST_F(SingleStoreImplTest, GetKVStoreWithAreaEL2, TestSize.Level0)
  */
 HWTEST_F(SingleStoreImplTest, GetKVStoreWithRebuildTrue, TestSize.Level0)
 {
-    std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     AppId appId = { "SingleStoreImplTest" };
     StoreId storeId = { "SingleKVStoreRebuildFalse" };
     std::shared_ptr<SingleKvStore> kvStore;
