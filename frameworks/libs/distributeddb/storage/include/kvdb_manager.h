@@ -133,7 +133,9 @@ private:
     static std::atomic<KvDBManager *> instance_;
     static std::mutex kvDBLock_;
     static std::mutex instanceLock_;
+
     static std::map<std::string, OS::FileHandle> locks_;
+    static std::mutex fileHandleMutex_;
 
     std::map<std::string, IKvDB *> localKvDBs_;
     std::map<std::string, IKvDB *> multiVerNaturalStores_;
