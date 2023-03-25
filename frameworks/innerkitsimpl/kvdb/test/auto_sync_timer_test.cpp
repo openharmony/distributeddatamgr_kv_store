@@ -39,6 +39,8 @@ public:
         }
         explicit KVDBServiceMock(const sptr<IRemoteObject> &object) : KVDBServiceClient(object)
         {
+            startTime = 0;
+            endTime = 0;
             instance_ = this;
         }
         virtual ~KVDBServiceMock()
