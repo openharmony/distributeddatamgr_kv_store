@@ -504,6 +504,7 @@ void SingleVerSyncTaskContext::SaveLastPushTaskExecStatus(int finalStatus)
     if (mode_ == SyncModeType::PUSH || mode_ == SyncModeType::PUSH_AND_PULL || mode_ == SyncModeType::RESPONSE_PULL) {
         lastFullSyncTaskStatus_ = finalStatus;
     } else if (mode_ == SyncModeType::QUERY_PUSH || mode_ == SyncModeType::QUERY_PUSH_PULL) {
+        std::lock_guard<std::mutex> autoLock(queryTaskStatusMutex_);
         lastQuerySyncTaskStatusMap_[syncOperation_->GetQueryId()] = finalStatus;
     }
 }
@@ -529,6 +530,7 @@ int SingleVerSyncTaskContext::GetCorrectedSendWaterMarkForCurrentTask(const Sync
 void SingleVerSyncTaskContext::ResetLastPushTaskStatus()
 {
     lastFullSyncTaskStatus_ = SyncOperation::OP_WAITING;
+    std::lock_guard<std::mutex> autoLock(queryTaskStatusMutex_);
     lastQuerySyncTaskStatusMap_.clear();
 }
 
@@ -550,6 +552,7 @@ bool SingleVerSyncTaskContext::IsCurrentSyncTaskCanBeSkippedInner(const SyncOper
         if (operation == nullptr) {
             return true;
         }
+        std::lock_guard<std::mutex> autoLock(queryTaskStatusMutex_);
         auto it = lastQuerySyncTaskStatusMap_.find(operation->GetQueryId());
         if (it == lastQuerySyncTaskStatusMap_.end()) {
             // no last query_push and push

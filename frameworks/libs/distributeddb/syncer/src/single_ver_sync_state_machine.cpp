@@ -581,8 +581,8 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
     }
 
     if (inMsg->GetMessageType() == TYPE_RESPONSE && AbilityMsgSessionIdCheck(inMsg)) {
-        int errCode = abilitySync_->AckRecv(inMsg, context_);
         std::lock_guard<std::mutex> lock(stateMachineLock_);
+        int errCode = abilitySync_->AckRecv(inMsg, context_);
         (void)ResetWatchDog();
         if (errCode != E_OK) {
             LOGE("[StateMachine][AbilitySyncRecv] handle ackRecv failed,errCode=%d", errCode);

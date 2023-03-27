@@ -859,6 +859,32 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SyncEngineTest003
+ * @tc.desc: Test SyncEngine add block sync operation.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncEngineTest003, TestSize.Level1)
+{
+    auto *enginePtr = new (std::nothrow) MockSyncEngine();
+    ASSERT_NE(enginePtr, nullptr);
+    std::vector<std::string> devices = {
+        "DEVICES_A", "DEVICES_B"
+    };
+    const int syncId = 1;
+    auto operation = new (std::nothrow) SyncOperation(syncId, devices, 0, nullptr, true);
+    ASSERT_NE(operation, nullptr);
+    operation->Initialize();
+    enginePtr->AddSyncOperation(operation);
+    for (const auto &device: devices) {
+        EXPECT_EQ(operation->GetStatus(device), static_cast<int>(SyncOperation::OP_BUSY_FAILURE));
+    }
+    RefObject::KillAndDecObjRef(operation);
+    RefObject::KillAndDecObjRef(enginePtr);
+}
+
+/**
 * @tc.name: remote query packet 001
 * @tc.desc: Test RemoteExecutorRequestPacket Serialization And DeSerialization
 * @tc.type: FUNC
@@ -955,7 +981,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     Parcel parcel(buffer.data(), buffer.size());
 
@@ -963,7 +989,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket003, TestSize.Level1)
     std::map<std::string, std::string> extraCondition = { { "test", "testsql" } };
     packet.SetExtraConditions(extraCondition);
     EXPECT_EQ(packet.Serialization(parcel), -E_INVALID_ARGS);
-    
+
     std::string sql = "testsql";
     for (uint32_t i = 0; i < DBConstant::MAX_CONDITION_COUNT; i++) {
         extraCondition[std::to_string(i)] = sql;
@@ -1005,7 +1031,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, RemoteQueryPacket004, TestSize.Level1)
     RemoteExecutorRequestPacket packet;
     packet.SetNeedResponse();
     packet.SetVersion(SOFTWARE_VERSION_RELEASE_6_0);
-    
+
     std::vector<uint8_t> buffer(packet.CalculateLen());
     RemoteExecutorRequestPacket targetPacket;
     Parcel targetParcel(buffer.data(), 3); // 3 is invalid len for deserialization
@@ -1125,6 +1151,62 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Leve
     syncTaskContext.SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FINISHED_ALL);
     syncTaskContext.CallSetSyncMode(static_cast<int>(SyncModeType::PUSH));
     EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
+}
+
+/**
+ * @tc.name: SyncTaskContextCheck002
+ * @tc.desc: test context check task can be skipped in push mode.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create context and operation
+     */
+    auto syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(syncTaskContext, nullptr);
+    auto operation = new SyncOperation(1u, {}, static_cast<int>(SyncModeType::QUERY_PUSH), nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    QuerySyncObject querySyncObject;
+    operation->SetQuery(querySyncObject);
+    syncTaskContext->SetSyncOperation(operation);
+    syncTaskContext->SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FAILED);
+    syncTaskContext->CallSetSyncMode(static_cast<int>(SyncModeType::QUERY_PUSH));
+    EXPECT_CALL(*syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
+
+    const int loopCount = 1000;
+    /**
+     * @tc.steps: step2. loop 1000 times for writing data into lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread writeThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            syncTaskContext->SaveLastPushTaskExecStatus(static_cast<int>(SyncOperation::Status::OP_FAILED));
+        }
+    });
+    /**
+     * @tc.steps: step3. loop 100000 times for clear lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread clearThread([&syncTaskContext]() {
+        for (int i = 0; i < 100000; ++i) { // loop 100000 times
+            syncTaskContext->ResetLastPushTaskStatus();
+        }
+    });
+    /**
+     * @tc.steps: step4. loop 1000 times for read data from lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread readThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            EXPECT_EQ(syncTaskContext->CallIsCurrentSyncTaskCanBeSkipped(), false);
+        }
+    });
+    writeThread.join();
+    clearThread.join();
+    readThread.join();
+    RefObject::KillAndDecObjRef(operation);
+    syncTaskContext->SetSyncOperation(nullptr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
 }
 
 #ifdef RUN_AS_ROOT

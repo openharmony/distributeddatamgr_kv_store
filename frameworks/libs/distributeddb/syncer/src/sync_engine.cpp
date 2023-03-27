@@ -165,17 +165,18 @@ int SyncEngine::AddSyncOperation(SyncOperation *operation)
     std::vector<std::string> devices = operation->GetDevices();
     std::string localDeviceId;
     int errCode = GetLocalDeviceId(localDeviceId);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     for (const auto &deviceId : devices) {
+        if (errCode != E_OK) {
+            operation->SetStatus(deviceId, errCode == -E_BUSY ?
+                SyncOperation::OP_BUSY_FAILURE : SyncOperation::OP_FAILED);
+            continue;
+        }
         if (!CheckDeviceIdValid(deviceId, localDeviceId)) {
             operation->SetStatus(deviceId, SyncOperation::OP_INVALID_ARGS);
             continue;
         }
         operation->SetStatus(deviceId, SyncOperation::OP_WAITING);
-        int errCode = AddSyncOperForContext(deviceId, operation);
-        if (errCode != E_OK) {
+        if (AddSyncOperForContext(deviceId, operation) != E_OK) {
             operation->SetStatus(deviceId, SyncOperation::OP_FAILED);
         }
     }
