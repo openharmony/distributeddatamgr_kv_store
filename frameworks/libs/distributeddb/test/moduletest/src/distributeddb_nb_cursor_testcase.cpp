@@ -1612,7 +1612,7 @@ void DistributeddbNbCursorTestcase::ResultSetDb024(bool isRowIdMode)
     std::condition_variable conditionRekeyVar;
     bool rekeyFlag = false;
     (void)g_passwd1.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
-    thread subThread([&]() {
+    thread subThread([&delegate, &conditionRekeyVar, &rekeyFlag]() {
         auto status = delegate->Rekey(g_passwd1);
         EXPECT_EQ(((status == OK) || (status == BUSY)), true);
         std::unique_lock<std::mutex> lck(mtx);
