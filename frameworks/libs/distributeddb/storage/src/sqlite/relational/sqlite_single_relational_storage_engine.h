@@ -55,7 +55,7 @@ private:
 
     int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged);
     int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
-        RelationalSchemaObject &tmpSchema);
+        RelationalSchemaObject &schema);
 
     RelationalSchemaObject schema_;
     mutable std::mutex schemaMutex_;
