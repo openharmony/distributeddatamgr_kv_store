@@ -2535,7 +2535,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey001, TestSize.Level0)
      * @tc.expected: step1. Returns a non-null kvstore.
      */
     KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("UpdateKey002", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("UpdateKey001", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     /**
@@ -2580,7 +2580,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey002, TestSize.Level0)
      * @tc.expected: step1. Returns a non-null kvstore.
      */
     KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("UpdateKey001", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("UpdateKey002", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     /**
