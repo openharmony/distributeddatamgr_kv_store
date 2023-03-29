@@ -15,7 +15,6 @@
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
 #include <unistd.h>
-#include "device_manager.h"
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
 #include "kvdb_service_client.h"
@@ -163,39 +162,33 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
+    auto deviceInfo = GetClientLocalDevice();
+    auto networkId = std::string(deviceInfo.networkId);
+    auto uuid = GetClientUuidByNetworkId(networkId);
+    if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
-    auto device = service->GetLocalDevice();
-    if (device.uuid.empty() || device.networkId.empty()) {
-        return invalidDetail_;
-    }
-    localInfo_.networkId = std::move(device.networkId);
-    localInfo_.uuid = std::move(device.uuid);
-    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s",
-          StoreUtil::Anonymous(localInfo_.uuid).c_str(), StoreUtil::Anonymous(localInfo_.networkId).c_str());
+    localInfo_.networkId = std::move(networkId);
+    localInfo_.uuid = std::move(uuid);
+    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localInfo_.uuid).c_str(),
+        StoreUtil::Anonymous(localInfo_.networkId).c_str());
     return localInfo_;
 }
 
-std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
+std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
 {
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
-        return {};
-    }
-    auto devices = service->GetRemoteDevices();
-    if (devices.empty()) {
+    auto deviceInfos = GetClientRemoteDevices();
+    if (deviceInfos.empty()) {
         ZLOGD("no remote device");
         return {};
     }
     std::vector<DetailInfo> dtInfos;
-    for (auto &device : devices) {
+    for (auto &device : deviceInfos) {
         DetailInfo dtInfo;
+        auto networkId = std::string(device.networkId);
+        auto uuid = GetClientUuidByNetworkId(networkId);
         dtInfo.networkId = std::move(device.networkId);
-        dtInfo.uuid = std::move(device.uuid);
+        dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);
     }
     return dtInfos;
@@ -244,5 +237,40 @@ void DevManager::Register(DevManager::Observer *observer)
 void DevManager::Unregister(DevManager::Observer *observer)
 {
     observers_.Erase(observer);
+}
+
+std::string DevManager::GetClientUuidByNetworkId(const std::string &networkId)
+{
+    if (networkId.empty()) {
+        return {};
+    }
+    std::string uuid;
+    auto ret = DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+    if (ret != DM_OK || uuid.empty()) {
+        ZLOGE("failed, result:%{public}d, networkId:%{public}s", ret, networkId.c_str());
+        return {};
+    }
+    return uuid;
+}
+
+DevManager::DevInfo DevManager::GetClientLocalDevice()
+{
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
+        return {};
+    }
+    return info;
+}
+std::vector<DevManager::DevInfo> DevManager::GetClientRemoteDevices()
+{
+    std::vector<DevInfo> dmInfos;
+    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
+    if (ret != DM_OK) {
+        ZLOGE("get trusted device:%{public}d", ret);
+        return {};
+    }
+    return dmInfos;
 }
 } // namespace OHOS::DistributedKv
