@@ -71,27 +71,6 @@ void DistributeddbNbCreateTest::TearDown(void)
 {
 }
 
-void WaitingDeletingDB()
-{
-    KvStoreDelegateManager *manager = nullptr;
-    KvStoreNbDelegate *result = nullptr;
-    /**
-     * @tc.steps: step2. delete db when kill the process manually.
-     * @tc.expected: step2. delete success.
-     */
-    result = DistributedDBNbTestTools::GetNbDelegateSuccess(manager, g_dbParameter2, g_option);
-    ASSERT_TRUE(manager != nullptr && result != nullptr);
-    EXPECT_EQ(manager->CloseKvStore(result), OK);
-    result = nullptr;
-    if (!g_option.isMemoryDb) {
-        EXPECT_EQ(manager->DeleteKvStore(STORE_ID_2), OK);
-    }
-    MST_LOG("please kill the testing process...");
-    std::this_thread::sleep_for(std::chrono::seconds(TWENTY_SECONDS));
-    delete manager;
-    manager = nullptr;
-}
-
 /*
  * @tc.name: ManagerDb 001
  * @tc.desc: Verify that can create distributed db normally.
@@ -984,24 +963,6 @@ HWTEST_F(DistributeddbNbCreateTest, ManagerDb029, TestSize.Level0)
 
     delete manager;
     manager = nullptr;
-}
-
-/*
- * @tc.name: ManagerDb 030
- * @tc.desc: verify that can delete the db success even if the deleting process is killed when it is deleting the db.
- * @tc.type: FUNC
- * @tc.require: SR000CCPOI
- * @tc.author: luqianfu
- */
-HWTEST_F(DistributeddbNbCreateTest, ManagerDb030, TestSize.Level2)
-{
-    /**
-     * @tc.steps: step1. start thread.
-     * @tc.expected: step1. success.
-     */
-    std::thread th(WaitingDeletingDB);
-    th.detach();
-    std::this_thread::sleep_for(std::chrono::seconds(UNIQUE_SECOND));
 }
 
 /*
