@@ -252,6 +252,4 @@ void DevManager::Unregister(DevManager::Observer *observer)
 {
     observers_.Erase(observer);
 }
-
-
 } // namespace OHOS::DistributedKv
