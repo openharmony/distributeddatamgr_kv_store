@@ -214,7 +214,6 @@ int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&
         " (" + columnList + ") VALUES (" + dataFormat + ");";
     int errCode = SQLiteUtils::GetStatement(db, sql, logStmt);
     if (errCode != E_OK) {
-        LOGD("sql is %s", sql.c_str());
         LOGE("[info statement] Get log statement fail! errCode:%d", errCode);
         return errCode;
     }
