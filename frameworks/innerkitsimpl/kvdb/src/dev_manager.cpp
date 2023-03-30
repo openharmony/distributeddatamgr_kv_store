@@ -15,6 +15,7 @@
 #define LOG_TAG "DevManager"
 #include "dev_manager.h"
 #include <unistd.h>
+#include "device_manager.h"
 #include "device_manager_callback.h"
 #include "dm_device_info.h"
 #include "kvdb_service_client.h"
@@ -23,6 +24,7 @@
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
 constexpr int32_t DM_OK = 0;
 constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
@@ -162,8 +164,13 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-    auto deviceInfo = GetClientLocalDevice();
-    auto networkId = std::string(deviceInfo.networkId);
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
+        return {};
+    }
+    auto networkId = std::string(info.networkId);
     auto uuid = GetClientUuidByNetworkId(networkId);
     if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
@@ -177,13 +184,18 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
 
 std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
 {
-    auto deviceInfos = GetClientRemoteDevices();
-    if (deviceInfos.empty()) {
+    std::vector<DevInfo> dmInfos;
+    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
+    if (ret != DM_OK) {
+        ZLOGE("get trusted device:%{public}d", ret);
+        return {};
+    }
+    if (dmInfos.empty()) {
         ZLOGD("no remote device");
         return {};
     }
     std::vector<DetailInfo> dtInfos;
-    for (auto &device : deviceInfos) {
+    for (auto &device : dmInfos) {
         DetailInfo dtInfo;
         auto networkId = std::string(device.networkId);
         auto uuid = GetClientUuidByNetworkId(networkId);
@@ -253,24 +265,4 @@ std::string DevManager::GetClientUuidByNetworkId(const std::string &networkId)
     return uuid;
 }
 
-DevManager::DevInfo DevManager::GetClientLocalDevice()
-{
-    DevInfo info;
-    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
-    if (ret != DM_OK) {
-        ZLOGE("get local device info fail");
-        return {};
-    }
-    return info;
-}
-std::vector<DevManager::DevInfo> DevManager::GetClientRemoteDevices()
-{
-    std::vector<DevInfo> dmInfos;
-    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
-    if (ret != DM_OK) {
-        ZLOGE("get trusted device:%{public}d", ret);
-        return {};
-    }
-    return dmInfos;
-}
 } // namespace OHOS::DistributedKv

@@ -18,11 +18,9 @@
 #include "concurrent_map.h"
 #include "types.h"
 #include "lru_bucket.h"
-#include "device_manager.h"
 namespace OHOS::DistributedKv {
 class DevManager {
 public:
-    using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
     static constexpr size_t MAX_ID_LEN = 64;
     struct DetailInfo {
         std::string uuid;
@@ -36,8 +34,6 @@ public:
     const DetailInfo &GetLocalDevice();
     std::vector<DetailInfo> GetRemoteDevices();
     std::string GetClientUuidByNetworkId(const std::string &networkId);
-    DevInfo GetClientLocalDevice();
-    std::vector<DevInfo> GetClientRemoteDevices();
     class Observer {
     public:
         Observer() = default;
