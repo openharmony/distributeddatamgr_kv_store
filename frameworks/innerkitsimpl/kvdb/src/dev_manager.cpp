@@ -171,7 +171,8 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
         return {};
     }
     auto networkId = std::string(info.networkId);
-    auto uuid = GetClientUuidByNetworkId(networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
     if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
@@ -198,7 +199,8 @@ std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
     for (auto &device : dmInfos) {
         DetailInfo dtInfo;
         auto networkId = std::string(device.networkId);
-        auto uuid = GetClientUuidByNetworkId(networkId);
+        std::string uuid;
+        DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
         dtInfo.networkId = std::move(device.networkId);
         dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);
@@ -251,18 +253,5 @@ void DevManager::Unregister(DevManager::Observer *observer)
     observers_.Erase(observer);
 }
 
-std::string DevManager::GetClientUuidByNetworkId(const std::string &networkId)
-{
-    if (networkId.empty()) {
-        return {};
-    }
-    std::string uuid;
-    auto ret = DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
-    if (ret != DM_OK || uuid.empty()) {
-        ZLOGE("failed, result:%{public}d, networkId:%{public}s", ret, networkId.c_str());
-        return {};
-    }
-    return uuid;
-}
 
 } // namespace OHOS::DistributedKv

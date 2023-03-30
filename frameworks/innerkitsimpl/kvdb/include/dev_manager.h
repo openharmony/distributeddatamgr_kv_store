@@ -33,7 +33,6 @@ public:
     std::string ToNetworkId(const std::string &uuid);
     const DetailInfo &GetLocalDevice();
     std::vector<DetailInfo> GetRemoteDevices();
-    std::string GetClientUuidByNetworkId(const std::string &networkId);
     class Observer {
     public:
         Observer() = default;
