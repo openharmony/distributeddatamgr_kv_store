@@ -93,12 +93,12 @@ public:
         if (!it.Valid()) {
             return INVALID_TASKID;
         }
-        if (timerTasks_->Remove(taskId)) {
+        if (!timerTasks_->Remove(taskId)) {
             return INVALID_TASKID;
         }
         it.interval = interval;
         it.startTime = std::chrono::steady_clock::now() + interval;
-        if (timerTasks_->Push(it)) {
+        if (!timerTasks_->Push(it)) {
             return INVALID_TASKID;
         }
         CallTimerThread();
