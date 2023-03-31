@@ -168,7 +168,7 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
     if (ret != DM_OK) {
         ZLOGE("get local device info fail");
-        return {};
+        return invalidDetail_;
     }
     auto networkId = std::string(info.networkId);
     std::string uuid;

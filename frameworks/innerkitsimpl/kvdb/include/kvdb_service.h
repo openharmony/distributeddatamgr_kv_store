@@ -84,7 +84,7 @@ protected:
         TRANS_SUB,
         TRANS_UNSUB,
         TRANS_GET_PASSWORD,
-        TRANS_BUTT = TRANS_GET_PASSWORD + 1,
+        TRANS_BUTT,
     };
 };
 } // namespace OHOS::DistributedKv
