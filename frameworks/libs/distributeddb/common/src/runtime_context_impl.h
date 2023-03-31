@@ -130,6 +130,12 @@ public:
 
     void StopTimeTickMonitorIfNeed() override;
 
+    void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) override;
+
+    int TranslateDeviceId(const std::string &deviceId,
+        const StoreInfo &info, std::string &newDeviceId) override;
+
+    bool ExistTranslateDevIdCallback() const override;
 private:
     static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.
@@ -192,6 +198,10 @@ private:
     // Get map from this callback, use for run permission check in remote device
     mutable std::shared_mutex permissionConditionLock_;
     PermissionConditionCallback permissionConditionCallback_;
+
+    mutable std::mutex translateToDeviceIdLock_;
+    TranslateToDeviceIdCallback translateToDeviceIdCallback_;
+    std::map<std::string, std::map<std::string, std::string>> deviceIdCache_; // cache <uuid, <appId, newDeviceId>>
 };
 } // namespace DistributedDB
 

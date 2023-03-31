@@ -66,6 +66,8 @@ enum DBStatus {
     TYPE_MISMATCH,  // for row record, get value with mismatch func.
     REMOTE_OVER_SIZE, // for remote query, the data is too many, only get part or data.
     RATE_LIMIT,
+    DATA_HANDLE_ERROR, // remote handle data failed
+    CONSTRAINT, // constraint check failed in sqlite
 };
 
 struct KvStoreConfig {
@@ -129,5 +131,7 @@ struct RemoteCondition {
     std::string sql;  // The sql statement;
     std::vector<std::string> bindArgs;  // The bind args.
 };
+
+using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

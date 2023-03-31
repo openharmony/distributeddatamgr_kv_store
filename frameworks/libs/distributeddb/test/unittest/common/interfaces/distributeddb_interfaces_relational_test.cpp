@@ -836,7 +836,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B), OK);
 
     int logCnt = -1;
-    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log WHERE device = '" + DEVICE_B + "'";
+    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log";
     RelationalTestUtils::ExecSql(db, checkLogSql, nullptr, [&logCnt](sqlite3_stmt *stmt) {
         logCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
@@ -845,7 +845,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
 
     int dataCnt = -1;
     std::string deviceTable = g_mgr.GetDistributedTableName(DEVICE_B, "t1");
-    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable + " WHERE device = '" + DEVICE_B + "'";
+    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable;
     RelationalTestUtils::ExecSql(db, checkDataSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
         dataCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
@@ -855,6 +855,138 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+void TestRemoveDeviceDataWithCallback(bool removeAll)
+{
+    /**
+     * @tc.steps:step1. Prepare db and data
+     * @tc.expected: step1. Return OK.
+     */
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        return oriDevId + "_" + info.appId;
+    });
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, SIMPLE_CREATE_TABLE_SQL), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "t1");
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
+    g_deviceB->PutDeviceData("t1", std::vector<TableT1> {
+        {1, "111", 1, 0, 1} // test data
+    });
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("t1").EqualTo("a", 1);
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            ASSERT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+    /**
+     * @tc.steps:step2. remove device data and check table
+     * @tc.expected: step2. dev table not exist and log not exist device b.
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    if (removeAll) {
+        EXPECT_EQ(delegate->RemoveDeviceData(), OK);
+    } else {
+        EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B + "_" + APP_ID), OK);
+    }
+    int logCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log";
+    RelationalTestUtils::ExecSql(db, checkLogSql, nullptr, [&logCnt](sqlite3_stmt *stmt) {
+        logCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(logCnt, 0);
+    std::string deviceTable = RelationalStoreManager::GetDistributedTableName(DEVICE_B + "_" + APP_ID, "t1");
+    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable;
+    EXPECT_NE(RelationalTestUtils::ExecSql(db, checkDataSql, nullptr, nullptr), SQLITE_OK);
+    /**
+     * @tc.steps:step3. close db
+     * @tc.expected: step3. Return OK.
+     */
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+}
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest003
+  * @tc.desc: Test remove all device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest003, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(true);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest004
+  * @tc.desc: Test remove one device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest004, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(false);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest005
+  * @tc.desc: Test remove device data with invalid param
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_A");
+    AddDeviceSchema(g_deviceB, db, "sync_data");
+    /**
+     * @tc.steps:step2. Open store
+     * @tc.expected: step2. return OK
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    int count = 0;
+    RuntimeConfig::SetTranslateToDeviceIdCallback([&count](const std::string &oriDevId, const StoreInfo &info) {
+        count++;
+        return oriDevId + "_" + info.appId;
+    });
+    /**
+     * @tc.steps:step3. Remove not exist device data
+     * @tc.expected: step3. ok
+     */
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_C", "sync_data"), OK);
+    EXPECT_EQ(count, 0);
+    /**
+     * @tc.steps:step4. Close store
+     * @tc.expected: step4 Return OK.
+     */
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
 }
 
 /**
@@ -1073,4 +1205,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.L
     EXPECT_EQ(status, OK);
     delegate = nullptr;
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+  * @tc.name: GetDistributedTableName001
+  * @tc.desc: Test get distributed table name
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, TestSize.Level1)
+{
+    const std::string deviceName = "DEVICES_A";
+    const std::string tableName = "TABLE";
+    const std::string hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName));
+
+    std::string devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + hashDev);
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        EXPECT_EQ(info.appId, "");
+        return oriDevId;
+    });
+    devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + deviceName);
+    devTableName = RelationalStoreManager::GetDistributedTableName("", tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_");
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
 }

@@ -50,6 +50,7 @@ public:
 
     DB_API static bool IsProcessSystemApiAdapterValid();
 
+    DB_API static void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback);
 private:
     static std::mutex communicatorMutex_;
     static std::mutex multiUserMutex_;

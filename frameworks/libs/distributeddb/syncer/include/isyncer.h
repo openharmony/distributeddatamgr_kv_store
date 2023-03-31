@@ -123,6 +123,8 @@ public:
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) = 0;
 
     virtual int GetSyncDataSize(const std::string &device, size_t &size) const = 0;
+
+    virtual int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) = 0;
 };
 } // namespace DistributedDB
 

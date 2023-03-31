@@ -2409,6 +2409,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore002, TestSize.Level1)
     EXPECT_EQ(syncDelegate, nullptr);
     EXPECT_EQ(openStatus, INVALID_ARGS);
     EXPECT_EQ(mgr.CloseKvStore(localDelegate), OK);
+    EXPECT_EQ(mgr.DeleteKvStore(STORE_ID_1), OK);
 }
 
 /**
@@ -2517,5 +2518,165 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, ResultSetLimitTest001, TestSize.
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("ResultSetLimitTest001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: UpdateKey001
+  * @tc.desc: Test update key
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("UpdateKey001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Put (k1, v1) into the database.
+     * @tc.expected: step2. Returns OK.
+     */
+    Key k1 = {'k', '1'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k1, VALUE_1), OK);
+    /**
+     * @tc.steps:step3. Update (k1, v1) to (k10, v1).
+     * @tc.expected: step3. Returns OK and get k1 return not found.
+     */
+    g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    Value actualValue;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k1, actualValue), NOT_FOUND);
+    k1.push_back('0');
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(actualValue, VALUE_1);
+    /**
+     * @tc.steps:step4. Close store.
+     * @tc.expected: step4. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: UpdateKey002
+  * @tc.desc: Test update key with transaction
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("UpdateKey002", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Put (k1, v1) into the database .
+     * @tc.expected: step2. Returns OK.
+     */
+    Key k1 = {'k', '1'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k1, VALUE_1), OK);
+    g_kvNbDelegatePtr->StartTransaction();
+    /**
+     * @tc.steps:step3. Update (k1, v1) to (k10, v1).
+     * @tc.expected: step3. Returns OK and get k1 return not found.
+     */
+    g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    Value actualValue;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k1, actualValue), NOT_FOUND);
+    Key k10 = {'k', '1', '0'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k10, actualValue), OK);
+    EXPECT_EQ(actualValue, VALUE_1);
+    /**
+     * @tc.steps:step5. Rollback Transaction.
+     * @tc.expected: step5. k10 not exist in db.
+     */
+    g_kvNbDelegatePtr->Rollback();
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k10, actualValue), NOT_FOUND);
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k1, actualValue), OK);
+    /**
+     * @tc.steps:step5. Commit transaction.
+     * @tc.expected: step5. data exist in db.
+     */
+    g_kvNbDelegatePtr->StartTransaction();
+    g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    g_kvNbDelegatePtr->Commit();
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(k10, actualValue), OK);
+    /**
+     * @tc.steps:step6. Close store.
+     * @tc.expected: step6. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey002"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: UpdateKey003
+  * @tc.desc: Test update key with invalid args
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null kvstore.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("UpdateKey003", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Put (k1, v1) into the database .
+     * @tc.expected: step2. Returns OK.
+     */
+    Key k1 = {'k', '1'};
+    Key k2 = {'k', '2'};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k1, VALUE_1), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(k2, VALUE_1), OK);
+    /**
+     * @tc.steps:step3. Update key with nullptr or invalid key.
+     * @tc.expected: step3. Returns INVALID_ARGS.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->UpdateKey(nullptr), INVALID_ARGS);
+    DBStatus status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey.clear();
+    });
+    EXPECT_EQ(status, INVALID_ARGS);
+    status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey.assign(2048u, '0'); // 2048 is invalid len
+    });
+    EXPECT_EQ(status, INVALID_ARGS);
+    status = g_kvNbDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = {'k', '3'};
+    });
+    EXPECT_EQ(status, CONSTRAINT);
+    /**
+     * @tc.steps:step4. Close store.
+     * @tc.expected: step4. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey003"), OK);
     g_kvNbDelegatePtr = nullptr;
 }

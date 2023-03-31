@@ -131,6 +131,8 @@ public:
     virtual int GetKeys(const IOption &option, const Key &keyPrefix, std::vector<Key> &keys) const = 0;
 
     virtual int GetSyncDataSize(const std::string &device, size_t &size) const = 0;
+
+    virtual int UpdateKey(const UpdateKeyCallback &callback) = 0;
 };
 } // namespace DistributedDB
 

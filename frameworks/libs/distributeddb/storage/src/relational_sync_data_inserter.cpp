@@ -50,11 +50,10 @@ RelationalSyncDataInserter::~RelationalSyncDataInserter()
 
 RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std::string &deviceName,
     const QueryObject &query, const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-    const std::vector<DataItem> &entries)
+    const StoreInfo &info)
 {
     RelationalSyncDataInserter inserter;
-    inserter.SetDeviceId(deviceName);
-    inserter.SetEntries(entries);
+    inserter.SetHashDevId(DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName)));
     inserter.SetRemoteFields(remoteFields);
     inserter.SetQuery(query);
     TableInfo localTable = localSchema.GetTable(query.GetTableName());
@@ -63,14 +62,14 @@ RelationalSyncDataInserter RelationalSyncDataInserter::CreateInserter(const std:
     if (localSchema.GetTableMode() == DistributedTableMode::COLLABORATION) {
         inserter.SetInsertTableName(localTable.GetTableName());
     } else {
-        inserter.SetInsertTableName(DBCommon::GetDistributedTableName(deviceName, localTable.GetTableName()));
+        inserter.SetInsertTableName(DBCommon::GetDistributedTableName(deviceName, localTable.GetTableName(), info));
     }
     return inserter;
 }
 
-void RelationalSyncDataInserter::SetDeviceId(std::string deviceId)
+void RelationalSyncDataInserter::SetHashDevId(const std::string &hashDevId)
 {
-    deviceId_ = std::move(deviceId);
+    hashDevId_ = hashDevId;
 }
 
 void RelationalSyncDataInserter::SetRemoteFields(std::vector<FieldInfo> remoteFields)
@@ -209,7 +208,7 @@ int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt 
 int RelationalSyncDataInserter::GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt)
 {
     const std::string tableName = DBConstant::RELATIONAL_PREFIX + query_.GetTableName() + "_log";
-    std::string dataFormat = "?, '" + deviceId_ + "', ?, ?, ?, ?, ?";
+    std::string dataFormat = "?, '" + hashDevId_ + "', ?, ?, ?, ?, ?";
     std::string columnList = "data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key";
     std::string sql = "INSERT OR REPLACE INTO " + tableName +
         " (" + columnList + ") VALUES (" + dataFormat + ");";
@@ -250,7 +249,7 @@ int RelationalSyncDataInserter::Iterate(const std::function<int (DataItem &)> &s
 {
     int errCode = E_OK;
     for (auto &it : entries_) {
-        it.dev = deviceId_;
+        it.dev = hashDevId_;
         errCode = saveSyncDataItem(it);
         if (errCode != E_OK) {
             LOGE("Save sync data item failed. err=%d", errCode);
