@@ -32,7 +32,7 @@ public:
     std::string ToUUID(const std::string &networkId);
     std::string ToNetworkId(const std::string &uuid);
     const DetailInfo &GetLocalDevice();
-    std::vector<DetailInfo> GetRemoteDevices();
+    std::vector<DetailInfo> GetRemoteDevices() const;
     class Observer {
     public:
         Observer() = default;
