@@ -12,9 +12,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_EXECUTOR_POOL_PRIORITY_QUEUE_H
-#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_EXECUTOR_POOL_PRIORITY_QUEUE_H
+
+#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
+#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 #include <map>
+#include <memory>
+#include <mutex>
+#include <queue>
 
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
@@ -27,14 +31,12 @@ public:
         bool isValid = true;
         Index(_Tme time, TskIndex index) : time(time), index(index) {}
     };
-
     struct cmp {
         bool operator()(std::shared_ptr<Index> a, std::shared_ptr<Index> b)
         {
             return a->time > b->time;
         }
     };
-    
     PriorityQueue() {}
     ~PriorityQueue() {}
 
@@ -53,12 +55,14 @@ public:
         }
         return res;
     }
-
     _Tsk &Top()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         while (!queue_.empty() && !queue_.top()->isValid) {
             queue_.pop();
+        }
+        if (queue_.empty()) {
+            return tsk_;
         }
         return queue_.top()->index->second;
     }
@@ -70,9 +74,9 @@ public:
             return false;
         }
         auto index = tasks_.emplace(tsk.GetId(), std::move(tsk)).first;
-        auto item = std::make_shared<Index>(tsk.time, index);
+        auto item = std::make_shared<Index>(tsk.startTime, index);
         queue_.push(item);
-        items_.emplace(tsk.GetId(), item);
+        indexes_.emplace(tsk.GetId(), item);
         return true;
     }
 
@@ -106,8 +110,8 @@ public:
         if (!task.Valid()) {
             res = false;
         } else {
-            items_.at(id)->isValid = false;
-            items_.erase(id);
+            indexes_.at(id)->isValid = false;
+            indexes_.erase(id);
         }
         tasks_.erase(id);
         return res;
@@ -115,9 +119,10 @@ public:
 
 private:
     std::mutex pqMtx_;
+    _Tsk tsk_ = _Tsk();
     std::map<_Tid, _Tsk> tasks_;
-    std::map<_Tid, std::shared_ptr<Index>> items_;
+    std::map<_Tid, std::shared_ptr<Index>> indexes_;
     std::priority_queue<std::shared_ptr<Index>, std::vector<std::shared_ptr<Index>>, cmp> queue_;
 };
 } // namespace OHOS
-#endif //OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_EXECUTOR_POOL_PRIORITY_QUEUE_H
+#endif //OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
