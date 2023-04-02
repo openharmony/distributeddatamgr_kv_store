@@ -23,7 +23,6 @@ public:
     using Task = ExecutorPool::Task;
     using Time = ExecutorPool::Time;
     using Duration = ExecutorPool::Duration;
-    //    using Clock = std::chrono::steady_clock;
     static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
     static KvThreadPool &GetInstance()
     {
