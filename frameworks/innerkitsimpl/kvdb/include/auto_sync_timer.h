@@ -31,7 +31,9 @@ public:
 private:
     static constexpr size_t TIME_TASK_NUM = 5;
     static constexpr size_t SYNC_STORE_NUM = 10;
-    AutoSyncTimer() = default;
+    AutoSyncTimer(){
+        scheduler_ = &KvThreadPool::GetInstance();
+    };
     ~AutoSyncTimer() = default;
     std::map<std::string, std::vector<StoreId>> GetStoreIds();
     std::function<void()> ProcessTask();
@@ -43,7 +45,7 @@ private:
     KvThreadPool::TaskId delaySyncTaskId_;
     KvThreadPool::TaskId forceSyncTaskId_;
     std::mutex mutex_;
-    std::shared_ptr<KvThreadPool> scheduler_ = std::shared_ptr<KvThreadPool>(&KvThreadPool::GetInstance());
+    KvThreadPool *scheduler_;
 };
 } // namespace OHOS::DistributedKv
 #endif // SDB_AUTO_SYNC_TIMER_H
