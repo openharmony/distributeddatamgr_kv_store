@@ -57,6 +57,9 @@ SingleStoreImpl::~SingleStoreImpl()
     if (interval_ > 0) {
         DevManager::GetInstance().Unregister(this);
     }
+    if (taskId_ > 0) {
+        KvThreadPool::GetInstance().Remove(taskId_);
+    }
 }
 
 StoreId SingleStoreImpl::GetStoreId() const
@@ -814,5 +817,44 @@ void SingleStoreImpl::Online(const std::string &device)
 
 void SingleStoreImpl::Offline(const std::string &device)
 {
+}
+
+void SingleStoreImpl::OnRemoteDied()
+{
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    if (taskId_ > 0) {
+        return;
+    }
+    observers_.ForEach([](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
+        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) {
+            pair.second->OnServiceDeath();
+        }
+        return false;
+    });
+    taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+        Register();
+    }, INTERVAL);
+}
+
+void SingleStoreImpl::Register()
+{
+    std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
+    Status status = SUCCESS;
+    observers_.ForEach([&status](const auto &, std::pair<uint32_t, std::shared_ptr<ObserverBridge>> &pair) {
+        if ((pair.first & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) {
+            status = pair.second->RegisterRemoteObserver();
+            if (status != SUCCESS) {
+                return true;
+            }
+        }
+        return false;
+    });
+    if (status != SUCCESS) {
+        taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+            Register();
+        }, INTERVAL);
+    } else {
+        taskId_ = 0;
+    }
 }
 } // namespace OHOS::DistributedKv

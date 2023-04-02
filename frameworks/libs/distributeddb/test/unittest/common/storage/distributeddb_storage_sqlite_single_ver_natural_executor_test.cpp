@@ -54,7 +54,7 @@ public:
 void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
-    LOGD("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
+    LOGI("DistributedDBStorageSQLiteSingleVerNaturalExecutorTest dir is %s", g_testDir.c_str());
     std::string oriIdentifier = APP_ID + "-" + USER_ID + "-" + "TestGeneralNBExecutor";
     std::string identifier = DBCommon::TransferHashString(oriIdentifier);
     g_identifier = DBCommon::TransferStringToHex(identifier);
@@ -454,7 +454,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
     uint64_t version = 0u;
     EXPECT_EQ(executor->GetMinVersionCacheData(vec, version), E_OK);
     EXPECT_EQ(executor->GetMaxVersionInCacheDb(version), E_OK);
-    EXPECT_EQ(executor->RemoveDeviceDataInCacheMode("device1", true, 0u), E_OK);
+    std::string hashDev = DBCommon::TransferHashString("device1");
+    EXPECT_EQ(executor->RemoveDeviceDataInCacheMode(hashDev, true, 0u), E_OK);
     sqlite3_close_v2(sqlHandle);
     sqlHandle = nullptr;
 }
@@ -878,7 +879,8 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     std::vector<Key> keys;
     EXPECT_EQ(g_handle->DeleteMetaData(keys), SQL_STATE_ERR);
     EXPECT_EQ(g_handle->PrepareForSavingCacheData(SingleVerDataType::LOCAL_TYPE), SQL_STATE_ERR);
-    EXPECT_EQ(g_handle->RemoveDeviceDataInCacheMode("device1", true, 0u), SQL_STATE_ERR);
+    std::string hashDev = DBCommon::TransferHashString("device1");
+    EXPECT_EQ(g_handle->RemoveDeviceDataInCacheMode(hashDev, true, 0u), SQL_STATE_ERR);
     Timestamp timestamp;
     EXPECT_EQ(g_handle->GetMaxTimestampDuringMigrating(timestamp), -E_NOT_INIT);
     EXPECT_EQ(g_handle->ResetForSavingCacheData(SingleVerDataType::LOCAL_TYPE), E_OK);
@@ -926,7 +928,6 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
 
     /**
      * @tc.steps: step3. Change executor to MAIN_ATTACH_CACHE
-     * @tc.expected: step3. Expect SQL_STATE_ERR
      */
     auto executor2 = std::make_unique<SQLiteSingleVerStorageExecutor>(
         sqlHandle, false, false, ExecutorState::MAIN_ATTACH_CACHE);

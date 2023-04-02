@@ -286,6 +286,8 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->status = (status == Status::SUCCESS) ? napi_ok : napi_generic_failure;
         CHECK_STATUS_RETURN_VOID(ctxt, "kvStore->GetResultSet() failed!");
         ctxt->resultSet->SetNative(kvResultSet);
+        bool isSchema = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
+        ctxt->resultSet->SetSchema(isSchema);
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);

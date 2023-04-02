@@ -14,6 +14,7 @@
  */
 
 #include "runtime_context_impl.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "db_dfx_adapter.h"
 #include "log_print.h"
@@ -745,5 +746,34 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
         LOGD("[RuntimeContext] TimeTickMonitor exist because no listener");
         timeTickMonitor_ = nullptr;
     }
+}
+
+void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback)
+{
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    translateToDeviceIdCallback_ = callback;
+    deviceIdCache_.clear();
+}
+
+int RuntimeContextImpl::TranslateDeviceId(const std::string &deviceId,
+    const StoreInfo &info, std::string &newDeviceId)
+{
+    const std::string id = DBCommon::GenerateIdentifierId(info.storeId, info.appId, info.userId);
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    if (translateToDeviceIdCallback_ == nullptr) {
+        return -E_NOT_SUPPORT;
+    }
+    if (deviceIdCache_.find(deviceId) == deviceIdCache_.end() ||
+        deviceIdCache_[deviceId].find(id) == deviceIdCache_[deviceId].end()) {
+        deviceIdCache_[deviceId][id] = translateToDeviceIdCallback_(deviceId, info);
+    }
+    newDeviceId = deviceIdCache_[deviceId][id];
+    return E_OK;
+}
+
+bool RuntimeContextImpl::ExistTranslateDevIdCallback() const
+{
+    std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
+    return translateToDeviceIdCallback_ != nullptr;
 }
 } // namespace DistributedDB

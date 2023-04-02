@@ -128,5 +128,10 @@ DBStatus RuntimeConfig::SetPermissionConditionCallback(const PermissionCondition
     int errCode = RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback);
     return TransferDBErrno(errCode);
 }
+
+void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::TranslateToDeviceIdCallback &callback)
+{
+    RuntimeContext::GetInstance()->SetTranslateToDeviceIdCallback(callback);
+}
 } // namespace DistributedDB
 #endif

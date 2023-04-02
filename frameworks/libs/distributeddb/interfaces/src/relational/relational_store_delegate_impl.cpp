@@ -160,5 +160,20 @@ DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, con
     }
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
+{
+    if (conn_ == nullptr) {
+        LOGE("Invalid connection for operation!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->RemoveDeviceData();
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] remove device data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
 } // namespace DistributedDB
 #endif

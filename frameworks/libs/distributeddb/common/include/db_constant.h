@@ -159,6 +159,8 @@ public:
     static constexpr uint32_t MAX_CONDITION_COUNT = 32;
 
     static constexpr uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
+
+    static constexpr int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

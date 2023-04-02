@@ -66,6 +66,9 @@ struct API_EXPORT AppId {
         return appId;
     }
 
+    /**
+     * @brief Check appId.
+     */
     inline bool IsValid() const
     {
         if (appId.empty() || appId.size() > MAX_APP_ID_LEN) {
@@ -111,11 +114,17 @@ struct API_EXPORT StoreId {
         return storeId;
     }
 
+    /**
+     * @brief Operator <.
+     */
     bool operator<(const StoreId &id) const noexcept
     {
         return this->storeId < id.storeId;
     }
 
+    /**
+     * @brief Check storeId.
+     */
     inline bool IsValid() const
     {
         if (storeId.empty() || storeId.size() > MAX_STORE_ID_LEN) {
@@ -398,25 +407,6 @@ struct Options {
         return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION;
     }
 };
-
-template<typename T>
-std::vector<uint8_t> TransferTypeToByteArray(const T &t)
-{
-    return std::vector<uint8_t>(reinterpret_cast<uint8_t *>(const_cast<T *>(&t)),
-                                reinterpret_cast<uint8_t *>(const_cast<T *>(&t)) + sizeof(T));
-}
-
-template<typename T>
-T TransferByteArrayToType(const std::vector<uint8_t> &blob)
-{
-    // replace assert to HILOG_FATAL when HILOG_FATAL is ok.
-    if (blob.size() != sizeof(T) || blob.size() == 0) {
-        constexpr int tSize = sizeof(T);
-        uint8_t tContent[tSize] = { 0 };
-        return *reinterpret_cast<T *>(tContent);
-    }
-    return *reinterpret_cast<T *>(const_cast<uint8_t *>(&blob[0]));
-}
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

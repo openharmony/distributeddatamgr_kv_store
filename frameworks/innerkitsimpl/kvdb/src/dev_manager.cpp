@@ -24,6 +24,7 @@
 #include "kv_thread_pool.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
 constexpr int32_t DM_OK = 0;
 constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
@@ -163,39 +164,45 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
         return invalidDetail_;
     }
-    auto device = service->GetLocalDevice();
-    if (device.uuid.empty() || device.networkId.empty()) {
+    auto networkId = std::string(info.networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+    if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
-    localInfo_.networkId = std::move(device.networkId);
-    localInfo_.uuid = std::move(device.uuid);
-    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s",
-          StoreUtil::Anonymous(localInfo_.uuid).c_str(), StoreUtil::Anonymous(localInfo_.networkId).c_str());
+    localInfo_.networkId = std::move(networkId);
+    localInfo_.uuid = std::move(uuid);
+    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localInfo_.uuid).c_str(),
+        StoreUtil::Anonymous(localInfo_.networkId).c_str());
     return localInfo_;
 }
 
-std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
+std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
 {
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
+    std::vector<DevInfo> dmInfos;
+    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
+    if (ret != DM_OK) {
+        ZLOGE("get trusted device:%{public}d", ret);
         return {};
     }
-    auto devices = service->GetRemoteDevices();
-    if (devices.empty()) {
+    if (dmInfos.empty()) {
         ZLOGD("no remote device");
         return {};
     }
     std::vector<DetailInfo> dtInfos;
-    for (auto &device : devices) {
+    for (auto &device : dmInfos) {
         DetailInfo dtInfo;
+        auto networkId = std::string(device.networkId);
+        std::string uuid;
+        DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
         dtInfo.networkId = std::move(device.networkId);
-        dtInfo.uuid = std::move(device.uuid);
+        dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);
     }
     return dtInfos;

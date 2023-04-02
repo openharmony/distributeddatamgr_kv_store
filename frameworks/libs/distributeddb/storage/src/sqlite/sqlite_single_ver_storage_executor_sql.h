@@ -230,6 +230,13 @@ namespace DistributedDB {
     const std::string GET_SYNC_DATA_TIRGGER_SQL =
         "SELECT name FROM SQLITE_MASTER WHERE TYPE = 'trigger' AND TBL_NAME = 'sync_data' AND name like ?;";
 
+    constexpr const char *UPDATE_SYNC_DATA_KEY_SQL =
+        "UPDATE sync_data SET key=translate_key(key), hash_key=cal_hash_key(key) WHERE flag&0x01=0";
+
+    constexpr const char *FUNC_NAME_TRANSLATE_KEY = "translate_key";
+
+    constexpr const char *FUNC_NAME_CAL_HASH_KEY = "cal_hash_key";
+
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;
     const int BIND_LOCAL_TIMESTAMP_INDEX = 3;

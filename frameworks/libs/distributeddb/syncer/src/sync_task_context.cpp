@@ -89,13 +89,20 @@ int SyncTaskContext::AddSyncTarget(ISyncTarget *target)
             return -E_INVALID_ARGS;
         }
     }
-    CancelCurrentSyncRetryIfNeed(targetMode);
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, targetMode]() {
+        CancelCurrentSyncRetryIfNeed(targetMode);
+        RefObject::DecObjRef(this);
+    });
+    if (errCode != E_OK) {
+        RefObject::DecObjRef(this);
+    }
     if (taskExecStatus_ == RUNNING) {
         return E_OK;
     }
     if (onSyncTaskAdd_) {
         RefObject::IncObjRef(this);
-        int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
+        errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
             onSyncTaskAdd_();
             RefObject::DecObjRef(this);
         });
@@ -260,15 +267,12 @@ void SyncTaskContext::MoveToNextTarget()
     }
 }
 
-int SyncTaskContext::GetNextTarget(bool isNeedSetFinished)
+int SyncTaskContext::GetNextTarget()
 {
     MoveToNextTarget();
     int checkErrCode = RunPermissionCheck(GetPermissionCheckFlag(IsAutoSync(), GetMode()));
     if (checkErrCode != E_OK) {
         SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
-        if (isNeedSetFinished) {
-            SetTaskExecStatus(ISyncTaskContext::FINISHED);
-        }
         return checkErrCode;
     }
     return E_OK;

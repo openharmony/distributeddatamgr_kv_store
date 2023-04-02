@@ -92,4 +92,17 @@ ISyncEngine *SingleVerSyncer::CreateSyncEngine()
 {
     return new (std::nothrow) SingleVerSyncEngine();
 }
+
+int SingleVerSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    std::shared_ptr<Metadata> metadata = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr) {
+            return -E_NOT_INIT;
+        }
+        metadata = metadata_;
+    }
+    return metadata->GetHashDeviceId(clientId, hashDevId);
+}
 }

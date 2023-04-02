@@ -60,6 +60,7 @@ FrameType GetFrameType(uint8_t inPacketType)
 }
 
 std::map<uint32_t, TransformFunc> ProtocolProto::msgIdMapFunc_;
+std::shared_mutex ProtocolProto::msgIdMutex_;
 
 uint32_t ProtocolProto::GetAppLayerFrameHeaderLength()
 {
@@ -366,6 +367,7 @@ int ProtocolProto::CombinePacketIntoFrame(SerialBuffer *inFrame, const uint8_t *
 
 int ProtocolProto::RegTransformFunction(uint32_t msgId, const TransformFunc &inFunc)
 {
+    std::unique_lock<std::shared_mutex> autoLock(msgIdMutex_);
     if (msgIdMapFunc_.count(msgId) != 0) {
         return -E_ALREADY_REGISTER;
     }
@@ -378,6 +380,7 @@ int ProtocolProto::RegTransformFunction(uint32_t msgId, const TransformFunc &inF
 
 void ProtocolProto::UnRegTransformFunction(uint32_t msgId)
 {
+    std::unique_lock<std::shared_mutex> autoLock(msgIdMutex_);
     if (msgIdMapFunc_.count(msgId) != 0) {
         msgIdMapFunc_.erase(msgId);
     }
@@ -582,12 +585,12 @@ int ProtocolProto::CalculateXorSum(const uint8_t *bytes, uint32_t length, uint64
 int ProtocolProto::CalculateDataSerializeLength(const Message *inMsg, uint32_t &outLength)
 {
     uint32_t messageId = inMsg->GetMessageId();
-    if (msgIdMapFunc_.count(messageId) == 0) {
+    TransformFunc function;
+    if (GetTransformFunc(messageId, function) != E_OK) {
         LOGE("[Proto][CalcuDataSerialLen] Not registered for messageId=%" PRIu32 ".", messageId);
         return -E_NOT_REGISTER;
     }
 
-    TransformFunc function = msgIdMapFunc_[messageId];
     uint32_t serializeLen = function.computeFunc(inMsg);
     uint32_t alignedLen = BYTE_8_ALIGN(serializeLen);
     // Currently not allowed the upper module to send a message without data. Regard serializeLen zero as abnormal.
@@ -625,8 +628,11 @@ int ProtocolProto::SerializeMessage(SerialBuffer *inBuff, const Message *inMsg)
         return E_OK;
     }
     // If dataLen not zero, the TransformFunc of this messageId must exist, the caller's logic guarantee it
-    uint32_t messageId = inMsg->GetMessageId();
-    TransformFunc function = msgIdMapFunc_[messageId];
+    TransformFunc function;
+    if (GetTransformFunc(inMsg->GetMessageId(), function) != E_OK) {
+        LOGE("[Proto][Serialize] Not register, messageId=%" PRIu32 ".", inMsg->GetMessageId());
+        return -E_NOT_REGISTER;
+    }
     int result = function.serializeFunc(payloadByteLen.first + sizeof(MessageHeader), dataLen, inMsg);
     if (result != E_OK) {
         LOGE("[Proto][Serialize] SerializeFunc Fail, result=%d.", result);
@@ -674,12 +680,11 @@ int ProtocolProto::DeSerializeMessage(const SerialBuffer *inBuff, Message *inMsg
     if (onlyMsgHeader || dataLen == 0) { // Do not need to deserialize data
         return E_OK;
     }
-    uint32_t messageId = inMsg->GetMessageId();
-    if (msgIdMapFunc_.count(messageId) == 0) {
-        LOGE("[Proto][DeSerialize] Not register, messageId=%" PRIu32 ".", messageId);
+    TransformFunc function;
+    if (GetTransformFunc(inMsg->GetMessageId(), function) != E_OK) {
+        LOGE("[Proto][DeSerialize] Not register, messageId=%" PRIu32 ".", inMsg->GetMessageId());
         return -E_NOT_REGISTER;
     }
-    TransformFunc function = msgIdMapFunc_[messageId];
     int result = function.deserializeFunc(payloadByteLen.first + sizeof(MessageHeader), dataLen, inMsg);
     if (result != E_OK) {
         LOGE("[Proto][DeSerialize] DeserializeFunc Fail, result=%d.", result);
@@ -1090,6 +1095,17 @@ int ProtocolProto::FillExtendHeadDataIfNeed(std::shared_ptr<ExtendHeaderHandle> 
             return -E_FEEDBACK_COMMUNICATOR_NOT_FOUND;
         }
     }
+    return E_OK;
+}
+
+int ProtocolProto::GetTransformFunc(uint32_t messageId, DistributedDB::TransformFunc &function)
+{
+    std::shared_lock<std::shared_mutex> autoLock(msgIdMutex_);
+    const auto &entry = msgIdMapFunc_.find(messageId);
+    if (entry == msgIdMapFunc_.end()) {
+        return -E_NOT_REGISTER;
+    }
+    function = entry->second;
     return E_OK;
 }
 } // namespace DistributedDB

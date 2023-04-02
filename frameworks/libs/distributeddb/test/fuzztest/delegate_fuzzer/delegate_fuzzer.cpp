@@ -36,21 +36,29 @@ std::vector<Entry> CreateEntries(const uint8_t* data, size_t size, std::vector<K
     return entries;
 }
 
-void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Option &option)
+KvStoreDelegateManager g_kvManger = KvStoreDelegateManager("APP_ID", "USER_ID");
+KvStoreDelegate *PrepareKvStore(KvStoreConfig &config, KvStoreDelegate::Option &option)
 {
-    static auto kvManger = KvStoreDelegateManager("APP_ID", "USER_ID");
-    KvStoreConfig config;
     DistributedDBToolsTest::TestDirInit(config.dataDir);
-    kvManger.SetKvStoreConfig(config);
+    g_kvManger.SetKvStoreConfig(config);
     KvStoreDelegate *kvDelegatePtr = nullptr;
-    kvManger.GetKvStore("distributed_delegate_test", option,
+    g_kvManger.GetKvStore("distributed_delegate_test", option,
         [&kvDelegatePtr](DBStatus status, KvStoreDelegate* kvDelegate) {
             if (status == DBStatus::OK) {
                 kvDelegatePtr = kvDelegate;
             }
         });
+    return kvDelegatePtr;
+}
+
+void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Option &option)
+{
+    KvStoreConfig config;
+    KvStoreDelegate *kvDelegatePtr = PrepareKvStore(config, option);
     KvStoreObserverTest *observer = new (std::nothrow) KvStoreObserverTest;
     if ((kvDelegatePtr == nullptr) || (observer == nullptr)) {
+        delete observer;
+        observer = nullptr;
         return;
     }
 
@@ -64,6 +72,8 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
             kvStoreSnapshotPtr = std::move(kvStoreSnapshot);
         });
     if (kvStoreSnapshotPtr == nullptr) {
+        kvDelegatePtr->UnRegisterObserver(observer);
+        delete observer;
         return;
     }
     auto valueCallback = [&value] (DBStatus status, const Value &getValue) {
@@ -82,9 +92,10 @@ void MultiCombineFuzzer(const uint8_t* data, size_t size, KvStoreDelegate::Optio
     kvDelegatePtr->DeleteBatch(keys);
     kvDelegatePtr->Clear();
     kvDelegatePtr->UnRegisterObserver(observer);
+    delete observer;
     kvDelegatePtr->ReleaseKvStoreSnapshot(kvStoreSnapshotPtr);
-    kvManger.CloseKvStore(kvDelegatePtr);
-    kvManger.DeleteKvStore("distributed_delegate_test");
+    g_kvManger.CloseKvStore(kvDelegatePtr);
+    g_kvManger.DeleteKvStore("distributed_delegate_test");
     DistributedDBToolsTest::RemoveTestDbFiles(config.dataDir);
 }
 }

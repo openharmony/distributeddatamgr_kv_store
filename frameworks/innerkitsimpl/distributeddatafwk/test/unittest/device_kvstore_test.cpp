@@ -236,7 +236,7 @@ HWTEST_F(DeviceKvStoreTest, GetDataQueryEntriesAndResultSet, TestSize.Level1)
 
     // prepare 10
     size_t sum = 10;
-    int sumGet = 10;
+    int sumGet = 0;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
         kvStore_->Put({prefix + std::to_string(i)}, {std::to_string(i)});

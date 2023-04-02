@@ -661,36 +661,39 @@ int SyncEngine::ExecSyncTask(ISyncTaskContext *context)
     if (IsKilled()) {
         return -E_OBJ_IS_KILLED;
     }
-
     AutoLock lockGuard(context);
     int status = context->GetTaskExecStatus();
     if ((status == SyncTaskContext::RUNNING) || context->IsKilled()) {
         return -E_NOT_SUPPORT;
     }
     context->SetTaskExecStatus(ISyncTaskContext::RUNNING);
-    if (!context->IsTargetQueueEmpty()) {
-        int errCode = context->GetNextTarget(true);
+    while (!context->IsTargetQueueEmpty()) {
+        int errCode = context->GetNextTarget();
         if (errCode != E_OK) {
-            return errCode;
+            // current task execute failed, try next task
+            context->ClearSyncOperation();
+            continue;
         }
         if (context->IsCurrentSyncTaskCanBeSkipped()) {
             context->SetOperationStatus(SyncOperation::OP_FINISHED_ALL);
             context->ClearSyncOperation();
-            context->SetTaskExecStatus(ISyncTaskContext::FINISHED);
-            return E_OK;
+            continue;
         }
         context->UnlockObj();
         errCode = context->StartStateMachine();
         context->LockObj();
         if (errCode != E_OK) {
-            LOGE("[SyncEngine] machine StartSync failed");
+            // machine start failed because timer start failed, try to execute next task
+            LOGW("[SyncEngine] machine StartSync failed");
             context->SetOperationStatus(SyncOperation::OP_FAILED);
-            return errCode;
+            context->ClearSyncOperation();
+            continue;
         }
-    } else {
-        LOGD("[SyncEngine] ExecSyncTask finished");
-        context->SetTaskExecStatus(ISyncTaskContext::FINISHED);
+        // now task is running just return here
+        return errCode;
     }
+    LOGD("[SyncEngine] ExecSyncTask finished");
+    context->SetTaskExecStatus(ISyncTaskContext::FINISHED);
     return E_OK;
 }
 

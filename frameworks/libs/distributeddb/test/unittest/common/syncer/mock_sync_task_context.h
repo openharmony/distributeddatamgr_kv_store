@@ -92,6 +92,11 @@ public:
         }
         return SingleVerKvSyncTaskContext::GetDeviceId();
     }
+
+    void SetSyncOperation(SyncOperation *operation)
+    {
+        syncOperation_ = operation;
+    }
 private:
     std::function<void ()> forkGetDeviceIdFunc_;
 };

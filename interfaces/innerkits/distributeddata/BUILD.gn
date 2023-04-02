@@ -47,7 +47,6 @@ config("distributeddatafwk_public_config") {
   include_dirs = [
     "include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//commonlibrary/c_utils/base/include",
   ]
 }
 
@@ -99,7 +98,7 @@ external_deps_config = [
   "hitrace_native:libhitracechain",
   "hiviewdfx_hilog_native:libhilog",
   "huks:libhukssdk",
-  "ipc:ipc_core",
+  "ipc:ipc_single",
   "samgr:samgr_proxy",
 ]
 

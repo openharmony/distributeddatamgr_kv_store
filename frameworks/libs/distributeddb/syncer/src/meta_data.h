@@ -93,7 +93,7 @@ public:
     // if the sendWatermark less than device watermark
     int GetSendDeleteSyncWaterMark(const std::string &deviceId, WaterMark &waterMark, bool isAutoLift = true);
 
-    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
+    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark, bool isNeedHash = true);
 
     // the deleteSync's recvWatermark will increase by the device watermark
     // if the recvWatermark less than device watermark
@@ -111,16 +111,20 @@ public:
     uint64_t GetQueryLastTimestamp(const DeviceID &deviceId, const std::string &queryId) const;
 
     void RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::string &queryId);
+
+    int SaveClientId(const std::string &deviceId, const std::string &clientId);
+
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
 private:
 
-    int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue);
+    int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
 
     // sync module need hash devices id
     void GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
 
-    int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
+    static int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
 
-    int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const;
+    static int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue);
 
     int GetMetadataFromDb(const std::vector<uint8_t> &key, std::vector<uint8_t> &outValue) const;
 
@@ -143,7 +147,7 @@ private:
     int LoadDeviceIdDataToMap(const Key &key);
 
     // reset the waterMark to zero
-    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName = "");
+    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
 
     // store localTimeOffset in ram; if change, should add a lock first, change here and metadata,
     // then release lock
@@ -167,6 +171,9 @@ private:
     // queryId is not in set while key is not found from db first time, and return lastTimestamp = INT64_MAX
     // if query is in set return 0 while not found from db, means already sync before, don't trigger again
     mutable std::map<DeviceID, std::set<std::string>> queryIdMap_;
+
+    std::mutex clientIdLock_;
+    std::map<DeviceID, std::string> clientIdCache_;
 };
 }  // namespace DistributedDB
 #endif

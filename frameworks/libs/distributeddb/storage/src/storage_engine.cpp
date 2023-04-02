@@ -42,6 +42,45 @@ StorageEngine::~StorageEngine()
     CloseExecutor();
 }
 
+int StorageEngine::InitReadWriteExecutors()
+{
+    int errCode = E_OK;
+    std::scoped_lock initLock(writeMutex_, readMutex_);
+    // only for create the database avoid the minimum number is 0.
+    StorageExecutor *handle = nullptr;
+    if (engineAttr_.minReadNum == 0 && engineAttr_.minWriteNum == 0) {
+        errCode = CreateNewExecutor(true, handle);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+
+        if (handle != nullptr) {
+            delete handle;
+            handle = nullptr;
+        }
+    }
+
+    for (uint32_t i = 0; i < engineAttr_.minWriteNum; i++) {
+        handle = nullptr;
+        errCode = CreateNewExecutor(true, handle);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        AddStorageExecutor(handle);
+    }
+
+    for (uint32_t i = 0; i < engineAttr_.minReadNum; i++) {
+        handle = nullptr;
+        errCode = CreateNewExecutor(false, handle);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        AddStorageExecutor(handle);
+    }
+    return E_OK;
+}
+
+
 int StorageEngine::Init()
 {
     if (isInitialized_.load()) {
@@ -49,54 +88,21 @@ int StorageEngine::Init()
         return E_OK;
     }
 
-    int errCode = E_OK;
-    {
-        std::scoped_lock initLock(writeMutex_, readMutex_);
-        // only for create the database avoid the minimum number is 0.
-        StorageExecutor *handle = nullptr;
-        if (engineAttr_.minReadNum == 0 && engineAttr_.minWriteNum == 0) {
-            errCode = CreateNewExecutor(true, handle);
-            if (errCode != E_OK) {
-                goto END;
-            }
-
-            if (handle != nullptr) {
-                delete handle;
-                handle = nullptr;
-            }
-        }
-
-        for (uint32_t i = 0; i < engineAttr_.minWriteNum; i++) {
-            handle = nullptr;
-            errCode = CreateNewExecutor(true, handle);
-            if (errCode != E_OK) {
-                goto END;
-            }
-            AddStorageExecutor(handle);
-        }
-
-        for (uint32_t i = 0; i < engineAttr_.minReadNum; i++) {
-            handle = nullptr;
-            errCode = CreateNewExecutor(false, handle);
-            if (errCode != E_OK) {
-                goto END;
-            }
-            AddStorageExecutor(handle);
-        }
-    }
-
-END:
+    int errCode = InitReadWriteExecutors();
     if (errCode == E_OK) {
         isInitialized_.store(true);
+        initCondition_.notify_all();
         return E_OK;
     } else if (errCode == -E_EKEYREVOKED) {
         // Assumed file system has classification function, can only get one write handle
         std::unique_lock<std::mutex> lock(writeMutex_);
         if (!writeIdleList_.empty() || !writeUsingList_.empty()) {
             isInitialized_.store(true);
+            initCondition_.notify_all();
             return E_OK;
         }
     }
+    initCondition_.notify_all();
     Release();
     return errCode;
 }
@@ -109,10 +115,16 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
         return nullptr;
     }
 
-    if (!isInitialized_.load()) {
-        LOGE("Storage engine is not initialized");
-        errCode = -E_BUSY; // Usually in reinitialize engine, return BUSY
-        return nullptr;
+    {
+        std::unique_lock<std::mutex> lock(initMutex_);
+        bool result = initCondition_.wait_for(lock, std::chrono::seconds(waitTime), [this]() {
+            return isInitialized_.load();
+        });
+        if (!result || !isInitialized_.load()) {
+            LOGE("Storage engine is not initialized");
+            errCode = -E_BUSY; // Usually in reinitialize engine, return BUSY
+            return nullptr;
+        }
     }
 
     if (writable) {

@@ -711,18 +711,4 @@ HWTEST_F(DistributedKvDataManagerTest, RegisterKvStoreServiceDeathRecipient001, 
     manager.RegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
     kvStoreDeathRecipient->OnRemoteDied();
 }
-
-/**
-* @tc.name: UnRegisterKvStoreServiceDeathRecipient001
-* @tc.desc: Unregister the callback called when the service dies.
-* @tc.type: FUNC
-* @tc.require: AR000CQDUS AR000CQDU1
-* @tc.author: liqiao
-*/
-HWTEST_F(DistributedKvDataManagerTest, UnRegisterKvStoreServiceDeathRecipient001, TestSize.Level1)
-{
-    ZLOGI("UnRegisterKvStoreServiceDeathRecipient001 begin.");
-    std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipientPtr = std::make_shared<MyDeathRecipient>();
-    manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipientPtr);
-}
 } // namespace OHOS::Test

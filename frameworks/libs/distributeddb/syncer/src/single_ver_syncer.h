@@ -34,6 +34,7 @@ public:
     int EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
         const std::string &tableName) override;
 
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) override;
 protected:
     // Create a sync engine, if has memory error, will return nullptr.
     ISyncEngine *CreateSyncEngine() override;

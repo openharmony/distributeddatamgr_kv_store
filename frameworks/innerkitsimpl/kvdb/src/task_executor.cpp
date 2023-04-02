@@ -21,14 +21,21 @@ TaskExecutor &TaskExecutor::GetInstance()
     return instance;
 }
 
-bool TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
+TaskScheduler::TaskId TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
 {
     if (pool_ == nullptr) {
-        return false;
+        return TaskScheduler::INVALID_TASK_ID;
     }
     auto time = TaskScheduler::Clock::now() + std::chrono::milliseconds(interval);
-    pool_->At(time, std::move(task));
-    return true;
+    return pool_->At(time, std::move(task));
+}
+
+void TaskExecutor::RemoveTask(TaskScheduler::TaskId taskId)
+{
+    if (pool_ == nullptr) {
+        return;
+    }
+    pool_->Remove(taskId, true);
 }
 
 TaskExecutor::TaskExecutor()

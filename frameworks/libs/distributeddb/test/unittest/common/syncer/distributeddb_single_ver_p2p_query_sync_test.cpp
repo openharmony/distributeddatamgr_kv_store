@@ -896,6 +896,78 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark002, TestSize.
 }
 
 /**
+ * @tc.name: GetQueryWaterMark 003
+ * @tc.desc: check time offset after remove water mark
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark003, TestSize.Level1)
+{
+    VirtualSingleVerSyncDBInterface storage;
+    Metadata meta;
+
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+
+    const std::string DEVICE_B = "DEVICE_B";
+    TimeOffset offset = 100; // 100: offset
+    meta.SaveTimeOffset(DEVICE_B, offset);
+
+    WaterMark w1 = 2; // 2: watermark
+    meta.SavePeerWaterMark(DBCommon::TransferHashString(DEVICE_B), w1, false);
+
+    TimeOffset offsetGot;
+    meta.GetTimeOffset(DEVICE_B, offsetGot);
+    EXPECT_EQ(offsetGot, offset);
+}
+
+/**
+ * @tc.name: GetDeleteWaterMark001
+ * @tc.desc: Test metaData save and get deleteWaterMark.
+ * @tc.type: FUNC
+ * @tc.require: AR000FN6G9
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetDeleteWaterMark001, TestSize.Level1)
+{
+    VirtualSingleVerSyncDBInterface storage;
+    Metadata meta;
+
+    /**
+     * @tc.steps: step1. initialize meta with storage
+     * @tc.expected: step1. E_OK
+     */
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+
+    /**
+     * @tc.steps: step2. set and get recv/send delete watermark
+     * @tc.expected: step2. set E_OK and get water mark is equal with last set
+     */
+    const std::string device = "DEVICE";
+    const WaterMark maxWaterMark = 1000u;
+    std::thread recvThread([&meta, &device, &maxWaterMark]() {
+        for (WaterMark expectRecv = 0u; expectRecv < maxWaterMark; ++expectRecv) {
+            EXPECT_EQ(meta.SetRecvDeleteSyncWaterMark(device, expectRecv), E_OK);
+            WaterMark actualRecv = 0u;
+            EXPECT_EQ(meta.GetRecvDeleteSyncWaterMark(device, actualRecv), E_OK);
+            EXPECT_EQ(actualRecv, expectRecv);
+        }
+    });
+    std::thread sendThread([&meta, &device, &maxWaterMark]() {
+        for (WaterMark expectSend = 0u; expectSend < maxWaterMark; ++expectSend) {
+            EXPECT_EQ(meta.SetSendDeleteSyncWaterMark(device, expectSend), E_OK);
+            WaterMark actualSend = 0u;
+            EXPECT_EQ(meta.GetSendDeleteSyncWaterMark(device, actualSend), E_OK);
+            EXPECT_EQ(actualSend, expectSend);
+        }
+    });
+    recvThread.join();
+    sendThread.join();
+}
+
+/**
  * @tc.name: ClearQueryWaterMark 001
  * @tc.desc: Test metaData clear watermark function.
  * @tc.type: FUNC
@@ -1830,31 +1902,4 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, AllPredicateQuerySync004, TestS
         EXPECT_TRUE(item == value);
         key.pop_back();
     }
-}
-
-/**
- * @tc.name: GetQueryWaterMark 003
- * @tc.desc: check time offset after remove water mark
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: lianhuix
- */
-HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, GetQueryWaterMark003, TestSize.Level1)
-{
-    VirtualSingleVerSyncDBInterface storage;
-    Metadata meta;
-
-    int errCode = meta.Initialize(&storage);
-    ASSERT_EQ(errCode, E_OK);
-
-    const std::string DEVICE_B = "DEVICE_B";
-    TimeOffset offset = 100; // 100: offset
-    meta.SaveTimeOffset(DEVICE_B, offset);
-
-    WaterMark w1 = 2; // 2: watermark
-    meta.SavePeerWaterMark(DBCommon::TransferHashString(DEVICE_B), w1, false);
-
-    TimeOffset offsetGot;
-    meta.GetTimeOffset(DEVICE_B, offsetGot);
-    EXPECT_EQ(offsetGot, offset);
 }

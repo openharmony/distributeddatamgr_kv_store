@@ -128,9 +128,13 @@ private:
     static int TryLockDB(const KvDBProperties &kvDBProp, int retryTimes);
     static int UnlockDB(const KvDBProperties &kvDBProp);
 
+    static bool CheckOpenDBOptionWithCached(const KvDBProperties &properties, IKvDB *kvdb);
+
     static std::atomic<KvDBManager *> instance_;
     static std::mutex kvDBLock_;
     static std::mutex instanceLock_;
+
+    static std::mutex fileHandleMutex_;
     static std::map<std::string, OS::FileHandle *> locks_;
 
     std::map<std::string, IKvDB *> localKvDBs_;

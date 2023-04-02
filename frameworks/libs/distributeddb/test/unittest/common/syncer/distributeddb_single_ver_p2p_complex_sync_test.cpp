@@ -125,6 +125,49 @@ namespace {
             EXPECT_TRUE(resultvalue == value);
         }
     }
+
+    void DataSync005()
+    {
+        SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+        ASSERT_TRUE(dataSync != nullptr);
+        dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+        delete dataSync;
+    }
+
+    void DataSync008()
+    {
+        SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
+        ASSERT_TRUE(dataSync != nullptr);
+        dataSync->PutDataMsg(nullptr);
+        delete dataSync;
+    }
+
+    void ReSetWaterDogTest001()
+    {
+        /**
+         * @tc.steps: step1. put 10 key/value
+         * @tc.expected: step1, put return OK.
+         */
+        for (int i = 0; i < 5; i++) { // put 5 key
+            Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 1024); // rand num 1024 for test
+            Value value;
+            DistributedDBToolsUnitTest::GetRandomKeyValue(value, 10 * 50 * 1024u); // 10 * 50 * 1024 = 500k
+            EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+        }
+        /**
+         * @tc.steps: step2. SetDeviceMtuSize
+         * @tc.expected: step2, return OK.
+         */
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 50 * 1024u = 50k
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 50 * 1024u); // 50 * 1024u = 50k
+        /**
+         * @tc.steps: step3. deviceA,deviceB sync to each other at same time
+         * @tc.expected: step3. sync should return OK.
+         */
+        g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
+        g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
+    }
 }
 
 class DistributedDBSingleVerP2PComplexSyncTest : public testing::Test {
@@ -977,10 +1020,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync004, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync005, TestSize.Level1)
 {
-    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
-    ASSERT_TRUE(dataSync != nullptr);
-    dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
-    delete dataSync;
+    ASSERT_NO_FATAL_FAILURE(DataSync005());
 }
 
 /**
@@ -1040,10 +1080,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync007, TestSize.Level1)
   */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DataSync008, TestSize.Level1)
 {
-    SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
-    ASSERT_TRUE(dataSync != nullptr);
-    dataSync->PutDataMsg(nullptr);
-    delete dataSync;
+    ASSERT_NO_FATAL_FAILURE(DataSync008());
 }
 
 /**
@@ -1240,6 +1277,59 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3
 }
 
 /**
+ * @tc.name: SyncRetry005
+ * @tc.desc: use sync retry sync use pull by compress
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTD AR000CQE0E
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry005, TestSize.Level3)
+{
+    if (g_kvDelegatePtr != nullptr) {
+        ASSERT_EQ(g_mgr.CloseKvStore(g_kvDelegatePtr), OK);
+        g_kvDelegatePtr = nullptr;
+    }
+    /**
+     * @tc.steps: step1. open db use Compress
+     * @tc.expected: step1, Pragma return OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.isNeedCompressOnSync = true;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+
+    /**
+     * @tc.steps: step2. set sync retry
+     * @tc.expected: step2, Pragma return OK.
+     */
+    int pragmaData = 1;
+    PragmaData input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_TRUE(g_kvDelegatePtr->Pragma(SET_SYNC_RETRY, input) == OK);
+
+    /**
+     * @tc.steps: step3. deviceA call sync and wait
+     * @tc.expected: step3. sync should return OK.
+     */
+    std::map<std::string, DBStatus> result;
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result) == OK);
+
+    /**
+     * @tc.expected: step4. onComplete should be called, and status is time_out
+     */
+    ASSERT_TRUE(result.size() == devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_EQ(pair.second, OK);
+    }
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, UNKNOW_MESSAGE);
+}
+
+/**
  * @tc.name: ReSetWatchDogTest001
  * @tc.desc: trigger resetWatchDog while pull
  * @tc.type: FUNC
@@ -1248,29 +1338,7 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, SyncRetry004, TestSize.Level3
  */
 HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, ReSetWaterDogTest001, TestSize.Level3)
 {
-    /**
-     * @tc.steps: step1. put 10 key/value
-     * @tc.expected: step1, put return OK.
-     */
-    for (int i = 0; i < 5; i++) {
-        Key key = DistributedDBToolsUnitTest::GetRandPrefixKey({'a', 'b'}, 1024); // rand num 1024 for test
-        Value value;
-        DistributedDBToolsUnitTest::GetRandomKeyValue(value, 10 * 50 * 1024u);
-        EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
-    }
-    /**
-     * @tc.steps: step1. SetDeviceMtuSize
-     * @tc.expected: step1, return OK.
-     */
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 50 * 1024u); // 4k
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 50 * 1024u); // 4k
-    /**
-     * @tc.steps: step2. deviceA,deviceB sync to each other at same time
-     * @tc.expected: step2. sync should return OK.
-     */
-    g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 4k
-    g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 4k
+    ASSERT_NO_FATAL_FAILURE(ReSetWaterDogTest001());
 }
 
 /**
@@ -1865,4 +1933,54 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
     }
     VirtualDataItem item;
     EXPECT_EQ(g_deviceB->GetData(key, item), -E_NOT_FOUND);
+}
+
+/**
+  * @tc.name: UpdateKey001
+  * @tc.desc: test update key can effect local data and sync data, without delete data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, UpdateKey001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device A set sync data (k1, v1) local data (k2, v2) (k3, v3) and delete (k4, v4)
+     * @tc.expected: step1. put data return ok
+     */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    g_deviceB->PutData(k1, v1, 1, 0);
+    ASSERT_EQ(g_deviceB->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    Key k3 = {'k', '3'};
+    Value v3 = {'v', '3'};
+    Key k4 = {'k', '4'};
+    Value v4 = {'v', '4'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(k2, v2), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k3, v3), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k4, v4), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Delete(k4), OK);
+    /**
+     * @tc.steps: step2. device A update key and set
+     * @tc.expected: step2. put data return ok
+     */
+    DBStatus status = g_kvDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    EXPECT_EQ(status, OK);
+    k1.push_back('0');
+    k2.push_back('0');
+    k3.push_back('0');
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k2, actualValue), OK);
+    EXPECT_EQ(v2, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k3, actualValue), OK);
+    EXPECT_EQ(v3, actualValue);
 }

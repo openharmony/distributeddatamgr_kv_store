@@ -23,6 +23,7 @@
 #include "log_table_manager_factory.h"
 #include "relational_row_data_impl.h"
 #include "res_finalizer.h"
+#include "sqlite_meta_executor.h"
 #include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
@@ -210,8 +211,7 @@ int GetDeviceTableName(sqlite3 *handle, const std::string &tableName, const std:
     if (device.empty() && tableName.empty()) { // device and table name should not both be empty
         return -E_INVALID_ARGS;
     }
-    std::string deviceHash = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
-    std::string devicePattern = device.empty() ? "%" : deviceHash;
+    std::string devicePattern = device.empty() ? "%" : device;
     std::string tablePattern = tableName.empty() ? "%" : tableName;
     std::string deviceTableName = DBConstant::RELATIONAL_PREFIX + tablePattern + "_" + devicePattern;
 
@@ -579,33 +579,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Ke
     return CheckCorruptedStatus(errCode);
 }
 
-static int GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys)
-{
-    if (statement == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode;
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, false);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            Key key;
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key);
-            if (errCode != E_OK) {
-                break;
-            }
-
-            keys.push_back(std::move(key));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step for getting all keys failed:%d", errCode);
-            break;
-        }
-    } while (true);
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 {
     static const std::string SELECT_ALL_META_KEYS = "SELECT key FROM " + DBConstant::RELATIONAL_PREFIX + "metadata;";
@@ -615,7 +588,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &k
         LOGE("[Relational][GetAllKey] Get statement failed:%d", errCode);
         return errCode;
     }
-    errCode = GetAllKeys(statement, keys);
+    errCode = SqliteMetaExecutor::GetAllKeys(statement, isMemDb_, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
@@ -683,33 +656,33 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncLog(sqlite3_stmt *statemen
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncDataItem(const DataItem &dataItem,
-    RelationalSyncDataInserter &inserter, sqlite3_stmt *&stmt)
+    RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt)
 {
-    if (stmt == nullptr) {
-        int errCode = inserter.GetDeleteSyncDataStmt(dbHandle_, stmt);
+    if (rmDataStmt == nullptr) {
+        int errCode = inserter.GetDeleteSyncDataStmt(dbHandle_, rmDataStmt);
         if (errCode != E_OK) {
             LOGE("[DeleteSyncDataItem] Get statement fail!, errCode:%d", errCode);
             return errCode;
         }
     }
 
-    int errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, dataItem.hashKey); // 1 means hash_key index
+    int errCode = SQLiteUtils::BindBlobToStatement(rmDataStmt, 1, dataItem.hashKey); // 1 means hash_key index
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(rmDataStmt, true, errCode);
         return errCode;
     }
     if (mode_ != DistributedTableMode::COLLABORATION) {
-        errCode = SQLiteUtils::BindTextToStatement(stmt, 2, dataItem.dev); // 2 means device index
+        errCode = SQLiteUtils::BindTextToStatement(rmDataStmt, 2, dataItem.dev); // 2 means device index
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            SQLiteUtils::ResetStatement(rmDataStmt, true, errCode);
             return errCode;
         }
     }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    errCode = SQLiteUtils::StepWithRetry(rmDataStmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, false, errCode);  // Finalize outside.
+    SQLiteUtils::ResetStatement(rmDataStmt, false, errCode);  // Finalize outside.
     return errCode;
 }
 
@@ -745,33 +718,33 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItem(const DataItem &d
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteSyncLog(const DataItem &dataItem,
-    RelationalSyncDataInserter &inserter, sqlite3_stmt *&stmt)
+    RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt)
 {
-    if (stmt == nullptr) {
-        int errCode = inserter.GetDeleteLogStmt(dbHandle_, stmt);
+    if (rmLogStmt == nullptr) {
+        int errCode = inserter.GetDeleteLogStmt(dbHandle_, rmLogStmt);
         if (errCode != E_OK) {
             LOGE("[DeleteSyncLog] Get statement fail!");
             return errCode;
         }
     }
 
-    int errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, dataItem.hashKey); // 1 means hashkey index
+    int errCode = SQLiteUtils::BindBlobToStatement(rmLogStmt, 1, dataItem.hashKey); // 1 means hashkey index
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(rmLogStmt, true, errCode);
         return errCode;
     }
     if (mode_ != DistributedTableMode::COLLABORATION) {
-        errCode = SQLiteUtils::BindTextToStatement(stmt, 2, dataItem.dev); // 2 means device index
+        errCode = SQLiteUtils::BindTextToStatement(rmLogStmt, 2, dataItem.dev); // 2 means device index
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            SQLiteUtils::ResetStatement(rmLogStmt, true, errCode);
             return errCode;
         }
     }
-    errCode = SQLiteUtils::StepWithRetry(stmt, isMemDb_);
+    errCode = SQLiteUtils::StepWithRetry(rmLogStmt, isMemDb_);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     }
-    SQLiteUtils::ResetStatement(stmt, false, errCode);  // Finalize outside.
+    SQLiteUtils::ResetStatement(rmLogStmt, false, errCode);  // Finalize outside.
     return errCode;
 }
 
@@ -1091,6 +1064,12 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTable(const
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedAllDeviceTableLog(const std::string &tableName)
+{
+    std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE flag&0x02=0";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, deleteLogSql);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTableLog(const std::string &device,
     const std::string &tableName)
 {
@@ -1179,7 +1158,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const std::string &device,
-    const TableInfo &baseTbl)
+    const TableInfo &baseTbl, const StoreInfo &info)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -1189,7 +1168,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const
         return -E_INVALID_ARGS;
     }
 
-    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName());
+    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName(), info);
     int errCode = SQLiteUtils::CreateSameStuTable(dbHandle_, baseTbl, deviceTableName);
     if (errCode != E_OK) {
         LOGE("Create device table failed. %d", errCode);
@@ -1369,6 +1348,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckEncryptedOrCorrupted() const
         LOGE("[SingVerRelaExec] CheckEncryptedOrCorrupted failed:%d", errCode);
     }
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::string> &devices) const
+{
+    return SqliteMetaExecutor::GetExistsDevicesFromMeta(dbHandle_, SqliteMetaExecutor::MetaMode::RDB,
+        isMemDb_, devices);
 }
 } // namespace DistributedDB
 #endif

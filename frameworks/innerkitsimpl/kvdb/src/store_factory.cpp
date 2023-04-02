@@ -17,6 +17,7 @@
 
 #include "backup_manager.h"
 #include "device_convertor.h"
+#include "kvstore_service_death_notifier.h"
 #include "log_print.h"
 #include "security_manager.h"
 #include "single_store_impl.h"
@@ -105,6 +106,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         isCreate = true;
         stores[storeId] = kvStore;
+        KvStoreServiceDeathNotifier::AddServiceDeathWatcher(kvStore);
         return !stores.empty();
     });
     return kvStore;
@@ -132,6 +134,7 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
             status = SUCCESS;
             auto ref = it->second->Close(isForce);
             if (ref <= 0) {
+                KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(it->second);
                 it = values.erase(it);
             } else {
                 ++it;

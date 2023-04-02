@@ -50,6 +50,9 @@ public:
     // timeout is in ms.
     DB_API virtual DBStatus RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, std::shared_ptr<ResultSet> &result) = 0;
+
+    // remove all device data
+    DB_API virtual DBStatus RemoveDeviceData() = 0;
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_DELEGATE_H

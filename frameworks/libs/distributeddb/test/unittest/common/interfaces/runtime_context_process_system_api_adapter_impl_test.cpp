@@ -241,15 +241,8 @@ void FuncCheckDeviceSecurityAbility()
     RuntimeContext::GetInstance()->CheckDeviceSecurityAbility("", SecurityOption());
     return;
 }
-}
 
-/**
- * @tc.name: CheckDeviceSecurityAbility002
- * @tc.desc: Check device security ability with getkvstore frequency.
- * @tc.type: FUNC
- * @tc.require: AR000EV1G2
- */
-HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbility002, TestSize.Level1)
+void CheckDeviceSecurityAbility002()
 {
     g_config.dataDir = g_testDir;
     g_mgr.SetKvStoreConfig(g_config);
@@ -267,11 +260,21 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbili
             g_mgr.CloseKvStore(g_kvNbDelegatePtr);
         }
     });
-    std::thread t3(FuncCheckDeviceSecurityAbility);
 
     t1.join();
     t2.join();
-    t3.join();
+}
+}
+
+/**
+ * @tc.name: CheckDeviceSecurityAbility002
+ * @tc.desc: Check device security ability with getkvstore frequency.
+ * @tc.type: FUNC
+ * @tc.require: AR000EV1G2
+ */
+HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, CheckDeviceSecurityAbility002, TestSize.Level1)
+{
+    ASSERT_NO_FATAL_FAILURE(CheckDeviceSecurityAbility002());
 }
 
 /**

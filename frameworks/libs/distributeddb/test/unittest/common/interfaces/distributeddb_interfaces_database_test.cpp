@@ -1303,6 +1303,33 @@ namespace {
         }
         LOGD("Succeed %d times", totalNum);
     }
+
+    void FreqOpenClose001()
+    {
+        std::string storeId = "FrqOpenClose001";
+        std::thread t1(OpenCloseDatabase, storeId);
+        std::thread t2(OpenCloseDatabase, storeId);
+        std::thread t3(OpenCloseDatabase, storeId);
+        std::thread t4(OpenCloseDatabase, storeId);
+        t1.join();
+        t2.join();
+        t3.join();
+        t4.join();
+        EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    }
+
+    void FreqOpenCloseDel001()
+    {
+        std::string storeId = "FrqOpenCloseDelete001";
+        std::thread t1(OpenCloseDatabase, storeId);
+        std::thread t2([&]() {
+            for (int i = 0; i < 10000; i++) { // loop 10000 times
+                g_mgr.DeleteKvStore(storeId);
+            }
+        });
+        t1.join();
+        t2.join();
+    }
 }
 
 /**
@@ -1314,15 +1341,7 @@ namespace {
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Level2)
 {
-    std::string storeId = "FrqOpenCloseDelete001";
-    std::thread t1(OpenCloseDatabase, storeId);
-    std::thread t2([&]() {
-        for (int i = 0; i < 10000; i++) {
-            g_mgr.DeleteKvStore(storeId);
-        }
-    });
-    t1.join();
-    t2.join();
+    ASSERT_NO_FATAL_FAILURE(FreqOpenCloseDel001());
 }
 
 /**
@@ -1334,16 +1353,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenCloseDel001, TestSize.Leve
   */
 HWTEST_F(DistributedDBInterfacesDatabaseTest, FreqOpenClose001, TestSize.Level2)
 {
-    std::string storeId = "FrqOpenClose001";
-    std::thread t1(OpenCloseDatabase, storeId);
-    std::thread t2(OpenCloseDatabase, storeId);
-    std::thread t3(OpenCloseDatabase, storeId);
-    std::thread t4(OpenCloseDatabase, storeId);
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    ASSERT_NO_FATAL_FAILURE(FreqOpenClose001());
 }
 
 /**
@@ -1402,6 +1412,56 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, CompressionRate1, TestSize.Level1)
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    g_kvNbDelegatePtr = nullptr;
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+}
+
+/**
+ * @tc.name: CompressionRate2
+ * @tc.desc: Open the kv store with again with different compression option.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: lianhuix
+ */
+HWTEST_F(DistributedDBInterfacesDatabaseTest, CompressionRate2, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. Open the kv store with the option that comressionRate is invalid.
+     * @tc.expected: step1. Open kv store successfully. Returns OK.
+     */
+    KvStoreNbDelegate::Option option;
+    option.isNeedCompressOnSync = true;
+    option.compressionRate = 70; // 70 compression rate.
+    const std::string storeId("CompressionRate1");
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2. Open again with different compression option
+     * @tc.expected: step2. Open kv store failed. Returns INVALID_ARGS.
+     */
+    DBStatus status;
+    KvStoreNbDelegate *delegate = nullptr;
+    auto callback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
+        placeholders::_1, placeholders::_2, std::ref(status), std::ref(delegate));
+
+    option.compressionRate = 80; // 80 compression rate.
+    g_mgr.GetKvStore(storeId, option, callback);
+    ASSERT_TRUE(delegate == nullptr);
+    EXPECT_TRUE(status == INVALID_ARGS);
+
+    option.isNeedCompressOnSync = false;
+    option.compressionRate = 70; // 70 compression rate.
+    g_mgr.GetKvStore(storeId, option, callback);
+    ASSERT_TRUE(delegate == nullptr);
+    EXPECT_TRUE(status == INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3. Close kv store
+     * @tc.expected: step3. OK.
+     */
     g_mgr.CloseKvStore(g_kvNbDelegatePtr);
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);

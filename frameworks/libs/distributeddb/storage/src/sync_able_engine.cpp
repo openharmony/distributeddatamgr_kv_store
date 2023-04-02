@@ -66,7 +66,7 @@ void SyncAbleEngine::Close()
 
 void SyncAbleEngine::EnableAutoSync(bool enable)
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EnableAutoSync(enable);
@@ -85,7 +85,7 @@ int SyncAbleEngine::DisableManualSync(void)
 // Get The current virtual timestamp
 uint64_t SyncAbleEngine::GetTimestamp()
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.GetTimestamp();
@@ -93,7 +93,7 @@ uint64_t SyncAbleEngine::GetTimestamp()
 
 int SyncAbleEngine::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
@@ -176,6 +176,15 @@ void SyncAbleEngine::StopSyncerWithNoLock(bool isClosedOperation)
 
 void SyncAbleEngine::UserChangeHandle()
 {
+    if (store_ == nullptr) {
+        LOGD("[SyncAbleEngine] RDB got null sync interface in userChange.");
+        return;
+    }
+    bool isSyncDualTupleMode = store_->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    if (!isSyncDualTupleMode) {
+        LOGD("[SyncAbleEngine] no use syncDualTupleMode, abort userChange");
+        return;
+    }
     std::unique_lock<std::mutex> lock(syncerOperateLock_);
     if (closed_) {
         LOGI("RDB is already closed");
@@ -269,5 +278,20 @@ int SyncAbleEngine::RemoteQuery(const std::string &device, const RemoteCondition
         }
     }
     return syncer_.RemoteQuery(device, condition, timeout, connectionId, result);
+}
+
+bool SyncAbleEngine::NeedStartSyncer() const
+{
+    // don't start when check callback got not active
+    // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
+    return !started_ && (isSyncNeedActive_ || !isSyncModuleActiveCheck_);
+}
+
+int SyncAbleEngine::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetHashDeviceId(clientId, hashDevId);
 }
 }

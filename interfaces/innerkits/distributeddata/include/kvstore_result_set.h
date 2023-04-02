@@ -24,6 +24,10 @@ class KvStoreResultSet {
 public:
     inline static constexpr int INVALID_COUNT = -ALREADY_CLOSED;
     inline static constexpr int INVALID_POSITION = -ALREADY_CLOSED;
+
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT virtual ~KvStoreResultSet() {}
 
     /**

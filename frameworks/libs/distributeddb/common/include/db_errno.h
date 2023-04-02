@@ -125,6 +125,7 @@ constexpr int E_NONEXISTENT = (E_BASE + 103);  // for result set, nonexistent in
 constexpr int E_TYPE_MISMATCH = (E_BASE + 104);  // for result set, mismatch type
 constexpr int E_DENIED_SQL = (E_BASE + 105);  // denied sql, not permit to execute
 constexpr int E_USER_CHANGE = (E_BASE + 106); // user change
+constexpr int E_CONSTRAINT = (E_BASE + 107); // sql failed with constraint
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

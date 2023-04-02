@@ -25,26 +25,44 @@ namespace DistributedKv {
 
 class Blob  {
 public:
+    /**
+     * @brief Constructor.
+     */
     API_EXPORT Blob();
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT ~Blob() = default;
 
     /**
      * @brief Copy constructor for Blob.
      */ 
     API_EXPORT Blob(const Blob &blob);
+
+    /**
+     * @brief Operator =.
+     */
     API_EXPORT Blob &operator=(const Blob &blob);
 
     /**
      * @brief Move constructor for Blob.
      */
     API_EXPORT Blob(Blob &&blob);
+
+    /**
+     * @brief Operator =.
+     */
     API_EXPORT Blob &operator=(Blob &&blob);
 
     /**
      * @brief Construct a Blob use std::string.
     */
     API_EXPORT Blob(const std::string &str);
+
+    /**
+     * @brief Operator =.
+     */
     API_EXPORT Blob &operator=(const std::string &str);
 
     /**
@@ -56,6 +74,10 @@ public:
      * @brief Construct a Blob use char pointer.
     */
     API_EXPORT Blob(const char *str);
+
+    /**
+     * @brief Operator =.
+     */
     API_EXPORT Blob &operator=(const char *str);
 
     /**
@@ -73,8 +95,14 @@ public:
     */
     API_EXPORT const std::vector<uint8_t> &Data() const;
 
+    /**
+     * @brief Return std::vector<uint8_t> &.
+     */
     API_EXPORT operator const std::vector<uint8_t> &() const;
 
+    /**
+     * @brief Return std::vector<uint8_t> &&.
+     */
     API_EXPORT operator std::vector<uint8_t> &&() noexcept;
 
     /**
@@ -102,6 +130,9 @@ public:
     */
     API_EXPORT uint8_t operator[](size_t n) const;
 
+    /**
+     * @brief Operator ==.
+     */
     API_EXPORT bool operator==(const Blob &) const;
 
     /**
