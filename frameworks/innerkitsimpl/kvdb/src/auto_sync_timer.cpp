@@ -28,15 +28,15 @@ AutoSyncTimer &AutoSyncTimer::GetInstance()
 void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (forceSyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
-        forceSyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
+    if (forceSyncTaskId_ == KvThreadPool::INVALID_TASK_ID) {
+        auto expiredTime = std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
+        forceSyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     }
-    if (delaySyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
-        delaySyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
+    if (delaySyncTaskId_ == KvThreadPool::INVALID_TASK_ID) {
+        auto expiredTime =std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
+        delaySyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     } else {
-        delaySyncTaskId_ = scheduler_.Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));
+        delaySyncTaskId_ = scheduler_->Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));
     }
 }
 
@@ -113,8 +113,9 @@ std::function<void()> AutoSyncTimer::ProcessTask()
 void AutoSyncTimer::StopTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    scheduler_.Clean();
-    forceSyncTaskId_ = TaskScheduler::INVALID_TASK_ID;
-    delaySyncTaskId_ = TaskScheduler::INVALID_TASK_ID;
+    scheduler_->Remove(forceSyncTaskId_);
+    scheduler_->Remove(delaySyncTaskId_);
+    forceSyncTaskId_ = KvThreadPool::INVALID_TASK_ID;
+    delaySyncTaskId_ = KvThreadPool::INVALID_TASK_ID;
 }
 }

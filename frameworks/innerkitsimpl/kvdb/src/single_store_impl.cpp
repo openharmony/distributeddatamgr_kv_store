@@ -23,6 +23,7 @@
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
+#include "kv_thread_pool.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;

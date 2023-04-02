@@ -21,7 +21,6 @@
 #include "security_manager.h"
 #include "store_errno.h"
 #include "store_util.h"
-#include "task_scheduler.h"
 namespace OHOS::DistributedKv {
 class BackupManager {
 public:

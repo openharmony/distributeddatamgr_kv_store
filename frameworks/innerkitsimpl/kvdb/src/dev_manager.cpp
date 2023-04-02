@@ -21,7 +21,7 @@
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_util.h"
-#include "task_executor.h"
+#include "kv_thread_pool.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
 constexpr int32_t DM_OK = 0;
@@ -108,7 +108,7 @@ std::function<void()> DevManager::Retry()
             return;
         }
         constexpr int32_t interval = 100;
-        TaskExecutor::GetInstance().Execute(Retry(), interval);
+        KvThreadPool::GetInstance().Schedule(Retry(), interval);
     };
 }
 
