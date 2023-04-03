@@ -138,6 +138,11 @@ int VirtualSingleVerSyncDBInterface::GetSyncDataNext(std::vector<DataItem> &data
 
 void VirtualSingleVerSyncDBInterface::ReleaseContinueToken(ContinueToken& continueStmtToken) const
 {
+    VirtualContinueToken *token = static_cast<VirtualContinueToken *>(continueStmtToken);
+    if (token != nullptr) {
+        delete token;
+        continueStmtToken = nullptr;
+    }
     return;
 }
 
@@ -553,12 +558,12 @@ bool VirtualSingleVerSyncDBInterface::GetDataInner(Timestamp begin, Timestamp en
 {
     bool isFinished = true;
     for (const auto &data : dbData_) {
-        if (dataItems.size() >= dataSizeInfo.packetSize) {
-            LOGD("virtual device dataItem size reach to packetSize=%u", dataSizeInfo.packetSize);
-            isFinished = false;
-            break;
-        }
         if (data.isLocal) {
+            if (dataItems.size() >= dataSizeInfo.packetSize) {
+                LOGD("virtual device dataItem size reach to packetSize=%u", dataSizeInfo.packetSize);
+                isFinished = false;
+                break;
+            }
             if (data.writeTimestamp >= begin && data.writeTimestamp < end) {
                 dataItems.push_back(data);
                 currentWaterMark = data.writeTimestamp;

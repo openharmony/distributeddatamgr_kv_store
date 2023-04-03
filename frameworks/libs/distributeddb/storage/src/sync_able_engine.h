@@ -54,6 +54,8 @@ public:
 
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         uint64_t connectionId, std::shared_ptr<ResultSet> &result);
+
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
 private:
     // Start syncer
     int StartSyncer(bool isCheckSyncActive = false, bool isNeedActive = true);
@@ -74,6 +76,8 @@ private:
     void UserChangeHandle();
 
     void ChangeUserListener();
+
+    bool NeedStartSyncer() const;
 
     SyncerProxy syncer_; // use for sync Interactive
     std::atomic<bool> started_;

@@ -34,6 +34,9 @@ public:
     API_EXPORT ChangeNotification(std::vector<Entry> &&insertEntries, std::vector<Entry> &&updateEntries,
                        std::vector<Entry> &&deleteEntries, const std::string &deviceId, bool isClear);
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT ~ChangeNotification();
 
     /**

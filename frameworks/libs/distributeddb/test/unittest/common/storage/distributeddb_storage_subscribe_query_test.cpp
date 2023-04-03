@@ -816,3 +816,49 @@ HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest003, TestSize.L
     RefObject::KillAndDecObjRef(store);
     KvDBManager::ReleaseDatabaseConnection(conn);
 }
+
+/**
+  * @tc.name: AddSubscribeTest004
+  * @tc.desc: Add subscribe with query by prefixKey
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: xulianhui
+  */
+HWTEST_F(DistributedDBStorageSubscribeQueryTest, AddSubscribeTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Create a json schema db, get the natural store instance.
+     * @tc.expected: Get results OK and non-null store.
+     */
+    SQLiteSingleVerNaturalStoreConnection *conn = nullptr;
+    SQLiteSingleVerNaturalStore *store = nullptr;
+    CreateAndGetStore("SubscribeTest02", "", conn, store);
+
+    /**
+     * @tc.steps:step2. Add subscribe with query by prefixKey
+     * @tc.expected: step2. add success
+     */
+    Query query = Query::Select().PrefixKey(NULL_KEY_1);
+    QueryObject queryObj(query);
+    int errCode = store->AddSubscribe(SUBSCRIBE_ID, queryObj, false);
+    EXPECT_EQ(errCode, E_OK);
+
+    IOption syncIOpt {IOption::SYNC_DATA};
+    EXPECT_EQ(conn->Put(syncIOpt, KEY_1, {}), E_OK);
+
+    Value valGot;
+    EXPECT_EQ(conn->Get(syncIOpt, KEY_1, valGot), E_OK);
+    EXPECT_EQ(valGot, Value {});
+
+    std::string subKey = DBConstant::SUBSCRIBE_QUERY_PREFIX + DBCommon::TransferHashString(SUBSCRIBE_ID);
+    Key metaKey(subKey.begin(), subKey.end());
+    EXPECT_EQ(store->GetMetaData(metaKey, valGot), E_OK);
+    EXPECT_NE(valGot.size(), 0u);
+
+    /**
+     * @tc.steps:step3. Close natural store
+     * @tc.expected: step3. Close ok
+     */
+    RefObject::KillAndDecObjRef(store);
+    KvDBManager::ReleaseDatabaseConnection(conn);
+}

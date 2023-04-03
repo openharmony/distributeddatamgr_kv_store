@@ -405,6 +405,17 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask,
             break;
         }
     }
+    if (errCode == -E_WAIT_RETRY) {
+        const int RETRY_INTERVAL = 1000;
+        TimerId timerId = 0u;
+        const std::string target = inTask.dstTarget;
+        RefObject::IncObjRef(this);
+        errCode = RuntimeContext::GetInstance()->SetTimer(RETRY_INTERVAL, [this, target](TimerId id) {
+            OnSendable(target);
+            RefObject::DecObjRef(this);
+            return -E_END_TIMER;
+        }, nullptr, timerId);
+    }
     if (taskNeedFinalize) {
         TaskFinalizer(inTask, errCode);
     }

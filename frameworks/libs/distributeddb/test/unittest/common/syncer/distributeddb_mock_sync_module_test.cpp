@@ -117,6 +117,7 @@ void Init(MockSingleVerStateMachine &stateMachine, MockSyncTaskContext *syncTask
     MockCommunicator &communicator, VirtualSingleVerSyncDBInterface *dbSyncInterface)
 {
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    ASSERT_EQ(metadata->Initialize(dbSyncInterface), E_OK);
     (void)syncTaskContext->Initialize("device", dbSyncInterface, metadata, &communicator);
     (void)stateMachine.Initialize(syncTaskContext, dbSyncInterface, metadata, &communicator);
 }
@@ -241,7 +242,7 @@ void AbilitySync004()
     std::unique_lock<std::mutex> lock(mutex);
     std::condition_variable cv;
     for (int i = 0; i < loopCount; i++) {
-        std::thread t = std::thread([&] {
+        std::thread t = std::thread([&context, &finishCount, &cv] {
             DbAbility dbAbility;
             context->SetDbAbility(dbAbility);
             finishCount++;
@@ -546,7 +547,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, StateMachineCheck006, TestSize.Level1)
     // we expect machine don't change context status when queue not empty
     EXPECT_CALL(syncTaskContext, SetOperationStatus(_)).WillOnce(Return());
     EXPECT_CALL(syncTaskContext, SetTaskExecStatus(_)).WillOnce(Return());
-    EXPECT_CALL(syncTaskContext, Clear()).WillOnce(Return());
+    EXPECT_CALL(syncTaskContext, Clear()).WillRepeatedly(Return());
 
     EXPECT_EQ(stateMachine.CallExecNextTask(), -E_NO_SYNC_TASK);
 }
@@ -1047,8 +1048,8 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest004, TestSize.Level3)
     syncer->EnableAutoSync(true);
     incRefCount = 0;
     syncer->RemoteDataChanged("");
-    EXPECT_EQ(incRefCount, 1); // refCount is 1
     std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(incRefCount, 2); // refCount is 2
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
@@ -1521,6 +1522,62 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck001, TestSize.Leve
     EXPECT_EQ(syncTaskContext.CallIsCurrentSyncTaskCanBeSkipped(), true);
 }
 
+/**
+ * @tc.name: SyncTaskContextCheck002
+ * @tc.desc: test context check task can be skipped in push mode.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create context and operation
+     */
+    auto syncTaskContext = new(std::nothrow) MockSyncTaskContext();
+    ASSERT_NE(syncTaskContext, nullptr);
+    auto operation = new SyncOperation(1u, {}, static_cast<int>(SyncModeType::QUERY_PUSH), nullptr, false);
+    ASSERT_NE(operation, nullptr);
+    QuerySyncObject querySyncObject;
+    operation->SetQuery(querySyncObject);
+    syncTaskContext->SetSyncOperation(operation);
+    syncTaskContext->SetLastFullSyncTaskStatus(SyncOperation::Status::OP_FAILED);
+    syncTaskContext->CallSetSyncMode(static_cast<int>(SyncModeType::QUERY_PUSH));
+    EXPECT_CALL(*syncTaskContext, IsTargetQueueEmpty()).WillRepeatedly(Return(false));
+
+    const int loopCount = 1000;
+    /**
+     * @tc.steps: step2. loop 1000 times for writing data into lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread writeThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            syncTaskContext->SaveLastPushTaskExecStatus(static_cast<int>(SyncOperation::Status::OP_FAILED));
+        }
+    });
+    /**
+     * @tc.steps: step3. loop 100000 times for clear lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread clearThread([&syncTaskContext]() {
+        for (int i = 0; i < 100000; ++i) { // loop 100000 times
+            syncTaskContext->ResetLastPushTaskStatus();
+        }
+    });
+    /**
+     * @tc.steps: step4. loop 1000 times for read data from lastQuerySyncTaskStatusMap_ async
+     */
+    std::thread readThread([&syncTaskContext]() {
+        for (int i = 0; i < loopCount; ++i) {
+            EXPECT_EQ(syncTaskContext->CallIsCurrentSyncTaskCanBeSkipped(), false);
+        }
+    });
+    writeThread.join();
+    clearThread.join();
+    readThread.join();
+    RefObject::KillAndDecObjRef(operation);
+    syncTaskContext->SetSyncOperation(nullptr);
+    RefObject::KillAndDecObjRef(syncTaskContext);
+}
+
 #ifdef RUN_AS_ROOT
 /**
  * @tc.name: TimeChangeListenerTest001
@@ -1597,6 +1654,51 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeChangeListenerTest002, TestSize.Le
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck001, TestSize.Level1)
 {
     ASSERT_NO_FATAL_FAILURE(SyncerCheck001());
+}
+
+/**
+ * @tc.name: SyncerCheck002
+ * @tc.desc: Test syncer call get timestamp with close and open.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck002, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. create context and syncer
+     */
+    std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
+    auto virtualCommunicatorAggregator = new(std::nothrow) VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
+    auto syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
+    std::vector<uint8_t> identifier(COMM_LABEL_LENGTH, 1u);
+    syncDBInterface->SetIdentifier(identifier);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
+    /**
+     * @tc.steps: step2. get timestamp by syncer over and over again
+     */
+    std::atomic<bool> finish = false;
+    std::thread t([&finish, &syncer]() {
+        while (!finish) {
+            (void) syncer->GetTimestamp();
+        }
+    });
+    /**
+     * @tc.steps: step3. re init syncer over and over again
+     * @tc.expected: step3. dont crash here.
+     */
+    for (int i = 0; i < 100; ++i) { // loop 100 times
+        syncer->Initialize(syncDBInterface, false);
+        syncer->Close(true);
+    }
+    finish = true;
+    t.join();
+    delete syncDBInterface;
+    syncer = nullptr;
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /**

@@ -92,7 +92,7 @@ int SyncAbleKvDB::Sync(const ISyncer::SyncParma &parma, uint64_t connectionId)
 
 void SyncAbleKvDB::EnableAutoSync(bool enable)
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EnableAutoSync(enable);
@@ -100,7 +100,7 @@ void SyncAbleKvDB::EnableAutoSync(bool enable)
 
 void SyncAbleKvDB::WakeUpSyncer()
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
 }
@@ -232,6 +232,12 @@ void SyncAbleKvDB::UserChangeHandle()
         LOGF("KvDB got null sync interface.");
         return;
     }
+    bool isSyncDualTupleMode = syncInterface->GetDbProperties().
+        GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    if (!isSyncDualTupleMode) {
+        LOGD("[SyncAbleKvDB] no use syncDualTupleMode, abort userChange");
+        return;
+    }
     std::unique_lock<std::mutex> lock(syncerOperateLock_);
     if (closed_) {
         LOGI("kvDB is already closed");
@@ -264,7 +270,7 @@ void SyncAbleKvDB::ChangeUserListener()
 // Get The current virtual timestamp
 uint64_t SyncAbleKvDB::GetTimestamp()
 {
-    if (!started_ && !isSyncModuleActiveCheck_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.GetTimestamp();
@@ -278,7 +284,7 @@ uint32_t SyncAbleKvDB::GetAppendedLen() const
 
 int SyncAbleKvDB::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 {
-    if (!started_) {
+    if (NeedStartSyncer()) {
         StartSyncer();
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash);
@@ -378,11 +384,17 @@ void SyncAbleKvDB::NotifyRemotePushFinishedInner(const std::string &targetId) co
 
 int SyncAbleKvDB::SetSyncRetry(bool isRetry)
 {
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
     return syncer_.SetSyncRetry(isRetry);
 }
 
 int SyncAbleKvDB::SetEqualIdentifier(const std::string &identifier, const std::vector<std::string> &targets)
 {
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
     return syncer_.SetEqualIdentifier(identifier, targets);
 }
 
@@ -400,5 +412,20 @@ void SyncAbleKvDB::Dump(int fd)
 int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     return syncer_.GetSyncDataSize(device, size);
+}
+
+bool SyncAbleKvDB::NeedStartSyncer() const
+{
+    // don't start when check callback got not active
+    // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
+    return !started_ && (isSyncNeedActive_ || !isSyncModuleActiveCheck_);
+}
+
+int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetHashDeviceId(clientId, hashDevId);
 }
 }

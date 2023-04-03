@@ -29,6 +29,7 @@ std::atomic<KvDBManager *> KvDBManager::instance_{nullptr};
 std::mutex KvDBManager::kvDBLock_;
 std::mutex KvDBManager::instanceLock_;
 std::map<std::string, OS::FileHandle *> KvDBManager::locks_;
+std::mutex KvDBManager::fileHandleMutex_;
 
 namespace {
     DefaultFactory g_defaultFactory;
@@ -120,7 +121,7 @@ int KvDBManager::ExecuteRemoveDatabase(const KvDBProperties &properties)
     }
 
     errCode = -E_NOT_FOUND;
-    for (const KvDBType kvDbType : g_dbTypeArr) {
+    for (KvDBType kvDbType : g_dbTypeArr) {
         int innerErrCode = E_OK;
         IKvDB *kvdb = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {
@@ -206,9 +207,12 @@ int KvDBManager::TryLockDB(const KvDBProperties &kvDBProp, int retryTimes)
         return E_OK;
     }
 
-    if (locks_.count(id) != 0) {
-        LOGI("db has been locked!");
-        return E_OK;
+    {
+        std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
+        if (locks_.count(id) != 0) {
+            LOGI("db has been locked!");
+            return E_OK;
+        }
     }
 
     std::string hexHashId = DBCommon::TransferStringToHex((id));
@@ -223,6 +227,7 @@ int KvDBManager::TryLockDB(const KvDBProperties &kvDBProp, int retryTimes)
         errCode = OS::FileLock(handle, false); // not block process
         if (errCode == E_OK) {
             LOGI("[%s]locked!", STR_MASK(DBCommon::TransferStringToHex(KvDBManager::GenerateKvDBIdentifier(kvDBProp))));
+            std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
             locks_[id] = handle;
             return errCode;
         } else if (errCode == -E_BUSY) {
@@ -246,21 +251,55 @@ int KvDBManager::UnlockDB(const KvDBProperties &kvDBProp)
         return E_OK;
     }
     std::string identifierDir = KvDBManager::GenerateKvDBIdentifier(kvDBProp);
-    if (locks_.count(identifierDir) == 0) {
-        return E_OK;
+    OS::FileHandle *handle = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
+        if (locks_.count(identifierDir) == 0) {
+            return E_OK;
+        }
+        handle = locks_[identifierDir];
     }
-    int errCode = OS::FileUnlock(locks_[identifierDir]);
+    int errCode = OS::FileUnlock(handle);
     if (errCode != E_OK) {
         LOGE("DB unlocked! errCode = [%d]", errCode);
         return errCode;
     }
-    errCode = OS::CloseFile(locks_[identifierDir]);
+    errCode = OS::CloseFile(handle);
     if (errCode != E_OK) {
         LOGE("DB closed! errCode = [%d]", errCode);
         return errCode;
     }
+    std::lock_guard<std::mutex> autoLock(fileHandleMutex_);
     locks_.erase(identifierDir);
     return E_OK;
+}
+
+bool KvDBManager::CheckOpenDBOptionWithCached(const KvDBProperties &properties, IKvDB *kvDB)
+{
+    bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    std::string canonicalDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
+    if (!isMemoryDb && (canonicalDir.empty() || canonicalDir != kvDB->GetStorePath())) {
+        LOGE("Failed to check store path, the input path does not match with cached store.");
+        return false;
+    }
+
+    bool compressOnSyncUser = properties.GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
+    bool compressOnSyncGet = kvDB->GetMyProperties().GetBoolProp(KvDBProperties::COMPRESS_ON_SYNC, false);
+    if (compressOnSyncUser != compressOnSyncGet) {
+        LOGE("Failed to check compress option, the input %d not match with cached %d.", compressOnSyncUser,
+            compressOnSyncGet);
+        return false;
+    }
+    if (compressOnSyncUser) {
+        int compressRateUser = properties.GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
+        int compressRateGet = kvDB->GetMyProperties().GetIntProp(KvDBProperties::COMPRESSION_RATE, 0);
+        if (compressRateUser != compressRateGet) {
+            LOGE("Failed to check compress rate, the input %d not match with cached %d.", compressRateUser,
+                compressRateGet);
+            return false;
+        }
+    }
+    return true;
 }
 
 // Used to open a kvdb with the given property
@@ -283,10 +322,8 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
             LOGE("Failed to open the db:%d", errCode);
         }
     } else {
-        bool isMemoryDb = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
-        std::string canonicalDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
-        if (!isMemoryDb && (canonicalDir.empty() || canonicalDir != kvDB->GetStorePath())) {
-            LOGE("Failed to check store path, the input path does not match with cached store.");
+        if (!CheckOpenDBOptionWithCached(properties, kvDB)) {
+            LOGE("Failed to check open db option");
             errCode = -E_INVALID_ARGS;
         } else {
             connection = kvDB->GetDBConnection(errCode);
@@ -304,7 +341,8 @@ IKvDBConnection *KvDBManager::GetDatabaseConnection(const KvDBProperties &proper
         std::string userId = properties.GetStringProp(KvDBProperties::USER_ID, "");
         std::string storeId = properties.GetStringProp(KvDBProperties::STORE_ID, "");
         manager->DataBaseCorruptNotify(appId, userId, storeId);
-        LOGE("Database [%s] is corrupted:%d", STR_MASK(DBCommon::TransferStringToHex(identifier)), errCode);
+        LOGE("Database [%s] is corrupted or invalid passwd:%d", STR_MASK(DBCommon::TransferStringToHex(identifier)),
+            errCode);
     }
 
     return connection;
@@ -447,7 +485,7 @@ int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t
     }
 
     uint64_t totalSize = 0;
-    for (const KvDBType kvDbType : g_dbTypeArr) {
+    for (KvDBType kvDbType : g_dbTypeArr) {
         int innerErrCode = E_OK;
         IKvDB *kvDB = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {

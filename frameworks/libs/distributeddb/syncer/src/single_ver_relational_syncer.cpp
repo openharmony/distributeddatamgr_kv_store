@@ -167,18 +167,19 @@ void SingleVerRelationalSyncer::SchemaChangeCallback()
     syncEngine_->SchemaChange();
 }
 
-int SingleVerRelationalSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-    const std::vector<std::string> &devices) const
+int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
+    ISyncInterface *storage) const
 {
-    if (!isQuerySync) {
+    if (!param.isQuerySync) {
         return E_OK;
     }
-    int errCode = static_cast<RelationalDBSyncInterface *>(syncInterface_)->CheckAndInitQueryCondition(query);
+    QuerySyncObject query = param.syncQuery;
+    int errCode = static_cast<RelationalDBSyncInterface *>(storage)->CheckAndInitQueryCondition(query);
     if (errCode != E_OK) {
         LOGE("[SingleVerRelationalSyncer] QuerySyncObject check failed");
         return errCode;
     }
-    if (mode == SUBSCRIBE_QUERY) {
+    if (param.mode == SUBSCRIBE_QUERY) {
         return -E_NOT_SUPPORT;
     }
     return E_OK;

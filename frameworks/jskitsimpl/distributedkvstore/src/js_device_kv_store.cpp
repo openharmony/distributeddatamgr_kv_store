@@ -54,6 +54,8 @@ napi_value JsDeviceKVStore::Constructor(napi_env env)
         DECLARE_NAPI_FUNCTION("rollback", JsSingleKVStore::Rollback),
         DECLARE_NAPI_FUNCTION("enableSync", JsSingleKVStore::EnableSync),
         DECLARE_NAPI_FUNCTION("setSyncRange", JsSingleKVStore::SetSyncRange),
+        DECLARE_NAPI_FUNCTION("backup", JsSingleKVStore::Backup),
+        DECLARE_NAPI_FUNCTION("restore", JsSingleKVStore::Restore),
         /* JsDeviceKVStore externs JsSingleKVStore */
         DECLARE_NAPI_FUNCTION("get", JsDeviceKVStore::Get),
         DECLARE_NAPI_FUNCTION("getEntries", JsDeviceKVStore::GetEntries),
@@ -252,6 +254,8 @@ napi_value JsDeviceKVStore::GetResultSet(napi_env env, napi_callback_info info)
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
         ctxt->resultSet->SetKvStoreResultSetPtr(kvResultSet);
+        bool isSchema = reinterpret_cast<JsDeviceKVStore*>(ctxt->native)->IsSchemaStore();
+        ctxt->resultSet->SetSchema(isSchema);
     };
     auto output = [env, ctxt](napi_value& result) {
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);

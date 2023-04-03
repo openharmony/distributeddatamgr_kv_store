@@ -159,29 +159,30 @@ void SingleVerKVSyncer::RemoteDataChanged(const std::string &device)
     static_cast<SingleVerSyncEngine *>(syncEngine_)->PutUnfinishedSubQueries(device, syncQueries);
 }
 
-int SingleVerKVSyncer::SyncConditionCheck(QuerySyncObject &query, int mode, bool isQuerySync,
-    const std::vector<std::string> &devices) const
+int SingleVerKVSyncer::SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine,
+    ISyncInterface *storage) const
 {
-    if (!isQuerySync) {
+    if (!param.isQuerySync) {
         return E_OK;
     }
-    int errCode = static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->CheckAndInitQueryCondition(query);
+    QuerySyncObject query = param.syncQuery;
+    int errCode = static_cast<SingleVerKvDBSyncInterface *>(storage)->CheckAndInitQueryCondition(query);
     if (errCode != E_OK) {
         LOGE("[SingleVerKVSyncer] QuerySyncObject check failed");
         return errCode;
     }
-    if (mode != SUBSCRIBE_QUERY) {
+    if (param.mode != SUBSCRIBE_QUERY) {
         return E_OK;
     }
     if (query.HasLimit() || query.HasOrderBy()) {
         LOGE("[SingleVerKVSyncer] subscribe query not support limit,offset or orderby");
         return -E_NOT_SUPPORT;
     }
-    if (devices.size() > MAX_DEVICES_NUM) {
+    if (param.devices.size() > MAX_DEVICES_NUM) {
         LOGE("[SingleVerKVSyncer] devices is overlimit");
         return -E_MAX_LIMITS;
     }
-    return syncEngine_->SubscribeLimitCheck(devices, query);
+    return engine->SubscribeLimitCheck(param.devices, query);
 }
 
 void SingleVerKVSyncer::TriggerSubscribe(const std::string &device, const QuerySyncObject &query)
@@ -238,6 +239,17 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         LOGE("[Syncer] Syncer has not Init");
         return;
     }
+    std::shared_ptr<Metadata> metadata = nullptr;
+    ISyncInterface *syncInterface = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr || syncInterface_ == nullptr) {
+            return;
+        }
+        metadata = metadata_;
+        syncInterface = syncInterface_;
+        syncInterface->IncRefCount();
+    }
     int errCode;
     for (auto &device : devices) {
         std::vector<QuerySyncObject> queries;
@@ -245,15 +257,8 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
         for (auto &query : queries) {
             std::string queryId = query.GetIdentify();
             WaterMark queryWaterMark = 0;
-            uint64_t lastTimestamp = 0;
-            {
-                std::lock_guard<std::mutex> lock(syncerLock_);
-                if (metadata_ == nullptr) {
-                    return;
-                }
-                lastTimestamp = metadata_->GetQueryLastTimestamp(device, queryId);
-                errCode = metadata_->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
-            }
+            uint64_t lastTimestamp = metadata->GetQueryLastTimestamp(device, queryId);
+            errCode = metadata->GetSendQueryWaterMark(queryId, device, queryWaterMark, false);
             if (errCode != E_OK) {
                 LOGE("[Syncer] get queryId=%s,dev=%s watermark failed", STR_MASK(queryId), STR_MASK(device));
                 continue;
@@ -273,6 +278,7 @@ void SingleVerKVSyncer::TriggerSubQuerySync(const std::vector<std::string> &devi
             QueryAutoSync(param);
         }
     }
+    syncInterface->DecRefCount();
 }
 
 SyncerBasicInfo SingleVerKVSyncer::DumpSyncerBasicInfo()

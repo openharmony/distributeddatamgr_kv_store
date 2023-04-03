@@ -28,8 +28,14 @@ namespace OHOS {
 namespace DistributedKv {
 class API_EXPORT DataQuery {
 public:
+    /**
+     * @brief Constructor.
+     */
     DataQuery();
 
+    /**
+     * @brief Destructor.
+     */
     ~DataQuery() = default;
 
     /**

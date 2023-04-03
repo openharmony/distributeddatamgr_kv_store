@@ -30,8 +30,14 @@ namespace DistributedKv {
 // This class provides put, delete, search, sync and subscribe functions of a key-value store.
 class API_EXPORT SingleKvStore : public virtual KvStore {
 public:
+    /**
+     * @brief Constructor.
+     */
     API_EXPORT SingleKvStore() = default;
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT virtual ~SingleKvStore() {}
 
     /**

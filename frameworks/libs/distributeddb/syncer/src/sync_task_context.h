@@ -70,7 +70,7 @@ public:
     // Move to next target to sync
     void MoveToNextTarget() override;
 
-    int GetNextTarget(bool isNeedSetFinished) override;
+    int GetNextTarget() override;
 
     // Get the current task syncId
     uint32_t GetSyncId() const override;

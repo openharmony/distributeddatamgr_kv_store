@@ -328,7 +328,6 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 or 2 arguments :: <event> [callback]
-        // ASSERT_ARGS(ctxt, (argc == 1) || (argc == 2), "invalid arguments!");
         ASSERT_BUSINESS_ERR(ctxt, argc > 0, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
         std::string event;
         ctxt->status = JSUtil::GetValue(env, argv[0], event);

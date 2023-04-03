@@ -652,21 +652,6 @@ HWTEST_F(DistributeddbKvCrudTest, ComplexDataTest006, TestSize.Level1)
 }
 
 /*
- * @tc.name: ComplexDataTest 007
- * @tc.desc: Verify that can operate chinese string key and value.
- * @tc.type: FUNC
- * @tc.require: SR000BUH3J
- * @tc.author: luqianfu
- */
-HWTEST_F(DistributeddbKvCrudTest, ComplexDataTest007, TestSize.Level1)
-{
-    /*
-     * @tc.steps: step1. create kv db and put(k,OK_VALUE_1) that k="中文"and get.
-     * @tc.expected: step1. put successfully and get the value of k is OK_VALUE_1.
-     */
-}
-
-/*
  * @tc.name: ReadWritePerformance 001
  * @tc.desc: calculate the time of put-get in 16b-100b/16b-100kb, 1k times' random-put&get.
  * @tc.type: Performance
@@ -710,12 +695,12 @@ HWTEST_F(DistributeddbKvCrudTest, ReadWritePerformance001, TestSize.Level3)
     };
 
     for (int ps = 0; ps < PERFORMANCE_SIZE; ++ps) {
-        DistributedTestTools::CalculateOpenPerformance(performanceData[ps]);
-        DistributedTestTools::CalculateInsertPerformance(performanceData[ps]);
-        DistributedTestTools::CalculateGetPutPerformance(performanceData[ps]);
-        DistributedTestTools::CalculateUpdatePerformance(performanceData[ps]);
-        DistributedTestTools::CalculateGetUpdatePerformance(performanceData[ps]);
-        DistributedTestTools::CalculateUseClearPerformance(performanceData[ps]);
+        EXPECT_TRUE(DistributedTestTools::CalculateOpenPerformance(performanceData[ps]));
+        EXPECT_TRUE(DistributedTestTools::CalculateInsertPerformance(performanceData[ps]));
+        EXPECT_TRUE(DistributedTestTools::CalculateGetPutPerformance(performanceData[ps]));
+        EXPECT_TRUE(DistributedTestTools::CalculateUpdatePerformance(performanceData[ps]));
+        EXPECT_TRUE(DistributedTestTools::CalculateGetUpdatePerformance(performanceData[ps]));
+        EXPECT_TRUE(DistributedTestTools::CalculateUseClearPerformance(performanceData[ps]));
     }
 }
 }

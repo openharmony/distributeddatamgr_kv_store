@@ -301,6 +301,8 @@ DeviceID QuerySyncWaterMarkHelper::GetHashQuerySyncDeviceId(const DeviceID &devi
 int QuerySyncWaterMarkHelper::GetDeleteSyncWaterMark(const std::string &deviceId, DeleteWaterMark &deleteWaterMark)
 {
     std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
 }
 
@@ -308,19 +310,22 @@ int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceI
 {
     std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
     DeleteWaterMark deleteWaterMark;
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.sendWaterMark = waterMark;
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
 
-int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark)
+int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark,
+    bool isNeedHash)
 {
-    std::string hashId = GetHashDeleteSyncDeviceId(deviceId);
+    std::string hashId = GetHashDeleteSyncDeviceId(deviceId, isNeedHash);
     DeleteWaterMark deleteWaterMark;
+    // lock prevent different thread visit deleteSyncCache_
+    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.recvWaterMark = waterMark;
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
 
@@ -340,8 +345,6 @@ int QuerySyncWaterMarkHelper::UpdateDeleteSyncCacheAndSave(const std::string &db
 int QuerySyncWaterMarkHelper::GetDeleteWaterMarkFromCache(const DeviceID &hashDeviceId,
     DeleteWaterMark &deleteWaterMark)
 {
-    // lock prevent different thread visit deleteSyncCache_
-    std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     // if not found
     if (deleteSyncCache_.find(hashDeviceId) == deleteSyncCache_.end()) {
         DeleteWaterMark waterMark;
@@ -396,12 +399,13 @@ int QuerySyncWaterMarkHelper::SaveDeleteWaterMarkToDB(const DeviceID &hashDevice
     return errCode;
 }
 
-DeviceID QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId)
+DeviceID QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId, bool isNeedHash)
 {
     DeviceID hashDeleteSyncId;
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     if (deviceIdToHashDeleteSyncIdMap_.count(deviceId) == 0) {
-        hashDeleteSyncId = DBConstant::DELETE_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        hashDeleteSyncId = DBConstant::DELETE_SYNC_PREFIX_KEY +
+            (isNeedHash ? DBCommon::TransferHashString(deviceId) : deviceId);
         deviceIdToHashDeleteSyncIdMap_.insert(std::pair<DeviceID, DeviceID>(deviceId, hashDeleteSyncId));
     } else {
         hashDeleteSyncId = deviceIdToHashDeleteSyncIdMap_[deviceId];
@@ -506,11 +510,13 @@ int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Ke
     return DeleteMetaDataFromDB(waitToRemove);
 }
 
-int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName)
+int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName,
+    bool isNeedHash)
 {
     // lock prevent other thread modify queryWaterMark at this moment
     std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
-    std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+    std::string prefixKeyStr = DBConstant::QUERY_SYNC_PREFIX_KEY +
+        (isNeedHash ? DBCommon::TransferHashString(deviceId) : deviceId);
     if (!tableName.empty()) {
         std::string hashTableName = DBCommon::TransferHashString(tableName);
         std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);

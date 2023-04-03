@@ -157,8 +157,8 @@ enum DistributedTableMode : int {
 struct CaseInsensitiveComparator {
     bool operator() (const std::string& first, const std::string& second) const
     {
-        std::string str1(first.length(),' ');
-        std::string str2(second.length(),' ');
+        std::string str1(first.length(), ' ');
+        std::string str2(second.length(), ' ');
         std::transform(first.begin(), first.end(), str1.begin(), tolower);
         std::transform(second.begin(), second.end(), str2.begin(), tolower);
         return str1 < str2;

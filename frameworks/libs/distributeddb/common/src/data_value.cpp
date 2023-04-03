@@ -175,7 +175,7 @@ DataValue &DataValue::operator=(const Blob &blob)
 int DataValue::Set(Blob *&blob)
 {
     ResetValue();
-    if (blob == nullptr || blob->GetSize() <= 0) {
+    if (blob == nullptr || blob->GetSize() < 0) {
         LOGE("Transfer Blob to DataValue failed.");
         return -E_INVALID_ARGS;
     }
@@ -257,7 +257,7 @@ int DataValue::GetBlob(Blob *&outVal) const
 int DataValue::SetBlob(const Blob &val)
 {
     ResetValue();
-    if (val.GetSize() <= 0) {
+    if (val.GetSize() < 0) {
         return E_OK;
     }
     value_.blobPtr = new(std::nothrow) Blob();

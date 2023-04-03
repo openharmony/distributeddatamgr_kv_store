@@ -24,8 +24,14 @@ namespace DistributedKv {
 // client implement this class to watch kvstore change.
 class API_EXPORT KvStoreObserver {
 public:
+    /**
+     * @brief Constructor.
+     */
     API_EXPORT KvStoreObserver() = default;
 
+    /**
+     * @brief Destructor.
+     */
     API_EXPORT virtual ~KvStoreObserver() {}
 
     /**

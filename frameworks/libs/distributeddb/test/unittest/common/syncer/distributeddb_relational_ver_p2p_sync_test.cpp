@@ -1082,6 +1082,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, NormalSync008, TestSize.Level0)
     std::vector<VirtualRowData> targetData;
     g_deviceB->GetAllSyncData(g_tableName, targetData);
     ASSERT_EQ(targetData.size(), 0u);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 /**
@@ -1203,94 +1204,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
     std::this_thread::sleep_for(std::chrono::seconds(61)); // sleep 61s
     EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_CLOSED);
 }
-
-/**
-* @tc.name: AutoLaunchSyncAfterRekey_001
-* @tc.desc: Test auto launch sync ok after rekey.
-* @tc.type: FUNC
-* @tc.require: AR000H68LL
-* @tc.author: lidongwei
-*/
-#ifndef OMIT_ENCRYPT
-HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, TestSize.Level3)
-{
-    /**
-     * @tc.steps: step1. open rdb store, create distribute table and insert data
-     */
-    std::map<std::string, DataValue> dataMap;
-    PrepareVirtualEnvironment(dataMap, {g_deviceB});
-
-    /**
-     * @tc.steps: step2. set auto launch callBack
-     */
-    AutoLaunchParam encryptedParam { USER_ID, APP_ID, STORE_ID_1, AutoLaunchOption {}, nullptr, g_dbDir };
-    encryptedParam.option.isEncryptedDb = true;
-    encryptedParam.option.cipher = CipherType::DEFAULT;
-    encryptedParam.option.passwd = g_correctPasswd;
-    encryptedParam.option.iterateTimes = DEFAULT_ITER;
-    AutoLaunchRequestCallback callback = [&encryptedParam](const std::string &identifier, AutoLaunchParam &param) {
-        if (g_id != identifier) {
-            return false;
-        }
-        param = encryptedParam;
-        return true;
-    };
-    g_mgr.SetAutoLaunchRequestCallback(callback);
-    /**
-     * @tc.steps: step3. close store ensure communicator has closed
-     */
-    g_mgr.CloseStore(g_rdbDelegatePtr);
-    g_rdbDelegatePtr = nullptr;
-    /**
-     * @tc.steps: step4. RunCommunicatorLackCallback to autolaunch store
-     */
-    LabelType labelType(g_id.begin(), g_id.end());
-    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    /**
-     * @tc.steps: step5. Rekey
-     */
-    sqlite3 *db = nullptr;
-    EXPECT_EQ(GetDB(db), SQLITE_OK);
-    std::thread t1([&db] {
-        std::string sql = "PARGMA rekey=" + REKEY_KEY;
-        EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
-    });
-    t1.join();
-    g_isAfterRekey = true;
-
-    /**
-     * @tc.steps: step6. Call sync expect sync failed
-     */
-    Query query = Query::Select(g_tableName);
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
-    size_t count = 0;
-    GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
-    EXPECT_EQ(count, 0u);
-
-    /**
-     * @tc.steps: step7. Set callback.
-     */
-    encryptedParam.option.passwd = g_rekeyPasswd;
-    g_mgr.SetAutoLaunchRequestCallback(callback);
-    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    /**
-     * @tc.steps: step8. Call sync expect sync success
-     */
-    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
-    GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
-    EXPECT_EQ(count, 1u);
-    GetSyncData(db, dataMap, g_tableName, g_fieldInfoList);
-    EXPECT_EQ(dataMap.size(), 3u);
-    OpenStore();
-    std::this_thread::sleep_for(std::chrono::minutes(1));
-    sqlite3_close(db);
-    db = nullptr;
-}
-#endif
 
 /**
 * @tc.name: AutoLaunchSync 002
@@ -2381,4 +2294,164 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSiz
     g_deviceB->GenericVirtualDevice::Sync(DistributedDB::SYNC_MODE_PULL_ONLY, query, true);
     CheckVirtualData(dataMap);
 }
+
+#ifndef OMIT_ENCRYPT
+/**
+* @tc.name: AutoLaunchSyncAfterRekey_001
+* @tc.desc: Test auto launch sync ok after rekey.
+* @tc.type: FUNC
+* @tc.require: AR000H68LL
+* @tc.author: lidongwei
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_001, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. open rdb store, create distribute table and insert data
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+
+    /**
+     * @tc.steps: step2. set auto launch callBack
+     */
+    AutoLaunchParam encryptedParam { USER_ID, APP_ID, STORE_ID_1, AutoLaunchOption {}, nullptr, g_dbDir };
+    encryptedParam.option.isEncryptedDb = true;
+    encryptedParam.option.cipher = CipherType::DEFAULT;
+    encryptedParam.option.passwd = g_correctPasswd;
+    encryptedParam.option.iterateTimes = DEFAULT_ITER;
+    AutoLaunchRequestCallback callback = [&encryptedParam](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_id != identifier) {
+            return false;
+        }
+        param = encryptedParam;
+        return true;
+    };
+    g_mgr.SetAutoLaunchRequestCallback(callback);
+    /**
+     * @tc.steps: step3. close store ensure communicator has closed
+     */
+    g_mgr.CloseStore(g_rdbDelegatePtr);
+    g_rdbDelegatePtr = nullptr;
+    /**
+     * @tc.steps: step4. RunCommunicatorLackCallback to autolaunch store
+     */
+    LabelType labelType(g_id.begin(), g_id.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    /**
+     * @tc.steps: step5. Rekey
+     */
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db), SQLITE_OK);
+    std::thread t1([&db] {
+        std::string sql = "PARGMA rekey=" + REKEY_KEY;
+        EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
+    });
+    t1.join();
+    g_isAfterRekey = true;
+
+    /**
+     * @tc.steps: step6. Call sync expect sync failed
+     */
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    size_t count = 0;
+    GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
+    EXPECT_EQ(count, 0u);
+
+    /**
+     * @tc.steps: step7. Set callback.
+     */
+    encryptedParam.option.passwd = g_rekeyPasswd;
+    g_mgr.SetAutoLaunchRequestCallback(callback);
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    /**
+     * @tc.steps: step8. Call sync expect sync success
+     */
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
+    EXPECT_EQ(count, 1u);
+    GetSyncData(db, dataMap, g_tableName, g_fieldInfoList);
+    EXPECT_EQ(dataMap.size(), 3u);
+    OpenStore();
+    std::this_thread::sleep_for(std::chrono::minutes(1));
+    sqlite3_close(db);
+    db = nullptr;
+}
+
+/**
+* @tc.name: AutoLaunchSyncAfterRekey_002
+* @tc.desc: Test auto launch close check after rekey.
+* @tc.type: FUNC
+* @tc.require: AR000H68LL
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_002, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. open rdb store, create distribute table and insert data
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+    /**
+     * @tc.steps: step2. set auto launch callBack
+     */
+    AutoLaunchParam encryptedParam { USER_ID, APP_ID, STORE_ID_1, AutoLaunchOption {}, nullptr, g_dbDir };
+    encryptedParam.option.isEncryptedDb = true;
+    encryptedParam.option.cipher = CipherType::DEFAULT;
+    encryptedParam.option.passwd = g_correctPasswd;
+    encryptedParam.option.iterateTimes = DEFAULT_ITER;
+    AutoLaunchRequestCallback callback = [&encryptedParam](const std::string &identifier, AutoLaunchParam &param) {
+        param = encryptedParam;
+        return true;
+    };
+    RelationalStoreManager::SetAutoLaunchRequestCallback(callback);
+    /**
+     * @tc.steps: step3. close store ensure communicator has closed
+     */
+    g_mgr.CloseStore(g_rdbDelegatePtr);
+    g_rdbDelegatePtr = nullptr;
+    /**
+     * @tc.steps: step4. RunCommunicatorLackCallback to autolaunch store
+     */
+    LabelType labelType(g_id.begin(), g_id.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // wait 2s for auto launch
+    /**
+     * @tc.steps: step5. Rekey
+     */
+    sqlite3 *db = nullptr;
+    EXPECT_EQ(GetDB(db), SQLITE_OK);
+    std::string sql = "PARGMA rekey=" + REKEY_KEY;
+    EXPECT_EQ(sqlite3_rekey(db, REKEY_KEY.data(), REKEY_KEY.size()), SQLITE_OK);
+    g_isAfterRekey = true;
+
+    RelationalDBProperties properties;
+    properties.SetStringProp(DBProperties::USER_ID, USER_ID);
+    properties.SetStringProp(DBProperties::APP_ID, APP_ID);
+    properties.SetStringProp(DBProperties::STORE_ID, STORE_ID_1);
+    const string &id = RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1);
+    properties.SetStringProp(DBProperties::IDENTIFIER_DATA, id);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBType::DB_RELATION, properties);
+
+    encryptedParam.option.passwd = g_rekeyPasswd;
+    RelationalStoreManager::SetAutoLaunchRequestCallback(callback);
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // wait 2s for auto launch
+
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    size_t count = 0;
+    GetCount(db, "SELECT count(*) FROM sqlite_master WHERE name='" + GetDeviceTableName(g_tableName) + "';", count);
+    EXPECT_EQ(count, 0u);
+
+    OpenStore();
+    std::this_thread::sleep_for(std::chrono::minutes(1));
+    sqlite3_close(db);
+    db = nullptr;
+}
+#endif
 #endif
