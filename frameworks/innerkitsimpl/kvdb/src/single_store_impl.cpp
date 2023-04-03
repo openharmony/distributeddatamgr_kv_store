@@ -518,7 +518,7 @@ Status SingleStoreImpl::UnRegisterSyncCallback()
 
 Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -528,7 +528,7 @@ Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
 
 Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -538,7 +538,7 @@ Status SingleStoreImpl::GetSyncParam(KvSyncParam &syncParam)
 
 Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -552,7 +552,7 @@ Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
 Status SingleStoreImpl::SetCapabilityRange(const std::vector<std::string> &localLabels,
     const std::vector<std::string> &remoteLabels) const
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -562,7 +562,7 @@ Status SingleStoreImpl::SetCapabilityRange(const std::vector<std::string> &local
 
 Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -583,7 +583,7 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
 
 Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query)
 {
-    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), true);
+    DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
