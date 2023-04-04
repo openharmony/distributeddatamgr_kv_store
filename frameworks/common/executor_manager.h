@@ -13,20 +13,20 @@
 * limitations under the License.
 */
 
-#ifndef OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
-#define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
+#ifndef OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_MANAGER_H
+#define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_MANAGER_H
 #include "executor_pool.h"
 namespace OHOS {
-class KvThreadPool {
+class ExecutorManager {
 public:
     using TaskId = ExecutorPool::TaskId;
     using Task = ExecutorPool::Task;
     using Time = ExecutorPool::Time;
     using Duration = ExecutorPool::Duration;
     static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
-    static KvThreadPool &GetInstance()
+    static ExecutorManager &GetInstance()
     {
-        static KvThreadPool instance;
+        static ExecutorManager instance;
         return instance;
     }
 
@@ -78,13 +78,13 @@ private:
     static constexpr size_t maxThreads = 2;
     static constexpr size_t minThreads = 0;
 
-    KvThreadPool()
+    ExecutorManager()
     {
         executorPool_ = std::make_shared<ExecutorPool>(maxThreads, minThreads);
     };
 
-    ~KvThreadPool() = default;
+    ~ExecutorManager() = default;
     std::shared_ptr<ExecutorPool> executorPool_;
 };
 } // namespace OHOS
-#endif //OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
+#endif //OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_MANAGER_H
