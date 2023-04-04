@@ -159,6 +159,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
         napi_delete_reference(env, ctxt->ref);
         ASSERT_STATUS(ctxt, "output KVManager failed");
+        ZLOGI("output delete reference success");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
