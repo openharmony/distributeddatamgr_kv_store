@@ -48,6 +48,7 @@ public:
         pool_->Clean([](Executor *executor) {
             executor->Stop(true);
         });
+        poolStatus = STOPPED;
     }
 
     TaskId Execute(Task task)
@@ -159,7 +160,6 @@ private:
         {
             thread_ = std::thread([this] {
                 Run();
-                stopCv_.notify_one();
             });
         }
 
@@ -176,12 +176,14 @@ private:
 
         void Stop(bool wait = false)
         {
-            std::unique_lock<decltype(mutex_)> lock(mutex_);
-            running_ = IS_STOPPING;
-            condition_.notify_one();
-            stopCv_.wait(lock, [wait] {
-                return !wait;
-            });
+            {
+                std::unique_lock<decltype(mutex_)> lock(mutex_);
+                running_ = IS_STOPPING;
+                condition_.notify_one();
+            }
+            if (wait) {
+                thread_.join();
+            }
         }
 
         bool IsRunningTask(TaskId taskId) const
@@ -197,7 +199,7 @@ private:
             do {
                 do {
                     condition_.wait(lock, [this] {
-                        return (running_ != STOPPED && waits_ != nullptr && currentTask_.Valid());
+                        return running_ == IS_STOPPING || (waits_ != nullptr && currentTask_.Valid());
                     });
                     InnerTask innerTask = currentTask_;
                     while (running_ == RUNNING && innerTask.Valid()) {
