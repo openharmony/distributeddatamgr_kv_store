@@ -118,6 +118,7 @@ void CombineTest(const uint8_t* data, size_t size)
     }
     g_delegate->Sync(device, mode, query, nullptr, len % 2); // 2 is mod num for wait parameter
     std::string deviceId = device.size() > 0 ? device[0] : tableName;
+    g_delegate->RemoveDeviceData();
     g_delegate->RemoveDeviceData(deviceId);
     g_delegate->RemoveDeviceData(deviceId, tableName);
 

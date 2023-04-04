@@ -163,6 +163,10 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->DeleteLocal(key);
     kvNbDelegatePtr->Put(key, value);
     kvNbDelegatePtr->Put(key, value);
+    kvNbDelegatePtr->UpdateKey([](const Key &origin, Key &newKey) {
+        newKey = origin;
+        newKey.push_back('0');
+    });
     std::vector<Entry> vect;
     kvNbDelegatePtr->GetEntries(key, vect);
     kvNbDelegatePtr->Delete(key);
