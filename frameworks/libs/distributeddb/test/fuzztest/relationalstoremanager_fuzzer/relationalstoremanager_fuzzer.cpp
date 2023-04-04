@@ -79,6 +79,9 @@ void CombineTest(const uint8_t* data, size_t size)
     g_mgr.OpenStore(g_dbDir + appId + DB_SUFFIX, storeId, {}, g_delegate);
     g_mgr.GetRelationalStoreIdentifier(userId, appId, storeId, instanceId % 2); // 2 is mod num for last parameter
     RuntimeConfig::SetProcessLabel(appId, userId);
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        return oriDevId + "_" + info.appId;
+    });
 }
 }
 
