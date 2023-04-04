@@ -90,6 +90,9 @@ public:
         while (cur != nullptr && cur->data != data) {
             cur = cur->next;
         }
+        if (cur == busy_) {
+            busy_ = busy_->next;
+        }
         if (cur == nullptr) {
             return;
         }

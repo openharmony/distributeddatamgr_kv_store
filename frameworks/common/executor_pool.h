@@ -176,10 +176,12 @@ private:
 
         void Stop(bool wait = false)
         {
+            std::unique_lock<decltype(mutex_)> lock(mutex_);
             running_ = IS_STOPPING;
             condition_.notify_one();
-            std::unique_lock<decltype(mutex_)> lock(mutex_);
-            stopCv_.wait(lock);
+            stopCv_.wait(lock, [wait] {
+                return !wait;
+            });
         }
 
         bool IsRunningTask(TaskId taskId) const
@@ -195,7 +197,7 @@ private:
             do {
                 do {
                     condition_.wait(lock, [this] {
-                        return (running_ == RUNNING && waits_ != nullptr && currentTask_.Valid());
+                        return (running_ != STOPPED && waits_ != nullptr && currentTask_.Valid());
                     });
                     InnerTask innerTask = currentTask_;
                     while (running_ == RUNNING && innerTask.Valid()) {
@@ -257,7 +259,7 @@ private:
     TaskId Schedule(InnerTask innerTask)
     {
         auto run = [this](InnerTask &task) {
-            if (task.interval != INVALID_INTERVAL && task.times-- > 0) {
+            if (task.interval != INVALID_INTERVAL && --task.times > 0) {
                 task.startTime = std::chrono::steady_clock::now() + task.interval;
                 delayTasks_->Push(task);
             }
@@ -271,8 +273,9 @@ private:
         innerTask.exec = run;
         delayTasks_->Push(innerTask);
 
+        std::unique_lock<decltype(mtx_)> lock(mtx_);
         if (scheduler_ == nullptr) {
-            scheduler_ = std::shared_ptr<Executor>(pool_->Get(true));
+            scheduler_ = pool_->Get(true);
             scheduler_->Bind(
                 delayTasks_,
                 [this](Executor *exe) {
@@ -302,7 +305,7 @@ private:
     std::shared_ptr<std::condition_variable> delCon_;
     Pool<Executor> *pool_;
     InnerTask startTask = InnerTask(START_TASK_ID);
-    std::shared_ptr<Executor> scheduler_ = nullptr;
+    Executor *scheduler_ = nullptr;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> execs_;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> delayTasks_;
     std::atomic<TaskId> taskId_ = START_TASK_ID;
