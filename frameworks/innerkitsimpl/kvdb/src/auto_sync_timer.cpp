@@ -28,11 +28,11 @@ AutoSyncTimer &AutoSyncTimer::GetInstance()
 void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (forceSyncTaskId_ == KvThreadPool::INVALID_TASK_ID) {
+    if (forceSyncTaskId_ == ExecutorManager::INVALID_TASK_ID) {
         auto expiredTime = std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
         forceSyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     }
-    if (delaySyncTaskId_ == KvThreadPool::INVALID_TASK_ID) {
+    if (delaySyncTaskId_ == ExecutorManager::INVALID_TASK_ID) {
         auto expiredTime =std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
         delaySyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     } else {
@@ -115,7 +115,7 @@ void AutoSyncTimer::StopTimer()
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     scheduler_->Remove(forceSyncTaskId_);
     scheduler_->Remove(delaySyncTaskId_);
-    forceSyncTaskId_ = KvThreadPool::INVALID_TASK_ID;
-    delaySyncTaskId_ = KvThreadPool::INVALID_TASK_ID;
+    forceSyncTaskId_ = ExecutorManager::INVALID_TASK_ID;
+    delaySyncTaskId_ = ExecutorManager::INVALID_TASK_ID;
 }
 }

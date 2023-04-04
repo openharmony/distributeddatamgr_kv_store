@@ -17,7 +17,7 @@
 #include "backup_manager.h"
 #include "kvdb_service_client.h"
 #include "log_print.h"
-#include "kv_thread_pool.h"
+#include "execute_manager.h"
 namespace OHOS::DistributedKv {
 namespace {
 constexpr const char *BACKUP_POSTFIX = ".bak";
@@ -47,7 +47,7 @@ BackupManager::~BackupManager()
 
 void BackupManager::Init(const std::string &baseDir)
 {
-    KvThreadPool::Task task = [this, baseDir]() {
+    ExecutorManager::Task task = [this, baseDir]() {
         auto topPath = baseDir + BACKUP_TOP_PATH;
         auto keyPath = baseDir + KEY_PATH;
         auto storeIds = StoreUtil::GetSubPath(topPath);
@@ -64,7 +64,7 @@ void BackupManager::Init(const std::string &baseDir)
             }
         }
     };
-    KvThreadPool::GetInstance().Execute(std::move(task));
+    ExecutorManager::GetInstance().Execute(std::move(task));
 }
 
 void BackupManager::Prepare(const std::string &path, const std::string &storeId)

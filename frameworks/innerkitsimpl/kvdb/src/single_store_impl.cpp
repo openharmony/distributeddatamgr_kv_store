@@ -23,7 +23,7 @@
 #include "log_print.h"
 #include "store_result_set.h"
 #include "store_util.h"
-#include "kv_thread_pool.h"
+#include "executor_manager.h"
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
@@ -59,7 +59,7 @@ SingleStoreImpl::~SingleStoreImpl()
         DevManager::GetInstance().Unregister(this);
     }
     if (taskId_ > 0) {
-        KvThreadPool::GetInstance().Remove(taskId_);
+        ExecutorManager::GetInstance().Remove(taskId_);
     }
 }
 

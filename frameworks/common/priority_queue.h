@@ -12,14 +12,13 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
-#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
-#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 #include <map>
 #include <memory>
 #include <mutex>
 #include <queue>
 
+#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
+#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
 class PriorityQueue {
@@ -31,40 +30,38 @@ public:
         bool isValid = true;
         Index(_Tme time, TskIndex index) : time(time), index(index) {}
     };
+    
     struct cmp {
         bool operator()(std::shared_ptr<Index> a, std::shared_ptr<Index> b)
         {
             return a->time > b->time;
         }
     };
+    
     PriorityQueue() {}
     ~PriorityQueue() {}
 
-    _Tsk Poll()
+    _Tsk Pop()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        while (!queue_.empty() && !queue_.top()->isValid) {
-            queue_.pop();
-        }
         _Tsk res;
-        if (!queue_.empty()) {
-            auto taskId = queue_.top()->index->second.GetId();
-            queue_.pop();
-            res = tasks_.at(taskId);
-            tasks_.erase(taskId);
+        while(!queue_.empty()) {
+            while (!queue_.empty() && !queue_.top()->isValid) {
+                queue_.pop();
+            }
+            if (!queue_.empty()) {
+                res = queue_.top()->index->second;
+                if (res.startTime > std::chrono::steady_clock::now()) {
+                    popCv_.wait_until(lock, res.startTime);
+                    continue;
+                }
+                queue_.pop();
+                tasks_.erase(res.GetId());
+                indexes_.erase(res.GetId());
+                break;
+            }
         }
         return res;
-    }
-    _Tsk &Top()
-    {
-        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        while (!queue_.empty() && !queue_.top()->isValid) {
-            queue_.pop();
-        }
-        if (queue_.empty()) {
-            return tsk_;
-        }
-        return queue_.top()->index->second;
     }
 
     bool Push(_Tsk tsk)
@@ -120,6 +117,7 @@ public:
 private:
     std::mutex pqMtx_;
     _Tsk tsk_ = _Tsk();
+    std::condition_variable popCv_;
     std::map<_Tid, _Tsk> tasks_;
     std::map<_Tid, std::shared_ptr<Index>> indexes_;
     std::priority_queue<std::shared_ptr<Index>, std::vector<std::shared_ptr<Index>>, cmp> queue_;

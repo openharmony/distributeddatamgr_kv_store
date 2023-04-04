@@ -19,7 +19,7 @@
 
 #include "concurrent_map.h"
 #include "kvdb_service.h"
-#include "kv_thread_pool.h"
+#include "executor_manager.h"
 namespace OHOS::DistributedKv {
 class AutoSyncTimer {
 public:
@@ -32,7 +32,7 @@ private:
     static constexpr size_t TIME_TASK_NUM = 5;
     static constexpr size_t SYNC_STORE_NUM = 10;
     AutoSyncTimer(){
-        scheduler_ = &KvThreadPool::GetInstance();
+        scheduler_ = &ExecutorManager::GetInstance();
     };
     ~AutoSyncTimer() = default;
     std::map<std::string, std::vector<StoreId>> GetStoreIds();
@@ -42,10 +42,10 @@ private:
     void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
     bool HasSyncStores();
     ConcurrentMap<std::string, std::vector<StoreId>> stores_;
-    KvThreadPool::TaskId delaySyncTaskId_;
-    KvThreadPool::TaskId forceSyncTaskId_;
+    ExecutorManager::TaskId delaySyncTaskId_;
+    ExecutorManager::TaskId forceSyncTaskId_;
     std::mutex mutex_;
-    KvThreadPool *scheduler_;
+    ExecutorManager *scheduler_;
 };
 } // namespace OHOS::DistributedKv
 #endif // SDB_AUTO_SYNC_TIMER_H

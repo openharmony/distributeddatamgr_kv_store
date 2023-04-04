@@ -23,6 +23,10 @@ template<typename T>
 class Pool {
 public:
     Pool(uint32_t capability, uint32_t min) : capability_(capability), min_(min) {}
+    ~Pool()
+    {
+        min_ = 0;
+    }
 
     T *Get(bool isForce = false)
     {
@@ -68,8 +72,12 @@ public:
                 if (idle_ == cur) {
                     idle_ = cur->next;
                 }
+                current_--;
                 delete cur;
                 return true;
+            } else {
+                cur = cur->next;
+                continue;
             }
         }
         return false;

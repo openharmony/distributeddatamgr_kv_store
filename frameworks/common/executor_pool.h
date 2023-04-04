@@ -39,12 +39,12 @@ public:
     ExecutorPool(size_t max, size_t min)
     {
         pool_ = new Pool<Executor>(max, min);
-        taskId_ = START_TASK_ID;
         execs_ = std::make_shared<PriorityQueue<InnerTask, Time, TaskId>>();
-        delayTask_ = std::make_shared<PriorityQueue<InnerTask, Time, TaskId>>();
+        delayTasks_ = std::make_shared<PriorityQueue<InnerTask, Time, TaskId>>();
     }
     ~ExecutorPool()
     {
+        poolStatus = IS_STOPPING;
         pool_->Clean([](Executor *executor) {
             executor->Stop(true);
         });
@@ -52,7 +52,10 @@ public:
 
     TaskId Execute(Task task)
     {
-        return Execute(task, GenTaskId());
+        if (poolStatus != RUNNING) {
+            return INVALID_TASK_ID;
+        }
+        return Execute(std::move(task), GenTaskId());
     }
 
     TaskId Execute(Task task, Duration delay)
@@ -72,46 +75,58 @@ public:
 
     TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
     {
+        if (poolStatus != RUNNING) {
+            return INVALID_TASK_ID;
+        }
         InnerTask innerTask;
         innerTask.managed = std::move(task);
         innerTask.startTime = std::chrono::steady_clock::now() + delay;
         innerTask.interval = interval;
         innerTask.times = times;
         innerTask.taskId = GenTaskId();
-        return Schedule(innerTask);
+        return Schedule(std::move(innerTask));
     }
 
     bool Remove(TaskId taskId, bool wait = false)
     {
         std::unique_lock<decltype(mtx_)> lock(mtx_);
-        if (delayTask_->Remove(taskId)) {
+        if (delayTasks_->Remove(taskId)) {
             return true;
         }
         delCon_->wait(lock, [this, taskId, wait] {
-            return (!wait || !execs_->Find(taskId).Valid());
+            return (!wait || !scheduler_->IsRunningTask(taskId));
         });
         return false;
     }
 
     TaskId Reset(TaskId taskId, Duration interval)
     {
+        return Reset(taskId, INVALID_DELAY, interval);
+    }
+
+    TaskId Reset(TaskId taskId, Duration delay, Duration interval)
+    {
         std::unique_lock<decltype(mtx_)> lock(mtx_);
-        auto it = delayTask_->Find(taskId);
+        auto it = delayTasks_->Find(taskId);
         if (!it.Valid()) {
             return INVALID_TASK_ID;
         }
-        if (!delayTask_->Remove(taskId)) {
+        if (!delayTasks_->Remove(taskId)) {
             return INVALID_TASK_ID;
         }
+        it.startTime = std::chrono::steady_clock::now() + delay;
         it.interval = interval;
-        it.startTime = std::chrono::steady_clock::now() + interval;
         Schedule(it);
         return taskId;
     }
 
 private:
+    enum Status {
+        RUNNING,
+        IS_STOPPING,
+        STOPPED
+    };
     struct InnerTask {
-        static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
         Task managed = [] {};
         std::function<void(InnerTask &)> exec = [](InnerTask innerTask = InnerTask(INVALID_TASK_ID)) {
             innerTask.managed();
@@ -122,11 +137,17 @@ private:
         Time startTime = INVALID_TIME;
 
         InnerTask() = default;
-        explicit InnerTask(TaskId id) : taskId(id) {}
+
+        explicit InnerTask(TaskId id) : taskId(id)
+        {
+            managed = [] {};
+        }
+
         bool Valid() const
         {
             return taskId != INVALID_TASK_ID;
         }
+
         TaskId GetId()
         {
             return this->taskId;
@@ -137,71 +158,73 @@ private:
         Executor()
         {
             thread_ = std::thread([this] {
-                {
-                    std::unique_lock<decltype(mutex_)> lock(mutex_);
-                    condition_.wait(lock, [this] {
-                        return currentTask_.Valid();
-                    });
-                }
                 Run();
-                thread_.detach();
-                release_(this);
                 stopCv_.notify_one();
             });
         }
 
-        void SetTask(InnerTask &innerTask)
+        void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> queue, std::function<void(Executor *)> idle,
+            std::function<bool(Executor *)> release, InnerTask &innerTask)
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
+            waits_ = queue;
+            idle_ = std::move(idle);
+            release_ = std::move(release);
             currentTask_ = innerTask;
             condition_.notify_one();
         }
 
-        void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> *queue, std::function<void(Executor *)> idle,
-            std::function<bool(Executor *)> release, std::shared_ptr<std::condition_variable> delCon)
-        {
-            waits_ = *queue;
-            idle_ = std::move(idle);
-            release_ = std::move(release);
-            delCon_ = delCon;
-        };
         void Stop(bool wait = false)
         {
-            running_ = false;
+            running_ = IS_STOPPING;
             condition_.notify_one();
             std::unique_lock<decltype(mutex_)> lock(mutex_);
             stopCv_.wait(lock);
-        };
+        }
+
+        bool IsRunningTask(TaskId taskId) const
+        {
+            return taskId == currentTask_.taskId;
+        }
 
     private:
-        static constexpr Duration TIME_OUT = std::chrono::seconds(1);
+        static constexpr Duration TIME_OUT = std::chrono::seconds(2);
         void Run()
         {
             std::unique_lock<decltype(mutex_)> lock(mutex_);
             do {
-                InnerTask innerTask = currentTask_;
-                while (running_ && innerTask.Valid()) {
-                    innerTask.exec(innerTask);
-                    innerTask = waits_->Top();
-                    currentTask_ = innerTask;
-                    waits_->Poll();
-                    delCon_->notify_one();
-                }
-                waits_ = nullptr;
-                idle_(this);
-            } while (running_ && condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
-                return currentTask_.Valid();
-            }));
+                do {
+                    condition_.wait(lock, [this] {
+                        return (running_ == RUNNING && waits_ != nullptr && currentTask_.Valid());
+                    });
+                    InnerTask innerTask = currentTask_;
+                    while (running_ == RUNNING && innerTask.Valid()) {
+                        lock.unlock();
+                        innerTask.exec(innerTask);
+                        lock.lock();
+                        innerTask = waits_->Pop();
+                        if (innerTask.Valid()) {
+                        } else {
+                        }
+                        currentTask_ = innerTask;
+                    }
+                    waits_ = nullptr;
+                    idle_(this);
+                } while (running_ == RUNNING &&
+                         condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
+                             return (currentTask_.Valid());
+                         }));
+            } while (!release_(this));
+            running_ = STOPPED;
         }
 
-        bool running_ = true;
+        Status running_ = RUNNING;
         std::mutex mutex_;
         std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> waits_;
-        InnerTask currentTask_;
+        InnerTask currentTask_ = InnerTask();
         std::thread thread_;
         std::condition_variable condition_;
         std::condition_variable stopCv_;
-        std::shared_ptr<std::condition_variable> delCon_;
         std::function<void(Executor *)> idle_;
         std::function<bool(Executor *)> release_;
     };
@@ -211,57 +234,57 @@ private:
         InnerTask innerTask;
         innerTask.managed = task;
         innerTask.taskId = taskId;
+
         auto executor = pool_->Get();
+
         if (executor == nullptr) {
             execs_->Push(innerTask);
             return innerTask.taskId;
         }
         executor->Bind(
-            &execs_,
+            execs_,
             [this](Executor *exe) {
                 return pool_->Idle(exe);
             },
             [this](Executor *exe) -> bool {
                 return pool_->Release(exe);
             },
-            delCon_);
-        executor->SetTask(innerTask);
+            innerTask);
+
         return innerTask.taskId;
     }
 
     TaskId Schedule(InnerTask innerTask)
     {
+        auto run = [this](InnerTask &task) {
+            if (task.interval != INVALID_INTERVAL && task.times-- > 0) {
+                task.startTime = std::chrono::steady_clock::now() + task.interval;
+                delayTasks_->Push(task);
+            }
+            Execute(task.managed, task.taskId);
+            {
+                std::unique_lock<decltype(mtx_)> lock(mtx_);
+                delCon_->notify_all();
+            }
+        };
+
+        innerTask.exec = run;
+        delayTasks_->Push(innerTask);
+
         if (scheduler_ == nullptr) {
             scheduler_ = std::shared_ptr<Executor>(pool_->Get(true));
             scheduler_->Bind(
-                &delayTask_,
+                delayTasks_,
                 [this](Executor *exe) {
-                    return pool_->Idle(exe);
+                    std::unique_lock<decltype(mtx_)> lock(mtx_);
+                    pool_->Idle(exe);
+                    scheduler_ = nullptr;
                 },
                 [this](Executor *exe) -> bool {
                     return pool_->Release(exe);
                 },
-                delCon_);
-            scheduler_->SetTask(startTask);
-        }
-
-        auto run = [this](InnerTask &task) {
-            if (task.startTime == INVALID_TIME) {
-            }
-            while (task.startTime != INVALID_TIME && task.startTime > std::chrono::steady_clock::now()) {
-                std::unique_lock<decltype(mtx_)> lock(mtx_);
-                cv_.wait_until(lock, task.startTime);
-                continue;
-            }
-            Execute(task.managed, task.taskId);
-            if (task.interval != INVALID_INTERVAL && --task.times > 0) {
-                task.startTime = std::chrono::steady_clock::now() + task.interval;
-                delayTask_->Push(task);
-            }
+                startTask);
         };
-        innerTask.exec = run;
-        delayTask_->Push(innerTask);
-        cv_.notify_one();
         return innerTask.taskId;
     }
 
@@ -274,15 +297,15 @@ private:
         return taskId;
     }
 
+    Status poolStatus = RUNNING;
     std::mutex mtx_;
-    std::condition_variable cv_;
     std::shared_ptr<std::condition_variable> delCon_;
     Pool<Executor> *pool_;
     InnerTask startTask = InnerTask(START_TASK_ID);
     std::shared_ptr<Executor> scheduler_ = nullptr;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> execs_;
-    std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> delayTask_;
-    std::atomic<TaskId> taskId_;
+    std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> delayTasks_;
+    std::atomic<TaskId> taskId_ = START_TASK_ID;
 };
 } // namespace OHOS
 

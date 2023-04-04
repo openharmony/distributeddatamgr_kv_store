@@ -32,41 +32,46 @@ public:
 
     TaskId Execute(Task task)
     {
-        return threadPool_->Execute(task);
+        return executorPool_->Execute(task);
     }
 
     TaskId Execute(Task task, Duration delay)
     {
-        return threadPool_->Execute(task, delay);
+        return executorPool_->Execute(task, delay);
     }
 
     TaskId Schedule(Task task, Duration interval)
     {
-        return threadPool_->Schedule(task, interval);
+        return executorPool_->Schedule(task, interval);
     }
     TaskId Schedule(Task task, uint32_t interval)
     {
-        return threadPool_->Schedule(task, std::chrono::milliseconds(interval));
+        return executorPool_->Schedule(task, std::chrono::milliseconds(interval));
     }
 
     TaskId Schedule(Task task, Duration delay, Duration interval)
     {
-        return threadPool_->Schedule(task, delay, interval);
+        return executorPool_->Schedule(task, delay, interval);
     }
 
     TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
     {
-        return threadPool_->Schedule(task, delay, interval, times);
+        return executorPool_->Schedule(task, delay, interval, times);
     }
 
     bool Remove(TaskId taskId, bool wait = false)
     {
-        return threadPool_->Remove(taskId, wait);
+        return executorPool_->Remove(taskId, wait);
     }
 
     TaskId Reset(TaskId taskId, Duration interval)
     {
-        return threadPool_->Reset(taskId, interval);
+        return executorPool_->Reset(taskId, interval);
+    }
+    
+      TaskId Reset(TaskId taskId, Duration delay, Duration interval)
+    {
+        return executorPool_->Reset(taskId, delay, interval);
     }
 
 private:
@@ -75,11 +80,11 @@ private:
 
     KvThreadPool()
     {
-        threadPool_ = std::make_shared<ExecutorPool>(maxThreads, minThreads);
+        executorPool_ = std::make_shared<ExecutorPool>(maxThreads, minThreads);
     };
 
     ~KvThreadPool() = default;
-    std::shared_ptr<ExecutorPool> threadPool_;
+    std::shared_ptr<ExecutorPool> executorPool_;
 };
 } // namespace OHOS
 #endif //OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_KV_THREAD_POOL_H
