@@ -144,19 +144,8 @@ void FuzzSetInterceptorTest(KvStoreNbDelegate *kvNbDelegatePtr)
     );
 }
 
-void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+void TestCRUD(const Key &key, const Value &value, KvStoreNbDelegate *kvNbDelegatePtr)
 {
-    auto observer = new (std::nothrow) KvStoreObserverFuzzTest;
-    if ((observer == nullptr) || (kvNbDelegatePtr == nullptr)) {
-        return;
-    }
-    Key key = std::vector<uint8_t>(data, data + (size % 1024)); /* 1024 is max */
-    Value value = std::vector<uint8_t>(data, data + size);
-    kvNbDelegatePtr->RegisterObserver(key, size, observer);
-    kvNbDelegatePtr->SetConflictNotifier(size, [](const KvStoreNbConflictData &data) {
-        (void)data.GetType();
-    });
-
     Value valueRead;
     kvNbDelegatePtr->PutLocal(key, value);
     kvNbDelegatePtr->GetLocal(key, valueRead);
@@ -171,6 +160,21 @@ void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegateP
     kvNbDelegatePtr->GetEntries(key, vect);
     kvNbDelegatePtr->Delete(key);
     kvNbDelegatePtr->Get(key, valueRead);
+}
+
+void FuzzCURD(const uint8_t* data, size_t size, KvStoreNbDelegate *kvNbDelegatePtr)
+{
+    auto observer = new (std::nothrow) KvStoreObserverFuzzTest;
+    if ((observer == nullptr) || (kvNbDelegatePtr == nullptr)) {
+        return;
+    }
+    Key key = std::vector<uint8_t>(data, data + (size % 1024)); /* 1024 is max */
+    Value value = std::vector<uint8_t>(data, data + size);
+    kvNbDelegatePtr->RegisterObserver(key, size, observer);
+    kvNbDelegatePtr->SetConflictNotifier(size, [](const KvStoreNbConflictData &data) {
+        (void)data.GetType();
+    });
+    TestCRUD(key, value, kvNbDelegatePtr);
     std::vector<Key> keys;
     std::vector<Entry> tmp = CreateEntries(data, size, keys);
     kvNbDelegatePtr->PutBatch(tmp);
