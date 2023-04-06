@@ -50,11 +50,11 @@ public:
                 queue_.pop();
             }
             if (!queue_.empty()) {
-                res = queue_.top()->index->second;
-                if (res.startTime > std::chrono::steady_clock::now()) {
-                    popCv_.wait_until(lock, res.startTime);
+                if (queue_.top()->index->second.startTime > std::chrono::steady_clock::now()) {
+                    popCv_.wait_until(lock, queue_.top()->index->second.startTime);
                     continue;
                 }
+                res = queue_.top()->index->second;
                 queue_.pop();
                 tasks_.erase(res.GetId());
                 indexes_.erase(res.GetId());
@@ -74,6 +74,7 @@ public:
         auto item = std::make_shared<Index>(tsk.startTime, index);
         queue_.push(item);
         indexes_.emplace(tsk.GetId(), item);
+        popCv_.notify_all();
         return true;
     }
 
@@ -111,6 +112,7 @@ public:
             indexes_.erase(id);
         }
         tasks_.erase(id);
+        popCv_.notify_all();
         return res;
     }
 

@@ -76,6 +76,7 @@ public:
 
     TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
     {
+        std::unique_lock<decltype(mtx_)> lock(mtx_);
         if (poolStatus != RUNNING) {
             return INVALID_TASK_ID;
         }
@@ -85,7 +86,7 @@ public:
         innerTask.interval = interval;
         innerTask.times = times;
         innerTask.taskId = GenTaskId();
-        return Schedule(std::move(innerTask));
+        return Schedule(std::move(innerTask), std::move(lock));
     }
 
     bool Remove(TaskId taskId, bool wait = false)
@@ -117,7 +118,8 @@ public:
         }
         it.startTime = std::chrono::steady_clock::now() + delay;
         it.interval = interval;
-        Schedule(it);
+
+        Schedule(it, std::move(lock));
         return taskId;
     }
 
@@ -185,6 +187,11 @@ private:
                 thread_.join();
             }
         }
+		
+        void SetTask(InnerTask &innerTask)
+        {
+            currentTask_ = innerTask;
+        }
 
         bool IsRunningTask(TaskId taskId) const
         {
@@ -228,7 +235,6 @@ private:
         InnerTask currentTask_ = InnerTask();
         std::thread thread_;
         std::condition_variable condition_;
-        std::condition_variable stopCv_;
         std::function<void(Executor *)> idle_;
         std::function<bool(Executor *)> release_;
     };
@@ -258,7 +264,7 @@ private:
         return innerTask.taskId;
     }
 
-    TaskId Schedule(InnerTask innerTask)
+    TaskId Schedule(InnerTask innerTask, std::unique_lock<std::mutex> lock)
     {
         auto run = [this](InnerTask &task) {
             if (task.interval != INVALID_INTERVAL && --task.times > 0) {
@@ -270,12 +276,13 @@ private:
                 std::unique_lock<decltype(mtx_)> lock(mtx_);
                 delCon_->notify_all();
             }
+            scheduler_->SetTask(startTask);
         };
 
         innerTask.exec = run;
         delayTasks_->Push(innerTask);
 
-        std::unique_lock<decltype(mtx_)> lock(mtx_);
+        std::unique_lock<decltype(mtx_)> scheduleLock = std::move(lock);
         if (scheduler_ == nullptr) {
             scheduler_ = pool_->Get(true);
             scheduler_->Bind(
