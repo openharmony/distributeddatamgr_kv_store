@@ -21,7 +21,7 @@
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "store_util.h"
-#include "execute_manager.h"
+#include "executor_manager.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
 using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
