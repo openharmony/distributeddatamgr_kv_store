@@ -33,7 +33,7 @@ void AutoSyncTimer::StartTimer()
         forceSyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     }
     if (delaySyncTaskId_ == ExecutorManager::INVALID_TASK_ID) {
-        auto expiredTime =std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
+        auto expiredTime = std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
         delaySyncTaskId_ = scheduler_->Schedule(ProcessTask(), expiredTime);
     } else {
         delaySyncTaskId_ = scheduler_->Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));

@@ -31,7 +31,7 @@ public:
 private:
     static constexpr size_t TIME_TASK_NUM = 5;
     static constexpr size_t SYNC_STORE_NUM = 10;
-    AutoSyncTimer(){
+    AutoSyncTimer() {
         scheduler_ = &ExecutorManager::GetInstance();
     };
     ~AutoSyncTimer() = default;

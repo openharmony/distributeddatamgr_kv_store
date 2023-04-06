@@ -69,7 +69,7 @@ public:
         return executorPool_->Reset(taskId, interval);
     }
     
-      TaskId Reset(TaskId taskId, Duration delay, Duration interval)
+    TaskId Reset(TaskId taskId, Duration delay, Duration interval)
     {
         return executorPool_->Reset(taskId, delay, interval);
     }

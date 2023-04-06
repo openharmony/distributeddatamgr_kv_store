@@ -214,9 +214,6 @@ private:
                         innerTask.exec(innerTask);
                         lock.lock();
                         innerTask = waits_->Pop();
-                        if (innerTask.Valid()) {
-                        } else {
-                        }
                         currentTask_ = innerTask;
                     }
                     waits_ = nullptr;
