@@ -75,8 +75,8 @@ public:
     }
 
 private:
-    static constexpr size_t maxThreads = 2;
-    static constexpr size_t minThreads = 0;
+    static constexpr size_t maxThreads = 12;
+    static constexpr size_t minThreads = 5;
 
     ExecutorManager()
     {
