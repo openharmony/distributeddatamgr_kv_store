@@ -28,7 +28,7 @@ public:
         min_ = 0;
     }
 
-    T *Get(bool isForce = false)
+    std::shared_ptr<T> Get(bool isForce = false)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         if (idle_ == nullptr) {
@@ -38,13 +38,13 @@ public:
             auto cur = new Node();
             idle_ = cur;
             current_++;
+            cur->data->Start();
         }
         Node *cur = idle_;
         idle_ = idle_->next;
         if (idle_ != nullptr) {
             idle_->prev = nullptr;
         }
-
         cur->next = busy_;
         if (busy_ != nullptr) {
             cur->prev = busy_->prev;
@@ -54,11 +54,12 @@ public:
         return cur->data;
     };
 
-    int32_t Release(T *data)
+    int32_t Release(std::shared_ptr<T> data, bool force = false)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         Node *cur = idle_;
-        if (current_ <= min_) {
+
+        if (!force && current_ <= min_) {
             return false;
         }
         while (cur != nullptr) {
@@ -83,18 +84,18 @@ public:
         return false;
     }
 
-    void Idle(T *data)
+    void Idle(std::shared_ptr<T> data)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         Node *cur = busy_;
         while (cur != nullptr && cur->data != data) {
             cur = cur->next;
         }
-        if (cur == busy_) {
-            busy_ = busy_->next;
-        }
         if (cur == nullptr) {
             return;
+        }
+        if (cur == busy_) {
+            busy_ = busy_->next;
         }
         if (cur->next != nullptr) {
             cur->next->prev = cur->prev;
@@ -110,7 +111,7 @@ public:
         idle_ = cur;
     }
 
-    int32_t Clean(std::function<void(T *)> close)
+    int32_t Clean(std::function<void(std::shared_ptr<T>)> close)
     {
         while (busy_ != nullptr) {
             close(busy_->data);
@@ -125,11 +126,7 @@ private:
     struct Node {
         Node *prev = nullptr;
         Node *next = nullptr;
-        T *data = new T();
-        ~Node()
-        {
-            delete data;
-        }
+        std::shared_ptr<T> data = std::make_shared<T>();
     };
 
     uint32_t capability_;

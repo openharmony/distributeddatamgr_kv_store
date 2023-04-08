@@ -37,7 +37,7 @@ public:
             return a->time > b->time;
         }
     };
-    
+
     PriorityQueue() {}
     ~PriorityQueue() {}
 
@@ -45,7 +45,7 @@ public:
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         _Tsk res;
-        while(!queue_.empty()) {
+        while (!queue_.empty()) {
             while (!queue_.empty() && !queue_.top()->isValid) {
                 queue_.pop();
             }
@@ -103,6 +103,7 @@ public:
     bool Remove(_Tid id)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
+
         bool res = true;
         _Tsk task = tasks_[id];
         if (!task.Valid()) {
@@ -114,6 +115,15 @@ public:
         tasks_.erase(id);
         popCv_.notify_all();
         return res;
+    }
+    void Clean()
+    {
+        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
+        tasks_.clear();
+        indexes_.clear();
+        while (!queue_.empty()) {
+            queue_.pop();
+        }
     }
 
 private:
