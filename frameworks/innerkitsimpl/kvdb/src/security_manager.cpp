@@ -27,7 +27,7 @@
 #include "securec.h"
 #include "store_types.h"
 #include "store_util.h"
-#include "executor_manager.h"
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 SecurityManager::SecurityManager()
 {
@@ -61,7 +61,7 @@ bool SecurityManager::Retry()
     }
 
     constexpr int32_t interval = 100;
-    ExecutorManager::GetInstance().Schedule([this] { Retry(); }, interval);
+    TaskExecutor::GetInstance().Execute([this] { Retry(); }, interval);
     return false;
 }
 

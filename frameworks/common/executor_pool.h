@@ -95,20 +95,25 @@ public:
     bool Remove(TaskId taskId, bool wait = false)
     {
         std::unique_lock<decltype(mtx_)> lock(mtx_);
-        delayTasks_->Remove(taskId);
-        execs_->Remove(taskId);
-        delCon_.wait(lock, [this, taskId, wait] {
-            return (!wait || !scheduler_->IsRunningTask(taskId));
-        });
-        if (runningSet_.find(taskId) != runningSet_.end()) {
+        bool res = true;
+        if (scheduler_->IsRunningTask(taskId)) {
+            res = false;
             delCon_.wait(lock, [this, taskId, wait] {
-                return (!wait || runningSet_.find(taskId) == runningSet_.end());
+                return (!wait || !scheduler_->IsRunningTask(taskId));
             });
-            return false;
         }
         delayTasks_->Remove(taskId);
         execs_->Remove(taskId);
-        return true;
+        if (res) {
+            return res;
+        }
+        if (runningSet_.find(taskId) != runningSet_.end()) {
+            res = false;
+            delCon_.wait(lock, [this, taskId, wait] {
+                return (!wait || runningSet_.find(taskId) == runningSet_.end());
+            });
+        }
+        return res;
     }
 
     TaskId Reset(TaskId taskId, Duration interval)
@@ -121,7 +126,6 @@ public:
         InnerTask innerTask;
         {
             std::lock_guard<decltype(mtx_)> lock(mtx_);
-
             innerTask = delayTasks_->Find(taskId);
             if (!innerTask.Valid()) {
                 return INVALID_TASK_ID;
@@ -199,7 +203,6 @@ private:
             if (wait) {
                 thread_.join();
             }
-
         }
         void SetTask(InnerTask &innerTask)
         {
@@ -228,8 +231,8 @@ private:
                         lock.unlock();
                         innerTask.exec(innerTask);
                         lock.lock();
-                        innerTask = waits_->Pop();
-                        currentTask_ = innerTask;
+                        currentTask_ = waits_->Pop();
+                        innerTask = currentTask_;
                     }
                     waits_ = nullptr;
                     idle_(thisPtr_);
@@ -256,11 +259,8 @@ private:
     TaskId Execute(Task task, TaskId taskId)
     {
         auto run = [this](InnerTask &innerTask) {
-            std::unique_lock<decltype(mtx_)> lock(mtx_);
-            runningSet_.insert(innerTask.taskId);
-            lock.unlock();
             innerTask.managed();
-            lock.lock();
+            std::unique_lock<decltype(mtx_)> lock(mtx_);
             runningSet_.erase(innerTask.taskId);
             delCon_.notify_all();
         };
@@ -273,6 +273,7 @@ private:
             execs_->Push(innerTask);
             return innerTask.taskId;
         }
+        runningSet_.insert(innerTask.taskId);
         executor->Bind(
             execs_,
             [this](std::shared_ptr<Executor> exe) {
@@ -287,23 +288,20 @@ private:
 
     TaskId Schedule(InnerTask innerTask)
     {
-
         auto run = [this](InnerTask &task) {
             if (task.interval != INVALID_INTERVAL && --task.times > 0) {
                 task.startTime = std::chrono::steady_clock::now() + task.interval;
                 delayTasks_->Push(task);
             }
-            Execute(task.managed, task.taskId);
             {
                 std::lock_guard<decltype(mtx_)> lock(mtx_);
+                Execute(task.managed, task.taskId);
                 scheduler_->SetTask(startTask);
                 delCon_.notify_all();
             }
         };
-
         innerTask.exec = run;
         delayTasks_->Push(innerTask);
-
         std::lock_guard<decltype(mtx_)> scheduleLock(mtx_);
         if (scheduler_ == nullptr) {
             scheduler_ = pool_->Get(true);
