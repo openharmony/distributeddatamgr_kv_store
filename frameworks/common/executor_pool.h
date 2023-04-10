@@ -99,21 +99,21 @@ public:
         if (scheduler_->IsRunningTask(taskId)) {
             res = false;
             delCon_.wait(lock, [this, taskId, wait] {
-                return (!wait || !scheduler_->IsRunningTask(taskId));
+                return !scheduler_->IsRunningTask(taskId);
             });
         }
         delayTasks_->Remove(taskId);
         execs_->Remove(taskId);
         if (res) {
-            return res;
+            return true;
         }
         if (runningSet_.find(taskId) != runningSet_.end()) {
-            res = false;
             delCon_.wait(lock, [this, taskId, wait] {
                 return (!wait || runningSet_.find(taskId) == runningSet_.end());
             });
+            return false;
         }
-        return res;
+        return true;
     }
 
     TaskId Reset(TaskId taskId, Duration interval)
