@@ -12,13 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H
 #include <map>
 #include <memory>
 #include <mutex>
 #include <queue>
-
+#include <shared_mutex>
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
 class PriorityQueue {
@@ -30,7 +31,6 @@ public:
         bool isValid = true;
         Index(_Tme time, TskIndex index) : time(time), index(index) {}
     };
-    
     struct cmp {
         bool operator()(std::shared_ptr<Index> a, std::shared_ptr<Index> b)
         {
@@ -58,6 +58,8 @@ public:
                 queue_.pop();
                 tasks_.erase(res.GetId());
                 indexes_.erase(res.GetId());
+                std::shared_lock<decltype(runningMtx_)> sharedLock(runningMtx_);
+                running.emplace_back(res.GetId());
                 break;
             }
         }
@@ -78,18 +80,6 @@ public:
         return true;
     }
 
-    size_t Size()
-    {
-        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        return tasks_.size();
-    }
-
-    bool Empty()
-    {
-        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        return tasks_.size() == 0;
-    }
-
     _Tsk Find(_Tid id)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
@@ -100,10 +90,9 @@ public:
         return res;
     }
 
-    bool Remove(_Tid id)
+    bool Remove(_Tid id, bool wait)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-
         bool res = true;
         _Tsk task = tasks_[id];
         if (!task.Valid()) {
@@ -113,9 +102,24 @@ public:
             indexes_.erase(id);
         }
         tasks_.erase(id);
+        if (wait) {
+            runningMtx_.lock();
+            auto isRunning = [this, id] {
+                runningMtx_.unlock();
+                auto res = IsRunningTask(id);
+                runningMtx_.lock();
+                return res;
+            };
+            while (isRunning()) {
+                runningMtx_.unlock();
+                removeCv_.wait(lock);
+                runningMtx_.lock();
+            }
+        }
         popCv_.notify_all();
         return res;
     }
+
     void Clean()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
@@ -126,12 +130,39 @@ public:
         }
     }
 
+    void Finish(_Tid id)
+    {
+        std::shared_lock<decltype(runningMtx_)> sharedLock(runningMtx_);
+        auto it = running.begin();
+        while (it != running.end()) {
+            if (*it == id) {
+                running.erase(it);
+                break;
+            }
+        }
+        removeCv_.notify_all();
+    }
+
+    bool IsRunningTask(_Tid id)
+    {
+        std::shared_lock<decltype(runningMtx_)> sharedLock(runningMtx_);
+        auto it = running.begin();
+        while (it != running.end()) {
+            if (*it == id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 private:
     std::mutex pqMtx_;
-    _Tsk tsk_ = _Tsk();
     std::condition_variable popCv_;
+    std::condition_variable removeCv_;
     std::map<_Tid, _Tsk> tasks_;
     std::map<_Tid, std::shared_ptr<Index>> indexes_;
+    std::vector<_Tid> running;
+    std::shared_mutex runningMtx_;
     std::priority_queue<std::shared_ptr<Index>, std::vector<std::shared_ptr<Index>>, cmp> queue_;
 };
 } // namespace OHOS

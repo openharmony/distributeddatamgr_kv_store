@@ -17,7 +17,6 @@
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #include <functional>
 #include <mutex>
-
 namespace OHOS {
 template<typename T>
 class Pool {
@@ -42,6 +41,8 @@ public:
         }
         Node *cur = idle_;
         idle_ = idle_->next;
+        if (idle_ == nullptr) {
+        }
         if (idle_ != nullptr) {
             idle_->prev = nullptr;
         }
