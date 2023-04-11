@@ -313,4 +313,14 @@ void VirtualCommunicatorAggregator::DelayTimeHandle(uint32_t messageId, const st
         skipTimes_--;
     }
 }
+
+std::set<std::string> VirtualCommunicatorAggregator::GetOnlineDevices()
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    std::set<std::string> onlineDevices;
+    for (const auto &item: communicators_) {
+        onlineDevices.insert(item.first);
+    }
+    return onlineDevices;
+}
 } // namespace DistributedDB

@@ -23,6 +23,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
+#include "mock_sync_task_context.h"
 #include "platform_specific.h"
 #include "single_ver_data_sync.h"
 #include "single_ver_kv_sync_task_context.h"
@@ -128,9 +129,11 @@ namespace {
 
     void DataSync005()
     {
+        ASSERT_NE(g_communicatorAggregator, nullptr);
         SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
         ASSERT_TRUE(dataSync != nullptr);
         dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+        EXPECT_EQ(g_communicatorAggregator->GetOnlineDevices().size(), 3u); // 3 online dev
         delete dataSync;
     }
 
@@ -138,8 +141,15 @@ namespace {
     {
         SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
         ASSERT_TRUE(dataSync != nullptr);
+        auto context = new (std::nothrow) MockSyncTaskContext();
         dataSync->PutDataMsg(nullptr);
+        bool isNeedHandle = false;
+        bool isContinue = false;
+        EXPECT_EQ(dataSync->MoveNextDataMsg(context, isNeedHandle, isContinue), nullptr);
+        EXPECT_EQ(isNeedHandle, false);
+        EXPECT_EQ(isContinue, false);
         delete dataSync;
+        delete context;
     }
 
     void ReSetWaterDogTest001()
@@ -164,7 +174,7 @@ namespace {
          * @tc.steps: step3. deviceA,deviceB sync to each other at same time
          * @tc.expected: step3. sync should return OK.
          */
-        g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
+        EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true), E_OK);
         g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
         g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
     }

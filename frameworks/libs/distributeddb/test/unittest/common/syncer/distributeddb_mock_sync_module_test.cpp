@@ -62,9 +62,9 @@ public:
     {
         syncer_.LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
-    void Close()
+    int Close()
     {
-        syncer_.Close(true);
+        return syncer_.Close(true);
     }
 private:
     SyncerProxy syncer_;
@@ -181,7 +181,10 @@ void StateMachineCheck013()
     }
     MockCommunicator communicator;
     Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
-    EXPECT_CALL(*syncTaskContext, Clear()).WillRepeatedly(Return());
+    int count = 0;
+    EXPECT_CALL(*syncTaskContext, Clear()).WillRepeatedly([&count]() {
+        count++;
+    });
     syncTaskContext->RegForkGetDeviceIdFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2s
     });
@@ -190,6 +193,7 @@ void StateMachineCheck013()
     RefObject::KillAndDecObjRef(syncTaskContext);
     delete dbSyncInterface;
     std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s and wait for task exist
+    EXPECT_EQ(count, 1);
 }
 
 void AutoLaunchCheck001()
@@ -253,6 +257,7 @@ void AbilitySync004()
         t.detach();
     }
     cv.wait(lock, [&]() { return finishCount == loopCount; });
+    EXPECT_EQ(context->GetRemoteCompressAlgoStr(), "none");
     RefObject::KillAndDecObjRef(context);
 }
 
@@ -260,13 +265,16 @@ void SyncLifeTest001()
 {
     std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
-    syncer->Initialize(syncDBInterface, true);
+    ASSERT_NE(syncDBInterface, nullptr);
+    EXPECT_EQ(syncer->Initialize(syncDBInterface, true), -E_INVALID_ARGS);
     syncer->EnableAutoSync(true);
     for (int i = 0; i < 1000; i++) { // trigger 1000 times auto sync check
         syncer->LocalDataChanged(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_NS_PUT_EVENT));
     }
+    EXPECT_EQ(virtualCommunicatorAggregator->GetOnlineDevices().size(), 0u);
     syncer = nullptr;
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
     delete syncDBInterface;
@@ -276,9 +284,11 @@ void SyncLifeTest002()
 {
     std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     const std::string DEVICE_B = "deviceB";
     VirtualSingleVerSyncDBInterface *syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
     std::string userId = "userid_0";
     std::string storeId = "storeId_0";
     std::string appId = "appid_0";
@@ -286,7 +296,7 @@ void SyncLifeTest002()
     std::vector<uint8_t> identifierVec(identifier.begin(), identifier.end());
     syncDBInterface->SetIdentifier(identifierVec);
     for (int i = 0; i < 100; i++) { // run 100 times
-        syncer->Initialize(syncDBInterface, true);
+        EXPECT_EQ(syncer->Initialize(syncDBInterface, true), E_OK);
         syncer->EnableAutoSync(true);
         virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
         std::thread writeThread([syncer]() {
@@ -295,7 +305,7 @@ void SyncLifeTest002()
         });
         std::thread closeThread([syncer, &syncDBInterface]() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            syncer->Close(true);
+            EXPECT_EQ(syncer->Close(true), E_OK);
         });
         closeThread.join();
         writeThread.join();
@@ -309,8 +319,10 @@ void SyncLifeTest002()
 void SyncLifeTest003()
 {
     VirtualCommunicatorAggregator *virtualCommunicatorAggregator = new VirtualCommunicatorAggregator();
+    ASSERT_NE(virtualCommunicatorAggregator, nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(virtualCommunicatorAggregator);
     TestInterface *syncDBInterface = new TestInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
     const std::string DEVICE_B = "deviceB";
     std::string userId = "userId_0";
     std::string storeId = "storeId_0";
@@ -322,7 +334,7 @@ void SyncLifeTest003()
     virtualCommunicatorAggregator->OnlineDevice(DEVICE_B);
     syncDBInterface->TestLocalChange();
     virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
-    syncDBInterface->Close();
+    EXPECT_EQ(syncDBInterface->Close(), E_OK);
     RefObject::KillAndDecObjRef(syncDBInterface);
     RuntimeContext::GetInstance()->StopTaskPool();
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -333,14 +345,14 @@ void MockRemoteQuery002()
 {
     MockRemoteExecutor *executor = new (std::nothrow) MockRemoteExecutor();
     ASSERT_NE(executor, nullptr);
-    executor->CallResponseFailed(0, 0, 0, "DEVICE");
+    EXPECT_EQ(executor->CallResponseFailed(0, 0, 0, "DEVICE"), -E_BUSY);
     RefObject::KillAndDecObjRef(executor);
 }
 
 void SyncerCheck001()
 {
     std::shared_ptr<SingleVerKVSyncer> syncer = std::make_shared<SingleVerKVSyncer>();
-    syncer->SetSyncRetry(true);
+    EXPECT_EQ(syncer->SetSyncRetry(true), -E_NOT_INIT);
     syncer = nullptr;
 }
 
@@ -357,7 +369,7 @@ void TimeSync001()
     const int timeDriverMs = 100;
     for (int i = 0; i < loopCount; ++i) {
         MockTimeSync timeSync;
-        timeSync.Initialize(communicator, metadata, storage, "DEVICES_A");
+        EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A"), E_OK);
         timeSync.ModifyTimer(timeDriverMs);
         std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
         timeSync.Close();

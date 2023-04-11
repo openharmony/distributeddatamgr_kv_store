@@ -204,12 +204,12 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
     }
     int errCode = CheckPermissions(device);
     if (errCode != E_OK) {
-        ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
+        (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
         return;
     }
     errCode = SendRemoteExecutorData(device, inMsg);
     if (errCode != E_OK) {
-        ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
+        (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
     }
 }
 
@@ -507,17 +507,17 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
     return errCode;
 }
 
-void RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId,
+int RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId,
     const std::string &device)
 {
     RemoteExecutorAckPacket *packet = new (std::nothrow) RemoteExecutorAckPacket();
     if (packet == nullptr) {
         LOGE("[RemoteExecutor][ResponseFailed] new RemoteExecutorAckPacket error");
-        return;
+        return -E_OUT_OF_MEMORY;
     }
     packet->SetAckCode(errCode);
     packet->SetLastAck();
-    (void)ResponseStart(packet, sessionId, sequenceId, device);
+    return ResponseStart(packet, sessionId, sequenceId, device);
 }
 
 int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage,

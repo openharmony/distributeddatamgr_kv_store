@@ -245,9 +245,9 @@ void FuncCheckDeviceSecurityAbility()
 void CheckDeviceSecurityAbility002()
 {
     g_config.dataDir = g_testDir;
-    g_mgr.SetKvStoreConfig(g_config);
+    EXPECT_EQ(g_mgr.SetKvStoreConfig(g_config), OK);
 
-    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
+    EXPECT_EQ(RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter), E_OK);
     g_adapter->SetNeedCreateDb(true);
 
     const std::string storeId = "CheckDeviceSecurityAbility002";
@@ -257,7 +257,7 @@ void CheckDeviceSecurityAbility002()
             LOGI("open store!!");
             KvStoreNbDelegate::Option option1 = {true, false, false};
             g_mgr.GetKvStore(storeId, option1, g_kvNbDelegateCallback);
-            g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+            EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
         }
     });
 
