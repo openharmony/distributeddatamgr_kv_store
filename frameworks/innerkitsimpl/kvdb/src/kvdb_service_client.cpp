@@ -74,10 +74,15 @@ std::shared_ptr<KVDBServiceClient> KVDBServiceClient::GetInstance()
         return nullptr;
     }
 
-    sptr<KVDBServiceClient> client = iface_cast<KVDBServiceClient>(service);
+    sptr<KVDBServiceClient> client = nullptr;
+    if (service->IsProxyObject()) {
+        client = iface_cast<KVDBServiceClient>(service);
+    }
+
     if (client == nullptr) {
         client = new (std::nothrow) KVDBServiceClient(service);
     }
+    
     if (client == nullptr) {
         return nullptr;
     }
