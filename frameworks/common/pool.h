@@ -17,6 +17,8 @@
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #include <functional>
 #include <mutex>
+
+#include "iostream"
 namespace OHOS {
 template<typename T>
 class Pool {

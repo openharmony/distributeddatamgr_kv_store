@@ -1,25 +1,27 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright (c) 2023 Huawei Device Co., Ltd.
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 #ifndef OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_H
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_H
 #include <condition_variable>
 #include <mutex>
 #include <queue>
 #include <thread>
+
 #include "priority_queue.h"
 namespace OHOS {
+
 class Executor : public std::enable_shared_from_this<Executor> {
 public:
     using TaskId = uint64_t;
@@ -39,7 +41,7 @@ public:
     };
     struct InnerTask {
         Task managed = [] {};
-        std::function<void(InnerTask &)> exec = [this](InnerTask innerTask = InnerTask(INVALID_TASK_ID)) {
+        std::function<void(InnerTask &)> exec = [](InnerTask innerTask = InnerTask(INVALID_TASK_ID)) {
             innerTask.managed();
         };
         Duration interval = INVALID_INTERVAL;
@@ -66,7 +68,6 @@ public:
 
     void Start()
     {
-        thisPtr_ = shared_from_this();
         thread_ = std::thread([this] {
             Run();
         });
@@ -74,13 +75,12 @@ public:
 
     void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> &queue,
         std::function<void(std::shared_ptr<Executor>)> idle,
-        std::function<bool(std::shared_ptr<Executor>, bool)> release, InnerTask &innerTask)
+        std::function<bool(std::shared_ptr<Executor>, bool)> release)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         waits_ = queue;
         idle_ = std::move(idle);
         release_ = std::move(release);
-        currentTask_ = innerTask;
         condition_.notify_one();
     }
 
@@ -95,53 +95,42 @@ public:
             thread_.join();
         }
     }
-    void SetTask(InnerTask &innerTask)
-    {
-        std::unique_lock<decltype(mutex_)> lock(mutex_);
-        currentTask_ = innerTask;
-    }
-
-    bool IsRunningTask(TaskId taskId)
-    {
-        return taskId == currentTask_.taskId;
-    }
 
 private:
     static constexpr Duration TIME_OUT = std::chrono::seconds(2);
     void Run()
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
-        bool forceStop = false;
         do {
             do {
                 condition_.wait(lock, [this] {
-                    return running_ == IS_STOPPING || (waits_ != nullptr && currentTask_.Valid());
+                    return running_ == IS_STOPPING || waits_ != nullptr;
                 });
-                InnerTask innerTask = currentTask_;
-                while (running_ == RUNNING && innerTask.Valid()) {
+                while (running_ == RUNNING && waits_->Size() > 0) {
+                    InnerTask currentTask;
+                    currentTask = waits_->Pop();
+                    if (!currentTask.Valid()) {
+                        break;
+                    }
                     lock.unlock();
-                    innerTask.exec(innerTask);
+                    currentTask.exec(currentTask);
                     lock.lock();
-                    currentTask_ = waits_->Pop();
-                    innerTask = currentTask_;
+                    waits_->Finish(currentTask.taskId);
                 }
                 waits_ = nullptr;
-                idle_(thisPtr_);
+                idle_(shared_from_this());
             } while (running_ == RUNNING &&
                      condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
-                         return (currentTask_.Valid());
+                         return waits_ != nullptr;
                      }));
-            forceStop = running_ != RUNNING;
-        } while (!release_(thisPtr_, forceStop));
+        } while (!release_(shared_from_this(), running_ != RUNNING));
         running_ = STOPPED;
     }
 
     Status running_ = RUNNING;
     std::mutex mutex_;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> waits_;
-    InnerTask currentTask_ = InnerTask();
     std::thread thread_;
-    std::shared_ptr<Executor> thisPtr_;
     std::condition_variable condition_;
     std::function<void(std::shared_ptr<Executor>)> idle_;
     std::function<bool(std::shared_ptr<Executor>, bool)> release_;

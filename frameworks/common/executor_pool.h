@@ -37,7 +37,6 @@ public:
     static constexpr Duration INVALID_INTERVAL = std::chrono::milliseconds(0);
     static constexpr uint64_t UNLIMITED_TIMES = std::numeric_limits<uint64_t>::max();
     static constexpr Duration INVALID_DELAY = std::chrono::seconds(0);
-    static constexpr TaskId START_TASK_ID = static_cast<uint64_t>(1l);
     static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
 
     ExecutorPool(size_t max, size_t min)
@@ -51,14 +50,17 @@ public:
         poolStatus = Status::IS_STOPPING;
         execs_->Clean();
         delayTasks_->Clean();
-        if (scheduler_ != nullptr) {
-            scheduler_->Stop(true);
+        std::shared_ptr<Executor> scheduler;
+        {
+            std::lock_guard<decltype(mtx_)> scheduleLock(mtx_);
+            scheduler = std::move(scheduler_);
         }
-
+        if (scheduler != nullptr) {
+            scheduler->Stop(true);
+        }
         pool_->Clean([](std::shared_ptr<Executor> executor) {
             executor->Stop(true);
         });
-
         poolStatus = Status::STOPPED;
     }
 
@@ -136,8 +138,6 @@ private:
     {
         auto run = [this](InnerTask &innerTask) {
             innerTask.managed();
-            execs_->Finish(innerTask.taskId);
-            delCon_.notify_all();
         };
         InnerTask innerTask;
         innerTask.managed = task;
@@ -155,8 +155,7 @@ private:
             },
             [this](std::shared_ptr<Executor> exe, bool force) -> bool {
                 return pool_->Release(exe, force);
-            },
-            startTask);
+            });
         return innerTask.taskId;
     }
 
@@ -168,12 +167,6 @@ private:
                 delayTasks_->Push(task);
             }
             Execute(task.managed, task.taskId);
-            delayTasks_->Finish(task.taskId);
-            {
-                std::lock_guard<decltype(mtx_)> lock(mtx_);
-                scheduler_->SetTask(startTask);
-                delCon_.notify_all();
-            }
         };
         innerTask.exec = run;
         delayTasks_->Push(innerTask);
@@ -189,8 +182,7 @@ private:
                 },
                 [this](std::shared_ptr<Executor> exe, bool force) -> bool {
                     return pool_->Release(exe, force);
-                },
-                startTask);
+                });
         }
         return innerTask.taskId;
     }
@@ -198,21 +190,19 @@ private:
     TaskId GenTaskId()
     {
         auto taskId = ++taskId_;
-        while (taskId == INVALID_TASK_ID || taskId == START_TASK_ID) {
-            ++taskId_;
+        if (taskId == INVALID_TASK_ID) {
+            taskId = ++taskId_;
         }
         return taskId;
     }
 
     Status poolStatus = Status::RUNNING;
     std::mutex mtx_;
-    std::condition_variable delCon_;
     Pool<Executor> *pool_;
-    InnerTask startTask = InnerTask(START_TASK_ID);
     std::shared_ptr<Executor> scheduler_ = nullptr;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> execs_;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> delayTasks_;
-    std::atomic<TaskId> taskId_ = START_TASK_ID;
+    std::atomic<TaskId> taskId_ = INVALID_TASK_ID;
 };
 } // namespace OHOS
 
