@@ -59,13 +59,6 @@ public:
         }
     };
 
-    Executor()
-    {
-        thread_ = std::make_unique<std::thread>([this] {
-            Run();
-        });
-    }
-
     void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> &queue,
         std::function<bool(std::shared_ptr<Executor>)> idle,
         std::function<bool(std::shared_ptr<Executor>, bool)> release)
@@ -101,8 +94,7 @@ private:
                     return running_ == IS_STOPPING || waits_ != nullptr;
                 });
                 while (running_ == RUNNING && waits_->Size() > 0) {
-                    InnerTask currentTask;
-                    currentTask = waits_->Pop();
+                    auto currentTask = waits_->Pop();
                     if (!currentTask.Valid()) {
                         break;
                     }
@@ -127,7 +119,9 @@ private:
     Status running_ = RUNNING;
     std::mutex mutex_;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> waits_;
-    std::unique_ptr<std::thread> thread_;
+    std::unique_ptr<std::thread> thread_ = std::make_unique<std::thread>([this] {
+        Run();
+    });
     std::shared_ptr<Executor> thisPtr;
     std::condition_variable condition_;
     std::function<bool(std::shared_ptr<Executor>)> idle_;
