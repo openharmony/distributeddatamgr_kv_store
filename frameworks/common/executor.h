@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_H
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_H
 #include <condition_variable>
@@ -40,20 +41,12 @@ public:
         STOPPED
     };
     struct InnerTask {
-        Task managed = [] {};
-        std::function<void(InnerTask &)> exec = [](InnerTask innerTask = InnerTask(INVALID_TASK_ID)) {
-            innerTask.managed();
-        };
+        std::function<void(InnerTask)> exec = [](InnerTask innerTask) {};
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
         TaskId taskId = INVALID_TASK_ID;
         Time startTime = INVALID_TIME;
         InnerTask() = default;
-
-        explicit InnerTask(TaskId id) : taskId(id)
-        {
-            managed = [] {};
-        }
 
         bool Valid() const
         {
@@ -66,9 +59,9 @@ public:
         }
     };
 
-    void Start()
+    Executor()
     {
-        thread_ = std::thread([this] {
+        thread_ = std::make_unique<std::thread>([this] {
             Run();
         });
     }
@@ -78,6 +71,7 @@ public:
         std::function<bool(std::shared_ptr<Executor>, bool)> release)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
+        thisPtr = shared_from_this();
         waits_ = queue;
         idle_ = std::move(idle);
         release_ = std::move(release);
@@ -92,7 +86,7 @@ public:
             condition_.notify_one();
         }
         if (wait) {
-            thread_.join();
+            thread_->join();
         }
     }
 
@@ -107,7 +101,8 @@ private:
                     return running_ == IS_STOPPING || waits_ != nullptr;
                 });
                 while (running_ == RUNNING && waits_->Size() > 0) {
-                    InnerTask currentTask = waits_->Pop();
+                    InnerTask currentTask;
+                    currentTask = waits_->Pop();
                     if (!currentTask.Valid()) {
                         break;
                     }
@@ -117,19 +112,21 @@ private:
                     waits_->Finish(currentTask.taskId);
                 }
                 waits_ = nullptr;
-                idle_(shared_from_this());
+                idle_(thisPtr);
             } while (running_ == RUNNING &&
                      condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
                          return waits_ != nullptr;
                      }));
-        } while (!release_(shared_from_this(), running_ != RUNNING));
+        } while (!release_(thisPtr, running_ != RUNNING));
         running_ = STOPPED;
+        thisPtr = nullptr;
     }
 
     Status running_ = RUNNING;
     std::mutex mutex_;
     std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> waits_;
-    std::thread thread_;
+    std::unique_ptr<std::thread> thread_;
+    std::shared_ptr<Executor> thisPtr;
     std::condition_variable condition_;
     std::function<void(std::shared_ptr<Executor>)> idle_;
     std::function<bool(std::shared_ptr<Executor>, bool)> release_;

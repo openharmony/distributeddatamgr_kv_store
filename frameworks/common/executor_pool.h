@@ -69,7 +69,10 @@ public:
         if (poolStatus != Status::RUNNING) {
             return INVALID_TASK_ID;
         }
-        return Execute(std::move(task), GenTaskId());
+        auto run = [task](InnerTask innerTask) {
+            task();
+        };
+        return Execute(std::move(run), GenTaskId());
     }
 
     TaskId Execute(Task task, Duration delay)
@@ -90,7 +93,11 @@ public:
     TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
     {
         InnerTask innerTask;
-        innerTask.managed = std::move(task);
+        auto run = [task](InnerTask innerTask) {
+            task();
+        };
+        //        innerTask.managed = std::move(task);
+        innerTask.exec = std::move(run);
         innerTask.startTime = std::chrono::steady_clock::now() + delay;
         innerTask.interval = interval;
         innerTask.times = times;
@@ -116,33 +123,25 @@ public:
 
     TaskId Reset(TaskId taskId, Duration delay, Duration interval)
     {
-        InnerTask innerTask;
-        {
-            std::lock_guard<decltype(mtx_)> lock(mtx_);
-            innerTask = delayTasks_->Find(taskId);
-            if (!innerTask.Valid()) {
-                return INVALID_TASK_ID;
-            }
-            if (!delayTasks_->Remove(taskId, false)) {
-                return INVALID_TASK_ID;
-            }
-            innerTask.startTime = std::chrono::steady_clock::now() + delay;
-            innerTask.interval = interval;
+        auto innerTask = delayTasks_->Find(taskId);
+        if (!innerTask.Valid() && !delayTasks_->IsRunningTask(taskId)) {
+            return INVALID_TASK_ID;
         }
+        if (!delayTasks_->Remove(taskId, false) && !delayTasks_->IsRunningTask(taskId)) {
+            return INVALID_TASK_ID;
+        }
+        innerTask.startTime = std::chrono::steady_clock::now() + delay;
+        innerTask.interval = interval;
         Schedule(innerTask);
         return taskId;
     }
 
 private:
-    TaskId Execute(Task task, TaskId taskId)
+    TaskId Execute(std::function<void(InnerTask)> task, TaskId taskId)
     {
-        auto run = [this](InnerTask &innerTask) {
-            innerTask.managed();
-        };
         InnerTask innerTask;
-        innerTask.managed = task;
+        innerTask.exec = task;
         innerTask.taskId = taskId;
-        innerTask.exec = run;
         execs_->Push(innerTask);
         auto executor = pool_->Get();
         if (executor == nullptr) {
@@ -161,12 +160,14 @@ private:
 
     TaskId Schedule(InnerTask innerTask)
     {
-        auto run = [this](InnerTask &task) {
+        auto func = std::move(innerTask.exec);
+        auto id = innerTask.taskId;
+        auto run = [this, func, id](InnerTask task) {
             if (task.interval != INVALID_INTERVAL && --task.times > 0) {
                 task.startTime = std::chrono::steady_clock::now() + task.interval;
                 delayTasks_->Push(task);
             }
-            Execute(task.managed, task.taskId);
+            Execute(func, id);
         };
         innerTask.exec = run;
         delayTasks_->Push(innerTask);

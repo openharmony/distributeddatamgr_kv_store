@@ -39,7 +39,6 @@ public:
             auto cur = new Node();
             idle_ = cur;
             current_++;
-            cur->data->Start();
         }
         Node *cur = idle_;
         idle_ = idle_->next;

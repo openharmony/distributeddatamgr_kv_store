@@ -79,7 +79,7 @@ public:
         popCv_.notify_all();
         return true;
     }
-	
+
     size_t Size()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
