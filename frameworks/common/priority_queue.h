@@ -80,7 +80,8 @@ public:
         return true;
     }
 	
-    size_t Size(){
+    size_t Size()
+    {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         return tasks_.size();
     }

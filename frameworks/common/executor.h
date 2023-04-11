@@ -107,8 +107,7 @@ private:
                     return running_ == IS_STOPPING || waits_ != nullptr;
                 });
                 while (running_ == RUNNING && waits_->Size() > 0) {
-                    InnerTask currentTask;
-                    currentTask = waits_->Pop();
+                    InnerTask currentTask = waits_->Pop();
                     if (!currentTask.Valid()) {
                         break;
                     }
