@@ -17,17 +17,11 @@
 #define OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_POOL_H
 #include <functional>
 #include <mutex>
-
-#include "iostream"
 namespace OHOS {
 template<typename T>
 class Pool {
 public:
     Pool(uint32_t capability, uint32_t min) : capability_(capability), min_(min) {}
-    ~Pool()
-    {
-        min_ = 0;
-    }
 
     std::shared_ptr<T> Get(bool isForce = false)
     {
@@ -60,7 +54,6 @@ public:
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         Node *cur = idle_;
-
         if (!force && current_ <= min_) {
             return false;
         }
@@ -115,6 +108,7 @@ public:
 
     int32_t Clean(std::function<void(std::shared_ptr<T>)> close)
     {
+        min_ = 0;
         while (busy_ != nullptr) {
             close(busy_->data);
         }

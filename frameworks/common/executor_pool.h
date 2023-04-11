@@ -96,7 +96,6 @@ public:
         auto run = [task](InnerTask innerTask) {
             task();
         };
-        //        innerTask.managed = std::move(task);
         innerTask.exec = std::move(run);
         innerTask.startTime = std::chrono::steady_clock::now() + delay;
         innerTask.interval = interval;
@@ -150,7 +149,8 @@ private:
         executor->Bind(
             execs_,
             [this](std::shared_ptr<Executor> exe) {
-                return pool_->Idle(exe);
+                pool_->Idle(exe);
+                return true;
             },
             [this](std::shared_ptr<Executor> exe, bool force) -> bool {
                 return pool_->Release(exe, force);
@@ -178,8 +178,12 @@ private:
                 delayTasks_,
                 [this](std::shared_ptr<Executor> exe) {
                     std::unique_lock<decltype(mtx_)> lock(mtx_);
+                    if (delayTasks_->Size() != 0) {
+                        return false;
+                    }
                     scheduler_ = nullptr;
                     pool_->Idle(exe);
+                    return true;
                 },
                 [this](std::shared_ptr<Executor> exe, bool force) -> bool {
                     return pool_->Release(exe, force);

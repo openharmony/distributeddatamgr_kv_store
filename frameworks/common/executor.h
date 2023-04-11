@@ -67,7 +67,7 @@ public:
     }
 
     void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> &queue,
-        std::function<void(std::shared_ptr<Executor>)> idle,
+        std::function<bool(std::shared_ptr<Executor>)> idle,
         std::function<bool(std::shared_ptr<Executor>, bool)> release)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
@@ -111,8 +111,10 @@ private:
                     lock.lock();
                     waits_->Finish(currentTask.taskId);
                 }
+                if (!idle_(thisPtr) && running_ == RUNNING) {
+                    continue;
+                }
                 waits_ = nullptr;
-                idle_(thisPtr);
             } while (running_ == RUNNING &&
                      condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
                          return waits_ != nullptr;
@@ -128,7 +130,7 @@ private:
     std::unique_ptr<std::thread> thread_;
     std::shared_ptr<Executor> thisPtr;
     std::condition_variable condition_;
-    std::function<void(std::shared_ptr<Executor>)> idle_;
+    std::function<bool(std::shared_ptr<Executor>)> idle_;
     std::function<bool(std::shared_ptr<Executor>, bool)> release_;
 };
 } // namespace OHOS
