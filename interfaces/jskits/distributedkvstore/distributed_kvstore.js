@@ -61,4 +61,4 @@ export default {
     S3: 5,
     S4: 6,
   },
-}
+};
