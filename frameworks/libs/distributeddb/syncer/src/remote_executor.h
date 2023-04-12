@@ -77,7 +77,7 @@ protected:
 
     virtual bool IsPacketValid(uint32_t sessionId);
 
-    void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
+    int ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
 
 private:
     struct SendMessage {

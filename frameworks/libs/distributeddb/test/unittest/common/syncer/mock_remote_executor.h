@@ -25,9 +25,9 @@ public:
 
     MOCK_METHOD1(IsPacketValid, bool(uint32_t));
 
-    void CallResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device)
+    int CallResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device)
     {
-        RemoteExecutor::ResponseFailed(errCode, sessionId, sequenceId, device);
+        return RemoteExecutor::ResponseFailed(errCode, sessionId, sequenceId, device);
     }
 };
 } // namespace DistributedDB

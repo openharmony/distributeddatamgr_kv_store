@@ -275,6 +275,7 @@ void SetNextBeginTime001()
 
     dataItem.flag = DataItem::DELETE_FLAG;
     token->FinishGetData();
+    EXPECT_EQ(token->IsGetAllDataFinished(), false);
     token->SetNextBeginTime(dataItem);
 }
 }

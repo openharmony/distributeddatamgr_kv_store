@@ -1324,7 +1324,9 @@ namespace {
         std::thread t1(OpenCloseDatabase, storeId);
         std::thread t2([&]() {
             for (int i = 0; i < 10000; i++) { // loop 10000 times
-                g_mgr.DeleteKvStore(storeId);
+                DBStatus status = g_mgr.DeleteKvStore(storeId);
+                LOGI("delete res %d", status);
+                EXPECT_TRUE(status == OK || status == BUSY || status == NOT_FOUND);
             }
         });
         t1.join();
