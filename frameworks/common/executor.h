@@ -41,7 +41,7 @@ public:
         STOPPED
     };
     struct InnerTask {
-        std::function<void(InnerTask)> exec = [](InnerTask innerTask) {};
+        std::function<void(InnerTask)> exec;
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
         TaskId taskId = INVALID_TASK_ID;
@@ -59,12 +59,20 @@ public:
         }
     };
 
-    void Bind(std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> &queue,
-        std::function<bool(std::shared_ptr<Executor>)> idle,
+    Executor()
+        : thread_([this] {
+              Run();
+              thread_.detach();
+              self_ = nullptr;
+          })
+    {
+    }
+
+    void Bind(PriorityQueue<InnerTask, Time, TaskId> *queue, std::function<bool(std::shared_ptr<Executor>)> idle,
         std::function<bool(std::shared_ptr<Executor>, bool)> release)
     {
         std::unique_lock<decltype(mutex_)> lock(mutex_);
-        thisPtr = shared_from_this();
+        self_ = shared_from_this();
         waits_ = queue;
         idle_ = std::move(idle);
         release_ = std::move(release);
@@ -79,7 +87,7 @@ public:
             condition_.notify_one();
         }
         if (wait) {
-            thread_->join();
+            thread_.join();
         }
     }
 
@@ -93,7 +101,7 @@ private:
                 condition_.wait(lock, [this] {
                     return running_ == IS_STOPPING || waits_ != nullptr;
                 });
-                while (running_ == RUNNING && waits_->Size() > 0) {
+                while (running_ == RUNNING && waits_ != nullptr && waits_->Size() > 0) {
                     auto currentTask = waits_->Pop();
                     if (!currentTask.Valid()) {
                         break;
@@ -103,7 +111,7 @@ private:
                     lock.lock();
                     waits_->Finish(currentTask.taskId);
                 }
-                if (!idle_(thisPtr) && running_ == RUNNING) {
+                if (!idle_(self_) && running_ == RUNNING) {
                     continue;
                 }
                 waits_ = nullptr;
@@ -111,21 +119,18 @@ private:
                      condition_.wait_until(lock, std::chrono::steady_clock::now() + TIME_OUT, [this]() {
                          return waits_ != nullptr;
                      }));
-        } while (!release_(thisPtr, running_ != RUNNING));
+        } while (!release_(self_, running_ == IS_STOPPING));
         running_ = STOPPED;
-        thisPtr = nullptr;
     }
 
     Status running_ = RUNNING;
     std::mutex mutex_;
-    std::shared_ptr<PriorityQueue<InnerTask, Time, TaskId>> waits_;
-    std::unique_ptr<std::thread> thread_ = std::make_unique<std::thread>([this] {
-        Run();
-    });
-    std::shared_ptr<Executor> thisPtr;
     std::condition_variable condition_;
+    std::shared_ptr<Executor> self_;
+    PriorityQueue<InnerTask, Time, TaskId> *waits_ = nullptr;
     std::function<bool(std::shared_ptr<Executor>)> idle_;
     std::function<bool(std::shared_ptr<Executor>, bool)> release_;
+    std::thread thread_;
 };
 } // namespace OHOS
 #endif // OHOS_DISTRIBUTED_DATA_KV_STORE_FRAMEWORKS_COMMON_EXECUTOR_H

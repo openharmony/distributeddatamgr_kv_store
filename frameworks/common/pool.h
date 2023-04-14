@@ -108,6 +108,7 @@ public:
 
     int32_t Clean(std::function<void(std::shared_ptr<T>)> close)
     {
+        auto temp = min_;
         min_ = 0;
         while (busy_ != nullptr) {
             close(busy_->data);
@@ -115,6 +116,7 @@ public:
         while (idle_ != nullptr) {
             close(idle_->data);
         }
+        min_ = temp;
         return true;
     }
 
