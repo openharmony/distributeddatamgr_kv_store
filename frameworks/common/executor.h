@@ -52,11 +52,6 @@ public:
         {
             return taskId != INVALID_TASK_ID;
         }
-
-        TaskId GetId()
-        {
-            return this->taskId;
-        }
     };
 
     Executor()

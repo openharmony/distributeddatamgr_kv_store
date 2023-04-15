@@ -42,8 +42,8 @@ public:
     ExecutorPool(size_t max, size_t min)
     {
         pool_ = new (std::nothrow) Pool<Executor>(max, min);
-        execs_ = new PriorityQueue<InnerTask, Time, TaskId>();
-        delayTasks_ = new PriorityQueue<InnerTask, Time, TaskId>();
+        execs_ = new PriorityQueue<InnerTask, Time, TaskId>(InnerTask());
+        delayTasks_ = new PriorityQueue<InnerTask, Time, TaskId>(InnerTask());
         taskId_ = INVALID_TASK_ID;
     }
     ~ExecutorPool()
