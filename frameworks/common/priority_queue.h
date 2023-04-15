@@ -25,94 +25,36 @@ namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
 class PriorityQueue {
 public:
-    struct Index {
-        using TskIndex = typename std::map<_Tid, std::pair<_Tsk, Index *>>::iterator;
-        _Tme time;
-        TskIndex index;
-        bool isValid = true;
-        bool isSchedule = false;
-
-        Index(_Tme time) : time(time) {}
-        void SetIndex(TskIndex tskIndex)
-        {
-            index = tskIndex;
-        }
-        bool operator<(const Index &other)
-        {
-            return time < other.time;
-        }
-        bool operator==(const Index &other)
-        {
-            return index->second.first.GetId() == other.index->second.first.GetId();
-        }
-    };
-    struct cmp {
-        bool operator()(Index *a, Index *b)
-        {
-            return a->time > b->time;
-        }
-    };
-
-    PriorityQueue() {}
-    ~PriorityQueue() {}
+    using TskIndex = typename std::map<_Tme, std::pair<_Tsk, _Tid>>::iterator;
 
     _Tsk Pop()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         _Tsk res;
-        while (!queue_.empty()) {
-            while (!queue_.empty() && queue_.top() != nullptr && !queue_.top()->isValid) {
-                queue_.pop();
+        while (!tasks_.empty()) {
+            if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
+                popCv_.wait_until(lock, tasks_.begin()->first);
+                continue;
             }
-            if (!queue_.empty()) {
-                if (queue_.top()->index->second.first.startTime > std::chrono::steady_clock::now()) {
-                    popCv_.wait_until(lock, queue_.top()->index->second.first.startTime);
-                    continue;
-                }
-                auto index = queue_.top();
-                res = index->index->second.first;
-                queue_.pop();
-                running.insert(index);
-                break;
-            }
+            auto temp = tasks_.begin();
+            auto id = temp->second.second;
+            running.emplace(id);
+            res = temp->second.first;
+            tasks_.erase(temp);
+            indexes_.erase(id);
+            break;
         }
         return res;
     }
 
-    bool Push(_Tsk tsk)
+    bool Push(_Tsk tsk, _Tid id, _Tme tme)
     {
         std::unique_lock<std::mutex> lock(pqMtx_);
         if (!tsk.Valid()) {
             return false;
         }
-        auto item = new (std::nothrow) Index(tsk.startTime);
-        auto index = tasks_.emplace(tsk.GetId(), std::pair{ tsk, item });
-        if (!index.second) {
-            return false;
-        }
-        item->SetIndex(index.first);
-        queue_.push(item);
-        popCv_.notify_all();
-        return true;
-    }
-
-    bool Update(_Tid id, _Tme tme)
-    {
-        std::unique_lock<std::mutex> lock(pqMtx_);
-        if (tasks_.find(id) == tasks_.end()) {
-            return false;
-        }
-        auto runIdx = running.find(tasks_[id].second);
-        if (runIdx != running.end()) {
-            if (!(*runIdx)->isValid) {
-                return false;
-            }
-            (*runIdx)->isSchedule = true;
-        }
-        tasks_[id].first.startTime = tme;
-        --tasks_[id].first.times;
-        tasks_[id].second->time = tme;
-        queue_.push(tasks_[id].second);
+        auto temp = tasks_.emplace(tme, std::pair{ tsk, id });
+        indexes_.emplace(id, temp);
         popCv_.notify_all();
         return true;
     }
@@ -127,8 +69,8 @@ public:
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         _Tsk res;
-        if (tasks_.find(id) != tasks_.end()) {
-            res = tasks_[id].first;
+        if (indexes_.find(id) != indexes_.end()) {
+            res = indexes_[id]->second.first;
         }
         return res;
     }
@@ -137,18 +79,19 @@ public:
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         bool res = true;
-        auto it = running.find(tasks_[id].second);
+        auto it = running.find(id);
         if (it != running.end()) {
             res = false;
             removeCv_.wait(lock, [this, id, wait] {
-                return !wait || running.find(tasks_[id].second) == running.end();
+                return !wait || running.find(id) == running.end();
             });
         }
-        if (tasks_.find(id) == tasks_.end()) {
+        auto index = indexes_.find(id);
+        if (index == indexes_.end()) {
             return false;
         }
-        tasks_[id].second->isValid = false;
-        tasks_.erase(id);
+        tasks_.erase(index->second);
+        indexes_.erase(index);
         popCv_.notify_all();
         return res;
     }
@@ -156,15 +99,16 @@ public:
     void Clean()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        auto it = tasks_.begin();
-        while (it != tasks_.end()) {
-            delete (*it).second.second;
-            tasks_.erase(it);
-            it++;
+        auto tasksIt = tasks_.begin();
+        while (tasksIt != tasks_.end()) {
+            tasks_.erase(tasksIt);
+            tasksIt++;
         }
         running.clear();
-        while (!queue_.empty()) {
-            queue_.pop();
+        auto queueIt = indexes_.begin();
+        while (queueIt != indexes_.end()) {
+            indexes_.erase(queueIt);
+            queueIt++;
         }
     }
 
@@ -174,17 +118,10 @@ public:
         if (running.empty() && tasks_.empty()) {
             return;
         }
-        auto pair = tasks_[id];
-        if (running.find(pair.second) != running.end()) {
-            if (!pair.second->isSchedule) {
-                delete pair.second;
-                tasks_.erase(id);
-            } else {
-                pair.second->isSchedule = false;
-            }
-            running.erase(pair.second);
+        auto index = running.find(id);
+        if (index != running.end()) {
+            running.erase(index);
         }
-
         removeCv_.notify_all();
     }
 
@@ -192,9 +129,9 @@ private:
     std::mutex pqMtx_;
     std::condition_variable popCv_;
     std::condition_variable removeCv_;
-    std::map<_Tid, std::pair<_Tsk, Index *>> tasks_;
-    std::set<Index *> running;
-    std::priority_queue<Index *, std::vector<Index *>, cmp> queue_;
+    std::multimap<_Tme, std::pair<_Tsk, _Tid>> tasks_;
+    std::set<_Tid> running;
+    std::map<_Tid, TskIndex> indexes_;
 };
 } // namespace OHOS
 #endif //OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H

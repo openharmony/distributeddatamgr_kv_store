@@ -111,7 +111,8 @@ public:
     bool Remove(TaskId taskId, bool wait = false)
     {
         bool res = true;
-        if (!delayTasks_->Find(taskId).Valid() && !execs_->Find(taskId).Valid()) {
+        auto delay = delayTasks_->Find(taskId);
+        if (!delay.Valid()) {
             res = false;
         }
         delayTasks_->Remove(taskId, wait);
@@ -131,9 +132,10 @@ public:
             return INVALID_TASK_ID;
         }
         delayTasks_->Remove(taskId, false);
-        innerTask.startTime = std::chrono::steady_clock::now() + delay;
+        auto startTime = std::chrono::steady_clock::now() + delay;
+        innerTask.startTime = startTime;
         innerTask.interval = interval;
-        delayTasks_->Push(std::move(innerTask));
+        delayTasks_->Push(std::move(innerTask), taskId, startTime);
         return taskId;
     }
 
@@ -143,7 +145,7 @@ private:
         InnerTask innerTask;
         innerTask.exec = task;
         innerTask.taskId = taskId;
-        execs_->Push(std::move(innerTask));
+        execs_->Push(std::move(innerTask), taskId, INVALID_TIME);
         auto executor = pool_->Get();
         if (executor == nullptr) {
             return taskId;
@@ -167,12 +169,12 @@ private:
         auto run = [this, func, id](InnerTask task) {
             if (task.interval != INVALID_INTERVAL && --task.times > 0) {
                 task.startTime = std::chrono::steady_clock::now() + task.interval;
-                delayTasks_->Update(task.taskId, task.startTime);
+                delayTasks_->Push(task, task.taskId, task.startTime);
             }
             Execute(func, id);
         };
         innerTask.exec = run;
-        delayTasks_->Push(innerTask);
+        delayTasks_->Push(innerTask, innerTask.taskId, innerTask.startTime);
         std::lock_guard<decltype(mtx_)> scheduleLock(mtx_);
         if (scheduler_ == nullptr) {
             scheduler_ = pool_->Get(true);
