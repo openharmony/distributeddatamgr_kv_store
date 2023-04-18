@@ -28,15 +28,13 @@ AutoSyncTimer &AutoSyncTimer::GetInstance()
 void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    if (forceSyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(FORCE_SYNC_INTERVAL);
-        forceSyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
+    if (forceSyncTaskId_ == TaskExecutor::INVALID_TASK_ID) {
+        forceSyncTaskId_ = scheduler_.Schedule(ProcessTask(), FORCE_SYNC_INTERVAL);
     }
-    if (delaySyncTaskId_ == TaskScheduler::INVALID_TASK_ID) {
-        auto expiredTime = std::chrono::steady_clock::now() + std::chrono::milliseconds(AUTO_SYNC_INTERVAL);
-        delaySyncTaskId_ = scheduler_.At(expiredTime, ProcessTask());
+    if (delaySyncTaskId_ == TaskExecutor::INVALID_TASK_ID) {
+        delaySyncTaskId_ = scheduler_.Schedule(ProcessTask(), AUTO_SYNC_INTERVAL);
     } else {
-        delaySyncTaskId_ = scheduler_.Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));
+        delaySyncTaskId_ = scheduler_.Reset(delaySyncTaskId_, AUTO_SYNC_INTERVAL);
     }
 }
 
@@ -113,8 +111,7 @@ std::function<void()> AutoSyncTimer::ProcessTask()
 void AutoSyncTimer::StopTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-    scheduler_.Clean();
-    forceSyncTaskId_ = TaskScheduler::INVALID_TASK_ID;
-    delaySyncTaskId_ = TaskScheduler::INVALID_TASK_ID;
+    forceSyncTaskId_ = TaskExecutor::INVALID_TASK_ID;
+    delaySyncTaskId_ = TaskExecutor::INVALID_TASK_ID;
 }
-}
+} // namespace OHOS::DistributedKv
