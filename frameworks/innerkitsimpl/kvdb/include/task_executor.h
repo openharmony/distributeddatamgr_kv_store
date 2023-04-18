@@ -27,7 +27,7 @@ public:
     static TaskExecutor &GetInstance();
     TaskId Execute(Task &&task, int32_t delay = 0);
     TaskId Schedule(Task &&task, int32_t interval, int32_t delay = 0);
-    TaskId Schedule(Task &&task, int32_t interval, int32_t delay, int32_t times = UNLIMITED_TIMES);
+    TaskId Schedule(Task &&task, int32_t interval, int32_t delay, uint64_t times = UNLIMITED_TIMES);
     bool Remove(TaskId taskId, bool wait = false);
     TaskId Reset(TaskId taskId, int32_t interval, int32_t delay = 0);
 

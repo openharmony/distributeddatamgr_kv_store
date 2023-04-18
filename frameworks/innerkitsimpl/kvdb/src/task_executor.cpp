@@ -34,7 +34,7 @@ TaskExecutor::TaskId TaskExecutor::Schedule(TaskExecutor::Task &&task, int32_t i
     return Schedule(std::move(task), interval, delay, UNLIMITED_TIMES);
 }
 
-TaskExecutor::TaskId TaskExecutor::Schedule(TaskExecutor::Task &&task, int32_t interval, int32_t delay, int32_t times)
+TaskExecutor::TaskId TaskExecutor::Schedule(TaskExecutor::Task &&task, int32_t interval, int32_t delay, uint64_t times)
 {
     if (pool_ == nullptr) {
         return INVALID_TASK_ID;
