@@ -61,7 +61,11 @@ bool SecurityManager::Retry()
     }
 
     constexpr int32_t interval = 100;
-    TaskExecutor::GetInstance().Schedule([this] { Retry(); }, interval);
+    TaskExecutor::GetInstance().Schedule(
+        [this] {
+            Retry();
+        },
+        std::chrono::milliseconds(interval));
     return false;
 }
 
@@ -144,7 +148,7 @@ std::vector<uint8_t> SecurityManager::LoadKeyFromFile(const std::string &name, c
     date.assign(content.begin() + offset, content.begin() + (sizeof(time_t) / sizeof(uint8_t)) + offset);
     isOutdated = IsKeyOutdated(date);
     offset += (sizeof(time_t) / sizeof(uint8_t));
-    std::vector<uint8_t> key{content.begin() + offset, content.end()};
+    std::vector<uint8_t> key{ content.begin() + offset, content.end() };
     content.assign(content.size(), 0);
     return key;
 }
@@ -164,7 +168,7 @@ bool SecurityManager::SaveKeyToFile(const std::string &name, const std::string &
     content.push_back(char((sizeof(time_t) / sizeof(uint8_t)) + KEY_SIZE));
     content.insert(content.end(), date.begin(), date.end());
     content.insert(content.end(), secretKey.begin(), secretKey.end());
-    auto keyFullPath = keyPath+ "/" + name + ".key";
+    auto keyFullPath = keyPath + "/" + name + ".key";
     auto ret = SaveBufferToFile(keyFullPath, content);
     content.assign(content.size(), 0);
     if (!ret) {
