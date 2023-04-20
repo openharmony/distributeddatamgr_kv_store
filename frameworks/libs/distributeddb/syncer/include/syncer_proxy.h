@@ -105,6 +105,7 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) override;
 
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) override;
 private:
     std::mutex syncerLock_;
     std::shared_ptr<ISyncer> syncer_;

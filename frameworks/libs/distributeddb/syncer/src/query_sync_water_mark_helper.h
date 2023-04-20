@@ -66,7 +66,7 @@ public:
 
     int SetSendDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
 
-    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark);
+    int SetRecvDeleteSyncWaterMark(const std::string &deviceId, const WaterMark &waterMark, bool isNeedHash = true);
 
     // this function will read deleteWaterMark from db by it's deleteWaterMarkKey
     // and then serialize it and put to cache
@@ -76,7 +76,7 @@ public:
     int RemoveLeastUsedQuerySyncItems(const std::vector<Key> &querySyncIds);
 
     // reset the waterMark to zero
-    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName);
+    int ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash);
 
     static std::string GetQuerySyncPrefixKey();
 
@@ -119,7 +119,7 @@ private:
 
     // get the deleteSync hashId in cache_ or generate one and then put it in to cache_
     // the hashId is made up of "DELETE_SYNC_PREFIX_KEY" + hash(deviceId)
-    void GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId);
+    void GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId, bool isNeedHash = true);
 
     int SaveDeleteWaterMarkToDB(const DeviceID &hashDeviceId, const DeleteWaterMark &deleteWaterMark);
 

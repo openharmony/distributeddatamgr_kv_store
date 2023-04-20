@@ -124,6 +124,8 @@ public:
 
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition,
         uint64_t timeout, uint64_t connectionId, std::shared_ptr<ResultSet> &result) = 0;
+
+    virtual int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) = 0;
 };
 } // namespace DistributedDB
 

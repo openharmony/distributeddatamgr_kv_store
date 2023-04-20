@@ -223,4 +223,12 @@ int SyncerProxy::RemoteQuery(const std::string &device, const RemoteCondition &c
     }
     return syncer_->RemoteQuery(device, condition, timeout, connectionId, result);
 }
+
+int SyncerProxy::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (syncer_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    return syncer_->GetHashDeviceId(clientId, hashDevId);
+}
 } // namespace DistributedDB

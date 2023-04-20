@@ -470,13 +470,6 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
      */
     Value values;
     EXPECT_EQ(errStore->PutMetaData(keys.front(), values), -E_INVALID_DB);
-
-    /**
-     * @tc.steps: step6. Test remove device data
-     * @tc.expected: step6. Expect return -E_INVALID_ARGS
-     */
-    std::string deviceName;
-    EXPECT_EQ(errStore->RemoveDeviceData(deviceName, false), -E_INVALID_ARGS);
 }
 
 /**

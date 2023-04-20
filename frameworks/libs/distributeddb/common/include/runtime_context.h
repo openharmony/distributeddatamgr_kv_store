@@ -141,6 +141,13 @@ public:
     virtual void StopTaskPool() = 0;
 
     virtual void StopTimeTickMonitorIfNeed() = 0;
+
+    virtual void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback) = 0;
+
+    virtual int TranslateDeviceId(const std::string &deviceId,
+        const StoreInfo &info, std::string &newDeviceId) = 0;
+
+    virtual bool ExistTranslateDevIdCallback() const = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

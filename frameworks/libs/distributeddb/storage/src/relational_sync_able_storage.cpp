@@ -466,9 +466,14 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
     query.SetSchema(storageEngine_->GetSchema());
 
     TableInfo table = storageEngine_->GetSchema().GetTable(object.GetTableName());
+    StoreInfo info = {
+        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
     if (!IsCollaborationMode(storageEngine_)) {
         // Set table name for SPLIT_BY_DEVICE mode
-        table.SetTableName(DBCommon::GetDistributedTableName(deviceName, object.GetTableName()));
+        table.SetTableName(DBCommon::GetDistributedTableName(deviceName, object.GetTableName(), info));
     }
     DBDfxAdapter::StartTraceSQL();
     errCode = handle->SaveSyncItems(query, dataItems, deviceName, table);
@@ -586,12 +591,17 @@ int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &d
         return errCode;
     }
 
+    StoreInfo info = {
+        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
     for (const auto &[table, strategy] : syncStrategy) {
         if (!strategy.permitSync) {
             continue;
         }
 
-        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table));
+        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table), info);
         if (errCode != E_OK) {
             LOGE("Create distributed device table failed. %d", errCode);
             break;

@@ -66,15 +66,16 @@ public:
 
     int DeleteDistributedDeviceTable(const std::string &device, const std::string &tableName);
 
-    int DeleteDistributedDeviceTableLog(const std::string &device, const std::string &tableName,
-        const std::map<std::string, TableInfo> &tables);
+    int DeleteDistributedAllDeviceTableLog(const std::string &tableName);
+
+    int DeleteDistributedDeviceTableLog(const std::string &device, const std::string &tableName);
 
     int DeleteDistributedLogTable(const std::string &tableName);
 
     int CheckAndCleanDistributedTable(const std::vector<std::string> &tableNames,
         std::vector<std::string> &missingTables);
 
-    int CreateDistributedDeviceTable(const std::string &device, const TableInfo &baseTbl);
+    int CreateDistributedDeviceTable(const std::string &device, const TableInfo &baseTbl, const StoreInfo &info);
 
     int CheckQueryObjectLegal(const TableInfo &table, QueryObject &query, const std::string &schemaVersion);
 
@@ -84,6 +85,8 @@ public:
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data);
 
     int CheckEncryptedOrCorrupted() const;
+
+    int GetExistsDeviceList(std::set<std::string> &devices) const;
 
 private:
     struct SaveSyncDataStmt {

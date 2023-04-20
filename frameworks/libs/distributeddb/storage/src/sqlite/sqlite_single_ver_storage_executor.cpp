@@ -24,6 +24,7 @@
 #include "parcel.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
+#include "sqlite_meta_executor.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
 
 namespace DistributedDB {
@@ -1381,34 +1382,44 @@ int SQLiteSingleVerStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
         return errCode;
     }
 
-    errCode = GetAllKeys(statement, keys);
+    errCode = SqliteMetaExecutor::GetAllKeys(statement, isMemDb_, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
 
-int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &deviceName,
+int SQLiteSingleVerStorageExecutor::GetAllSyncedEntries(const std::string &hashDev,
     std::vector<Entry> &entries) const
 {
+     int errCode = E_OK;
     sqlite3_stmt *statement = nullptr;
-    std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
-        SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES_BY_DEV);
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-    if (errCode != E_OK) {
-        LOGE("Get all entries statement failed:%d", errCode);
-        return errCode;
-    }
-
-    // When removing device data in cache mode, key is "remove", value is deviceID's hash string.
-    // Therefore, no need to transfer hash string when migrating.
-    std::string devName = isSyncMigrating_ ? deviceName : DBCommon::TransferHashString(deviceName);
-    std::vector<uint8_t> devVect(devName.begin(), devName.end());
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
-    if (errCode != E_OK) {
-        LOGE("Failed to bind the synced device for all entries:%d", errCode);
+    if (hashDev.empty()) {
+        std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
+        SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES);
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            LOGE("Get all entries statement failed:%d", errCode);
+            return errCode;
+        }
     } else {
-        errCode = GetAllEntries(statement, entries);
+        std::string sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ?
+            SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE : SELECT_ALL_SYNC_ENTRIES_BY_DEV);
+        errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+        if (errCode != E_OK) {
+            LOGE("Get all entries statement failed:%d", errCode);
+            return errCode;
+        }
+
+        // deviceName always hash string
+        std::vector<uint8_t> devVect(hashDev.begin(), hashDev.end());
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // bind the 1st to device.
+        if (errCode != E_OK) {
+            LOGE("Failed to bind the synced device for all entries:%d", errCode);
+            goto END;
+        }
     }
 
+    errCode = GetAllEntries(statement, entries);
+END:
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
@@ -1438,34 +1449,6 @@ int SQLiteSingleVerStorageExecutor::GetAllEntries(sqlite3_stmt *statement, std::
             break;
         } else {
             LOGE("SQLite step for all entries failed:%d", errCode);
-            break;
-        }
-    } while (true);
-
-    return errCode;
-}
-
-int SQLiteSingleVerStorageExecutor::GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys) const
-{
-    if (statement == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode;
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            Key key;
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key);
-            if (errCode != E_OK) {
-                break;
-            }
-
-            keys.push_back(std::move(key));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step for getting all keys failed:%d", errCode);
             break;
         }
     } while (true);
@@ -1719,20 +1702,26 @@ END:
 
 int SQLiteSingleVerStorageExecutor::RemoveDeviceData(const std::string &deviceName)
 {
-    // Transfer the device name.
-    std::string devName = DBCommon::TransferHashString(deviceName);
+    int errCode = E_OK;
     sqlite3_stmt *statement = nullptr;
-    std::vector<uint8_t> devVect(devName.begin(), devName.end());
+    if (deviceName.empty()) {
+        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_ALL_DEV_DATA_SQL, statement);
+        if (errCode != E_OK) {
+            goto ERROR;
+        }
+    } else {
+        // device name always hash string.
+        std::vector<uint8_t> devVect(deviceName.begin(), deviceName.end());
+        errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
+        if (errCode != E_OK) {
+            goto ERROR;
+        }
 
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, REMOVE_DEV_DATA_SQL, statement);
-    if (errCode != E_OK) {
-        goto ERROR;
-    }
-
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // only one arg.
-    if (errCode != E_OK) {
-        LOGE("Failed to bind the removed device:%d", errCode);
-        goto ERROR;
+        errCode = SQLiteUtils::BindBlobToStatement(statement, 1, devVect, true); // only one arg.
+        if (errCode != E_OK) {
+            LOGE("Failed to bind the removed device:%d", errCode);
+            goto ERROR;
+        }
     }
 
     errCode = SQLiteUtils::StepWithRetry(statement, isMemDb_);
@@ -2164,5 +2153,94 @@ uint64_t SQLiteSingleVerStorageExecutor::GetLogFileSize() const
         return 0;
     }
     return fileSize;
+}
+
+int SQLiteSingleVerStorageExecutor::GetExistsDevicesFromMeta(std::set<std::string> &devices) const
+{
+    return SqliteMetaExecutor::GetExistsDevicesFromMeta(dbHandle_,
+        attachMetaMode_ ? SqliteMetaExecutor::MetaMode::KV_ATTACH : SqliteMetaExecutor::MetaMode::KV,
+        isMemDb_, devices);
+}
+
+int SQLiteSingleVerStorageExecutor::UpdateKey(const UpdateKeyCallback &callback)
+{
+    if (dbHandle_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    UpdateContext context;
+    context.callback = callback;
+    int errCode = CreateFuncUpdateKey(context, &Translate, &CalHashKey);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int executeErrCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, UPDATE_SYNC_DATA_KEY_SQL);
+    context.callback = nullptr;
+    errCode = CreateFuncUpdateKey(context, nullptr, nullptr);
+    if (context.errCode != E_OK) {
+        return context.errCode;
+    }
+    if (executeErrCode != E_OK) {
+        return executeErrCode;
+    }
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerStorageExecutor::CreateFuncUpdateKey(UpdateContext &context,
+    void(*translateFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv),
+    void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const
+{
+    int errCode = sqlite3_create_function_v2(dbHandle_, FUNC_NAME_TRANSLATE_KEY, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        &context, translateFunc, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SqlSinExe][UpdateKey] Create func=translate_key failed=%d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    errCode = sqlite3_create_function_v2(dbHandle_, FUNC_NAME_CAL_HASH_KEY, 1, SQLITE_UTF8 | SQLITE_DETERMINISTIC,
+        &context, calHashFunc, nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SqlSinExe][UpdateKey] Create func=translate_key failed=%d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    return E_OK;
+}
+
+void SQLiteSingleVerStorageExecutor::Translate(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 1 || argv == nullptr) { // i parameters, which are key
+        LOGW("[SqlSinExe][Translate] invalid param=%d", argc);
+        return;
+    }
+    auto context = static_cast<UpdateContext *>(sqlite3_user_data(ctx));
+    auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
+    int keyBlobLen = sqlite3_value_bytes(argv[0]);
+    Key oldKey;
+    if (keyBlob != nullptr && keyBlobLen > 0) {
+        oldKey = Key(keyBlob, keyBlob + keyBlobLen);
+    }
+    Key newKey;
+    context->callback(oldKey, newKey);
+    if (newKey.size() >= DBConstant::MAX_KEY_SIZE || newKey.empty()) {
+        LOGE("[SqlSinExe][Translate] invalid key len=%zu", newKey.size());
+        context->errCode = -E_INVALID_ARGS;
+        sqlite3_result_error(ctx, "Update key is invalid", -1);
+        return;
+    }
+    context->newKey = newKey;
+    sqlite3_result_blob(ctx, newKey.data(), static_cast<int>(newKey.size()), SQLITE_TRANSIENT);
+}
+
+void SQLiteSingleVerStorageExecutor::CalHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 1 || argv == nullptr) {
+        LOGW("[SqlSinExe][Translate] invalid param=%d", argc);
+        return;
+    }
+    auto context = static_cast<UpdateContext *>(sqlite3_user_data(ctx));
+    Key hashKey;
+    DBCommon::CalcValueHash(context->newKey, hashKey);
+    sqlite3_result_blob(ctx, hashKey.data(), static_cast<int>(hashKey.size()), SQLITE_TRANSIENT);
 }
 } // namespace DistributedDB

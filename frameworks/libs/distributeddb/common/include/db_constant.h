@@ -109,6 +109,11 @@ public:
 
     static const std::string SYSTEM_TABLE_PREFIX;
 
+    // Prefix Key in meta db
+    static const std::string DEVICEID_PREFIX_KEY;
+    static const std::string QUERY_SYNC_PREFIX_KEY;
+    static const std::string DELETE_SYNC_PREFIX_KEY;
+
     static constexpr uint32_t AUTO_SYNC_TIMEOUT = 5000; // 5s
     static constexpr uint32_t MANUAL_SYNC_TIMEOUT = 5000; // 5s
 
@@ -150,6 +155,8 @@ public:
     static constexpr uint32_t MAX_CONDITION_KEY_LEN = 128;
     static constexpr uint32_t MAX_CONDITION_VALUE_LEN = 128;
     static constexpr uint32_t MAX_CONDITION_COUNT = 32;
+
+    static constexpr int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
 };
 } // namespace DistributedDB
 

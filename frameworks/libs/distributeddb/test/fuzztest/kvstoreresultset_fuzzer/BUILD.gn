@@ -190,6 +190,7 @@ ohos_fuzztest("KvStoreResultSetFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_local_storage_engine.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_local_storage_executor.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_log_table_manager.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_meta_executor.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_multi_ver_data_storage.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_multi_ver_transaction.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite/sqlite_query_helper.cpp",

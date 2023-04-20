@@ -127,6 +127,8 @@ public:
     virtual int GetSecurityOption(int &securityLabel, int &securityFlag) const = 0;
 
     virtual int CheckIntegrity() const = 0;
+
+    virtual int UpdateKey(const UpdateKeyCallback &callback) = 0;
 };
 } // namespace DistributedDB
 

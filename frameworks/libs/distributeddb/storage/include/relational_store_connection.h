@@ -59,7 +59,7 @@ public:
     virtual void RegisterObserverAction(const RelationalObserverAction &action) = 0;
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
-
+    virtual int RemoveDeviceData() = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

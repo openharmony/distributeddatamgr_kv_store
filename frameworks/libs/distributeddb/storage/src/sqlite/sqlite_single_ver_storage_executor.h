@@ -122,7 +122,7 @@ public:
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
 
-    int GetAllSyncedEntries(const std::string &deviceName, std::vector<Entry> &entries) const;
+    int GetAllSyncedEntries(const std::string &hashDev, std::vector<Entry> &entries) const;
 
     int SaveSyncDataItem(DataItem &dataItem, const DeviceInfo &deviceInfo,
         Timestamp &maxStamp, SingleVerNaturalStoreCommitNotifyData *committedData, bool isPermitForceWrite = true);
@@ -135,7 +135,7 @@ public:
 
     int RemoveDeviceData(const std::string &deviceName);
 
-    int RemoveDeviceDataInCacheMode(const std::string &deviceName, bool isNeedNotify, uint64_t recordVersion) const;
+    int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify, uint64_t recordVersion) const;
 
     void InitCurrentMaxStamp(Timestamp &maxStamp);
 
@@ -248,6 +248,9 @@ public:
 
     uint64_t GetLogFileSize() const;
 
+    int UpdateKey(const UpdateKeyCallback &callback);
+
+    int GetExistsDevicesFromMeta(std::set<std::string> &devices) const;
 private:
     struct SaveRecordStatements {
         sqlite3_stmt *queryStatement = nullptr;
@@ -260,6 +263,12 @@ private:
         {
             return isUpdate ? updateStatement : insertStatement;
         }
+    };
+
+    struct UpdateContext {
+        int errCode = E_OK;
+        Key newKey;
+        UpdateKeyCallback callback;
     };
 
     void PutIntoCommittedData(const DataItem &itemPut, const DataItem &itemGet, const DataOperStatus &status,
@@ -297,8 +306,6 @@ private:
     int InitResultSetContent(QueryObject &queryObj);
 
     int InitResultSet(QueryObject &queryObj, sqlite3_stmt *&countStmt);
-
-    int GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys) const;
 
     int GetAllEntries(sqlite3_stmt *statement, std::vector<Entry> &entries) const;
 
@@ -392,6 +399,14 @@ private:
     int GetExpandedCheckSql(QueryObject query, DataItem &dataItem);
 
     int CheckMissQueryDataItem(sqlite3_stmt *stmt, const std::string &deviceName, DataItem &item);
+
+    int CreateFuncUpdateKey(UpdateContext &context,
+        void(*translateFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv),
+        void(*calHashFunc)(sqlite3_context *ctx, int argc, sqlite3_value **argv)) const;
+
+    static void Translate(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+
+    static void CalHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     sqlite3_stmt *getSyncStatement_;
     sqlite3_stmt *getResultRowIdStatement_;

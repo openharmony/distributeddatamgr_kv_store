@@ -105,6 +105,7 @@ public:
 
     int CheckIntegrity() const override;
 
+    int UpdateKey(const UpdateKeyCallback &callback) override;
 private:
     int CheckMonoStatus(OperatePerm perm);
 

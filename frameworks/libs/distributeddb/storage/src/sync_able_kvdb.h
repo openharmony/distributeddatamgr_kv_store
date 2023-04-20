@@ -85,6 +85,7 @@ public:
 
     void Dump(int fd) override;
 
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

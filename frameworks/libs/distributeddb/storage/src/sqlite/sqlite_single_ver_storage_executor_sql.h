@@ -74,6 +74,9 @@ namespace DistributedDB {
     const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV =
         "SELECT key, value FROM sync_data WHERE device=? AND (flag&0x03=0);";
 
+    const std::string SELECT_ALL_SYNC_ENTRIES =
+            "SELECT key, value FROM sync_data WHERE (flag&0x03=0);";
+
     const std::string SELECT_ALL_SYNC_ENTRIES_BY_DEV_FROM_CACHEHANDLE =
         "SELECT key, value FROM maindb.sync_data WHERE device=? AND (flag&0x03=0);";
 
@@ -145,6 +148,12 @@ namespace DistributedDB {
     const std::string REMOVE_DEV_DATA_SQL_FROM_CACHEHANDLE =
         "DELETE FROM maindb.sync_data WHERE device=? AND (flag&0x02=0);";
 
+    const std::string REMOVE_ALL_DEV_DATA_SQL =
+        "DELETE FROM sync_data WHERE (flag&0x02=0);";
+
+    const std::string REMOVE_ALL_DEV_DATA_SQL_FROM_CACHEHANDLE =
+        "DELETE FROM maindb.sync_data WHERE (flag&0x02=0);";
+
     const std::string SELECT_ENTRY_DEVICE =
         "SELECT ori_device, device FROM sync_data WHERE key=?;";
 
@@ -207,6 +216,13 @@ namespace DistributedDB {
 
     const std::string GET_SYNC_DATA_TIRGGER_SQL =
         "SELECT name FROM SQLITE_MASTER WHERE TYPE = 'trigger' AND TBL_NAME = 'sync_data' AND name like ?;";
+
+    constexpr const char *UPDATE_SYNC_DATA_KEY_SQL =
+        "UPDATE sync_data SET key=translate_key(key), hash_key=cal_hash_key(key) WHERE flag&0x01=0";
+
+    constexpr const char *FUNC_NAME_TRANSLATE_KEY = "translate_key";
+
+    constexpr const char *FUNC_NAME_CAL_HASH_KEY = "cal_hash_key";
 
     const int BIND_KV_KEY_INDEX = 1;
     const int BIND_KV_VAL_INDEX = 2;

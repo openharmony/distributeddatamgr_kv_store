@@ -346,4 +346,9 @@ int GenericKvDBConnection::CheckIntegrity() const
 {
     return E_OK;
 }
+
+int GenericKvDBConnection::UpdateKey(const UpdateKeyCallback &callback)
+{
+    return -E_NOT_SUPPORT;
+}
 }

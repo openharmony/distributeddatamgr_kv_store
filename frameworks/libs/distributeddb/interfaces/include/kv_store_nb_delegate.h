@@ -219,6 +219,9 @@ public:
 
     // Remove all other device data synced from other remote devices.
     DB_API virtual DBStatus RemoveDeviceData() = 0;
+
+    // update all key in sync_data which is not deleted data
+    DB_API virtual DBStatus UpdateKey(const UpdateKeyCallback &callback) = 0;
 };
 } // namespace DistributedDB
 
