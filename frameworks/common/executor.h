@@ -41,7 +41,7 @@ public:
         STOPPED
     };
     struct InnerTask {
-        std::function<void(InnerTask)> exec;
+        std::function<void(InnerTask)> exec = [](InnerTask innerTask) {};
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
         TaskId taskId = INVALID_TASK_ID;
@@ -98,9 +98,6 @@ private:
                 });
                 while (running_ == RUNNING && waits_ != nullptr && waits_->Size() > 0) {
                     auto currentTask = waits_->Pop();
-                    if (!currentTask.Valid()) {
-                        break;
-                    }
                     lock.unlock();
                     currentTask.exec(currentTask);
                     lock.lock();
