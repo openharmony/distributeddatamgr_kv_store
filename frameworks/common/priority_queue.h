@@ -19,7 +19,6 @@
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <set>
 #include <shared_mutex>
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
@@ -43,7 +42,7 @@ public:
             }
             auto temp = tasks_.begin();
             auto id = temp->second.id_;
-            running.emplace(id);
+            running.emplace(id, temp->second.task_);
             auto res = std::move(temp->second.task_);
             tasks_.erase(temp);
             indexes_.erase(id);
@@ -56,6 +55,9 @@ public:
     {
         std::unique_lock<std::mutex> lock(pqMtx_);
         if (!tsk.Valid()) {
+            return false;
+        }
+        if (indexes_.find(id) != indexes_.end()) {
             return false;
         }
         auto temp = tasks_.emplace(tme, PQMatrix(std::move(tsk), id));
@@ -75,6 +77,17 @@ public:
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         if (indexes_.find(id) != indexes_.end()) {
             return indexes_[id]->second.task_;
+        }
+        return INVALID_TSK;
+    }
+
+    _Tsk FindInRun(_Tid id) {
+        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
+        if (indexes_.find(id) != indexes_.end()) {
+            return indexes_[id]->second.task_;
+        }
+        if (running.find(id) != running.end()) {
+            return running[id];
         }
         return INVALID_TSK;
     }
@@ -115,7 +128,7 @@ private:
     std::condition_variable popCv_;
     std::condition_variable removeCv_;
     std::multimap<_Tme, PQMatrix> tasks_;
-    std::set<_Tid> running;
+    std::map<_Tid, _Tsk> running;
     std::map<_Tid, TskIndex> indexes_;
 };
 } // namespace OHOS

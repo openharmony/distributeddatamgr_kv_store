@@ -16,15 +16,11 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H
 #include <memory>
-
 #include "concurrent_map.h"
 #include "convertor.h"
-#include "ithread_pool.h"
 #include "kv_store_delegate_manager.h"
-#include "runtime_config.h"
 #include "security_manager.h"
 #include "single_store_impl.h"
-#include "task_executor_adapter.h"
 namespace OHOS::DistributedKv {
 class StoreFactory {
 public:

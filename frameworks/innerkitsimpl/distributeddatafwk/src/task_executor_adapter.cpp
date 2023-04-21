@@ -16,10 +16,19 @@
 #include "task_executor_adapter.h"
 namespace OHOS {
 namespace DistributedKv {
+TaskExecutorAdapter::TaskExecutorAdapter()
+{
+}
+
+TaskExecutorAdapter::~TaskExecutorAdapter()
+{
+}
+
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Execute(const TaskExecutorAdapter::Task &task)
 {
     return TaskExecutor::GetInstance().Execute(task);
 }
+
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Execute(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay)
 {
@@ -30,20 +39,24 @@ TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdap
 {
     return TaskExecutor::GetInstance().Schedule(task, interval);
 }
+
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay, TaskExecutorAdapter::Duration interval)
 {
     return TaskExecutor::GetInstance().Schedule(task, interval, delay);
 }
+
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay, TaskExecutorAdapter::Duration interval, uint64_t times)
 {
     return TaskExecutor::GetInstance().Schedule(task, interval, delay, times);
 }
+
 bool TaskExecutorAdapter::Remove(const TaskExecutorAdapter::TaskId &taskId, bool wait)
 {
     return TaskExecutor::GetInstance().Remove(taskId, wait);
 }
+
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Reset(const TaskExecutorAdapter::TaskId &taskId,
     TaskExecutorAdapter::Duration interval)
 {

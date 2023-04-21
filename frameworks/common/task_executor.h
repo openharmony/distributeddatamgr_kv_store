@@ -14,8 +14,6 @@
 */
 #ifndef DISTRIBUTED_DATA_TASK_EXECUTOR_H
 #define DISTRIBUTED_DATA_TASK_EXECUTOR_H
-#include <map>
-
 #include "executor_pool.h"
 namespace OHOS {
 class TaskExecutor {
@@ -62,12 +60,12 @@ public:
         return pool_->Remove(taskId, wait);
     }
 
-    TaskId Reset(TaskId taskId, Duration interval, Duration delay = INVALID_DURATION)
+    TaskId Reset(TaskId taskId, Duration interval)
     {
         if (pool_ == nullptr) {
             return INVALID_TASK_ID;
         }
-        return pool_->Reset(taskId, delay, interval);
+        return pool_->Reset(taskId, interval);
     }
 
 private:

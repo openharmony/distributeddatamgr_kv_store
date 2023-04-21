@@ -122,20 +122,18 @@ public:
 
     TaskId Reset(TaskId taskId, Duration interval)
     {
-        return Reset(taskId, INVALID_DELAY, interval);
-    }
-
-    TaskId Reset(TaskId taskId, Duration delay, Duration interval)
-    {
-        auto innerTask = delayTasks_->Find(taskId);
+        auto innerTask = delayTasks_->FindInRun(taskId);
         if (!innerTask.Valid()) {
             return INVALID_TASK_ID;
         }
         delayTasks_->Remove(taskId, false);
-        auto startTime = std::chrono::steady_clock::now() + delay;
+        auto startTime = std::chrono::steady_clock::now() + interval;
         innerTask.startTime = startTime;
         innerTask.interval = interval;
-        delayTasks_->Push(std::move(innerTask), taskId, startTime);
+        if (!delayTasks_->Push(innerTask, taskId, startTime)) {
+            delayTasks_->Remove(taskId, false);
+            delayTasks_->Push(std::move(innerTask), taskId, startTime);
+        }
         return taskId;
     }
 

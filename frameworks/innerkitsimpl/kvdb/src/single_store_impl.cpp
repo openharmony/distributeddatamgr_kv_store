@@ -831,7 +831,9 @@ void SingleStoreImpl::OnRemoteDied()
         }
         return false;
     });
-    taskId_ = TaskExecutor::GetInstance().Schedule([this]() { Register(); }, INTERVAL);
+    taskId_ = TaskExecutor::GetInstance().Schedule([this]() {
+        Register();
+    }, std::chrono::milliseconds(INTERVAL));
 }
 
 void SingleStoreImpl::Register()
@@ -848,7 +850,9 @@ void SingleStoreImpl::Register()
         return false;
     });
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Schedule([this]() { Register(); }, INTERVAL);
+        taskId_ = TaskExecutor::GetInstance().Schedule([this]() {
+            Register();
+        }, std::chrono::milliseconds(INTERVAL));
     } else {
         taskId_ = 0;
     }
