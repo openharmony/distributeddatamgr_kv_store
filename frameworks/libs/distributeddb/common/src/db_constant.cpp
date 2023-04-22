@@ -74,4 +74,8 @@ const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
 const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = "2.0";
 
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";
+
+const std::string DBConstant::DEVICEID_PREFIX_KEY = "deviceId";
+const std::string DBConstant::QUERY_SYNC_PREFIX_KEY = "querySync";
+const std::string DBConstant::DELETE_SYNC_PREFIX_KEY = "deleteSync";
 }

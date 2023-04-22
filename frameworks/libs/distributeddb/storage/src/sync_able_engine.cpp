@@ -289,4 +289,12 @@ int SyncAbleEngine::RemoteQuery(const std::string &device, const RemoteCondition
     }
     return syncer_.RemoteQuery(device, condition, timeout, connectionId, result);
 }
+
+int SyncAbleEngine::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (!started_) {
+        StartSyncer();
+    }
+    return syncer_.GetHashDeviceId(clientId, hashDevId);
+}
 }

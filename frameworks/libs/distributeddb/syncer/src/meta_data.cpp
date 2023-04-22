@@ -31,6 +31,7 @@ namespace {
     // store local timeoffset;this is a special key;
     const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
     const std::string DEVICEID_PREFIX_KEY = "deviceId";
+    const char *CLIENT_ID_PREFIX_KEY = "clientId";
 }
 
 Metadata::Metadata()
@@ -125,7 +126,7 @@ int Metadata::SavePeerWaterMark(const DeviceID &deviceId, uint64_t inValue, bool
     GetMetaDataValue(deviceId, metadata, isNeedHash);
     metadata.peerWaterMark = inValue;
     LOGD("Metadata::SavePeerWaterMark = %" PRIu64, inValue);
-    return SaveMetaDataValue(deviceId, metadata);
+    return SaveMetaDataValue(deviceId, metadata, isNeedHash);
 }
 
 int Metadata::SaveLocalTimeOffset(TimeOffset timeOffset)
@@ -161,9 +162,9 @@ int Metadata::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
     // try to erase all the waterMark
     // erase deleteSync recv waterMark
     WaterMark waterMark = 0;
-    int errCodeDeleteSync = SetRecvDeleteSyncWaterMark(deviceId, waterMark);
+    int errCodeDeleteSync = SetRecvDeleteSyncWaterMark(deviceId, waterMark, isNeedHash);
     // erase querySync recv waterMark
-    int errCodeQuerySync = ResetRecvQueryWaterMark(deviceId, tableName);
+    int errCodeQuerySync = ResetRecvQueryWaterMark(deviceId, tableName, isNeedHash);
     // peerWaterMark must be erased at last
     int errCode = SavePeerWaterMark(deviceId, 0, isNeedHash);
     if (errCode != E_OK) {
@@ -195,7 +196,7 @@ Timestamp Metadata::GetLastLocalTime() const
     return lastLocalTime_;
 }
 
-int Metadata::SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue)
+int Metadata::SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash)
 {
     std::vector<uint8_t> value;
     int errCode = SerializeMetaData(inValue, value);
@@ -204,7 +205,7 @@ int Metadata::SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &i
     }
 
     DeviceID hashDeviceId;
-    GetHashDeviceId(deviceId, hashDeviceId, true);
+    GetHashDeviceId(deviceId, hashDeviceId, isNeedHash);
     std::vector<uint8_t> key;
     DBCommon::StringToVector(hashDeviceId, key);
     errCode = SetMetadataToDb(key, value);
@@ -233,7 +234,7 @@ int Metadata::SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_
     return E_OK;
 }
 
-int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const
+int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue)
 {
     if (inValue.empty()) {
         return -E_INVALID_ARGS;
@@ -364,7 +365,7 @@ uint64_t Metadata::GetRandTimeOffset() const
 void Metadata::GetHashDeviceId(const DeviceID &deviceId, DeviceID &hashDeviceId, bool isNeedHash)
 {
     if (!isNeedHash) {
-        hashDeviceId = deviceId;
+        hashDeviceId = DEVICEID_PREFIX_KEY + deviceId;
         return;
     }
     if (deviceIdToHashDeviceIdMap_.count(deviceId) == 0) {
@@ -471,14 +472,14 @@ int Metadata::GetRecvDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &wa
     return E_OK;
 }
 
-int Metadata::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark)
+int Metadata::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark, bool isNeedHash)
 {
-    return querySyncWaterMarkHelper_.SetRecvDeleteSyncWaterMark(deviceId, waterMark);
+    return querySyncWaterMarkHelper_.SetRecvDeleteSyncWaterMark(deviceId, waterMark, isNeedHash);
 }
 
-int Metadata::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName)
+int Metadata::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName, bool isNeedHash)
 {
-    return querySyncWaterMarkHelper_.ResetRecvQueryWaterMark(deviceId, tableName);
+    return querySyncWaterMarkHelper_.ResetRecvQueryWaterMark(deviceId, tableName, isNeedHash);
 }
 
 void Metadata::GetDbCreateTime(const DeviceID &deviceId, uint64_t &outValue)
@@ -583,5 +584,52 @@ void Metadata::RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::str
     if (iter != queryIdMap_.end() && iter->second.find(hashqueryId) != iter->second.end()) {
         iter->second.erase(hashqueryId);
     }
+}
+
+
+int Metadata::SaveClientId(const std::string &deviceId, const std::string &clientId)
+{
+    {
+        // already save in cache
+        std::lock_guard<std::mutex> autoLock(clientIdLock_);
+        if (clientIdCache_[deviceId] == clientId) {
+            return E_OK;
+        }
+    }
+    std::string keyStr;
+    keyStr.append(CLIENT_ID_PREFIX_KEY).append(clientId);
+    std::string valueStr = DBCommon::TransferHashString(deviceId);
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    DBCommon::StringToVector(valueStr, value);
+    int errCode = SetMetadataToDb(key, value);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::lock_guard<std::mutex> autoLock(clientIdLock_);
+    clientIdCache_[deviceId] = clientId;
+    return E_OK;
+}
+
+int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    // don't use cache here avoid invalid cache
+    std::string keyStr;
+    keyStr.append(CLIENT_ID_PREFIX_KEY).append(clientId);
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    int errCode = GetMetadataFromDb(key, value);
+    if (errCode == -E_NOT_FOUND) {
+        LOGD("[Metadata] not found clientId");
+        return -E_NOT_SUPPORT;
+    }
+    if (errCode != E_OK) {
+        LOGE("[Metadata] reload clientId failed %d", errCode);
+        return errCode;
+    }
+    DBCommon::VectorToString(value, hashDevId);
+    return E_OK;
 }
 }  // namespace DistributedDB

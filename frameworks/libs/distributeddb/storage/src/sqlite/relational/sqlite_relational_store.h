@@ -55,6 +55,7 @@ public:
 
     int CreateDistributedTable(const std::string &tableName);
 
+    int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
 
     void RegisterObserverAction(const RelationalObserverAction &action);
@@ -71,6 +72,16 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
+    int EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList);
+
+    std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
+
+    SQLiteSingleVerRelationalStorageExecutor *GetHandleAndStartTransaction(int &errCode) const;
+
+    int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
+        const std::string &tableName, bool isNeedHash);
+
+    int GetExistDevices(std::set<std::string> &hashDevices);
 private:
     void ReleaseResources();
 

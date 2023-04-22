@@ -322,10 +322,11 @@ int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceI
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
 
-int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark)
+int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceId, const WaterMark &waterMark,
+    bool isNeedHash)
 {
     std::string hashId;
-    GetHashDeleteSyncDeviceId(deviceId, hashId);
+    GetHashDeleteSyncDeviceId(deviceId, hashId, isNeedHash);
     DeleteWaterMark deleteWaterMark;
     GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
     deleteWaterMark.recvWaterMark = waterMark;
@@ -405,8 +406,12 @@ int QuerySyncWaterMarkHelper::SaveDeleteWaterMarkToDB(const DeviceID &hashDevice
     return errCode;
 }
 
-void QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId)
+void QuerySyncWaterMarkHelper::GetHashDeleteSyncDeviceId(const DeviceID &deviceId, DeviceID &hashDeleteSyncId,
+    bool isNeedHash)
 {
+    if (!isNeedHash) {
+        hashDeleteSyncId = DELETE_SYNC_PREFIX_KEY + deviceId;
+    }
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
     if (deviceIdToHashDeleteSyncIdMap_.count(deviceId) == 0) {
         hashDeleteSyncId = DELETE_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
@@ -513,12 +518,18 @@ int QuerySyncWaterMarkHelper::RemoveLeastUsedQuerySyncItems(const std::vector<Ke
     return DeleteMetaDataFromDB(waitToRemove);
 }
 
-int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName)
+int QuerySyncWaterMarkHelper::ResetRecvQueryWaterMark(const DeviceID &deviceId, const std::string &tableName,
+    bool isNeedHash)
 {
     // lock prevent other thread modify queryWaterMark at this moment
     {
         std::lock_guard<std::mutex> autoLock(queryWaterMarkLock_);
-        std::string prefixKeyStr = QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        std::string prefixKeyStr;
+        if (isNeedHash) {
+            prefixKeyStr = QUERY_SYNC_PREFIX_KEY + DBCommon::TransferHashString(deviceId);
+        } else {
+            prefixKeyStr = QUERY_SYNC_PREFIX_KEY + deviceId;
+        }
         if (!tableName.empty()) {
             std::string hashTableName = DBCommon::TransferHashString(tableName);
             std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);

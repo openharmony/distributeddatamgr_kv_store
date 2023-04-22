@@ -131,7 +131,7 @@ DBStatus RelationalStoreManager::CloseStore(RelationalStoreDelegate *store)
 
 std::string RelationalStoreManager::GetDistributedTableName(const std::string &device, const std::string &tableName)
 {
-    if (device.empty() || tableName.empty()) {
+    if ((!RuntimeContext::GetInstance()->ExistTranslateDevIdCallback() && device.empty()) || tableName.empty()) {
         return {};
     }
     return DBCommon::GetDistributedTableName(device, tableName);

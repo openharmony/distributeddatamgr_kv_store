@@ -1072,20 +1072,31 @@ int SQLiteUtils::SetUserVer(sqlite3 *db, int version)
 
 int SQLiteUtils::MapSQLiteErrno(int errCode)
 {
-    if (errCode == SQLITE_OK) {
-        return E_OK;
-    } else if (errCode == SQLITE_IOERR) {
-        if (errno == EKEYREVOKED) {
-            return -E_EKEYREVOKED;
-        }
-    } else if (errCode == SQLITE_CORRUPT || errCode == SQLITE_NOTADB) {
-        return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
-    } else if (errCode == SQLITE_LOCKED || errCode == SQLITE_BUSY) {
-        return -E_BUSY;
-    } else if (errCode == SQLITE_ERROR && errno == EKEYREVOKED) {
-        return -E_EKEYREVOKED;
-    } else if (errCode == SQLITE_AUTH) {
-        return -E_DENIED_SQL;
+    switch (errCode) {
+        case SQLITE_OK:
+            return E_OK;
+        case SQLITE_IOERR:
+            if (errno == EKEYREVOKED) {
+                return -E_EKEYREVOKED;
+            }
+            break;
+        case SQLITE_CORRUPT:
+        case SQLITE_NOTADB:
+            return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+        case SQLITE_LOCKED:
+        case SQLITE_BUSY:
+            return -E_BUSY;
+        case SQLITE_ERROR:
+            if (errno == EKEYREVOKED) {
+                return -E_EKEYREVOKED;
+            }
+            break;
+        case SQLITE_AUTH:
+            return -E_DENIED_SQL;
+        case SQLITE_CONSTRAINT:
+            return -E_CONSTRAINT;
+        default:
+            break;
     }
     return -errCode;
 }

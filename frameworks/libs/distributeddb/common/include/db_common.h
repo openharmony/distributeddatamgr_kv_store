@@ -62,6 +62,13 @@ public:
 
     static void GetDeviceFromName(const std::string &deviceTableName, std::string &deviceHash, std::string &tableName);
 
+    static std::string GetDistributedTableName(const std::string &device, const std::string &tableName,
+        const StoreInfo &info);
+
+    static std::string GetDistributedTableNameWithHash(const std::string &device, const std::string &tableName);
+
+    static std::string CalDistributedTableName(const std::string &device, const std::string &tableName);
+
     static std::string TrimSpace(const std::string &input);
 
     static bool HasConstraint(const std::string &sql, const std::string &keyWord, const std::string &prePattern,

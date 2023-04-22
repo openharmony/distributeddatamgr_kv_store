@@ -190,6 +190,7 @@ distrdb_sources = [
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_local_storage_engine.cpp",
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_local_storage_executor.cpp",
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_log_table_manager.cpp",
+  "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_meta_executor.cpp",
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_multi_ver_data_storage.cpp",
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_multi_ver_transaction.cpp",
   "${kv_store_distributeddb_path}storage/src/sqlite/sqlite_query_helper.cpp",

@@ -396,4 +396,12 @@ void SyncAbleKvDB::Dump(int fd)
         syncer_.Dump(fd);
     }
 }
+
+int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (!started_) {
+        StartSyncer();
+    }
+    return syncer_.GetHashDeviceId(clientId, hashDevId);
+}
 }
