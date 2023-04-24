@@ -67,7 +67,10 @@ void ThreadPoolTestStub::StartThreadIfNeed()
 
 TaskId ThreadPoolTestStub::Execute(const Task &task, Duration delay)
 {
-    return INVALID_ID;
+    return Execute([task, delay]() {
+        std::this_thread::sleep_for(delay);
+        task();
+    });
 }
 
 TaskId ThreadPoolTestStub::Schedule(const Task &task, Duration interval)

@@ -110,7 +110,7 @@ void MockSchedule(const std::shared_ptr<MockThreadPool> &threadPoolPtr,
     const std::shared_ptr<DistributedDBThreadPoolTest::TimerWatcher> &watcher, std::atomic<TaskId> &taskId)
 {
     ASSERT_NE(watcher, nullptr);
-    EXPECT_CALL(*threadPoolPtr, Schedule(_, _)).
+    EXPECT_CALL(*threadPoolPtr, Execute(_, _)).
         WillRepeatedly([watcher, &taskId](const Task &task, Duration time) {
         watcher->AddCount();
         std::thread workingThread = std::thread([task, time, watcher]() {

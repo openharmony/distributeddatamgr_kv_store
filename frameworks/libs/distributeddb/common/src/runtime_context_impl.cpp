@@ -836,7 +836,7 @@ int RuntimeContextImpl::SetTimerByThreadPool(int milliSeconds, const TimerAction
     }
     Duration duration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::milliseconds(milliSeconds));
-    TaskId taskId = threadPool->Schedule([milliSeconds, action, timerId, this]() {
+    TaskId taskId = threadPool->Execute([milliSeconds, action, timerId, this]() {
         ThreadPoolTimerAction(milliSeconds, action, timerId);
     }, duration);
     std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
