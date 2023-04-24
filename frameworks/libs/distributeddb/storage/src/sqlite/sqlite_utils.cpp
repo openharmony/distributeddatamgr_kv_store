@@ -2265,7 +2265,7 @@ int SQLiteUtils::SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword 
 int SQLiteUtils::BindDataValueByType(sqlite3_stmt *statement, const std::optional<DataValue> &data, int cid)
 {
     int errCode = E_OK;
-    StorageType type = data.value().GetType();
+    StorageType type = data.value_or(DataValue()).GetType();
     switch (type) {
         case StorageType::STORAGE_TYPE_INTEGER: {
             int64_t intData = 0;
