@@ -275,6 +275,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
     "unittest/common/common/system_timer.cpp",
+    "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
     "unittest/common/syncer/generic_virtual_device.cpp",
     "unittest/common/syncer/kv_virtual_device.cpp",
@@ -574,6 +575,10 @@ distributeddb_unittest("DistributedDBTimeSyncTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBThreadPoolTest") {
+  sources = [ "unittest/common/common/distributeddb_thread_pool_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBDeviceIdentifierTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_device_identifier_test.cpp" ]
 }
@@ -857,6 +862,7 @@ group("unittest") {
     ":DistributedDBStorageTransactionDataTest",
     ":DistributedDBStorageTransactionRecordTest",
     ":DistributedDBSyncerDeviceManagerTest",
+    ":DistributedDBThreadPoolTest",
     ":DistributedDBTimeSyncTest",
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
