@@ -15,6 +15,7 @@
 
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TRAITS_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_TRAITS_H
+#include <cstddef>
 #include <type_traits>
 #include <variant>
 namespace OHOS {
@@ -28,18 +29,18 @@ inline constexpr size_t same_index_of_v = std::__detail::__variant::__index_of_v
 template<typename T, typename... Types>
 inline constexpr bool same_in_v = (same_index_of_v<T, Types...> < sizeof...(Types));
 
-template<typename _Tp, typename... _Types>
+template<typename Tp, typename... Types>
 struct convertible_index_of : std::integral_constant<size_t, 0> {
 };
 
 // If there is one in the ...Types that can convert to T implicitly, convertible_index_v is the index.
 // If there is no one in the ...Types that can convert to T implicitly, convertible_index_v is sizeof ...(Types)
-template<typename _Tp, typename... _Types>
-inline constexpr size_t convertible_index_of_v = convertible_index_of<_Tp, _Types...>::value;
+template<typename Tp, typename... Types>
+inline constexpr size_t convertible_index_of_v = convertible_index_of<Tp, Types...>::value;
 
-template<typename _Tp, typename _First, typename... _Rest>
-struct convertible_index_of<_Tp, _First, _Rest...>
-    : std::integral_constant<size_t, std::is_convertible_v<_Tp, _First> ? 0 : convertible_index_of_v<_Tp, _Rest...> + 1> {
+template<typename Tp, typename First, typename... Rest>
+struct convertible_index_of<Tp, First, Rest...>
+    : std::integral_constant<size_t, std::is_convertible_v<First, Tp> ? 0 : convertible_index_of_v<Tp, Rest...> + 1> {
 };
 
 // There is one in the ...Types, that can convert to T implicitly. If not, the convertible_in_v will be false.
