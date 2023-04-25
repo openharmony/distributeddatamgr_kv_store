@@ -66,7 +66,7 @@ old_source_config = [
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_service_death_notifier.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_sync_callback_client.cpp",
   "../../../frameworks/innerkitsimpl/distributeddatafwk/src/sync_observer.cpp",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/task_executor_adapter.cpp",
+  "../../../frameworks/innerkitsimpl/distributeddatafwk/src/task_executor_adapter.cpp",
   "include/types.h",
 ]
 

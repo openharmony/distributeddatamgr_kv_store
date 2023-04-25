@@ -59,8 +59,8 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/kvstore_observer_client.cpp",
     "../../distributeddatafwk/src/kvstore_service_death_notifier.cpp",
     "../../distributeddatafwk/src/kvstore_sync_callback_client.cpp",
-    "../../distributeddatafwk/src/task_executor_adapter.cpp",
     "../../distributeddatafwk/src/sync_observer.cpp",
+    "../../distributeddatafwk/src/task_executor_adapter.cpp",
   ]
 
   kvdb_sources = [
