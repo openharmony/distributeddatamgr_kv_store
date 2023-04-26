@@ -20,18 +20,27 @@
 #include <variant>
 namespace OHOS {
 namespace Traits {
+template<typename Tp, typename... Types>
+struct index_of : std::integral_constant<size_t, 0> {};
+
+template<typename Tp, typename... Types>
+inline constexpr size_t index_of_v = index_of<Tp, Types...>::value;
+
+template<typename Tp, typename First, typename... Rest>
+struct index_of<Tp, First, Rest...>
+    : std::integral_constant<size_t, std::is_same_v<Tp, First> ? 0 : index_of_v<Tp, Rest...> + 1> {};
+
 // If there is one in the ...Types, that is equal to T. same_index_of_v is the index.
 // If there is no one in the ...Types, that is equal to T. same_index_of_v is sizeof ...(Types)
 template<typename T, typename... Types>
-inline constexpr size_t same_index_of_v = std::__detail::__variant::__index_of_v<T, Types...>;
+inline constexpr size_t same_index_of_v = index_of<T, Types...>::value;
 
 // There is one in the ...Types, that is equal to T. If not, the same_in_v will be false.
 template<typename T, typename... Types>
 inline constexpr bool same_in_v = (same_index_of_v<T, Types...> < sizeof...(Types));
 
 template<typename Tp, typename... Types>
-struct convertible_index_of : std::integral_constant<size_t, 0> {
-};
+struct convertible_index_of : std::integral_constant<size_t, 0> {};
 
 // If there is one in the ...Types that can convert to T implicitly, convertible_index_v is the index.
 // If there is no one in the ...Types that can convert to T implicitly, convertible_index_v is sizeof ...(Types)
@@ -40,8 +49,7 @@ inline constexpr size_t convertible_index_of_v = convertible_index_of<Tp, Types.
 
 template<typename Tp, typename First, typename... Rest>
 struct convertible_index_of<Tp, First, Rest...>
-    : std::integral_constant<size_t, std::is_convertible_v<First, Tp> ? 0 : convertible_index_of_v<Tp, Rest...> + 1> {
-};
+    : std::integral_constant<size_t, std::is_convertible_v<First, Tp> ? 0 : convertible_index_of_v<Tp, Rest...> + 1> {};
 
 // There is one in the ...Types, that can convert to T implicitly. If not, the convertible_in_v will be false.
 template<typename T, typename... Types>
