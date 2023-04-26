@@ -42,6 +42,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 }
 } // end namespace DistributedKVStore
 
+namespace CloudData {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001613, "CLOUD" };
+}
+} // end namespace CloudData
+
 namespace AppDistributedKv {
 static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 {
@@ -66,7 +73,7 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 namespace DistributedObject {
 static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 {
-  return { LOG_CORE, 0xD001654, "DOBJECT" };
+    return { LOG_CORE, 0xD001654, "DOBJECT" };
 }
 } // end namespace DistributedObject
 } // end namespace OHOS
