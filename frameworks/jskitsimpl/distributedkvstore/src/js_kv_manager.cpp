@@ -340,7 +340,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         if (argc == 2) {
             ctxt->status = napi_typeof(env, argv[1], &valueType);
             ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) &&
-                (valueType == napi_function || || valueType == napi_undefined),
+                (valueType == napi_function || valueType == napi_undefined),
                 Status::INVALID_ARGUMENT, "The type of parameters deathCallback must be a function.");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);

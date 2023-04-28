@@ -746,7 +746,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     if (argc == 1) {
         ctxt->status = napi_typeof(env, argv[0], &valueType);
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) &&
-            (valueType == napi_function || valuetype == napi_undefined), Status::INVALID_ARGUMENT,
+            (valueType == napi_function || valueType == napi_undefined), Status::INVALID_ARGUMENT,
             "The type of parameter Callback is incorrect.");
         std::lock_guard<std::mutex> lck(proxy->listMutex_);
         auto it = proxy->syncObservers_.begin();
@@ -760,7 +760,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
         ctxt->status = napi_ok;
     }
     ZLOGI("unsubscribe syncComplete, %{public}s specified observer.", (argc == 0) ? "without": "with");
-    if (argc == 0 || valuetype == napi_undefined || proxy->syncObservers_.empty()) {
+    if (argc == 0 || valueType == napi_undefined || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
     ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "UnRegisterSyncCallback failed!");
