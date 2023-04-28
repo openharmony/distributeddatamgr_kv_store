@@ -89,7 +89,7 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 
 struct GetKVStoreContext : public ContextBase {
     std::string storeId;
-    Options options;
+    Options options {.autoSync = false};
     JsSingleKVStore* kvStore = nullptr;
     napi_ref ref = nullptr;
 
@@ -336,10 +336,11 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         ASSERT_BUSINESS_ERR(ctxt, event == "distributedDataServiceDie", Status::INVALID_ARGUMENT,
             "The parameters of event is incorrect.");
         // have 2 arguments :: have the [callback]
+        napi_valuetype valueType = napi_undefined;
         if (argc == 2) {
-            napi_valuetype valueType = napi_undefined;
             ctxt->status = napi_typeof(env, argv[1], &valueType);
-            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function),
+            ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) &&
+                (valueType == napi_function || || valueType == napi_undefined),
                 Status::INVALID_ARGUMENT, "The type of parameters deathCallback must be a function.");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
@@ -347,7 +348,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         auto it = proxy->deathRecipient_.begin();
         while (it != proxy->deathRecipient_.end()) {
             // have 2 arguments :: have the [callback]
-            if ((argc == 1) || JSUtil::Equals(env, argv[1], (*it)->GetCallback())) {
+            if ((argc == 1) || (valueType == napi_undefined) || JSUtil::Equals(env, argv[1], (*it)->GetCallback())) {
                 proxy->kvDataManager_.UnRegisterKvStoreServiceDeathRecipient(*it);
                 (*it)->Clear();
                 it = proxy->deathRecipient_.erase(it);

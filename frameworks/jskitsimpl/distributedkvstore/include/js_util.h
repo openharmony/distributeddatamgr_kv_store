@@ -194,6 +194,31 @@ public:
         return napi_invalid_arg;
     };
 
+    /* napi_get_optional_named_property wrapper */
+    template <typename T>
+    static inline napi_status GetOptionalNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
+    {
+        bool hasProp = false;
+        napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+        if (!hasProp) {
+            return napi_ok;
+        }
+        if ((status == napi_ok) && hasProp) {
+            napi_value inner = nullptr;
+            status = napi_get_named_property(env, in, prop.c_str(), &inner);
+            if (status != napi_ok || inner == nullptr) {
+                return napi_invalid_arg;
+            }
+            napi_valuetype type = napi_undefined;
+            napi_status status = napi_typeof(env, in, &type);
+            if (status == napi_ok && type == napi_undefined) {
+                return napi_ok;
+            }
+            return GetValue(env, inner, value);
+        }
+        return napi_invalid_arg;
+    };
+
     /* napi_define_class  wrapper */
     static napi_value DefineClass(napi_env env, const std::string& name,
         const napi_property_descriptor* properties, size_t count, napi_callback newcb);
