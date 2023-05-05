@@ -328,19 +328,18 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
         ZLOGI("unsubscribe to event:%{public}s %{public}s specified", event.c_str(), (argc == 1) ? "without": "with");
         CHECK_ARGS_RETURN_VOID(ctxt, event == "distributedDataServiceDie", "invalid arg[0], i.e. invalid event!");
         // have 2 arguments :: have the [callback]
-        napi_valuetype valueType = napi_undefined;
         if (argc == 2) {
+            napi_valuetype valueType = napi_undefined;
             ctxt->status = napi_typeof(env, argv[1], &valueType);
             CHECK_STATUS_RETURN_VOID(ctxt, "napi_typeof failed!");
-            CHECK_ARGS_RETURN_VOID(
-                ctxt, (valueType == napi_function || valueType == napi_undefined), "callback is not a function");
+            CHECK_ARGS_RETURN_VOID(ctxt, (valueType == napi_function), "callback is not a function");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         std::lock_guard<std::mutex> lck(proxy->deathMutex_);
         auto it = proxy->deathRecipient_.begin();
         while (it != proxy->deathRecipient_.end()) {
             // have 2 arguments :: have the [callback]
-            if ((argc == 1) || (valueType == napi_undefined) || JSUtil::Equals(env, argv[1], (*it)->GetCallback())) {
+            if ((argc == 1) || JSUtil::Equals(env, argv[1], (*it)->GetCallback())) {
                 proxy->kvDataManager_.UnRegisterKvStoreServiceDeathRecipient(*it);
                 (*it)->Clear();
                 it = proxy->deathRecipient_.erase(it);

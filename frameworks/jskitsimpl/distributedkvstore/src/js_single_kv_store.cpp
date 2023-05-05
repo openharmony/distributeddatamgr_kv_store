@@ -673,11 +673,10 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
     // required 1 arguments :: [callback]
     ASSERT_BUSINESS_ERR(ctxt, argc <= 1, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
     // have 1 arguments :: have the callback
-    napi_valuetype valueType = napi_undefined;
     if (argc == 1) {
+        napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) &&
-            (valueType == napi_function || valueType == napi_undefined), Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
             "The type of parameter Callback is incorrect.");
     }
 
@@ -686,10 +685,10 @@ void JsSingleKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv,
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     bool found = false;
     Status status = Status::SUCCESS;
-    auto traverseType = [argc, argv, proxy, env, valueType, &found, &status](uint8_t type, auto& observers) {
+    auto traverseType = [argc, argv, proxy, env, &found, &status](uint8_t type, auto& observers) {
         auto it = observers.begin();
         while (it != observers.end()) {
-            if ((argc == 1) && valueType != napi_undefined && !JSUtil::Equals(env, argv[0], (*it)->GetCallback())) {
+            if ((argc == 1) && !JSUtil::Equals(env, argv[0], (*it)->GetCallback())) {
                 ++it;
                 continue; // specified observer and not current iterator
             }
@@ -742,11 +741,10 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
     // required 1 arguments :: [callback]
     auto proxy = reinterpret_cast<JsSingleKVStore*>(ctxt->native);
     // have 1 arguments :: have the callback
-    napi_valuetype valueType = napi_undefined;
     if (argc == 1) {
+        napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) &&
-            (valueType == napi_function || valueType == napi_undefined), Status::INVALID_ARGUMENT,
+        ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok) && (valueType == napi_function), Status::INVALID_ARGUMENT,
             "The type of parameter Callback is incorrect.");
         std::lock_guard<std::mutex> lck(proxy->listMutex_);
         auto it = proxy->syncObservers_.begin();
@@ -760,7 +758,7 @@ void JsSingleKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* arg
         ctxt->status = napi_ok;
     }
     ZLOGI("unsubscribe syncComplete, %{public}s specified observer.", (argc == 0) ? "without": "with");
-    if (argc == 0 || valueType == napi_undefined || proxy->syncObservers_.empty()) {
+    if (argc == 0 || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
     ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT, "UnRegisterSyncCallback failed!");
