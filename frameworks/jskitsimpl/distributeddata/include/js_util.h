@@ -177,17 +177,16 @@ public:
             return napi_ok;
         }
         if ((status == napi_ok) && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, in, prop.c_str(), &inner);
-            if (status != napi_ok || inner == nullptr) {
-                return napi_invalid_arg;
-            }
             napi_valuetype type = napi_undefined;
             napi_status status = napi_typeof(env, in, &type);
             if (status == napi_ok && type == napi_undefined) {
                 return napi_ok;
             }
-            return GetValue(env, inner, value);
+            napi_value inner = nullptr;
+            status = napi_get_named_property(env, in, prop.c_str(), &inner);
+            if (status == napi_ok && inner != nullptr) {
+              return GetValue(env, inner, value);
+            }
         }
         return napi_invalid_arg;
     };
