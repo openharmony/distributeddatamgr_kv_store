@@ -994,7 +994,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
     JsSchema *jsSchema = nullptr;
     statusMsg = GetOptionalNamedProperty(env, in, "schema", jsSchema);
     ASSERT(statusMsg.status == napi_ok, "get schema param failed", statusMsg);
-    if (statusMsg.status == napi_ok) {
+    if (statusMsg.status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
 
