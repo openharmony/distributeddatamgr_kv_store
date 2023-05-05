@@ -946,14 +946,14 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    status = GetNamedProperty(env, in, "schema", jsSchema);
+    status = GetOptionalNamedProperty(env, in, "schema", jsSchema);
     CHECK_RETURN(status == napi_ok, "get schema param failed", napi_invalid_arg);
     if (status == napi_ok) {
         options.schema = jsSchema->Dump();
     }
 
     int32_t level = 0;
-    status = GetNamedPropertyGetNamedProperty(env, in, "securityLevel", level);
+    status = GetOptionalNamedProperty(env, in, "securityLevel", level);
     CHECK_RETURN(status == napi_ok, "get securityLevel param failed", napi_invalid_arg);
     options.securityLevel = level;
     return napi_ok;
