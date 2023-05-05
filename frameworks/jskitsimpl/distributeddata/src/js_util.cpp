@@ -933,27 +933,27 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     ZLOGD("napi_value -> DistributedKv::Options ");
     napi_status status = GetOptionalNamedProperty(env, in, "createIfMissing", options.createIfMissing);
     CHECK_RETURN(status == napi_ok, "get createIfMissing param failed", napi_invalid_arg);
-    napi_status status = GetOptionalNamedProperty(env, in, "encrypt", options.encrypt);
+    status = GetOptionalNamedProperty(env, in, "encrypt", options.encrypt);
     CHECK_RETURN(status == napi_ok, "get encrypt param failed", napi_invalid_arg);
-    napi_status status = GetOptionalNamedProperty(env, in, "backup", options.backup);
+    status = GetOptionalNamedProperty(env, in, "backup", options.backup);
     CHECK_RETURN(status == napi_ok, "get backup param failed", napi_invalid_arg);
-    napi_status status = GetOptionalNamedProperty(env, in, "autoSync", options.autoSync);
+    status = GetOptionalNamedProperty(env, in, "autoSync", options.autoSync);
     CHECK_RETURN(status == napi_ok, "get autoSync param failed", napi_invalid_arg);
 
     int32_t kvStoreType = 0;
-    napi_status status = GetOptionalNamedProperty(env, in, "kvStoreType", kvStoreType);
+    status = GetOptionalNamedProperty(env, in, "kvStoreType", kvStoreType);
     CHECK_RETURN(status == napi_ok, "get kvStoreType param failed", napi_invalid_arg);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    napi_status status = GetNamedProperty(env, in, "schema", jsSchema);
+    status = GetNamedProperty(env, in, "schema", jsSchema);
     CHECK_RETURN(status == napi_ok, "get schema param failed", napi_invalid_arg);
     if (status == napi_ok) {
         options.schema = jsSchema->Dump();
     }
 
     int32_t level = 0;
-    napi_status status = GetNamedPropertyGetNamedProperty(env, in, "securityLevel", level);
+    status = GetNamedPropertyGetNamedProperty(env, in, "securityLevel", level);
     CHECK_RETURN(status == napi_ok, "get securityLevel param failed", napi_invalid_arg);
     options.securityLevel = level;
     return napi_ok;

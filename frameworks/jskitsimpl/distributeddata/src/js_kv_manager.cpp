@@ -333,7 +333,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
             ctxt->status = napi_typeof(env, argv[1], &valueType);
             CHECK_STATUS_RETURN_VOID(ctxt, "napi_typeof failed!");
             CHECK_ARGS_RETURN_VOID(
-                ctxt, (valueType == napi_function || valueType = napi_undefined), "callback is not a function");
+                ctxt, (valueType == napi_function || valueType == napi_undefined), "callback is not a function");
         }
         JsKVManager* proxy = reinterpret_cast<JsKVManager*>(ctxt->native);
         std::lock_guard<std::mutex> lck(proxy->deathMutex_);
