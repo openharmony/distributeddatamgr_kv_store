@@ -474,21 +474,22 @@ void JsKVStore::OffDataChange(napi_env env, size_t argc, napi_value* argv, std::
     // required 1 arguments :: [callback]
     CHECK_ARGS_RETURN_VOID(ctxt, argc <= 1, "invalid arguments off dataChange!");
     // have 1 arguments :: have the callback
+    napi_valuetype valueType = napi_undefined;
     if (argc == 1) {
-        napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
         CHECK_STATUS_RETURN_VOID(ctxt, "napi_typeof failed!");
-        CHECK_ARGS_RETURN_VOID(ctxt, valueType == napi_function, "invalid arg[1], i.e. invalid callback");
+        CHECK_ARGS_RETURN_VOID(ctxt, (valueType == napi_function || valueType == napi_undefined),
+            "invalid arg[1], i.e. invalid callback");
     }
     ZLOGI("unsubscribe dataChange, %{public}s specified observer.", (argc == 0) ? "without": "with");
 
     auto proxy = reinterpret_cast<JsKVStore*>(ctxt->native);
     bool found = false;
     napi_status status = napi_ok;
-    auto traverseType = [argc, argv, proxy, env, &found, &status](uint8_t type, auto& observers) {
+    auto traverseType = [argc, argv, proxy, env, valueType, &found, &status](uint8_t type, auto& observers) {
         auto it = observers.begin();
         while (it != observers.end()) {
-            if ((argc == 1) && !JSUtil::Equals(env, argv[0], (*it)->GetCallback())) {
+            if ((argc == 1) && (valueType != napi_undefined) && !JSUtil::Equals(env, argv[0], (*it)->GetCallback())) {
                 ++it;
                 continue; // specified observer and not current iterator
             }
@@ -541,11 +542,12 @@ void JsKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* argv, std
     CHECK_ARGS_RETURN_VOID(ctxt, argc <= 1, "invalid arguments off syncComplete!");
     auto proxy = reinterpret_cast<JsKVStore*>(ctxt->native);
     // have 1 arguments :: have the callback
+    napi_valuetype valueType = napi_undefined;
     if (argc == 1) {
-        napi_valuetype valueType = napi_undefined;
         ctxt->status = napi_typeof(env, argv[0], &valueType);
         CHECK_STATUS_RETURN_VOID(ctxt, "napi_typeof failed!");
-        CHECK_ARGS_RETURN_VOID(ctxt, valueType == napi_function, "invalid arg[1], i.e. invalid callback");
+        CHECK_ARGS_RETURN_VOID(ctxt, (valueType == napi_function || valueType == napi_undefined),
+            "invalid arg[1], i.e. invalid callback");
         std::lock_guard<std::mutex> lck(proxy->listMutex_);
         auto it = proxy->syncObservers_.begin();
         while (it != proxy->syncObservers_.end()) {
@@ -558,7 +560,7 @@ void JsKVStore::OffSyncComplete(napi_env env, size_t argc, napi_value* argv, std
         ctxt->status = napi_ok;
     }
     ZLOGI("unsubscribe syncComplete, %{public}s specified observer.", (argc == 0) ? "without": "with");
-    if (argc == 0 || proxy->syncObservers_.empty()) {
+    if (argc == 0 || valueType == napi_undefined || proxy->syncObservers_.empty()) {
         ctxt->status = proxy->UnRegisterSyncCallback();
     }
     CHECK_STATUS_RETURN_VOID(ctxt, "UnRegisterSyncCallback failed!");

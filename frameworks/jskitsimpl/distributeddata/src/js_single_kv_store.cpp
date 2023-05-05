@@ -376,7 +376,12 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
         CHECK_ARGS_RETURN_VOID(ctxt, ctxt->mode <= uint32_t(SyncMode::PUSH_PULL), "invalid arg[1], i.e. invalid mode!");
         if (argc == 3) {
             ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
-            CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[2], i.e. invalid arguement[2]!");
+            if (ctxt->status != napi_ok) {
+                napi_valuetype valueType = napi_undefined;
+                ctxt->status = napi_typeof(env, argv[2], &valueType);
+                CHECK_ARGS_RETURN_VOID(ctxt, ctxt->status == napi_ok && valueType == napi_undefined,
+                    "invalid arg[2], i.e. invalid delay!");
+            }
         }
     };
     ctxt->GetCbInfoSync(env, info, input);
