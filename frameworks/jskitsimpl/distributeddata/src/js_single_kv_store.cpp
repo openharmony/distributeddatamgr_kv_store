@@ -379,7 +379,8 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
             if (ctxt->status != napi_ok) {
                 napi_valuetype valueType = napi_undefined;
                 ctxt->status = napi_typeof(env, argv[2], &valueType);
-                CHECK_ARGS_RETURN_VOID(ctxt, ctxt->status == napi_ok && valueType == napi_undefined,
+                CHECK_ARGS_RETURN_VOID(ctxt, ctxt->status == napi_ok &&
+                    (valueType == napi_undefined || valueType == napi_null),
                     "invalid arg[2], i.e. invalid delay!");
             }
         }

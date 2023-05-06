@@ -184,7 +184,7 @@ public:
             }
             napi_valuetype type = napi_undefined;
             napi_status status = napi_typeof(env, inner, &type);
-            if (status == napi_ok && type == napi_undefined) {
+            if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
                 return napi_ok;
             }
             return GetValue(env, inner, value);
