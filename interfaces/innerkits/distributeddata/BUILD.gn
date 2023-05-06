@@ -42,7 +42,7 @@ config("distributeddatafwk_config") {
 }
 
 config("distributeddatafwk_public_config") {
-  visibility = [ "//foundation/distributeddatamgr/kv_store:*" ]
+  visibility = [ ":*" ]
 
   include_dirs = [
     "include",

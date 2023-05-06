@@ -15,6 +15,7 @@
 
 #include "protocol_proto.h"
 #include <iterator>
+#include <mutex>
 #include <new>
 #include "db_common.h"
 #include "endian_convert.h"
