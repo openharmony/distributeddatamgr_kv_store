@@ -109,7 +109,7 @@ std::function<void()> DevManager::Retry()
             return;
         }
         constexpr int32_t interval = 100;
-        TaskExecutor::GetInstance().Schedule(Retry(), std::chrono::milliseconds(interval));
+        TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(interval), Retry());
     };
 }
 

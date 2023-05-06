@@ -26,6 +26,7 @@
 #include "observer_bridge.h"
 #include "single_kvstore.h"
 #include "sync_observer.h"
+#include "task_executor.h"
 
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,

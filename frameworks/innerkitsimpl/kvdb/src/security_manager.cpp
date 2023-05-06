@@ -61,11 +61,9 @@ bool SecurityManager::Retry()
     }
 
     constexpr int32_t interval = 100;
-    TaskExecutor::GetInstance().Schedule(
-        [this] {
-            Retry();
-        },
-        std::chrono::milliseconds(interval));
+    TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(interval), [this] {
+        Retry();
+    });
     return false;
 }
 

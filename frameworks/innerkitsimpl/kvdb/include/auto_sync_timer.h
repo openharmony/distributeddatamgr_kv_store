@@ -43,7 +43,6 @@ private:
     TaskExecutor::TaskId delaySyncTaskId_;
     TaskExecutor::TaskId forceSyncTaskId_;
     std::mutex mutex_;
-    TaskExecutor &scheduler_ = TaskExecutor::GetInstance();
 };
 } // namespace OHOS::DistributedKv
 #endif // SDB_AUTO_SYNC_TIMER_H

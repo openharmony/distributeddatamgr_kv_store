@@ -29,12 +29,15 @@ void AutoSyncTimer::StartTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
     if (forceSyncTaskId_ == TaskExecutor::INVALID_TASK_ID) {
-        forceSyncTaskId_ = scheduler_.Schedule(ProcessTask(), std::chrono::milliseconds(FORCE_SYNC_INTERVAL));
+        forceSyncTaskId_ =
+            TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(FORCE_SYNC_INTERVAL), ProcessTask());
     }
     if (delaySyncTaskId_ == TaskExecutor::INVALID_TASK_ID) {
-        delaySyncTaskId_ = scheduler_.Schedule(ProcessTask(), std::chrono::milliseconds(FORCE_SYNC_INTERVAL));
+        delaySyncTaskId_ =
+            TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(AUTO_SYNC_INTERVAL), ProcessTask());
     } else {
-        delaySyncTaskId_ = scheduler_.Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));
+        delaySyncTaskId_ =
+            TaskExecutor::GetInstance().Reset(delaySyncTaskId_, std::chrono::milliseconds(AUTO_SYNC_INTERVAL));
     }
 }
 

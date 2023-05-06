@@ -37,23 +37,10 @@ TaskExecutor::TaskId TaskExecutor::Execute(const Task &task)
     if (pool_ == nullptr) {
         return INVALID_TASK_ID;
     }
-    return pool_->Execute(task);
+    return pool_->Execute(std::move(task));
 }
 
-TaskExecutor::TaskId TaskExecutor::Execute(const Task &task, Duration delay)
-{
-    if (pool_ == nullptr) {
-        return INVALID_TASK_ID;
-    }
-    return pool_->Execute(task, delay);
-}
-
-TaskExecutor::TaskId TaskExecutor::Schedule(const Task &task, Duration interval)
-{
-    return Schedule(task, interval, INVALID_DURATION, UNLIMITED_TIMES);
-}
-
-TaskExecutor::TaskId TaskExecutor::Schedule(const Task &task, Duration interval, Duration delay, uint64_t times)
+TaskExecutor::TaskId TaskExecutor::Schedule(Duration delay, const Task &task, Duration interval, uint64_t times)
 {
     if (pool_ == nullptr) {
         return INVALID_TASK_ID;
