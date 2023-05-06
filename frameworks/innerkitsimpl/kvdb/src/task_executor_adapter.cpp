@@ -22,23 +22,24 @@ TaskExecutorAdapter::TaskId TaskExecutorAdapter::Execute(const TaskExecutorAdapt
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Execute(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay)
 {
-    return TaskExecutor::GetInstance().Execute(task, delay);
+    return TaskExecutor::GetInstance().Schedule(delay, task);
 }
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration interval)
 {
-    return TaskExecutor::GetInstance().Schedule(task, interval);
+    return TaskExecutor::GetInstance().Schedule(TaskExecutor::INVALID_DURATION, task, interval);
 }
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay, TaskExecutorAdapter::Duration interval)
 {
-    return TaskExecutor::GetInstance().Schedule(task, interval, delay);
+    return TaskExecutor::GetInstance().Schedule(delay, task, interval);
 }
 TaskExecutorAdapter::TaskId TaskExecutorAdapter::Schedule(const TaskExecutorAdapter::Task &task,
     TaskExecutorAdapter::Duration delay, TaskExecutorAdapter::Duration interval, uint64_t times)
 {
-    return TaskExecutor::GetInstance().Schedule(task, interval, delay, times);
+    return TaskExecutor::GetInstance().Schedule(delay, task, interval, times);
 }
+
 bool TaskExecutorAdapter::Remove(const TaskExecutorAdapter::TaskId &taskId, bool wait)
 {
     return TaskExecutor::GetInstance().Remove(taskId, wait);
