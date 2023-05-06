@@ -78,7 +78,7 @@ public:
         std::unique_lock<decltype(mutex_)> lock(mutex_);
         running_ = IS_STOPPING;
         condition_.notify_one();
-        cond_.wait(lock, [this]() { return running_ == STOPPED; });
+        cond_.wait(lock, [this, wait]() { return !wait || running_ == STOPPED; });
     }
 
 private:

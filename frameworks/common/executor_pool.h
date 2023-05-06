@@ -43,8 +43,8 @@ public:
     ExecutorPool(size_t max, size_t min)
     {
         pool_ = new (std::nothrow) Pool<Executor>(max, min);
-        execs_ = new TaskQueue(InnerTask());
-        delayTasks_ = new TaskQueue(InnerTask(), [](InnerTask &task) -> std::pair<bool, Time> {
+        execs_ = new (std::nothrow) TaskQueue(InnerTask());
+        delayTasks_ = new (std::nothrow) TaskQueue(InnerTask(), [](InnerTask &task) -> std::pair<bool, Time> {
             if (task.interval != INVALID_INTERVAL && --task.times > 0) {
                 auto time = std::chrono::steady_clock::now() + task.interval;
                 return { true, time };
@@ -133,7 +133,7 @@ public:
     }
 
 private:
-    TaskId Execute(std::function<void()> task, TaskId taskId)
+    TaskId Execute(Task task, TaskId taskId)
     {
         InnerTask innerTask;
         innerTask.exec = task;
@@ -163,7 +163,7 @@ private:
             Execute(func, id);
         };
         innerTask.exec = run;
-        delayTasks_->Push(innerTask, innerTask.taskId, delay);
+        delayTasks_->Push(std::move(innerTask), id, delay);
         std::lock_guard<decltype(mtx_)> scheduleLock(mtx_);
         if (scheduler_ == nullptr) {
             scheduler_ = pool_->Get(true);

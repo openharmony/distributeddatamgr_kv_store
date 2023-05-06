@@ -12,26 +12,38 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#include "task_executor.h"
-
 #include <gtest/gtest.h>
 
 #include "block_data.h"
+#include "executor_pool.h"
 
 namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS;
 using duration = std::chrono::steady_clock::duration;
-class TaskExecutorTest : public testing::Test {
+class ExecutorPoolTest : public testing::Test {
 public:
+    struct Data {
+        std::mutex mutex_;
+        int data = 0;
+        void Add()
+        {
+            std::lock_guard<std::mutex> lockGuard(mutex_);
+            data++;
+        }
+    };
     static constexpr uint32_t SHORT_INTERVAL = 100; // ms
     static constexpr uint32_t LONG_INTERVAL = 1;    // s
-    TaskExecutor &taskExecutor = TaskExecutor::GetInstance();
+    static std::shared_ptr<ExecutorPool> executorPool_;
     static void SetUpTestCase(void){};
-    static void TearDownTestCase(void){};
+    static void TearDownTestCase(void)
+    {
+        executorPool_ = nullptr;
+    };
     void SetUp(){};
     void TearDown() {}
 };
+std::shared_ptr<ExecutorPool> ExecutorPoolTest::executorPool_ = std::make_shared<ExecutorPool>(12, 5);
 
 /**
 * @tc.name: Execute
@@ -40,12 +52,12 @@ public:
 * @tc.require:
 * @tc.author: CRJ
 */
-HWTEST_F(TaskExecutorTest, Execute, TestSize.Level0)
+HWTEST_F(ExecutorPoolTest, Execute, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
     int testData = 10;
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
-    auto atTaskId1 = taskExecutor.Execute(
+    auto atTaskId1 = executorPool_->Execute(
         [blockData]() {
             int testData = 11;
             blockData->SetValue(testData);
@@ -53,7 +65,7 @@ HWTEST_F(TaskExecutorTest, Execute, TestSize.Level0)
         expiredTime);
     ASSERT_EQ(blockData->GetValue(), 11);
     blockData->Clear();
-    auto atTaskId2 = taskExecutor.Execute(
+    auto atTaskId2 = executorPool_->Execute(
         [blockData]() {
             int testData = 12;
             blockData->SetValue(testData);
@@ -70,18 +82,19 @@ HWTEST_F(TaskExecutorTest, Execute, TestSize.Level0)
 * @tc.require:
 * @tc.author: CRJ
 */
-HWTEST_F(TaskExecutorTest, Schedule, TestSize.Level0)
+HWTEST_F(ExecutorPoolTest, Schedule, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
-    int testData = 10;
-    auto taskId = taskExecutor.Schedule(
-        [&testData] {
-            testData++;
+    auto testData = std::make_shared<Data>();
+    auto taskId = executorPool_->Schedule(
+        [testData] {
+            testData->Add();
         },
         expiredTime);
-    ASSERT_NE(taskId, TaskExecutor::INVALID_TASK_ID);
+    ASSERT_NE(taskId, ExecutorPool::INVALID_TASK_ID);
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 10));
-    ASSERT_EQ(testData, 20);
+    ASSERT_EQ(testData, 10);
+    executorPool_->Remove(taskId);
 }
 
 /**
@@ -91,23 +104,20 @@ HWTEST_F(TaskExecutorTest, Schedule, TestSize.Level0)
 * @tc.require:
 * @tc.author: CRJ
 */
-HWTEST_F(TaskExecutorTest, MultiSchedule, TestSize.Level0)
+HWTEST_F(ExecutorPoolTest, MultiSchedule, TestSize.Level0)
 {
-    auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
-    int testData = 10;
-    auto blockData = std::make_shared<BlockData<int>>(0, testData);
-    auto task = [&blockData] {
-        auto a = blockData->GetValue() + 1;
-        blockData->SetValue(a);
+    auto data = std::make_shared<Data>();
+    auto task = [data] {
+        data->Add();
     };
-    TaskExecutor::TaskId id;
+    std::set<ExecutorPool::TaskId> ids;
     for (int i = 0; i < 10; ++i) {
-        auto temp = taskExecutor.Schedule(task, expiredTime, std::chrono::seconds(0), 10);
-        ASSERT_NE(temp, id);
-        id = temp;
+        auto id = executorPool_->Schedule(task, std::chrono::seconds(0), std::chrono::seconds(LONG_INTERVAL), 10);
+        ASSERT_NE(*(ids.end()), id);
+        ids.insert(id);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 10));
-    ASSERT_EQ(blockData->GetValue(), 110);
+    std::this_thread::sleep_for(std::chrono::milliseconds(LONG_INTERVAL * 10));
+    ASSERT_EQ(data->data, 100);
 }
 /**
 * @tc.name: Remove
@@ -116,21 +126,19 @@ HWTEST_F(TaskExecutorTest, MultiSchedule, TestSize.Level0)
 * @tc.require:
 * @tc.author: CRJ
 */
-HWTEST_F(TaskExecutorTest, Remove, TestSize.Level0)
+HWTEST_F(ExecutorPoolTest, Remove, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
-    int testData = 10;
-    auto blockData = std::make_shared<BlockData<int>>(0, testData);
-    auto task = [&blockData] {
-        auto a = blockData->GetValue() + 1;
-        blockData->SetValue(a);
+    auto data = std::make_shared<Data>();
+    auto task = [data] {
+        data->Add();
     };
-    auto temp = taskExecutor.Schedule(task, expiredTime * 2);
+    auto temp = executorPool_->Schedule(task, expiredTime * 2);
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
-    ASSERT_EQ(blockData->GetValue(), 11);
-    ASSERT_TRUE(taskExecutor.Remove(temp));
+    ASSERT_EQ(data->data, 1);
+    ASSERT_TRUE(executorPool_->Remove(temp));
     std::this_thread::sleep_for(expiredTime * 4);
-    ASSERT_EQ(blockData->GetValue(), 11);
+    ASSERT_EQ(data->data, 1);
 }
 /**
 * @tc.name: Reset
@@ -139,25 +147,20 @@ HWTEST_F(TaskExecutorTest, Remove, TestSize.Level0)
 * @tc.require:
 * @tc.author: CRJ
 */
-HWTEST_F(TaskExecutorTest, Reset, TestSize.Level0)
+HWTEST_F(ExecutorPoolTest, Reset, TestSize.Level0)
 {
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
-    int testData = 10;
-    auto blockData = std::make_shared<BlockData<int>>(0, testData);
-    auto task = [&blockData] {
-        auto a = blockData->GetValue() + 1;
-        blockData->SetValue(a);
+    auto data = std::make_shared<Data>();
+    auto task = [data] {
+        data->Add();
     };
-    auto temp = taskExecutor.Schedule(task, expiredTime * 2);
+    auto temp = executorPool_->Schedule(task, expiredTime * 2);
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
-    ASSERT_EQ(blockData->GetValue(), 11);
-    auto res = taskExecutor.Reset(temp, expiredTime * 5);
-    ASSERT_EQ(res, temp);
-    std::this_thread::sleep_for(expiredTime * 2);
-    ASSERT_EQ(blockData->GetValue(), 11);
+    ASSERT_EQ(data->data, 1);
+    ASSERT_EQ(executorPool_->Reset(temp, std::chrono::milliseconds(expiredTime * 2)), temp);
     std::this_thread::sleep_for(expiredTime * 4);
-    ASSERT_EQ(blockData->GetValue(), 12);
-    taskExecutor.Remove(res);
+    ASSERT_EQ(data->data, 3);
+    executorPool_->Remove(temp);
 }
 //auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
 } // namespace OHOS::Test
