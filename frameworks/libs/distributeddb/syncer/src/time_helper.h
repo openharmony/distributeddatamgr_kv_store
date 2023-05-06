@@ -39,6 +39,7 @@ public:
 
     // Get current system time
     static Timestamp GetSysCurrentTime();
+    static int GetSysCurrentRawTime(uint64_t &currTime);
 
     TimeHelper();
     ~TimeHelper();

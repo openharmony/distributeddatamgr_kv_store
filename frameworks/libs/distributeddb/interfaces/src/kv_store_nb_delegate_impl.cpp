@@ -476,6 +476,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
     }
+    if (mode > SYNC_MODE_PUSH_PULL) {
+        LOGE("not support other mode");
+        return NOT_SUPPORT;
+    }
 
     PragmaSync pragmaData(devices, mode, std::bind(&KvStoreNbDelegateImpl::OnSyncComplete,
         this, std::placeholders::_1, onComplete), wait);
@@ -494,6 +498,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     if (conn_ == nullptr) {
         LOGE("%s", INVALID_CONNECTION);
         return DB_ERROR;
+    }
+    if (mode > SYNC_MODE_PUSH_PULL) {
+        LOGE("not support other mode");
+        return NOT_SUPPORT;
     }
 
     QuerySyncObject querySyncObj(query);

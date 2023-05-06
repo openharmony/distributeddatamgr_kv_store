@@ -17,6 +17,7 @@
 #ifdef RELATIONAL_STORE
 
 #include <vector>
+
 #include "data_value.h"
 #include "db_types.h"
 #include "relational_schema_object.h"
@@ -33,6 +34,7 @@ struct LogInfo {
     Timestamp wTimestamp = 0;
     uint64_t flag = 0;
     Key hashKey; // primary key hash value
+    std::string cloudGid; // use for sync with cloud
 };
 
 struct RowDataWithLog {

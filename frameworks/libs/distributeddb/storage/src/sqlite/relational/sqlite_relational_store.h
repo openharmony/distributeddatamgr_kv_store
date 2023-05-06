@@ -26,9 +26,11 @@
 #include "sync_able_engine.h"
 #include "relational_sync_able_storage.h"
 #include "runtime_context.h"
+#include "cloud_syncer.h"
 
 namespace DistributedDB {
-using RelationalObserverAction = std::function<void(const std::string &device)>;
+using RelationalObserverAction =
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
 class SQLiteRelationalStore : public IRelationalStore {
 public:
     SQLiteRelationalStore() = default;
@@ -75,6 +77,15 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         uint64_t connectionId, std::shared_ptr<ResultSet> &result);
 
+    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
+
+    int SetCloudDbSchema(const DataBaseSchema &schema);
+
+    int ChkSchema(const TableName &tableName);
+
+    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+        const SyncProcessCallback &onProcess, int64_t waitTime);
+
 private:
     void ReleaseResources();
 
@@ -115,6 +126,7 @@ private:
     // use ref obj same as kv
     RelationalSyncAbleStorage *storageEngine_ = nullptr; // For storage operate data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> sqliteStorageEngine_;
+    CloudSyncer *cloudSyncer_ = nullptr;
 
     std::mutex connectMutex_;
     std::atomic<int> connectionCount_ = 0;

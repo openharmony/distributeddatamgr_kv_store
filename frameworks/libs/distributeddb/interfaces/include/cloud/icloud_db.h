@@ -26,6 +26,7 @@
 namespace DistributedDB {
 class ICloudDb {
 public:
+    virtual ~ICloudDb() {};
     /**
      ** param[in & out] extend: will fill gid after insert ok
     **/

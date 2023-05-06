@@ -16,13 +16,17 @@
 #define SQLITE_SINGLE_VER_RELATIONAL_STORAGE_EXECUTOR_H
 #ifdef RELATIONAL_STORE
 
+#include "cloud/cloud_db_constant.h"
+#include "cloud_store_types.h"
 #include "data_transformer.h"
 #include "db_types.h"
+#include "icloud_sync_storage_interface.h"
 #include "macro_utils.h"
 #include "query_object.h"
 #include "relational_row_data.h"
 #include "relational_store_delegate.h"
 #include "relational_sync_data_inserter.h"
+#include "sqlite_single_ver_relational_continue_token.h"
 #include "sqlite_storage_executor.h"
 #include "sqlite_utils.h"
 
@@ -88,6 +92,17 @@ public:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, int64_t &count);
+
+    int UpdateCloudLogGid(const CloudSyncData &cloudDataResult);
+
+    int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
+        SQLiteSingleVerRelationalContinueToken &token);
+
+    int GetLogInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket, LogInfo &logInfo);
+
+    int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
+
 private:
     int GetDataItemForSync(sqlite3_stmt *stmt, DataItem &dataItem, bool isGettingDeletedData) const;
 
@@ -123,10 +138,70 @@ private:
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const TableInfo &table,
         const std::string &calPrimaryKeyHash);
 
+    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &totalSize,
+        const uint32_t &maxSize);
+
+    int PutVBucketByType(VBucket &vBucket, int cid, Type &cloudValue);
+
+    static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
+    static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+
+    std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
+
+    int GetPrimaryKeyHashValue(const VBucket &vBucket, const TableSchema &tableSchema, std::vector<uint8_t> &hashValue);
+
+    int GetQueryLogStatement(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &querySql,
+        std::set<std::string> &pkSet, sqlite3_stmt *&selectStmt);
+
+    int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
+        std::string &querySql);
+
+    int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
+
+    void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
+
+    int InsertCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
+
+    int BindOneField(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *updateStmt);
+
+    int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
+
+    int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
+        sqlite3_stmt *insertLogStmt);
+
+    int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt);
+
+    std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
+        const std::string &tableName);
+
+    int GetUpdateSqlForCloudSync(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &gidStr,
+        const std::set<std::string> &pkSet, std::string &updateSql);
+
+    int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
+
+    int UpdateCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+
+    int UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
+
+    int BindValueToUpdateLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
+        std::vector<std::string> &colNames, std::map<std::string, Field> &pkMap, sqlite3_stmt *updateLogStmt);
+
+    int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
+        const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
+
+    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+
+    int UpdateCloudGid(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
+    TableSchema tableSchema_; // for cloud table
 
     DistributedTableMode mode_;
+
+    std::map<int, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
+    std::map<int, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
 };
 } // namespace DistributedDB
 #endif

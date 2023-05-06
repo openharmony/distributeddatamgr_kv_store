@@ -126,6 +126,10 @@ constexpr int E_TYPE_MISMATCH = (E_BASE + 104);  // for result set, mismatch typ
 constexpr int E_DENIED_SQL = (E_BASE + 105);  // denied sql, not permit to execute
 constexpr int E_USER_CHANGE = (E_BASE + 106); // user change
 constexpr int E_CONSTRAINT = (E_BASE + 107); // sql failed with constraint
+constexpr int E_CLOUD_ERROR = (E_BASE + 108); // cloud error
+constexpr int E_CLOUD_UPLOAD_FAILED = (E_BASE + 109); // upload failed
+constexpr int E_QUERY_END = (E_BASE + 110); // Indicates that query function has queried last data from cloud
+constexpr int E_DB_CLOSED = (E_BASE + 111); // db is closed
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

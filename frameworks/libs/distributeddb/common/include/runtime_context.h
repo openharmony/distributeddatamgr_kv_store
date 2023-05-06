@@ -22,6 +22,7 @@
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"
+#include "icloud_data_translate.h"
 #include "icommunicator_aggregator.h"
 #include "iprocess_system_api_adapter.h"
 #include "ithread_pool.h"
@@ -153,6 +154,12 @@ public:
     virtual void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool) = 0;
 
     virtual std::shared_ptr<IThreadPool> GetThreadPool() const = 0;
+
+    virtual void SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate) = 0;
+    virtual int AssetToBlob(const Asset &asset, std::vector<uint8_t> &blob) = 0;
+    virtual int AssetsToBlob(const Assets &assets, std::vector<uint8_t> &blob) = 0;
+    virtual int BlobToAsset(const std::vector<uint8_t> &blob, Asset &asset) = 0;
+    virtual int BlobToAssets(std::vector<uint8_t> &blob, Assets &assets) = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

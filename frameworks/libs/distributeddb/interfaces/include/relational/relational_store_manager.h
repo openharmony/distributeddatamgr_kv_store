@@ -46,8 +46,9 @@ public:
 
     DB_API static std::string GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,
         const std::string &storeId, bool syncDualTupleMode = false);
-
 private:
+    bool PreCheckOpenStore(const std::string &path, const std::string &storeId,
+        RelationalStoreDelegate *&delegate, std::string &canonicalDir);
     std::string appId_;
     std::string userId_;
     int32_t instanceId_;

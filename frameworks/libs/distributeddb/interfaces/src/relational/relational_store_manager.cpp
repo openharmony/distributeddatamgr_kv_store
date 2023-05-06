@@ -18,6 +18,7 @@
 #include <thread>
 
 #include "auto_launch.h"
+#include "cloud_db_constant.h"
 #include "relational_store_instance.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
@@ -58,20 +59,30 @@ static RelationalStoreConnection *GetOneConnectionWithRetry(const RelationalDBPr
     return nullptr;
 }
 
-DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const std::string &storeId,
-    const RelationalStoreDelegate::Option &option, RelationalStoreDelegate *&delegate)
+bool RelationalStoreManager::PreCheckOpenStore(const std::string &path, const std::string &storeId,
+    RelationalStoreDelegate *&delegate, std::string &canonicalDir)
 {
     if (delegate != nullptr) {
         LOGE("[RelationalStoreMgr] Invalid delegate!");
-        return INVALID_ARGS;
+        return false;
     }
 
-    std::string canonicalDir;
     if (!ParamCheckUtils::CheckDataDir(path, canonicalDir)) {
-        return INVALID_ARGS;
+        return false;
     }
 
     if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) || path.empty()) {
+        return false;
+    }
+
+    return true;
+}
+
+DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const std::string &storeId,
+    const RelationalStoreDelegate::Option &option, RelationalStoreDelegate *&delegate)
+{
+    std::string canonicalDir;
+    if (!PreCheckOpenStore(path, storeId, delegate, canonicalDir)) {
         return INVALID_ARGS;
     }
 
@@ -102,7 +113,13 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
     }
     const std::string userId = userId_;
     const std::string appId = appId_;
-    conn->RegisterObserverAction([option, storeId, userId, appId](const std::string &changedDevice) {
+    conn->RegisterObserverAction([option, storeId, userId, appId](const std::string &changedDevice,
+        ChangedData &&changedData, bool isChangedData) {
+        if (isChangedData && option.observer != nullptr) {
+            option.observer->OnChange(Origin::ORIGIN_CLOUD, CloudDbConstant::CLOUD_DEVICE_NAME, std::move(changedData));
+            LOGD("begin to observer on changed data");
+            return;
+        }
         RelationalStoreChangedDataImpl data(changedDevice);
         data.SetStoreProperty({userId, appId, storeId});
         if (option.observer) {

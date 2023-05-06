@@ -275,6 +275,7 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         }
 
         syncAbleEngine_ = std::make_unique<SyncAbleEngine>(storageEngine_);
+        cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(storageEngine_));
 
         errCode = CheckDBMode();
         if (errCode != E_OK) {
@@ -366,6 +367,8 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
 
     // Sync Close
     syncAbleEngine_->Close();
+    cloudSyncer_->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer_);
 
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_ = nullptr;
@@ -489,11 +492,16 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     }
 
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
-    if (tables.empty() || (!tableName.empty() && tables.find(tableName) == tables.end())) {
+    auto iter = tables.find(tableName);
+    if (tables.empty() || (!tableName.empty() && iter == tables.end())) {
         LOGE("Remove device data with table name which is not a distributed table or no distributed table found.");
         return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
     }
-
+    // cloud mode is not permit
+    if (iter->second.GetTableSyncType() == CLOUD_COOPERATION) {
+        LOGE("Remove device data with cloud sync table name.");
+        return -E_NOT_SUPPORT;
+    }
     bool isNeedHash = false;
     std::string hashDeviceId;
     int errCode = syncAbleEngine_->GetHashDeviceId(device, hashDeviceId);
@@ -827,6 +835,56 @@ int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices)
     }
     ReleaseHandle(handle);
     return errCode;
+}
+
+int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore][SetCloudDB] cloudSyncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    return cloudSyncer_->SetCloudDB(cloudDb);
+}
+
+int SQLiteRelationalStore::SetCloudDbSchema(const DataBaseSchema &schema)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][SetCloudDbSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    return storageEngine_->SetCloudDbSchema(schema);
+}
+
+int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    return storageEngine_->ChkSchema(tableName);
+}
+
+int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMode mode,
+    const Query &query, const SyncProcessCallback &onProcess, int64_t waitTime)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when sync");
+        return -E_INVALID_DB;
+    }
+    QuerySyncObject querySyncObject(query);
+    if (querySyncObject.GetIsDeviceSyncQuery()) {
+        LOGE("[RelationalStore] cloudSyncer was not support other query");
+        return -E_NOT_SUPPORT;
+    }
+    const auto tableNames = querySyncObject.GetRelationTableNames();
+    for (const auto &table: tableNames) {
+        int errCode = ChkSchema(table);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStore] schema check failed when sync");
+            return errCode;
+        }
+    }
+    return cloudSyncer_->Sync(devices, mode, tableNames, onProcess, waitTime);
 }
 }
 #endif

@@ -70,6 +70,7 @@ enum DBStatus {
     CONSTRAINT, // constraint check failed in sqlite
     CLOUD_ERROR, // cloud error
     QUERY_END, // Indicates that query function has queried last data from cloud
+    DB_CLOSED, // db is closed
 };
 
 struct KvStoreConfig {
@@ -156,6 +157,8 @@ using KvStoreCorruptionHandler = std::function<void (const std::string &appId, c
 using StoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using SyncStatusCallback = std::function<void(const std::map<std::string, std::vector<TableStatus>> &devicesMap)>;
+using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
+
 using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
 
 struct RemoteCondition {

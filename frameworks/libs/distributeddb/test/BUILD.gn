@@ -21,7 +21,9 @@ config("module_private_config") {
   include_dirs = [
     "./unittest/common/common",
     "./unittest/common/syncer",
+    "./unittest/common/syncer/cloud",
     "./unittest/common/storage",
+    "./unittest/common/storage/cloud",
     "./unittest/common/interfaces",
     "../include",
     "../interfaces/include",
@@ -145,6 +147,7 @@ ohos_source_set("src_file") {
     "../interfaces/src/relational/relational_store_manager.cpp",
     "../interfaces/src/relational/relational_store_sqlite_ext.cpp",
     "../interfaces/src/runtime_config.cpp",
+    "../storage/src/cloud/cloud_storage_utils.cpp",
     "../storage/src/data_transformer.cpp",
     "../storage/src/db_properties.cpp",
     "../storage/src/default_factory.cpp",
@@ -224,6 +227,7 @@ ohos_source_set("src_file") {
     "../storage/src/sqlite/sqlite_storage_engine.cpp",
     "../storage/src/sqlite/sqlite_storage_executor.cpp",
     "../storage/src/sqlite/sqlite_utils.cpp",
+    "../storage/src/storage_proxy.cpp",
     "../storage/src/storage_engine.cpp",
     "../storage/src/storage_engine_manager.cpp",
     "../storage/src/storage_executor.cpp",
@@ -233,6 +237,10 @@ ohos_source_set("src_file") {
     "../storage/src/upgrader/single_ver_database_upgrader.cpp",
     "../storage/src/upgrader/single_ver_schema_database_upgrader.cpp",
     "../syncer/src/ability_sync.cpp",
+    "../syncer/src/cloud/cloud_merge_strategy.cpp",
+    "../syncer/src/cloud/cloud_db_proxy.cpp",
+    "../syncer/src/cloud/cloud_syncer.cpp",
+    "../syncer/src/cloud/strategy_factory.cpp",
     "../syncer/src/commit_history_sync.cpp",
     "../syncer/src/communicator_proxy.cpp",
     "../syncer/src/db_ability.cpp",
@@ -279,6 +287,9 @@ ohos_source_set("src_file") {
     "unittest/common/common/system_timer.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
+    "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
+    "unittest/common/syncer/cloud/virtual_cloud_db.cpp",
+    "unittest/common/syncer/cloud/virtual_cloud_syncer.cpp",
     "unittest/common/syncer/generic_virtual_device.cpp",
     "unittest/common/syncer/kv_virtual_device.cpp",
     "unittest/common/syncer/relational_virtual_device.cpp",
@@ -371,6 +382,18 @@ distributeddb_unittest("DistributedDBInterfacesImportAndExportTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_import_and_export_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudInterfacesRelationalSyncTest") {
+  sources = [ "unittest/common/storage/cloud/distributeddb_cloud_interfaces_relational_sync_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBCloudSyncerProgressManagerTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_progress_manager_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBCloudSchemaMgrTest") {
+  sources = [ "unittest/common/storage/storage/distributeddb_cloud_schema_mgr_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBStorageDataOperationTest") {
   sources = [
     "unittest/common/storage/distributeddb_storage_data_operation_test.cpp",
@@ -456,8 +479,8 @@ distributeddb_unittest("DistributedDBInterfacesNBDelegateTest") {
   ]
 }
 
-distributeddb_unittest("DistributedDBInterfacesRelationalExtTest") {
-  sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_ext_test.cpp" ]
+distributeddb_unittest("DistributedDBCloudInterfacesRelationalExtTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_ext_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBCommonTest") {
@@ -779,8 +802,29 @@ distributeddb_unittest("DistributedDBRelationalSyncableStorageTest") {
   sources = [ "unittest/common/storage/distributeddb_relational_syncable_storage_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBRelationalCloudSyncableStorageTest") {
+  sources = [ "unittest/common/storage/distributeddb_relational_cloud_syncable_storage_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBSqliteUtilsTest") {
   sources = [ "unittest/common/storage/distributeddb_sqlite_utils_test.cpp" ]
+}
+
+
+distributeddb_unittest("DistributedDBCloudStrategyTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
+}
+
+distributed_unittest("DistributedDBDistributedDBCloudSyncerUploadTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBCloudDBProxyTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_db_proxy_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBCloudSaveCloudDataTest") {
+  sources = [ "unittest/common/storage/cloud/distributeddb_cloud_save_cloud_data_test.cpp" ]
 }
 
 ###############################################################################
@@ -791,6 +835,7 @@ group("unittest") {
   deps += [
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
+    ":DistributedDBCloudDBProxyTest",
     ":DistributedDBCommonTest",
     ":DistributedDBCommunicatorDeepTest",
     ":DistributedDBCommunicatorProxyTest",
@@ -812,6 +857,7 @@ group("unittest") {
     ":DistributedDBInterfacesNBDelegateLocalBatchTest",
     ":DistributedDBInterfacesNBDelegateSchemaPutTest",
     ":DistributedDBInterfacesNBDelegateTest",
+    ":DistributedDBCloudInterfacesRelationalExtTest",
     ":DistributedDBInterfacesNBPublishTest",
     ":DistributedDBInterfacesNBResultsetPerfTest",
     ":DistributedDBInterfacesNBTransactionTest",
@@ -832,12 +878,16 @@ group("unittest") {
     ":DistributedDBMultiVerVacuumTest",
     ":DistributedDBNotificationChainTest",
     ":DistributedDBParcelTest",
+    ":DistributedDBRelationalCloudSyncableStorageTest",
     ":DistributedDBRelationalEncryptedDbTest",
     ":DistributedDBRelationalGetDataTest",
     ":DistributedDBRelationalRemoteQueryTest",
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
     ":DistributedDBRelationalSyncableStorageTest",
+    ":DistributedDBCloudInterfacesRelationalSyncTest",
+    ":DistributedDBCloudSyncerProgressManagerTest",
+    ":DistributedDBCloudSchemaMgrTest",
     ":DistributedDBRelationalVerP2PSyncTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",
@@ -868,9 +918,12 @@ group("unittest") {
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageTransactionDataTest",
     ":DistributedDBStorageTransactionRecordTest",
+    ":DistributedDBCloudStrategyTest",
+    ":DistributedDBDistributedDBCloudSyncerUploadTest",
     ":DistributedDBSyncerDeviceManagerTest",
     ":DistributedDBThreadPoolTest",
     ":DistributedDBTimeSyncTest",
+    ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
   ]

@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <unordered_map>
 #include <vector>
 
 #include "db_types.h"
@@ -45,6 +46,7 @@
 #include "sync_types.h"
 #include "store_types.h"
 #include "types_export.h"
+
 namespace DistributedDBUnitTest {
 struct DatabaseInfo {
     std::string appId{};
@@ -270,6 +272,14 @@ public:
     // callback function will be called when the db data is changed.
     void OnChange(const DistributedDB::StoreChangedData &data);
 
+    void OnChange(DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data);
+
+    void SetExpectedResult(DistributedDB::ChangedData &changedData);
+
+    bool IsAllChangedDataEq();
+
+    void ClearChangedData();
+
     // reset the callCount_ to zero.
     void ResetToZero();
 
@@ -281,6 +291,8 @@ private:
     unsigned long callCount_;
     std::string changeDevice_;
     DistributedDB::StoreProperty storeProperty_;
+    std::unordered_map<std::string, DistributedDB::ChangedData> expectedChangedData_;
+    std::unordered_map<std::string, DistributedDB::ChangedData> savedChangedData_;
 };
 
 class KvStoreCorruptInfo {

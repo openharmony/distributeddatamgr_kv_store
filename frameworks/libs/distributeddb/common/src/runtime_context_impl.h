@@ -140,6 +140,12 @@ public:
     void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool) override;
 
     std::shared_ptr<IThreadPool> GetThreadPool() const override;
+
+    void SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate) override;
+    int AssetToBlob(const Asset &asset, std::vector<uint8_t> &blob) override;
+    int AssetsToBlob(const Assets &assets, std::vector<uint8_t> &blob) override;
+    int BlobToAsset(const std::vector<uint8_t> &blob, Asset &asset) override;
+    int BlobToAssets(std::vector<uint8_t> &blob, Assets &assets) override;
 private:
     static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.
@@ -225,6 +231,9 @@ private:
     std::map<TimerId, TaskId> taskIds_;
     mutable std::mutex timerFinalizerLock_;
     std::map<TimerId, TimerFinalizer> timerFinalizers_;
+
+    mutable std::shared_mutex dataTranslateLock_;
+    std::shared_ptr<ICloudDataTranslate> dataTranslate_;
 };
 } // namespace DistributedDB
 

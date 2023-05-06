@@ -286,4 +286,24 @@ void QueryExpression::SetSortType(bool isAsc)
     WriteTimeSort sortType = isAsc ? WriteTimeSort::TIMESTAMP_ASC : WriteTimeSort::TIMESTAMP_DESC;
     sortType_ = static_cast<int>(sortType);
 }
+
+std::vector<std::string> QueryExpression::GetTables()
+{
+    return tables_;
+}
+
+void QueryExpression::SetTables(const std::vector<std::string> &tableNames)
+{
+    tables_ = tableNames;
+}
+
+void QueryExpression::SetIsDeviceSyncQuery(bool isDeviceSync)
+{
+    isWithDeviceSyncQuery_ = isDeviceSync;
+}
+
+bool QueryExpression::GetIsDeviceSyncQuery() const
+{
+    return isWithDeviceSyncQuery_;
+}
 } // namespace DistributedDB

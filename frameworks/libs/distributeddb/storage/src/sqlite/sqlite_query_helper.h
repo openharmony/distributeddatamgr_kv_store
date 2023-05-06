@@ -23,6 +23,7 @@
 #include "query_expression.h"
 #include "schema_utils.h"
 #include "sqlite_import.h"
+#include "cloud_store_types.h"
 
 namespace DistributedDB {
 namespace TriggerMode {
@@ -100,6 +101,8 @@ public:
     int GetRelationalSyncDataQuerySqlWithLimit(const std::vector<std::string> &fieldNames, std::string &sql);
     int GetRelationalQueryStatement(sqlite3 *dbHandle, uint64_t beginTime, uint64_t endTime,
         const std::vector<std::string> &fieldNames, sqlite3_stmt *&statement);
+    int GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+        const std::vector<Field> &fields, sqlite3_stmt *&statement);
 
 private:
     int ToQuerySql();

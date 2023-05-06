@@ -41,6 +41,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::EQUALTO, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -50,6 +51,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::NOT_EQUALTO, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -59,6 +61,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::GREATER_THAN, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -68,6 +71,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::LESS_THAN, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -77,6 +81,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::GREATER_THAN_OR_EQUALTO, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -86,6 +91,7 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::LESS_THAN_OR_EQUALTO, field, type, fieldValue);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -111,6 +117,7 @@ public:
         }
 
         ExecuteCompareOperation(QueryObjType::IN, field, type, fieldValues);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -126,6 +133,7 @@ public:
         }
 
         ExecuteCompareOperation(QueryObjType::NOT_IN, field, type, fieldValues);
+        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -157,6 +165,8 @@ private:
         const QueryValueType type, const FieldValue &fieldValue);
     DB_SYMBOL void ExecuteCompareOperation(QueryObjType operType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &fieldValue);
+
+    DB_SYMBOL void SetIsDeviceSyncQuery(bool isDeviceSync);
 
     template<typename T>
     QueryValueType GetFieldTypeAndValue(const T &queryValue, FieldValue &fieldValue)

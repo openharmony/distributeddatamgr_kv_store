@@ -262,5 +262,58 @@ int SQLiteRelationalStoreConnection::RemoteQuery(const std::string &device, cons
     }
     return store->RemoteQuery(device, condition, timeout, GetConnectionId(), result);
 }
+
+int SQLiteRelationalStoreConnection::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int ret = store->SetCloudDB(cloudDb);
+    if (ret != E_OK) {
+        LOGE("[RelationalConnection] SetCloudDB failed. %d", ret);
+    }
+    return ret;
+}
+
+int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &schema)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int ret = store->SetCloudDbSchema(schema);
+    if (ret != E_OK) {
+        LOGE("[RelationalConnection] SetCloudDbSchema failed. %d", ret);
+    }
+    return ret;
+}
+
+int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+    const SyncProcessCallback &onProcess, int64_t waitTime)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    {
+        AutoLock lockGuard(this);
+        if (IsKilled()) {
+            // If this happens, users are using a closed connection.
+            LOGE("Sync on a closed connection.");
+            return -E_STALE;
+        }
+        IncObjRef(this);
+    }
+    int errCode = store->Sync(devices, mode, query, onProcess, waitTime);
+    DecObjRef(this);
+    return errCode;
+}
+
 }
 #endif

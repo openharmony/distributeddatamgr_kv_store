@@ -47,6 +47,16 @@ Timestamp TimeHelper::GetSysCurrentTime()
     return (curTime * TO_100_NS) + currentIncCount_; // Currently Timestamp is uint64_t
 }
 
+int TimeHelper::GetSysCurrentRawTime(uint64_t &curTime)
+{
+    int errCode = OS::GetCurrentSysTimeInMicrosecond(curTime);
+    if (errCode != 0) {
+        return errCode;
+    }
+    curTime *= TO_100_NS;
+    return E_OK;
+}
+
 TimeHelper::TimeHelper()
     : storage_(nullptr),
       metadata_(nullptr)

@@ -17,14 +17,18 @@
 #ifdef RELATIONAL_STORE
 
 #include "lru_map.h"
+#include "icloud_sync_storage_interface.h"
 #include "relational_db_sync_interface.h"
 #include "relationaldb_properties.h"
+#include "cloud/schema_mgr.h"
 #include "sqlite_single_relational_storage_engine.h"
 #include "sqlite_single_ver_relational_continue_token.h"
 
 namespace DistributedDB {
-using RelationalObserverAction = std::function<void(const std::string &device)>;
-class RelationalSyncAbleStorage : public RelationalDBSyncInterface, public virtual RefObject {
+using RelationalObserverAction =
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
+class RelationalSyncAbleStorage : public RelationalDBSyncInterface, public ICloudSyncStorageInterface,
+    public virtual RefObject {
 public:
     explicit RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine);
     ~RelationalSyncAbleStorage() override;
@@ -98,7 +102,7 @@ public:
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
     void RegisterObserverAction(const RelationalObserverAction &action);
-    void TriggerObserverAction(const std::string &deviceName);
+    void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int CreateDistributedDeviceTable(const std::string &device, const RelationalSyncStrategy &syncStrategy) override;
 
@@ -120,8 +124,40 @@ public:
     int GetRemoteDeviceSchema(const std::string &deviceId, RelationalSchemaObject &schemaObj) override;
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
+
+    int StartTransaction(TransactType type) override;
+
+    int Commit() override;
+
+    int Rollback() override;
+
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, int64_t &count) override;
+
+    int FillCloudGid(const CloudSyncData &data) override;
+
+    int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+        ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
+
+    int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
+
+    int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
+
+    int ChkSchema(const TableName &tableName) override;
+
+    int SetCloudDbSchema(const DataBaseSchema &schema) override;
+
+    int GetCloudDbSchema(DataBaseSchema &cloudSchema) override;
+
+    int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
+
+    int GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, LogInfo &logInfo) override;
+
+    int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
+
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
+        OperatePerm perm = OperatePerm::NORMAL_PERM) const;
+    SQLiteSingleVerRelationalStorageExecutor *GetHandleExpectTransaction(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
     void ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
@@ -150,6 +186,12 @@ private:
     mutable std::mutex securityOptionMutex_;
     mutable SecurityOption securityOption_;
     mutable bool isCachedOption_;
+
+    SQLiteSingleVerRelationalStorageExecutor *transactionHandle_ = nullptr;
+    mutable std::shared_mutex transactionMutex_; // used for transaction
+
+    SchemaMgr schemaMgr_;
+    mutable std::shared_mutex schemaMgrMutex_;
 };
 }  // namespace DistributedDB
 #endif

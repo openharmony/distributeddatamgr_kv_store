@@ -26,6 +26,7 @@
 #include "relational_sync_data_inserter.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
+#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 namespace {
@@ -138,6 +139,25 @@ SQLiteSingleVerRelationalStorageExecutor *RelationalSyncAbleStorage::GetHandle(b
     return handle;
 }
 
+SQLiteSingleVerRelationalStorageExecutor *RelationalSyncAbleStorage::GetHandleExpectTransaction(bool isWrite,
+    int &errCode, OperatePerm perm) const
+{
+    if (storageEngine_ == nullptr) {
+        errCode = -E_INVALID_DB;
+        return nullptr;
+    }
+    if (transactionHandle_ != nullptr) {
+        return transactionHandle_;
+    }
+    auto handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(isWrite, perm, errCode));
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        handle = nullptr;
+    }
+    return handle;
+}
+
 void RelationalSyncAbleStorage::ReleaseHandle(SQLiteSingleVerRelationalStorageExecutor *&handle) const
 {
     if (storageEngine_ == nullptr) {
@@ -162,9 +182,8 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
     if (key.size() > DBConstant::MAX_KEY_SIZE) {
         return -E_INVALID_ARGS;
     }
-
     int errCode = E_OK;
-    auto handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+    auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
@@ -501,7 +520,8 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         // dataItems size > 0 now because already check before
         // all dataItems will write into db now, so need to observer notify here
         // if some dataItems will not write into db in the future, observer notify here need change
-        TriggerObserverAction(deviceName);
+        ChangedData data;
+        TriggerObserverAction(deviceName, std::move(data), false);
     }
 
     ReleaseHandle(handle);
@@ -665,7 +685,8 @@ void RelationalSyncAbleStorage::RegisterObserverAction(const RelationalObserverA
     dataChangeDeviceCallback_ = action;
 }
 
-void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName)
+void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
+    ChangedData &&changedData, bool isChangedData)
 {
     {
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
@@ -674,10 +695,11 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         }
     }
     IncObjRef(this);
-    int taskErrCode = RuntimeContext::GetInstance()->ScheduleTask([this, deviceName] {
+    int taskErrCode =
+        RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
         if (dataChangeDeviceCallback_) {
-            dataChangeDeviceCallback_(deviceName);
+            dataChangeDeviceCallback_(deviceName, std::move(changedData), isChangedData);
         }
         DecObjRef(this);
     });
@@ -700,6 +722,10 @@ int RelationalSyncAbleStorage::CheckAndInitQueryCondition(QueryObject &query) co
     if (!table.IsValid()) {
         LOGE("Query table is not a distributed table.");
         return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
+    }
+    if (table.GetTableSyncType() == CLOUD_COOPERATION) {
+        LOGE("cloud table mode is not support");
+        return -E_NOT_SUPPORT;
     }
     query.SetSchema(schema);
 
@@ -860,6 +886,219 @@ void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &t
     delete remoteToken;
     remoteToken = nullptr;
     token = nullptr;
+}
+
+int RelationalSyncAbleStorage::StartTransaction(TransactType type)
+{
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (transactionHandle_ != nullptr) {
+        LOGD("Transaction started already.");
+        return -E_TRANSACT_STATE;
+    }
+    int errCode;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(type == TransactType::IMMEDIATE ? true : false,
+        OperatePerm::NORMAL_PERM, errCode));
+    if (handle == nullptr) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    errCode = handle->StartTransaction(type);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    transactionHandle_ = handle;
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::Commit()
+{
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (transactionHandle_ == nullptr) {
+        LOGE("relation database is null or the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = transactionHandle_->Commit();
+    ReleaseHandle(transactionHandle_);
+    transactionHandle_ = nullptr;
+    LOGD("connection commit transaction!");
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::Rollback()
+{
+    std::unique_lock<std::shared_mutex> lock(transactionMutex_);
+    if (transactionHandle_ == nullptr) {
+        LOGE("Invalid handle for rollback or the transaction has not been started.");
+        return -E_INVALID_DB;
+    }
+
+    int errCode = transactionHandle_->Rollback();
+    ReleaseHandle(transactionHandle_);
+    transactionHandle_ = nullptr;
+    LOGI("connection rollback transaction!");
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
+    int64_t &count)
+{
+    int errCode;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetUploadCount(tableName, timestamp, count);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::FillCloudGid(const CloudSyncData &data)
+{
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    int errCode = E_OK;
+    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+    if (writeHandle == nullptr) {
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->UpdateCloudLogGid(data);
+    if (errCode != E_OK) {
+        writeHandle->Rollback();
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->Commit();
+    ReleaseHandle(writeHandle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE(" the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    SyncTimeRange syncTimeRange = { .beginTime = beginTime };
+    QueryObject queryObject;
+    queryObject.SetTableName(tableSchema.name);
+    auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
+    if (token == nullptr) {
+        LOGE("[SingleVerNStore] Allocate continue token failed.");
+        return -E_OUT_OF_MEMORY;
+    }
+    token->SetCloudTableSchema(tableSchema);
+    continueStmtToken = static_cast<ContinueToken>(token);
+    return GetCloudDataNext(continueStmtToken, cloudDataResult);
+}
+
+int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken,
+    CloudSyncData &cloudDataResult)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE(" the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    if (continueStmtToken == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    auto token = static_cast<SQLiteSingleVerRelationalContinueToken *>(continueStmtToken);
+    if (!token->CheckValid()) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
+    if (errCode != -E_UNFINISHED) {
+        delete token;
+        token = nullptr;
+    }
+    continueStmtToken = static_cast<ContinueToken>(token);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::ReleaseCloudDataToken(ContinueToken &continueStmtToken)
+{
+    if (continueStmtToken == nullptr) {
+        return E_OK;
+    }
+    auto token = static_cast<SQLiteSingleVerRelationalContinueToken *>(continueStmtToken);
+    if (!token->CheckValid()) {
+        return E_OK;
+    }
+    int errCode = token->ReleaseCloudStatement();
+    delete token;
+    token = nullptr;
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::ChkSchema(const TableName &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
+    RelationalSchemaObject localSchema = GetSchemaInfo();
+    return schemaMgr_.ChkSchema(tableName, localSchema);
+}
+
+int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
+{
+    std::unique_lock<std::shared_mutex> writeLock(schemaMgrMutex_);
+    schemaMgr_.SetCloudDbSchema(schema);
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetCloudDbSchema(DataBaseSchema &cloudSchema)
+{
+    std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
+    cloudSchema = *(schemaMgr_.GetCloudDbSchema());
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+    LogInfo &logInfo)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE(" the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when query log for cloud sync, %d", errCode);
+        return errCode;
+    }
+    return transactionHandle_->GetLogInfoByPrimaryKeyOrGid(tableSchema, vBucket, logInfo);
+}
+
+int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE(" the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when save cloud data, %d", errCode);
+        return errCode;
+    }
+    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
+}
+
+int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)
+{
+    std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
+    return schemaMgr_.GetCloudTableSchema(tableName, tableSchema);
 }
 }
 #endif

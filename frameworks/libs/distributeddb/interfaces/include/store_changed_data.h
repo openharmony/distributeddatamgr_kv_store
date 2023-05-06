@@ -17,6 +17,7 @@
 #define STORE_CHANGED_DATA_H
 
 #include <list>
+#include <string>
 #include "store_types.h"
 
 namespace DistributedDB {
@@ -25,6 +26,7 @@ struct StoreProperty {
     std::string appId;
     std::string storeId;
 };
+
 class StoreChangedData {
 public:
     StoreChangedData() {}

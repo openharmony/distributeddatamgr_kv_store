@@ -51,6 +51,10 @@ public:
 
     std::string GetRelationTableName() const;
 
+    std::vector<std::string> GetRelationTableNames() const;
+
+    bool GetIsDeviceSyncQuery() const;
+
 private:
     uint32_t CalculateLen() const;
     uint32_t CalculateIdentifyLen() const;

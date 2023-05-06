@@ -167,5 +167,46 @@ void SQLiteSingleVerRelationalContinueToken::UpdateNextSyncOffset(int addOffset)
     }
     queryObj_.SetLimit(limit - addOffset, offset + addOffset);
 }
+
+void SQLiteSingleVerRelationalContinueToken::SetCloudTableSchema(const TableSchema &schema)
+{
+    tableSchema_ = schema;
+}
+
+int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, sqlite3_stmt *&queryStmt, bool &isFirstTime)
+{
+    if (queryStmt_ != nullptr) {
+        queryStmt = queryStmt_;
+        isFirstTime = false;
+        return E_OK;
+    }
+    int errCode;
+    SqliteQueryHelper helper = queryObj_.GetQueryHelper(errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = helper.GetRelationalCloudQueryStatement(db, timeRange_.beginTime, tableSchema_.fields, queryStmt_);
+    if (errCode == E_OK) {
+        queryStmt = queryStmt_;
+    }
+    isFirstTime = true;
+    return errCode;
+}
+
+void SQLiteSingleVerRelationalContinueToken::GetCloudTableSchema(TableSchema &tableSchema)
+{
+    tableSchema = tableSchema_;
+}
+
+int SQLiteSingleVerRelationalContinueToken::ReleaseCloudStatement()
+{
+    if (queryStmt_ == nullptr) {
+        return E_OK;
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(queryStmt_, true, errCode);
+    queryStmt_ = nullptr;
+    return errCode;
+}
 }  // namespace DistributedDB
 #endif

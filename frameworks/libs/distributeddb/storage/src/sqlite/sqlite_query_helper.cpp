@@ -995,6 +995,27 @@ std::string GetRelationalSyncDataQueryHeader(const std::vector<std::string> &fie
     }
     return sql;
 }
+
+std::string GetRelationalCloudSyncDataQueryHeader(const std::vector<Field> &fields)
+{
+    std::string sql = "SELECT b.data_key,"
+        "b.device,"
+        "b.ori_device,"
+        "b.timestamp as " + DBConstant::TIMESTAMP_ALIAS + ","
+        "b.wtimestamp,"
+        "b.flag,"
+        "b.hash_key,"
+        "b.cloud_gid,";
+    if (fields.empty()) {  // For query check. If column count changed, can be discovered.
+        sql += "a.*";
+    } else {
+        for (const auto &field : fields) {  // For query data.
+            sql += "a." + field.colName + ",";
+        }
+        sql.pop_back();
+    }
+    return sql;
+}
 }
 
 int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<std::string> &fieldNames,
@@ -1114,5 +1135,34 @@ int SqliteQueryHelper::BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&
         }
     }
     return E_OK;
+}
+
+int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+    const std::vector<Field> &fields, sqlite3_stmt *&statement)
+{
+    std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
+    sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN ";
+    sql += tableName_ + " AS a ON (a.rowid = b.data_key)";
+    sql += " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    sql += " AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
+    sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+
+    querySql_.clear(); // clear local query sql format
+    int errCode = ToQuerySyncSql(false, true);
+    if (errCode != E_OK) {
+        LOGE("To query sql fail! errCode[%d]", errCode);
+        return errCode;
+    }
+    sql += querySql_;
+    errCode = SQLiteUtils::GetStatement(dbHandle, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("[Query] Get statement fail!");
+        return -E_INVALID_QUERY_FORMAT;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, beginTime);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+    }
+    return errCode;
 }
 }

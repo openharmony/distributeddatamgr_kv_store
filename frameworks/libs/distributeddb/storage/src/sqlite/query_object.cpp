@@ -79,6 +79,8 @@ QueryObject::QueryObject(const Query &query)
     isTableNameSpecified_ = queryExpressions.IsTableNameSpecified();
     keys_ = queryExpressions.GetKeys();
     sortType_ = static_cast<SortType>(queryExpressions.GetSortType());
+    tables_ = queryExpressions.GetTables();
+    isWithDeviceSyncQuery_ = queryExpressions.GetIsDeviceSyncQuery();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,

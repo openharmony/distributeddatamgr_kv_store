@@ -46,10 +46,6 @@ void CloudSyncLogTableManager::GetIndexSql(const TableInfo &table, std::vector<s
     std::string indexTimestampFlagGid = "CREATE INDEX IF NOT EXISTS " + tableName +
         "_cloud_time_flag_gid_index ON " + tableName + "(timestamp, flag, cloud_gid);";
     schema.emplace_back(indexTimestampFlagGid);
-
-    std::string indexHashkey = "CREATE INDEX IF NOT EXISTS " + tableName +
-        "_cloud_hashkey_index ON " + tableName + "(hash_key);";
-    schema.emplace_back(indexHashkey);
 }
 
 std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
@@ -84,20 +80,10 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "ON '" + table.GetTableName() + "'\n";
     updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
-    updateTrigger += "BEGIN\n";
-    if (table.GetPrimaryKey().size() == 1 && table.GetPrimaryKey().at(0) == "rowid") {
-        updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
-        updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
-        updateTrigger += " WHERE data_key = OLD.rowid;\n";
-    } else { // the row id may be modified
-        updateTrigger += "\t UPDATE " + logTblName;
-        updateTrigger += " SET data_key=-1,timestamp=get_raw_sys_time(), device='', flag=0x03";
-        updateTrigger += " WHERE hash_key=" + CalcPrimaryKeyHash("OLD.", table, identity) + ";\n";
-        updateTrigger += "\t INSERT OR REPLACE INTO " + logTblName + " VALUES (NEW.rowid, '', '', ";
-        updateTrigger += "get_raw_sys_time(), (select wtimestamp from " + logTblName + " where hash_key = ";
-        updateTrigger += CalcPrimaryKeyHash("OLD.", table, identity) + "), 0x02, ";
-        updateTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '');\n";
-    }
+    updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
+    updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+    updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
+    updateTrigger += " WHERE data_key = OLD.rowid;\n";
     updateTrigger += "END;";
     return updateTrigger;
 }
