@@ -27,7 +27,8 @@ public:
 
     static TaskExecutor &GetInstance();
     TaskId Execute(const Task &task);
-    TaskId Schedule(Duration delay, const Task &task, Duration interval = INVALID_DURATION, uint64_t times = UNLIMITED_TIMES);
+    TaskId Schedule(Duration delay, const Task &task, Duration interval = INVALID_DURATION,
+        uint64_t times = UNLIMITED_TIMES);
     bool Remove(TaskId taskId, bool wait = false);
     TaskId Reset(TaskId taskId, Duration interval);
 
