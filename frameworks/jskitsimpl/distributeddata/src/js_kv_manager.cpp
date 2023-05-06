@@ -74,10 +74,10 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         status = napi_get_named_property(env, argv[0], userInfo.c_str(), &inner);
         CHECK_ARGS_RETURN_VOID(ctxt, (status == napi_ok && inner != nullptr), "invalid userInfo!");
         std::string userId;
-        ctxt->status = JSUtil::GetOptionalNamedProperty(env, inner, "userId", userId);
+        ctxt->status = JSUtil::GetNamedProperty(env, inner, "userId", userId, true);
         CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok), "invalid userId!");
         int32_t userType = 0;
-        ctxt->status = JSUtil::GetOptionalNamedProperty(env, inner, "userType", userType);
+        ctxt->status = JSUtil::GetNamedProperty(env, inner, "userType", userType, true);
         CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok), "invalid userType!");
 
         ctxt->ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&ctxt->kvManger),
@@ -97,7 +97,7 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 
 struct GetKVStoreContext : public ContextBase {
     std::string storeId;
-    Options options {.autoSync = false};
+    Options options;
     JsKVStore* kvStore = nullptr;
     napi_ref ref = nullptr;
 

@@ -89,7 +89,8 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
 
 struct GetKVStoreContext : public ContextBase {
     std::string storeId;
-    Options options {.autoSync = false};
+    Options options;
+    options.autoSync = false;
     JsSingleKVStore* kvStore = nullptr;
     napi_ref ref = nullptr;
 

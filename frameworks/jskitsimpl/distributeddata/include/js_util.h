@@ -153,27 +153,12 @@ public:
     static napi_status GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
-    static inline napi_status GetNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
+    static inline napi_status GetNamedProperty(
+        napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
         bool hasProp = false;
         napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if ((status == napi_ok) && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, in, prop.c_str(), &inner);
-            if ((status == napi_ok) && (inner != nullptr)) {
-                return GetValue(env, inner, value);
-            }
-        }
-        return napi_invalid_arg;
-    };
-
-    /* napi_get_optional_named_property wrapper */
-    template <typename T>
-    static inline napi_status GetOptionalNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
-    {
-        bool hasProp = false;
-        napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if (!hasProp) {
+        if (!hasProp && optional) {
             return napi_ok;
         }
         if ((status == napi_ok) && hasProp) {
@@ -182,10 +167,12 @@ public:
             if (status != napi_ok || inner == nullptr) {
                 return napi_invalid_arg;
             }
-            napi_valuetype type = napi_undefined;
-            napi_status status = napi_typeof(env, inner, &type);
-            if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
-                return napi_ok;
+            if (optional) {
+                napi_valuetype type = napi_undefined;
+                napi_status status = napi_typeof(env, inner, &type);
+                if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+                    return napi_ok;
+                }
             }
             return GetValue(env, inner, value);
         }

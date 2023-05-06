@@ -931,17 +931,17 @@ napi_status JSUtil::SetValue(napi_env env, const DistributedKv::ChangeNotificati
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options& options)
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
-    napi_status status = GetOptionalNamedProperty(env, in, "createIfMissing", options.createIfMissing);
+    napi_status status = GetNamedProperty(env, in, "createIfMissing", options.createIfMissing, true);
     CHECK_RETURN(status == napi_ok, "get createIfMissing param failed", napi_invalid_arg);
-    status = GetOptionalNamedProperty(env, in, "encrypt", options.encrypt);
+    status = GetNamedProperty(env, in, "encrypt", options.encrypt, true);
     CHECK_RETURN(status == napi_ok, "get encrypt param failed", napi_invalid_arg);
-    status = GetOptionalNamedProperty(env, in, "backup", options.backup);
+    status = GetNamedProperty(env, in, "backup", options.backup, true);
     CHECK_RETURN(status == napi_ok, "get backup param failed", napi_invalid_arg);
-    status = GetOptionalNamedProperty(env, in, "autoSync", options.autoSync);
+    status = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
     CHECK_RETURN(status == napi_ok, "get autoSync param failed", napi_invalid_arg);
 
     int32_t kvStoreType = 0;
-    status = GetOptionalNamedProperty(env, in, "kvStoreType", kvStoreType);
+    status = GetNamedProperty(env, in, "kvStoreType", kvStoreType, true);
     CHECK_RETURN(status == napi_ok, "get kvStoreType param failed", napi_invalid_arg);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
@@ -952,7 +952,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     }
 
     int32_t level = 0;
-    status = GetOptionalNamedProperty(env, in, "securityLevel", level);
+    status = GetNamedProperty(env, in, "securityLevel", level, true);
     CHECK_RETURN(status == napi_ok, "get securityLevel param failed", napi_invalid_arg);
     options.securityLevel = level;
     return napi_ok;

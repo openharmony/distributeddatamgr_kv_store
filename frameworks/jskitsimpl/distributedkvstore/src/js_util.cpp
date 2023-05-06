@@ -977,17 +977,17 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
     JSUtil::StatusMsg statusMsg = napi_invalid_arg;
-    statusMsg = GetOptionalNamedProperty(env, in, "createIfMissing", options.createIfMissing);
+    statusMsg = GetNamedProperty(env, in, "createIfMissing", options.createIfMissing, true);
     ASSERT(statusMsg.status == napi_ok, "get createIfMissing param failed", statusMsg);
-    statusMsg = GetOptionalNamedProperty(env, in, "encrypt", options.encrypt);
+    statusMsg = GetNamedProperty(env, in, "encrypt", options.encrypt, true);
     ASSERT(statusMsg.status == napi_ok, "get encrypt param failed", statusMsg);
-    statusMsg = GetOptionalNamedProperty(env, in, "backup", options.backup);
+    statusMsg = GetNamedProperty(env, in, "backup", options.backup, true);
     ASSERT(statusMsg.status == napi_ok, "get backup param failed", statusMsg);
-    statusMsg = GetOptionalNamedProperty(env, in, "autoSync", options.autoSync);
+    statusMsg = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
     ASSERT(statusMsg.status == napi_ok, "get autoSync param failed", statusMsg);
 
     int32_t kvStoreType = 0;
-    statusMsg = GetOptionalNamedProperty(env, in, "kvStoreType", kvStoreType);
+    statusMsg = GetNamedProperty(env, in, "kvStoreType", kvStoreType, true);
     ASSERT(statusMsg.status == napi_ok, "get kvStoreType param failed", statusMsg);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
