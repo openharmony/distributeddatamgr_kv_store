@@ -41,11 +41,10 @@ public:
         STOPPED
     };
     struct InnerTask {
-        std::function<void(InnerTask)> exec;
+        std::function<void()> exec = []() {};
         Duration interval = INVALID_INTERVAL;
         uint64_t times = UNLIMITED_TIMES;
         TaskId taskId = INVALID_TASK_ID;
-        Time startTime = INVALID_TIME;
         InnerTask() = default;
 
         bool Valid() const
@@ -57,10 +56,10 @@ public:
     Executor()
         : thread_([this] {
               Run();
-              thread_.detach();
               self_ = nullptr;
           })
     {
+        thread_.detach();
     }
 
     void Bind(PriorityQueue<InnerTask, Time, TaskId> *queue, std::function<bool(std::shared_ptr<Executor>)> idle,
@@ -76,14 +75,10 @@ public:
 
     void Stop(bool wait = false)
     {
-        {
-            std::unique_lock<decltype(mutex_)> lock(mutex_);
-            running_ = IS_STOPPING;
-            condition_.notify_one();
-        }
-        if (wait) {
-            thread_.join();
-        }
+        std::unique_lock<decltype(mutex_)> lock(mutex_);
+        running_ = IS_STOPPING;
+        condition_.notify_one();
+        cond_.wait(lock, [this]() { return running_ == STOPPED; });
     }
 
 private:
@@ -98,11 +93,8 @@ private:
                 });
                 while (running_ == RUNNING && waits_ != nullptr && waits_->Size() > 0) {
                     auto currentTask = waits_->Pop();
-                    if (!currentTask.Valid()) {
-                        break;
-                    }
                     lock.unlock();
-                    currentTask.exec(currentTask);
+                    currentTask.exec();
                     lock.lock();
                     waits_->Finish(currentTask.taskId);
                 }
@@ -116,11 +108,13 @@ private:
                      }));
         } while (!release_(self_, running_ == IS_STOPPING));
         running_ = STOPPED;
+        cond_.notify_all();
     }
 
     Status running_ = RUNNING;
     std::mutex mutex_;
     std::condition_variable condition_;
+    std::condition_variable cond_;
     std::shared_ptr<Executor> self_;
     PriorityQueue<InnerTask, Time, TaskId> *waits_ = nullptr;
     std::function<bool(std::shared_ptr<Executor>)> idle_;

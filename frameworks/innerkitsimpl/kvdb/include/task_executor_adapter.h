@@ -14,19 +14,17 @@
 */
 #ifndef TASK_EXECUTOR_ADAPTER_H
 #define TASK_EXECUTOR_ADAPTER_H
-
 #include "ithread_pool.h"
 #include "task_executor.h"
 #include "visibility.h"
 namespace OHOS::DistributedKv {
-class API_EXPORT TaskExecutorAdapter : public DistributedDB::IThreadPool {
+class TaskExecutorAdapter : public DistributedDB::IThreadPool {
 public:
-    using Task = std::function<void()>;
     using TaskId = DistributedDB::TaskId;
+    using Task = std::function<void()>;
     using Duration = std::chrono::steady_clock::duration;
     TaskExecutorAdapter();
     ~TaskExecutorAdapter() override;
-
     TaskId Execute(const Task &task) override;
     TaskId Execute(const Task &task, Duration delay) override;
     TaskId Schedule(const Task &task, Duration interval) override;
