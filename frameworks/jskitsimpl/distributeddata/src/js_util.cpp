@@ -946,8 +946,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    status = GetOptionalNamedProperty(env, in, "schema", jsSchema);
-    CHECK_RETURN(status == napi_ok, "get schema param failed", napi_invalid_arg);
+    status = GetNamedProperty(env, in, "schema", jsSchema);
     if (status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
