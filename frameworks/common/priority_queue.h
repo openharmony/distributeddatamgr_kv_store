@@ -81,7 +81,8 @@ public:
         return INVALID_TSK;
     }
 
-    _Tsk FindInRun(_Tid id) {
+    _Tsk FindInRun(_Tid id)
+    {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         if (indexes_.find(id) != indexes_.end()) {
             return indexes_[id]->second.task_;
