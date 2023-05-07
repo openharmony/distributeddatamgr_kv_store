@@ -57,20 +57,16 @@ HWTEST_F(ExecutorPoolTest, Execute, TestSize.Level0)
     auto expiredTime = std::chrono::milliseconds(SHORT_INTERVAL);
     int testData = 10;
     auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
-    auto atTaskId1 = executorPool_->Execute(
-        [blockData]() {
-            int testData = 11;
-            blockData->SetValue(testData);
-        },
-        expiredTime);
+    auto atTaskId1 = executorPool_->Schedule(expiredTime, [blockData]() {
+        int testData = 11;
+        blockData->SetValue(testData);
+    });
     ASSERT_EQ(blockData->GetValue(), 11);
     blockData->Clear();
-    auto atTaskId2 = executorPool_->Execute(
-        [blockData]() {
-            int testData = 12;
-            blockData->SetValue(testData);
-        },
-        expiredTime);
+    auto atTaskId2 = executorPool_->Schedule(expiredTime, [blockData]() {
+        int testData = 12;
+        blockData->SetValue(testData);
+    });
     ASSERT_EQ(blockData->GetValue(), 12);
     ASSERT_NE(atTaskId1, atTaskId2);
 }
