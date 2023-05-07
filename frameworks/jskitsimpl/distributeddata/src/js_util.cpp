@@ -1077,16 +1077,6 @@ bool JSUtil::IsNull(napi_value value)
     return false;
 }
 
-bool JSUtil::IsString(napi_value value)
-{
-    napi_valuetype type = napi_undefined;
-    napi_status status = napi_typeof(env, value, &type);
-    if (status == napi_ok && type == napi_string) {
-        return true;
-    }
-    return false;
-}
-
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
 {
     ZLOGD("napi_value -> std::GetValue DataQuery");
