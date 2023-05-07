@@ -191,7 +191,7 @@ public:
 
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
 
-    static bool IsNull(napi_value value);
+    static bool IsNull(napi_env env, napi_value value);
 
 private:
     enum {

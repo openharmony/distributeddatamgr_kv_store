@@ -213,7 +213,7 @@ public:
 
     static bool IsSystemApp();
 
-    static bool IsNull(napi_value value);
+    static bool IsNull(napi_env env, napi_value value);
 
 private:
     enum {
