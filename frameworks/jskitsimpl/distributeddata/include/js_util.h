@@ -158,7 +158,7 @@ public:
     {
         bool hasProp = false;
         napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if (status == napi_ok !hasProp && optional) {
+        if (status == napi_ok && (!hasProp) && optional) {
             return napi_ok;
         }
         if ((status == napi_ok) && hasProp) {
