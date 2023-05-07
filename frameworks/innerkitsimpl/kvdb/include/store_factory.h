@@ -36,7 +36,6 @@ private:
     using DBStore = DistributedDB::KvStoreNbDelegate;
     using DBStatus = DistributedDB::DBStatus;
     using DBPassword = DistributedKv::SecurityManager::DBPassword;
-    using RuntimeConfig = DistributedDB::RuntimeConfig;
 
     static constexpr int REKEY_TIMES = 3;
     static constexpr const char *REKEY_NEW = ".new";

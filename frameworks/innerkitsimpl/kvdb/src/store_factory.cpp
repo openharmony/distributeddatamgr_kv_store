@@ -39,7 +39,7 @@ StoreFactory::StoreFactory()
     convertors_[DEVICE_COLLABORATION] = new DeviceConvertor();
     convertors_[SINGLE_VERSION] = new Convertor();
     convertors_[MULTI_VERSION] = new Convertor();
-    RuntimeConfig::SetThreadPool(std::make_shared<TaskExecutorAdapter>());
+    DistributedDB::RuntimeConfig::SetThreadPool(std::make_shared<TaskExecutorAdapter>());
     if (DBManager::IsProcessSystemApiAdapterValid()) {
         return;
     }
