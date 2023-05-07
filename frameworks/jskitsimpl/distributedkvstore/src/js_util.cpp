@@ -1225,7 +1225,7 @@ bool JSUtil::IsSystemApi(JSUtil::JsApiType jsApiType)
     return jsApiType == DATASHARE;
 }
 
-bool IsNull(napi_env env, napi_value value)
+bool JSUtil::IsNull(napi_env env, napi_value value)
 {
     napi_valuetype type = napi_undefined;
     napi_status status = napi_typeof(env, value, &type);
