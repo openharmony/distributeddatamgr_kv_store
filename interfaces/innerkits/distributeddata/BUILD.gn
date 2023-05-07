@@ -11,8 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/ohos.gni")
-import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
   deps = [ ":distributeddata_inner" ]
@@ -32,6 +32,8 @@ config("distributeddatafwk_config") {
     "../../../frameworks/common",
     "../../../frameworks/innerkitsimpl/kvdb/include",
     "../../../frameworks/innerkitsimpl/kvdb/src",
+    "${datashare_innerapi_path}/common/include",
+    "${datashare_innerapi_path}/provider/include",
     "${distributedfilejs_path}/interfaces/kits/js/src/mod_securitylabel",
   ]
 }
@@ -87,8 +89,6 @@ deps_config = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distri
 
 external_deps_config = [
   "c_utils:utils",
-  "data_share:datashare_common",
-  "data_share:datashare_provider",
   "device_manager:devicemanagersdk",
   "hisysevent_native:libhisysevent",
   "hitrace_native:hitrace_meter",
