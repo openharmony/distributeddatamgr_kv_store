@@ -193,7 +193,7 @@ public:
         if (status != napi_ok || inner == nullptr) {
             return napi_generic_failure;
         }
-        if (optional && IsNull(inner)) {
+        if (optional && JSUtil::IsNull(env, inner)) {
             return napi_ok;
         }
         return GetValue(env, inner, value);
