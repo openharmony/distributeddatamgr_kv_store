@@ -431,7 +431,7 @@ napi_value JsDeviceKVStore::Sync(napi_env env, napi_callback_info info)
         if (argc == 3) {
             ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
             CHECK_ARGS_RETURN_VOID(
-                ctxt, ctxt->status == napi_ok || JSUtil::IsNull(env, argv[2]), "invalid arg[2], i.e. invalid delay!")
+                ctxt, ctxt->status == napi_ok || JSUtil::IsNull(env, argv[2]), "invalid arg[2], i.e. invalid delay!");
         }
     };
     ctxt->GetCbInfoSync(env, info, input);
