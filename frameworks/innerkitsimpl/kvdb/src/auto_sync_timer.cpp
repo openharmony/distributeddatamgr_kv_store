@@ -114,6 +114,8 @@ std::function<void()> AutoSyncTimer::ProcessTask()
 void AutoSyncTimer::StopTimer()
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
+    TaskExecutor::GetInstance().Remove(forceSyncTaskId_);
+    TaskExecutor::GetInstance().Remove(delaySyncTaskId_);
     forceSyncTaskId_ = TaskExecutor::INVALID_TASK_ID;
     delaySyncTaskId_ = TaskExecutor::INVALID_TASK_ID;
 }

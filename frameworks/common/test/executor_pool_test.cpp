@@ -114,6 +114,10 @@ HWTEST_F(ExecutorPoolTest, MultiSchedule, TestSize.Level0)
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(LONG_INTERVAL * 10));
     ASSERT_EQ(data->data, 100);
+    while (it != ids.end()) {
+        executorPool_->Remove(*it);
+        it++;
+    }
 }
 /**
 * @tc.name: Remove
