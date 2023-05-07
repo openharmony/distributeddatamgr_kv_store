@@ -115,7 +115,6 @@ ohos_unittest("DistributedKvDataManagerTest") {
 
   deps = [
     ":distributeddatafwk_src_file",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
     "//third_party/googletest:gtest_main",
   ]
 }

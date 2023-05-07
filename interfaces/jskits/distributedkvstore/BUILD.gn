@@ -42,8 +42,6 @@ ohos_shared_library("distributedkvstore") {
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributedkvstore/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
-    "${datashare_innerapi_path}/common/include",
-    "${datashare_innerapi_path}/provider/include",
   ]
 
   sources = [
@@ -72,6 +70,8 @@ ohos_shared_library("distributedkvstore") {
     "ability_runtime:ability_manager",
     "ability_runtime:abilitykit_native",
     "ability_runtime:napi_base_context",
+    "data_share:datashare_common",
+    "data_share:datashare_provider",
     "c_utils:utils",
     "common_event_service:cesfwk_innerkits",
     "hiviewdfx_hilog_native:libhilog",
