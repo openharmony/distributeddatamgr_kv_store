@@ -55,6 +55,7 @@ public:
 
     Executor()
         : thread_([this] {
+              pthread_setname_np(pthread_self(), "TaskExecutor");
               Run();
               self_ = nullptr;
           })

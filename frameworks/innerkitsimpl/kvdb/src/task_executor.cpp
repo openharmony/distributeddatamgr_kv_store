@@ -45,7 +45,7 @@ TaskExecutor::TaskId TaskExecutor::Schedule(Duration delay, const Task &task, Du
     if (pool_ == nullptr) {
         return INVALID_TASK_ID;
     }
-    return pool_->Schedule(task, delay, interval, times);
+    return pool_->Schedule(delay, task, interval, times);
 }
 
 bool TaskExecutor::Remove(TaskExecutor::TaskId taskId, bool wait)

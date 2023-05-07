@@ -83,22 +83,22 @@ public:
         return Execute(std::move(task), GenTaskId());
     }
 
-    TaskId Execute(Task task, Duration delay)
+    TaskId Schedule(Duration delay, Task task)
     {
-        return Schedule(std::move(task), delay, INVALID_INTERVAL, 1);
+        return Schedule(delay, std::move(task), INVALID_INTERVAL, 1);
     }
 
     TaskId Schedule(Task task, Duration interval)
     {
-        return Schedule(std::move(task), INVALID_DELAY, interval, UNLIMITED_TIMES);
+        return Schedule(INVALID_DELAY, std::move(task), interval, UNLIMITED_TIMES);
     }
 
-    TaskId Schedule(Task task, Duration delay, Duration interval)
+    TaskId Schedule(Duration delay, Task task, Duration interval)
     {
-        return Schedule(std::move(task), delay, interval, UNLIMITED_TIMES);
+        return Schedule(delay, std::move(task), interval, UNLIMITED_TIMES);
     }
 
-    TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
+    TaskId Schedule(Duration delay, Task task, Duration interval, uint64_t times)
     {
         InnerTask innerTask;
         innerTask.exec = std::move(task);
