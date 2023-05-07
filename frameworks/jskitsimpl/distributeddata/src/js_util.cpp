@@ -946,7 +946,10 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    status = GetNamedProperty(env, in, "schema", jsSchema);
+    std::string strSchema;
+    status = GetNamedProperty(env, in, "schema", jsSchema, true);
+    CHECK_RETURN((status == napi_ok || GetNamedProperty(env, in, "schema", strSchema, true) == napi_ok),
+        "get schema param failed", napi_invalid_arg);
     if (status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
@@ -956,6 +959,13 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Options
     CHECK_RETURN(status == napi_ok, "get securityLevel param failed", napi_invalid_arg);
     options.securityLevel = level;
     return napi_ok;
+}
+
+napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::UserInfo& userInfo)
+{
+    napi_status status = napi_ok;
+    status = GetNamedProperty(env, in, "userId", userInfo.userId, true);
+    return status != napi_ok ? status : GetNamedProperty(env, in, "userType", userInfo.userType, true);
 }
 
 napi_status JSUtil::GetValue(napi_env env, napi_value inner, JsSchema*& out)
@@ -1057,6 +1067,25 @@ bool JSUtil::Equals(napi_env env, napi_value value, napi_ref copy)
     return isEquals;
 }
 
+bool JSUtil::IsNull(napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
+}
+
+bool JSUtil::IsString(napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && type == napi_string) {
+        return true;
+    }
+    return false;
+}
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
 {

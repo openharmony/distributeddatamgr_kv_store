@@ -66,20 +66,9 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         std::string bundleName;
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
         CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok) && !bundleName.empty(), "invalid bundleName!");
-        const std::string userInfo = "userInfo";
-        bool hasProp = false;
-        napi_status status = napi_has_named_property(env, argv[0], userInfo.c_str(), &hasProp);
-        if (status == napi_ok && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, argv[0], userInfo.c_str(), &inner);
-            CHECK_ARGS_RETURN_VOID(ctxt, (status == napi_ok && inner != nullptr), "invalid userInfo!");
-            std::string userId;
-            ctxt->status = JSUtil::GetNamedProperty(env, inner, "userId", userId, true);
-            CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok), "invalid userId!");
-            int32_t userType = 0;
-            ctxt->status = JSUtil::GetNamedProperty(env, inner, "userType", userType, true);
-            CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok), "invalid userType!");
-        }
+        UserInfo userInfo;
+        ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "userInfo", userInfo);
+        CHECK_ARGS_RETURN_VOID(ctxt, ctxt->status == napi_ok, "invalid userInfo!");
 
         ctxt->ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&ctxt->kvManger),
                                        JsKVManager::Constructor(env));

@@ -992,7 +992,10 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    statusMsg = GetNamedProperty(env, in, "schema", jsSchema);
+    std::string strSchema;
+    statusMsg = GetNamedProperty(env, in, "schema", jsSchema, true);
+    ASSERT((status == napi_ok || GetNamedProperty(env, in, "schema", strSchema, true) == napi_ok),
+        "get schema param failed", napi_invalid_arg);
     if (statusMsg.status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
@@ -1222,4 +1225,13 @@ bool JSUtil::IsSystemApi(JSUtil::JsApiType jsApiType)
     return jsApiType == DATASHARE;
 }
 
+bool IsNull(napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
+}
 } // namespace OHOS::DistributedKVStore

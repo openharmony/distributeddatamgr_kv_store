@@ -1159,13 +1159,8 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
                 "The parameters mode is incorrect.");
             if (argc == 4) {
                 ctxt->status = JSUtil::GetValue(env, argv[3], ctxt->allowedDelayMs);
-                if (ctxt->status != napi_ok) {
-                    napi_valuetype valueType = napi_undefined;
-                    ctxt->status = napi_typeof(env, argv[3], &valueType);
-                    ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok &&
-                        (valueType == napi_undefined || valueType == napi_null)),
-                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
-                }
+                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(argv[3])),
+                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
             }
         }
         if (ctxt->type == napi_number) {
@@ -1174,13 +1169,8 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
                 "The parameters mode is incorrect.");
             if (argc == 3) {
                 ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
-                if (ctxt->status != napi_ok) {
-                    napi_valuetype valueType = napi_undefined;
-                    ctxt->status = napi_typeof(env, argv[2], &valueType);
-                    ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok &&
-                        (valueType == napi_undefined || valueType == napi_null)),
-                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
-                }
+                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(argv[2])),
+                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
             }
         }
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok),

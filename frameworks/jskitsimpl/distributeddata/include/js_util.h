@@ -47,6 +47,7 @@ public:
     using StoreId = OHOS::DistributedKv::StoreId;
     using Status = OHOS::DistributedKv::Status;
     using DataQuery = OHOS::DistributedKv::DataQuery;
+    using UserInfo = OHOS::DistributedKv::UserInfo;
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
@@ -122,6 +123,9 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, Options& out);
     static napi_status SetValue(napi_env env, const Options& in, napi_value& out);
 
+    /* napi_value <-> UserInfo */
+    static napi_status GetValue(napi_env env, napi_value in, UserInfo& out);
+
     /* napi_value <-> Entry */
     static napi_status GetValue(napi_env env, napi_value in, Entry& out, bool hasSchema);
     static napi_status SetValue(napi_env env, const Entry& in, napi_value& out, bool hasSchema);
@@ -167,14 +171,10 @@ public:
         napi_value inner = nullptr;
         status = napi_get_named_property(env, in, prop.c_str(), &inner);
         if (status != napi_ok || inner == nullptr) {
-            return napi_invalid_arg;
+            return napi_generic_failure;
         }
-        if (optional) {
-            napi_valuetype type = napi_undefined;
-            napi_status status = napi_typeof(env, inner, &type);
-            if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
-                return napi_ok;
-            }
+        if (optional && IsNull(inner)) {
+            return napi_ok;
         }
         return GetValue(env, inner, value);
     };
@@ -190,6 +190,8 @@ public:
     static napi_status Unwrap(napi_env env, napi_value in, void** out, napi_value constructor);
 
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
+
+    static bool IsNull(napi_value value);
 
 private:
     enum {

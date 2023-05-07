@@ -407,6 +407,21 @@ struct Options {
         return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION;
     }
 };
+
+/**
+ * @brief Provide the user information.
+*/
+struct UserInfo {
+    /**
+     * The userId Info.
+    */
+    std::string userId;
+
+    /**
+     * The userType Info.
+    */
+    int32_t userType;
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

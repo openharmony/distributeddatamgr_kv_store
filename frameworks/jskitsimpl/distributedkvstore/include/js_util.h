@@ -191,14 +191,10 @@ public:
         napi_value inner = nullptr;
         status = napi_get_named_property(env, in, prop.c_str(), &inner);
         if (status != napi_ok || inner == nullptr) {
-            return napi_invalid_arg;
+            return napi_generic_failure;
         }
-        if (optional) {
-            napi_valuetype type = napi_undefined;
-            napi_status status = napi_typeof(env, inner, &type);
-            if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
-                return napi_ok;
-            }
+        if (optional && IsNull(inner)) {
+            return napi_ok;
         }
         return GetValue(env, inner, value);
     };
@@ -216,6 +212,8 @@ public:
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
 
     static bool IsSystemApp();
+
+    static bool IsNull(napi_value value);
 
 private:
     enum {
