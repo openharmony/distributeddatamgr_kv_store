@@ -83,7 +83,7 @@ public:
         return true;
     }
 
-    virtual int GetSecurityOption(SecurityOption &option) const
+    int GetSecurityOption(SecurityOption &option) const override
     {
         return -E_NOT_SUPPORT;
     }
