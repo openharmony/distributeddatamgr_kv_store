@@ -726,7 +726,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
         return -E_BUSY;
     }
     SecurityOption localOption;
-    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    int errCode = storage->GetSecurityOption(localOption);
     storage->DecRefCount();
     storage = nullptr;
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
@@ -965,7 +965,7 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
     std::string device;
     communicator->GetLocalIdentity(device);
     SecurityOption localOption;
-    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    int errCode = storage->GetSecurityOption(localOption);
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
@@ -984,7 +984,7 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
     int32_t remoteSecLabel)
 {
     SecurityOption localOption;
-    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    int errCode = storage->GetSecurityOption(localOption);
     if (errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }
