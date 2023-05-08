@@ -738,6 +738,8 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     }
     SecurityOption localOption;
     int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    storage->DecRefCount();
+    storage = nullptr;
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
