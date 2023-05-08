@@ -156,6 +156,16 @@ int RemoteExecutorRequestPacket::DeSerialization(Parcel &parcel)
     return E_OK;
 }
 
+void RemoteExecutorRequestPacket::SetSecLabel(int32_t secLabel)
+{
+    secLabel_ = secLabel;
+}
+
+int32_t RemoteExecutorRequestPacket::GetSecLabel() const
+{
+    return secLabel_;
+}
+
 RemoteExecutorRequestPacket* RemoteExecutorRequestPacket::Create()
 {
     return new (std::nothrow) RemoteExecutorRequestPacket();

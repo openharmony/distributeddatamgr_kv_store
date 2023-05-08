@@ -100,6 +100,10 @@ int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
 
 int SingleVerDataSync::InnerSyncStart(SingleVerSyncTaskContext *context)
 {
+    int errCode = CheckPermitSendData(mode_, context);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     while (true) {
         if (windowSize_ <= 0 || isAllDataHasSent_) {
             LOGD("[DataSync] InnerDataSync winSize=%d,isAllSent=%d,label=%s,device=%s", windowSize_, isAllDataHasSent_,
@@ -111,7 +115,6 @@ int SingleVerDataSync::InnerSyncStart(SingleVerSyncTaskContext *context)
             LOGE("[DataSync] unexpected error");
             return -E_INVALID_ARGS;
         }
-        int errCode;
         context->IncSequenceId();
         if (mode == SyncModeType::PUSH || mode == SyncModeType::PUSH_AND_PULL) {
             errCode = PushStart(context);
