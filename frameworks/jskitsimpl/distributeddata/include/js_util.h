@@ -47,6 +47,7 @@ public:
     using StoreId = OHOS::DistributedKv::StoreId;
     using Status = OHOS::DistributedKv::Status;
     using DataQuery = OHOS::DistributedKv::DataQuery;
+    using UserInfo = OHOS::DistributedKv::UserInfo;
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
@@ -122,6 +123,9 @@ public:
     static napi_status GetValue(napi_env env, napi_value in, Options& out);
     static napi_status SetValue(napi_env env, const Options& in, napi_value& out);
 
+    /* napi_value <-> UserInfo */
+    static napi_status GetValue(napi_env env, napi_value in, UserInfo& out);
+
     /* napi_value <-> Entry */
     static napi_status GetValue(napi_env env, napi_value in, Entry& out, bool hasSchema);
     static napi_status SetValue(napi_env env, const Entry& in, napi_value& out, bool hasSchema);
@@ -153,18 +157,26 @@ public:
     static napi_status GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
-    static inline napi_status GetNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
+    static inline napi_status GetNamedProperty(
+        napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
         bool hasProp = false;
         napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if ((status == napi_ok) && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, in, prop.c_str(), &inner);
-            if ((status == napi_ok) && (inner != nullptr)) {
-                return GetValue(env, inner, value);
-            }
+        if (status != napi_ok) {
+            return napi_generic_failure;
         }
-        return napi_invalid_arg;
+        if (!hasProp) {
+            return optional ? napi_ok : napi_generic_failure;
+        }
+        napi_value inner = nullptr;
+        status = napi_get_named_property(env, in, prop.c_str(), &inner);
+        if (status != napi_ok || inner == nullptr) {
+            return napi_generic_failure;
+        }
+        if (optional && JSUtil::IsNull(env, inner)) {
+            return napi_ok;
+        }
+        return GetValue(env, inner, value);
     };
 
     /* napi_define_class  wrapper */
@@ -178,6 +190,8 @@ public:
     static napi_status Unwrap(napi_env env, napi_value in, void** out, napi_value constructor);
 
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
+
+    static bool IsNull(napi_env env, napi_value value);
 
 private:
     enum {

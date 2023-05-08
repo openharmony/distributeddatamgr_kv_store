@@ -177,21 +177,26 @@ public:
     static StatusMsg GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
-    static inline napi_status GetNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
+    static inline napi_status GetNamedProperty(
+        napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
         bool hasProp = false;
         napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if (!hasProp) {
+        if (status != napi_ok) {
             return napi_generic_failure;
         }
-        if ((status == napi_ok) && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, in, prop.c_str(), &inner);
-            if ((status == napi_ok) && (inner != nullptr)) {
-                return GetValue(env, inner, value);
-            }
+        if (!hasProp) {
+            return optional ? napi_ok : napi_generic_failure;
         }
-        return napi_invalid_arg;
+        napi_value inner = nullptr;
+        status = napi_get_named_property(env, in, prop.c_str(), &inner);
+        if (status != napi_ok || inner == nullptr) {
+            return napi_generic_failure;
+        }
+        if (optional && JSUtil::IsNull(env, inner)) {
+            return napi_ok;
+        }
+        return GetValue(env, inner, value);
     };
 
     /* napi_define_class  wrapper */
@@ -207,6 +212,8 @@ public:
     static bool Equals(napi_env env, napi_value value, napi_ref copy);
 
     static bool IsSystemApp();
+
+    static bool IsNull(napi_env env, napi_value value);
 
 private:
     enum {

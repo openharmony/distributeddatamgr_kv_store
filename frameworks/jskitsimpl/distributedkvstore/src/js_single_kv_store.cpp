@@ -1153,13 +1153,24 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
             ctxt->status = JSUtil::Unwrap(env,
                 argv[1], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
             ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameters mode is incorrect.");
+                "The parameters query is incorrect.");
             ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->mode);
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+                "The parameters mode is incorrect.");
+            if (argc == 4) {
+                ctxt->status = JSUtil::GetValue(env, argv[3], ctxt->allowedDelayMs);
+                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[3])),
+                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+            }
         }
         if (ctxt->type == napi_number) {
             ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->mode);
+            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
+                "The parameters mode is incorrect.");
             if (argc == 3) {
                 ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
+                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[2])),
+                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
             }
         }
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok),

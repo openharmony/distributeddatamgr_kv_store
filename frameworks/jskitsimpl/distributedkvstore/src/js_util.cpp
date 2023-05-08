@@ -977,18 +977,26 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
     JSUtil::StatusMsg statusMsg = napi_invalid_arg;
-    GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
-    GetNamedProperty(env, in, "encrypt", options.encrypt);
-    GetNamedProperty(env, in, "backup", options.backup);
-    GetNamedProperty(env, in, "autoSync", options.autoSync);
+    statusMsg = GetNamedProperty(env, in, "createIfMissing", options.createIfMissing, true);
+    ASSERT(statusMsg.status == napi_ok, "get createIfMissing param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "encrypt", options.encrypt, true);
+    ASSERT(statusMsg.status == napi_ok, "get encrypt param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "backup", options.backup, true);
+    ASSERT(statusMsg.status == napi_ok, "get backup param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
+    ASSERT(statusMsg.status == napi_ok, "get autoSync param failed", statusMsg);
 
     int32_t kvStoreType = 0;
-    GetNamedProperty(env, in, "kvStoreType", kvStoreType);
+    statusMsg = GetNamedProperty(env, in, "kvStoreType", kvStoreType, true);
+    ASSERT(statusMsg.status == napi_ok, "get kvStoreType param failed", statusMsg);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    statusMsg = GetNamedProperty(env, in, "schema", jsSchema);
-    if (statusMsg.status == napi_ok) {
+    std::string strSchema;
+    statusMsg = GetNamedProperty(env, in, "schema", jsSchema, true);
+    ASSERT((statusMsg.status == napi_ok || GetNamedProperty(env, in, "schema", strSchema, true) == napi_ok),
+        "get schema param failed", napi_invalid_arg);
+    if (statusMsg.status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
 
@@ -1217,4 +1225,13 @@ bool JSUtil::IsSystemApi(JSUtil::JsApiType jsApiType)
     return jsApiType == DATASHARE;
 }
 
+bool JSUtil::IsNull(napi_env env, napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
+}
 } // namespace OHOS::DistributedKVStore
