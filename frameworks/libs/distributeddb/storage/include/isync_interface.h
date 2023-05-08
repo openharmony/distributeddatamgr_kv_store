@@ -67,6 +67,8 @@ public:
     virtual int GetAllMetaKeys(std::vector<Key> &keys) const = 0;
 
     virtual const DBProperties &GetDbProperties() const = 0;
+
+    virtual int GetSecurityOption(SecurityOption &option) const = 0;
 };
 } // namespace DistributedDB
 
