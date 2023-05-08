@@ -95,6 +95,7 @@ uint32_t RemoteExecutorRequestPacket::CalculateLen() const
         }
     }
     len = Parcel::GetEightByteAlign(len); // 8-byte align
+    len += Parcel::GetIntLen();
     return len;
 }
 
@@ -120,6 +121,7 @@ int RemoteExecutorRequestPacket::Serialization(Parcel &parcel) const
         parcel.WriteString(entry.second);
     }
     parcel.EightByteAlign();
+    parcel.WriteInt(secLabel_);
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
@@ -155,6 +157,9 @@ int RemoteExecutorRequestPacket::DeSerialization(Parcel &parcel)
         extraConditions_[conditionKey] = conditionVal;
     }
     parcel.EightByteAlign();
+    if (version_ >= REQUEST_PACKET_VERSION_V3) {
+        parcel.ReadInt(secLabel_);
+    }
     if (parcel.IsError()) {
         return -E_PARSE_FAIL;
     }
@@ -174,6 +179,16 @@ void RemoteExecutorRequestPacket::SetSql(const std::string &sql)
 void RemoteExecutorRequestPacket::SetBindArgs(const std::vector<std::string> &bindArgs)
 {
     preparedStmt_.SetBindArgs(bindArgs);
+}
+
+void RemoteExecutorRequestPacket::SetSecLabel(int32_t secLabel)
+{
+    secLabel_ = secLabel;
+}
+
+int32_t RemoteExecutorRequestPacket::GetSecLabel() const
+{
+    return secLabel_;
 }
 
 RemoteExecutorRequestPacket* RemoteExecutorRequestPacket::Create()

@@ -202,7 +202,7 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
         LOGW("[RemoteExecutor][ParseOneRequestMessage] closed");
         return;
     }
-    int errCode = CheckPermissions(device);
+    int errCode = CheckPermissions(device, inMsg);
     if (errCode != E_OK) {
         (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
         return;
@@ -213,7 +213,7 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
     }
 }
 
-int RemoteExecutor::CheckPermissions(const std::string &device)
+int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
 {
     SyncGenericInterface *storage = static_cast<SyncGenericInterface *>(GetAndIncSyncInterface());
     if (storage == nullptr) {
@@ -229,7 +229,16 @@ int RemoteExecutor::CheckPermissions(const std::string &device)
         { userId, appId, storeId, device, instanceId }, CHECK_FLAG_SEND);
     if (errCode != E_OK) {
         LOGE("[RemoteExecutor][CheckPermissions] check permission errCode = %d.", errCode);
+        storage->DecRefCount();
+        return errCode;
     }
+    const auto *requestPacket = inMsg->GetObject<RemoteExecutorRequestPacket>();
+    if (requestPacket == nullptr) {
+        LOGE("[RemoteExecutor] get packet object failed");
+        storage->DecRefCount();
+        return -E_INVALID_ARGS;
+    }
+    errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel());
     storage->DecRefCount();
     return errCode;
 }
@@ -712,6 +721,15 @@ void RemoteExecutor::ClearInnerSource()
 
 int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint32_t sessionId, std::string &target)
 {
+    ISyncInterface *storage = GetAndIncSyncInterface();
+    if (storage == nullptr) {
+        return -E_BUSY;
+    }
+    SecurityOption localOption;
+    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     Task task;
     {
         std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -726,6 +744,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     packet->SetSql(task.condition.sql);
     packet->SetBindArgs(task.condition.bindArgs);
     packet->SetNeedResponse();
+    packet->SetSecLabel(errCode == E_NOT_SUPPORT ? NOT_SURPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
     target = task.target;
     return E_OK;
 }
@@ -957,5 +976,25 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
         errCode = E_OK;
     }
     return errCode;
+}
+
+int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage,
+    int32_t remoteSecLabel)
+{
+    SecurityOption localOption;
+    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    if (errCode == -E_NOT_SUPPORT) {
+        return E_OK;
+    }
+    if (errCode != E_OK) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (remoteSecLabel == UNKNOWN_SECURITY_LABEL || remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
+        return E_OK;
+    }
+    if (RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(device, localOption)) {
+        return E_OK;
+    }
+    return -E_SECURITY_OPTION_CHECK_ERROR;
 }
 }
