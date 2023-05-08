@@ -1166,18 +1166,18 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
 
 napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::UserInfo& userInfo)
 {
-  napi_status status = napi_ok;
-  status = GetNamedProperty(env, in, "userId", userInfo.userId, true);
-  return status != napi_ok ? status : GetNamedProperty(env, in, "userType", userInfo.userType, true);
+    napi_status status = napi_ok;
+    status = GetNamedProperty(env, in, "userId", userInfo.userId, true);
+    return status != napi_ok ? status : GetNamedProperty(env, in, "userType", userInfo.userType, true);
 }
 
 bool JSUtil::IsNull(napi_env env, napi_value value)
 {
-  napi_valuetype type = napi_undefined;
-  napi_status status = napi_typeof(env, value, &type);
-  if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
-    return true;
-  }
-  return false;
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
 }
 } // namespace OHOS::DistributedData
