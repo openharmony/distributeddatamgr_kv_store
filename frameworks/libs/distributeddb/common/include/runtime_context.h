@@ -24,6 +24,7 @@
 #include "auto_launch_export.h"
 #include "icommunicator_aggregator.h"
 #include "iprocess_system_api_adapter.h"
+#include "ithread_pool.h"
 #include "kv_store_observer.h"
 #include "kvdb_properties.h"
 #include "macro_utils.h"
@@ -148,6 +149,10 @@ public:
         const StoreInfo &info, std::string &newDeviceId) = 0;
 
     virtual bool ExistTranslateDevIdCallback() const = 0;
+
+    virtual void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool) = 0;
+
+    virtual std::shared_ptr<IThreadPool> GetThreadPool() const = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

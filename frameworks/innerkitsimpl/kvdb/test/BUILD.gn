@@ -79,6 +79,7 @@ ohos_source_set("kvdb_src_file") {
     "../src/store_util.cpp",
     "../src/system_api.cpp",
     "../src/task_executor.cpp",
+    "../src/task_executor_adapter.cpp",
   ]
 
   sources = old_sources + kvdb_sources

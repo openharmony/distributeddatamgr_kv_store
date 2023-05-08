@@ -82,7 +82,7 @@ int CommunicatorAggregator::Initialize(IAdapter *inAdapter)
     GenerateLocalSourceId();
 
     shutdown_ = false;
-    exclusiveThread_ = std::thread(&CommunicatorAggregator::SendDataRoutine, this);
+    InitSendThread();
     return E_OK;
 ROLL_BACK:
     UnRegCallbackFromAdapter();
@@ -105,8 +105,17 @@ void CommunicatorAggregator::Finalize()
         wakingSignal_ = true;
         wakingCv_.notify_one();
     }
-    exclusiveThread_.join(); // Waiting thread to thoroughly quit
-    LOGI("[CommAggr][Final] Sub Thread Exit.");
+    if (useExclusiveThread_) {
+        exclusiveThread_.join(); // Waiting thread to thoroughly quit
+        LOGI("[CommAggr][Final] Sub Thread Exit.");
+    } else {
+        LOGI("[CommAggr][Final] Begin wait send task exit.");
+        std::unique_lock<std::mutex> scheduleSendTaskLock(scheduleSendTaskMutex_);
+        finalizeCv_.wait(scheduleSendTaskLock, [this]() {
+            return !sendTaskStart_;
+        });
+        LOGI("[CommAggr][Final] End wait send task exit.");
+    }
     scheduler_.Finalize(); // scheduler_ must finalize here to make space for linker to dump residual frame
 
     adapterHandle_->StopAdapter();
@@ -313,10 +322,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         LOGW("[CommAggr][Create] Exit failed, thread=%s, errCode=%d", GetThreadId().c_str(), errCode);
         return errCode;
     }
-
-    std::lock_guard<std::mutex> wakingLockGuard(wakingMutex_);
-    wakingSignal_ = true;
-    wakingCv_.notify_one();
+    TriggerSendData();
     LOGI("[CommAggr][Create] Exit ok, thread=%s, frameId=%u", GetThreadId().c_str(), info.frameId);
     return E_OK;
 }
@@ -348,40 +354,7 @@ void CommunicatorAggregator::SendDataRoutine()
             wakingSignal_ = false;
             continue;
         }
-
-        SendTask taskToSend;
-        int errCode = scheduler_.ScheduleOutSendTask(taskToSend);
-        if (errCode != E_OK) {
-            continue; // Not possible to happen
-        }
-        // <vector, extendHeadSize>
-        std::vector<std::pair<std::vector<uint8_t>, uint32_t>> piecePackets;
-        errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer,
-            adapterHandle_->GetMtuSize(taskToSend.dstTarget), piecePackets);
-        if (errCode != E_OK) {
-            LOGE("[CommAggr][Routine] Split frame fail, errCode=%d.", errCode);
-            TaskFinalizer(taskToSend, errCode);
-            continue;
-        }
-        // <addr, <extendHeadSize, totalLen>>
-        std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> eachPacket;
-        if (piecePackets.empty()) {
-            // Case that no need to split a frame, just use original buffer as a packet
-            std::pair<const uint8_t *, uint32_t> tmpEntry = taskToSend.buffer->GetReadOnlyBytesForEntireBuffer();
-            std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> entry;
-            entry.first = tmpEntry.first - taskToSend.buffer->GetExtendHeadLength();
-            entry.second.first = taskToSend.buffer->GetExtendHeadLength();
-            entry.second.second = tmpEntry.second + entry.second.first;
-            eachPacket.push_back(entry);
-        } else {
-            for (auto &entry : piecePackets) {
-                std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> tmpEntry = {&(entry.first[0]),
-                    {entry.second, entry.first.size()}};
-                eachPacket.push_back(tmpEntry);
-            }
-        }
-
-        SendPacketsAndDisposeTask(taskToSend, eachPacket);
+        SendOnceData();
     }
 }
 
@@ -565,9 +538,7 @@ void CommunicatorAggregator::OnSendable(const std::string &target)
         LOGE("[CommAggr][Sendable] NoDelay target=%s{private} fail, errCode=%d.", target.c_str(), errCode);
         return;
     }
-    std::lock_guard<std::mutex> wakingLockGuard(wakingMutex_);
-    wakingSignal_ = true;
-    wakingCv_.notify_one();
+    TriggerSendData();
 }
 
 void CommunicatorAggregator::OnFragmentReceive(const std::string &srcTarget, const uint8_t *bytes, uint32_t length,
@@ -888,6 +859,90 @@ std::shared_ptr<ExtendHeaderHandle> CommunicatorAggregator::GetExtendHeaderHandl
         return nullptr;
     }
     return adapterHandle_->GetExtendHeaderHandle(paramInfo);
+}
+
+void CommunicatorAggregator::InitSendThread()
+{
+    if (RuntimeContext::GetInstance()->GetThreadPool() != nullptr) {
+        return;
+    }
+    exclusiveThread_ = std::thread(&CommunicatorAggregator::SendDataRoutine, this);
+    useExclusiveThread_ = true;
+}
+
+void CommunicatorAggregator::SendOnceData()
+{
+    SendTask taskToSend;
+    int errCode = scheduler_.ScheduleOutSendTask(taskToSend);
+    if (errCode != E_OK) {
+        return; // Not possible to happen
+    }
+    // <vector, extendHeadSize>
+    std::vector<std::pair<std::vector<uint8_t>, uint32_t>> piecePackets;
+    errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer,
+        adapterHandle_->GetMtuSize(taskToSend.dstTarget), piecePackets);
+    if (errCode != E_OK) {
+        LOGE("[CommAggr] Split frame fail, errCode=%d.", errCode);
+        TaskFinalizer(taskToSend, errCode);
+        return;
+    }
+    // <addr, <extendHeadSize, totalLen>>
+    std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> eachPacket;
+    if (piecePackets.empty()) {
+        // Case that no need to split a frame, just use original buffer as a packet
+        std::pair<const uint8_t *, uint32_t> tmpEntry = taskToSend.buffer->GetReadOnlyBytesForEntireBuffer();
+        std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> entry;
+        entry.first = tmpEntry.first - taskToSend.buffer->GetExtendHeadLength();
+        entry.second.first = taskToSend.buffer->GetExtendHeadLength();
+        entry.second.second = tmpEntry.second + entry.second.first;
+        eachPacket.push_back(entry);
+    } else {
+        for (auto &entry : piecePackets) {
+            std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>> tmpEntry = {&(entry.first[0]),
+                {entry.second, entry.first.size()}};
+            eachPacket.push_back(tmpEntry);
+        }
+    }
+
+    SendPacketsAndDisposeTask(taskToSend, eachPacket);
+}
+
+void CommunicatorAggregator::TriggerSendData()
+{
+    if (useExclusiveThread_) {
+        std::lock_guard<std::mutex> wakingLockGuard(wakingMutex_);
+        wakingSignal_ = true;
+        wakingCv_.notify_one();
+        return;
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(scheduleSendTaskMutex_);
+        if (sendTaskStart_) {
+            return;
+        }
+        sendTaskStart_ = true;
+    }
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this]() {
+        LOGI("[CommAggr] Send thread start.");
+        while (!shutdown_ && scheduler_.GetNoDelayTaskCount() != 0) {
+            SendOnceData();
+        }
+        {
+            std::lock_guard<std::mutex> autoLock(scheduleSendTaskMutex_);
+            sendTaskStart_ = false;
+        }
+        if (!shutdown_ && scheduler_.GetNoDelayTaskCount() != 0) {
+            TriggerSendData(); // avoid sendTaskStart_ was mark false after trigger thread check it
+        }
+        finalizeCv_.notify_one();
+        RefObject::DecObjRef(this);
+        LOGI("[CommAggr] Send thread end.");
+    });
+    if (errCode != E_OK) {
+        LOGW("[CommAggr] Trigger send data failed %d", errCode);
+        RefObject::DecObjRef(this);
+    }
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)

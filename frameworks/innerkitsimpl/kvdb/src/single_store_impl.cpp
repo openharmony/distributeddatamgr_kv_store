@@ -27,8 +27,8 @@
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedDataDfx;
 using namespace std::chrono;
-SingleStoreImpl::SingleStoreImpl(std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options,
-    const Convertor &cvt)
+SingleStoreImpl::SingleStoreImpl(
+    std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
     : convertor_(cvt), dbStore_(std::move(dbStore))
 {
     appId_ = appId.appId;
@@ -58,7 +58,7 @@ SingleStoreImpl::~SingleStoreImpl()
         DevManager::GetInstance().Unregister(this);
     }
     if (taskId_ > 0) {
-        TaskExecutor::GetInstance().RemoveTask(taskId_);
+        TaskExecutor::GetInstance().Remove(taskId_);
     }
 }
 
@@ -549,8 +549,8 @@ Status SingleStoreImpl::SetCapabilityEnabled(bool enabled) const
     return service->DisableCapability({ appId_ }, { storeId_ });
 }
 
-Status SingleStoreImpl::SetCapabilityRange(const std::vector<std::string> &localLabels,
-    const std::vector<std::string> &remoteLabels) const
+Status SingleStoreImpl::SetCapabilityRange(
+    const std::vector<std::string> &localLabels, const std::vector<std::string> &remoteLabels) const
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     auto service = KVDBServiceClient::GetInstance();
@@ -831,9 +831,9 @@ void SingleStoreImpl::OnRemoteDied()
         }
         return false;
     });
-    taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+    taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
         Register();
-    }, INTERVAL);
+    });
 }
 
 void SingleStoreImpl::Register()
@@ -850,9 +850,9 @@ void SingleStoreImpl::Register()
         return false;
     });
     if (status != SUCCESS) {
-        taskId_ = TaskExecutor::GetInstance().Execute([this]() {
+        taskId_ = TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(INTERVAL), [this]() {
             Register();
-        }, INTERVAL);
+        });
     } else {
         taskId_ = 0;
     }

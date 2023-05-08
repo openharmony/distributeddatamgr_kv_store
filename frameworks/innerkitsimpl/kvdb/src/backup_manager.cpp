@@ -15,6 +15,7 @@
 #define LOG_TAG "BackupManager"
 
 #include "backup_manager.h"
+
 #include "kvdb_service_client.h"
 #include "log_print.h"
 #include "task_executor.h"
@@ -29,7 +30,7 @@ constexpr const char *BACKUP_KEY_PREFIX = "Prefix_backup_";
 constexpr const char *AUTO_BACKUP_NAME = "autoBackup";
 constexpr const char *BACKUP_TOP_PATH = "/kvdb/backup";
 constexpr const char *KEY_PATH = "/key";
-}
+} // namespace
 
 BackupManager &BackupManager::GetInstance()
 {
@@ -47,7 +48,7 @@ BackupManager::~BackupManager()
 
 void BackupManager::Init(const std::string &baseDir)
 {
-    TaskScheduler::Task task = [this, baseDir]() {
+    TaskExecutor::Task task = [this, baseDir]() {
         auto topPath = baseDir + BACKUP_TOP_PATH;
         auto keyPath = baseDir + KEY_PATH;
         auto storeIds = StoreUtil::GetSubPath(topPath);
@@ -105,8 +106,8 @@ void BackupManager::CleanTmpData(const std::string &name)
     StoreUtil::Remove(tmpName);
 }
 
-Status BackupManager::Backup(const std::string &name, const std::string &baseDir, const std::string &storeId,
-    std::shared_ptr<DBStore> dbStore)
+Status BackupManager::Backup(
+    const std::string &name, const std::string &baseDir, const std::string &storeId, std::shared_ptr<DBStore> dbStore)
 {
     if (dbStore == nullptr) {
         return ALREADY_CLOSED;
@@ -116,7 +117,7 @@ Status BackupManager::Backup(const std::string &name, const std::string &baseDir
     }
     std::string topPath = baseDir + BACKUP_TOP_PATH;
     std::string storePath = topPath + "/" + storeId;
-    std::string backupFullName = storePath + "/"+ name + BACKUP_POSTFIX;
+    std::string backupFullName = storePath + "/" + name + BACKUP_POSTFIX;
     std::string keyName = BACKUP_KEY_PREFIX + storeId + "_" + name;
     std::string keyFullName = baseDir + KEY_PATH + "/" + keyName + BACKUP_KEY_POSTFIX;
 
@@ -192,8 +193,8 @@ Status BackupManager::Restore(const std::string &name, const std::string &baseDi
     return status;
 }
 
-BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &name, const std::string &baseDir,
-    const std::string &appId, const std::string &storeId)
+BackupManager::DBPassword BackupManager::GetRestorePassword(
+    const std::string &name, const std::string &baseDir, const std::string &appId, const std::string &storeId)
 {
     auto backupName = name.substr(0, name.length() - BACKUP_POSTFIX_SIZE);
     auto keyName = BACKUP_KEY_PREFIX + storeId + "_" + backupName;
@@ -208,13 +209,13 @@ BackupManager::DBPassword BackupManager::GetRestorePassword(const std::string &n
         dbPassword.SetValue(pwd.data(), pwd.size());
         pwd.assign(pwd.size(), 0);
     } else {
-        dbPassword =  SecurityManager::GetInstance().GetDBPassword(keyName, baseDir);
+        dbPassword = SecurityManager::GetInstance().GetDBPassword(keyName, baseDir);
     }
     return dbPassword;
 }
 
-Status BackupManager::DeleteBackup(std::map<std::string, Status> &deleteList, const std::string &baseDir,
-    const std::string &storeId)
+Status BackupManager::DeleteBackup(
+    std::map<std::string, Status> &deleteList, const std::string &baseDir, const std::string &storeId)
 {
     if (deleteList.empty() || baseDir.size() == 0 || storeId.size() == 0) {
         return INVALID_ARGUMENT;
@@ -228,13 +229,13 @@ Status BackupManager::DeleteBackup(std::map<std::string, Status> &deleteList, co
             continue;
         }
         auto backupName = info.name.substr(0, info.name.length() - BACKUP_POSTFIX_SIZE);
-        if (backupName ==  AUTO_BACKUP_NAME) {
+        if (backupName == AUTO_BACKUP_NAME) {
             it->second = INVALID_ARGUMENT;
             continue;
         }
         std::string keyName = BACKUP_KEY_PREFIX + storeId + "_" + backupName;
         SecurityManager::GetInstance().DelDBPassword(keyName, baseDir);
-        it->second = (StoreUtil::Remove(path + "/" + info.name)) ?  SUCCESS : ERROR;
+        it->second = (StoreUtil::Remove(path + "/" + info.name)) ? SUCCESS : ERROR;
     }
     return SUCCESS;
 }
@@ -262,8 +263,8 @@ bool BackupManager::HaveResidueKey(const std::vector<StoreUtil::FileInfo> &files
 
 std::string BackupManager::GetBackupName(const std::string &fileName)
 {
-    int postFixLen = IsEndWith(fileName, BACKUP_TMP_POSTFIX) ?
-        BACKUP_POSTFIX_SIZE + BACKUP_TMP_POSTFIX_SIZE : BACKUP_POSTFIX_SIZE;
+    int postFixLen = IsEndWith(fileName, BACKUP_TMP_POSTFIX) ? BACKUP_POSTFIX_SIZE + BACKUP_TMP_POSTFIX_SIZE
+                                                             : BACKUP_POSTFIX_SIZE;
     return fileName.substr(0, fileName.length() - postFixLen);
 }
 
@@ -291,8 +292,8 @@ void BackupManager::SetResidueInfo(BackupManager::ResidueInfo &residueInfo,
 }
 
 std::map<std::string, BackupManager::ResidueInfo> BackupManager::BuildResidueInfo(
-    const std::vector<StoreUtil::FileInfo> &files,
-    const std::vector<StoreUtil::FileInfo> &keys, const std::string &storeId)
+    const std::vector<StoreUtil::FileInfo> &files, const std::vector<StoreUtil::FileInfo> &keys,
+    const std::string &storeId)
 {
     std::map<std::string, ResidueInfo> residueInfoList;
     for (auto &file : files) {
@@ -382,8 +383,8 @@ BackupManager::ClearType BackupManager::GetClearType(const BackupManager::Residu
     return (tmpFile >= rawFile) ? ROLLBACK : CLEAN_TMP;
 }
 
-void BackupManager::ClearResidueFile(std::map<std::string, ResidueInfo> residueInfo,
-    const std::string &baseDir, const std::string &storeId)
+void BackupManager::ClearResidueFile(
+    std::map<std::string, ResidueInfo> residueInfo, const std::string &baseDir, const std::string &storeId)
 {
     for (auto &info : residueInfo) {
         auto backupFullName = baseDir + BACKUP_TOP_PATH + "/" + storeId + "/" + info.first + BACKUP_POSTFIX;

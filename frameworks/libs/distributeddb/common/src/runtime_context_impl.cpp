@@ -59,6 +59,7 @@ RuntimeContextImpl::~RuntimeContextImpl()
     delete lockStatusObserver_;
     lockStatusObserver_ = nullptr;
     userChangeMonitor_ = nullptr;
+    SetThreadPool(nullptr);
 }
 
 // Set the label of this process.
@@ -151,9 +152,12 @@ int RuntimeContextImpl::SetTimer(int milliSeconds, const TimerAction &action,
     if ((milliSeconds < 0) || !action) {
         return -E_INVALID_ARGS;
     }
-
+    int errCode = SetTimerByThreadPool(milliSeconds, action, finalizer, true, timerId);
+    if (errCode != -E_NOT_SUPPORT) {
+        return errCode;
+    }
     IEventLoop *loop = nullptr;
-    int errCode = PrepareLoop(loop);
+    errCode = PrepareLoop(loop);
     if (errCode != E_OK) {
         LOGE("SetTimer(), prepare loop failed.");
         return errCode;
@@ -202,7 +206,10 @@ int RuntimeContextImpl::ModifyTimer(TimerId timerId, int milliSeconds)
     if (milliSeconds < 0) {
         return -E_INVALID_ARGS;
     }
-
+    int errCode = ModifyTimerByThreadPool(timerId, milliSeconds);
+    if (errCode != -E_NOT_SUPPORT) {
+        return errCode;
+    }
     std::lock_guard<std::mutex> autoLock(timersLock_);
     auto iter = timers_.find(timerId);
     if (iter == timers_.end()) {
@@ -219,6 +226,7 @@ int RuntimeContextImpl::ModifyTimer(TimerId timerId, int milliSeconds)
 // Remove the timer.
 void RuntimeContextImpl::RemoveTimer(TimerId timerId, bool wait)
 {
+    RemoveTimerByThreadPool(timerId, wait);
     IEvent *evTimer = nullptr;
     {
         std::lock_guard<std::mutex> autoLock(timersLock_);
@@ -240,6 +248,9 @@ void RuntimeContextImpl::RemoveTimer(TimerId timerId, bool wait)
 // Task interfaces.
 int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
 {
+    if (ScheduleTaskByThreadPool(task) == E_OK) {
+        return E_OK;
+    }
     std::lock_guard<std::mutex> autoLock(taskLock_);
     int errCode = PrepareTaskPool();
     if (errCode != E_OK) {
@@ -252,6 +263,9 @@ int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
 int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,
     const TaskAction &task)
 {
+    if (ScheduleTaskByThreadPool(task) == E_OK) {
+        return E_OK;
+    }
     std::lock_guard<std::mutex> autoLock(taskLock_);
     int errCode = PrepareTaskPool();
     if (errCode != E_OK) {
@@ -337,10 +351,6 @@ int RuntimeContextImpl::PrepareTaskPool()
 
 int RuntimeContextImpl::AllocTimerId(IEvent *evTimer, TimerId &timerId)
 {
-    if (evTimer == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-
     std::lock_guard<std::mutex> autoLock(timersLock_);
     TimerId startId = currentTimerId_;
     while (++currentTimerId_ != startId) {
@@ -775,5 +785,143 @@ bool RuntimeContextImpl::ExistTranslateDevIdCallback() const
 {
     std::lock_guard<std::mutex> autoLock(translateToDeviceIdLock_);
     return translateToDeviceIdCallback_ != nullptr;
+}
+
+void RuntimeContextImpl::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)
+{
+    std::unique_lock<std::shared_mutex> writeLock(threadPoolLock_);
+    threadPool_ = threadPool;
+    LOGD("[RuntimeContext] Set thread pool finished");
+}
+
+std::shared_ptr<IThreadPool> RuntimeContextImpl::GetThreadPool() const
+{
+    std::shared_lock<std::shared_mutex> readLock(threadPoolLock_);
+    return threadPool_;
+}
+
+int RuntimeContextImpl::ScheduleTaskByThreadPool(const DistributedDB::TaskAction &task) const
+{
+    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
+    if (threadPool == nullptr) {
+        return -E_NOT_SUPPORT;
+    }
+    (void)threadPool->Execute(task);
+    return E_OK;
+}
+
+int RuntimeContextImpl::SetTimerByThreadPool(int milliSeconds, const TimerAction &action,
+    const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId)
+{
+    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
+    if (threadPool == nullptr) {
+        return -E_NOT_SUPPORT;
+    }
+    int errCode = E_OK;
+    if (allocTimerId) {
+        errCode = AllocTimerId(nullptr, timerId);
+    } else {
+        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        if (taskIds_.find(timerId) == taskIds_.end()) {
+            LOGD("[RuntimeContext] Timer has been remove");
+            return -E_NO_SUCH_ENTRY;
+        }
+    }
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
+        timerFinalizers_[timerId] = finalizer;
+    }
+    Duration duration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::milliseconds(milliSeconds));
+    TaskId taskId = threadPool->Execute([milliSeconds, action, timerId, this]() {
+        ThreadPoolTimerAction(milliSeconds, action, timerId);
+    }, duration);
+    std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+    taskIds_[timerId] = taskId;
+    return E_OK;
+}
+
+int RuntimeContextImpl::ModifyTimerByThreadPool(TimerId timerId, int milliSeconds)
+{
+    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
+    if (threadPool == nullptr) {
+        return -E_NOT_SUPPORT;
+    }
+    TaskId taskId;
+    {
+        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        if (taskIds_.find(timerId) == taskIds_.end()) {
+            return -E_NO_SUCH_ENTRY;
+        }
+        taskId = taskIds_[timerId];
+    }
+    Duration duration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+        std::chrono::milliseconds(milliSeconds));
+    TaskId ret = threadPool->Reset(taskId, duration);
+    if (ret != taskId) {
+        return -E_NO_SUCH_ENTRY;
+    }
+    return E_OK;
+}
+
+void RuntimeContextImpl::RemoveTimerByThreadPool(TimerId timerId, bool wait)
+{
+    std::shared_ptr<IThreadPool> threadPool = GetThreadPool();
+    if (threadPool == nullptr) {
+        return;
+    }
+    TaskId taskId;
+    {
+        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        if (taskIds_.find(timerId) == taskIds_.end()) {
+            return;
+        }
+        taskId = taskIds_[timerId];
+        taskIds_.erase(timerId);
+    }
+    bool removeBeforeExecute = threadPool->Remove(taskId, wait);
+    TimerFinalizer timerFinalizer = nullptr;
+    if (removeBeforeExecute) {
+        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
+        timerFinalizer = timerFinalizers_[timerId];
+        timerFinalizers_.erase(timerId);
+    }
+    if (timerFinalizer) {
+        timerFinalizer();
+    }
+}
+
+void RuntimeContextImpl::ThreadPoolTimerAction(int milliSeconds, const TimerAction &action, TimerId timerId)
+{
+    TimerFinalizer timerFinalizer = nullptr;
+    {
+        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
+        if (timerFinalizers_.find(timerId) == timerFinalizers_.end()) {
+            LOGD("[RuntimeContext] Timer has been finalize");
+            return;
+        }
+        timerFinalizer = timerFinalizers_[timerId];
+        timerFinalizers_.erase(timerId);
+    }
+    if (action(timerId) == E_OK) {
+        // schedule task again
+        int errCode = SetTimerByThreadPool(milliSeconds, action, timerFinalizer, false, timerId);
+        if (errCode == E_OK) {
+            return;
+        }
+        LOGW("[RuntimeContext] create timer failed %d", errCode);
+    }
+    if (timerFinalizer) {
+        timerFinalizer();
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        taskIds_.erase(timerId);
+    }
+    std::lock_guard<std::mutex> autoLock(timersLock_);
+    timers_.erase(timerId);
 }
 } // namespace DistributedDB

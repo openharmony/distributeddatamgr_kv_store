@@ -20,6 +20,7 @@
 #include "iremote_proxy.h"
 #include "kvdb_service.h"
 #include "kvstore_sync_callback_client.h"
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 class KVDBServiceProxy : public KVDBService, public IRemoteBroker {
 public:

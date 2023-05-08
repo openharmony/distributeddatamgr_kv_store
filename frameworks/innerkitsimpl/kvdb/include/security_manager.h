@@ -18,6 +18,7 @@
 
 #include "kv_store_delegate_manager.h"
 #include "kv_store_nb_delegate.h"
+#include "task_executor.h"
 #include "types.h"
 #include "types_export.h"
 namespace OHOS::DistributedKv {

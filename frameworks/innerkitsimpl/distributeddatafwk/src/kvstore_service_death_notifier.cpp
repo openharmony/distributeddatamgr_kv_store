@@ -23,6 +23,7 @@
 #include "log_print.h"
 #include "refbase.h"
 #include "system_ability_definition.h"
+#include "task_executor.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -134,12 +135,9 @@ void KvStoreServiceDeathNotifier::ServiceDeathRecipient::OnRemoteDied(const wptr
             ZLOGI("watcher is nullptr");
             continue;
         }
-
-        std::thread th = std::thread([watcher]() {
-            pthread_setname_np(pthread_self(), "ServiceDeath");
+        TaskExecutor::GetInstance().Execute([watcher] {
             watcher->OnRemoteDied();
         });
-        th.detach();
     }
 }
 
@@ -152,5 +150,5 @@ KvStoreServiceDeathNotifier::ServiceDeathRecipient::~ServiceDeathRecipient()
 {
     ZLOGI("destructor.");
 }
-}  // namespace DistributedKv
-}  // namespace OHOS
+} // namespace DistributedKv
+} // namespace OHOS

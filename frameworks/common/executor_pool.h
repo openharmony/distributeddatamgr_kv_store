@@ -33,6 +33,7 @@ public:
     using Time = Executor::Time;
     using InnerTask = Executor::InnerTask;
     using Status = Executor::Status;
+    using TaskQueue = PriorityQueue<InnerTask, Time, TaskId>;
     static constexpr Time INVALID_TIME = std::chrono::time_point<std::chrono::steady_clock, std::chrono::seconds>();
     static constexpr Duration INVALID_INTERVAL = std::chrono::milliseconds(0);
     static constexpr uint64_t UNLIMITED_TIMES = std::numeric_limits<uint64_t>::max();
@@ -42,8 +43,14 @@ public:
     ExecutorPool(size_t max, size_t min)
     {
         pool_ = new (std::nothrow) Pool<Executor>(max, min);
-        execs_ = new PriorityQueue<InnerTask, Time, TaskId>(InnerTask());
-        delayTasks_ = new PriorityQueue<InnerTask, Time, TaskId>(InnerTask());
+        execs_ = new (std::nothrow) TaskQueue(InnerTask());
+        delayTasks_ = new (std::nothrow) TaskQueue(InnerTask(), [](InnerTask &task) -> std::pair<bool, Time> {
+            if (task.interval != INVALID_INTERVAL && --task.times > 0) {
+                auto time = std::chrono::steady_clock::now() + task.interval;
+                return { true, time };
+            }
+            return { false, INVALID_TIME };
+        });
         taskId_ = INVALID_TASK_ID;
     }
     ~ExecutorPool()
@@ -73,13 +80,10 @@ public:
         if (poolStatus != Status::RUNNING) {
             return INVALID_TASK_ID;
         }
-        auto run = [task](InnerTask innerTask) {
-            task();
-        };
-        return Execute(std::move(run), GenTaskId());
+        return Execute(std::move(task), GenTaskId());
     }
 
-    TaskId Execute(Task task, Duration delay)
+    TaskId Schedule(Duration delay, Task task)
     {
         return Schedule(std::move(task), delay, INVALID_INTERVAL, 1);
     }
@@ -97,15 +101,11 @@ public:
     TaskId Schedule(Task task, Duration delay, Duration interval, uint64_t times)
     {
         InnerTask innerTask;
-        auto run = [task](InnerTask innerTask) {
-            task();
-        };
-        innerTask.exec = std::move(run);
-        innerTask.startTime = std::chrono::steady_clock::now() + delay;
+        innerTask.exec = std::move(task);
         innerTask.interval = interval;
         innerTask.times = times;
         innerTask.taskId = GenTaskId();
-        return Schedule(std::move(innerTask));
+        return Schedule(std::move(innerTask), std::chrono::steady_clock::now() + delay);
     }
 
     bool Remove(TaskId taskId, bool wait = false)
@@ -122,25 +122,18 @@ public:
 
     TaskId Reset(TaskId taskId, Duration interval)
     {
-        return Reset(taskId, INVALID_DELAY, interval);
-    }
-
-    TaskId Reset(TaskId taskId, Duration delay, Duration interval)
-    {
-        auto innerTask = delayTasks_->Find(taskId);
-        if (!innerTask.Valid()) {
-            return INVALID_TASK_ID;
-        }
-        delayTasks_->Remove(taskId, false);
-        auto startTime = std::chrono::steady_clock::now() + delay;
-        innerTask.startTime = startTime;
-        innerTask.interval = interval;
-        delayTasks_->Push(std::move(innerTask), taskId, startTime);
-        return taskId;
+        auto updated = delayTasks_->Update(taskId, [interval](InnerTask &task) -> std::pair<bool, Time> {
+            if (task.interval != INVALID_INTERVAL) {
+                task.interval = interval;
+            }
+            auto time = std::chrono::steady_clock::now() + interval;
+            return std::pair{ true, time };
+        });
+        return updated ? taskId : INVALID_TASK_ID;
     }
 
 private:
-    TaskId Execute(std::function<void(InnerTask)> task, TaskId taskId)
+    TaskId Execute(Task task, TaskId taskId)
     {
         InnerTask innerTask;
         innerTask.exec = task;
@@ -162,19 +155,15 @@ private:
         return taskId;
     }
 
-    TaskId Schedule(InnerTask innerTask)
+    TaskId Schedule(InnerTask innerTask, Time delay)
     {
         auto func = innerTask.exec;
         auto id = innerTask.taskId;
-        auto run = [this, func, id](InnerTask task) {
-            if (task.interval != INVALID_INTERVAL && --task.times > 0) {
-                task.startTime = std::chrono::steady_clock::now() + task.interval;
-                delayTasks_->Push(task, task.taskId, task.startTime);
-            }
+        auto run = [this, func, id]() {
             Execute(func, id);
         };
         innerTask.exec = run;
-        delayTasks_->Push(innerTask, innerTask.taskId, innerTask.startTime);
+        delayTasks_->Push(std::move(innerTask), id, delay);
         std::lock_guard<decltype(mtx_)> scheduleLock(mtx_);
         if (scheduler_ == nullptr) {
             scheduler_ = pool_->Get(true);
@@ -209,8 +198,8 @@ private:
     std::mutex mtx_;
     Pool<Executor> *pool_;
     std::shared_ptr<Executor> scheduler_ = nullptr;
-    PriorityQueue<InnerTask, Time, TaskId> *execs_;
-    PriorityQueue<InnerTask, Time, TaskId> *delayTasks_;
+    TaskQueue *execs_;
+    TaskQueue *delayTasks_;
     std::atomic<TaskId> taskId_;
 };
 } // namespace OHOS

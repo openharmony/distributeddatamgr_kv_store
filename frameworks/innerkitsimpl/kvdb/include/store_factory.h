@@ -16,7 +16,6 @@
 #ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H
 #define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H
 #include <memory>
-
 #include "concurrent_map.h"
 #include "convertor.h"
 #include "kv_store_delegate_manager.h"

@@ -135,6 +135,12 @@ private:
     // Record the protocol version of remote target.
     void SetRemoteCommunicatorVersion(const std::string &target, uint16_t version);
 
+    void InitSendThread();
+
+    void SendOnceData();
+
+    void TriggerSendData();
+
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
     static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
@@ -175,6 +181,11 @@ private:
     OnConnectCallback onConnectHandle_;
     Finalizer onConnectFinalizer_;
     mutable std::mutex onConnectMutex_;
+
+    std::atomic<bool> useExclusiveThread_ = false;
+    bool sendTaskStart_ = false;
+    mutable std::mutex scheduleSendTaskMutex_;
+    std::condition_variable finalizeCv_;
 };
 } // namespace DistributedDB
 

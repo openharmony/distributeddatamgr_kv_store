@@ -136,6 +136,10 @@ public:
         const StoreInfo &info, std::string &newDeviceId) override;
 
     bool ExistTranslateDevIdCallback() const override;
+
+    void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool) override;
+
+    std::shared_ptr<IThreadPool> GetThreadPool() const override;
 private:
     static constexpr int MAX_TP_THREADS = 10;  // max threads of the task pool.
     static constexpr int MIN_TP_THREADS = 1;   // min threads of the task pool.
@@ -144,6 +148,17 @@ private:
     int PrepareLoop(IEventLoop *&loop);
     int PrepareTaskPool();
     int AllocTimerId(IEvent *evTimer, TimerId &timerId);
+
+    int ScheduleTaskByThreadPool(const TaskAction &task) const;
+
+    int SetTimerByThreadPool(int milliSeconds, const TimerAction &action,
+        const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId);
+
+    int ModifyTimerByThreadPool(TimerId timerId, int milliSeconds);
+
+    void RemoveTimerByThreadPool(TimerId timerId, bool wait);
+
+    void ThreadPoolTimerAction(int milliSeconds, const TimerAction &action, TimerId timerId);
 
     // Context fields
     mutable std::mutex labelMutex_;
@@ -202,6 +217,14 @@ private:
     mutable std::mutex translateToDeviceIdLock_;
     TranslateToDeviceIdCallback translateToDeviceIdCallback_;
     std::map<std::string, std::map<std::string, std::string>> deviceIdCache_; // cache <uuid, <appId, newDeviceId>>
+
+    mutable std::shared_mutex threadPoolLock_;
+    std::shared_ptr<IThreadPool> threadPool_;
+
+    mutable std::mutex mappingTaskIdLock_;
+    std::map<TimerId, TaskId> taskIds_;
+    mutable std::mutex timerFinalizerLock_;
+    std::map<TimerId, TimerFinalizer> timerFinalizers_;
 };
 } // namespace DistributedDB
 

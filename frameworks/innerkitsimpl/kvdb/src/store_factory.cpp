@@ -17,12 +17,15 @@
 
 #include "backup_manager.h"
 #include "device_convertor.h"
+#include "ithread_pool.h"
 #include "kvstore_service_death_notifier.h"
 #include "log_print.h"
 #include "security_manager.h"
 #include "single_store_impl.h"
 #include "store_util.h"
 #include "system_api.h"
+#include "task_executor_adapter.h"
+#include "runtime_config.h"
 namespace OHOS::DistributedKv {
 using namespace DistributedDB;
 StoreFactory &StoreFactory::GetInstance()
@@ -36,6 +39,7 @@ StoreFactory::StoreFactory()
     convertors_[DEVICE_COLLABORATION] = new DeviceConvertor();
     convertors_[SINGLE_VERSION] = new Convertor();
     convertors_[MULTI_VERSION] = new Convertor();
+    DistributedDB::RuntimeConfig::SetThreadPool(std::make_shared<TaskExecutorAdapter>());
     if (DBManager::IsProcessSystemApiAdapterValid()) {
         return;
     }

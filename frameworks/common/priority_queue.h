@@ -31,8 +31,15 @@ public:
         PQMatrix(_Tsk task, _Tid id) : task_(task), id_(id) {}
     };
     using TskIndex = typename std::map<_Tme, PQMatrix>::iterator;
+    using TskUpdater = typename std::function<std::pair<bool, _Tme>(_Tsk &element)>;
 
-    PriorityQueue(const _Tsk &task) : INVALID_TSK(std::move(task)) {}
+    PriorityQueue(const _Tsk &task, TskUpdater updater = nullptr)
+        : INVALID_TSK(std::move(task)), updater_(std::move(updater))
+    {
+        if (!updater_) {
+            updater_ = [](_Tsk &) { return std::pair{false, _Tme()};};
+        }
+    }
     _Tsk Pop()
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
@@ -43,7 +50,7 @@ public:
             }
             auto temp = tasks_.begin();
             auto id = temp->second.id_;
-            running.emplace(id);
+            running_.emplace(id, temp->second);
             auto res = std::move(temp->second.task_);
             tasks_.erase(temp);
             indexes_.erase(id);
@@ -79,11 +86,36 @@ public:
         return INVALID_TSK;
     }
 
+    bool Update(_Tid id, TskUpdater updater)
+    {
+        std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
+        auto index = indexes_.find(id);
+        if (index != indexes_.end()) {
+            auto [updated, time] = updater(index->second->second.task_);
+            if (!updated) {
+                return false;
+            }
+            auto matrix = std::move(index->second->second);
+            tasks_.erase(index->second);
+            index->second = tasks_.emplace(time, std::move(matrix));
+            popCv_.notify_all();
+            return true;
+        }
+
+        auto running = running_.find(id);
+        if (running != running_.end()) {
+            auto [updated, time] = updater((*running).second.task_);
+            return updated;
+        }
+
+        return false;
+    }
+
     bool Remove(_Tid id, bool wait)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         removeCv_.wait(lock, [this, id, wait] {
-            return !wait || running.find(id) == running.end();
+            return !wait || running_.find(id) == running_.end();
         });
         auto index = indexes_.find(id);
         if (index == indexes_.end()) {
@@ -105,7 +137,15 @@ public:
     void Finish(_Tid id)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
-        running.erase(id);
+        auto it = running_.find(id);
+        if (it == running_.end()) {
+            return;
+        }
+        auto [repeat, time] = updater_(it->second.task_);
+        if (repeat) {
+            indexes_.emplace(id, tasks_.emplace(time, std::move(it->second)));
+        }
+        running_.erase(it);
         removeCv_.notify_all();
     }
 
@@ -115,8 +155,9 @@ private:
     std::condition_variable popCv_;
     std::condition_variable removeCv_;
     std::multimap<_Tme, PQMatrix> tasks_;
-    std::set<_Tid> running;
+    std::map<_Tid, PQMatrix> running_;
     std::map<_Tid, TskIndex> indexes_;
+    TskUpdater updater_;
 };
 } // namespace OHOS
 #endif //OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_PRIORITY_QUEUE_H

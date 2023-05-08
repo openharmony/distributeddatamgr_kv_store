@@ -21,6 +21,7 @@
 
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
+#include "ithread_pool.h"
 #include "store_types.h"
 namespace DistributedDB {
 class RuntimeConfig final {
@@ -51,6 +52,8 @@ public:
     DB_API static bool IsProcessSystemApiAdapterValid();
 
     DB_API static void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback);
+
+    DB_API static void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool);
 private:
     static std::mutex communicatorMutex_;
     static std::mutex multiUserMutex_;
