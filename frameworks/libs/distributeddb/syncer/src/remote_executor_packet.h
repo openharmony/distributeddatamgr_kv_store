@@ -55,18 +55,24 @@ public:
 
     int DeSerialization(Parcel &parcel) override;
 
+    void SetSecLabel(int32_t secLabel);
+
+    int32_t GetSecLabel() const;
+
     static RemoteExecutorRequestPacket* Create();
 
     static void Release(RemoteExecutorRequestPacket *&packet);
 
     static const uint32_t REQUEST_PACKET_VERSION_V1 = SOFTWARE_VERSION_RELEASE_6_0;
     static const uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1;
-    static const uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V2;
+    static const uint32_t REQUEST_PACKET_VERSION_V3 = SOFTWARE_VERSION_RELEASE_6_0 + 2;
+    static const uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V3;
 private:
     uint32_t version_ = 0u;
     uint32_t flag_ = 0u; // 0x01 mean need reply ack
     PreparedStmt perparedStmt_;
     std::map<std::string, std::string> extraConditions_;
+    int32_t secLabel_ = UNKNOWN_SECURITY_LABEL; // source sec label
 };
 
 class RemoteExecutorAckPacket : public ISyncPacket {
