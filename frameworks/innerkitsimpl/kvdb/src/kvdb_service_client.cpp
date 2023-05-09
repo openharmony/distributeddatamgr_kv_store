@@ -295,7 +295,6 @@ Status KVDBServiceClient::GetBackupPassword(
     return static_cast<Status>(status);
 }
 
-
 sptr<KvStoreSyncCallbackClient> KVDBServiceClient::GetSyncAgent(const AppId &appId)
 {
     std::lock_guard<decltype(agentMtx_)> lockGuard(agentMtx_);

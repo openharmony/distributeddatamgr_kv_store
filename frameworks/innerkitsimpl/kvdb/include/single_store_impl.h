@@ -30,7 +30,6 @@
 
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,
-                        public DevManager::Observer,
                         public KvStoreDeathRecipient {
 public:
     using Observer = KvStoreObserver;
@@ -69,8 +68,6 @@ public:
     Status Restore(const std::string &file, const std::string &baseDir) override;
     Status DeleteBackup(const std::vector<std::string> &files, const std::string &baseDir,
         std::map<std::string, DistributedKv::Status> &status) override;
-    void Online(const std::string &device) override;
-    void Offline(const std::string &device) override;
     void OnRemoteDied() override;
 
     // normal function
@@ -108,8 +105,6 @@ private:
 
     bool autoSync_ = false;
     int32_t ref_ = 1;
-    uint32_t interval_ = 0;
-    TimePoint expiration_;
     mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;
     std::string appId_;
