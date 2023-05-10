@@ -33,26 +33,11 @@ public:
     std::string ToNetworkId(const std::string &uuid);
     const DetailInfo &GetLocalDevice();
     std::vector<DetailInfo> GetRemoteDevices();
-    class Observer {
-    public:
-        Observer() = default;
-        virtual ~Observer() {}
-        virtual void Online(const std::string &networkId) = 0;
-        virtual void Offline(const std::string &networkId) = 0;
-    };
-
-    void Register(Observer *observer);
-    void Unregister(Observer *observer);
 
 private:
-    friend class DMStateCallback;
     friend class DmDeathCallback;
     DevManager(const std::string &pkgName);
     ~DevManager() = default;
-    void Online(const std::string &networkId);
-    void Offline(const std::string &networkId);
-    void OnChanged(const std::string &networkId);
-    void OnReady(const std::string &networkId);
     void RegisterDevCallback();
     void UpdateBucket();
     DetailInfo GetDevInfoFromBucket(const std::string &id);
@@ -64,7 +49,6 @@ private:
     DetailInfo localInfo_ {};
     mutable std::mutex mutex_ {};
     mutable LRUBucket<std::string, DetailInfo> deviceInfos_ {64};
-    ConcurrentMap<Observer *, Observer *> observers_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_DEV_MANAGER_H

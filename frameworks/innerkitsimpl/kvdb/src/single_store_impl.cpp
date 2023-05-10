@@ -38,25 +38,10 @@ SingleStoreImpl::SingleStoreImpl(
     if (options.backup) {
         BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
     }
-
-    for (auto &policy : options.policies) {
-        if (policy.type != TERM_OF_SYNC_VALIDITY) {
-            continue;
-        }
-        auto exist = std::get_if<uint32_t>(&policy.value);
-        if (exist == nullptr || *exist <= 0) {
-            break;
-        }
-        interval_ = *exist;
-        DevManager::GetInstance().Register(this);
-    }
 }
 
 SingleStoreImpl::~SingleStoreImpl()
 {
-    if (interval_ > 0) {
-        DevManager::GetInstance().Unregister(this);
-    }
     if (taskId_ > 0) {
         TaskExecutor::GetInstance().Remove(taskId_);
     }
@@ -799,24 +784,6 @@ void SingleStoreImpl::DoAutoSync()
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
-    expiration_ = steady_clock::now() + seconds(interval_);
-}
-
-void SingleStoreImpl::Online(const std::string &device)
-{
-    if (!autoSync_ || steady_clock::now() >= expiration_) {
-        return;
-    }
-
-    ZLOGI("device:%{public}s online app:%{public}s store:%{public}s Sync!", StoreUtil::Anonymous(device).c_str(),
-        appId_.c_str(), storeId_.c_str());
-    SyncInfo syncInfo;
-    syncInfo.devices = { device };
-    DoSync(syncInfo, nullptr);
-}
-
-void SingleStoreImpl::Offline(const std::string &device)
-{
 }
 
 void SingleStoreImpl::OnRemoteDied()
