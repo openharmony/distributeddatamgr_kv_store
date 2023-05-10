@@ -1161,6 +1161,7 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
                 ctxt->status = JSUtil::GetValue(env, argv[3], ctxt->allowedDelayMs);
                 ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[3])),
                     Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                ctxt->status = napi_ok;
             }
         }
         if (ctxt->type == napi_number) {
@@ -1171,6 +1172,7 @@ napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
                 ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
                 ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[2])),
                     Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                ctxt->status = napi_ok;
             }
         }
         ASSERT_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok),
