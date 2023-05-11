@@ -66,13 +66,16 @@ int SingleVerDataSync::Initialize(ISyncInterface *inStorage, ICommunicator *inCo
 int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
 {
     std::lock_guard<std::mutex> lock(lock_);
+    int errCode = CheckPermitSendData(mode, context);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     if (sessionId_ != 0) { // auto sync timeout resend
         return ReSendData(context);
     }
     ResetSyncStatus(mode, context);
     LOGI("[DataSync] SendStart,mode=%d,label=%s,device=%s", mode_, label_.c_str(), STR_MASK(deviceId_));
     int tmpMode = SyncOperation::TransferSyncMode(mode);
-    int errCode = E_OK;
     if (tmpMode == SyncModeType::PUSH) {
         errCode = PushStart(context);
     } else if (tmpMode == SyncModeType::PUSH_AND_PULL) {
