@@ -141,13 +141,17 @@ int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, cons
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName,
-    const std::string &identity, bool &schemaChanged)
+    const std::string &identity, bool &schemaChanged, TableSyncType syncType)
 {
     std::lock_guard lock(schemaMutex_);
     RelationalSchemaObject schema = schema_;
     bool isUpgraded = false;
     if (schema.GetTable(tableName).GetTableName() == tableName) {
         LOGI("distributed table bas been created.");
+        if (schema.GetTable(tableName).GetTableSyncType() != syncType) {
+            LOGE("table sync type mismatch.");
+            return -E_TYPE_MISMATCH;
+        }
         isUpgraded = true;
         int errCode = UpgradeDistributedTable(tableName, schemaChanged);
         if (errCode != E_OK) {
@@ -162,11 +166,11 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         schemaChanged = true;
     }
 
-    return CreateDistributedTable(tableName, isUpgraded, identity, schema);
+    return CreateDistributedTable(tableName, isUpgraded, identity, schema, syncType);
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName, bool isUpgraded,
-    const std::string &identity, RelationalSchemaObject &schema)
+    const std::string &identity, RelationalSchemaObject &schema, TableSyncType tableSyncType)
 {
     LOGD("Create distributed table.");
     int errCode = E_OK;
@@ -185,7 +189,9 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
     TableInfo table;
-    errCode = handle->CreateDistributedTable(tableName, mode, isUpgraded, identity, table);
+    table.SetTableName(tableName);
+    table.SetTableSyncType(tableSyncType);
+    errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         (void)handle->Rollback();

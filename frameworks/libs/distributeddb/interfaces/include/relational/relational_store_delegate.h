@@ -19,6 +19,7 @@
 #include <map>
 #include <memory>
 #include "distributeddb/result_set.h"
+#include "cloud/cloud_store_types.h"
 #include "query.h"
 #include "store_types.h"
 #include "store_observer.h"
@@ -38,7 +39,8 @@ public:
         uint32_t iterateTimes = 0;
     };
 
-    DB_API virtual DBStatus CreateDistributedTable(const std::string &tableName) = 0;
+    DB_API virtual DBStatus CreateDistributedTable(const std::string &tableName,
+        TableSyncType = DEVICE_COOPERATION) = 0;
 
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) = 0;

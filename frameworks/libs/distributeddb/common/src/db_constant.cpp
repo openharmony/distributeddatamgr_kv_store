@@ -71,7 +71,7 @@ const std::string DBConstant::TIMESTAMP_ALIAS = "naturalbase_rdb_aux_timestamp";
 
 const std::string DBConstant::LOG_TABLE_VERSION_1 = "1.0";
 const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
-const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = "2.0";
+const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = "3.0";
 
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";
 

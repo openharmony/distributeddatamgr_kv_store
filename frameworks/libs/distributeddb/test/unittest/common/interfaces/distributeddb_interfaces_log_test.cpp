@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cloud_store_types.h"
 #include "log_table_manager_factory.h"
 #include "native_sqlite.h"
 #include "split_device_log_table_manager.h"
@@ -58,7 +59,8 @@ void DistributedDBInterfacesLogTest::TearDown()
 HWTEST_F(DistributedDBInterfacesLogTest, DBFactoryTest001, TestSize.Level1)
 {
     DistributedTableMode mode = DistributedTableMode::COLLABORATION;
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode);
+    TableSyncType tableSyncType = TableSyncType::DEVICE_COOPERATION;
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, tableSyncType);
     EXPECT_TRUE(tableManager != nullptr);
 }
 

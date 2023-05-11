@@ -108,17 +108,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "INSERT INTO " + logTable +
         " SELECT rowid, '', '', " + timeOffsetStr + " + rowid, " + timeOffsetStr + " + rowid, 0x2, " +
-        calPrimaryKeyHash + " FROM '" + tableName + "' AS a WHERE 1=1;";
+        calPrimaryKeyHash + ", ''" + " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::string &tableName,
-    DistributedTableMode mode, bool isUpgraded, const std::string &identity, TableInfo &table)
+int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
+    const std::string &identity, TableInfo &table, TableSyncType syncType)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
     }
 
+    const std::string tableName = table.GetTableName();
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] analysis table schema failed. %d", errCode);
@@ -134,14 +135,16 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
         }
     }
 
-    errCode = CheckTableConstraint(table, mode);
-    if (errCode != E_OK) {
-        LOGE("[CreateDistributedTable] check table constraint failed.");
-        return errCode;
+    if (syncType != CLOUD_COOPERATION) {
+        errCode = CheckTableConstraint(table, mode);
+        if (errCode != E_OK) {
+            LOGE("[CreateDistributedTable] check table constraint failed.");
+            return errCode;
+        }
     }
 
     // create log table
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode);
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
     errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] create log table failed");

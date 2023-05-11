@@ -122,6 +122,16 @@ public:
         return (curTime * TO_100_NS) + currentIncCount_; // Currently Timestamp is uint64_t
     }
 
+    static int GetSysCurrentRawTime(uint64_t &curTime)
+    {
+        int errCode = GetCurrentSysTimeInMicrosecond(curTime);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        curTime *= TO_100_NS;
+        return E_OK;
+    }
+
     // Init the TimeHelper
     static void Initialize(Timestamp maxTimestamp)
     {
@@ -249,9 +259,24 @@ void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetTime(timeOffset));
 }
 
+void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 0 || argv == nullptr) { // 0: function need zero parameter
+        return;
+    }
+
+    uint64_t curTime = 0;
+    int errCode = TimeHelper::GetSysCurrentRawTime(curTime);
+    if (errCode != E_OK) {
+        sqlite3_result_error(ctx, "get raw sys time failed.", errCode);
+        return;
+    }
+    sqlite3_result_int64(ctx, (sqlite3_int64)(curTime));
+}
+
 void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 0 || argv == nullptr) { // 0: function need one parameter
+    if (ctx == nullptr || argc != 0 || argv == nullptr) { // 0: function need zero parameter
         return;
     }
 
@@ -263,6 +288,13 @@ int RegisterGetSysTime(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &GetSysTime;
     return RegisterFunction(db, "get_sys_time", 1, nullptr, func);
+}
+
+int RegisterGetRawSysTime(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &GetRawSysTime;
+    return RegisterFunction(db, "get_raw_sys_time", 0, nullptr, func);
 }
 
 int RegisterGetLastTime(sqlite3 *db)
@@ -413,6 +445,7 @@ void PostHandle(sqlite3 *db)
     RegisterCalcHash(db);
     RegisterGetSysTime(db);
     RegisterGetLastTime(db);
+    RegisterGetRawSysTime(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";

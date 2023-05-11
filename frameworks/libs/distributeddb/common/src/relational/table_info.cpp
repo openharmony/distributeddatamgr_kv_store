@@ -206,6 +206,16 @@ bool TableInfo::GetAutoIncrement() const
     return autoInc_;
 }
 
+void TableInfo::SetTableSyncType(TableSyncType tableSyncType)
+{
+    tableSyncType_ = tableSyncType;
+}
+
+TableSyncType TableInfo::GetTableSyncType() const
+{
+    return tableSyncType_;
+}
+
 const std::string &TableInfo::GetCreateTableSql() const
 {
     return sql_;
@@ -634,6 +644,7 @@ std::string TableInfo::ToTableInfoString(const std::string &schemaVersion) const
             attrStr += R"("PRIMARY_KEY": [)" + primaryKey + "]";
         }
     }
+    attrStr += R"(,"TABLE_SYNC_TYPE": )" + std::to_string(static_cast<int>(tableSyncType_));
     AddIndexDefineString(attrStr);
     attrStr += "}";
     return attrStr;
