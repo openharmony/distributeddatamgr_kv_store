@@ -49,10 +49,6 @@ public:
                 popCv_.wait_until(lock, waitTme);
                 continue;
             }
-            if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
-                popCv_.wait_until(lock, tasks_.begin()->first);
-                continue;
-            }
             auto temp = tasks_.begin();
             auto id = temp->second.id_;
             running_.emplace(id, temp->second);
