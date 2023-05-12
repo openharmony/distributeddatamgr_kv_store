@@ -44,8 +44,9 @@ public:
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         while (!tasks_.empty()) {
-            if (tasks_.begin()->first > std::chrono::steady_clock::now()) {
-                popCv_.wait_until(lock, tasks_.begin()->first);
+            auto waitTme = tasks_.begin()->first;
+            if (waitTme > std::chrono::steady_clock::now()) {
+                popCv_.wait_until(lock, waitTme);
                 continue;
             }
             auto temp = tasks_.begin();
@@ -132,6 +133,7 @@ public:
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         indexes_.clear();
         tasks_.clear();
+        popCv_.notify_all();
     }
 
     void Finish(_Tid id)
