@@ -43,10 +43,15 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData(const std::string &device
     return RemoveDeviceData(device, {});
 }
 
-DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &tableName)
+DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &tableName, TableSyncType type)
 {
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
         LOGE("invalid table name.");
+        return INVALID_ARGS;
+    }
+
+    if (!(type == DEVICE_COOPERATION || type == CLOUD_COOPERATION)) {
+        LOGE("invalid table sync type.");
         return INVALID_ARGS;
     }
 
@@ -55,7 +60,7 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &
         return DB_ERROR;
     }
 
-    int errCode = conn_->CreateDistributedTable(tableName);
+    int errCode = conn_->CreateDistributedTable(tableName, type);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] Create Distributed table failed:%d", errCode);
         return TransferDBErrno(errCode);

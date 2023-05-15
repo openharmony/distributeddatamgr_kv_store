@@ -14,16 +14,21 @@
  */
 
 #include "log_table_manager_factory.h"
-
+#include "cloud_sync_log_table_manager.h"
 #include "collaboration_log_table_manager.h"
 #include "split_device_log_table_manager.h"
 
 namespace DistributedDB {
-std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(DistributedTableMode mode)
+std::unique_ptr<SqliteLogTableManager> LogTableManagerFactory::GetTableManager(DistributedTableMode mode,
+    TableSyncType syncType)
 {
-    if (mode == DistributedTableMode::COLLABORATION) {
-        return std::make_unique<CollaborationLogTableManager>();
+    if (syncType == CLOUD_COOPERATION) {
+        return std::make_unique<CloudSyncLogTableManager>();
+    } else {
+        if (mode == DistributedTableMode::COLLABORATION) {
+            return std::make_unique<CollaborationLogTableManager>();
+        }
+        return std::make_unique<SplitDeviceLogTableManager>();
     }
-    return std::make_unique<SplitDeviceLogTableManager>();
 }
 }

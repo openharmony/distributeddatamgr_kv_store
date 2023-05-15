@@ -19,6 +19,7 @@
 #include <string>
 #include <vector>
 
+#include "cloud/cloud_store_types.h"
 #include "db_types.h"
 #include "schema_constant.h"
 #include "data_value.h"
@@ -68,6 +69,7 @@ class TableInfo {
 public:
     const std::string &GetTableName() const;
     bool GetAutoIncrement() const;
+    TableSyncType GetTableSyncType() const;
     const std::string &GetCreateTableSql() const;
     const FieldInfoMap &GetFields() const; // <colName, colAttr>
     const IndexInfoMap &GetIndexDefine() const;
@@ -76,6 +78,7 @@ public:
 
     void SetTableName(const std::string &tableName);
     void SetAutoIncrement(bool autoInc);
+    void SetTableSyncType(TableSyncType tableSyncType);
     void SetCreateTableSql(const std::string &sql); // set 'autoInc_' flag when set sql
     void AddField(const FieldInfo &field);
     void AddIndexDefine(const std::string &indexName, const CompositeFields &indexDefine);
@@ -120,6 +123,7 @@ private:
 
     std::string tableName_;
     bool autoInc_ = false; // only 'INTEGER PRIMARY KEY' could be defined as 'AUTOINCREMENT'
+    TableSyncType tableSyncType_ = DEVICE_COOPERATION;
     std::string sql_;
     FieldInfoMap fields_;
     std::map<int, FieldName> primaryKey_;

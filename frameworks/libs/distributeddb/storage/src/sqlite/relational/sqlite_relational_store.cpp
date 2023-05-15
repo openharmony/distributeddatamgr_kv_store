@@ -94,7 +94,7 @@ void SQLiteRelationalStore::ReleaseResources()
 int SQLiteRelationalStore::CheckDBMode()
 {
     int errCode = E_OK;
-    auto *handle = GetHandle(false, errCode);
+    auto *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
         return errCode;
     }
@@ -404,7 +404,7 @@ void SQLiteRelationalStore::WakeUpSyncer()
     syncAbleEngine_->WakeUpSyncer();
 }
 
-int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName)
+int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType)
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
@@ -420,7 +420,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName)
 
     bool schemaChanged = false;
     int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
-        schemaChanged);
+        schemaChanged, syncType);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
     }

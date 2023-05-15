@@ -34,7 +34,7 @@ public:
 
     DBStatus RemoveDeviceData(const std::string &device) override;
 
-    DBStatus CreateDistributedTable(const std::string &tableName) override;
+    DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType = DEVICE_COOPERATION) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
 

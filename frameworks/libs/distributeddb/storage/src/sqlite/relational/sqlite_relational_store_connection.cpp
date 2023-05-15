@@ -141,7 +141,7 @@ int SQLiteRelationalStoreConnection::RollBack()
     return errCode;
 }
 
-int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &tableName)
+int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &tableName, TableSyncType syncType)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -149,7 +149,7 @@ int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &t
         return -E_INVALID_CONNECTION;
     }
 
-    int errCode = store->CreateDistributedTable(tableName);
+    int errCode = store->CreateDistributedTable(tableName, syncType);
     if (errCode != E_OK) {
         LOGE("[RelationalConnection] create distributed table failed. %d", errCode);
     }

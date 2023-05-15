@@ -82,6 +82,33 @@ namespace {
 
     void FakeOldVersionDB(sqlite3 *db)
     {
+        std::string dropLogTable = "drop table naturalbase_rdb_aux_student_1_log;";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, dropLogTable), SQLITE_OK);
+        dropLogTable = "drop table naturalbase_rdb_aux_sync_data_log;";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, dropLogTable), SQLITE_OK);
+
+        std::string createLogTable = "CREATE TABLE naturalbase_rdb_aux_student_1_log(" \
+            "data_key    INT NOT NULL," \
+            "device      BLOB," \
+            "ori_device  BLOB," \
+            "timestamp   INT  NOT NULL," \
+            "wtimestamp  INT  NOT NULL," \
+            "flag        INT  NOT NULL," \
+            "hash_key    BLOB NOT NULL," \
+            "PRIMARY KEY(hash_key));";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, createLogTable), SQLITE_OK);
+
+        createLogTable = "CREATE TABLE naturalbase_rdb_aux_sync_data_log(" \
+            "data_key    INT NOT NULL," \
+            "device      BLOB," \
+            "ori_device  BLOB," \
+            "timestamp   INT  NOT NULL," \
+            "wtimestamp  INT  NOT NULL," \
+            "flag        INT  NOT NULL," \
+            "hash_key    BLOB NOT NULL," \
+            "PRIMARY KEY(hash_key));";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, createLogTable), SQLITE_OK);
+
         std::string dropTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_student_1_ON_UPDATE;";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, dropTrigger), SQLITE_OK);
 
@@ -525,7 +552,7 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpgradeTriggerTest001, TestS
         " flag=0x03 WHERE hash_key=calc_hash(OLD.'id') AND flag&0x02=0x02;\n"
         "\t INSERT OR REPLACE INTO naturalbase_rdb_aux_student_1_log VALUES (NEW.rowid, '', '', get_sys_time(0), "
         "get_last_time(), CASE WHEN (calc_hash(NEW.'id') != calc_hash(NEW.'id')) " \
-        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id'));\n"
+        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id'), '');\n"
         "END";
     EXPECT_TRUE(resultTrigger == expectTrigger);
 }

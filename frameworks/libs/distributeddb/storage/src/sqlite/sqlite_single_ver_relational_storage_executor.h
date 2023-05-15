@@ -36,8 +36,8 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerRelationalStorageExecutor);
 
     // The parameter "identity" is a hash string that identifies a device
-    int CreateDistributedTable(const std::string &tableName, DistributedTableMode mode, bool isUpgraded,
-        const std::string &identity, TableInfo &table);
+    int CreateDistributedTable(DistributedTableMode mode, bool isUpgraded, const std::string &identity,
+        TableInfo &table, TableSyncType syncType);
 
     int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
         RelationalSchemaObject &schema);
