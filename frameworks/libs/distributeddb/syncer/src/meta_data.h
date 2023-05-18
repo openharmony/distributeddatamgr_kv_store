@@ -114,7 +114,7 @@ public:
 
     int SaveClientId(const std::string &deviceId, const std::string &clientId);
 
-    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const;
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
