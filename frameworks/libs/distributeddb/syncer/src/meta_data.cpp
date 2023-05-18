@@ -596,7 +596,7 @@ int Metadata::SaveClientId(const std::string &deviceId, const std::string &clien
     return E_OK;
 }
 
-int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const
 {
     // don't use cache here avoid invalid cache
     std::string keyStr;
