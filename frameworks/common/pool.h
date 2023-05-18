@@ -36,8 +36,6 @@ public:
         }
         Node *cur = idle_;
         idle_ = idle_->next;
-        if (idle_ == nullptr) {
-        }
         if (idle_ != nullptr) {
             idle_->prev = nullptr;
         }
@@ -106,7 +104,7 @@ public:
         idle_ = cur;
     }
 
-    int32_t Clean(std::function<void(std::shared_ptr<T>)> close)
+    int32_t Clean(std::function<void(std::shared_ptr<T>)> close) noexcept
     {
         auto temp = min_;
         min_ = 0;
