@@ -28,8 +28,6 @@ namespace OHOS {
 namespace DistributedKv {
 class KvStoreServiceDeathNotifier final {
 public:
-    KvStoreServiceDeathNotifier() = delete;
-    ~KvStoreServiceDeathNotifier() = delete;
     // get DistributedKvDataService proxy object.
     static sptr<IKvStoreDataService> GetDistributedKvDataService();
     // temporarily used, should get in service side from binder.
@@ -41,6 +39,8 @@ public:
     static void RemoveServiceDeathWatcher(std::shared_ptr<KvStoreDeathRecipient> watcher);
 
 private:
+    KvStoreServiceDeathNotifier() = default;
+    ~KvStoreServiceDeathNotifier() = default;
     class ServiceDeathRecipient : public IRemoteObject::DeathRecipient {
     public:
         ServiceDeathRecipient();
@@ -49,18 +49,22 @@ private:
 
         void OnRemoteDied(const wptr<IRemoteObject> &remote) override;
     };
+    static KvStoreServiceDeathNotifier* GetInstance();
+
+    static std::mutex instanceMutex_;
+    static KvStoreServiceDeathNotifier *instance_;
 
     // add watcher for server die msg.
-    static void RegisterClientDeathObserver();
-    static AppId appId_;
+    void RegisterClientDeathObserver();
+    AppId appId_;
     // lock for kvDataServiceProxy_ and serviceDeathWatchers_.
-    static std::mutex watchMutex_;
-    static std::mutex mutex_;
-    static sptr<IKvStoreDataService> kvDataServiceProxy_;
-    static sptr<ServiceDeathRecipient> deathRecipientPtr_;
-    static sptr<IRemoteObject> clientDeathObserverPtr_;
+    std::mutex watchMutex_;
+    std::mutex mutex_;
+    sptr<IKvStoreDataService> kvDataServiceProxy_;
+    sptr<ServiceDeathRecipient> deathRecipientPtr_;
+    sptr<IRemoteObject> clientDeathObserverPtr_;
     // set of watchers for server die msg.
-    static std::set<std::shared_ptr<KvStoreDeathRecipient>> serviceDeathWatchers_;
+    std::set<std::shared_ptr<KvStoreDeathRecipient>> serviceDeathWatchers_;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
