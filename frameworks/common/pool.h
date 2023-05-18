@@ -36,8 +36,6 @@ public:
         }
         Node *cur = idle_;
         idle_ = idle_->next;
-        if (idle_ == nullptr) {
-        }
         if (idle_ != nullptr) {
             idle_->prev = nullptr;
         }
