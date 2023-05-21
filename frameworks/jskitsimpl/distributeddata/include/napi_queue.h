@@ -120,7 +120,7 @@ private:
         NapiAsyncComplete complete = nullptr;
         napi_deferred deferred = nullptr;
         napi_async_work work = nullptr;
-        ~AsyncContext() 
+        ~AsyncContext()
         {
             execute = nullptr;
             complete = nullptr;
