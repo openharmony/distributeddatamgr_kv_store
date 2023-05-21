@@ -28,7 +28,7 @@ public:
     };
     class Convertible {
     public:
-        explicit Convertible(const From &){};
+        explicit Convertible(const From &) {};
         Convertible() {}
         Convertible(Convertible &&) noexcept {};
         Convertible &operator=(Convertible &&) noexcept

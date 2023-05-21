@@ -308,8 +308,7 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
     }
 
     size_t readAbleSize = parcel.GetReadableBytes();
-    size_t len = static_cast<size_t>(size);
-    if ((static_cast<size_t>(size) > readAbleSize) || len > val.max_size()) {
+    if ((static_cast<size_t>(size) > readAbleSize) || static_cast<size_t>(size) > val.max_size()) {
         return false;
     }
 
