@@ -26,6 +26,7 @@
 #include "store_util.h"
 #include "sys/stat.h"
 #include "types.h"
+namespace {
 using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 
@@ -352,4 +353,5 @@ HWTEST_F(StoreFactoryTest, RekeyNoPwdFile, TestSize.Level1)
 
     StoreManager::GetInstance().GetKVStore(appId, storeId, options, status);
     ASSERT_EQ(status, CRYPT_ERROR);
+}
 }
