@@ -187,7 +187,7 @@ private:
         TUPLE_SIZE
     };
     static napi_value GetInnerValue(
-        napi_env env, napi_value in, const std::string& prop, bool optional, napi_status &out)
+        napi_env env, napi_value in, const std::string& prop, bool optional, napi_status &out);
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_JS_UTIL_H
