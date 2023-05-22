@@ -29,7 +29,7 @@ static std::string IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
 static std::string IS_NULLABLE = "IS_NULLABLE";
 static std::string CHILDREN = "CHILDREN";
 
-std::map<uint32_t, std::string> JsFieldNode::ToString_ = {
+std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
     { JSUtil::STRING, std::string("STRING") },
     { JSUtil::INTEGER, std::string("INTEGER") },
     { JSUtil::FLOAT, std::string("FLOAT") },
@@ -51,7 +51,7 @@ std::string JsFieldNode::GetFieldName()
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
-        return ToString(valueType) + "," + (isNullable_ ? "NULL" : "NOT NULL");
+        return ToString(valueType_) + "," + (isNullable_ ? "NULL" : "NOT NULL");
     }
 
     json jsFields;
@@ -249,11 +249,11 @@ std::string JsFieldNode::ToString(JSUtil::KvStoreVariant value)
     return std::string();
 }
 
-std::string JsFieldNode::String(uint32_t type)
+std::string JsFieldNode::ToString(uint32_t type)
 {
     // DistributedDB::FieldType
-    auto it = ToString_.find(type);
-    if (ToString_.find(type) != ToString_.end()) {
+    auto it = valueTypeToString.find(type);
+    if (valueTypeToString.find(type) != valueTypeToString.end()) {
         return it->second;
     } else {
         return std::string();
