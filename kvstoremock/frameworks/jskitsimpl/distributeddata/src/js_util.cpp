@@ -1180,4 +1180,30 @@ bool JSUtil::IsNull(napi_env env, napi_value value)
     }
     return false;
 }
+
+napi_value JSUtil::GetInnerValue(
+    napi_env env, napi_value in, const std::string& prop, bool optional, napi_status &out)
+{
+    bool hasProp = false;
+    napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+    if (status != napi_ok) {
+        out = napi_generic_failure;
+        return nullptr;
+    }
+    if (!hasProp) {
+        out = optional ? napi_ok : napi_generic_failure;
+        return nullptr;
+    }
+    napi_value inner = nullptr;
+    status = napi_get_named_property(env, in, prop.c_str(), &inner);
+    if (status != napi_ok || inner == nullptr) {
+        out = napi_generic_failure;
+        return nullptr;
+    }
+    if (optional && JSUtil::IsNull(env, inner)) {
+        out = napi_ok;
+        return nullptr;
+    }
+    return inner;
+}
 } // namespace OHOS::DistributedData
