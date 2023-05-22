@@ -216,30 +216,30 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
         data.push_back(JSUtil::BOOLEAN);
         data.push_back(static_cast<uint8_t>(*boolValue));
     }
-    uint8_t *tmp = nullptr;
+    uint8_t *res = nullptr;
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
-        int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp32);
+        int32_t tmp = *intValue; // copy value, and make it available in stack space.
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
-        data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(int32_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
-        float tmp4flt = *fltValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4flt));
-        tmp = reinterpret_cast<uint8_t*>(&tmp32);
+        float tmp = *fltValue; // copy value, and make it available in stack space.
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::FLOAT);
-        data.insert(data.end(), tmp, tmp + sizeof(float) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(float) / sizeof(uint8_t));
     }
     auto dblValue = std::get_if<double>(&value);
     if (dblValue != nullptr) {
-        double tmp4dbl = *dblValue; // copy value, and make it available in stack space.
-        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp4dbl));
-        tmp = reinterpret_cast<uint8_t*>(&tmp64);
+        double tmp = *dblValue; // copy value, and make it available in stack space.
+        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp64);
         data.push_back(JSUtil::DOUBLE);
-        data.insert(data.end(), tmp, tmp + sizeof(double) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(double) / sizeof(uint8_t));
     }
     return DistributedKv::Blob(data);
 }
@@ -258,7 +258,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, JSUtil::KvStoreV
             break;
         }
         case napi_number: {
-            double vNum = 0.0f;
+            double vNum = 0.0;
             statusMsg = JSUtil::GetValue(env, in, vNum);
             out = vNum;
             break;
@@ -329,7 +329,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, JSUtil::QueryVar
             break;
         }
         case napi_number: {
-            double vNum = 0.0f;
+            double vNum = 0.0;
             statusMsg = JSUtil::GetValue(env, in, vNum);
             out = vNum;
             break;
@@ -602,7 +602,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<doub
             napi_value item = nullptr;
             status = napi_get_element(env, in, i, &item);
             ASSERT((item != nullptr) && (status == napi_ok), "no element", napi_invalid_arg);
-            double vi = 0.0f;
+            double vi = 0.0;
             status = napi_get_value_double(env, item, &vi);
             ASSERT(status == napi_ok, "element not a double", napi_invalid_arg);
             out.push_back(vi);
@@ -786,7 +786,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject
         JSUtil::GetValue(env, jsValue, value);
         valueObject = value;
     } else if (type == napi_number) {
-        double value = 0;
+        double value = 0.0;
         napi_get_value_double(env, jsValue, &value);
         valueObject = value;
     } else if (type == napi_boolean) {

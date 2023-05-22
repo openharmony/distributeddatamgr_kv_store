@@ -52,13 +52,13 @@ private:
         SCHEMA_MODE_SLOPPY,
         SCHEMA_MODE_STRICT,
     };
-    JsFieldNode* rootNode = nullptr;
-    napi_env env = nullptr;     // manage the root. set/get.
-    napi_ref ref = nullptr;     // manage the root. set/get.
+    JsFieldNode* rootNode_ = nullptr;
+    napi_env env_ = nullptr;     // manage the root. set/get.
+    napi_ref ref_ = nullptr;     // manage the root. set/get.
 
-    std::vector<std::string> indexes;
-    uint32_t mode = SCHEMA_MODE_SLOPPY;
-    uint32_t skip = 0;
+    std::vector<std::string> indexes_;
+    uint32_t mode_ = SCHEMA_MODE_SLOPPY;
+    uint32_t skip_ = 0;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_SCHEMA_H

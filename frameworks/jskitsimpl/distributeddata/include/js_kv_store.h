@@ -27,7 +27,7 @@ enum {
     /* exported js SubscribeType  is (DistributedKv::SubscribeType-1) */
     SUBSCRIBE_LOCAL = 0,        /* i.e. SubscribeType::SUBSCRIBE_TYPE_LOCAL-1  */
     SUBSCRIBE_REMOTE = 1,       /* i.e. SubscribeType::SUBSCRIBE_TYPE_REMOTE-1 */
-    SUBSCRIBE_LOCAL_REMOTE = 2, /* i.e. SubscribeType::SUBSCRIBE_TYPE_ALL--1   */
+    SUBSCRIBE_LOCAL_REMOTE = 2, /* i.e. SubscribeType::SUBSCRIBE_TYPE_ALL-1   */
     SUBSCRIBE_COUNT = 3
 };
 /* [NOTES]
@@ -110,4 +110,4 @@ private:
     std::shared_ptr<UvQueue> uvQueue_;
 };
 } // namespace OHOS::DistributedData
-#endif // OHOS_SINGLE_KV_STORE_H
+#endif // OHOS_KV_STORE_H

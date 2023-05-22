@@ -51,12 +51,12 @@ private:
     std::string ValueToString(JSUtil::KvStoreVariant value);
     std::string ValueTypeToString(uint32_t type);
 
-    std::list<JsFieldNode*> fields;
-    std::string fieldName;
-    uint32_t valueType = JSUtil::INVALID;
-    JSUtil::KvStoreVariant defaultValue;
-    bool isWithDefaultValue = false;
-    bool isNullable = false;
+    std::list<JsFieldNode*> fields_;
+    std::string fieldName_;
+    uint32_t valueType_ = JSUtil::INVALID;
+    JSUtil::KvStoreVariant defaultValue_;
+    bool isWithDefaultValue_ = false;
+    bool isNullable_ = false;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_FIELD_NODE_H

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVStoreResultSet"
+#define LOG_TAG "JsKVStoreResultSet"
 #include "js_kv_store_resultset.h"
 #include "js_util.h"
 #include "log_print.h"

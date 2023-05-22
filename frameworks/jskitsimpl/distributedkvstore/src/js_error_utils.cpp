@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_ERROR_UTILS"
+#define LOG_TAG "JsErrorCode"
 
 #include "js_error_utils.h"
 
