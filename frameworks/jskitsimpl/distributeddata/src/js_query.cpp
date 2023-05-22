@@ -22,7 +22,7 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedData {
-DataQuery& JsQuery::GetNative() const
+const DataQuery& JsQuery::GetNative() const
 {
     return query_;
 }

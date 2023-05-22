@@ -22,7 +22,7 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedKVStore {
-DataQuery& JsQuery::GetDataQuery() const
+const DataQuery& JsQuery::GetDataQuery() const
 {
     return query_;
 }
