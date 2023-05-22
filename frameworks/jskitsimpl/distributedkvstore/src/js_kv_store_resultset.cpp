@@ -18,7 +18,6 @@
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
-#include "kvstore_datashare_bridge.h"
 #include "kv_utils.h"
 
 using namespace OHOS::DistributedKv;

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_DeviceKVStore"
+#define LOG_TAG "JsDeviceKVStore"
 #include "js_device_kv_store.h"
 #include <iomanip>
 #include "js_kv_store_resultset.h"

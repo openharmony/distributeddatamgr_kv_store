@@ -48,8 +48,8 @@ private:
     static napi_value GetContextValue(napi_env env, std::shared_ptr<ContextBase> &ctxt, T &value);
     static JsFieldNode* GetFieldNode(napi_env env, napi_callback_info info, std::shared_ptr<ContextBase> &ctxt);
 
-    std::string ValueToString(JSUtil::KvStoreVariant value);
-    std::string ValueTypeToString(uint32_t type);
+    std::string ToString(JSUtil::KvStoreVariant value);
+    std::string ToString(uint32_t type);
 
     std::list<JsFieldNode*> fields_;
     std::string fieldName_;

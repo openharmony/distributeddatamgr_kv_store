@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVManager"
+#define LOG_TAG "JsKVManager"
 #include "js_kv_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "js_device_kv_store.h"

@@ -51,7 +51,7 @@ std::string JsFieldNode::GetFieldName()
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
     if (fields_.empty()) {
-        return ValueTypeToString(valueType_) + "," + (isNullable_ ? "NULL" : "NOT NULL");
+        return ToString(valueType_) + "," + (isNullable_ ? "NULL" : "NOT NULL");
     }
 
     json jsFields;
@@ -223,7 +223,7 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
     return nullptr;
 }
 
-std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
+std::string JsFieldNode::ToString(JSUtil::KvStoreVariant value)
 {
     auto strValue = std::get_if<std::string>(&value);
     if (strValue != nullptr) {
@@ -249,7 +249,7 @@ std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
     return std::string();
 }
 
-std::string JsFieldNode::ValueTypeToString(uint32_t type)
+std::string JsFieldNode::ToString(uint32_t type)
 {
     // DistributedDB::FieldType
     auto it = valueTypeToString_.find(type);
@@ -269,8 +269,8 @@ std::string JsFieldNode::Dump()
 
     json jsNode = {
         { FIELD_NAME, fieldName_ },
-        { VALUE_TYPE, ValueTypeToString(valueType_) },
-        { DEFAULT_VALUE, ValueToString(defaultValue_) },
+        { VALUE_TYPE, ToString(valueType_) },
+        { DEFAULT_VALUE, ToString(defaultValue_) },
         { IS_DEFAULT_VALUE, isWithDefaultValue_ },
         { IS_NULLABLE, isNullable_ },
         { CHILDREN, jsFields.dump() }

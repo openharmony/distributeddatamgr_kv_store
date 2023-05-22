@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "Const_Properties"
+#define LOG_TAG "ConstProperties"
 #include "js_const_properties.h"
 #include "js_util.h"
 #include "js_kv_store.h"

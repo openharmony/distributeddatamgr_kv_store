@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_FieldNode"
+#define LOG_TAG "JsFieldNode"
 #include "js_field_node.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -29,7 +29,7 @@ static std::string IS_DEFAULT_VALUE = "IS_DEFAULT_VALUE";
 static std::string IS_NULLABLE = "IS_NULLABLE";
 static std::string CHILDREN = "CHILDREN";
 
-std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
+std::map<uint32_t, std::string> JsFieldNode::ToString_ = {
     { JSUtil::STRING, std::string("STRING") },
     { JSUtil::INTEGER, std::string("INTEGER") },
     { JSUtil::FLOAT, std::string("FLOAT") },
@@ -39,24 +39,24 @@ std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
 };
 
 JsFieldNode::JsFieldNode(const std::string& fName)
-    : fieldName(fName)
+    : fieldName_(fName)
 {
 }
 
 std::string JsFieldNode::GetFieldName()
 {
-    return fieldName;
+    return fieldName_;
 }
 
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
-    if (fields.empty()) {
-        return ValueTypeToString(valueType) + "," + (isNullable ? "NULL" : "NOT NULL");
+    if (fields_.empty()) {
+        return ToString(valueType) + "," + (isNullable_ ? "NULL" : "NOT NULL");
     }
 
     json jsFields;
-    for (auto fld : fields) {
-        jsFields[fld->fieldName] = fld->GetValueForJson();
+    for (auto fld : fields_) {
+        jsFields[fld->fieldName_] = fld->GetValueForJson();
     }
     return jsFields;
 }
@@ -117,7 +117,7 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->fields.push_back(child);
+    fieldNode->fields_.push_back(child);
 
     napi_get_boolean(env, true, &ctxt->output);
     return ctxt->output;
@@ -143,7 +143,7 @@ napi_value JsFieldNode::GetDefaultValue(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
     CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->defaultValue);
+    return GetContextValue(env, ctxt, fieldNode->defaultValue_);
 }
 
 napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
@@ -161,7 +161,7 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->defaultValue = vv;
+    fieldNode->defaultValue_ = vv;
     return nullptr;
 }
 
@@ -171,7 +171,7 @@ napi_value JsFieldNode::GetNullable(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
     CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->isNullable);
+    return GetContextValue(env, ctxt, fieldNode->isNullable_);
 }
 
 napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
@@ -189,7 +189,7 @@ napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->isNullable = isNullable;
+    fieldNode->isNullable_ = isNullable;
     return nullptr;
 }
 
@@ -199,7 +199,7 @@ napi_value JsFieldNode::GetValueType(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
     CHECK_RETURN(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->valueType);
+    return GetContextValue(env, ctxt, fieldNode->valueType_);
 }
 
 napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
@@ -219,11 +219,11 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->valueType = type;
+    fieldNode->valueType_ = type;
     return nullptr;
 }
 
-std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
+std::string JsFieldNode::ToString(JSUtil::KvStoreVariant value)
 {
     auto strValue = std::get_if<std::string>(&value);
     if (strValue != nullptr) {
@@ -249,11 +249,11 @@ std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
     return std::string();
 }
 
-std::string JsFieldNode::ValueTypeToString(uint32_t type)
+std::string JsFieldNode::String(uint32_t type)
 {
     // DistributedDB::FieldType
-    auto it = valueTypeToString_.find(type);
-    if (valueTypeToString_.find(type) != valueTypeToString_.end()) {
+    auto it = ToString_.find(type);
+    if (ToString_.find(type) != ToString_.end()) {
         return it->second;
     } else {
         return std::string();
@@ -263,16 +263,16 @@ std::string JsFieldNode::ValueTypeToString(uint32_t type)
 std::string JsFieldNode::Dump()
 {
     json jsFields;
-    for (auto fld : fields) {
+    for (auto fld : fields_) {
         jsFields.push_back(fld->Dump());
     }
 
     json jsNode = {
-        { FIELD_NAME, fieldName },
-        { VALUE_TYPE, ValueTypeToString(valueType) },
-        { DEFAULT_VALUE, ValueToString(defaultValue) },
-        { IS_DEFAULT_VALUE, isWithDefaultValue },
-        { IS_NULLABLE, isNullable },
+        { FIELD_NAME, fieldName_ },
+        { VALUE_TYPE, ToString(valueType_) },
+        { DEFAULT_VALUE, ToString(defaultValue_) },
+        { IS_DEFAULT_VALUE, isWithDefaultValue_ },
+        { IS_NULLABLE, isNullable_ },
         { CHILDREN, jsFields.dump() }
     };
     return jsNode.dump();

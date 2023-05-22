@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_Schema"
+#define LOG_TAG "JsSchema"
 #include "js_schema.h"
 #include <nlohmann/json.hpp>
 
@@ -33,16 +33,16 @@ static std::string SCHEMA_INDEXES = "SCHEMA_INDEXES";
 static std::string SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
 static std::string DEFAULT_SCHEMA_VERSION = "1.0";
 
-JsSchema::JsSchema(napi_env env_)
-    : env(env_)
+JsSchema::JsSchema(napi_env env)
+    : env_(env)
 {
 }
 
 JsSchema::~JsSchema()
 {
     ZLOGD("no memory leak for JsSchema");
-    if (ref != nullptr) {
-        napi_delete_reference(env, ref);
+    if (ref_ != nullptr) {
+        napi_delete_reference(env_, ref_);
     }
 }
 
@@ -105,16 +105,16 @@ napi_value JsSchema::GetRootNode(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
     CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
-    if (schema->rootNode == nullptr) {
+    if (schema->rootNode_ == nullptr) {
         int argc = 1;
         napi_value argv[1] = { nullptr };
         std::string root(SCHEMA_DEFINE);
         JSUtil::SetValue(env, root, argv[0]);
-        schema->ref = JSUtil::NewWithRef(env, argc, argv,
-            reinterpret_cast<void**>(&schema->rootNode), JsFieldNode::Constructor(env));
+        schema->ref_ = JSUtil::NewWithRef(env, argc, argv,
+            reinterpret_cast<void**>(&schema->rootNode_), JsFieldNode::Constructor(env));
     }
-    NAPI_ASSERT(env, schema->ref != nullptr, "no root, please set first!");
-    NAPI_CALL(env, napi_get_reference_value(env, schema->ref, &ctxt->output));
+    NAPI_ASSERT(env, schema->ref_ != nullptr, "no root, please set first!");
+    NAPI_CALL(env, napi_get_reference_value(env, schema->ref_, &ctxt->output));
     return ctxt->output;
 }
 
@@ -131,12 +131,12 @@ napi_value JsSchema::SetRootNode(napi_env env, napi_callback_info info)
         CHECK_ARGS_RETURN_VOID(ctxt, node != nullptr, "invalid arg[0], i.e. invalid node!");
 
         auto schema = reinterpret_cast<JsSchema*>(ctxt->native);
-        if (schema->ref != nullptr) {
-            napi_delete_reference(env, schema->ref);
+        if (schema->ref_ != nullptr) {
+            napi_delete_reference(env, schema->ref_);
         }
-        ctxt->status = napi_create_reference(env, argv[0], 1, &schema->ref);
+        ctxt->status = napi_create_reference(env, argv[0], 1, &schema->ref_);
         CHECK_STATUS_RETURN_VOID(ctxt, "napi_create_reference to FieldNode failed");
-        schema->rootNode = node;
+        schema->rootNode_ = node;
     };
     ctxt->GetCbInfoSync(env, info, input);
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
@@ -149,7 +149,7 @@ napi_value JsSchema::GetMode(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
     CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
-    return GetContextValue(env, ctxt, schema->mode);
+    return GetContextValue(env, ctxt, schema->mode_);
 }
 
 napi_value JsSchema::SetMode(napi_env env, napi_callback_info info)
@@ -166,7 +166,7 @@ napi_value JsSchema::SetMode(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto schema = reinterpret_cast<JsSchema*>(ctxt->native);
-    schema->mode = mode;
+    schema->mode_ = mode;
     return nullptr;
 }
 
@@ -176,7 +176,7 @@ napi_value JsSchema::GetSkip(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
     CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
-    return GetContextValue(env, ctxt, schema->skip);
+    return GetContextValue(env, ctxt, schema->skip_);
 }
 
 napi_value JsSchema::SetSkip(napi_env env, napi_callback_info info)
@@ -193,7 +193,7 @@ napi_value JsSchema::SetSkip(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto schema = reinterpret_cast<JsSchema*>(ctxt->native);
-    schema->skip = skip;
+    schema->skip_ = skip;
     return nullptr;
 }
 
@@ -203,7 +203,7 @@ napi_value JsSchema::GetIndexes(napi_env env, napi_callback_info info)
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
     CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
-    return GetContextValue(env, ctxt, schema->indexes);
+    return GetContextValue(env, ctxt, schema->indexes_);
 }
 
 napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
@@ -220,22 +220,22 @@ napi_value JsSchema::SetIndexes(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto schema = reinterpret_cast<JsSchema*>(ctxt->native);
-    schema->indexes = indexes;
+    schema->indexes_ = indexes;
     return nullptr;
 }
 
 std::string JsSchema::Dump()
 {
     json jsIndexes = nlohmann::json::array();
-    for (auto idx : indexes) {
+    for (auto idx : indexes_) {
         jsIndexes.push_back(idx);
     }
     json js = {
         { SCHEMA_VERSION, DEFAULT_SCHEMA_VERSION },
-        { SCHEMA_MODE, (mode == SCHEMA_MODE_STRICT) ? "STRICT" : "COMPATIBLE" },
-        { SCHEMA_DEFINE, rootNode->GetValueForJson() },
+        { SCHEMA_MODE, (mode_ == SCHEMA_MODE_STRICT) ? "STRICT" : "COMPATIBLE" },
+        { SCHEMA_DEFINE, rootNode_->GetValueForJson() },
         { SCHEMA_INDEXES, jsIndexes },
-        { SCHEMA_SKIPSIZE, skip },
+        { SCHEMA_SKIPSIZE, skip_ },
     };
     return js.dump();
 }

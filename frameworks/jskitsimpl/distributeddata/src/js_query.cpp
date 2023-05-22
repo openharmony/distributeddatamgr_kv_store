@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_Query"
+#define LOG_TAG "JsQuery"
 #include "js_query.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -22,7 +22,7 @@
 using namespace OHOS::DistributedKv;
 
 namespace OHOS::DistributedData {
-DataQuery& JsQuery::GetNative()
+DataQuery& JsQuery::GetNative() const
 {
     return query_;
 }
