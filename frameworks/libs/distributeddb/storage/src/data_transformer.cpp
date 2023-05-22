@@ -46,7 +46,6 @@ int DataTransformer::TransformDataItem(const std::vector<DataItem> &dataItems,
     if (dataItems.empty()) {
         return E_OK;
     }
-    std::vector<int> indexMapping;
     for (const DataItem &dataItem : dataItems) {
         OptRowDataWithLog dataWithLog;
         int errCode = DeSerializeDataItem(dataItem, dataWithLog, remoteFieldInfo);

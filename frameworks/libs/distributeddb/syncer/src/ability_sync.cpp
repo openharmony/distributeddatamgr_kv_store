@@ -1020,7 +1020,7 @@ bool AbilitySync::IsSingleRelationalVer() const
 {
 #ifdef RELATIONAL_STORE
     return storageInterface_->GetInterfaceType() == ISyncInterface::SYNC_RELATION;
-#elif
+#else
     return false;
 #endif
 }

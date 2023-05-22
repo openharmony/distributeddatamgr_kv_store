@@ -43,7 +43,7 @@ public:
     void SetProperties(const RelationalDBProperties &properties);
 
 protected:
-    StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *db, bool isWrite, bool isMemDb) override;
+    StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
 

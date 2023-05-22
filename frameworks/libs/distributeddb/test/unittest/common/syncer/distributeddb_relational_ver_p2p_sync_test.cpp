@@ -723,11 +723,9 @@ namespace {
             BlockSync(SYNC_MODE_PUSH_ONLY, resStatus, {DEVICE_B});
         }
         RuntimeConfig::SetProcessSystemAPIAdapter(nullptr);
-        if (g_rdbDelegatePtr != nullptr) {
-            LOGD("CloseStore Start");
-            ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
-            g_rdbDelegatePtr = nullptr;
-        }
+        LOGD("CloseStore Start");
+        ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
+        g_rdbDelegatePtr = nullptr;
         OpenStore();
     }
 

@@ -746,7 +746,7 @@ void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &c
     std::lock_guard<std::mutex> lock(extLock_);
     if (callback) {
         autoLaunchRequestCallbackMap_[type] = callback;
-    } else if (autoLaunchRequestCallbackMap_.find(type) != autoLaunchRequestCallbackMap_.end()) {
+    } else {
         autoLaunchRequestCallbackMap_.erase(type);
     }
 }

@@ -395,7 +395,7 @@ bool DBCommon::HasConstraint(const std::string &sql, const std::string &keyWord,
 {
     size_t pos = 0;
     while ((pos = sql.find(keyWord, pos)) != std::string::npos) {
-        if (pos - 1 >= 0 && CharIn(sql[pos - 1], prePattern) && ((pos + keyWord.length() == sql.length()) ||
+        if (pos >= 1 && CharIn(sql[pos - 1], prePattern) && ((pos + keyWord.length() == sql.length()) ||
             ((pos + keyWord.length() < sql.length()) && CharIn(sql[pos + keyWord.length()], nextPattern)))) {
             return true;
         }
