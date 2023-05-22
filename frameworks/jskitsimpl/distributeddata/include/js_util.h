@@ -157,7 +157,7 @@ public:
     static napi_status GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
-    static inline napi_status GetNamedProperty(
+    static napi_status GetNamedProperty(
         napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
         bool hasProp = false;
