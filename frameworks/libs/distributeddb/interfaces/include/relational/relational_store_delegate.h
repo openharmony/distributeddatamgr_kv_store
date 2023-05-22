@@ -20,6 +20,8 @@
 #include <memory>
 #include "distributeddb/result_set.h"
 #include "cloud/cloud_store_types.h"
+#include "cloud/icloud_db.h"
+#include "cloud/icloud_data_translate.h"
 #include "query.h"
 #include "store_types.h"
 #include "store_observer.h"
@@ -39,13 +41,18 @@ public:
         uint32_t iterateTimes = 0;
     };
 
-    DB_API virtual DBStatus CreateDistributedTable(const std::string &tableName,
-        TableSyncType = DEVICE_COOPERATION) = 0;
+    DB_API DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType type = DEVICE_COOPERATION)
+    {
+        return CreateDistributedTableInner(tableName, type);
+    }
 
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) = 0;
 
-    DB_API virtual DBStatus RemoveDeviceData(const std::string &device) = 0;
+    DB_API DBStatus RemoveDeviceData(const std::string &device, ClearMode mode = FLAG_AND_DATA)
+    {
+        return RemoveDeviceDataInner(device, mode);
+    }
 
     DB_API virtual DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
 
@@ -55,6 +62,17 @@ public:
 
     // remove all device data
     DB_API virtual DBStatus RemoveDeviceData() = 0;
+
+    DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
+         const Query &query, const std::function<void(SyncProcess process)> &onProcess,
+         int64_t waitTime) = 0;
+
+    DB_API virtual DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
+
+    DB_API virtual DBStatus SetCloudDbSchema(const DataBaseSchema &schema) = 0;
+protected:
+    virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
+    virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;
 };
 } // namespace DistributedDB
 #endif // RELATIONAL_STORE_DELEGATE_H

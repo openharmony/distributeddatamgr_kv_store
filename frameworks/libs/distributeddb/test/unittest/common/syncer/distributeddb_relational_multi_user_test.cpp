@@ -890,7 +890,8 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser010, TestSize.Level1)
      * @tc.expected: step4. should return OK, not NOT_ACTIVE
      */
     Query query = Query::Select(g_tableName);
-    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, nullptr, true), OK);
+    SyncStatusCallback callback = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr1->Sync({DEVICE_B}, SYNC_MODE_PUSH_ONLY, query, callback, true), OK);
     CloseStore();
 }
 

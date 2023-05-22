@@ -32,9 +32,9 @@ public:
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 
-    DBStatus RemoveDeviceData(const std::string &device) override;
+    DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
 
-    DBStatus CreateDistributedTable(const std::string &tableName, TableSyncType = DEVICE_COOPERATION) override;
+    DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
 
@@ -47,6 +47,13 @@ public:
         std::shared_ptr<ResultSet> &result) override;
 
     DBStatus RemoveDeviceData() override;
+
+    DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+        const std::function<void(SyncProcess)> &onProcess, int64_t waitTime) override;
+
+    DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
+
+    DBStatus SetCloudDbSchema(const DataBaseSchema &schema) override;
 
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,

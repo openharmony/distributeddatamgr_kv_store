@@ -141,5 +141,9 @@ void RuntimeConfig::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool
 {
     RuntimeContext::GetInstance()->SetThreadPool(threadPool);
 }
+
+void RuntimeConfig::SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate)
+{
+}
 } // namespace DistributedDB
 #endif

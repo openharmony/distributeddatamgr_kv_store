@@ -33,6 +33,8 @@ public:
     DB_API static Query Select();
     DB_API static Query Select(const std::string &tableName);
 
+    DB_API Query &FromTable(const std::vector<std::string> &tableNames);
+
     template<typename T>
     DB_API Query &EqualTo(const std::string &field, const T &value)
     {
