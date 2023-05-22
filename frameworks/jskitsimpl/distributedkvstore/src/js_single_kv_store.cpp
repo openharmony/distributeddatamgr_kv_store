@@ -1135,7 +1135,7 @@ struct SyncContext : public ContextBase {
     JsQuery* query = nullptr;
     napi_valuetype type = napi_undefined;
 
-    void GetCbInfoSync(napi_env env, napi_callback_info info)
+    void GetInput(napi_env env, napi_callback_info info)
     {
         auto input = [env, this](size_t argc, napi_value* argv) {
             // required 3 arguments :: <deviceIdList> <mode> [allowedDelayMs]
@@ -1181,7 +1181,7 @@ struct SyncContext : public ContextBase {
 napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<SyncContext>();
-    ctxt->GetCbInfoSync(env, info);
+    ctxt->GetInput(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "Sync exit");
 
     ZLOGD("sync deviceIdList.size=%{public}d, mode:%{public}u, allowedDelayMs:%{public}u",

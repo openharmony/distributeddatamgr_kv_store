@@ -33,8 +33,8 @@ static std::string SCHEMA_INDEXES = "SCHEMA_INDEXES";
 static std::string SCHEMA_SKIPSIZE = "SCHEMA_SKIPSIZE";
 static std::string DEFAULT_SCHEMA_VERSION = "1.0";
 
-JsSchema::JsSchema(napi_env env_)
-    : env_(env_)
+JsSchema::JsSchema(napi_env env)
+    : env_(env)
 {
 }
 
