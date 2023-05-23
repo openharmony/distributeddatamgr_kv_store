@@ -340,6 +340,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver006, TestSiz
     value1.push_back(8);
     value2.push_back(10);
     DBStatus status = g_kvDelegatePtr->Put(key, value1);
+    EXPECT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
 
     /**
@@ -379,6 +380,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver007, TestSiz
     key.push_back(1);
     value.push_back(8);
     DBStatus status = g_kvDelegatePtr->Put(key, value);
+    EXPECT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
 
     /**
@@ -458,6 +460,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver009, TestSiz
         keys.push_back(entry.key);
     }
     DBStatus status = g_kvDelegatePtr->PutBatch(entries);
+    EXPECT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
 
     /**
@@ -506,6 +509,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver010, TestSiz
         keys.push_back(key);
     }
     DBStatus status = g_kvDelegatePtr->PutBatch(entries);
+    EXPECT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
 
     /**
@@ -589,6 +593,7 @@ HWTEST_F(DistributedDBInterfacesRegisterSyncDBTest, RegisterObserver012, TestSiz
         keys.push_back(entry.key);
     }
     DBStatus status = g_kvDelegatePtr->PutBatch(entries);
+    EXPECT_TRUE(status == OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
 
     /**

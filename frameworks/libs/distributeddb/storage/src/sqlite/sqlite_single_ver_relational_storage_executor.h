@@ -77,7 +77,7 @@ public:
 
     int CheckQueryObjectLegal(const TableInfo &table, QueryObject &query, const std::string &schemaVersion);
 
-    int GetMaxTimestamp(const std::vector<std::string> &tablesName, Timestamp &maxTimestamp) const;
+    int GetMaxTimestamp(const std::vector<std::string> &tableNames, Timestamp &maxTimestamp) const;
 
     int ExecuteQueryBySqlStmt(const std::string &sql, const std::vector<std::string> &bindArgs, int packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data);
@@ -89,11 +89,11 @@ public:
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
 private:
-    int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
+    int GetDataItemForSync(sqlite3_stmt *stmt, DataItem &dataItem, bool isGettingDeletedData) const;
 
     int GetSyncDataPre(const DataItem &dataItem, sqlite3_stmt *queryStmt, DataItem &itemGet);
 
-    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,  bool &isDefeated);
+    int CheckDataConflictDefeated(const DataItem &dataItem, sqlite3_stmt *queryStmt,  bool &isDefeated);
 
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
@@ -108,7 +108,7 @@ private:
 
     int AlterAuxTableForUpgrade(const TableInfo &oldTableInfo, const TableInfo &newTableInfo);
 
-    int DeleteSyncLog(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt);
+    int DeleteSyncLog(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt);
     int ProcessMissQueryData(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt,
         sqlite3_stmt *&rmLogStmt);
     int GetMissQueryData(sqlite3_stmt *fullStmt, DataItem &item);

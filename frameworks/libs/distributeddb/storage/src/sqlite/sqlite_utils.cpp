@@ -683,7 +683,6 @@ int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, Table
     }
 
     errCode = -E_NOT_FOUND;
-    std::vector<std::string> triggerList;
     do {
         int err = SQLiteUtils::StepWithRetry(statement);
         if (err == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {

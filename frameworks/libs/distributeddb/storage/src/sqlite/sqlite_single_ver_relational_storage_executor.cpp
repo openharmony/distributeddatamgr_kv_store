@@ -837,10 +837,8 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItems(RelationalSyncDa
         return saveStmt.ResetStatements(false);
     });
 
-    if (errCode == -E_NOT_FOUND) {
-        errCode = E_OK;
-    }
-    return saveStmt.ResetStatements(true);
+    int ret = saveStmt.ResetStatements(true);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::SaveSyncItems(RelationalSyncDataInserter &inserter, bool useTrans)
