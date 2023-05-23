@@ -160,9 +160,8 @@ public:
     static inline napi_status GetNamedProperty(
         napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
-        napi_status status;
-        napi_value inner = GetInnerValue(env, in, prop, optional, status);
-        return (inner == nullptr) ? status : GetValue(env, inner, value);
+        auto [status, jsValue] = GetInnerValue(env, in, prop, optional);
+        return (jsValue == nullptr) ? status : GetValue(env, jsValue, value);
     };
 
     /* napi_define_class  wrapper */
@@ -186,8 +185,8 @@ private:
         TUPLE_VALUE,
         TUPLE_SIZE
     };
-    static napi_value GetInnerValue(
-        napi_env env, napi_value in, const std::string& prop, bool optional, napi_status &out);
+    static std::pair<napi_status, napi_value> GetInnerValue(
+        napi_env env, napi_value in, const std::string& prop, bool optional);
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_JS_UTIL_H
