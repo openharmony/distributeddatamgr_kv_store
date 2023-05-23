@@ -160,23 +160,8 @@ public:
     static inline napi_status GetNamedProperty(
         napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
-        bool hasProp = false;
-        napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if (status != napi_ok) {
-            return napi_generic_failure;
-        }
-        if (!hasProp) {
-            return optional ? napi_ok : napi_generic_failure;
-        }
-        napi_value inner = nullptr;
-        status = napi_get_named_property(env, in, prop.c_str(), &inner);
-        if (status != napi_ok || inner == nullptr) {
-            return napi_generic_failure;
-        }
-        if (optional && JSUtil::IsNull(env, inner)) {
-            return napi_ok;
-        }
-        return GetValue(env, inner, value);
+        auto [status, jsValue] = GetInnerValue(env, in, prop, optional);
+        return (jsValue == nullptr) ? status : GetValue(env, jsValue, value);
     };
 
     /* napi_define_class  wrapper */
@@ -200,6 +185,8 @@ private:
         TUPLE_VALUE,
         TUPLE_SIZE
     };
+    static std::pair<napi_status, napi_value> GetInnerValue(
+        napi_env env, napi_value in, const std::string& prop, bool optional);
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_JS_UTIL_H

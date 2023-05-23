@@ -1234,4 +1234,27 @@ bool JSUtil::IsNull(napi_env env, napi_value value)
     }
     return false;
 }
+
+std::pair<napi_status, napi_value> JSUtil::GetInnerValue(
+    napi_env env, napi_value in, const std::string& prop, bool optional)
+{
+    bool hasProp = false;
+    napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+    if (status != napi_ok) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (!hasProp) {
+        status = optional ? napi_ok : napi_generic_failure;
+        return std::make_pair(status, nullptr);
+    }
+    napi_value inner = nullptr;
+    status = napi_get_named_property(env, in, prop.c_str(), &inner);
+    if (status != napi_ok || inner == nullptr) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (optional && JSUtil::IsNull(env, inner)) {
+        return std::make_pair(napi_ok, nullptr);
+    }
+    return std::make_pair(napi_ok, inner);
+}
 } // namespace OHOS::DistributedKVStore
