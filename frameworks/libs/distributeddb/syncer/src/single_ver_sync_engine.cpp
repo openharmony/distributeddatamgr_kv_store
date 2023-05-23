@@ -81,13 +81,17 @@ int SingleVerSyncEngine::StartAutoSubscribeTimer()
 
 void SingleVerSyncEngine::StopAutoSubscribeTimer()
 {
-    std::lock_guard<std::mutex> lockGuard(timerLock_);
-    if (subscribeTimerId_ == 0) {
-        return;
+    TimerId subscribeTimerId = 0u;
+    {
+        std::lock_guard<std::mutex> lockGuard(timerLock_);
+        if (subscribeTimerId_ == 0) {
+            return;
+        }
+        subscribeTimerId = subscribeTimerId_;
+        subscribeTimerId_ = 0;
     }
-    LOGI("[SingleSyncEngine] stop auto subscribe timerId=%" PRIu64 " finished", subscribeTimerId_);
-    RuntimeContext::GetInstance()->RemoveTimer(subscribeTimerId_);
-    subscribeTimerId_ = 0;
+    RuntimeContext::GetInstance()->RemoveTimer(subscribeTimerId, true);
+    LOGI("[SingleSyncEngine] stop auto subscribe timerId=%" PRIu64 " finished", subscribeTimerId);
 }
 
 int SingleVerSyncEngine::SubscribeTimeOut(TimerId id)

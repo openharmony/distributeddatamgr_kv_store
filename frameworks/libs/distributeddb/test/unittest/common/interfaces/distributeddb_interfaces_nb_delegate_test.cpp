@@ -2680,3 +2680,67 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, UpdateKey003, TestSize.Level0)
     EXPECT_EQ(g_mgr.DeleteKvStore("UpdateKey003"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+/**
+  * @tc.name: BlockTimer001
+  * @tc.desc: Test open close function with block timer
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, BlockTimer001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Create database.
+     * @tc.expected: step1. Returns a non-null store.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("BlockTimer001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    /**
+     * @tc.steps:step2. Create block timer.
+     * @tc.expected: step2. create ok.
+     */
+    TimerId timerId = 0u;
+    bool timerFinalize = false;
+    std::condition_variable cv;
+    std::mutex finalizeMutex;
+    bool triggerTimer = false;
+    std::condition_variable triggerCv;
+    std::mutex triggerMutex;
+    int errCode = RuntimeContext::GetInstance()->SetTimer(1, [&triggerTimer, &triggerCv, &triggerMutex](TimerId id) {
+        {
+            std::lock_guard<std::mutex> autoLock(triggerMutex);
+            triggerTimer = true;
+        }
+        triggerCv.notify_all();
+        std::this_thread::sleep_for(std::chrono::seconds(5));
+        return -E_END_TIMER;
+    }, [&timerFinalize, &finalizeMutex, &cv]() {
+        {
+            std::lock_guard<std::mutex> autoLock(finalizeMutex);
+            timerFinalize = true;
+        }
+        cv.notify_all();
+    }, timerId);
+    ASSERT_EQ(errCode, E_OK);
+    {
+        std::unique_lock<std::mutex> uniqueLock(triggerMutex);
+        triggerCv.wait(uniqueLock, [&triggerTimer]() {
+            return triggerTimer;
+        });
+    }
+    /**
+     * @tc.steps:step3. Close store.
+     * @tc.expected: step3. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    std::unique_lock<std::mutex> uniqueLock(finalizeMutex);
+    EXPECT_TRUE(timerFinalize);
+    cv.wait(uniqueLock, [&timerFinalize]() {
+        return timerFinalize;
+    });
+    EXPECT_EQ(g_mgr.DeleteKvStore("BlockTimer001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
