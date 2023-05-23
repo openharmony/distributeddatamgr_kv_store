@@ -93,9 +93,9 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
-        auto* field = reinterpret_cast<JsFieldNode*>(data);
-        ASSERT_VOID(field != nullptr, "finalize null!");
-        delete field;
+        auto* fieldNode = reinterpret_cast<JsFieldNode*>(data);
+        ASSERT_VOID(fieldNode != nullptr, "fieldNode is null!");
+        delete fieldNode;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr), fieldNode);
     return ctxt->self;
@@ -142,7 +142,7 @@ napi_value JsFieldNode::GetDefaultValue(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetDefaultValue");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->defaultValue_);
 }
 
@@ -170,7 +170,7 @@ napi_value JsFieldNode::GetNullable(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetNullable");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->isNullable_);
 }
 
@@ -198,7 +198,7 @@ napi_value JsFieldNode::GetValueType(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetValueType");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
     return GetContextValue(env, ctxt, fieldNode->valueType_);
 }
 

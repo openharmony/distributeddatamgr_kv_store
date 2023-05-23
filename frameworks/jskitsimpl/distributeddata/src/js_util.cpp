@@ -230,7 +230,7 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
         htobe32(*reinterpret_cast<uint32_t*>(&tmpInt));
         res = reinterpret_cast<uint8_t*>(&tmpInt);
         data.push_back(JSUtil::INTEGER);
-        data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(int32_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
@@ -283,7 +283,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, JSUtil::KvStoreVariant
             break;
         }
         default:
-            ZLOGE(" napi_value -> KvStoreVariant not [Uint8Array | string | boolean | number]  type=%{public}d", type);
+            ZLOGE("napi_value -> KvStoreVariant not [Uint8Array | string | boolean | number] type=%{public}d", type);
             status = napi_invalid_arg;
             break;
     }
@@ -405,7 +405,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<uint8_t>& in, napi_
     CHECK_RETURN((status == napi_ok), "create array buffer failed!", status);
 
     if (memcpy_s(data, in.size(), in.data(), in.size()) != EOK) {
-        ZLOGE("napi_value <- std::vector<uint8_t>: memcpy_s error, vector size:%{public}zd", in.size());
+        ZLOGE("napi_value <- std::vector<uint8_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_uint8_array, in.size(), buffer, 0, &out);
@@ -492,7 +492,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<int32_t>& in, napi_
     CHECK_RETURN((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_int32_array, in.size(), buffer, 0, &out);
@@ -531,7 +531,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<uint32_t>& in, napi
     CHECK_RETURN((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<uint32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_uint32_array, in.size(), buffer, 0, &out);
@@ -570,7 +570,7 @@ napi_status JSUtil::SetValue(napi_env env, const std::vector<int64_t>& in, napi_
     CHECK_RETURN((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int64_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_bigint64_array, in.size(), buffer, 0, &out);
@@ -705,7 +705,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::Entry& 
         out.value = JSUtil::VariantValue2Blob(value);
     }
     if (type != out.value[0]) {
-        ZLOGE("unmarch type[%{public}d] to value.type[%{public}d]", (int)type, (int)out.value[0]);
+        ZLOGE("unmatch type[%{public}d] to value.type[%{public}d]", (int)type, (int)out.value[0]);
     }
     return status;
 }

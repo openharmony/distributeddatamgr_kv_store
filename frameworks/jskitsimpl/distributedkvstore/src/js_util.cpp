@@ -398,7 +398,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<uint8_t>& in,
     ASSERT((statusMsg.status == napi_ok), "create array buffer failed!", statusMsg);
 
     if (memcpy_s(data, in.size(), in.data(), in.size()) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<uint8_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     statusMsg.status = napi_create_typedarray(env, napi_uint8_array, in.size(), buffer, 0, &out);
@@ -485,7 +485,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<int32_t>& in,
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_int32_array, in.size(), buffer, 0, &out);
@@ -524,7 +524,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<uint32_t>& in
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<uint32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_uint32_array, in.size(), buffer, 0, &out);
@@ -556,14 +556,14 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<int64_t>& in,
 {
     ZLOGD("napi_value <- std::vector<int64_t> ");
     size_t bytes = in.size() * sizeof(int64_t);
-    ASSERT(bytes > 0, "invalid std::vector<uint32_t>", napi_invalid_arg);
+    ASSERT(bytes > 0, "invalid std::vector<int64_t>", napi_invalid_arg);
     void* data = nullptr;
     napi_value buffer = nullptr;
     napi_status status = napi_create_arraybuffer(env, bytes, &data, &buffer);
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int64_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_bigint64_array, in.size(), buffer, 0, &out);

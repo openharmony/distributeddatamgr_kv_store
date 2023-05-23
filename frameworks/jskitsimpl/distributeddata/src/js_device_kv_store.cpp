@@ -450,7 +450,7 @@ napi_value JsDeviceKVStore::Sync(napi_env env, napi_callback_info info)
 
 napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
 {
-    ZLOGD("Constructor single kv store!");
+    ZLOGD("Constructor deviceKVStore!");
     std::string storeId;
     auto ctxt = std::make_shared<ContextBase>();
     auto input = [env, ctxt, &storeId](size_t argc, napi_value* argv) {
@@ -464,12 +464,12 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     JsDeviceKVStore* kvStore = new (std::nothrow) JsDeviceKVStore(storeId);
-    NAPI_ASSERT(env, kvStore !=nullptr, "no memory for kvStore");
+    NAPI_ASSERT(env, kvStore !=nullptr, "no memory for deviceKvStore");
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("deviceKvStore finalize.");
         auto* kvStore = reinterpret_cast<JsDeviceKVStore*>(data);
-        CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
+        CHECK_RETURN_VOID(kvStore != nullptr, "kvStore is null!");
         delete kvStore;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);

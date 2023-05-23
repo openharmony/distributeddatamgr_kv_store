@@ -77,7 +77,7 @@ napi_value JsQuery::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("query finalize.");
         auto* query = reinterpret_cast<JsQuery*>(data);
-        ASSERT_VOID(query != nullptr, "finalize null!");
+        ASSERT_VOID(query != nullptr, "query is null!");
         delete query;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, query, finalize, nullptr, nullptr), query);

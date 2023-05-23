@@ -93,9 +93,9 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
-        auto* field = reinterpret_cast<JsFieldNode*>(data);
-        CHECK_RETURN_VOID(field != nullptr, "finalize null!");
-        delete field;
+        auto* fieldNode = reinterpret_cast<JsFieldNode*>(data);
+        CHECK_RETURN_VOID(fieldNode != nullptr, "fieldNode is null!");
+        delete fieldNode;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr), fieldNode);
     return ctxt->self;
@@ -252,8 +252,8 @@ std::string JsFieldNode::ToString(JSUtil::KvStoreVariant value)
 std::string JsFieldNode::ToString(uint32_t type)
 {
     // DistributedDB::FieldType
-    auto it = valueTypeToString.find(type);
-    if (valueTypeToString.find(type) != valueTypeToString.end()) {
+    auto it = valueTypeToString_.find(type);
+    if (valueTypeToString_.find(type) != valueTypeToString_.end()) {
         return it->second;
     } else {
         return std::string();

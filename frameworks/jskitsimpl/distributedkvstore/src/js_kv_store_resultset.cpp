@@ -67,7 +67,7 @@ napi_value JsKVStoreResultSet::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvStoreResultSet finalize.");
         auto* resultSet = reinterpret_cast<JsKVStoreResultSet*>(data);
-        ASSERT_VOID(resultSet != nullptr, "finalize null!");
+        ASSERT_VOID(resultSet != nullptr, "resultSet is null!");
         delete resultSet;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, resultSet, finalize, nullptr, nullptr), resultSet);

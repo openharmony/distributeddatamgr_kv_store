@@ -324,7 +324,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("deviceKvStore finalize.");
         auto* kvStore = reinterpret_cast<JsDeviceKVStore*>(data);
-        ASSERT_VOID(kvStore != nullptr, "finalize null!");
+        ASSERT_VOID(kvStore != nullptr, "kvStore is null!");
         delete kvStore;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);

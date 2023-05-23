@@ -72,7 +72,7 @@ napi_value JsSchema::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("Schema finalize.");
         auto* schema = reinterpret_cast<JsSchema*>(data);
-        CHECK_RETURN_VOID(schema != nullptr, "finalize null!");
+        CHECK_RETURN_VOID(schema != nullptr, "schema is null!");
         delete schema;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, schema, finalize, nullptr, nullptr), schema);
@@ -104,7 +104,7 @@ napi_value JsSchema::GetRootNode(napi_env env, napi_callback_info info)
     ZLOGD("Schema::GetRootNode");
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
-    CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
+    CHECK_RETURN(schema != nullptr, "schema is nullptr!", nullptr);
     if (schema->rootNode_ == nullptr) {
         int argc = 1;
         napi_value argv[1] = { nullptr };
@@ -148,7 +148,7 @@ napi_value JsSchema::GetMode(napi_env env, napi_callback_info info)
     ZLOGD("Schema::GetMode");
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
-    CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
+    CHECK_RETURN(schema != nullptr, "schema is nullptr!", nullptr);
     return GetContextValue(env, ctxt, schema->mode_);
 }
 
@@ -175,7 +175,7 @@ napi_value JsSchema::GetSkip(napi_env env, napi_callback_info info)
     ZLOGD("Schema::GetSkip");
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
-    CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
+    CHECK_RETURN(schema != nullptr, "schema is nullptr!", nullptr);
     return GetContextValue(env, ctxt, schema->skip_);
 }
 
@@ -202,7 +202,7 @@ napi_value JsSchema::GetIndexes(napi_env env, napi_callback_info info)
     ZLOGD("Schema::GetIndexes");
     auto ctxt = std::make_shared<ContextBase>();
     auto schema = GetSchema(env, info, ctxt);
-    CHECK_RETURN(schema != nullptr, "getSchema nullptr!", nullptr);
+    CHECK_RETURN(schema != nullptr, "schema is nullptr!", nullptr);
     return GetContextValue(env, ctxt, schema->indexes_);
 }
 
