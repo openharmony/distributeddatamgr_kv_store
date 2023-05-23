@@ -14,6 +14,7 @@
  */
 
 #include <dirent.h>
+#include <numeric>
 #include <unistd.h>
 #include "constant.h"
 
@@ -100,9 +101,9 @@ std::string Constant::Concatenate(std::initializer_list<std::string> stringList)
 {
     std::string result;
     size_t result_size = 0;
-    for (const std::string &str : stringList) {
-        result_size += str.size();
-    }
+    result_size = std::accumulate(stringList.begin(), stringList.end(), result_size, [](int64_t size, const auto &str) {
+        return size + str.size();
+    });
     result.reserve(result_size);
     for (const std::string &str : stringList) {
         result.append(str.data(), str.size());

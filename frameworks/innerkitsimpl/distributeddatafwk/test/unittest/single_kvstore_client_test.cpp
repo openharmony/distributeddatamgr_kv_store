@@ -107,34 +107,28 @@ private:
 void KvStoreObserverTestImpl::OnChange(const ChangeNotification &changeNotification)
 {
     callCount_++;
+
     const auto &insert = changeNotification.GetInsertEntries();
     insertEntries_.clear();
-    for (const auto &entry : insert) {
-        insertEntries_.push_back(entry);
-    }
+    insertEntries_.reserve(insert.size());
+    std::copy(insert.begin(),insert.end(),std::back_inserter(insertEntries_));
 
     const auto &update = changeNotification.GetUpdateEntries();
     updateEntries_.clear();
-    for (const auto &entry : update) {
-        updateEntries_.push_back(entry);
-    }
+    updateEntries_.reserve(update.size());
+    std::copy(update.begin(),update.end(),std::back_inserter(updateEntries_));
 
     const auto &del = changeNotification.GetDeleteEntries();
     deleteEntries_.clear();
-    for (const auto &entry : del) {
-        deleteEntries_.push_back(entry);
-    }
+    deleteEntries_.reserve(del.size());
+    std::copy(del.begin(),del.end(),std::back_inserter(deleteEntries_));
 
     isClear_ = changeNotification.IsClear();
 }
 
 KvStoreObserverTestImpl::KvStoreObserverTestImpl()
+    : callCount_(0), insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false)
 {
-    callCount_ = 0;
-    insertEntries_ = {};
-    updateEntries_ = {};
-    deleteEntries_ = {};
-    isClear_ = false;
 }
 
 void KvStoreObserverTestImpl::ResetToZero()

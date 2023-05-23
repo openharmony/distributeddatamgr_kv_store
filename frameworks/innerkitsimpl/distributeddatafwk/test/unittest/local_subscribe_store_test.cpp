@@ -113,12 +113,8 @@ private:
 };
 
 KvStoreObserverUnitTest::KvStoreObserverUnitTest()
+    : callCount_(0), insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false)
 {
-    callCount_ = 0;
-    insertEntries_ = {};
-    updateEntries_ = {};
-    deleteEntries_ = {};
-    isClear_ = false;
 }
 
 void KvStoreObserverUnitTest::OnChange(const ChangeNotification &changeNotification)

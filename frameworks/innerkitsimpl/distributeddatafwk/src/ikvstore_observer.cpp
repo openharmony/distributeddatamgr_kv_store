@@ -19,6 +19,7 @@
 
 #include <cinttypes>
 #include <ipc_skeleton.h>
+#include <numeric>
 #include "kv_types_util.h"
 #include "itypes_util.h"
 #include "log_print.h"
@@ -38,9 +39,9 @@ KvStoreObserverProxy::KvStoreObserverProxy(const sptr<IRemoteObject> &impl) : IR
 int64_t GetBufferSize(const std::vector<Entry> &entries)
 {
     int64_t bufferSize = 0;
-    for (const auto &item : entries) {
-        bufferSize += item.key.RawSize() + item.value.RawSize();
-    }
+    bufferSize = std::accumulate(entries.begin(), entries.end(), bufferSize, [](const int64_t &size, const auto &item) {
+        return size + item.key.RawSize() + item.value.RawSize();
+    });
     return bufferSize;
 }
 
