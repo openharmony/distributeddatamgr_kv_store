@@ -127,23 +127,23 @@ void DeviceObserverTestImpl::OnChange(const ChangeNotification &changeNotificati
     const auto &insert = changeNotification.GetInsertEntries();
     insertEntries_.clear();
     insertEntries_.reserve(insert.size());
-    std::copy(insert.begin(),insert.end(),std::back_inserter(insertEntries_));
+    std::copy(insert.begin(), insert.end(), std::back_inserter(insertEntries_));
 
     const auto &update = changeNotification.GetUpdateEntries();
     updateEntries_.clear();
     updateEntries_.reserve(update.size());
-    std::copy(update.begin(),update.end(),std::back_inserter(updateEntries_));
+    std::copy(update.begin(), update.end(), std::back_inserter(updateEntries_));
 
     const auto &del = changeNotification.GetDeleteEntries();
     deleteEntries_.clear();
     deleteEntries_.reserve(del.size());
-    std::copy(del.begin(),del.end(),std::back_inserter(deleteEntries_));
+    std::copy(del.begin(), del.end(), std::back_inserter(deleteEntries_));
 
     isClear_ = changeNotification.IsClear();
 }
 
 DeviceObserverTestImpl::DeviceObserverTestImpl()
-    : callCount_(0), insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false)
+    : insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false), callCount_(0)
 {
 }
 

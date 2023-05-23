@@ -103,7 +103,7 @@ private:
 };
 
 DeviceObserverTest::DeviceObserverTest()
-    : callCount_(0), insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false)
+    : insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false), callCount_(0)
 {
 }
 
