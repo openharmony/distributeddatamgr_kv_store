@@ -98,7 +98,8 @@ std::enable_if_t<same_in_v<T, Types...>, const T *> get_if(const std::variant<Ty
     return std::get_if<T>(input);
 }
 
-template<typename T, typename... Types, size_t NP = convertible_in_v<T, Types...> ? convertible_index_of_v<T, Types...> : 0>
+template<typename T, typename... Types, size_t NP = convertible_in_v<T, Types...> ?
+convertible_index_of_v<T, Types...> : 0>
 constexpr std::enable_if_t<!same_in_v<T, Types...> && convertible_in_v<T, Types...>,
     std::add_pointer_t<std::variant_alternative_t<NP, std::variant<Types...>>>>
 get_if(std::variant<Types...> *input)
