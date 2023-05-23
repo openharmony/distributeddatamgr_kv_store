@@ -101,7 +101,7 @@ public:
     uint64_t GetCallCount() const;
 
 private:
-    uint64_t callCount_;
+    uint64_t callCount_ = 0;
 };
 
 void KvStoreObserverTestImpl::OnChange(const ChangeNotification &changeNotification)
@@ -127,7 +127,6 @@ void KvStoreObserverTestImpl::OnChange(const ChangeNotification &changeNotificat
 }
 
 KvStoreObserverTestImpl::KvStoreObserverTestImpl()
-    : insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false), callCount_(0)
 {
 }
 

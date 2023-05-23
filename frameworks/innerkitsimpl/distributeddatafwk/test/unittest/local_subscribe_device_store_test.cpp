@@ -85,7 +85,7 @@ public:
     std::vector<Entry> updateEntries_;
     std::vector<Entry> deleteEntries_;
     std::string deviceId_;
-    bool isClear_;
+    bool isClear_ = false;
     DeviceObserverTest();
     ~DeviceObserverTest() = default;
 
@@ -103,7 +103,6 @@ private:
 };
 
 DeviceObserverTest::DeviceObserverTest()
-    : insertEntries_({}), updateEntries_({}), deleteEntries_({}), isClear_(false), callCount_(0)
 {
 }
 
