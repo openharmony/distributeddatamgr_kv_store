@@ -73,14 +73,15 @@ int RemoteExecutor::RemoteQuery(const std::string device, const RemoteCondition 
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
+    int taskErrCode = E_OK;
     SemaphoreUtils semaphore(0);
     Task task;
     task.result = std::make_shared<RelationalResultSetImpl>();
     task.target = device;
     task.timeout = timeout;
     task.condition = condition;
-    task.onFinished = [&semaphore, &errCode, &result](int32_t retCode, std::shared_ptr<ResultSet> taskResult) {
-        errCode = retCode;
+    task.onFinished = [&semaphore, &taskErrCode, &result](int32_t retCode, std::shared_ptr<ResultSet> taskResult) {
+        taskErrCode = retCode;
         result = taskResult;
         semaphore.SendSemaphore();
     };
@@ -90,7 +91,7 @@ int RemoteExecutor::RemoteQuery(const std::string device, const RemoteCondition 
         return errCode;
     }
     semaphore.WaitSemaphore();
-    return errCode;
+    return taskErrCode;
 }
 
 int RemoteExecutor::ReceiveMessage(const std::string &targetDev, Message *inMsg)
