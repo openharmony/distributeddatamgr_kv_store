@@ -75,14 +75,14 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
             ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
-                storeId.storeId.c_str(), static_cast<int>(status));
+                StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
             return !stores.empty();
         }
         if (options.encrypt) {
             status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
             if (status != SUCCESS) {
-                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d", storeId.storeId.c_str(),
-                    static_cast<int>(status));
+                ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
+                    StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
             if (dbPassword.isKeyOutdated) {
@@ -105,7 +105,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         status = StoreUtil::ConvertStatus(dbStatus);
         if (kvStore == nullptr) {
             ZLOGE("failed! status:%{public}d appId:%{public}s storeId:%{public}s path:%{public}s", dbStatus,
-                appId.appId.c_str(), storeId.storeId.c_str(), options.baseDir.c_str());
+                appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), options.baseDir.c_str());
             return !stores.empty();
         }
         isCreate = true;
