@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "Const_Properties"
+#define LOG_TAG "ConstProperties"
 #include "js_const_properties.h"
 #include "js_util.h"
 #include "js_kv_store.h"
@@ -25,7 +25,7 @@ static napi_status SetNamedProperty(napi_env env, napi_value& obj, const std::st
 {
     napi_value property = nullptr;
     napi_status status = napi_create_int32(env, value, &property);
-    CHECK_RETURN(status == napi_ok, "int32_t to napi_value failed!", status);
+    CHECK_RETURN(status == napi_ok, "napi_create_int32 failed!", status);
     status = napi_set_named_property(env, obj, name.c_str(), property);
     CHECK_RETURN(status == napi_ok, "napi_set_named_property failed!", status);
     return status;

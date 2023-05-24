@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVManager"
+#define LOG_TAG "JsKVManager"
 #include "js_kv_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "js_device_kv_store.h"
@@ -392,7 +392,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");
         auto* kvManager = reinterpret_cast<JsKVManager*>(data);
-        CHECK_RETURN_VOID(kvManager != nullptr, "finalize null!");
+        CHECK_RETURN_VOID(kvManager != nullptr, "kvManager is null!");
         delete kvManager;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr), kvManager);

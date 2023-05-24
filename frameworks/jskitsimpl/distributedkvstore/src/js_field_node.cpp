@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_FieldNode"
+#define LOG_TAG "JSFieldNode"
 #include "js_field_node.h"
 #include "js_util.h"
 #include "log_print.h"
@@ -39,24 +39,24 @@ std::map<uint32_t, std::string> JsFieldNode::valueTypeToString_ = {
 };
 
 JsFieldNode::JsFieldNode(const std::string& fName)
-    : fieldName(fName)
+    : fieldName_(fName)
 {
 }
 
 std::string JsFieldNode::GetFieldName()
 {
-    return fieldName;
+    return fieldName_;
 }
 
 JsFieldNode::json JsFieldNode::GetValueForJson()
 {
-    if (fields.empty()) {
-        return ValueTypeToString(valueType) + "," + (isNullable ? "NULL" : "NOT NULL");
+    if (fields_.empty()) {
+        return ToString(valueType_) + "," + (isNullable_ ? "NULL" : "NOT NULL");
     }
 
     json jsFields;
-    for (auto fld : fields) {
-        jsFields[fld->fieldName] = fld->GetValueForJson();
+    for (auto fld : fields_) {
+        jsFields[fld->fieldName_] = fld->GetValueForJson();
     }
     return jsFields;
 }
@@ -93,9 +93,9 @@ napi_value JsFieldNode::New(napi_env env, napi_callback_info info)
 
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("fieldNode finalize.");
-        auto* field = reinterpret_cast<JsFieldNode*>(data);
-        ASSERT_VOID(field != nullptr, "finalize null!");
-        delete field;
+        auto* fieldNode = reinterpret_cast<JsFieldNode*>(data);
+        ASSERT_VOID(fieldNode != nullptr, "fieldNode is null!");
+        delete fieldNode;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, fieldNode, finalize, nullptr, nullptr), fieldNode);
     return ctxt->self;
@@ -117,7 +117,7 @@ napi_value JsFieldNode::AppendChild(napi_env env, napi_callback_info info)
     ASSERT_NULL(!ctxt->isThrowError, "AppendChild exit");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->fields.push_back(child);
+    fieldNode->fields_.push_back(child);
 
     napi_get_boolean(env, true, &ctxt->output);
     return ctxt->output;
@@ -142,8 +142,8 @@ napi_value JsFieldNode::GetDefaultValue(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetDefaultValue");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->defaultValue);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
+    return GetContextValue(env, ctxt, fieldNode->defaultValue_);
 }
 
 napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
@@ -161,7 +161,7 @@ napi_value JsFieldNode::SetDefaultValue(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->defaultValue = vv;
+    fieldNode->defaultValue_ = vv;
     return nullptr;
 }
 
@@ -170,8 +170,8 @@ napi_value JsFieldNode::GetNullable(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetNullable");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->isNullable);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
+    return GetContextValue(env, ctxt, fieldNode->isNullable_);
 }
 
 napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
@@ -189,7 +189,7 @@ napi_value JsFieldNode::SetNullable(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->isNullable = isNullable;
+    fieldNode->isNullable_ = isNullable;
     return nullptr;
 }
 
@@ -198,8 +198,8 @@ napi_value JsFieldNode::GetValueType(napi_env env, napi_callback_info info)
     ZLOGD("FieldNode::GetValueType");
     auto ctxt = std::make_shared<ContextBase>();
     auto fieldNode = GetFieldNode(env, info, ctxt);
-    ASSERT(fieldNode != nullptr, "getFieldNode nullptr!", nullptr);
-    return GetContextValue(env, ctxt, fieldNode->valueType);
+    ASSERT(fieldNode != nullptr, "fieldNode is nullptr!", nullptr);
+    return GetContextValue(env, ctxt, fieldNode->valueType_);
 }
 
 napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
@@ -219,11 +219,11 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
     NAPI_ASSERT(env, ctxt->status == napi_ok, "invalid arguments!");
 
     auto fieldNode = reinterpret_cast<JsFieldNode*>(ctxt->native);
-    fieldNode->valueType = type;
+    fieldNode->valueType_ = type;
     return nullptr;
 }
 
-std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
+std::string JsFieldNode::ToString(const JSUtil::KvStoreVariant &value)
 {
     auto strValue = std::get_if<std::string>(&value);
     if (strValue != nullptr) {
@@ -249,7 +249,7 @@ std::string JsFieldNode::ValueToString(JSUtil::KvStoreVariant value)
     return std::string();
 }
 
-std::string JsFieldNode::ValueTypeToString(uint32_t type)
+std::string JsFieldNode::ToString(uint32_t type)
 {
     // DistributedDB::FieldType
     auto it = valueTypeToString_.find(type);
@@ -263,16 +263,16 @@ std::string JsFieldNode::ValueTypeToString(uint32_t type)
 std::string JsFieldNode::Dump()
 {
     json jsFields;
-    for (auto fld : fields) {
+    for (auto fld : fields_) {
         jsFields.push_back(fld->Dump());
     }
 
     json jsNode = {
-        { FIELD_NAME, fieldName },
-        { VALUE_TYPE, ValueTypeToString(valueType) },
-        { DEFAULT_VALUE, ValueToString(defaultValue) },
-        { IS_DEFAULT_VALUE, isWithDefaultValue },
-        { IS_NULLABLE, isNullable },
+        { FIELD_NAME, fieldName_ },
+        { VALUE_TYPE, ToString(valueType_) },
+        { DEFAULT_VALUE, ToString(defaultValue_) },
+        { IS_DEFAULT_VALUE, isWithDefaultValue_ },
+        { IS_NULLABLE, isNullable_ },
         { CHILDREN, jsFields.dump() }
     };
     return jsNode.dump();

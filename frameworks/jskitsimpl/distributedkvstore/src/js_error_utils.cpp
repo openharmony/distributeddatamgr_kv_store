@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_ERROR_UTILS"
+#define LOG_TAG "JsErrorCode"
 
 #include "js_error_utils.h"
 
@@ -69,7 +69,7 @@ Status GenerateNapiError(Status status, int32_t &errCode, std::string &errMessag
     return status;
 }
 
-void ThrowNapiError(napi_env env, int32_t status, std::string errMessage, bool isParamsCheck)
+void ThrowNapiError(napi_env env, int32_t status, const std::string &errMessage, bool isParamsCheck)
 {
     ZLOGD("ThrowNapiError message: %{public}s", errMessage.c_str());
     if (status == Status::SUCCESS) {

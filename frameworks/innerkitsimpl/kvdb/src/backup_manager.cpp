@@ -162,12 +162,12 @@ StoreUtil::FileInfo BackupManager::GetBackupFileInfo(
     time_t modifyTime = 0;
     for (auto &file : files) {
         if (file.name == backupName) {
-            backupFile = file;
+            backupFile = std::move(file);
             break;
         }
         if ((file.modifyTime > modifyTime) && (file.size != 0)) {
             modifyTime = file.modifyTime;
-            backupFile = file;
+            backupFile = std::move(file);
         }
     }
     return backupFile;
@@ -271,7 +271,7 @@ std::string BackupManager::GetBackupName(const std::string &fileName)
 void BackupManager::SetResidueInfo(BackupManager::ResidueInfo &residueInfo,
     const std::vector<StoreUtil::FileInfo> &files, const std::string &name, const std::string &postFix)
 {
-    for (auto &file : files) {
+    for (const auto &file : files) {
         auto fullName = name + postFix;
         auto fullTmpName = fullName + BACKUP_TMP_POSTFIX;
         if ((file.name == fullTmpName) && (postFix == BACKUP_POSTFIX)) {

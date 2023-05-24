@@ -101,40 +101,20 @@ public:
     uint64_t GetCallCount() const;
 
 private:
-    uint64_t callCount_;
+    uint64_t callCount_ = 0;
 };
 
 void KvStoreObserverTestImpl::OnChange(const ChangeNotification &changeNotification)
 {
     callCount_++;
-    const auto &insert = changeNotification.GetInsertEntries();
-    insertEntries_.clear();
-    for (const auto &entry : insert) {
-        insertEntries_.push_back(entry);
-    }
-
-    const auto &update = changeNotification.GetUpdateEntries();
-    updateEntries_.clear();
-    for (const auto &entry : update) {
-        updateEntries_.push_back(entry);
-    }
-
-    const auto &del = changeNotification.GetDeleteEntries();
-    deleteEntries_.clear();
-    for (const auto &entry : del) {
-        deleteEntries_.push_back(entry);
-    }
-
+    insertEntries_ = changeNotification.GetInsertEntries();
+    updateEntries_ = changeNotification.GetUpdateEntries();
+    deleteEntries_ = changeNotification.GetDeleteEntries();
     isClear_ = changeNotification.IsClear();
 }
 
 KvStoreObserverTestImpl::KvStoreObserverTestImpl()
 {
-    callCount_ = 0;
-    insertEntries_ = {};
-    updateEntries_ = {};
-    deleteEntries_ = {};
-    isClear_ = false;
 }
 
 void KvStoreObserverTestImpl::ResetToZero()

@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_SingleKVStore"
+#define LOG_TAG "JsSingleKVStore"
 #include "js_single_kv_store.h"
 #include "js_util.h"
 #include "js_kv_store_resultset.h"
@@ -105,7 +105,7 @@ napi_value JsSingleKVStore::Get(napi_env env, napi_callback_info info)
 
 enum class ArgsType : uint8_t {
     /* input arguments' combination type */
-    KEYPREFIX = 0,
+    KEY_PREFIX = 0,
     QUERY,
     UNKNOWN = 255
 };
@@ -127,7 +127,7 @@ static napi_status GetVariantArgs(napi_env env, size_t argc, napi_value* argv, V
     if (type == napi_string) {
         status = JSUtil::GetValue(env, argv[0], va.keyPrefix);
         CHECK_RETURN(!va.keyPrefix.empty(), "invalid arg[0], i.e. invalid keyPrefix!", napi_invalid_arg);
-        va.type = ArgsType::KEYPREFIX;
+        va.type = ArgsType::KEY_PREFIX;
     } else if (type == napi_object) {
         bool result = false;
         status = napi_instanceof(env, argv[0], JsQuery::Constructor(env), &result);
@@ -170,7 +170,7 @@ napi_value JsSingleKVStore::GetEntries(napi_env env, napi_callback_info info)
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
         Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::KEYPREFIX) {
+        if (ctxt->va.type == ArgsType::KEY_PREFIX) {
             OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
             status = kvStore->GetEntries(keyPrefix, ctxt->entries);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
@@ -223,7 +223,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
         std::shared_ptr<KvStoreResultSet> kvResultSet;
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetNative();
         Status status = Status::INVALID_ARGUMENT;
-        if (ctxt->va.type == ArgsType::KEYPREFIX) {
+        if (ctxt->va.type == ArgsType::KEY_PREFIX) {
             OHOS::DistributedKv::Key keyPrefix(ctxt->va.keyPrefix);
             status = kvStore->GetResultSet(keyPrefix, kvResultSet);
             ZLOGD("kvStore->GetEntries() return %{public}d", status);
@@ -474,7 +474,7 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("singleKVStore finalize.");
         auto* kvStore = reinterpret_cast<JsSingleKVStore*>(data);
-        CHECK_RETURN_VOID(kvStore != nullptr, "finalize null!");
+        CHECK_RETURN_VOID(kvStore != nullptr, "kvStore is null!");
         delete kvStore;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);

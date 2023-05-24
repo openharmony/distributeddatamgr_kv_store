@@ -32,7 +32,6 @@ public:
     
     static napi_status ToJson(napi_env env, napi_value inner, JsSchema*& out);
     std::string Dump();
-
 private:
     static napi_value GetRootNode(napi_env env, napi_callback_info info);
     static napi_value SetRootNode(napi_env env, napi_callback_info info);
@@ -45,20 +44,19 @@ private:
 
     template <typename T>
     static napi_value GetContextValue(napi_env env, std::shared_ptr<ContextBase>& ctxt, T &value);
-    
     static JsSchema* GetSchema(napi_env env, napi_callback_info info, std::shared_ptr<ContextBase> &ctxt);
 
     enum {
         SCHEMA_MODE_SLOPPY,
         SCHEMA_MODE_STRICT,
     };
-    JsFieldNode* rootNode = nullptr;
-    napi_env env = nullptr;     // manage the root. set/get.
-    napi_ref ref = nullptr;     // manage the root. set/get.
+    JsFieldNode* rootNode_ = nullptr;
+    napi_env env_ = nullptr;     // manage the root. set/get.
+    napi_ref ref_ = nullptr;     // manage the root. set/get.
 
-    std::vector<std::string> indexes;
-    uint32_t mode = SCHEMA_MODE_SLOPPY;
-    uint32_t skip = 0;
+    std::vector<std::string> indexes_;
+    uint32_t mode_ = SCHEMA_MODE_SLOPPY;
+    uint32_t skip_ = 0;
 };
 } // namespace OHOS::DistributedData
 #endif // OHOS_SCHEMA_H

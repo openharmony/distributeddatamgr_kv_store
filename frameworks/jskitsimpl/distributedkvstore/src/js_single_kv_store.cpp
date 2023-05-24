@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_SingleKVStore"
+#define LOG_TAG "JsSingleKVStore"
 #include "js_single_kv_store.h"
 #include "js_util.h"
 #include "js_kv_store_resultset.h"
@@ -1128,57 +1128,60 @@ napi_value JsSingleKVStore::RemoveDeviceData(napi_env env, napi_callback_info in
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute);
 }
 
+struct SyncContext : public ContextBase {
+    std::vector<std::string> deviceIdList;
+    uint32_t mode = 0;
+    uint32_t allowedDelayMs = 0;
+    JsQuery* query = nullptr;
+    napi_valuetype type = napi_undefined;
+
+    void GetInput(napi_env env, napi_callback_info info)
+    {
+        auto input = [env, this](size_t argc, napi_value* argv) {
+            // required 3 arguments :: <deviceIdList> <mode> [allowedDelayMs]
+            ASSERT_BUSINESS_ERR(this, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+            this->status = JSUtil::GetValue(env, argv[0], this->deviceIdList);
+            ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
+                "The deviceIdList parameters is incorrect.");
+            napi_typeof(env, argv[1], &this->type);
+            if (this->type == napi_object) {
+                this->status = JSUtil::Unwrap(env,
+                    argv[1], reinterpret_cast<void**>(&this->query), JsQuery::Constructor(env));
+                ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
+                    "The parameters query is incorrect.");
+                this->status = JSUtil::GetValue(env, argv[2], this->mode);
+                ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
+                    "The parameters mode is incorrect.");
+                if (argc == 4) {
+                    this->status = JSUtil::GetValue(env, argv[3], this->allowedDelayMs);
+                    ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[3])),
+                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                }
+            }
+            if (this->type == napi_number) {
+                this->status = JSUtil::GetValue(env, argv[1], this->mode);
+                ASSERT_BUSINESS_ERR(this, this->status == napi_ok, Status::INVALID_ARGUMENT,
+                    "The parameters mode is incorrect.");
+                if (argc == 3) {
+                    this->status = JSUtil::GetValue(env, argv[2], this->allowedDelayMs);
+                    ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[2])),
+                        Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                }
+            }
+            ASSERT_BUSINESS_ERR(this, (this->mode <= uint32_t(SyncMode::PUSH_PULL)) && (this->status == napi_ok),
+                Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
+        };
+        ContextBase::GetCbInfoSync(env, info, input);
+    }
+};
 /*
  * [JS API Prototype]
  *  sync(deviceIdList:string[], mode:SyncMode, allowedDelayMs?:number):void
  */
 napi_value JsSingleKVStore::Sync(napi_env env, napi_callback_info info)
 {
-    struct SyncContext : public ContextBase {
-        std::vector<std::string> deviceIdList;
-        uint32_t mode = 0;
-        uint32_t allowedDelayMs = 0;
-        JsQuery* query = nullptr;
-        napi_valuetype type = napi_undefined;
-    };
     auto ctxt = std::make_shared<SyncContext>();
-    auto input = [env, ctxt](size_t argc, napi_value* argv) {
-        // required 3 arguments :: <deviceIdList> <mode> [allowedDelayMs]
-        ASSERT_BUSINESS_ERR(ctxt, argc >= 2, Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-        ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->deviceIdList);
-        ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-            "The deviceIdList parameters is incorrect.");
-        napi_typeof(env, argv[1], &ctxt->type);
-        if (ctxt->type == napi_object) {
-            ctxt->status = JSUtil::Unwrap(env,
-                argv[1], reinterpret_cast<void**>(&ctxt->query), JsQuery::Constructor(env));
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameters query is incorrect.");
-            ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->mode);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameters mode is incorrect.");
-            if (argc == 4) {
-                ctxt->status = JSUtil::GetValue(env, argv[3], ctxt->allowedDelayMs);
-                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[3])),
-                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
-                ctxt->status = napi_ok;
-            }
-        }
-        if (ctxt->type == napi_number) {
-            ctxt->status = JSUtil::GetValue(env, argv[1], ctxt->mode);
-            ASSERT_BUSINESS_ERR(ctxt, ctxt->status == napi_ok, Status::INVALID_ARGUMENT,
-                "The parameters mode is incorrect.");
-            if (argc == 3) {
-                ctxt->status = JSUtil::GetValue(env, argv[2], ctxt->allowedDelayMs);
-                ASSERT_BUSINESS_ERR(ctxt, (ctxt->status == napi_ok || JSUtil::IsNull(env, argv[2])),
-                    Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
-                ctxt->status = napi_ok;
-            }
-        }
-        ASSERT_BUSINESS_ERR(ctxt, (ctxt->mode <= uint32_t(SyncMode::PUSH_PULL)) && (ctxt->status == napi_ok),
-            Status::INVALID_ARGUMENT, "The number of parameters is incorrect.");
-    };
-    ctxt->GetCbInfoSync(env, info, input);
+    ctxt->GetInput(env, info);
     ASSERT_NULL(!ctxt->isThrowError, "Sync exit");
 
     ZLOGD("sync deviceIdList.size=%{public}d, mode:%{public}u, allowedDelayMs:%{public}u",
@@ -1279,7 +1282,7 @@ napi_value JsSingleKVStore::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("singleKVStore finalize.");
         auto* kvStore = reinterpret_cast<JsSingleKVStore*>(data);
-        ASSERT_VOID(kvStore != nullptr, "finalize null!");
+        ASSERT_VOID(kvStore != nullptr, "kvStore is null!");
         delete kvStore;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);

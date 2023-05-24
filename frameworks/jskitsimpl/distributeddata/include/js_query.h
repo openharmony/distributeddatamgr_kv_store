@@ -25,7 +25,7 @@ public:
     JsQuery() = default;
     ~JsQuery() = default;
 
-    DistributedKv::DataQuery& GetNative();
+    const DistributedKv::DataQuery& GetNative() const;
 
     static napi_value Constructor(napi_env env);
 

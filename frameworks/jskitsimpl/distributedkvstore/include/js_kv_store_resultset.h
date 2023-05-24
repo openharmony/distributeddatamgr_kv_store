@@ -14,7 +14,6 @@
  */
 #ifndef OHOS_KV_STORE_RESELTSET_H
 #define OHOS_KV_STORE_RESELTSET_H
-#include <string>
 #include "napi_queue.h"
 #include "result_set_bridge.h"
 #include "kvstore_result_set.h"
