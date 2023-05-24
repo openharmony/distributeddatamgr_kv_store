@@ -558,7 +558,8 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
     syncInfo.query = query.ToString();
     auto syncAgent = service->GetSyncAgent({ appId_ });
     if (syncAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
+        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
+            StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
