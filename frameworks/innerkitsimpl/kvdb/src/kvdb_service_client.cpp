@@ -244,7 +244,8 @@ Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &st
     int32_t status = IPC_SEND(TRANS_ADD_SUB, reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
-            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(syncInfo.query).c_str());
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(syncInfo.query).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -255,7 +256,8 @@ Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &st
     int32_t status = IPC_SEND(TRANS_RMV_SUB, reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
-            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(syncInfo.query).c_str());
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(syncInfo.query).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -266,7 +268,8 @@ Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, 
     int32_t status = IPC_SEND(TRANS_SUB, reply, appId, storeId, observer->AsObject());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, observer:0x%{public}x", status,
-            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(observer.GetRefPtr()));
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(observer.GetRefPtr()));
     }
     return static_cast<Status>(status);
 }
@@ -277,7 +280,8 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     int32_t status = IPC_SEND(TRANS_UNSUB, reply, appId, storeId, observer->AsObject().GetRefPtr());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, observer:0x%{public}x", status,
-            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), StoreUtil::Anonymous(observer.GetRefPtr()));
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(observer.GetRefPtr()));
     }
     return static_cast<Status>(status);
 }
