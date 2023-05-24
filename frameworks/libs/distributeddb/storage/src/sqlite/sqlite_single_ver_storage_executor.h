@@ -141,9 +141,9 @@ public:
 
     void ReleaseContinueStatement();
 
-    int GetSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendedLength, Timestamp begin,
+    int GetSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendLength, Timestamp begin,
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
-    int GetDeletedSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendedLength, Timestamp begin,
+    int GetDeletedSyncDataByTimestamp(std::vector<DataItem> &dataItems, size_t appendLength, Timestamp begin,
         Timestamp end, const DataSizeSpecInfo &dataSizeInfo) const;
 
     int GetDeviceIdentifier(PragmaEntryDeviceIdentifier *identifier);
@@ -204,7 +204,7 @@ public:
 
     int MigrateSyncDataByVersion(uint64_t recordVer, NotifyMigrateSyncData &syncData,
         std::vector<DataItem> &dataItems);
-    int GetMinVersionCacheData(std::vector<DataItem> &dataItems, uint64_t &maxVerIncurCacheDb) const;
+    int GetMinVersionCacheData(std::vector<DataItem> &dataItems, uint64_t &minVerIncurCacheDb) const;
 
     int GetMaxVersionInCacheDb(uint64_t &maxVersion) const;
     int AttachMainDbAndCacheDb(CipherType type, const CipherPassword &passwd,

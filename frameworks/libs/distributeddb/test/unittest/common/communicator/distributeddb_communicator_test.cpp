@@ -30,7 +30,6 @@ namespace {
     EnvHandle g_envDeviceA;
     EnvHandle g_envDeviceB;
     EnvHandle g_envDeviceC;
-}
 
 static void HandleConnectChange(OnOfflineDevice &onlines, const std::string &target, bool isConnect)
 {
@@ -852,4 +851,5 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage003, TestSize.Level2)
     g_envDeviceA.commAggrHandle->ReleaseCommunicator(commAC);
     g_envDeviceB.commAggrHandle->RegCommunicatorLackCallback(nullptr, nullptr);
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
 }

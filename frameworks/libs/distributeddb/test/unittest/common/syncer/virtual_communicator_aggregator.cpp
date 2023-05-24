@@ -86,7 +86,6 @@ int VirtualCommunicatorAggregator::RegOnConnectCallback(const OnConnectCallback 
 void VirtualCommunicatorAggregator::RunCommunicatorLackCallback(const LabelType &commLabel)
 {
     if (onCommLack_) {
-        std::string userId;
         onCommLack_(commLabel, userId_);
     }
 }
