@@ -226,10 +226,9 @@ int DistributedTestAgent::Sync(const std::string &args) const
         return Status::INVALID_ARGUMENT;
     }
     std::vector<std::string> deviceIds;
-    deviceIds.reserve(detailInfos_.size());
-    std::transform(detailInfos_.begin(), detailInfos_.end(), std::back_inserter(deviceIds), [](const auto &device) {
-        return device.networkId;
-    });
+    for (const auto &device : detailInfos_) {
+        deviceIds.push_back(device.networkId);
+    }
     int32_t delay = std::stoi(args);
     HiLog::Info(LABEL, "delay = %{public}d", delay);
     std::unique_lock<std::mutex> lck(syncCallback->mtx_);
