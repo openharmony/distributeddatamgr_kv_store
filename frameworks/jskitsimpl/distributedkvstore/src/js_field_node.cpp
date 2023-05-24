@@ -223,7 +223,7 @@ napi_value JsFieldNode::SetValueType(napi_env env, napi_callback_info info)
     return nullptr;
 }
 
-std::string JsFieldNode::ToString(JSUtil::KvStoreVariant value)
+std::string JsFieldNode::ToString(const JSUtil::KvStoreVariant &value)
 {
     auto strValue = std::get_if<std::string>(&value);
     if (strValue != nullptr) {

@@ -186,7 +186,7 @@ JSUtil::KvStoreVariant JSUtil::Blob2VariantValue(const DistributedKv::Blob& blob
     ZLOGD("Blob::type %{public}d size=%{public}d", static_cast<int>(data[0]), static_cast<int>(real.size()));
     if (data[0] == JSUtil::INTEGER) {
         uint32_t tmp = be32toh(*reinterpret_cast<uint32_t*>(&(real[0])));
-        return JSUtil::KvStoreVariant(*reinterpret_cast<int32_t*>(&tmp));
+        return JSUtil::KvStoreVariant(static_cast<int32_t>(tmp));
     } else if (data[0] == JSUtil::FLOAT) {
         uint32_t tmp = be32toh(*reinterpret_cast<uint32_t*>(&(real[0])));
         return JSUtil::KvStoreVariant(*reinterpret_cast<float*>((void*)(&tmp)));
@@ -226,9 +226,9 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     uint8_t *res = nullptr;
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
-        int32_t tmpInt = *intValue; // copy value, and make it available in stack space.
-        htobe32(*reinterpret_cast<uint32_t*>(&tmpInt));
-        res = reinterpret_cast<uint8_t*>(&tmpInt);
+        int32_t tmp = *intValue; // copy value, and make it available in stack space.
+        tmp = htobe32(reinterpret_cast<uint32_t>(tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp);
         data.push_back(JSUtil::INTEGER);
         data.insert(data.end(), res, res + sizeof(int32_t) / sizeof(uint8_t));
     }

@@ -160,14 +160,14 @@ StoreUtil::FileInfo BackupManager::GetBackupFileInfo(
 
     auto files = StoreUtil::GetFiles(path);
     time_t modifyTime = 0;
-    for (const auto &file : files) {
+    for (auto &file : files) {
         if (file.name == backupName) {
-            backupFile = file;
+            backupFile = std::move(file);
             break;
         }
         if ((file.modifyTime > modifyTime) && (file.size != 0)) {
             modifyTime = file.modifyTime;
-            backupFile = file;
+            backupFile = std::move(file);
         }
     }
     return backupFile;
