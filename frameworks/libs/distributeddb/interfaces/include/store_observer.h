@@ -16,15 +16,40 @@
 #ifndef STORE_OBSERVER_H
 #define STORE_OBSERVER_H
 
+#include "cloud/cloud_store_types.h"
 #include "store_changed_data.h"
 
 namespace DistributedDB {
+
+enum ChangeType : uint32_t {
+    OP_INSERT = 0,
+    OP_UPDATE,
+    OP_DELETE,
+    OP_BUTT,
+};
+struct ChangedData {
+    std::string tableName;
+    // CLOUD_COOPERATION mode, primaryData store primary keys
+    // primayData store row id if have no data
+    std::vector<std::vector<Type>> primaryData[OP_BUTT];
+    std::vector<std::string> field;
+};
+
+enum Origin : int32_t {
+    ORIGIN_CLOUD,
+    ORIGIN_LOCAL,
+    ORIGIN_REMOTE,
+    ORIGIN_ALL,
+    ORIGIN_BUTT
+};
 class StoreObserver {
 public:
     virtual ~StoreObserver() {}
 
     // Data change callback
-    virtual void OnChange(const StoreChangedData &data) = 0;
+    virtual void OnChange(const StoreChangedData &data) {};
+
+    virtual void OnChange(Origin origin, const std::string &originalId, ChangedData &&data) {};
 };
 } // namespace DistributedDB
 

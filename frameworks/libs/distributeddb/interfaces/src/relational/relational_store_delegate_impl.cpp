@@ -38,12 +38,12 @@ RelationalStoreDelegateImpl::~RelationalStoreDelegateImpl()
     conn_ = nullptr;
 };
 
-DBStatus RelationalStoreDelegateImpl::RemoveDeviceData(const std::string &device)
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &device, ClearMode mode)
 {
-    return RemoveDeviceData(device, {});
+    return RemoveDeviceData(device, "");
 }
 
-DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &tableName, TableSyncType type)
+DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
 {
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
         LOGE("invalid table name.");
@@ -178,6 +178,22 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
         LOGW("[RelationalStore Delegate] remove device data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+    const std::function<void(SyncProcess)> &onProcess, int64_t waitTime)
+{
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
+{
     return OK;
 }
 } // namespace DistributedDB

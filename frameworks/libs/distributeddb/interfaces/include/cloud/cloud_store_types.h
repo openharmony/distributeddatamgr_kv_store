@@ -25,65 +25,71 @@
 #include "store_types.h"
 
 namespace DistributedDB {
-    enum TableSyncType {
-        DEVICE_COOPERATION = 0,
-        CLOUD_COOPERATION = 1,
-    };
+enum TableSyncType {
+    DEVICE_COOPERATION = 0,
+    CLOUD_COOPERATION = 1,
+};
 
-    enum ClearMode {
-        DATA_INCLUDE = 0,
-        FLAG_ONLY = 1,
-    };
+enum ClearMode {
+    FLAG_AND_DATA = 0,
+    FLAG_ONLY = 1,
+};
 
-    struct Asset {
-        uint32_t version = 0;
-        std::string name;
-        std::string uri;
-        std::string modifyTime;
-        std::string createTime;
-        std::string size;
-        std::string hash;
-    };
+struct Asset {
+    uint32_t version = 0;
+    std::string name;
+    std::string uri;
+    std::string modifyTime;
+    std::string createTime;
+    std::string size;
+    std::string hash;
+};
+using Nil = std::monostate;
+using Assets = std::vector<Asset>;
+using Bytes = std::vector<uint8_t>;
+using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets>;
+using VBucket = std::map<std::string, Type>;
 
-    using Assets = std::vector<Asset>;
-    using Bytes = std::vector<uint8_t>;
-    using CloudValue = std::variant<std::monostate, int64_t, double, std::string, bool, Bytes, Asset, Assets>;
-    using VBucket = std::map<std::string, CloudValue>;
+enum ProcessStatus {
+    PREPARED = 0,
+    PROCESSING = 1,
+    FINISHED = 2,
+};
 
-    enum ProcessStatus {
-        PREPARED = 0,
-        PROCESSING = 1,
-        FINISHED = 2,
-    };
+struct Info {
+    uint32_t batchIndex = 0;
+    uint32_t total = 0;
+    uint32_t successCount = 0; // merge or upload success count
+    uint32_t failCount = 0;
+};
 
-    struct Info {
-        uint32_t batchIndex = 0;
-        uint32_t total = 0;
-        uint32_t successCount = 0; // merge or upload success count
-        uint32_t failCount = 0;
-    };
+struct TableProcessInfo {
+    ProcessStatus process = PREPARED;
+    Info downLoadInfo;
+    Info upLoadInfo;
+};
 
-    struct SyncProcess {
-        ProcessStatus process = PREPARED;
-        DBStatus errCode = OK;
-        Info downLoadInfo;
-        Info upLoadInfo;
-    };
+struct SyncProcess {
+    ProcessStatus process = PREPARED;
+    DBStatus errCode = OK;
+    std::map<std::string, TableProcessInfo> tableProcess;
+};
 
-    struct Field {
-        std::string colName;
-        int32_t type; // get value from TYPE_INDEX;
-        bool primary = false;
-        bool nullable = true;
-    };
+struct Field {
+    std::string colName;
+    int32_t type; // get value from TYPE_INDEX;
+    bool primary = false;
+    bool nullable = true;
+};
 
-    struct TableSchema {
-        std::string name;
-        std::vector<Field> fields;
-    };
+struct TableSchema {
+    std::string name;
+    std::vector<Field> fields;
+};
 
-    struct DataBaseSchema {
-        std::vector<TableSchema> tables;
-    };
+struct DataBaseSchema {
+    std::vector<TableSchema> tables;
+};
+
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

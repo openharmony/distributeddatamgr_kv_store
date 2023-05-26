@@ -30,6 +30,11 @@ Query Query::Select(const std::string &tableName)
     return query;
 }
 
+Query &Query::FromTable(const std::vector<std::string> &tableNames)
+{
+    return *this;
+}
+
 Query &Query::BeginGroup()
 {
     queryExpression_.BeginGroup();

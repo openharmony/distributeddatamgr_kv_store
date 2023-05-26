@@ -68,6 +68,8 @@ enum DBStatus {
     RATE_LIMIT,
     DATA_HANDLE_ERROR, // remote handle data failed
     CONSTRAINT, // constraint check failed in sqlite
+    CLOUD_ERROR, // cloud error
+    QUERY_END, // Indicates that query function has queried last data from cloud
 };
 
 struct KvStoreConfig {
