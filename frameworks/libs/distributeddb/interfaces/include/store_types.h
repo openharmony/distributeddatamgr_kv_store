@@ -112,6 +112,9 @@ enum SyncMode {
     SYNC_MODE_PUSH_ONLY,
     SYNC_MODE_PULL_ONLY,
     SYNC_MODE_PUSH_PULL,
+    SYNC_MODE_CLOUD_MERGE = 4,
+    SYNC_MODE_CLOUD_FORCE_PUSH,
+    SYNC_MODE_CLOUD_FORCE_PULL,
 };
 
 enum ConflictResolvePolicy {
