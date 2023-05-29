@@ -67,7 +67,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -93,7 +93,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -123,7 +123,7 @@ Status SingleStoreImpl::Delete(const Key &key)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -147,7 +147,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -175,14 +175,14 @@ Status SingleStoreImpl::StartTransaction()
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
     auto dbStatus = dbStore_->StartTransaction();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
 }
@@ -192,14 +192,14 @@ Status SingleStoreImpl::Commit()
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
     auto dbStatus = dbStore_->Commit();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, dbStore_->GetStoreId().c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(dbStore_->GetStoreId()).c_str());
     }
     return status;
 }
@@ -209,14 +209,14 @@ Status SingleStoreImpl::Rollback()
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
     auto dbStatus = dbStore_->Rollback();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(dbStore_->GetStoreId()).c_str());
     }
     return status;
 }
@@ -226,7 +226,7 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -265,7 +265,7 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -303,7 +303,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -393,7 +393,7 @@ Status SingleStoreImpl::CloseResultSet(std::shared_ptr<ResultSet> &resultSet)
 
     auto status = resultSet->Close();
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     resultSet = nullptr;
     return status;
@@ -404,7 +404,7 @@ Status SingleStoreImpl::GetCount(const DataQuery &query, int &result) const
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -422,7 +422,7 @@ Status SingleStoreImpl::GetSecurityLevel(SecurityLevel &secLevel) const
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -441,7 +441,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -560,7 +560,8 @@ Status SingleStoreImpl::SubscribeWithQuery(const std::vector<std::string> &devic
     syncInfo.query = query.ToString();
     auto syncAgent = service->GetSyncAgent({ appId_ });
     if (syncAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(), storeId_.c_str());
+        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
+            StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
@@ -581,7 +582,8 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
     syncInfo.query = query.ToString();
     auto syncAgent = service->GetSyncAgent({ appId_ });
     if (syncAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(), storeId_.c_str());
+        ZLOGE("failed! invalid agent app:%{public}s, store:%{public}s!", appId_.c_str(),
+            StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
@@ -617,7 +619,8 @@ Status SingleStoreImpl::Backup(const std::string &file, const std::string &baseD
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__));
     auto status = BackupManager::GetInstance().Backup(file, baseDir, storeId_, dbStore_);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status, storeId_.c_str(), file.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s backup:%{public}s ", status,
+            StoreUtil::Anonymous(storeId_).c_str(), file.c_str());
     }
     return status;
 }
@@ -641,7 +644,7 @@ Status SingleStoreImpl::DeleteBackup(const std::vector<std::string> &files, cons
     }
     auto status = BackupManager::GetInstance().DeleteBackup(results, baseDir, storeId_);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
 }
@@ -718,7 +721,7 @@ Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<Resul
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -735,7 +738,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -767,7 +770,8 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
 
     auto syncAgent = service->GetSyncAgent({ appId_ });
     if (syncAgent == nullptr) {
-        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
+        ZLOGE("failed! invalid agent app:%{public}s store:%{public}s!", appId_.c_str(),
+            StoreUtil::Anonymous(storeId_).c_str());
         return ILLEGAL_STATE;
     }
 
@@ -784,7 +788,7 @@ void SingleStoreImpl::DoAutoSync()
     if (!autoSync_) {
         return;
     }
-    ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), storeId_.c_str());
+    ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
     AutoSyncTimer::GetInstance().DoAutoSync(appId_, { { storeId_ } });
     expiration_ = steady_clock::now() + seconds(interval_);
 }
@@ -796,7 +800,7 @@ void SingleStoreImpl::Online(const std::string &device)
     }
 
     ZLOGI("device:%{public}s online app:%{public}s store:%{public}s Sync!", StoreUtil::Anonymous(device).c_str(),
-        appId_.c_str(), storeId_.c_str());
+        appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
     SyncInfo syncInfo;
     syncInfo.devices = { device };
     DoSync(syncInfo, nullptr);

@@ -114,7 +114,7 @@ Status KVDBServiceClient::BeforeCreate(const AppId &appId, const StoreId &storeI
     int32_t status = IPC_SEND(TRANS_BEFORE_CREATE, reply, appId, storeId, options);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -126,7 +126,7 @@ Status KVDBServiceClient::AfterCreate(
     int32_t status = IPC_SEND(TRANS_AFTER_CREATE, reply, appId, storeId, options, password);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s, encrypt:%{public}d", status,
-            appId.appId.c_str(), storeId.storeId.c_str(), options.encrypt);
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), options.encrypt);
     }
     return static_cast<Status>(status);
 }
@@ -137,7 +137,7 @@ Status KVDBServiceClient::Delete(const AppId &appId, const StoreId &storeId)
     int32_t status = IPC_SEND(TRANS_DELETE, reply, appId, storeId);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -149,7 +149,7 @@ Status KVDBServiceClient::Sync(const AppId &appId, const StoreId &storeId, const
         syncInfo.delay, syncInfo.query);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, sequenceId:%{public}" PRIu64, status,
-            appId.appId.c_str(), storeId.storeId.c_str(), syncInfo.seqId);
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), syncInfo.seqId);
     }
     return static_cast<Status>(status);
 }
@@ -181,7 +181,7 @@ Status KVDBServiceClient::SetSyncParam(const AppId &appId, const StoreId &storeI
     int32_t status = IPC_SEND(TRANS_SET_SYNC_PARAM, reply, appId, storeId, syncParam.allowedDelayMs);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -192,7 +192,7 @@ Status KVDBServiceClient::GetSyncParam(const AppId &appId, const StoreId &storeI
     int32_t status = IPC_SEND(TRANS_GET_SYNC_PARAM, reply, appId, storeId);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
         return SUCCESS;
     }
     ITypesUtil::Unmarshal(reply, syncParam.allowedDelayMs);
@@ -205,7 +205,7 @@ Status KVDBServiceClient::EnableCapability(const AppId &appId, const StoreId &st
     int32_t status = IPC_SEND(TRANS_ENABLE_CAP, reply, appId, storeId);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -216,7 +216,7 @@ Status KVDBServiceClient::DisableCapability(const AppId &appId, const StoreId &s
     int32_t status = IPC_SEND(TRANS_DISABLE_CAP, reply, appId, storeId);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -228,7 +228,7 @@ Status KVDBServiceClient::SetCapability(const AppId &appId, const StoreId &store
     int32_t status = IPC_SEND(TRANS_SET_CAP, reply, appId, storeId, local, remote);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s", status, appId.appId.c_str(),
-            storeId.storeId.c_str());
+            StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -239,7 +239,8 @@ Status KVDBServiceClient::AddSubscribeInfo(const AppId &appId, const StoreId &st
     int32_t status = IPC_SEND(TRANS_ADD_SUB, reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
-            appId.appId.c_str(), storeId.storeId.c_str(), StoreUtil::Anonymous(syncInfo.query).c_str());
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(syncInfo.query).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -250,7 +251,8 @@ Status KVDBServiceClient::RmvSubscribeInfo(const AppId &appId, const StoreId &st
     int32_t status = IPC_SEND(TRANS_RMV_SUB, reply, appId, storeId, syncInfo.seqId, syncInfo.devices, syncInfo.query);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, query:%{public}s", status,
-            appId.appId.c_str(), storeId.storeId.c_str(), StoreUtil::Anonymous(syncInfo.query).c_str());
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(syncInfo.query).c_str());
     }
     return static_cast<Status>(status);
 }
@@ -261,7 +263,8 @@ Status KVDBServiceClient::Subscribe(const AppId &appId, const StoreId &storeId, 
     int32_t status = IPC_SEND(TRANS_SUB, reply, appId, storeId, observer->AsObject());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, observer:0x%{public}x", status,
-            appId.appId.c_str(), storeId.storeId.c_str(), StoreUtil::Anonymous(observer.GetRefPtr()));
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(observer.GetRefPtr()));
     }
     return static_cast<Status>(status);
 }
@@ -272,7 +275,8 @@ Status KVDBServiceClient::Unsubscribe(const AppId &appId, const StoreId &storeId
     int32_t status = IPC_SEND(TRANS_UNSUB, reply, appId, storeId, observer->AsObject().GetRefPtr());
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x, appId:%{public}s, storeId:%{public}s, observer:0x%{public}x", status,
-            appId.appId.c_str(), storeId.storeId.c_str(), StoreUtil::Anonymous(observer.GetRefPtr()));
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(),
+            StoreUtil::Anonymous(observer.GetRefPtr()));
     }
     return static_cast<Status>(status);
 }
@@ -284,7 +288,7 @@ Status KVDBServiceClient::GetBackupPassword(
     int32_t status = IPC_SEND(TRANS_GET_PASSWORD, reply, appId, storeId);
     if (status != SUCCESS) {
         ZLOGE("status:0x%{public}x appId:%{public}s, storeId:%{public}s", status,
-            appId.appId.c_str(), storeId.storeId.c_str());
+            appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     }
     ITypesUtil::Unmarshal(reply, password);
     return static_cast<Status>(status);
