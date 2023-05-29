@@ -126,11 +126,37 @@ struct TableStatus {
     std::string tableName;
     DBStatus status;
 };
+
+enum ProcessStatus {
+    PREPARED = 0,
+    PROCESSING = 1,
+    FINISHED = 2,
+};
+
+struct Info {
+    uint32_t batchIndex = 0;
+    uint32_t total = 0;
+    uint32_t successCount = 0; // merge or upload success count
+    uint32_t failCount = 0;
+};
+
+struct TableProcessInfo {
+    ProcessStatus process = PREPARED;
+    Info downLoadInfo;
+    Info upLoadInfo;
+};
+
+struct SyncProcess {
+    ProcessStatus process = PREPARED;
+    DBStatus errCode = OK;
+    std::map<std::string, TableProcessInfo> tableProcess;
+};
 using KvStoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using StoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using SyncStatusCallback = std::function<void(const std::map<std::string, std::vector<TableStatus>> &devicesMap)>;
+using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
 
 struct RemoteCondition {
     std::string sql;  // The sql statement;

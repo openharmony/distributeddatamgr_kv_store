@@ -50,31 +50,6 @@ using Bytes = std::vector<uint8_t>;
 using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets>;
 using VBucket = std::map<std::string, Type>;
 
-enum ProcessStatus {
-    PREPARED = 0,
-    PROCESSING = 1,
-    FINISHED = 2,
-};
-
-struct Info {
-    uint32_t batchIndex = 0;
-    uint32_t total = 0;
-    uint32_t successCount = 0; // merge or upload success count
-    uint32_t failCount = 0;
-};
-
-struct TableProcessInfo {
-    ProcessStatus process = PREPARED;
-    Info downLoadInfo;
-    Info upLoadInfo;
-};
-
-struct SyncProcess {
-    ProcessStatus process = PREPARED;
-    DBStatus errCode = OK;
-    std::map<std::string, TableProcessInfo> tableProcess;
-};
-
 struct Field {
     std::string colName;
     int32_t type; // get value from TYPE_INDEX;
