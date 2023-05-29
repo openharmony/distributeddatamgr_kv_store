@@ -17,6 +17,7 @@
 #include "log_print.h"
 #include "security_manager.h"
 #include "store_factory.h"
+#include "store_util.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
 {
