@@ -37,7 +37,6 @@
     "subsystem": "distributeddatamgr",
     "syscap": [
       "SystemCapability.DistributedDataManager.KVStore.Core",
-      "SystemCapability.DistributedDataManager.KVStore.Lite",
       "SystemCapability.DistributedDataManager.KVStore.DistributedKVStore"
     ],
     "features": [],
