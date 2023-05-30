@@ -191,10 +191,11 @@ public:
         return (jsValue == nullptr) ? StatusMsg(status) : GetValue(env, jsValue, value);
     };
 
+    static const std::optional<JsFeatureSpace> GetJsFeatureSpace(const std::string &name);
     /* napi_define_class  wrapper */
-    static napi_value DefineClass(napi_env env, const std::string& name,
-        const napi_property_descriptor* properties, size_t count, napi_callback newcb);
-
+    static napi_value DefineClass(napi_env env, const std::string &spaceName, const std::string &className,
+        const Descriptor &descriptor, napi_callback ctor);
+    static napi_value GetClass(napi_env env, const std::string &spaceName, const std::string &className);
     /* napi_new_instance  wrapper */
     static napi_ref NewWithRef(napi_env env, size_t argc, napi_value* argv, void** out, napi_value constructor);
 
