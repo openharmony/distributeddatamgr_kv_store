@@ -63,14 +63,16 @@ JsFieldNode::json JsFieldNode::GetValueForJson()
 
 napi_value JsFieldNode::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("appendChild", JsFieldNode::AppendChild),
-        DECLARE_NAPI_GETTER_SETTER("default", JsFieldNode::GetDefaultValue, JsFieldNode::SetDefaultValue),
-        DECLARE_NAPI_GETTER_SETTER("nullable", JsFieldNode::GetNullable, JsFieldNode::SetNullable),
-        DECLARE_NAPI_GETTER_SETTER("type", JsFieldNode::GetValueType, JsFieldNode::SetValueType)
+    auto lambda = []() -> std::vector<napi_property_descriptor>{
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("appendChild", JsFieldNode::AppendChild),
+            DECLARE_NAPI_GETTER_SETTER("default", JsFieldNode::GetDefaultValue, JsFieldNode::SetDefaultValue),
+            DECLARE_NAPI_GETTER_SETTER("nullable", JsFieldNode::GetNullable, JsFieldNode::SetNullable),
+            DECLARE_NAPI_GETTER_SETTER("type", JsFieldNode::GetValueType, JsFieldNode::SetValueType)
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "FieldNode", properties, count, JsFieldNode::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "FieldNode", lambda, JsFieldNode::New);
 }
 
 napi_value JsFieldNode::New(napi_env env, napi_callback_info info)

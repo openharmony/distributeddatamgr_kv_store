@@ -367,16 +367,18 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
 
 napi_value JsKVManager::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("getKVStore", JsKVManager::GetKVStore),
-        DECLARE_NAPI_FUNCTION("closeKVStore", JsKVManager::CloseKVStore),
-        DECLARE_NAPI_FUNCTION("deleteKVStore", JsKVManager::DeleteKVStore),
-        DECLARE_NAPI_FUNCTION("getAllKVStoreId", JsKVManager::GetAllKVStoreId),
-        DECLARE_NAPI_FUNCTION("on", JsKVManager::On),
-        DECLARE_NAPI_FUNCTION("off", JsKVManager::Off)
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("getKVStore", JsKVManager::GetKVStore),
+            DECLARE_NAPI_FUNCTION("closeKVStore", JsKVManager::CloseKVStore),
+            DECLARE_NAPI_FUNCTION("deleteKVStore", JsKVManager::DeleteKVStore),
+            DECLARE_NAPI_FUNCTION("getAllKVStoreId", JsKVManager::GetAllKVStoreId),
+            DECLARE_NAPI_FUNCTION("on", JsKVManager::On),
+            DECLARE_NAPI_FUNCTION("off", JsKVManager::Off),
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "JsKVManager", properties, count, JsKVManager::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "JsKVManager", lambda, JsKVManager::New);
 }
 
 napi_value JsKVManager::New(napi_env env, napi_callback_info info)

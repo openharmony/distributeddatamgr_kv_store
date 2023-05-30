@@ -44,32 +44,33 @@ JsDeviceKVStore::JsDeviceKVStore(const std::string& storeId)
 
 napi_value JsDeviceKVStore::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("put", JsSingleKVStore::Put),
-        DECLARE_NAPI_FUNCTION("delete", JsSingleKVStore::Delete),
-        DECLARE_NAPI_FUNCTION("putBatch", JsSingleKVStore::PutBatch),
-        DECLARE_NAPI_FUNCTION("deleteBatch", JsSingleKVStore::DeleteBatch),
-        DECLARE_NAPI_FUNCTION("startTransaction", JsSingleKVStore::StartTransaction),
-        DECLARE_NAPI_FUNCTION("commit", JsSingleKVStore::Commit),
-        DECLARE_NAPI_FUNCTION("rollback", JsSingleKVStore::Rollback),
-        DECLARE_NAPI_FUNCTION("enableSync", JsSingleKVStore::EnableSync),
-        DECLARE_NAPI_FUNCTION("setSyncRange", JsSingleKVStore::SetSyncRange),
-        DECLARE_NAPI_FUNCTION("backup", JsSingleKVStore::Backup),
-        DECLARE_NAPI_FUNCTION("restore", JsSingleKVStore::Restore),
-        /* JsDeviceKVStore externs JsSingleKVStore */
-        DECLARE_NAPI_FUNCTION("get", JsDeviceKVStore::Get),
-        DECLARE_NAPI_FUNCTION("getEntries", JsDeviceKVStore::GetEntries),
-        DECLARE_NAPI_FUNCTION("getResultSet", JsDeviceKVStore::GetResultSet),
-        DECLARE_NAPI_FUNCTION("getResultSize", JsDeviceKVStore::GetResultSize),
-        DECLARE_NAPI_FUNCTION("closeResultSet", JsSingleKVStore::CloseResultSet),
-        DECLARE_NAPI_FUNCTION("removeDeviceData", JsSingleKVStore::RemoveDeviceData),
-        DECLARE_NAPI_FUNCTION("sync", JsSingleKVStore::Sync),
-        DECLARE_NAPI_FUNCTION("on", JsSingleKVStore::OnEvent), /* same to JsSingleKVStore */
-        DECLARE_NAPI_FUNCTION("off", JsSingleKVStore::OffEvent) /* same to JsSingleKVStore */
+    auto lambda = []() -> std::vector<napi_property_descriptor>{
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("put", JsSingleKVStore::Put),
+            DECLARE_NAPI_FUNCTION("delete", JsSingleKVStore::Delete),
+            DECLARE_NAPI_FUNCTION("putBatch", JsSingleKVStore::PutBatch),
+            DECLARE_NAPI_FUNCTION("deleteBatch", JsSingleKVStore::DeleteBatch),
+            DECLARE_NAPI_FUNCTION("startTransaction", JsSingleKVStore::StartTransaction),
+            DECLARE_NAPI_FUNCTION("commit", JsSingleKVStore::Commit),
+            DECLARE_NAPI_FUNCTION("rollback", JsSingleKVStore::Rollback),
+            DECLARE_NAPI_FUNCTION("enableSync", JsSingleKVStore::EnableSync),
+            DECLARE_NAPI_FUNCTION("setSyncRange", JsSingleKVStore::SetSyncRange),
+            DECLARE_NAPI_FUNCTION("backup", JsSingleKVStore::Backup),
+            DECLARE_NAPI_FUNCTION("restore", JsSingleKVStore::Restore),
+            /* JsDeviceKVStore externs JsSingleKVStore */
+            DECLARE_NAPI_FUNCTION("get", JsDeviceKVStore::Get),
+            DECLARE_NAPI_FUNCTION("getEntries", JsDeviceKVStore::GetEntries),
+            DECLARE_NAPI_FUNCTION("getResultSet", JsDeviceKVStore::GetResultSet),
+            DECLARE_NAPI_FUNCTION("getResultSize", JsDeviceKVStore::GetResultSize),
+            DECLARE_NAPI_FUNCTION("closeResultSet", JsSingleKVStore::CloseResultSet),
+            DECLARE_NAPI_FUNCTION("removeDeviceData", JsSingleKVStore::RemoveDeviceData),
+            DECLARE_NAPI_FUNCTION("sync", JsSingleKVStore::Sync),
+            DECLARE_NAPI_FUNCTION("on", JsSingleKVStore::OnEvent), /* same to JsSingleKVStore */
+            DECLARE_NAPI_FUNCTION("off", JsSingleKVStore::OffEvent) /* same to JsSingleKVStore */
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-
-    return JSUtil::DefineClass(env, "DeviceKVStore", properties, count, JsDeviceKVStore::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "DeviceKVStore", lambda, JsDeviceKVStore::New);
 }
 
 /*

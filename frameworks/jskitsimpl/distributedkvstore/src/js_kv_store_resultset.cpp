@@ -35,23 +35,25 @@ std::shared_ptr<KvStoreResultSet> JsKVStoreResultSet::GetKvStoreResultSetPtr()
 
 napi_value JsKVStoreResultSet::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("getCount", JsKVStoreResultSet::GetCount),
-        DECLARE_NAPI_FUNCTION("getPosition", JsKVStoreResultSet::GetPosition),
-        DECLARE_NAPI_FUNCTION("moveToFirst", JsKVStoreResultSet::MoveToFirst),
-        DECLARE_NAPI_FUNCTION("moveToLast", JsKVStoreResultSet::MoveToLast),
-        DECLARE_NAPI_FUNCTION("moveToNext", JsKVStoreResultSet::MoveToNext),
-        DECLARE_NAPI_FUNCTION("moveToPrevious", JsKVStoreResultSet::MoveToPrevious),
-        DECLARE_NAPI_FUNCTION("move", JsKVStoreResultSet::Move),
-        DECLARE_NAPI_FUNCTION("moveToPosition", JsKVStoreResultSet::MoveToPosition),
-        DECLARE_NAPI_FUNCTION("isFirst", JsKVStoreResultSet::IsFirst),
-        DECLARE_NAPI_FUNCTION("isLast", JsKVStoreResultSet::IsLast),
-        DECLARE_NAPI_FUNCTION("isBeforeFirst", JsKVStoreResultSet::IsBeforeFirst),
-        DECLARE_NAPI_FUNCTION("isAfterLast", JsKVStoreResultSet::IsAfterLast),
-        DECLARE_NAPI_FUNCTION("getEntry", JsKVStoreResultSet::GetEntry)
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("getCount", JsKVStoreResultSet::GetCount),
+            DECLARE_NAPI_FUNCTION("getPosition", JsKVStoreResultSet::GetPosition),
+            DECLARE_NAPI_FUNCTION("moveToFirst", JsKVStoreResultSet::MoveToFirst),
+            DECLARE_NAPI_FUNCTION("moveToLast", JsKVStoreResultSet::MoveToLast),
+            DECLARE_NAPI_FUNCTION("moveToNext", JsKVStoreResultSet::MoveToNext),
+            DECLARE_NAPI_FUNCTION("moveToPrevious", JsKVStoreResultSet::MoveToPrevious),
+            DECLARE_NAPI_FUNCTION("move", JsKVStoreResultSet::Move),
+            DECLARE_NAPI_FUNCTION("moveToPosition", JsKVStoreResultSet::MoveToPosition),
+            DECLARE_NAPI_FUNCTION("isFirst", JsKVStoreResultSet::IsFirst),
+            DECLARE_NAPI_FUNCTION("isLast", JsKVStoreResultSet::IsLast),
+            DECLARE_NAPI_FUNCTION("isBeforeFirst", JsKVStoreResultSet::IsBeforeFirst),
+            DECLARE_NAPI_FUNCTION("isAfterLast", JsKVStoreResultSet::IsAfterLast),
+            DECLARE_NAPI_FUNCTION("getEntry", JsKVStoreResultSet::GetEntry),
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "KVStoreResultSet", properties, count, JsKVStoreResultSet::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "KVStoreResultSet", lambda, JsKVStoreResultSet::New);
 }
 
 napi_value JsKVStoreResultSet::New(napi_env env, napi_callback_info info)

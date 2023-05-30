@@ -120,34 +120,36 @@ JsSingleKVStore::~JsSingleKVStore()
 
 napi_value JsSingleKVStore::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("put", JsSingleKVStore::Put),
-        DECLARE_NAPI_FUNCTION("delete", JsSingleKVStore::Delete),
-        DECLARE_NAPI_FUNCTION("putBatch", JsSingleKVStore::PutBatch),
-        DECLARE_NAPI_FUNCTION("deleteBatch", JsSingleKVStore::DeleteBatch),
-        DECLARE_NAPI_FUNCTION("startTransaction", JsSingleKVStore::StartTransaction),
-        DECLARE_NAPI_FUNCTION("commit", JsSingleKVStore::Commit),
-        DECLARE_NAPI_FUNCTION("rollback", JsSingleKVStore::Rollback),
-        DECLARE_NAPI_FUNCTION("enableSync", JsSingleKVStore::EnableSync),
-        DECLARE_NAPI_FUNCTION("setSyncRange", JsSingleKVStore::SetSyncRange),
-        DECLARE_NAPI_FUNCTION("backup", JsSingleKVStore::Backup),
-        DECLARE_NAPI_FUNCTION("restore", JsSingleKVStore::Restore),
-        DECLARE_NAPI_FUNCTION("deleteBackup", JsSingleKVStore::DeleteBackup),
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("put", JsSingleKVStore::Put),
+            DECLARE_NAPI_FUNCTION("delete", JsSingleKVStore::Delete),
+            DECLARE_NAPI_FUNCTION("putBatch", JsSingleKVStore::PutBatch),
+            DECLARE_NAPI_FUNCTION("deleteBatch", JsSingleKVStore::DeleteBatch),
+            DECLARE_NAPI_FUNCTION("startTransaction", JsSingleKVStore::StartTransaction),
+            DECLARE_NAPI_FUNCTION("commit", JsSingleKVStore::Commit),
+            DECLARE_NAPI_FUNCTION("rollback", JsSingleKVStore::Rollback),
+            DECLARE_NAPI_FUNCTION("enableSync", JsSingleKVStore::EnableSync),
+            DECLARE_NAPI_FUNCTION("setSyncRange", JsSingleKVStore::SetSyncRange),
+            DECLARE_NAPI_FUNCTION("backup", JsSingleKVStore::Backup),
+            DECLARE_NAPI_FUNCTION("restore", JsSingleKVStore::Restore),
+            DECLARE_NAPI_FUNCTION("deleteBackup", JsSingleKVStore::DeleteBackup),
 
-        DECLARE_NAPI_FUNCTION("get", JsSingleKVStore::Get),
-        DECLARE_NAPI_FUNCTION("getEntries", JsSingleKVStore::GetEntries),
-        DECLARE_NAPI_FUNCTION("getResultSet", JsSingleKVStore::GetResultSet),
-        DECLARE_NAPI_FUNCTION("closeResultSet", JsSingleKVStore::CloseResultSet),
-        DECLARE_NAPI_FUNCTION("getResultSize", JsSingleKVStore::GetResultSize),
-        DECLARE_NAPI_FUNCTION("removeDeviceData", JsSingleKVStore::RemoveDeviceData),
-        DECLARE_NAPI_FUNCTION("sync", JsSingleKVStore::Sync),
-        DECLARE_NAPI_FUNCTION("setSyncParam", JsSingleKVStore::SetSyncParam),
-        DECLARE_NAPI_FUNCTION("getSecurityLevel", JsSingleKVStore::GetSecurityLevel),
-        DECLARE_NAPI_FUNCTION("on", JsSingleKVStore::OnEvent), /* same to JsDeviceKVStore */
-        DECLARE_NAPI_FUNCTION("off", JsSingleKVStore::OffEvent) /* same to JsDeviceKVStore */
+            DECLARE_NAPI_FUNCTION("get", JsSingleKVStore::Get),
+            DECLARE_NAPI_FUNCTION("getEntries", JsSingleKVStore::GetEntries),
+            DECLARE_NAPI_FUNCTION("getResultSet", JsSingleKVStore::GetResultSet),
+            DECLARE_NAPI_FUNCTION("closeResultSet", JsSingleKVStore::CloseResultSet),
+            DECLARE_NAPI_FUNCTION("getResultSize", JsSingleKVStore::GetResultSize),
+            DECLARE_NAPI_FUNCTION("removeDeviceData", JsSingleKVStore::RemoveDeviceData),
+            DECLARE_NAPI_FUNCTION("sync", JsSingleKVStore::Sync),
+            DECLARE_NAPI_FUNCTION("setSyncParam", JsSingleKVStore::SetSyncParam),
+            DECLARE_NAPI_FUNCTION("getSecurityLevel", JsSingleKVStore::GetSecurityLevel),
+            DECLARE_NAPI_FUNCTION("on", JsSingleKVStore::OnEvent), /* same to JsDeviceKVStore */
+            DECLARE_NAPI_FUNCTION("off", JsSingleKVStore::OffEvent) /* same to JsDeviceKVStore */
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "SingleKVStore", properties, count, JsSingleKVStore::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "SingleKVStore", lambda, JsSingleKVStore::New);
 }
 
 /*

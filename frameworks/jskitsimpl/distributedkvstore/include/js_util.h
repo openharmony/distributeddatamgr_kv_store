@@ -56,6 +56,12 @@ public:
             return status;
         }
     };
+
+    struct JsFeatureSpace {
+        const char* spaceName;
+        const char* nameBase64;
+        bool isComponent;
+    };
 	
     using JsSchema = class JsSchema;
     using Blob = OHOS::DistributedKv::Blob;
@@ -69,6 +75,7 @@ public:
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
+    using Descriptor = std::function<std::vector<napi_property_descriptor>()>;
 	
     static KvStoreVariant Blob2VariantValue(const Blob& blob);
     static Blob VariantValue2Blob(const KvStoreVariant& value);
