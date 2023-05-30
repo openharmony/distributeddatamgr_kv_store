@@ -286,4 +286,12 @@ bool SyncAbleEngine::NeedStartSyncer() const
     // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
     return !started_ && (isSyncNeedActive_ || !isSyncModuleActiveCheck_);
 }
+
+int SyncAbleEngine::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    if (NeedStartSyncer()) {
+        StartSyncer();
+    }
+    return syncer_.GetHashDeviceId(clientId, hashDevId);
+}
 }

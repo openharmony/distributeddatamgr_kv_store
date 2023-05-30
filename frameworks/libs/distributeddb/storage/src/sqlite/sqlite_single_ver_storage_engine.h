@@ -98,7 +98,7 @@ private:
     int GetDbHandle(bool isWrite, const SecurityOption &secOpt, sqlite3 *&dbHandle);
     int AttachMetaDatabase(sqlite3 *dbHandle, const OpenDbProperties &option) const;
     int AttachMainDbAndCacheDb(SQLiteSingleVerStorageExecutor *handle, EngineState stateBeforeMigrate);
-    int AttachMainDbAndCacheDb(sqlite3 *db, EngineState stateBeforeMigrate) const;
+    int AttachMainDbAndCacheDb(sqlite3 *dbHandle, EngineState stateBeforeMigrate) const;
     void RegisterFunctionIfNeed(sqlite3 *dbHandle) const;
     int TryAttachMetaDb(sqlite3 *&dbHandle, bool &isAttachMeta);
 

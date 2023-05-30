@@ -141,7 +141,7 @@ int SQLiteRelationalStoreConnection::RollBack()
     return errCode;
 }
 
-int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &tableName)
+int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &tableName, TableSyncType syncType)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -149,9 +149,24 @@ int SQLiteRelationalStoreConnection::CreateDistributedTable(const std::string &t
         return -E_INVALID_CONNECTION;
     }
 
-    int errCode = store->CreateDistributedTable(tableName);
+    int errCode = store->CreateDistributedTable(tableName, syncType);
     if (errCode != E_OK) {
         LOGE("[RelationalConnection] create distributed table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStoreConnection::RemoveDeviceData()
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int errCode = store->RemoveDeviceData();
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] remove device data failed. %d", errCode);
     }
     return errCode;
 }

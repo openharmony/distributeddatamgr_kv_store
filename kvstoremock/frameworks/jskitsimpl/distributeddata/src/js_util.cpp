@@ -1095,7 +1095,6 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query)
     PredicatesProxy *predicates = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&predicates));
     CHECK_RETURN((predicates != nullptr), "invalid type", napi_invalid_arg);
-    std::vector<Key> keys;
     Status status = KvUtils::ToQuery(*(predicates->predicates_), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
@@ -1162,5 +1161,45 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
         CHECK_RETURN(status == napi_ok, "get hap name failed", napi_invalid_arg);
     }
     return napi_ok;
+}
+
+napi_status JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::UserInfo& userInfo)
+{
+    napi_status status = napi_ok;
+    status = GetNamedProperty(env, in, "userId", userInfo.userId, true);
+    return status != napi_ok ? status : GetNamedProperty(env, in, "userType", userInfo.userType, true);
+}
+
+bool JSUtil::IsNull(napi_env env, napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
+}
+
+std::pair<napi_status, napi_value> JSUtil::GetInnerValue(
+    napi_env env, napi_value in, const std::string& prop, bool optional)
+{
+    bool hasProp = false;
+    napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+    if (status != napi_ok) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (!hasProp) {
+        status = optional ? napi_ok : napi_generic_failure;
+        return std::make_pair(status, nullptr);
+    }
+    napi_value inner = nullptr;
+    status = napi_get_named_property(env, in, prop.c_str(), &inner);
+    if (status != napi_ok || inner == nullptr) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (optional && JSUtil::IsNull(env, inner)) {
+        return std::make_pair(napi_ok, nullptr);
+    }
+    return std::make_pair(napi_ok, inner);
 }
 } // namespace OHOS::DistributedData

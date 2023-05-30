@@ -335,6 +335,11 @@ int RelationalSchemaObject::ParseCheckTableInfo(const JsonObject &inJsonObject)
     if (errCode != E_OK) {
         return errCode;
     }
+
+    errCode = ParseCheckTableSyncType(inJsonObject, resultTable);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     errCode = ParseCheckTableIndex(inJsonObject, resultTable);
     if (errCode != E_OK) {
         return errCode;
@@ -477,6 +482,19 @@ int RelationalSchemaObject::ParseCheckTablePrimaryKey(const JsonObject &inJsonOb
         errCode = -E_SCHEMA_PARSE_FAIL;
     }
     return errCode;
+}
+
+int RelationalSchemaObject::ParseCheckTableSyncType(const JsonObject &inJsonObject, TableInfo &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "TABLE_SYNC_TYPE", FieldType::LEAF_FIELD_INTEGER,
+        false, fieldValue);
+    if (errCode == E_OK) {
+        resultTable.SetTableSyncType(static_cast<TableSyncType>(fieldValue.integerValue));
+    } else if (errCode != -E_NOT_FOUND) {
+        return errCode;
+    }
+    return E_OK; // if there is no "TABLE_SYNC_TYPE" filed, the table_sync_type is DEVICE_COOPERATION
 }
 
 int RelationalSchemaObject::ParseCheckTableIndex(const JsonObject &inJsonObject, TableInfo &resultTable)

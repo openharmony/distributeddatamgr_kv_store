@@ -18,8 +18,8 @@
 
 namespace DistributedDB {
 SQLiteSingleVerRelationalContinueToken::SQLiteSingleVerRelationalContinueToken(
-    const SyncTimeRange &timeRange, const QueryObject &object)
-    : isGettingDeletedData_(false), queryObj_(object), tableName_(queryObj_.GetTableName()), timeRange_(timeRange)
+    const SyncTimeRange &timeRange, const QueryObject &queryObject)
+    : isGettingDeletedData_(false), queryObj_(queryObject), tableName_(queryObj_.GetTableName()), timeRange_(timeRange)
 {}
 
 bool SQLiteSingleVerRelationalContinueToken::CheckValid() const

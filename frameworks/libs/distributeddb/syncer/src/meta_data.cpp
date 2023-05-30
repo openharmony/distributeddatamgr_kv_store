@@ -30,6 +30,7 @@ namespace {
     const int STR_TO_LL_BY_DEVALUE = 10;
     // store local timeoffset;this is a special key;
     const std::string LOCALTIME_OFFSET_KEY = "localTimeOffset";
+    const char *CLIENT_ID_PREFIX_KEY = "clientId";
 }
 
 Metadata::Metadata()
@@ -232,12 +233,11 @@ int Metadata::SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_
     return E_OK;
 }
 
-int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const
+int Metadata::DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue)
 {
     if (inValue.empty()) {
         return -E_INVALID_ARGS;
     }
-
     errno_t err = memcpy_s(&outValue, sizeof(MetaDataValue), inValue.data(), inValue.size());
     if (err != EOK) {
         return -E_SECUREC_ERROR;
@@ -511,7 +511,7 @@ int Metadata::ResetMetaDataAfterRemoveData(const DeviceID &deviceId)
     GetHashDeviceId(deviceId, hashDeviceId, true);
     if (metadataMap_.find(hashDeviceId) != metadataMap_.end()) {
         metadata = metadataMap_[hashDeviceId];
-        metadata.clearDeviceDataMark = 0;
+        metadata.clearDeviceDataMark = 0; // clear mark
         return SaveMetaDataValue(deviceId, metadata);
     }
     return -E_NOT_FOUND;
@@ -569,5 +569,51 @@ void Metadata::RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::str
     if (iter != queryIdMap_.end() && iter->second.find(hashqueryId) != iter->second.end()) {
         iter->second.erase(hashqueryId);
     }
+}
+
+int Metadata::SaveClientId(const std::string &deviceId, const std::string &clientId)
+{
+    {
+        // already save in cache
+        std::lock_guard<std::mutex> autoLock(clientIdLock_);
+        if (clientIdCache_[deviceId] == clientId) {
+            return E_OK;
+        }
+    }
+    std::string keyStr;
+    keyStr.append(CLIENT_ID_PREFIX_KEY).append(clientId);
+    std::string valueStr = DBCommon::TransferHashString(deviceId);
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    DBCommon::StringToVector(valueStr, value);
+    int errCode = SetMetadataToDb(key, value);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::lock_guard<std::mutex> autoLock(clientIdLock_);
+    clientIdCache_[deviceId] = clientId;
+    return E_OK;
+}
+
+int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const
+{
+    // don't use cache here avoid invalid cache
+    std::string keyStr;
+    keyStr.append(CLIENT_ID_PREFIX_KEY).append(clientId);
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    int errCode = GetMetadataFromDb(key, value);
+    if (errCode == -E_NOT_FOUND) {
+        LOGD("[Metadata] not found clientId");
+        return -E_NOT_SUPPORT;
+    }
+    if (errCode != E_OK) {
+        LOGE("[Metadata] reload clientId failed %d", errCode);
+        return errCode;
+    }
+    DBCommon::VectorToString(value, hashDevId);
+    return E_OK;
 }
 }  // namespace DistributedDB

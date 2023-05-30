@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_DeviceKVStore"
+#define LOG_TAG "JsDeviceKVStore"
 #include "js_device_kv_store.h"
 #include <iomanip>
 #include "js_kv_store_resultset.h"
@@ -324,7 +324,7 @@ napi_value JsDeviceKVStore::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGI("deviceKvStore finalize.");
         auto* kvStore = reinterpret_cast<JsDeviceKVStore*>(data);
-        ASSERT_VOID(kvStore != nullptr, "finalize null!");
+        ASSERT_VOID(kvStore != nullptr, "kvStore is null!");
         delete kvStore;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvStore, finalize, nullptr, nullptr), kvStore);

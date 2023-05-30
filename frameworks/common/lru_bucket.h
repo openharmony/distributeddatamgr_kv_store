@@ -63,15 +63,17 @@ public:
     /**
      * The time complexity is O(log(index size))
      **/
-    bool Get(const _Key &key, _Tp &value)
+    bool Get(const _Key &key, _Tp &value, bool isLRU = true)
     {
         std::lock_guard<decltype(mutex_)> lock(mutex_);
         auto it = indexes_.find(key);
         if (it != indexes_.end()) {
-            // move node from the list;
-            Remove(it->second);
-            // insert node to the head
-            Insert(&head_, it->second);
+            if (isLRU) {
+                // move node from the list;
+                Remove(it->second);
+                // insert node to the head
+                Insert(&head_, it->second);
+            }
             value = it->second->value_;
             return true;
         }

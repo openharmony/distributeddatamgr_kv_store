@@ -20,6 +20,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "endian_convert.h"
 #include "log_print.h"
+#include "thread_pool_test_stub.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -29,7 +30,6 @@ namespace {
     EnvHandle g_envDeviceA;
     EnvHandle g_envDeviceB;
     EnvHandle g_envDeviceC;
-}
 
 static void HandleConnectChange(OnOfflineDevice &onlines, const std::string &target, bool isConnect)
 {
@@ -368,14 +368,7 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline002, TestSize.Level1)
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
 }
 
-/**
- * @tc.name: Online And Offline 003
- * @tc.desc: Test functionality triggered by remote restart
- * @tc.type: FUNC
- * @tc.require: AR000CQE0I
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
+void TestRemoteRestart()
 {
     /**
      * @tc.steps: step1. connect device D with device E
@@ -437,6 +430,32 @@ HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
     AdapterStub::DisconnectAdapterStub(envDeviceD.adapterHandle, envDeviceE.adapterHandle);
     TearDownEnv(envDeviceD);
     TearDownEnv(envDeviceE);
+}
+/**
+ * @tc.name: Online And Offline 003
+ * @tc.desc: Test functionality triggered by remote restart
+ * @tc.type: FUNC
+ * @tc.require: AR000CQE0I
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline003, TestSize.Level1)
+{
+    TestRemoteRestart();
+}
+
+/**
+ * @tc.name: Online And Offline 004
+ * @tc.desc: Test functionality triggered by remote restart with thread pool
+ * @tc.type: FUNC
+ * @tc.require: AR000CQE0I
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorTest, OnlineAndOffline004, TestSize.Level1)
+{
+    auto threadPool = std::make_shared<ThreadPoolTestStub>();
+    RuntimeContext::GetInstance()->SetThreadPool(threadPool);
+    TestRemoteRestart();
+    RuntimeContext::GetInstance()->SetThreadPool(nullptr);
 }
 
 /**
@@ -832,4 +851,5 @@ HWTEST_F(DistributedDBCommunicatorTest, ReDeliverMessage003, TestSize.Level2)
     g_envDeviceA.commAggrHandle->ReleaseCommunicator(commAC);
     g_envDeviceB.commAggrHandle->RegCommunicatorLackCallback(nullptr, nullptr);
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+}
 }

@@ -81,6 +81,8 @@ public:
         std::set<std::string> &delayDevices);
     void ResetSendDelayInfo();
 
+    std::set<std::string> GetOnlineDevices();
+
     ~VirtualCommunicatorAggregator() {};
     VirtualCommunicatorAggregator() {};
 

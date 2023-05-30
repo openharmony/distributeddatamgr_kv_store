@@ -43,9 +43,9 @@ void SingleVerRelationalSyncTaskContext::Clear()
     SingleVerSyncTaskContext::Clear();
 }
 
-void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &TaskParam)
+void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam)
 {
-    SingleVerSyncTaskContext::CopyTargetData(target, TaskParam);
+    SingleVerSyncTaskContext::CopyTargetData(target, taskParam);
     std::string hashTableName = DBCommon::TransferHashString(query_.GetRelationTableName());
     std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
     querySyncId_ = hexTableName + query_.GetIdentify(); // save as deviceId + hexTableName + queryId

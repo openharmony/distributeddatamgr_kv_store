@@ -77,7 +77,7 @@ protected:
 
     virtual bool IsPacketValid(uint32_t sessionId);
 
-    void ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
+    int ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId, const std::string &device);
 
 private:
     struct SendMessage {
@@ -93,7 +93,7 @@ private:
 
     int ReceiveRemoteExecutorAck(const std::string &targetDev, Message *inMsg);
 
-    int CheckPermissions(const std::string &device);
+    int CheckPermissions(const std::string &device, Message *inMsg);
 
     int SendRemoteExecutorData(const std::string &device, const Message *inMsg);
 
@@ -143,6 +143,7 @@ private:
 
     ICommunicator *GetAndIncCommunicator() const;
     ISyncInterface *GetAndIncSyncInterface() const;
+    static int CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage, int32_t remoteSecLabel);
 
     std::mutex taskLock_;
     std::map<std::string, std::deque<uint32_t>> searchTaskQueue_; // key is device, value is sessionId queue

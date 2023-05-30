@@ -206,5 +206,12 @@ enum class CompressAlgorithm : uint8_t {
     NONE = 0,
     ZLIB = 1
 };
+
+struct StoreInfo {
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+};
+using TranslateToDeviceIdCallback = std::function<std::string (const std::string &oriDevId, const StoreInfo &info)>;
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_TYPES_EXPORT_H

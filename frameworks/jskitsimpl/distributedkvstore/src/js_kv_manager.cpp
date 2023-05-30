@@ -159,6 +159,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         ctxt->status = napi_get_reference_value(env, ctxt->ref, &result);
         napi_delete_reference(env, ctxt->ref);
         ASSERT_STATUS(ctxt, "output KVManager failed");
+        ZLOGI("output delete reference success");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -406,7 +407,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");
         auto* kvManager = reinterpret_cast<JsKVManager*>(data);
-        ASSERT_VOID(kvManager != nullptr, "finalize null!");
+        ASSERT_VOID(kvManager != nullptr, "kvManager is null!");
         delete kvManager;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr), kvManager);

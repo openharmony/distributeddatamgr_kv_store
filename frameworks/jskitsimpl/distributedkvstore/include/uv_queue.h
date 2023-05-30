@@ -25,7 +25,7 @@ class UvQueue final {
 public:
     using NapiArgsGenerator = std::function<void(napi_env env, int& argc, napi_value* argv)>;
     using NapiCallbackGetter = std::function<napi_value(napi_env env)>;
-    UvQueue(napi_env env);
+    explicit UvQueue(napi_env env);
     ~UvQueue();
 
     napi_env GetEnv();

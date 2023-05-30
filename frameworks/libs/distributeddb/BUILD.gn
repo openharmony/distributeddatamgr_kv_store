@@ -18,6 +18,7 @@ config("distrdb_config") {
   include_dirs = [
     "include",
     "interfaces/include",
+    "interfaces/include/cloud",
     "interfaces/src",
     "interfaces/src/relational",
     "common/include",

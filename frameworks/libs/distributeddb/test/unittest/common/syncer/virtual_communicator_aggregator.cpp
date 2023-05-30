@@ -86,7 +86,6 @@ int VirtualCommunicatorAggregator::RegOnConnectCallback(const OnConnectCallback 
 void VirtualCommunicatorAggregator::RunCommunicatorLackCallback(const LabelType &commLabel)
 {
     if (onCommLack_) {
-        std::string userId;
         onCommLack_(commLabel, userId_);
     }
 }
@@ -312,5 +311,15 @@ void VirtualCommunicatorAggregator::DelayTimeHandle(uint32_t messageId, const st
     if (skipTimes_ > 0 && (messageId == delayMessageId_) && (delayDevices_.count(dstTarget) > 0)) {
         skipTimes_--;
     }
+}
+
+std::set<std::string> VirtualCommunicatorAggregator::GetOnlineDevices()
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    std::set<std::string> onlineDevices;
+    for (const auto &item: communicators_) {
+        onlineDevices.insert(item.first);
+    }
+    return onlineDevices;
 }
 } // namespace DistributedDB

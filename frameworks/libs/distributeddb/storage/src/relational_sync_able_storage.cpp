@@ -478,8 +478,14 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
+    StoreInfo info = {
+        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
     auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
-        remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), dataItems);
+        remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), info);
+    inserter.SetEntries(dataItems);
 
     auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
@@ -604,12 +610,17 @@ int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &d
         return errCode;
     }
 
+    StoreInfo info = {
+        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
     for (const auto &[table, strategy] : syncStrategy) {
         if (!strategy.permitSync) {
             continue;
         }
 
-        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table));
+        errCode = handle->CreateDistributedDeviceTable(device, storageEngine_->GetSchema().GetTable(table), info);
         if (errCode != E_OK) {
             LOGE("Create distributed device table failed. %d", errCode);
             break;
@@ -820,7 +831,7 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
     if (errCode == -E_NOT_FOUND) {
         LOGW("Get remote device schema miss cached.");
         std::string keyStr = DBConstant::REMOTE_DEVICE_SCHEMA_KEY_PREFIX + DBCommon::TransferHashString(deviceId);
-        Key remoteSchemaKey(keyStr.begin(), keyStr.end());\
+        Key remoteSchemaKey(keyStr.begin(), keyStr.end());
         Value remoteSchemaBuff;
         errCode = GetMetaData(remoteSchemaKey, remoteSchemaBuff);
         if (errCode != E_OK) {

@@ -408,24 +408,20 @@ struct Options {
     }
 };
 
-template<typename T>
-std::vector<uint8_t> TransferTypeToByteArray(const T &t)
-{
-    return std::vector<uint8_t>(reinterpret_cast<uint8_t *>(const_cast<T *>(&t)),
-                                reinterpret_cast<uint8_t *>(const_cast<T *>(&t)) + sizeof(T));
-}
+/**
+ * @brief Provide the user information.
+*/
+struct UserInfo {
+    /**
+     * The userId Info.
+    */
+    std::string userId;
 
-template<typename T>
-T TransferByteArrayToType(const std::vector<uint8_t> &blob)
-{
-    // replace assert to HILOG_FATAL when HILOG_FATAL is ok.
-    if (blob.size() != sizeof(T) || blob.size() == 0) {
-        constexpr int tSize = sizeof(T);
-        uint8_t tContent[tSize] = { 0 };
-        return *reinterpret_cast<T *>(tContent);
-    }
-    return *reinterpret_cast<T *>(const_cast<uint8_t *>(&blob[0]));
-}
+    /**
+     * The userType Info.
+    */
+    int32_t userType;
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

@@ -52,7 +52,7 @@ public:
 
     void ClearEnginePasswd() override;
 
-    int CheckEngineOption(const KvDBProperties &kvdbOption) const override;
+    int CheckEngineOption(const KvDBProperties &kvDBProp) const override;
 
 protected:
 

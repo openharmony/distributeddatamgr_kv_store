@@ -87,6 +87,8 @@ public:
 
     int GetSyncDataSize(const std::string &device, size_t &size) const;
 
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId);
+
 protected:
     virtual IKvDBSyncInterface *GetSyncInterface() = 0;
 

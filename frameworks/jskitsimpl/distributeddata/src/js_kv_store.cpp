@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVStore"
+#define LOG_TAG "JsKVStore"
 #include "js_kv_store.h"
 #include "js_util.h"
 #include "js_kv_store_resultset.h"
@@ -447,7 +447,7 @@ void JsKVStore::OnDataChange(napi_env env, size_t argc, napi_value* argv, std::s
     CHECK_STATUS_RETURN_VOID(ctxt, "napi_typeof failed!");
     CHECK_ARGS_RETURN_VOID(ctxt, valueType == napi_function, "invalid arg[2], i.e. invalid callback");
 
-    ZLOGI("subscribe data change type %{public}d", type);
+    ZLOGI("subscribe dataChange, type: %{public}d", type);
     auto proxy = reinterpret_cast<JsKVStore*>(ctxt->native);
     std::lock_guard<std::mutex> lck(proxy->listMutex_);
     for (auto& it : proxy->dataObserver_[type]) {

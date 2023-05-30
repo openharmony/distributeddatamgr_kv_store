@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVManager"
+#define LOG_TAG "JsKVManager"
 #include "js_kv_manager.h"
 #include "distributed_kv_data_manager.h"
 #include "js_device_kv_store.h"
@@ -66,6 +66,9 @@ napi_value JsKVManager::CreateKVManager(napi_env env, napi_callback_info info)
         std::string bundleName;
         ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "bundleName", bundleName);
         CHECK_ARGS_RETURN_VOID(ctxt, (ctxt->status == napi_ok) && !bundleName.empty(), "invalid bundleName!");
+        UserInfo userInfo;
+        ctxt->status = JSUtil::GetNamedProperty(env, argv[0], "userInfo", userInfo);
+        CHECK_ARGS_RETURN_VOID(ctxt, ctxt->status == napi_ok, "invalid userInfo!");
 
         ctxt->ref = JSUtil::NewWithRef(env, argc, argv, reinterpret_cast<void**>(&ctxt->kvManger),
                                        JsKVManager::Constructor(env));
@@ -152,6 +155,7 @@ napi_value JsKVManager::GetKVStore(napi_env env, napi_callback_info info)
         CHECK_STATUS_RETURN_VOID(ctxt, "output get ref value failed");
         ctxt->status = napi_delete_reference(env, ctxt->ref);
         CHECK_STATUS_RETURN_VOID(ctxt, "output del ref failed");
+        ZLOGI("output del ref success");
     };
     return NapiQueue::AsyncWork(env, ctxt, std::string(__FUNCTION__), execute, output);
 }
@@ -388,7 +392,7 @@ napi_value JsKVManager::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvManager finalize.");
         auto* kvManager = reinterpret_cast<JsKVManager*>(data);
-        CHECK_RETURN_VOID(kvManager != nullptr, "finalize null!");
+        CHECK_RETURN_VOID(kvManager != nullptr, "kvManager is null!");
         delete kvManager;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, kvManager, finalize, nullptr, nullptr), kvManager);

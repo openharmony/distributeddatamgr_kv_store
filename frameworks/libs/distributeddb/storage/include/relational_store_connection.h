@@ -50,9 +50,10 @@ public:
     virtual int Close() = 0;
     virtual int SyncToDevice(SyncInfo &info) = 0;
     virtual std::string GetIdentifier() = 0;
-    virtual int CreateDistributedTable(const std::string &tableName) = 0;
+    virtual int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) = 0;
     virtual int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) = 0;
 
+    virtual int RemoveDeviceData() = 0;
     virtual int RemoveDeviceData(const std::string &device) = 0;
     virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
     virtual void RegisterObserverAction(const RelationalObserverAction &action) = 0;

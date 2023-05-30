@@ -69,7 +69,7 @@ VirtualRelationalVerSyncDBInterface::VirtualRelationalVerSyncDBInterface()
     LOGD("virtual device init db createTime");
 }
 
-int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject &object,
+int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject &query,
     const std::vector<SingleVerKvEntry *> &entries, const std::string &deviceName)
 {
     LOGD("[PutSyncData] size %zu", entries.size());
@@ -89,7 +89,7 @@ int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject 
         }
     }
     OptTableDataWithLog optTableDataWithLog;
-    optTableDataWithLog.tableName = object.GetTableName();
+    optTableDataWithLog.tableName = query.GetTableName();
     int errCode = DataTransformer::TransformDataItem(dataItems, localFieldInfo_,
         localFieldInfo_, optTableDataWithLog);
     if (errCode != E_OK) {
@@ -107,7 +107,7 @@ int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject 
             virtualRowData.objectData.PutDataValue(localFieldInfo_[index].GetFieldName(), dataValue);
             index++;
         }
-        syncData_[object.GetTableName()][GetStr(virtualRowData.logInfo.hashKey)] = virtualRowData;
+        syncData_[query.GetTableName()][GetStr(virtualRowData.logInfo.hashKey)] = virtualRowData;
     }
     LOGD("tableName %s", optTableDataWithLog.tableName.c_str());
     return errCode;

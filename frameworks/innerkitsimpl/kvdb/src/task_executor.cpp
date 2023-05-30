@@ -12,42 +12,55 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
 #include "task_executor.h"
 
-namespace OHOS::DistributedKv {
-TaskExecutor &TaskExecutor::GetInstance()
-{
-    static TaskExecutor instance;
-    return instance;
-}
-
-TaskScheduler::TaskId TaskExecutor::Execute(TaskScheduler::Task &&task, int32_t interval)
-{
-    if (pool_ == nullptr) {
-        return TaskScheduler::INVALID_TASK_ID;
-    }
-    auto time = TaskScheduler::Clock::now() + std::chrono::milliseconds(interval);
-    return pool_->At(time, std::move(task));
-}
-
-void TaskExecutor::RemoveTask(TaskScheduler::TaskId taskId)
-{
-    if (pool_ == nullptr) {
-        return;
-    }
-    pool_->Remove(taskId, true);
-}
-
+namespace OHOS {
 TaskExecutor::TaskExecutor()
 {
-    pool_ = std::make_shared<TaskScheduler>("task_executor");
+    pool_ = std::make_shared<ExecutorPool>(MAX_THREADS, MIN_THREADS);
 }
 
 TaskExecutor::~TaskExecutor()
 {
-    if (pool_ != nullptr) {
-        pool_->Clean();
-        pool_ = nullptr;
-    }
+    pool_ = nullptr;
 }
-} // namespace OHOS::DistributedKv
+
+TaskExecutor &TaskExecutor::GetInstance()
+{
+    static TaskExecutor instance;
+    return instance;
+};
+
+TaskExecutor::TaskId TaskExecutor::Execute(const Task &task)
+{
+    if (pool_ == nullptr) {
+        return INVALID_TASK_ID;
+    }
+    return pool_->Execute(std::move(task));
+}
+
+TaskExecutor::TaskId TaskExecutor::Schedule(Duration delay, const Task &task, Duration interval, uint64_t times)
+{
+    if (pool_ == nullptr) {
+        return INVALID_TASK_ID;
+    }
+    return pool_->Schedule(task, delay, interval, times);
+}
+
+bool TaskExecutor::Remove(TaskExecutor::TaskId taskId, bool wait)
+{
+    if (pool_ == nullptr) {
+        return false;
+    }
+    return pool_->Remove(taskId, wait);
+}
+
+TaskExecutor::TaskId TaskExecutor::Reset(TaskExecutor::TaskId taskId, Duration interval)
+{
+    if (pool_ == nullptr) {
+        return INVALID_TASK_ID;
+    }
+    return pool_->Reset(taskId, interval);
+}
+} // namespace OHOS

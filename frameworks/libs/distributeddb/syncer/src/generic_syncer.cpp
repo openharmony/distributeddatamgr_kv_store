@@ -1051,4 +1051,9 @@ bool GenericSyncer::IsNeedActive(ISyncInterface *syncInterface)
     }
     return true;
 }
+
+int GenericSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+{
+    return -E_NOT_SUPPORT;
+}
 } // namespace DistributedDB

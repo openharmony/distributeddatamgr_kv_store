@@ -32,7 +32,9 @@ private:
     int ExecuteUpgrade();
     int EndUpgrade(bool isSuccess);
 
+    bool IsNewestVersion(const std::string &logTableVersion);
     int UpgradeTrigger(const std::string &logTableVersion);
+    int UpgradeLogTable(const std::string &logTableVersion);
     sqlite3 *db_;
 };
 } // namespace DistributedDB

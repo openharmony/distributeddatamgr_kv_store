@@ -38,15 +38,20 @@ RelationalStoreDelegateImpl::~RelationalStoreDelegateImpl()
     conn_ = nullptr;
 };
 
-DBStatus RelationalStoreDelegateImpl::RemoveDeviceData(const std::string &device)
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &device, ClearMode mode)
 {
-    return RemoveDeviceData(device, {});
+    return RemoveDeviceData(device, "");
 }
 
-DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &tableName)
+DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
 {
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
         LOGE("invalid table name.");
+        return INVALID_ARGS;
+    }
+
+    if (!(type == DEVICE_COOPERATION || type == CLOUD_COOPERATION)) {
+        LOGE("invalid table sync type.");
         return INVALID_ARGS;
     }
 
@@ -55,7 +60,7 @@ DBStatus RelationalStoreDelegateImpl::CreateDistributedTable(const std::string &
         return DB_ERROR;
     }
 
-    int errCode = conn_->CreateDistributedTable(tableName);
+    int errCode = conn_->CreateDistributedTable(tableName, type);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] Create Distributed table failed:%d", errCode);
         return TransferDBErrno(errCode);
@@ -158,6 +163,37 @@ DBStatus RelationalStoreDelegateImpl::RemoteQuery(const std::string &device, con
         result = nullptr;
         return TransferDBErrno(errCode);
     }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
+{
+    if (conn_ == nullptr) {
+        LOGE("Invalid connection for operation!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->RemoveDeviceData();
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] remove device data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+    const std::function<void(SyncProcess)> &onProcess, int64_t waitTime)
+{
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
+{
     return OK;
 }
 } // namespace DistributedDB

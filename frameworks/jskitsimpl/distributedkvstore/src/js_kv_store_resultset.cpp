@@ -12,13 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "JS_KVStoreResultSet"
+#define LOG_TAG "JsKVStoreResultSet"
 #include "js_kv_store_resultset.h"
 #include "js_util.h"
 #include "log_print.h"
 #include "napi_queue.h"
 #include "uv_queue.h"
-#include "kvstore_datashare_bridge.h"
 #include "kv_utils.h"
 
 using namespace OHOS::DistributedKv;
@@ -68,7 +67,7 @@ napi_value JsKVStoreResultSet::New(napi_env env, napi_callback_info info)
     auto finalize = [](napi_env env, void* data, void* hint) {
         ZLOGD("kvStoreResultSet finalize.");
         auto* resultSet = reinterpret_cast<JsKVStoreResultSet*>(data);
-        ASSERT_VOID(resultSet != nullptr, "finalize null!");
+        ASSERT_VOID(resultSet != nullptr, "resultSet is null!");
         delete resultSet;
     };
     ASSERT_CALL(env, napi_wrap(env, ctxt->self, resultSet, finalize, nullptr, nullptr), resultSet);

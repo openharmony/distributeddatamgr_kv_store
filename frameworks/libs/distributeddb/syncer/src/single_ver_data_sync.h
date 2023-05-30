@@ -169,10 +169,10 @@ protected:
         SyncTimeRange dataTimeRange, bool isCheckBeforUpdate = false) const;
 
     void GetLocalWaterMark(SyncType syncType, const std::string &queryIdentify, const SingleVerSyncTaskContext *context,
-        WaterMark &watermark) const;
+        WaterMark &waterMark) const;
 
     void GetPeerWaterMark(SyncType syncType, const std::string &queryIdentify, const DeviceID &deviceId,
-        WaterMark &watermark) const;
+        WaterMark &waterMark) const;
 
     void GetPeerDeleteSyncWaterMark(const DeviceID &deviceId, WaterMark &waterMark);
 

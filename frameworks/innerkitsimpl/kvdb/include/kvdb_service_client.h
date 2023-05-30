@@ -20,6 +20,7 @@
 #include "iremote_proxy.h"
 #include "kvdb_service.h"
 #include "kvstore_sync_callback_client.h"
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 class KVDBServiceProxy : public KVDBService, public IRemoteBroker {
 public:
@@ -48,8 +49,6 @@ public:
     Status Subscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) override;
     Status GetBackupPassword(const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) override;
-    DevBrief GetLocalDevice() override;
-    std::vector<DevBrief> GetRemoteDevices() override;
     sptr<KvStoreSyncCallbackClient> GetSyncAgent(const AppId &appId);
 
 protected:

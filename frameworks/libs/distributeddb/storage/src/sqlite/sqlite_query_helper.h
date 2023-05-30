@@ -123,7 +123,7 @@ private:
     int BindObjNodes(sqlite3_stmt *&statement, int &index) const;
     int GetSubscribeCondition(const std::string &accessStr, std::string &conditionStr);
     std::string MapKeysInToSql(size_t keysNum) const;
-    int BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&countStmt, int &index) const;
+    int BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&statement, int &index) const;
 
     std::string MapKeysInSubCondition(const std::string &accessStr) const;  // For InKeys.
     // Return the left string of symbol in compare clause.

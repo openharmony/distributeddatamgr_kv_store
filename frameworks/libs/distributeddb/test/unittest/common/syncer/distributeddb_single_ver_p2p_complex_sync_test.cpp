@@ -23,6 +23,7 @@
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
+#include "mock_sync_task_context.h"
 #include "platform_specific.h"
 #include "single_ver_data_sync.h"
 #include "single_ver_kv_sync_task_context.h"
@@ -128,9 +129,11 @@ namespace {
 
     void DataSync005()
     {
+        ASSERT_NE(g_communicatorAggregator, nullptr);
         SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
         ASSERT_TRUE(dataSync != nullptr);
         dataSync->SendSaveDataNotifyPacket(nullptr, 0, 0, 0, TIME_SYNC_MESSAGE);
+        EXPECT_EQ(g_communicatorAggregator->GetOnlineDevices().size(), 3u); // 3 online dev
         delete dataSync;
     }
 
@@ -138,8 +141,15 @@ namespace {
     {
         SingleVerDataSync *dataSync = new (std::nothrow) SingleVerDataSync();
         ASSERT_TRUE(dataSync != nullptr);
+        auto context = new (std::nothrow) MockSyncTaskContext();
         dataSync->PutDataMsg(nullptr);
+        bool isNeedHandle = false;
+        bool isContinue = false;
+        EXPECT_EQ(dataSync->MoveNextDataMsg(context, isNeedHandle, isContinue), nullptr);
+        EXPECT_EQ(isNeedHandle, false);
+        EXPECT_EQ(isContinue, false);
         delete dataSync;
+        delete context;
     }
 
     void ReSetWaterDogTest001()
@@ -164,7 +174,7 @@ namespace {
          * @tc.steps: step3. deviceA,deviceB sync to each other at same time
          * @tc.expected: step3. sync should return OK.
          */
-        g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true);
+        EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PULL_ONLY, true), E_OK);
         g_communicatorAggregator->SetDeviceMtuSize(DEVICE_A, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
         g_communicatorAggregator->SetDeviceMtuSize(DEVICE_B, 5 * 1024u * 1024u); // 5 * 1024u * 1024u = 5m
     }
@@ -1933,4 +1943,54 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, InterceptDataFail001, TestSiz
     }
     VirtualDataItem item;
     EXPECT_EQ(g_deviceB->GetData(key, item), -E_NOT_FOUND);
+}
+
+/**
+  * @tc.name: UpdateKey001
+  * @tc.desc: test update key can effect local data and sync data, without delete data
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, UpdateKey001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. device A set sync data (k1, v1) local data (k2, v2) (k3, v3) and delete (k4, v4)
+     * @tc.expected: step1. put data return ok
+     */
+    Key k1 = {'k', '1'};
+    Value v1 = {'v', '1'};
+    g_deviceB->PutData(k1, v1, 1, 0);
+    ASSERT_EQ(g_deviceB->Sync(SyncMode::SYNC_MODE_PUSH_ONLY, true), E_OK);
+    Value actualValue;
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    Key k2 = {'k', '2'};
+    Value v2 = {'v', '2'};
+    Key k3 = {'k', '3'};
+    Value v3 = {'v', '3'};
+    Key k4 = {'k', '4'};
+    Value v4 = {'v', '4'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(k2, v2), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k3, v3), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Put(k4, v4), OK);
+    EXPECT_EQ(g_kvDelegatePtr->Delete(k4), OK);
+    /**
+     * @tc.steps: step2. device A update key and set
+     * @tc.expected: step2. put data return ok
+     */
+    DBStatus status = g_kvDelegatePtr->UpdateKey([](const Key &originKey, Key &newKey) {
+        newKey = originKey;
+        newKey.push_back('0');
+    });
+    EXPECT_EQ(status, OK);
+    k1.push_back('0');
+    k2.push_back('0');
+    k3.push_back('0');
+    EXPECT_EQ(g_kvDelegatePtr->Get(k1, actualValue), OK);
+    EXPECT_EQ(v1, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k2, actualValue), OK);
+    EXPECT_EQ(v2, actualValue);
+    EXPECT_EQ(g_kvDelegatePtr->Get(k3, actualValue), OK);
+    EXPECT_EQ(v3, actualValue);
 }

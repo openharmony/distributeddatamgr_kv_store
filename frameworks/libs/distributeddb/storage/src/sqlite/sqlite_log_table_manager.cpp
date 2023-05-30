@@ -44,7 +44,9 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
         "timestamp   INT  NOT NULL," \
         "wtimestamp  INT  NOT NULL," \
         "flag        INT  NOT NULL," \
-        "hash_key    BLOB NOT NULL," + primaryKey + ");";
+        "hash_key    BLOB NOT NULL," \
+        "cloud_gid   TEXT," +
+        primaryKey + ");";
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);
     GetIndexSql(table, logTableSchema);

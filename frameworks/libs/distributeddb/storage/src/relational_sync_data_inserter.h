@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -45,9 +45,9 @@ public:
 
     static RelationalSyncDataInserter CreateInserter(const std::string &deviceName, const QueryObject &query,
         const RelationalSchemaObject &localSchema, const std::vector<FieldInfo> &remoteFields,
-        const std::vector<DataItem> &entries);
+        const StoreInfo &info);
 
-    void SetDeviceId(std::string deviceId);
+    void SetHashDevId(const std::string &hashDevId);
     // Set remote fields in cid order
     void SetRemoteFields(std::vector<FieldInfo> remoteFields);
     void SetEntries(std::vector<DataItem> entries);
@@ -73,7 +73,7 @@ private:
 
     int GetSaveLogStatement(sqlite3 *db, sqlite3_stmt *&logStmt, sqlite3_stmt *&queryStmt);
 
-    std::string deviceId_;
+    std::string hashDevId_;
     std::vector<FieldInfo> remoteFields_;
     std::vector<DataItem> entries_;
     TableInfo localTable_;

@@ -216,30 +216,30 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
         data.push_back(JSUtil::BOOLEAN);
         data.push_back(static_cast<uint8_t>(*boolValue));
     }
-    uint8_t *tmp = nullptr;
+    uint8_t *res = nullptr;
     auto intValue = std::get_if<int32_t>(&value);
     if (intValue != nullptr) {
-        int32_t tmp4int = *intValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4int));
-        tmp = reinterpret_cast<uint8_t*>(&tmp32);
+        int32_t tmp = *intValue; // copy value, and make it available in stack space.
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::INTEGER);
-        data.insert(data.end(), tmp, tmp + sizeof(int32_t) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(int32_t) / sizeof(uint8_t));
     }
     auto fltValue = std::get_if<float>(&value);
     if (fltValue != nullptr) {
-        float tmp4flt = *fltValue; // copy value, and make it available in stack space.
-        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp4flt));
-        tmp = reinterpret_cast<uint8_t*>(&tmp32);
+        float tmp = *fltValue; // copy value, and make it available in stack space.
+        uint32_t tmp32 = htobe32(*reinterpret_cast<uint32_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp32);
         data.push_back(JSUtil::FLOAT);
-        data.insert(data.end(), tmp, tmp + sizeof(float) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(float) / sizeof(uint8_t));
     }
     auto dblValue = std::get_if<double>(&value);
     if (dblValue != nullptr) {
-        double tmp4dbl = *dblValue; // copy value, and make it available in stack space.
-        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp4dbl));
-        tmp = reinterpret_cast<uint8_t*>(&tmp64);
+        double tmp = *dblValue; // copy value, and make it available in stack space.
+        uint64_t tmp64 = htobe64(*reinterpret_cast<uint64_t*>(&tmp));
+        res = reinterpret_cast<uint8_t*>(&tmp64);
         data.push_back(JSUtil::DOUBLE);
-        data.insert(data.end(), tmp, tmp + sizeof(double) / sizeof(uint8_t));
+        data.insert(data.end(), res, res + sizeof(double) / sizeof(uint8_t));
     }
     return DistributedKv::Blob(data);
 }
@@ -258,7 +258,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, JSUtil::KvStoreV
             break;
         }
         case napi_number: {
-            double vNum = 0.0f;
+            double vNum = 0.0;
             statusMsg = JSUtil::GetValue(env, in, vNum);
             out = vNum;
             break;
@@ -329,7 +329,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, JSUtil::QueryVar
             break;
         }
         case napi_number: {
-            double vNum = 0.0f;
+            double vNum = 0.0;
             statusMsg = JSUtil::GetValue(env, in, vNum);
             out = vNum;
             break;
@@ -398,7 +398,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<uint8_t>& in,
     ASSERT((statusMsg.status == napi_ok), "create array buffer failed!", statusMsg);
 
     if (memcpy_s(data, in.size(), in.data(), in.size()) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<uint8_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     statusMsg.status = napi_create_typedarray(env, napi_uint8_array, in.size(), buffer, 0, &out);
@@ -485,7 +485,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<int32_t>& in,
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_int32_array, in.size(), buffer, 0, &out);
@@ -524,7 +524,7 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<uint32_t>& in
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<uint32_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_uint32_array, in.size(), buffer, 0, &out);
@@ -556,14 +556,14 @@ JSUtil::StatusMsg JSUtil::SetValue(napi_env env, const std::vector<int64_t>& in,
 {
     ZLOGD("napi_value <- std::vector<int64_t> ");
     size_t bytes = in.size() * sizeof(int64_t);
-    ASSERT(bytes > 0, "invalid std::vector<uint32_t>", napi_invalid_arg);
+    ASSERT(bytes > 0, "invalid std::vector<int64_t>", napi_invalid_arg);
     void* data = nullptr;
     napi_value buffer = nullptr;
     napi_status status = napi_create_arraybuffer(env, bytes, &data, &buffer);
     ASSERT((status == napi_ok), "invalid buffer", status);
 
     if (memcpy_s(data, bytes, in.data(), bytes) != EOK) {
-        ZLOGE("memcpy_s not EOK");
+        ZLOGE("napi_value <- std::vector<int64_t>: memcpy_s failed, vector size:%{public}zd", in.size());
         return napi_invalid_arg;
     }
     status = napi_create_typedarray(env, napi_bigint64_array, in.size(), buffer, 0, &out);
@@ -602,7 +602,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<doub
             napi_value item = nullptr;
             status = napi_get_element(env, in, i, &item);
             ASSERT((item != nullptr) && (status == napi_ok), "no element", napi_invalid_arg);
-            double vi = 0.0f;
+            double vi = 0.0;
             status = napi_get_value_double(env, item, &vi);
             ASSERT(status == napi_ok, "element not a double", napi_invalid_arg);
             out.push_back(vi);
@@ -786,7 +786,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value jsValue, ValueObject
         JSUtil::GetValue(env, jsValue, value);
         valueObject = value;
     } else if (type == napi_number) {
-        double value = 0;
+        double value = 0.0;
         napi_get_value_double(env, jsValue, &value);
         valueObject = value;
     } else if (type == napi_boolean) {
@@ -977,18 +977,26 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
 {
     ZLOGD("napi_value -> DistributedKv::Options ");
     JSUtil::StatusMsg statusMsg = napi_invalid_arg;
-    GetNamedProperty(env, in, "createIfMissing", options.createIfMissing);
-    GetNamedProperty(env, in, "encrypt", options.encrypt);
-    GetNamedProperty(env, in, "backup", options.backup);
-    GetNamedProperty(env, in, "autoSync", options.autoSync);
+    statusMsg = GetNamedProperty(env, in, "createIfMissing", options.createIfMissing, true);
+    ASSERT(statusMsg.status == napi_ok, "get createIfMissing param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "encrypt", options.encrypt, true);
+    ASSERT(statusMsg.status == napi_ok, "get encrypt param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "backup", options.backup, true);
+    ASSERT(statusMsg.status == napi_ok, "get backup param failed", statusMsg);
+    statusMsg = GetNamedProperty(env, in, "autoSync", options.autoSync, true);
+    ASSERT(statusMsg.status == napi_ok, "get autoSync param failed", statusMsg);
 
     int32_t kvStoreType = 0;
-    GetNamedProperty(env, in, "kvStoreType", kvStoreType);
+    statusMsg = GetNamedProperty(env, in, "kvStoreType", kvStoreType, true);
+    ASSERT(statusMsg.status == napi_ok, "get kvStoreType param failed", statusMsg);
     options.kvStoreType = static_cast<DistributedKv::KvStoreType>(kvStoreType);
 
     JsSchema *jsSchema = nullptr;
-    statusMsg = GetNamedProperty(env, in, "schema", jsSchema);
-    if (statusMsg.status == napi_ok) {
+    std::string strSchema;
+    statusMsg = GetNamedProperty(env, in, "schema", jsSchema, true);
+    ASSERT((statusMsg.status == napi_ok || GetNamedProperty(env, in, "schema", strSchema, true) == napi_ok),
+        "get schema param failed", napi_invalid_arg);
+    if (statusMsg.status == napi_ok && jsSchema != nullptr) {
         options.schema = jsSchema->Dump();
     }
 
@@ -1033,7 +1041,7 @@ napi_value JSUtil::DefineClass(napi_env env, const std::string& name,
     const napi_property_descriptor* properties, size_t count, napi_callback newcb)
 {
     // base64("data.distributedkvstore") as rootPropName, i.e. global.<root>
-    const std::string rootPropName = "ZGF0YS5kaXN0cmlidXRlZGt2c3RvcmU";
+    const std::string rootPropName = "ZGF0YS5kaXN0cmlidXRlZGt2c3RvcmU=";
     napi_value root = nullptr;
     bool hasRoot = false;
     napi_value global = nullptr;
@@ -1217,4 +1225,36 @@ bool JSUtil::IsSystemApi(JSUtil::JsApiType jsApiType)
     return jsApiType == DATASHARE;
 }
 
+bool JSUtil::IsNull(napi_env env, napi_value value)
+{
+    napi_valuetype type = napi_undefined;
+    napi_status status = napi_typeof(env, value, &type);
+    if (status == napi_ok && (type == napi_undefined || type == napi_null)) {
+        return true;
+    }
+    return false;
+}
+
+std::pair<napi_status, napi_value> JSUtil::GetInnerValue(
+    napi_env env, napi_value in, const std::string& prop, bool optional)
+{
+    bool hasProp = false;
+    napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
+    if (status != napi_ok) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (!hasProp) {
+        status = optional ? napi_ok : napi_generic_failure;
+        return std::make_pair(status, nullptr);
+    }
+    napi_value inner = nullptr;
+    status = napi_get_named_property(env, in, prop.c_str(), &inner);
+    if (status != napi_ok || inner == nullptr) {
+        return std::make_pair(napi_generic_failure, nullptr);
+    }
+    if (optional && JSUtil::IsNull(env, inner)) {
+        return std::make_pair(napi_ok, nullptr);
+    }
+    return std::make_pair(napi_ok, inner);
+}
 } // namespace OHOS::DistributedKVStore

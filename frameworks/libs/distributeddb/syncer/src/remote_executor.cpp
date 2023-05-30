@@ -73,14 +73,15 @@ int RemoteExecutor::RemoteQuery(const std::string device, const RemoteCondition 
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
+    int taskErrCode = E_OK;
     SemaphoreUtils semaphore(0);
     Task task;
     task.result = std::make_shared<RelationalResultSetImpl>();
     task.target = device;
     task.timeout = timeout;
     task.condition = condition;
-    task.onFinished = [&semaphore, &errCode, &result](int32_t retCode, std::shared_ptr<ResultSet> taskResult) {
-        errCode = retCode;
+    task.onFinished = [&semaphore, &taskErrCode, &result](int32_t retCode, std::shared_ptr<ResultSet> taskResult) {
+        taskErrCode = retCode;
         result = taskResult;
         semaphore.SendSemaphore();
     };
@@ -90,7 +91,7 @@ int RemoteExecutor::RemoteQuery(const std::string device, const RemoteCondition 
         return errCode;
     }
     semaphore.WaitSemaphore();
-    return errCode;
+    return taskErrCode;
 }
 
 int RemoteExecutor::ReceiveMessage(const std::string &targetDev, Message *inMsg)
@@ -202,18 +203,18 @@ void RemoteExecutor::ParseOneRequestMessage(const std::string &device, Message *
         LOGW("[RemoteExecutor][ParseOneRequestMessage] closed");
         return;
     }
-    int errCode = CheckPermissions(device);
+    int errCode = CheckPermissions(device, inMsg);
     if (errCode != E_OK) {
-        ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
+        (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
         return;
     }
     errCode = SendRemoteExecutorData(device, inMsg);
     if (errCode != E_OK) {
-        ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
+        (void)ResponseFailed(errCode, inMsg->GetSessionId(), inMsg->GetSequenceId(), device);
     }
 }
 
-int RemoteExecutor::CheckPermissions(const std::string &device)
+int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
 {
     SyncGenericInterface *storage = static_cast<SyncGenericInterface *>(GetAndIncSyncInterface());
     if (storage == nullptr) {
@@ -229,7 +230,16 @@ int RemoteExecutor::CheckPermissions(const std::string &device)
         { userId, appId, storeId, device, instanceId }, CHECK_FLAG_SEND);
     if (errCode != E_OK) {
         LOGE("[RemoteExecutor][CheckPermissions] check permission errCode = %d.", errCode);
+        storage->DecRefCount();
+        return errCode;
     }
+    const auto *requestPacket = inMsg->GetObject<RemoteExecutorRequestPacket>();
+    if (requestPacket == nullptr) {
+        LOGE("[RemoteExecutor] get packet object failed");
+        storage->DecRefCount();
+        return -E_INVALID_ARGS;
+    }
+    errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel());
     storage->DecRefCount();
     return errCode;
 }
@@ -507,17 +517,17 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
     return errCode;
 }
 
-void RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId,
+int RemoteExecutor::ResponseFailed(int errCode, uint32_t sessionId, uint32_t sequenceId,
     const std::string &device)
 {
     RemoteExecutorAckPacket *packet = new (std::nothrow) RemoteExecutorAckPacket();
     if (packet == nullptr) {
         LOGE("[RemoteExecutor][ResponseFailed] new RemoteExecutorAckPacket error");
-        return;
+        return -E_OUT_OF_MEMORY;
     }
     packet->SetAckCode(errCode);
     packet->SetLastAck();
-    (void)ResponseStart(packet, sessionId, sequenceId, device);
+    return ResponseStart(packet, sessionId, sequenceId, device);
 }
 
 int RemoteExecutor::ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage,
@@ -712,6 +722,17 @@ void RemoteExecutor::ClearInnerSource()
 
 int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint32_t sessionId, std::string &target)
 {
+    ISyncInterface *storage = GetAndIncSyncInterface();
+    if (storage == nullptr) {
+        return -E_BUSY;
+    }
+    SecurityOption localOption;
+    int errCode = storage->GetSecurityOption(localOption);
+    storage->DecRefCount();
+    storage = nullptr;
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     Task task;
     {
         std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -726,6 +747,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     packet->SetSql(task.condition.sql);
     packet->SetBindArgs(task.condition.bindArgs);
     packet->SetNeedResponse();
+    packet->SetSecLabel(errCode == E_NOT_SUPPORT ? NOT_SURPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
     target = task.target;
     return E_OK;
 }
@@ -944,7 +966,7 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
     std::string device;
     communicator->GetLocalIdentity(device);
     SecurityOption localOption;
-    int errCode = static_cast<SyncGenericInterface *>(storage)->GetSecurityOption(localOption);
+    int errCode = storage->GetSecurityOption(localOption);
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
@@ -957,5 +979,25 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
         errCode = E_OK;
     }
     return errCode;
+}
+
+int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage,
+    int32_t remoteSecLabel)
+{
+    SecurityOption localOption;
+    int errCode = storage->GetSecurityOption(localOption);
+    if (errCode == -E_NOT_SUPPORT) {
+        return E_OK;
+    }
+    if (errCode != E_OK) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (remoteSecLabel == UNKNOWN_SECURITY_LABEL || remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
+        return E_OK;
+    }
+    if (RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(device, localOption)) {
+        return E_OK;
+    }
+    return -E_SECURITY_OPTION_CHECK_ERROR;
 }
 }

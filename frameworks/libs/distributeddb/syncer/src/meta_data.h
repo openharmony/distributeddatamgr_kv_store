@@ -111,6 +111,10 @@ public:
     uint64_t GetQueryLastTimestamp(const DeviceID &deviceId, const std::string &queryId) const;
 
     void RemoveQueryFromRecordSet(const DeviceID &deviceId, const std::string &queryId);
+
+    int SaveClientId(const std::string &deviceId, const std::string &clientId);
+
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const;
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
@@ -118,9 +122,9 @@ private:
     // sync module need hash devices id
     void GetMetaDataValue(const DeviceID &deviceId, MetaDataValue &outValue, bool isNeedHash);
 
-    int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
+    static int SerializeMetaData(const MetaDataValue &inValue, std::vector<uint8_t> &outValue);
 
-    int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue) const;
+    static int DeSerializeMetaData(const std::vector<uint8_t> &inValue, MetaDataValue &outValue);
 
     int GetMetadataFromDb(const std::vector<uint8_t> &key, std::vector<uint8_t> &outValue) const;
 
@@ -167,6 +171,9 @@ private:
     // queryId is not in set while key is not found from db first time, and return lastTimestamp = INT64_MAX
     // if query is in set return 0 while not found from db, means already sync before, don't trigger again
     mutable std::map<DeviceID, std::set<std::string>> queryIdMap_;
+
+    std::mutex clientIdLock_;
+    std::map<DeviceID, std::string> clientIdCache_;
 };
 }  // namespace DistributedDB
 #endif

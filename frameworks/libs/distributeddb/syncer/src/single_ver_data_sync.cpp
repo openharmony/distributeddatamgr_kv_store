@@ -66,13 +66,16 @@ int SingleVerDataSync::Initialize(ISyncInterface *inStorage, ICommunicator *inCo
 int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
 {
     std::lock_guard<std::mutex> lock(lock_);
+    int errCode = CheckPermitSendData(mode, context);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     if (sessionId_ != 0) { // auto sync timeout resend
         return ReSendData(context);
     }
     ResetSyncStatus(mode, context);
     LOGI("[DataSync] SendStart,mode=%d,label=%s,device=%s", mode_, label_.c_str(), STR_MASK(deviceId_));
     int tmpMode = SyncOperation::TransferSyncMode(mode);
-    int errCode = E_OK;
     if (tmpMode == SyncModeType::PUSH) {
         errCode = PushStart(context);
     } else if (tmpMode == SyncModeType::PUSH_AND_PULL) {
@@ -100,6 +103,10 @@ int SingleVerDataSync::SyncStart(int mode, SingleVerSyncTaskContext *context)
 
 int SingleVerDataSync::InnerSyncStart(SingleVerSyncTaskContext *context)
 {
+    int errCode = CheckPermitSendData(mode_, context);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     while (true) {
         if (windowSize_ <= 0 || isAllDataHasSent_) {
             LOGD("[DataSync] InnerDataSync winSize=%d,isAllSent=%d,label=%s,device=%s", windowSize_, isAllDataHasSent_,
@@ -111,7 +118,6 @@ int SingleVerDataSync::InnerSyncStart(SingleVerSyncTaskContext *context)
             LOGE("[DataSync] unexpected error");
             return -E_INVALID_ARGS;
         }
-        int errCode;
         context->IncSequenceId();
         if (mode == SyncModeType::PUSH || mode == SyncModeType::PUSH_AND_PULL) {
             errCode = PushStart(context);
@@ -395,6 +401,19 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
     if (inData.empty()) {
         return E_OK;
     }
+    StoreInfo info = {
+        storage_->GetDbProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storage_->GetDbProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storage_->GetDbProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
+    std::string clientId;
+    int errCode = E_OK;
+    if (RuntimeContext::GetInstance()->TranslateDeviceId(context->GetDeviceId(), info, clientId) == E_OK) {
+        errCode = metadata_->SaveClientId(context->GetDeviceId(), clientId);
+        if (errCode != E_OK) {
+            LOGW("[DataSync] record clientId failed %d", errCode);
+        }
+    }
     PerformanceAnalysis *performance = PerformanceAnalysis::GetInstance();
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_SAVE_DATA);
@@ -402,7 +421,6 @@ int SingleVerDataSync::SaveData(const SingleVerSyncTaskContext *context, const s
 
     const std::string localHashName = DBCommon::TransferHashString(GetLocalDeviceName());
     SingleVerDataSyncUtils::TransSendDataItemToLocal(context, localHashName, inData);
-    int errCode = E_OK;
     // query only support prefix key and don't have query in packet in 104 version
     errCode = storage_->PutSyncDataWithQuery(query, inData, context->GetDeviceId());
     if (performance != nullptr) {

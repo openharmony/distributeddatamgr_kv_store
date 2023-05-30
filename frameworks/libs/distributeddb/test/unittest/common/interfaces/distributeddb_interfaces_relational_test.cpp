@@ -34,72 +34,71 @@ using namespace DistributedDBUnitTest;
 using namespace std;
 
 namespace {
-    constexpr const char* DB_SUFFIX = ".db";
-    constexpr const char* STORE_ID = "Relational_Store_ID";
-    std::string g_testDir;
-    std::string g_dbDir;
-    DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
+constexpr const char* DB_SUFFIX = ".db";
+constexpr const char* STORE_ID = "Relational_Store_ID";
+std::string g_testDir;
+std::string g_dbDir;
+DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
 
-    const std::string DEVICE_A = "real_device";
-    const std::string DEVICE_B = "deviceB";
-    VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
-    RelationalVirtualDevice *g_deviceB = nullptr;
+const std::string DEVICE_A = "real_device";
+const std::string DEVICE_B = "deviceB";
+VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
+RelationalVirtualDevice *g_deviceB = nullptr;
 
-    const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_data(" \
-        "key         BLOB NOT NULL UNIQUE," \
-        "value       BLOB," \
-        "timestamp   INT  NOT NULL," \
-        "flag        INT  NOT NULL," \
-        "device      BLOB," \
-        "ori_device  BLOB," \
-        "hash_key    BLOB PRIMARY KEY NOT NULL," \
-        "w_timestamp INT," \
-        "UNIQUE(device, ori_device));" \
-        "CREATE INDEX key_index ON sync_data (key, flag);";
+const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_data(" \
+    "key         BLOB NOT NULL UNIQUE," \
+    "value       BLOB," \
+    "timestamp   INT  NOT NULL," \
+    "flag        INT  NOT NULL," \
+    "device      BLOB," \
+    "ori_device  BLOB," \
+    "hash_key    BLOB PRIMARY KEY NOT NULL," \
+    "w_timestamp INT," \
+    "UNIQUE(device, ori_device));" \
+    "CREATE INDEX key_index ON sync_data(key, flag);";
 
-    const std::string SIMPLE_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS t1(a INT, b TEXT)";
+const std::string SIMPLE_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS t1(a INT, b TEXT)";
 
-    const std::string CREATE_TABLE_SQL_NO_PRIMARY_KEY = "CREATE TABLE IF NOT EXISTS sync_data(" \
-        "key         BLOB NOT NULL UNIQUE," \
-        "value       BLOB," \
-        "timestamp   INT  NOT NULL," \
-        "flag        INT  NOT NULL," \
-        "device      BLOB," \
-        "ori_device  BLOB," \
-        "hash_key    BLOB NOT NULL," \
-        "w_timestamp INT," \
-        "UNIQUE(device, ori_device));" \
-        "CREATE INDEX key_index ON sync_data (key, flag);";
+const std::string CREATE_TABLE_SQL_NO_PRIMARY_KEY = "CREATE TABLE IF NOT EXISTS sync_data(" \
+    "key         BLOB NOT NULL UNIQUE," \
+    "value       BLOB," \
+    "timestamp   INT  NOT NULL," \
+    "flag        INT  NOT NULL," \
+    "device      BLOB," \
+    "ori_device  BLOB," \
+    "hash_key    BLOB NOT NULL," \
+    "w_timestamp INT," \
+    "UNIQUE(device, ori_device));" \
+    "CREATE INDEX key_index ON sync_data (key, flag);";
 
-    const std::string UNSUPPORTED_FIELD_TABLE_SQL = "CREATE TABLE IF NOT EXISTS test('$.ID' INT, val BLOB);";
+const std::string UNSUPPORTED_FIELD_TABLE_SQL = "CREATE TABLE IF NOT EXISTS test('$.ID' INT, val BLOB);";
 
-    const std::string COMPOSITE_PRIMARY_KEY_TABLE_SQL = R"(CREATE TABLE workers (
-            worker_id INTEGER,
-            last_name VARCHAR NOT NULL,
-            first_name VARCHAR,
-            join_date DATE,
-            PRIMARY KEY (last_name, first_name)
-        );)";
+const std::string COMPOSITE_PRIMARY_KEY_TABLE_SQL = R"(CREATE TABLE workers (
+        worker_id INTEGER,
+        last_name VARCHAR NOT NULL,
+        first_name VARCHAR,
+        join_date DATE,
+        PRIMARY KEY (last_name, first_name)
+    );)";
 
-    const std::string INSERT_SYNC_DATA_SQL = "INSERT OR REPLACE INTO sync_data (key, timestamp, flag, hash_key) "
-        "VALUES('KEY', 123456789, 1, 'HASH_KEY');";
+const std::string INSERT_SYNC_DATA_SQL = "INSERT OR REPLACE INTO sync_data (key, timestamp, flag, hash_key) "
+    "VALUES('KEY', 123456789, 1, 'HASH_KEY');";
 
-    const std::string INVALID_TABLE_FIELD_SQL = "create table if not exists t1 ('1 = 1; --' int primary key, b blob)";
+const std::string INVALID_TABLE_FIELD_SQL = "create table if not exists t1 ('1 = 1; --' int primary key, b blob)";
 
-    void PrepareVirtualDeviceEnv(const std::string &tableName, const std::string &dbPath,
-        const std::vector<RelationalVirtualDevice *> &remoteDeviceVec)
-    {
-        sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
-        ASSERT_NE(db, nullptr);
-        TableInfo tableInfo;
-        SQLiteUtils::AnalysisSchema(db, tableName, tableInfo);
-        for (const auto &dev : remoteDeviceVec) {
-            std::vector<FieldInfo> fieldInfoList = tableInfo.GetFieldInfos();
-            dev->SetLocalFieldInfo(fieldInfoList);
-            dev->SetTableInfo(tableInfo);
-        }
-        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+void PrepareVirtualDeviceEnv(const std::string &tableName, const std::string &dbPath,
+    const std::vector<RelationalVirtualDevice *> &remoteDeviceVec)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(dbPath);
+    ASSERT_NE(db, nullptr);
+    TableInfo tableInfo;
+    SQLiteUtils::AnalysisSchema(db, tableName, tableInfo);
+    for (const auto &dev : remoteDeviceVec) {
+        std::vector<FieldInfo> fieldInfoList = tableInfo.GetFieldInfos();
+        dev->SetLocalFieldInfo(fieldInfoList);
+        dev->SetTableInfo(tableInfo);
     }
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
 class DistributedDBInterfacesRelationalTest : public testing::Test {
@@ -156,14 +155,7 @@ void DistributedDBInterfacesRelationalTest::TearDown(void)
     }
 }
 
-/**
-  * @tc.name: RelationalStoreTest001
-  * @tc.desc: Test open store and create distributed db
-  * @tc.type: FUNC
-  * @tc.require: AR000GK58F
-  * @tc.author: lianhuix
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize.Level1)
+void NoramlCreateDistributedTableTest(TableSyncType tableSyncType)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -185,11 +177,11 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    status = delegate->CreateDistributedTable("sync_data");
+    status = delegate->CreateDistributedTable("sync_data", tableSyncType);
     EXPECT_EQ(status, OK);
 
     // test create same table again
-    status = delegate->CreateDistributedTable("sync_data");
+    status = delegate->CreateDistributedTable("sync_data", tableSyncType);
     EXPECT_EQ(status, OK);
 
     status = g_mgr.CloseStore(delegate);
@@ -214,6 +206,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize
     ASSERT_NE(delegate, nullptr);
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
+}
+
+/**
+  * @tc.name: RelationalStoreTest001
+  * @tc.desc: Test open store and create distributed db with DEVICE_COOPERATION type
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001, TestSize.Level1)
+{
+    NoramlCreateDistributedTableTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalStoreTest001
+  * @tc.desc: Test open store and create distributed db with CLOUD_COOPERATION type
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest001_1, TestSize.Level1)
+{
+    NoramlCreateDistributedTableTest(DistributedDB::CLOUD_COOPERATION);
 }
 
 /**
@@ -299,14 +315,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest003, TestSize
     ASSERT_EQ(delegate, nullptr);
 }
 
-/**
-  * @tc.name: RelationalStoreTest004
-  * @tc.desc: Test create distributed table with over limit
-  * @tc.type: FUNC
-  * @tc.require: AR000GK58F
-  * @tc.author: lianhuix
-  */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize.Level1)
+void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
 {
     /**
      * @tc.steps:step1. Prepare db file with multiple tables
@@ -316,7 +325,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     const int tableCount = DBConstant::MAX_DISTRIBUTED_TABLE_COUNT + 10; // 10: additional size for test abnormal scene
-    for (int i=0; i<tableCount; i++) {
+    for (int i = 0; i < tableCount; i++) {
         std::string sql = "CREATE TABLE TEST_" + std::to_string(i) + "(id INT PRIMARY KEY, value TEXT);";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
     }
@@ -332,11 +341,11 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    for (int i=0; i<tableCount; i++) {
+    for (int i = 0; i < tableCount; i++) {
         if (i < DBConstant::MAX_DISTRIBUTED_TABLE_COUNT) {
-            EXPECT_EQ(delegate->CreateDistributedTable("TEST_" + std::to_string(i)), OK);
+            EXPECT_EQ(delegate->CreateDistributedTable("TEST_" + std::to_string(i), tableSyncTpe), OK);
         } else {
-            EXPECT_NE(delegate->CreateDistributedTable("TEST_" + std::to_string(i)), OK);
+            EXPECT_NE(delegate->CreateDistributedTable("TEST_" + std::to_string(i), tableSyncTpe), OK);
         }
     }
 
@@ -349,13 +358,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize
 }
 
 /**
-  * @tc.name: RelationalStoreTest005
-  * @tc.desc: Test create distributed table with invalid table name
+  * @tc.name: RelationalStoreTest004
+  * @tc.desc: Test create distributed table with over limit for DEVICE_COOPERATION type
   * @tc.type: FUNC
   * @tc.require: AR000GK58F
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004, TestSize.Level1)
+{
+    CreateDistributedTableOverLimitTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalStoreTest004
+  * @tc.desc: Test create distributed table with over limit for CLOUD_COOPERATION type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest004_1, TestSize.Level1)
+{
+    CreateDistributedTableOverLimitTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+void CreateDistributedTableInvalidArgsTest(TableSyncType tableSyncType)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -379,21 +405,25 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
      * @tc.steps:step3. Create distributed table with invalid table name
      * @tc.expected: step3. Create distributed table failed.
      */
-    EXPECT_NE(delegate->CreateDistributedTable(DBConstant::SYSTEM_TABLE_PREFIX + "_tmp"), OK);
+    EXPECT_NE(delegate->CreateDistributedTable(DBConstant::SYSTEM_TABLE_PREFIX + "_tmp", tableSyncType), OK);
 
-    EXPECT_EQ(delegate->CreateDistributedTable("Handle-J@^."), INVALID_ARGS);
+    EXPECT_EQ(delegate->CreateDistributedTable("Handle-J@^.", tableSyncType), INVALID_ARGS);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data",
+        static_cast<TableSyncType>(DistributedDB::DEVICE_COOPERATION - 1)), INVALID_ARGS);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data",
+        static_cast<TableSyncType>(DistributedDB::CLOUD_COOPERATION + 1)), INVALID_ARGS);
 
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, INVALID_TABLE_FIELD_SQL), SQLITE_OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t1"), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1", tableSyncType), NOT_SUPPORT);
 
     /**
      * @tc.steps:step4. Create distributed table temp table or not exist table
      * @tc.expected: step4. Create distributed table failed.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+    EXPECT_EQ(delegate->CreateDistributedTable("child", tableSyncType), NOT_FOUND);
     std::string tempTableSql = "CREATE TEMP TABLE child(x, y, z)";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, tempTableSql), SQLITE_OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("child"), NOT_FOUND);
+    EXPECT_EQ(delegate->CreateDistributedTable("child", tableSyncType), NOT_FOUND);
 
     /**
      * @tc.steps:step5. Close store
@@ -405,13 +435,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize
 }
 
 /**
-  * @tc.name: RelationalStoreTest006
-  * @tc.desc: Test create distributed table with non primary key schema
+  * @tc.name: RelationalStoreTest005
+  * @tc.desc: Test create distributed table with invalid table name or invalid table sync type
   * @tc.type: FUNC
   * @tc.require: AR000GK58F
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005, TestSize.Level1)
+{
+    CreateDistributedTableInvalidArgsTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalStoreTest005
+  * @tc.desc: Test create distributed table with invalid table name or invalid table sync type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest005_1, TestSize.Level1)
+{
+    CreateDistributedTableInvalidArgsTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+void CreateDistributedTableNonPrimaryKeyTest(TableSyncType tableSyncType)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -433,10 +480,10 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006, TestSize
     ASSERT_NE(delegate, nullptr);
 
     /**
-     * @tc.steps:step3. Create distributed table with invalid table name
-     * @tc.expected: step3. Create distributed table failed.
+     * @tc.steps:step3. Create distributed table with valid table name
+     * @tc.expected: step3. Create distributed table success.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", tableSyncType), OK);
 
     /**
      * @tc.steps:step4. Close store
@@ -455,13 +502,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006, TestSize
 }
 
 /**
-  * @tc.name: RelationalStoreTest007
-  * @tc.desc: Test create distributed table with table has invalid field name
+  * @tc.name: RelationalStoreTest006
+  * @tc.desc: Test create distributed table with non primary key schema
   * @tc.type: FUNC
   * @tc.require: AR000GK58F
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest007, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006, TestSize.Level1)
+{
+    CreateDistributedTableNonPrimaryKeyTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalStoreTest006
+  * @tc.desc: Test create distributed table with non primary key schema
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest006_1, TestSize.Level1)
+{
+    CreateDistributedTableNonPrimaryKeyTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+void CreateDistributedTableInvalidFieldTest(TableSyncType tableSyncType)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -474,19 +538,36 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest007, TestSize
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    EXPECT_EQ(delegate->CreateDistributedTable("test"), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable("test", tableSyncType), NOT_SUPPORT);
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
 
 /**
-  * @tc.name: RelationalStoreTest008
-  * @tc.desc: Test create distributed table with table has composite primary keys
+  * @tc.name: RelationalStoreTest007
+  * @tc.desc: Test create distributed table with table has invalid field name
   * @tc.type: FUNC
   * @tc.require: AR000GK58F
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest008, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest007, TestSize.Level1)
+{
+    CreateDistributedTableInvalidFieldTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalStoreTest007
+  * @tc.desc: Test create distributed table with table has invalid field name
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest007_1, TestSize.Level1)
+{
+    CreateDistributedTableInvalidFieldTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+void CreateDistributedTableCompositePKTest(TableSyncType tableSyncType, int expectCode)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -499,19 +580,36 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest008, TestSize
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    EXPECT_EQ(delegate->CreateDistributedTable("workers"), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable("workers", tableSyncType), expectCode);
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
 }
 
 /**
-  * @tc.name: RelationalStoreTest009
-  * @tc.desc: Test create distributed table with table has history data
+  * @tc.name: RelationalStoreTest008
+  * @tc.desc: Test create distributed table with table has composite primary keys for DEVICE_COOPERATION
   * @tc.type: FUNC
   * @tc.require: AR000GK58F
   * @tc.author: lianhuix
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest009, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest008, TestSize.Level1)
+{
+    CreateDistributedTableCompositePKTest(DistributedDB::DEVICE_COOPERATION, NOT_SUPPORT);
+}
+
+/**
+  * @tc.name: RelationalStoreTest008
+  * @tc.desc: Test create distributed table with table has composite primary keys for CLOUD_COOPERATION
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest008_1, TestSize.Level1)
+{
+    CreateDistributedTableCompositePKTest(DistributedDB::CLOUD_COOPERATION, OK);
+}
+
+void CreateDistributedTableWithHistoryDataTest(TableSyncType tableSyncType)
 {
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
@@ -530,9 +628,31 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest009, TestSize
     EXPECT_EQ(status, OK);
 }
 
+/**
+  * @tc.name: RelationalStoreTest009
+  * @tc.desc: Test create distributed table with table has history data for DEVICE_COOPERATION
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest009, TestSize.Level1)
+{
+    CreateDistributedTableWithHistoryDataTest(DistributedDB::DEVICE_COOPERATION);
+}
 
-namespace {
-void TableModifyTest(const std::string &modifySql, DBStatus expect)
+/**
+  * @tc.name: RelationalStoreTest009
+  * @tc.desc: Test create distributed table with table has history data for CLOUD_COOPERATION
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author:
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalStoreTest009_1, TestSize.Level1)
+{
+    CreateDistributedTableWithHistoryDataTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+void TableModifyTest(const std::string &modifySql, TableSyncType tableSyncType, DBStatus expect)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -560,7 +680,7 @@ void TableModifyTest(const std::string &modifySql, DBStatus expect)
      * @tc.steps:step3. Create distributed table
      * @tc.expected: step3. Create distributed table OK.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", tableSyncType), OK);
 
     /**
      * @tc.steps:step4. Upgrade table with modifySql
@@ -572,7 +692,7 @@ void TableModifyTest(const std::string &modifySql, DBStatus expect)
      * @tc.steps:step5. Create distributed table again
      * @tc.expected: step5. Create distributed table return expect.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), expect);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", tableSyncType), expect);
 
     /**
      * @tc.steps:step6. Close store
@@ -581,7 +701,6 @@ void TableModifyTest(const std::string &modifySql, DBStatus expect)
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
-}
 }
 
 /**
@@ -593,7 +712,8 @@ void TableModifyTest(const std::string &modifySql, DBStatus expect)
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest001, TestSize.Level1)
 {
-    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL DEFAULT 123;", OK);
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL DEFAULT 123;",
+        DistributedDB::DEVICE_COOPERATION, OK);
 }
 
 /**
@@ -605,7 +725,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest001, Te
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest002, TestSize.Level1)
 {
-    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL;", SCHEMA_MISMATCH);
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL;",
+        DistributedDB::DEVICE_COOPERATION, SCHEMA_MISMATCH);
 }
 
 /**
@@ -617,17 +738,50 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest002, Te
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest003, TestSize.Level1)
 {
-    TableModifyTest("ALTER TABLE sync_data DROP COLUMN w_timestamp;", SCHEMA_MISMATCH);
+    TableModifyTest("ALTER TABLE sync_data DROP COLUMN w_timestamp;",
+        DistributedDB::DEVICE_COOPERATION, SCHEMA_MISMATCH);
 }
 
 /**
-  * @tc.name: RelationalTableModifyTest004
-  * @tc.desc: Test upgrade distributed table with device table exists
+  * @tc.name: RelationalTableModifyTest001
+  * @tc.desc: Test modify distributed table with compatible upgrade
   * @tc.type: FUNC
-  * @tc.require: AR000GK58F
-  * @tc.author: lianhuix
+  * @tc.require:
+  * @tc.author: zhangshijie
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest001_1, TestSize.Level1)
+{
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL DEFAULT 123;",
+        DistributedDB::CLOUD_COOPERATION, OK);
+}
+
+/**
+  * @tc.name: RelationalTableModifyTest002
+  * @tc.desc: Test modify distributed table with incompatible upgrade
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest002_1, TestSize.Level1)
+{
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field INTEGER NOT NULL;",
+        DistributedDB::CLOUD_COOPERATION, SCHEMA_MISMATCH);
+}
+
+/**
+  * @tc.name: RelationalTableModifyTest003
+  * @tc.desc: Test modify distributed table with incompatible upgrade
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest003_1, TestSize.Level1)
+{
+    TableModifyTest("ALTER TABLE sync_data DROP COLUMN w_timestamp;",
+        DistributedDB::CLOUD_COOPERATION, SCHEMA_MISMATCH);
+}
+
+void UpgradeDistributedTableTest(TableSyncType tableSyncType)
 {
     /**
      * @tc.steps:step1. Prepare db file
@@ -654,7 +808,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, Te
      * @tc.steps:step3. Create distributed table
      * @tc.expected: step3. Create distributed table OK.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", tableSyncType), OK);
 
     /**
      * @tc.steps:step4. Upgrade table
@@ -672,7 +826,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, Te
      * @tc.steps:step5. Create distributed table again
      * @tc.expected: step5. Create distributed table return expect.
      */
-    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", tableSyncType), OK);
 
     /**
      * @tc.steps:step6. Close store
@@ -684,6 +838,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, Te
 }
 
 /**
+  * @tc.name: RelationalTableModifyTest004
+  * @tc.desc: Test upgrade distributed table with device table exists
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: lianhuix
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, TestSize.Level1)
+{
+    UpgradeDistributedTableTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: RelationalTableModifyTest004
+  * @tc.desc: Test upgrade distributed table with device table exists
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004_1, TestSize.Level1)
+{
+    UpgradeDistributedTableTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+/**
   * @tc.name: RelationalTableModifyTest005
   * @tc.desc: Test modify distributed table with compatible upgrade
   * @tc.type: FUNC
@@ -692,7 +870,21 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest004, Te
   */
 HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest005, TestSize.Level1)
 {
-    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field STRING NOT NULL DEFAULT 'asdf';", OK);
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field STRING NOT NULL DEFAULT 'asdf';",
+        DistributedDB::DEVICE_COOPERATION, OK);
+}
+
+/**
+  * @tc.name: RelationalTableModifyTest005
+  * @tc.desc: Test modify distributed table with compatible upgrade
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest005_1, TestSize.Level1)
+{
+    TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field STRING NOT NULL DEFAULT 'asdf';",
+        DistributedDB::CLOUD_COOPERATION, OK);
 }
 
 /**
@@ -755,7 +947,6 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 }
 
-namespace {
 struct TableT1 {
     int a;
     std::string b;
@@ -793,7 +984,6 @@ void AddDeviceSchema(RelationalVirtualDevice *device, sqlite3 *db, const std::st
     SQLiteUtils::AnalysisSchema(db, name, table);
     device->SetLocalFieldInfo(table.GetFieldInfos());
     device->SetTableInfo(table);
-}
 }
 
 /**
@@ -836,7 +1026,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B), OK);
 
     int logCnt = -1;
-    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log WHERE device = '" + DEVICE_B + "'";
+    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log";
     RelationalTestUtils::ExecSql(db, checkLogSql, nullptr, [&logCnt](sqlite3_stmt *stmt) {
         logCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
@@ -845,7 +1035,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
 
     int dataCnt = -1;
     std::string deviceTable = g_mgr.GetDistributedTableName(DEVICE_B, "t1");
-    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable + " WHERE device = '" + DEVICE_B + "'";
+    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable;
     RelationalTestUtils::ExecSql(db, checkDataSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
         dataCnt = sqlite3_column_int(stmt, 0);
         return E_OK;
@@ -855,6 +1045,139 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     status = g_mgr.CloseStore(delegate);
     EXPECT_EQ(status, OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+void TestRemoveDeviceDataWithCallback(bool removeAll)
+{
+    /**
+     * @tc.steps:step1. Prepare db and data
+     * @tc.expected: step1. Return OK.
+     */
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        return oriDevId + "_" + info.appId;
+    });
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, SIMPLE_CREATE_TABLE_SQL), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "t1");
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
+    g_deviceB->PutDeviceData("t1", std::vector<TableT1> {
+        {1, "111", 1, 0, 1} // test data
+    });
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("t1").EqualTo("a", 1);
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+            ASSERT_EQ(devicesMap.size(), devices.size());
+            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+        }, true);
+    EXPECT_EQ(status, OK);
+    /**
+     * @tc.steps:step2. remove device data and check table
+     * @tc.expected: step2. dev table not exist and log not exist device b.
+     */
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    if (removeAll) {
+        EXPECT_EQ(delegate->RemoveDeviceData(), OK);
+    } else {
+        EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B + "_" + APP_ID), OK);
+    }
+    int logCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM naturalbase_rdb_aux_t1_log";
+    RelationalTestUtils::ExecSql(db, checkLogSql, nullptr, [&logCnt](sqlite3_stmt *stmt) {
+        logCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(logCnt, 0);
+    std::string deviceTable = RelationalStoreManager::GetDistributedTableName(DEVICE_B + "_" + APP_ID, "t1");
+    std::string checkDataSql = "SELECT count(*) FROM " + deviceTable;
+    EXPECT_NE(RelationalTestUtils::ExecSql(db, checkDataSql, nullptr, nullptr), SQLITE_OK);
+    /**
+     * @tc.steps:step3. close db
+     * @tc.expected: step3. Return OK.
+     */
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest003
+  * @tc.desc: Test remove all device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest003, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(true);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest004
+  * @tc.desc: Test remove one device data and sync again
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest004, TestSize.Level1)
+{
+    TestRemoveDeviceDataWithCallback(false);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest005
+  * @tc.desc: Test remove device data with invalid param
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_A");
+    AddDeviceSchema(g_deviceB, db, "sync_data");
+    /**
+     * @tc.steps:step2. Open store
+     * @tc.expected: step2. return OK
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    int count = 0;
+    RuntimeConfig::SetTranslateToDeviceIdCallback([&count](const std::string &oriDevId, const StoreInfo &info) {
+        count++;
+        return oriDevId + "_" + info.appId;
+    });
+    /**
+     * @tc.steps:step3. Remove not exist device data
+     * @tc.expected: step3. ok
+     */
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data"), OK);
+    EXPECT_EQ(delegate->RemoveDeviceData("DEVICE_C", "sync_data"), OK);
+    EXPECT_EQ(count, 0);
+    /**
+     * @tc.steps:step4. Close store
+     * @tc.expected: step4 Return OK.
+     */
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
 }
 
 /**
@@ -982,40 +1305,40 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalOpenStorePressureTest0
 }
 
 namespace {
-void ProcessSync(RelationalStoreDelegate *delegate)
-{
-    std::vector<std::string> devices = {DEVICE_B};
-    Query query = Query::Select("create").EqualTo("create", 1);
-    DBStatus status = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
-        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
-            EXPECT_EQ(devicesMap.size(), devices.size());
-            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
-        }, true);
-    EXPECT_EQ(status, OK);
+    void ProcessSync(RelationalStoreDelegate *delegate)
+    {
+        std::vector<std::string> devices = {DEVICE_B};
+        Query query = Query::Select("create").EqualTo("create", 1);
+        DBStatus status = delegate->Sync(devices, SyncMode::SYNC_MODE_PUSH_ONLY, query,
+            [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+                EXPECT_EQ(devicesMap.size(), devices.size());
+                EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+            }, true);
+        EXPECT_EQ(status, OK);
 
-    std::vector<VirtualRowData> data;
-    g_deviceB->GetAllSyncData("create", data);
-    EXPECT_EQ(data.size(), 1u);
+        std::vector<VirtualRowData> data;
+        g_deviceB->GetAllSyncData("create", data);
+        EXPECT_EQ(data.size(), 1u);
 
-    VirtualRowData virtualRowData;
-    DataValue d1;
-    d1 = static_cast<int64_t>(2); // 2: test data
-    virtualRowData.objectData.PutDataValue("create", d1);
-    DataValue d2;
-    d2.SetText("hello");
-    virtualRowData.objectData.PutDataValue("ddd", d2);
-    DataValue d3;
-    d3.SetText("hello");
-    virtualRowData.objectData.PutDataValue("eee", d3);
-    virtualRowData.logInfo.timestamp = 1;
-    g_deviceB->PutData("create", {virtualRowData});
-    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
-        [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
-            EXPECT_EQ(devicesMap.size(), devices.size());
-            EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
-        }, true);
-    EXPECT_EQ(status, OK);
-}
+        VirtualRowData virtualRowData;
+        DataValue d1;
+        d1 = static_cast<int64_t>(2); // 2: test data
+        virtualRowData.objectData.PutDataValue("create", d1);
+        DataValue d2;
+        d2.SetText("hello");
+        virtualRowData.objectData.PutDataValue("ddd", d2);
+        DataValue d3;
+        d3.SetText("hello");
+        virtualRowData.objectData.PutDataValue("eee", d3);
+        virtualRowData.logInfo.timestamp = 1;
+        g_deviceB->PutData("create", {virtualRowData});
+        status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query,
+            [&devices](const std::map<std::string, std::vector<TableStatus>> &devicesMap) {
+                EXPECT_EQ(devicesMap.size(), devices.size());
+                EXPECT_EQ(devicesMap.at(DEVICE_B)[0].status, OK);
+            }, true);
+        EXPECT_EQ(status, OK);
+    }
 }
 
 /**
@@ -1032,7 +1355,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.L
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
 
     std::string tableSql = "CREATE TABLE IF NOT EXISTS 'create' ('create' INTEGER PRIMARY KEY, b 'CREATE', " \
-        "c TEXT DEFAULT 'DEFAULT', UNIQUE(b, c))";
+    "c TEXT DEFAULT 'DEFAULT', UNIQUE(b, c))";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, tableSql), SQLITE_OK);
     std::string indexSql = "CREATE INDEX IF NOT EXISTS 'index' on 'create' (b)";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, indexSql), SQLITE_OK);
@@ -1073,4 +1396,154 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, SqliteKeyWordTest001, TestSize.L
     EXPECT_EQ(status, OK);
     delegate = nullptr;
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+  * @tc.name: GetDistributedTableName001
+  * @tc.desc: Test get distributed table name
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, TestSize.Level1)
+{
+    const std::string deviceName = "DEVICES_A";
+    const std::string tableName = "TABLE";
+    const std::string hashDev = DBCommon::TransferStringToHex(DBCommon::TransferHashString(deviceName));
+
+    std::string devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + hashDev);
+    RuntimeConfig::SetTranslateToDeviceIdCallback([](const std::string &oriDevId, const StoreInfo &info) {
+        EXPECT_EQ(info.appId, "");
+        return oriDevId;
+    });
+    devTableName = RelationalStoreManager::GetDistributedTableName(deviceName, tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_" + deviceName);
+    devTableName = RelationalStoreManager::GetDistributedTableName("", tableName);
+    EXPECT_EQ(devTableName, DBConstant::RELATIONAL_PREFIX + tableName + "_");
+    RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+}
+
+/**
+  * @tc.name: CloudRelationalStoreTest001
+  * @tc.desc: Test create distributed table in cloud table sync type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshjie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+    /**
+     * @tc.steps:step2. open relational store, create distributed table with CLOUD_COOPERATION
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION);
+    EXPECT_EQ(status, OK);
+
+    /**
+     * @tc.steps:step3. open relational store, create distributed table with CLOUD_COOPERATION again
+     * @tc.expected: step3. Return OK.
+     */
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION);
+    EXPECT_EQ(status, OK);
+
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+}
+
+/**
+  * @tc.name: CloudRelationalStoreTest002
+  * @tc.desc: Test create distributed table in diff table sync type for the same table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshjie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+    /**
+     * @tc.steps:step2. open relational store, create distributed table with DEVICE_COOPERATION
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::DEVICE_COOPERATION);
+    EXPECT_EQ(status, OK);
+
+    /**
+     * @tc.steps:step3. create distributed table with CLOUD_COOPERATION again
+     * @tc.expected: step3. Return TYPE_MISMATCH.
+     */
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION);
+    EXPECT_EQ(status, TYPE_MISMATCH);
+
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    delegate = nullptr;
+
+    /**
+     * @tc.steps:step4. drop table sync_data and create again
+     * @tc.expected: step4. Return OK.
+     */
+    db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    const std::string dropSql = "drop table sync_data;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, dropSql), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+    /**
+     * @tc.steps:step5. open relational store, create distributed table with CLOUD_COOPERATION
+     * @tc.expected: step5. Return OK.
+     */
+    status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+    EXPECT_EQ(delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION), OK);
+
+    /**
+     * @tc.steps:step6. create distributed table with DEVICE_COOPERATION again
+     * @tc.expected: step6. Return TYPE_MISMATCH.
+     */
+    status = delegate->CreateDistributedTable("sync_data", DistributedDB::DEVICE_COOPERATION);
+    EXPECT_EQ(status, TYPE_MISMATCH);
+
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    delegate = nullptr;
+}
 }

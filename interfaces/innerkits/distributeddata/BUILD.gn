@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
   deps = [ ":distributeddata_inner" ]
@@ -31,18 +32,14 @@ config("distributeddatafwk_config") {
     "../../../frameworks/common",
     "../../../frameworks/innerkitsimpl/kvdb/include",
     "../../../frameworks/innerkitsimpl/kvdb/src",
-    "//utils/system/safwk/native/include",
-    "//commonlibrary/c_utils/base/include",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
-    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter/include/dfx",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
+    "${distributedfilejs_path}/interfaces/kits/js/src/mod_securitylabel",
   ]
 }
 
 config("distributeddatafwk_public_config") {
-  visibility = [ "//foundation/distributeddatamgr/kv_store:*" ]
+  visibility = [ ":*" ]
 
   include_dirs = [
     "include",
@@ -86,6 +83,7 @@ kvdb_source_config = [
   "../../../frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/system_api.cpp",
   "../../../frameworks/innerkitsimpl/kvdb/src/task_executor.cpp",
+  "../../../frameworks/innerkitsimpl/kvdb/src/task_executor_adapter.cpp",
 ]
 
 deps_config = [ "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb" ]

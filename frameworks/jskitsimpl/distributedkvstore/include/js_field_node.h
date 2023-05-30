@@ -43,20 +43,20 @@ private:
     static napi_value GetValueType(napi_env env, napi_callback_info info);
     static napi_value SetValueType(napi_env env, napi_callback_info info);
     static std::map<uint32_t, std::string> valueTypeToString_;
-    
+
     template <typename T>
     static napi_value GetContextValue(napi_env env, std::shared_ptr<ContextBase> &ctxt, T &value);
     static JsFieldNode* GetFieldNode(napi_env env, napi_callback_info info, std::shared_ptr<ContextBase> &ctxt);
-    
-    std::string ValueToString(JSUtil::KvStoreVariant value);
-    std::string ValueTypeToString(uint32_t type);
 
-    std::list<JsFieldNode*> fields;
-    std::string fieldName;
-    uint32_t valueType = JSUtil::INVALID;
-    JSUtil::KvStoreVariant defaultValue;
-    bool isWithDefaultValue = false;
-    bool isNullable = false;
+    std::string ToString(const JSUtil::KvStoreVariant &value);
+    std::string ToString(uint32_t type);
+
+    std::list<JsFieldNode*> fields_;
+    std::string fieldName_;
+    uint32_t valueType_ = JSUtil::INVALID;
+    JSUtil::KvStoreVariant defaultValue_;
+    bool isWithDefaultValue_ = false;
+    bool isNullable_ = false;
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_FIELD_NODE_H

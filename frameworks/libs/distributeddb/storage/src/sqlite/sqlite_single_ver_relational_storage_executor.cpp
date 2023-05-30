@@ -23,6 +23,7 @@
 #include "log_table_manager_factory.h"
 #include "relational_row_data_impl.h"
 #include "res_finalizer.h"
+#include "sqlite_meta_executor.h"
 #include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
@@ -107,17 +108,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
     std::string sql = "INSERT INTO " + logTable +
         " SELECT rowid, '', '', " + timeOffsetStr + " + rowid, " + timeOffsetStr + " + rowid, 0x2, " +
-        calPrimaryKeyHash + " FROM '" + tableName + "' AS a WHERE 1=1;";
+        calPrimaryKeyHash + ", ''" + " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::string &tableName,
-    DistributedTableMode mode, bool isUpgraded, const std::string &identity, TableInfo &table)
+int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(DistributedTableMode mode, bool isUpgraded,
+    const std::string &identity, TableInfo &table, TableSyncType syncType)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
     }
 
+    const std::string tableName = table.GetTableName();
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, tableName, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] analysis table schema failed. %d", errCode);
@@ -133,14 +135,16 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(const std::
         }
     }
 
-    errCode = CheckTableConstraint(table, mode);
-    if (errCode != E_OK) {
-        LOGE("[CreateDistributedTable] check table constraint failed.");
-        return errCode;
+    if (syncType != CLOUD_COOPERATION) {
+        errCode = CheckTableConstraint(table, mode);
+        if (errCode != E_OK) {
+            LOGE("[CreateDistributedTable] check table constraint failed.");
+            return errCode;
+        }
     }
 
     // create log table
-    auto tableManager = LogTableManagerFactory::GetTableManager(mode);
+    auto tableManager = LogTableManagerFactory::GetTableManager(mode, syncType);
     errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
     if (errCode != E_OK) {
         LOGE("[CreateDistributedTable] create log table failed");
@@ -210,8 +214,7 @@ int GetDeviceTableName(sqlite3 *handle, const std::string &tableName, const std:
     if (device.empty() && tableName.empty()) { // device and table name should not both be empty
         return -E_INVALID_ARGS;
     }
-    std::string deviceHash = DBCommon::TransferStringToHex(DBCommon::TransferHashString(device));
-    std::string devicePattern = device.empty() ? "%" : deviceHash;
+    std::string devicePattern = device.empty() ? "%" : device;
     std::string tablePattern = tableName.empty() ? "%" : tableName;
     std::string deviceTableName = DBConstant::RELATIONAL_PREFIX + tablePattern + "_" + devicePattern;
 
@@ -579,33 +582,6 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMetaDataByPrefixKey(const Ke
     return CheckCorruptedStatus(errCode);
 }
 
-static int GetAllKeys(sqlite3_stmt *statement, std::vector<Key> &keys)
-{
-    if (statement == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode;
-    do {
-        errCode = SQLiteUtils::StepWithRetry(statement, false);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            Key key;
-            errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, key);
-            if (errCode != E_OK) {
-                break;
-            }
-
-            keys.push_back(std::move(key));
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("SQLite step for getting all keys failed:%d", errCode);
-            break;
-        }
-    } while (true);
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &keys) const
 {
     static const std::string SELECT_ALL_META_KEYS = "SELECT key FROM " + DBConstant::RELATIONAL_PREFIX + "metadata;";
@@ -615,7 +591,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAllMetaKeys(std::vector<Key> &k
         LOGE("[Relational][GetAllKey] Get statement failed:%d", errCode);
         return errCode;
     }
-    errCode = GetAllKeys(statement, keys);
+    errCode = SqliteMetaExecutor::GetAllKeys(statement, isMemDb_, keys);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
@@ -861,10 +837,8 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItems(RelationalSyncDa
         return saveStmt.ResetStatements(false);
     });
 
-    if (errCode == -E_NOT_FOUND) {
-        errCode = E_OK;
-    }
-    return saveStmt.ResetStatements(true);
+    int ret = saveStmt.ResetStatements(true);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::SaveSyncItems(RelationalSyncDataInserter &inserter, bool useTrans)
@@ -1091,6 +1065,12 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTable(const
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedAllDeviceTableLog(const std::string &tableName)
+{
+    std::string deleteLogSql = "DELETE FROM " + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE flag&0x02=0";
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, deleteLogSql);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::DeleteDistributedDeviceTableLog(const std::string &device,
     const std::string &tableName)
 {
@@ -1179,7 +1159,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckAndCleanDistributedTable(cons
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const std::string &device,
-    const TableInfo &baseTbl)
+    const TableInfo &baseTbl, const StoreInfo &info)
 {
     if (dbHandle_ == nullptr) {
         return -E_INVALID_DB;
@@ -1189,7 +1169,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedDeviceTable(const
         return -E_INVALID_ARGS;
     }
 
-    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName());
+    std::string deviceTableName = DBCommon::GetDistributedTableName(device, baseTbl.GetTableName(), info);
     int errCode = SQLiteUtils::CreateSameStuTable(dbHandle_, baseTbl, deviceTableName);
     if (errCode != E_OK) {
         LOGE("Create device table failed. %d", errCode);
@@ -1369,6 +1349,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CheckEncryptedOrCorrupted() const
         LOGE("[SingVerRelaExec] CheckEncryptedOrCorrupted failed:%d", errCode);
     }
     return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetExistsDeviceList(std::set<std::string> &devices) const
+{
+    return SqliteMetaExecutor::GetExistsDevicesFromMeta(dbHandle_, SqliteMetaExecutor::MetaMode::RDB,
+        isMemDb_, devices);
 }
 } // namespace DistributedDB
 #endif

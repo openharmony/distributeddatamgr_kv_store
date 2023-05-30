@@ -15,6 +15,7 @@
 
 #include "protocol_proto.h"
 #include <iterator>
+#include <mutex>
 #include <new>
 #include "db_common.h"
 #include "endian_convert.h"
@@ -728,11 +729,6 @@ int ProtocolProto::ParseCommPhyHeaderCheckMagicAndVersion(const uint8_t *bytes, 
 int ProtocolProto::ParseCommPhyHeaderCheckField(const std::string &srcTarget, const CommPhyHeader &phyHeader,
     const uint8_t *bytes, uint32_t length)
 {
-    if (phyHeader.sourceId != Hash::HashFunc(srcTarget)) {
-        LOGE("[Proto][ParsePhyCheck] SourceId Error: inSourceId=%" PRIu64 ", srcTarget=%s{private}, hashId=%" PRIu64,
-            ULL(phyHeader.sourceId), srcTarget.c_str(), ULL(Hash::HashFunc(srcTarget)));
-        return -E_PARSE_FAIL;
-    }
     if (phyHeader.packetLen != length) {
         LOGE("[Proto][ParsePhyCheck] PacketLen=%" PRIu32 " Mismatch length=%" PRIu32 ".", phyHeader.packetLen, length);
         return -E_PARSE_FAIL;

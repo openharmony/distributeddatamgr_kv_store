@@ -89,7 +89,7 @@ public:
     std::vector<Entry> insertEntries_;
     std::vector<Entry> updateEntries_;
     std::vector<Entry> deleteEntries_;
-    bool isClear_;
+    bool isClear_ = false;
     KvStoreObserverUnitTest();
     ~KvStoreObserverUnitTest()
     {}
@@ -114,11 +114,6 @@ private:
 
 KvStoreObserverUnitTest::KvStoreObserverUnitTest()
 {
-    callCount_ = 0;
-    insertEntries_ = {};
-    updateEntries_ = {};
-    deleteEntries_ = {};
-    isClear_ = false;
 }
 
 void KvStoreObserverUnitTest::OnChange(const ChangeNotification &changeNotification)

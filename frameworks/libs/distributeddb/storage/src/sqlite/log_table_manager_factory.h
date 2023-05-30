@@ -16,13 +16,15 @@
 #ifndef LOG_TABLE_MANAGER_FACTORY_H
 #define LOG_TABLE_MANAGER_FACTORY_H
 #include <memory>
+
+#include "cloud/cloud_store_types.h"
 #include "sqlite_log_table_manager.h"
 #include "types_export.h"
 
 namespace DistributedDB {
 class LogTableManagerFactory final {
 public:
-    static std::unique_ptr<SqliteLogTableManager> GetTableManager(DistributedTableMode mode);
+    static std::unique_ptr<SqliteLogTableManager> GetTableManager(DistributedTableMode mode, TableSyncType syncType);
 
 private:
     LogTableManagerFactory() {}

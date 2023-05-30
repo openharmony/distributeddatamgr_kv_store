@@ -177,21 +177,11 @@ public:
     static StatusMsg GetCurrentAbilityParam(napi_env env, ContextParam &param);
     /* napi_get_named_property wrapper */
     template <typename T>
-    static inline napi_status GetNamedProperty(napi_env env, napi_value in, const std::string& prop, T& value)
+    static inline napi_status GetNamedProperty(
+        napi_env env, napi_value in, const std::string& prop, T& value, bool optional = false)
     {
-        bool hasProp = false;
-        napi_status status = napi_has_named_property(env, in, prop.c_str(), &hasProp);
-        if (!hasProp) {
-            return napi_generic_failure;
-        }
-        if ((status == napi_ok) && hasProp) {
-            napi_value inner = nullptr;
-            status = napi_get_named_property(env, in, prop.c_str(), &inner);
-            if ((status == napi_ok) && (inner != nullptr)) {
-                return GetValue(env, inner, value);
-            }
-        }
-        return napi_invalid_arg;
+        auto [status, jsValue] = GetInnerValue(env, in, prop, optional);
+        return (jsValue == nullptr) ? StatusMsg(status) : GetValue(env, jsValue, value);
     };
 
     /* napi_define_class  wrapper */
@@ -208,6 +198,8 @@ public:
 
     static bool IsSystemApp();
 
+    static bool IsNull(napi_env env, napi_value value);
+
 private:
     enum {
         /* std::map<key, value> to js::tuple<key, value> */
@@ -216,6 +208,8 @@ private:
         TUPLE_SIZE
     };
     static napi_status GetLevel(int32_t level, int32_t &out);
+    static std::pair<napi_status, napi_value> GetInnerValue(
+        napi_env env, napi_value in, const std::string& prop, bool optional);
 };
 } // namespace OHOS::DistributedKVStore
 #endif // OHOS_JS_UTIL_H

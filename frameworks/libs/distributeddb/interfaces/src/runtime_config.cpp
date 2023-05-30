@@ -15,12 +15,15 @@
 #ifdef RELATIONAL_STORE
 #include "runtime_config.h"
 
+#include "db_common.h"
 #include "db_constant.h"
 #include "db_dfx_adapter.h"
+#include "db_properties.h"
 #include "kvdb_manager.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
 #include "network_adapter.h"
+#include "param_check_utils.h"
 #include "runtime_context.h"
 
 namespace DistributedDB {
@@ -127,6 +130,20 @@ DBStatus RuntimeConfig::SetPermissionConditionCallback(const PermissionCondition
 {
     int errCode = RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback);
     return TransferDBErrno(errCode);
+}
+
+void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::TranslateToDeviceIdCallback &callback)
+{
+    RuntimeContext::GetInstance()->SetTranslateToDeviceIdCallback(callback);
+}
+
+void RuntimeConfig::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)
+{
+    RuntimeContext::GetInstance()->SetThreadPool(threadPool);
+}
+
+void RuntimeConfig::SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate)
+{
 }
 } // namespace DistributedDB
 #endif

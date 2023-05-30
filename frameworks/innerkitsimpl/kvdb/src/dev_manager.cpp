@@ -24,42 +24,11 @@
 #include "task_executor.h"
 namespace OHOS::DistributedKv {
 using namespace OHOS::DistributedHardware;
+using DevInfo = OHOS::DistributedHardware::DmDeviceInfo;
 constexpr int32_t DM_OK = 0;
 constexpr int32_t DM_ERROR = -1;
 constexpr size_t DevManager::MAX_ID_LEN;
 constexpr const char *PKG_NAME_EX = "_distributed_data";
-class DMStateCallback : public DeviceStateCallback {
-public:
-    explicit DMStateCallback(DevManager &devManager) : devManager_(devManager){};
-    void OnDeviceOnline(const DmDeviceInfo &deviceInfo) override;
-    void OnDeviceOffline(const DmDeviceInfo &deviceInfo) override;
-    void OnDeviceChanged(const DmDeviceInfo &deviceInfo) override;
-    void OnDeviceReady(const DmDeviceInfo &deviceInfo) override;
-
-private:
-    DevManager &devManager_;
-};
-
-void DMStateCallback::OnDeviceOnline(const DmDeviceInfo &deviceInfo)
-{
-    devManager_.Online(deviceInfo.networkId);
-}
-
-void DMStateCallback::OnDeviceOffline(const DmDeviceInfo &deviceInfo)
-{
-    devManager_.Offline(deviceInfo.networkId);
-}
-
-void DMStateCallback::OnDeviceChanged(const DmDeviceInfo &deviceInfo)
-{
-    devManager_.OnChanged(deviceInfo.networkId);
-}
-
-void DMStateCallback::OnDeviceReady(const DmDeviceInfo &deviceInfo)
-{
-    devManager_.OnReady(deviceInfo.networkId);
-}
-
 class DmDeathCallback : public DmInitCallback {
 public:
     explicit DmDeathCallback(DevManager &devManager) : devManager_(devManager){};
@@ -84,13 +53,7 @@ int32_t DevManager::Init()
 {
     auto &deviceManager = DeviceManager::GetInstance();
     auto deviceInitCallback = std::make_shared<DmDeathCallback>(*this);
-    auto deviceCallback = std::make_shared<DMStateCallback>(*this);
-    int32_t errNo = deviceManager.InitDeviceManager(PKG_NAME, deviceInitCallback);
-    if (errNo != DM_OK) {
-        return errNo;
-    }
-    errNo = deviceManager.RegisterDevStateCallback(PKG_NAME, "", deviceCallback);
-    return errNo;
+    return deviceManager.InitDeviceManager(PKG_NAME, deviceInitCallback);
 }
 
 void DevManager::RegisterDevCallback()
@@ -108,7 +71,7 @@ std::function<void()> DevManager::Retry()
             return;
         }
         constexpr int32_t interval = 100;
-        TaskExecutor::GetInstance().Execute(Retry(), interval);
+        TaskExecutor::GetInstance().Schedule(std::chrono::milliseconds(interval), Retry());
     };
 }
 
@@ -163,86 +126,47 @@ const DevManager::DetailInfo &DevManager::GetLocalDevice()
     if (!localInfo_.uuid.empty()) {
         return localInfo_;
     }
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
+    DevInfo info;
+    auto ret = DeviceManager::GetInstance().GetLocalDeviceInfo(PKG_NAME, info);
+    if (ret != DM_OK) {
+        ZLOGE("get local device info fail");
         return invalidDetail_;
     }
-    auto device = service->GetLocalDevice();
-    if (device.uuid.empty() || device.networkId.empty()) {
+    auto networkId = std::string(info.networkId);
+    std::string uuid;
+    DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
+    if (uuid.empty() || networkId.empty()) {
         return invalidDetail_;
     }
-    localInfo_.networkId = std::move(device.networkId);
-    localInfo_.uuid = std::move(device.uuid);
-    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s",
-          StoreUtil::Anonymous(localInfo_.uuid).c_str(), StoreUtil::Anonymous(localInfo_.networkId).c_str());
+    localInfo_.networkId = std::move(networkId);
+    localInfo_.uuid = std::move(uuid);
+    ZLOGI("[LocalDevice] uuid:%{public}s, networkId:%{public}s", StoreUtil::Anonymous(localInfo_.uuid).c_str(),
+        StoreUtil::Anonymous(localInfo_.networkId).c_str());
     return localInfo_;
 }
 
-std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices() const
+std::vector<DevManager::DetailInfo> DevManager::GetRemoteDevices()
 {
-    auto service = KVDBServiceClient::GetInstance();
-    if (service == nullptr) {
-        ZLOGE("service unavailable");
+    std::vector<DevInfo> dmInfos;
+    auto ret = DeviceManager::GetInstance().GetTrustedDeviceList(PKG_NAME, "", dmInfos);
+    if (ret != DM_OK) {
+        ZLOGE("get trusted device:%{public}d", ret);
         return {};
     }
-    auto devices = service->GetRemoteDevices();
-    if (devices.empty()) {
+    if (dmInfos.empty()) {
         ZLOGD("no remote device");
         return {};
     }
     std::vector<DetailInfo> dtInfos;
-    for (auto &device : devices) {
+    for (auto &device : dmInfos) {
         DetailInfo dtInfo;
+        auto networkId = std::string(device.networkId);
+        std::string uuid;
+        DeviceManager::GetInstance().GetEncryptedUuidByNetworkId(PKG_NAME, networkId, uuid);
         dtInfo.networkId = std::move(device.networkId);
-        dtInfo.uuid = std::move(device.uuid);
+        dtInfo.uuid = std::move(uuid);
         dtInfos.push_back(dtInfo);
     }
     return dtInfos;
-}
-
-void DevManager::Online(const std::string &networkId)
-{
-    // do nothing
-    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-}
-
-void DevManager::Offline(const std::string &networkId)
-{
-    DetailInfo deviceInfo;
-    if (deviceInfos_.Get(networkId, deviceInfo)) {
-        deviceInfos_.Delete(networkId);
-        deviceInfos_.Delete(deviceInfo.uuid);
-    }
-    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-    observers_.ForEach([&networkId](const auto &key, auto &value) {
-        value->Offline(networkId);
-        return false;
-    });
-}
-
-void DevManager::OnChanged(const std::string &networkId)
-{
-    // do nothing
-    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-}
-
-void DevManager::OnReady(const std::string &networkId)
-{
-    ZLOGI("%{public}s observers:%{public}zu", StoreUtil::Anonymous(networkId).c_str(), observers_.Size());
-    observers_.ForEach([&networkId](const auto &key, auto &value) {
-        value->Online(networkId);
-        return false;
-    });
-}
-
-void DevManager::Register(DevManager::Observer *observer)
-{
-    observers_.Insert(observer, observer);
-}
-
-void DevManager::Unregister(DevManager::Observer *observer)
-{
-    observers_.Erase(observer);
 }
 } // namespace OHOS::DistributedKv

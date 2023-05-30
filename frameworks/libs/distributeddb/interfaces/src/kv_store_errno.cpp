@@ -66,6 +66,7 @@ namespace {
         { -E_FEEDBACK_UNKNOWN_MESSAGE, NOT_SUPPORT },
         { -E_NOT_PERMIT, PERMISSION_CHECK_FORBID_SYNC },
         { -E_REMOTE_OVER_SIZE, OVER_MAX_LIMITS },
+        { -E_CONSTRAINT, CONSTRAINT },
     };
 }
 

@@ -22,6 +22,7 @@
 #include "store_errno.h"
 #include "store_util.h"
 #include "task_scheduler.h"
+#include "task_executor.h"
 namespace OHOS::DistributedKv {
 class BackupManager {
 public:

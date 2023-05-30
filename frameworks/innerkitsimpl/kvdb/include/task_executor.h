@@ -14,20 +14,30 @@
 */
 #ifndef DISTRIBUTED_DATA_TASK_EXECUTOR_H
 #define DISTRIBUTED_DATA_TASK_EXECUTOR_H
-#include <map>
-#include "task_scheduler.h"
-namespace OHOS::DistributedKv {
+#include "executor_pool.h"
+namespace OHOS {
 class TaskExecutor {
 public:
+    using TaskId = ExecutorPool::TaskId;
+    using Task = std::function<void()>;
+    using Duration = std::chrono::steady_clock::duration;
+    static constexpr Duration INVALID_DURATION = std::chrono::milliseconds(0);
+    static constexpr TaskId INVALID_TASK_ID = static_cast<uint64_t>(0l);
+    static constexpr uint64_t UNLIMITED_TIMES = std::numeric_limits<uint64_t>::max();
+
     static TaskExecutor &GetInstance();
-    TaskScheduler::TaskId Execute(TaskScheduler::Task &&task, int32_t interval = 0);
-    void RemoveTask(TaskScheduler::TaskId taskId);
+    TaskId Execute(const Task &task);
+    TaskId Schedule(Duration delay, const Task &task, Duration interval = INVALID_DURATION,
+        uint64_t times = UNLIMITED_TIMES);
+    bool Remove(TaskId taskId, bool wait = false);
+    TaskId Reset(TaskId taskId, Duration interval);
 
 private:
+    size_t MAX_THREADS = 2;
+    size_t MIN_THREADS = 0;
     TaskExecutor();
     ~TaskExecutor();
-
-    std::shared_ptr<TaskScheduler> pool_;
+    std::shared_ptr<ExecutorPool> pool_;
 };
-} // namespace OHOS::DistributedKv
-#endif // DISTRIBUTEDDATAMGR_DATAMGR_EXECUTOR_FACTORY_H
+} // namespace OHOS
+#endif // DISTRIBUTED_DATA_TASK_EXECUTOR_H
