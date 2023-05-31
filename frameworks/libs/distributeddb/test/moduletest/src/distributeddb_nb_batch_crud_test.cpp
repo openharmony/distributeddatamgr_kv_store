@@ -414,7 +414,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, SimpleData009, TestSize.Level2)
      * @tc.expected: step1. PutBatch successfully.
      */
     bool subPutBatchFlag = false;
-    thread subThread([&]() {
+    thread subThread([&entriesBatch, &subPutBatchFlag]() {
         DBStatus status = g_nbBatchCrudDelegate->PutBatch(entriesBatch);
         EXPECT_TRUE(status == OK || status == BUSY);
         subPutBatchFlag = true;
@@ -464,7 +464,7 @@ HWTEST_F(DistributeddbNbBatchCrudTest, SimpleData010, TestSize.Level2)
      * @tc.expected: step1. operation successfully.
      */
     bool subDeleteBatchFlag = false;
-    thread subThread([&]() {
+    thread subThread([&subDeleteBatchFlag, &allKeys]() {
         DBStatus deleteStatus = g_nbBatchCrudDelegate->DeleteBatch(allKeys);
         EXPECT_TRUE(deleteStatus == OK || deleteStatus == BUSY);
         subDeleteBatchFlag = true;

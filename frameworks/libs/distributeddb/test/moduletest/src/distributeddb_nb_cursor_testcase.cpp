@@ -1362,17 +1362,9 @@ void DistributeddbNbCursorTestcase::ResultSetDb019(KvStoreNbDelegate *delegate, 
     EXPECT_EQ(delegate->CloseResultSet(resultSetAll), OK);
     EXPECT_EQ(delegate->CloseResultSet(resultSetAll2), OK);
 }
-
-void DistributeddbNbCursorTestcase::ResultSetDb020(KvStoreNbDelegate *delegate, bool isRowIdMode)
+namespace ResultSetDbNS {
+void ExecuteResultSetDb020(KvStoreNbDelegate *&delegate)
 {
-    ASSERT_TRUE(delegate != nullptr);
-    SetResultSetCacheMode(delegate, isRowIdMode);
-    vector<Entry> entries;
-    vector<Key> allKey;
-    GenerateRecords(ONE_HUNDRED_RECORDS, DEFAULT_START, allKey, entries);
-    for (const auto &iter : entries) {
-        EXPECT_EQ(delegate->Put(iter.key, iter.value), OK);
-    }
     /**
      * @tc.steps: step1. call GetEntries interface with "" parameter to get KvStoreResultSet.
      * @tc.expected: step1. get success.
@@ -1454,6 +1446,19 @@ void DistributeddbNbCursorTestcase::ResultSetDb020(KvStoreNbDelegate *delegate, 
     if (resultSetAll2 != nullptr) {
         EXPECT_EQ(delegate->CloseResultSet(resultSetAll2), OK);
     }
+}
+}
+void DistributeddbNbCursorTestcase::ResultSetDb020(KvStoreNbDelegate *delegate, bool isRowIdMode)
+{
+    ASSERT_TRUE(delegate != nullptr);
+    SetResultSetCacheMode(delegate, isRowIdMode);
+    vector<Entry> entries;
+    vector<Key> allKey;
+    GenerateRecords(ONE_HUNDRED_RECORDS, DEFAULT_START, allKey, entries);
+    for (const auto &iter : entries) {
+        EXPECT_EQ(delegate->Put(iter.key, iter.value), OK);
+    }
+    ResultSetDbNS::ExecuteResultSetDb020(delegate);
 }
 
 void DistributeddbNbCursorTestcase::ResultSetDb021(KvStoreNbDelegate *delegate,
@@ -1612,7 +1617,7 @@ void DistributeddbNbCursorTestcase::ResultSetDb024(bool isRowIdMode)
     std::condition_variable conditionRekeyVar;
     bool rekeyFlag = false;
     (void)g_passwd1.SetValue(PASSWD_VECTOR_1.data(), PASSWD_VECTOR_1.size());
-    thread subThread([&]() {
+    thread subThread([&delegate, &conditionRekeyVar, &rekeyFlag, &mtx]() {
         auto status = delegate->Rekey(g_passwd1);
         EXPECT_EQ(((status == OK) || (status == BUSY)), true);
         std::unique_lock<std::mutex> lck(mtx);

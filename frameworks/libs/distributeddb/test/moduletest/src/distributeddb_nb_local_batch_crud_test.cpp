@@ -352,7 +352,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData007, TestSize.Level3)
     std::condition_variable batchCondition;
     std::mutex batchMtx;
     bool putBatchFinish = false;
-    thread subThread([&]() {
+    thread subThread([&putBatchFinish, &entries, &batchMtx, &batchCondition]() {
         DBStatus inserStatus = DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries);
         EXPECT_TRUE(inserStatus == OK || inserStatus == BUSY);
         {
@@ -402,7 +402,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, SimpleData008, TestSize.Level3)
     std::condition_variable batchCondition;
     std::mutex batchMtx;
     bool putBatchFinish = false;
-    thread subThread([&]() {
+    thread subThread([&putBatchFinish, &entries, &batchMtx, &batchCondition]() {
         DBStatus insertStatus = DistributedDBNbTestTools::PutLocalBatch(*g_nbLocalBatchDelegate, entries);
         EXPECT_TRUE(insertStatus == OK || insertStatus == BUSY);
         {
@@ -1018,7 +1018,7 @@ HWTEST_F(DistributeddbNbLocalBatchCrudTest, Observer007, TestSize.Level1)
      *  and there are 6 records in insert list of the local observer after committing.
      */
     insertEntries.push_back(ENTRY_10);
-    thread subThread([&]() {
+    thread subThread([&insertEntries, &observerLocal]() {
         vector<Entry> emptyInsertEntries;
         EXPECT_TRUE(VerifyObserverResult(observerLocal, CHANGED_ZERO_TIME, INSERT_LIST, emptyInsertEntries));
         EXPECT_EQ(g_nbLocalBatchDelegate->Commit(), OK);
