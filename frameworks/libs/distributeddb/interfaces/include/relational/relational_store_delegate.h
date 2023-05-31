@@ -64,7 +64,7 @@ public:
     DB_API virtual DBStatus RemoveDeviceData() = 0;
 
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
-         const Query &query, const std::function<void(SyncProcess process)> &onProcess,
+         const Query &query, const SyncProcessCallback &onProcess,
          int64_t waitTime) = 0;
 
     DB_API virtual DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;

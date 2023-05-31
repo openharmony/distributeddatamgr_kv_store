@@ -182,7 +182,7 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
 }
 
 DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-    const std::function<void(SyncProcess)> &onProcess, int64_t waitTime)
+    const SyncProcessCallback &onProcess, int64_t waitTime)
 {
     return OK;
 }

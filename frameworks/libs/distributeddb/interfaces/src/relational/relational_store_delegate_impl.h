@@ -49,7 +49,7 @@ public:
     DBStatus RemoveDeviceData() override;
 
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const std::function<void(SyncProcess)> &onProcess, int64_t waitTime) override;
+        const SyncProcessCallback &onProcess, int64_t waitTime) override;
 
     DBStatus SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
 
