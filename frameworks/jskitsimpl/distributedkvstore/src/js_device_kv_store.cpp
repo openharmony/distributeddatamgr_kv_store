@@ -44,7 +44,7 @@ JsDeviceKVStore::JsDeviceKVStore(const std::string& storeId)
 
 napi_value JsDeviceKVStore::Constructor(napi_env env)
 {
-    auto lambda = []() -> std::vector<napi_property_descriptor>{
+    auto lambda = -> std::vector<napi_property_descriptor>{
         std::vector<napi_property_descriptor> properties = {
             DECLARE_NAPI_FUNCTION("put", JsSingleKVStore::Put),
             DECLARE_NAPI_FUNCTION("delete", JsSingleKVStore::Delete),

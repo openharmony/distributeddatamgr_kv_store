@@ -49,7 +49,7 @@ JsSchema::~JsSchema()
 napi_value JsSchema::Constructor(napi_env env)
 {
     ZLOGD("Init JsSchema");
-    auto lambda = []() -> std::vector<napi_property_descriptor> {
+    auto lambda = -> std::vector<napi_property_descriptor> {
         std::vector<napi_property_descriptor> properties = {
             DECLARE_NAPI_GETTER_SETTER("root", JsSchema::GetRootNode, JsSchema::SetRootNode),
             DECLARE_NAPI_GETTER_SETTER("indexes", JsSchema::GetIndexes, JsSchema::SetIndexes),

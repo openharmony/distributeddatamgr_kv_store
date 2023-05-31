@@ -29,7 +29,7 @@ const DataQuery& JsQuery::GetDataQuery() const
 
 napi_value JsQuery::Constructor(napi_env env)
 {
-    auto lambda = []() -> std::vector<napi_property_descriptor> {
+    auto lambda = -> std::vector<napi_property_descriptor> {
         std::vector<napi_property_descriptor> properties = {
             DECLARE_NAPI_FUNCTION("reset", JsQuery::Reset),
             DECLARE_NAPI_FUNCTION("equalTo", JsQuery::EqualTo),
