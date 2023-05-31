@@ -367,7 +367,7 @@ napi_value JsKVManager::Off(napi_env env, napi_callback_info info)
 
 napi_value JsKVManager::Constructor(napi_env env)
 {
-    auto lambda = -> std::vector<napi_property_descriptor> {
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
         std::vector<napi_property_descriptor> properties = {
             DECLARE_NAPI_FUNCTION("getKVStore", JsKVManager::GetKVStore),
             DECLARE_NAPI_FUNCTION("closeKVStore", JsKVManager::CloseKVStore),

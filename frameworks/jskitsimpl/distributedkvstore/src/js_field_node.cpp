@@ -63,7 +63,7 @@ JsFieldNode::json JsFieldNode::GetValueForJson()
 
 napi_value JsFieldNode::Constructor(napi_env env)
 {
-    auto lambda = -> std::vector<napi_property_descriptor>{
+    auto lambda = []() -> std::vector<napi_property_descriptor>{
         std::vector<napi_property_descriptor> properties = {
             DECLARE_NAPI_FUNCTION("appendChild", JsFieldNode::AppendChild),
             DECLARE_NAPI_GETTER_SETTER("default", JsFieldNode::GetDefaultValue, JsFieldNode::SetDefaultValue),
