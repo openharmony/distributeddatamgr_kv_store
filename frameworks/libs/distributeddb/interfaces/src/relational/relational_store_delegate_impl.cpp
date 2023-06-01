@@ -20,6 +20,7 @@
 #include "log_print.h"
 #include "param_check_utils.h"
 #include "relational_store_instance.h"
+#include "relational_store_changed_data_impl.h"
 #include "sync_operation.h"
 
 namespace DistributedDB {

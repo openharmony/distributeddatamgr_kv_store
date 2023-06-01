@@ -18,7 +18,7 @@
 #include <thread>
 
 #include "auto_launch.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "relational_store_instance.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"

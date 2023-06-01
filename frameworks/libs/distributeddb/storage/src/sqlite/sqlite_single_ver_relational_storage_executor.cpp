@@ -1491,7 +1491,6 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudLogGid(const CloudSyncD
         if (errCode != E_OK) {
             goto END;
         }
-        LOGD("fill cloud_gid:%s, rowid:%d", val.c_str(), rowid);
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
@@ -1531,10 +1530,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         isStepNext = true;
         errCode = GetCloudDataForSync(queryStmt, cloudDataResult, totalSize, maxSize);
     } while (errCode == E_OK);
-    if (errCode == -E_UNFINISHED) {
-        return errCode;
+    if (errCode != -E_UNFINISHED) {
+        (void)token.ReleaseCloudStatement();
     }
-    (void)token.ReleaseCloudStatement();
     return errCode;
 }
 
@@ -1546,10 +1544,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
     GetCloudLog(statement, log, totalSize);
     GetCloudExtraLog(statement, extraLog);
 
-    int errCode = E_OK;
     VBucket data;
-    int64_t flag = std::get<int64_t>(extraLog[FLAG]);
-    if ((flag & DataItem::DELETE_FLAG) == 0) {
+    int64_t flag = 0;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(FLAG, extraLog, flag);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if ((static_cast<uint64_t>(flag) & DataItem::DELETE_FLAG) == 0) {
         for (size_t cid = 0; cid < tableSchema_.fields.size(); ++cid) {
             Type cloudValue;
             errCode = SQLiteRelationalUtils::GetCloudValueByType(statement,
@@ -1599,7 +1600,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByPrimaryKeyOrGid(const 
     const VBucket &vBucket, LogInfo &logInfo)
 {
     std::string querySql;
-    std::set<std::string> pkSet = GetCloudPrimaryKey(tableSchema);
+    std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     int errCode = GetQueryLogSql(tableSchema.name, vBucket, pkSet, querySql);
     if (errCode != E_OK) {
         LOGE("Get query log sql fail, %d", errCode);
@@ -1619,7 +1620,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByPrimaryKeyOrGid(const 
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             if (alreadyFound) {
                 LOGE("found more than one records in log table for one primary key or gid.");
-                errCode = -E_INVALID_DATA;
+                errCode = -E_CLOUD_ERROR;
                 break;
             }
             alreadyFound = true;
@@ -1638,53 +1639,20 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByPrimaryKeyOrGid(const 
         }
     } while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW) || errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
 
-    SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(selectStmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 void SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo)
 {
     logInfo.dataKey = sqlite3_column_int64(statement, 0);
     (void)SQLiteUtils::GetColumnTextValue(statement, 1, logInfo.originDev); // 1 is originDev
-    logInfo.timestamp = sqlite3_column_int64(statement, 3); // 3 is timestamp
-    logInfo.wTimestamp = sqlite3_column_int64(statement, 4); // 4 is wtimestamp
-    logInfo.flag = sqlite3_column_int(statement, 5); // 5 is flag
+    logInfo.timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 3)); // 3 is timestamp
+    logInfo.wTimestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 4)); // 4 is wtimestamp
+    logInfo.flag = static_cast<uint64_t>(sqlite3_column_int(statement, 5)); // 5 is flag
     (void)SQLiteUtils::GetColumnBlobValue(statement, 6, logInfo.hashKey); // 6 is hash_key
     (void)SQLiteUtils::GetColumnTextValue(statement, 7, logInfo.cloudGid); // 7 is cloud_gid
-}
-
-std::set<std::string> SQLiteSingleVerRelationalStorageExecutor::GetCloudPrimaryKey(const TableSchema &tableSchema)
-{
-    std::set<std::string> pkSet;
-    for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
-            pkSet.insert(field.colName);
-        }
-    }
-    return pkSet;
-}
-
-std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetCloudPrimaryKeyField(const TableSchema &tableSchema)
-{
-    std::vector<Field> pkVec;
-    for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
-            pkVec.push_back(field);
-        }
-    }
-    return pkVec;
-}
-
-std::map<std::string, Field> SQLiteSingleVerRelationalStorageExecutor::GetCloudPrimaryKeyFieldMap(
-    const TableSchema &tableSchema)
-{
-    std::map<std::string, Field> pkMap;
-    for (const auto &field : tableSchema.fields) {
-        if (field.primary) {
-            pkMap[field.colName] = field;
-        }
-    }
-    return pkMap;
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetInsertSqlForCloudSync(const TableSchema &tableSchema)
@@ -1707,14 +1675,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
     const TableSchema &tableSchema, std::vector<uint8_t> &hashValue)
 {
     int errCode = E_OK;
-    std::map<std::string, Field> pkMap = GetCloudPrimaryKeyFieldMap(tableSchema);
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
     if (pkMap.size() == 0) {
         int64_t rowid = SQLiteUtils::GetLastRowId(dbHandle_);
         std::vector<uint8_t> value;
         DBCommon::StringToVector(std::to_string(rowid), value);
         errCode = DBCommon::CalcValueHash(value, hashValue);
     } else if (pkMap.size() == 1) {
-        std::vector<Field> pkVec = GetCloudPrimaryKeyField(tableSchema);
+        std::vector<Field> pkVec = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
         errCode = CalculateHashKeyForOneField(pkVec.at(0), vBucket, hashValue);
     } else {
         std::vector<uint8_t> tempRes;
@@ -1723,6 +1691,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
             errCode = CalculateHashKeyForOneField(item.second, vBucket, temp);
             if (errCode != E_OK) {
                 LOGE("calc hash fail when there is more than one primary key. errCode = %d", errCode);
+                return errCode;
             }
             tempRes.insert(tempRes.end(), temp.begin(), temp.end());
         }
@@ -1759,9 +1728,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
     }
 
     std::vector<uint8_t> hashValue;
-    if (pkSet.size() == 0) {
-        hashValue.resize(0);
-    } else {
+    if (pkSet.size() > 0) {
         errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, hashValue);
     }
     if (errCode != E_OK) {
@@ -1772,13 +1739,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
 
     index++;
     errCode = SQLiteUtils::BindBlobToStatement(selectStmt, index, hashValue, true);
+    int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("Bind hash key to query log statement failed. %d", errCode);
-        SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-        return errCode;
+        SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
-
-    return E_OK;
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket,
@@ -1787,7 +1753,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CalculateHashKeyForOneField(const 
     auto it = toVectorFuncMap_.find(field.type);
     if (it == toVectorFuncMap_.end()) {
         LOGE("unknown cloud type when convert field to vector.");
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     std::vector<uint8_t> value;
     int errCode = it->second(vBucket, field, value);
@@ -1810,7 +1776,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
 
     if (pkSet.empty() && cloudGid.empty()) {
         LOGE("query log table failed because of both primary key and gid are empty.");
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     std::string sql = "select data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid FROM "
         + DBConstant::RELATIONAL_PREFIX + tableName + "_log WHERE ";
@@ -1823,23 +1789,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string &tableName,
-    const TableSchema &tableSchema, DownloadData &downloadData)
+int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::string &tableName,
+    const TableSchema &tableSchema, DownloadData &downloadData, std::map<int, int> &statisticMap)
 {
-    LOGD("begin save cloud data, data size = %zu, flag size = %zu.", downloadData.data.size(),
-        downloadData.opType.size());
-    if (downloadData.data.size() != downloadData.opType.size()) {
-        return -E_INVALID_ARGS;
-    }
-
-    int errCode = SetLogTriggerStatus(false);
-    if (errCode != E_OK) {
-        LOGE("Fail to set log trigger off, %d", errCode);
-        return errCode;
-    }
-
     int index = 0;
-    std::map<int, int> statisticMap;
+    int errCode = E_OK;
     for (OpType op : downloadData.opType) {
         VBucket &vBucket = downloadData.data[index];
         switch (op) {
@@ -1858,7 +1812,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
             case OpType::NOT_HANDLE:
                 break;
             default:
-                errCode = -E_INVALID_DATA;
+                errCode = -E_CLOUD_ERROR;
                 break;
         }
         if (errCode != E_OK) {
@@ -1868,7 +1822,26 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
         statisticMap[static_cast<int>(op)]++;
         index++;
     }
+    return errCode;
+}
 
+int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string &tableName,
+    const TableSchema &tableSchema, DownloadData &downloadData)
+{
+    if (downloadData.data.size() != downloadData.opType.size()) {
+        LOGE("put cloud data, data size = %zu, flag size = %zu.", downloadData.data.size(),
+             downloadData.opType.size());
+        return -E_CLOUD_ERROR;
+    }
+
+    int errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        LOGE("Fail to set log trigger off, %d", errCode);
+        return errCode;
+    }
+
+    std::map<int, int> statisticMap;
+    errCode = ExecutePutCloudData(tableName, tableSchema, downloadData, statisticMap);
     int ret = SetLogTriggerStatus(true);
     if (ret != E_OK) {
         LOGE("Fail to set log trigger on, %d", ret);
@@ -1924,17 +1897,17 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(const std::string 
     }
 
     errCode = SQLiteUtils::StepWithRetry(insertLogStmt, false);
+    int ret = E_OK;
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         errCode = E_OK;
     } else {
-        int ret = E_OK;
         SQLiteUtils::ResetStatement(insertLogStmt, true, ret);
         LOGE("insert log data failed when save cloud data:%d, reset stmt:%d", errCode, ret);
         return errCode;
     }
 
-    SQLiteUtils::ResetStatement(insertLogStmt, true, errCode);
-    return errCode;
+    SQLiteUtils::ResetStatement(insertLogStmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindOneField(int index, const VBucket &vBucket, const Field &field,
@@ -1943,7 +1916,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindOneField(int index, const VBuc
     auto it = bindCloudFieldFuncMap_.find(field.type);
     if (it == bindCloudFieldFuncMap_.end()) {
         LOGE("unknown cloud type when bind one field.");
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     return it->second(index, vBucket, field, updateStmt);
 }
@@ -1981,7 +1954,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     if (errCode != E_OK) {
         LOGE("get gid for insert log statement failed, %d", errCode);
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
 
     errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 8, cloudGid); // 8 is cloud_gid
@@ -2017,7 +1990,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
     errCode = CloudStorageUtils::GetValueFromVBucket<int64_t>(CloudDbConstant::MODIFY_FIELD, vBucket, val);
     if (errCode != E_OK) {
         LOGE("get modify time for insert log statement failed, %d", errCode);
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
 
     errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 4, val); // 4 is timestamp
@@ -2029,7 +2002,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
     errCode = CloudStorageUtils::GetValueFromVBucket<int64_t>(CloudDbConstant::CREATE_FIELD, vBucket, val);
     if (errCode != E_OK) {
         LOGE("get create time for insert log statement failed, %d", errCode);
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
 
     errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 5, val); // 5 is wtimestamp
@@ -2074,7 +2047,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateSqlForCloudSync(const Tab
 {
     if (pkSet.empty() && gidStr.empty()) {
         LOGE("update data fail because both primary key and gid is empty.");
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     std::string sql = "update " + tableSchema.name + " set";
     for (const auto &field : tableSchema.fields) {
@@ -2092,11 +2065,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     std::string gidStr;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gidStr);
     if (errCode != E_OK) {
-        LOGE("Get gid from cloud data fail when construct update sql., errCode = %d", errCode);
+        LOGE("Get gid from cloud data fail when construct update data sql, errCode = %d", errCode);
         return errCode;
     }
+    if (!gidStr.empty() && gidStr.find("'") != std::string::npos) {
+        LOGE("invalid char in cloud gid");
+        return -E_CLOUD_ERROR;
+    }
 
-    std::set<std::string> pkSet = GetCloudPrimaryKey(tableSchema);
+    std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     std::string updateSql;
     errCode = GetUpdateSqlForCloudSync(tableSchema, vBucket, gidStr, pkSet, updateSql);
     if (errCode != E_OK) {
@@ -2112,7 +2089,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     // bind value
     std::vector<Field> fields = tableSchema.fields;
     if (!pkSet.empty()) {
-        std::vector<Field> pkFields = GetCloudPrimaryKeyField(tableSchema);
+        std::vector<Field> pkFields = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
         fields.insert(fields.end(), pkFields.begin(), pkFields.end());
     }
     errCode = BindValueToUpsertStatement(vBucket, fields, updateStmt);
@@ -2152,12 +2129,10 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(const std::string 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema,
-    OpType opType)
+int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const TableSchema &tableSchema,
+    const VBucket &vBucket, OpType opType, std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt)
 {
-    sqlite3_stmt *updateLogStmt = nullptr;
     std::string updateLogSql = "update " + DBCommon::GetLogTableName(tableSchema.name) + " set ";
-    std::vector<std::string> updateColName;
     if (opType == OpType::ONLY_UPDATE_GID) {
         updateLogSql += "cloud_gid = ?";
         updateColName.push_back(CloudDbConstant::GID_FIELD);
@@ -2175,14 +2150,15 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBu
     std::string gidStr;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gidStr);
     if (errCode != E_OK) {
-        LOGE("Get gid from cloud data fail when construct update log sql., errCode = %d", errCode);
+        LOGE("Get gid from cloud data fail when construct update log sql, errCode = %d", errCode);
         return errCode;
     }
+
     updateLogSql += " where ";
     if (!gidStr.empty()) {
         updateLogSql += "cloud_gid = '" + gidStr + "'";
     }
-    std::map<std::string, Field> pkMap = GetCloudPrimaryKeyFieldMap(tableSchema);
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
     if (!pkMap.empty()) {
         if (!gidStr.empty()) {
             updateLogSql += " or ";
@@ -2193,9 +2169,22 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBu
     errCode = SQLiteUtils::GetStatement(dbHandle_, updateLogSql, updateLogStmt);
     if (errCode != E_OK) {
         LOGE("Get update log statement failed when update cloud data, %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema,
+    OpType opType)
+{
+    sqlite3_stmt *updateLogStmt = nullptr;
+    std::vector<std::string> updateColName;
+    int errCode = GetUpdateLogRecordStatement(tableSchema, vBucket, opType, updateColName, updateLogStmt);
+    if (errCode != E_OK) {
+        LOGE("Get update log statement failed, errCode = %d", errCode);
         return errCode;
     }
 
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
     errCode = BindValueToUpdateLogStatement(vBucket, tableSchema, updateColName, pkMap, updateLogStmt);
     int ret = E_OK;
     if (errCode != E_OK) {
@@ -2254,8 +2243,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
     std::string gidStr;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gidStr);
     if (errCode != E_OK) {
-        LOGE("Get gid from cloud data fail when construct update sql., errCode = %d", errCode);
+        LOGE("Get gid from cloud data fail when construct delete sql, errCode = %d", errCode);
         return errCode;
+    }
+    if (!gidStr.empty() && gidStr.find("'") != std::string::npos) {
+        LOGE("invalid char in cloud gid");
+        return -E_CLOUD_ERROR;
     }
 
     std::string deleteSql = "delete from " + tableSchema.name;
@@ -2266,7 +2259,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
         return errCode;
     }
 
-    std::vector<Field> pkFields = GetCloudPrimaryKeyField(tableSchema);
+    std::vector<Field> pkFields = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
     errCode = BindValueToUpsertStatement(vBucket, pkFields, deleteStmt);
     int ret = E_OK;
     if (errCode != E_OK) {
@@ -2279,7 +2272,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
 int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string &tableName, const VBucket &vBucket,
     const TableSchema &tableSchema)
 {
-    std::set<std::string> pkSet = GetCloudPrimaryKey(tableSchema);
+    std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;
     int errCode = GetDeleteStatementForCloudSync(tableSchema, pkSet, vBucket, deleteStmt);
     if (errCode != E_OK) {

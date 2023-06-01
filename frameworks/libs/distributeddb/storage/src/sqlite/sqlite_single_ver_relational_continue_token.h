@@ -20,7 +20,7 @@
 
 #include "db_types.h"
 #include "query_object.h"
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerRelationalContinueToken {

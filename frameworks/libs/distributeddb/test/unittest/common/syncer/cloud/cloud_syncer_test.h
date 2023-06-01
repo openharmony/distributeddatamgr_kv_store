@@ -123,7 +123,7 @@ public:
     int CallDoUpload(TaskId taskId)
     {
         storageProxy_->StartTransaction();
-        int ret = CloudSyncer::DoUpload(taskId);
+        int ret = CloudSyncer::DoUpload(taskId, false);
         storageProxy_->Commit();
         return ret;
     }

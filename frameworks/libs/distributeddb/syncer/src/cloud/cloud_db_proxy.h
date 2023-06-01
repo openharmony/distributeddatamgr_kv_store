@@ -19,7 +19,7 @@
 #include <condition_variable>
 #include <mutex>
 #include <shared_mutex>
-#include "icloud_db.h"
+#include "cloud/icloud_db.h"
 
 namespace DistributedDB {
 class CloudDBProxy {
@@ -32,11 +32,11 @@ public:
     int BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
         std::vector<VBucket> &extend, Info &uploadInfo);
 
-    int BatchUpdate(const std::string &tableName, std::vector<VBucket> &record,
-        std::vector<VBucket> &extend, Info &uploadInfo);
+    int BatchUpdate(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
+        Info &uploadInfo);
 
-    int BatchDelete(const std::string &tableName, std::vector<VBucket> &record,
-        std::vector<VBucket> &extend, Info &uploadInfo);
+    int BatchDelete(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
+        Info &uploadInfo);
 
     int Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data);
 
@@ -47,6 +47,8 @@ public:
     int Close();
 
     int HeartBeat();
+
+    bool IsNotExistCloudDB() const;
 
 protected:
     class CloudActionContext {
@@ -117,7 +119,7 @@ protected:
     void InnerActionTask(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
-    std::shared_mutex cloudMutex_;
+    mutable std::shared_mutex cloudMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
     std::atomic<int64_t> timeout_;
 

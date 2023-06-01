@@ -23,7 +23,6 @@
 #include "query_expression.h"
 #include "schema_utils.h"
 #include "sqlite_import.h"
-#include "cloud_store_types.h"
 
 namespace DistributedDB {
 namespace TriggerMode {

@@ -877,6 +877,10 @@ int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMod
         return -E_NOT_SUPPORT;
     }
     const auto tableNames = querySyncObject.GetRelationTableNames();
+    if (tableNames.empty()) {
+        LOGE("[RelationalStore] sync with empty table");
+        return -E_INVALID_ARGS;
+    }
     for (const auto &table: tableNames) {
         int errCode = ChkSchema(table);
         if (errCode != E_OK) {

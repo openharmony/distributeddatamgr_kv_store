@@ -28,6 +28,9 @@ public:
 
     virtual OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
     {
+        (void)existInLocal;
+        (void)localInfo;
+        (void)cloudInfo;
         return OpType::NOT_HANDLE;
     }
 

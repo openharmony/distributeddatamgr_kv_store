@@ -172,24 +172,25 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
     EXPECT_EQ(errCode, E_OK);
 
     int resultCount = 0;
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
-        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2);
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
         std::string oriDevice = "";
-        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK);
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
         EXPECT_EQ(oriDevice, "");
 
-        int64_t timestamp = sqlite3_column_int64(stmt, 3);
-        int64_t wtimestamp = sqlite3_column_int64(stmt, 4);
+        int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
+        int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
         EXPECT_LT(labs(timestamp - wtimestamp), diff);
         EXPECT_LT(labs(timestamp - curTime), diff);
-        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // flag == 2
+        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index flag == 2
         resultCount++;
         return OK;
-    }), SQLITE_OK);
+    });
+    EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
@@ -231,27 +232,27 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
     EXPECT_EQ(errCode, E_OK);
 
     int resultCount = 0;
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql, nullptr,
-        [curTime, &resultCount] (sqlite3_stmt *stmt) {
-        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2);
-        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // flag == 2
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
+        EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index, flag == 2
 
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
         std::string oriDevice = "";
-        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK);
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
         EXPECT_EQ(oriDevice, "");
 
-        int64_t timestamp = sqlite3_column_int64(stmt, 3);
-        int64_t wtimestamp = sqlite3_column_int64(stmt, 4);
+        int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
+        int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
         EXPECT_GT(labs(timestamp - wtimestamp), diff);
         EXPECT_LT(labs(timestamp - curTime), diff);
 
         resultCount++;
         return OK;
-    }), SQLITE_OK);
+    });
+    EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
@@ -324,27 +325,27 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
     EXPECT_EQ(errCode, E_OK);
 
     int resultCount = 0;
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql, nullptr,
-        [curTime, &resultCount] (sqlite3_stmt *stmt) {
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
         EXPECT_EQ(sqlite3_column_int64(stmt, 0), -1);
-        EXPECT_EQ(sqlite3_column_int(stmt, 5), 3); // flag == 3
+        EXPECT_EQ(sqlite3_column_int(stmt, 5), 3); // 5 is column index, flag == 3
 
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
         std::string oriDevice = "";
-        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK);
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
         EXPECT_EQ(oriDevice, "");
 
-        int64_t timestamp = sqlite3_column_int64(stmt, 3);
-        int64_t wtimestamp = sqlite3_column_int64(stmt, 4);
+        int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
+        int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
         EXPECT_GT(labs(timestamp - wtimestamp), diff);
         EXPECT_LT(labs(timestamp - curTime), diff);
 
         resultCount++;
         return OK;
-    }), SQLITE_OK);
+    });
+    EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }

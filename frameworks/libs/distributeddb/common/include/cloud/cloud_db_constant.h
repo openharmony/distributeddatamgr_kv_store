@@ -16,7 +16,7 @@
 #ifndef CLOUD_DB_CONSTANT_H
 #define CLOUD_DB_CONSTANT_H
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include <string>
 
 namespace DistributedDB {

@@ -26,7 +26,7 @@
 #include "sync_able_engine.h"
 #include "relational_sync_able_storage.h"
 #include "runtime_context.h"
-#include "cloud_syncer.h"
+#include "cloud/cloud_syncer.h"
 
 namespace DistributedDB {
 using RelationalObserverAction =

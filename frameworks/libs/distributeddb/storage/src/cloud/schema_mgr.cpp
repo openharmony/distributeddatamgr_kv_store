@@ -17,8 +17,8 @@
 
 #include <unordered_set>
 
-#include "cloud_db_constant.h"
-#include "cloud_store_types.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_store_types.h"
 #include "db_common.h"
 #include "db_errno.h"
 namespace DistributedDB {

@@ -179,7 +179,7 @@ FieldInfo SetField(std::string fieldName, std::string dataType, bool nullable)
   * @tc.desc: Cloud schema and local schema are not been set
   * test situation: TABLE_NAME exist and not exist(TABLE_NAME_3)
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest001, TestSize.Level0)
@@ -203,7 +203,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest001, TestSize.Level0)
   * @tc.name: SchemaMgrTest002
   * @tc.desc: Cloud schema and local schema are the same
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest002, TestSize.Level0)
@@ -228,7 +228,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest002, TestSize.Level0)
   * @tc.name: SchemaMgrTest003
   * @tc.desc: Local schema contain extra primary key
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest003, TestSize.Level0)
@@ -255,7 +255,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest003, TestSize.Level0)
   * @tc.name: SchemaMgrTest003
   * @tc.desc: Column from local schema is not within cloud schema but is not nullable
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest004, TestSize.Level0)
@@ -281,7 +281,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest004, TestSize.Level0)
   * @tc.name: SchemaMgrTest003
   * @tc.desc: Local schema contain extra noraml key with default value but cannot be null
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest005, TestSize.Level0)
@@ -308,7 +308,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest005, TestSize.Level0)
   * @tc.name: SchemaMgrTest003
   * @tc.desc: Local schema contain extra noraml key with default value but cannot be null
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest006, TestSize.Level0)
@@ -335,7 +335,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest006, TestSize.Level0)
   * @tc.name: SchemaMgrTest003
   * @tc.desc: Local schema contain extra noraml key with default value but cannot be null
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest007, TestSize.Level0)
@@ -361,7 +361,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest007, TestSize.Level0)
   * @tc.name: SchemaMgrTest008
   * @tc.desc: Cloud schema or local schema are not exist
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest008, TestSize.Level0)
@@ -403,7 +403,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest008, TestSize.Level0)
   * @tc.name: SchemaMgrTest008
   * @tc.desc: Test schema mgr with empty local schema
   * @tc.type: FUNC
-  * @tc.require: 
+  * @tc.require:
   * @tc.author: wanyi
   */
 HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest009, TestSize.Level0)

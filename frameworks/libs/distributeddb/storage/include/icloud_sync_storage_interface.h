@@ -75,7 +75,8 @@ public:
 
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
 
-    virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) = 0;
+    virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
+        bool isChangedData) = 0;
 };
 }
 

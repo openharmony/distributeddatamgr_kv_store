@@ -33,13 +33,13 @@ int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
     return CloudSyncer::DoDownload(taskId);
 }
 
-int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId)
+int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
 {
     if (!doUpload_) {
         LOGI("[VirtualCloudSyncer] upload just return ok");
         return E_OK;
     }
-    return CloudSyncer::DoUpload(taskId);
+    return CloudSyncer::DoUpload(taskId, lastTable);
 }
 
 void VirtualCloudSyncer::SetSyncAction(bool doDownload, bool doUpload)

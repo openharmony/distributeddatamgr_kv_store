@@ -22,7 +22,7 @@
 
 #include "auto_launch.h"
 #include "auto_launch_export.h"
-#include "icloud_data_translate.h"
+#include "cloud/icloud_data_translate.h"
 #include "icommunicator_aggregator.h"
 #include "iprocess_system_api_adapter.h"
 #include "ithread_pool.h"

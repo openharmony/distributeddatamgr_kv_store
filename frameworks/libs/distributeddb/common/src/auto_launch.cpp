@@ -15,7 +15,7 @@
 
 #include "auto_launch.h"
 
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_dump_helper.h"
 #include "db_dfx_adapter.h"
@@ -1035,7 +1035,8 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     return E_OK;
 }
 
-int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param, DBType &openType)
+int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param,
+    DBType &openType)
 {
     std::lock_guard<std::mutex> lock(extLock_);
     if (autoLaunchRequestCallbackMap_.empty()) {
@@ -1263,7 +1264,7 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
         if (isChangedData && autoLaunchItem.storeObserver) {
             LOGD("begin to observer on changed data");
             autoLaunchItem.storeObserver->OnChange(
-                Origin::ORIGIN_CLOUD, CloudDbConstant::CLOUD_DEVICE_NAME, std::move(changedData));
+                Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             return;
         }
         RelationalStoreChangedDataImpl data(changedDevice);

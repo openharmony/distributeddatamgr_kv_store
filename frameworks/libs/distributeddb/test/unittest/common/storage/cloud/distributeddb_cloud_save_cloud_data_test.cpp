@@ -53,7 +53,8 @@ namespace {
     enum class GidType {
         GID_EMPTY,
         GID_MATCH,
-        GID_MISMATCH
+        GID_MISMATCH,
+        GID_INVALID
     };
 
     class DistributedDBCloudSaveCloudDataTest : public testing::Test {
@@ -281,7 +282,7 @@ namespace {
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest004, TestSize.Level0)
     {
         GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(0), 2L,
-            -E_INVALID_DATA);
+            -E_CLOUD_ERROR);
     }
 
     /**
@@ -318,7 +319,7 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest007, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, "", 1L, -E_INVALID_DATA);
+        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, "", 1L, -E_CLOUD_ERROR);
     }
 
     /**
@@ -397,6 +398,9 @@ namespace {
             } else if (gidType == GidType::GID_EMPTY) {
                 std::string emptyGid = "";
                 gid = emptyGid;
+            } else if (gidType == GidType::GID_INVALID) {
+                std::string invalidGid = "abc'd";
+                gid = invalidGid;
             } else {
                 gid = std::to_string(i) + g_gid;
             }
@@ -477,7 +481,7 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest003, TestSize.Level0)
     {
-        SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY, GidType::GID_EMPTY, true, true, -E_INVALID_DATA);
+        SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY, GidType::GID_EMPTY, true, true, -E_CLOUD_ERROR);
     }
 
     /**
@@ -539,7 +543,7 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest008, TestSize.Level0)
     {
-        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY, false, false, -E_INVALID_DATA);
+        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY, false, false, -E_CLOUD_ERROR);
     }
 
     /**
@@ -568,14 +572,26 @@ namespace {
 
     /**
      * @tc.name: PutCloudSyncDataTest011
-     * @tc.desc: Test save cloud data into table with composite primary key, gid is empty, primary key mismatch
+     * @tc.desc: Test save cloud data into table with SINGLE_PRIMARY_KEY primary key, gid is empty, primary key mismatch
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest011, TestSize.Level0)
     {
-        SaveCloudDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, GidType::GID_EMPTY);
+        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest012
+     * @tc.desc: Test save cloud data into table with composite primary key, invalid gid
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest012, TestSize.Level0)
+    {
+        SaveCloudDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, GidType::GID_INVALID, true, true, -E_CLOUD_ERROR);
     }
 
     void ConstructMultiDownloadData(DownloadData &downloadData, GidType gidType)
@@ -617,13 +633,13 @@ namespace {
     }
 
     /**
-     * @tc.name: PutCloudSyncDataTest012
+     * @tc.name: PutCloudSyncDataTest013
      * @tc.desc: Test save cloud data into table with no primary key, multi cloud data
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest012, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest013, TestSize.Level0)
     {
         /**
          * @tc.steps:step1. create db, create table.

@@ -12,10 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "cloud_merge_strategy.h"
+#include "cloud/cloud_merge_strategy.h"
 
-#include "db_common.h"
-#include "db_errno.h"
 namespace DistributedDB {
 
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)

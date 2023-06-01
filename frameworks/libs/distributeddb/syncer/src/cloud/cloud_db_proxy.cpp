@@ -70,8 +70,8 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     return errCode;
 }
 
-int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket> &record,
-    std::vector<VBucket> &extend, Info &uploadInfo)
+int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket> &record, std::vector<VBucket> &extend,
+    Info &uploadInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     if (iCloudDb_ == nullptr) {
@@ -168,6 +168,12 @@ int CloudDBProxy::HeartBeat()
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
     return InnerAction(context, cloudDb, HEARTBEAT);
+}
+
+bool CloudDBProxy::IsNotExistCloudDB() const
+{
+    std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
+    return iCloudDb_ == nullptr;
 }
 
 int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context,

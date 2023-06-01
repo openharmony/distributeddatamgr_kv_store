@@ -31,7 +31,7 @@ namespace DistributedDB {
 class StorageProxy {
 public:
     StorageProxy(ICloudSyncStorageInterface *iCloud);
-    ~StorageProxy() = default;
+    virtual ~StorageProxy() {};
 
     static std::shared_ptr<StorageProxy> GetCloudDb(ICloudSyncStorageInterface *iCloud);
 
@@ -70,7 +70,7 @@ public:
 
     int GetPrimaryColNames(const TableName &tableName, std::vector<std::string> &colNames);
 
-    virtual int NotifyChangedData(ChangedData &&changedData);
+    int NotifyChangedData(const std::string deviceName, ChangedData &&changedData);
 
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 

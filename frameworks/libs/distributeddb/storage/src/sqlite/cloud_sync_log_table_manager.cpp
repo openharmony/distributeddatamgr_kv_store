@@ -74,6 +74,7 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
 
 std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, const std::string &identity)
 {
+    (void)identity;
     std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_UPDATE AFTER UPDATE \n";

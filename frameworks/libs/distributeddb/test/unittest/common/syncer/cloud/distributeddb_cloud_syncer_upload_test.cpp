@@ -1058,6 +1058,19 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck016, TestSize.Level1
     idb = nullptr;
 }
 
+void MockMethod(const std::shared_ptr<MockICloudDB> &idb, MockICloudSyncStorageInterface *iCloud)
+{
+    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(*idb, Query(_, _, _)).WillRepeatedly(Return(QUERY_END));
+    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _))
+        .WillRepeatedly([](const std::string &, const Timestamp &, int64_t & count) {
+            count = 3000; // 3000 is upload count
+            return E_OK;
+    });
+}
 /**
  * @tc.name: UploadNotifyCheck001
  * @tc.desc: Test case about multiple tables in upload
@@ -1086,16 +1099,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadNotifyCheck001, TestSize.Leve
         res = process.begin()->second;
     });
     CommonExpectCall(iCloud);
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, Query(_, _, _)).WillRepeatedly(Return(QUERY_END));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, int64_t & count) {
-            count = 3000;
-            return E_OK;
-    });
+    MockMethod(idb, iCloud);
     CloudSyncData uploadData(cloudSyncer.GetCurrentContextTableName());
     cloudSyncer.initFullCloudSyncData(uploadData, 1000);    // each size 1000
     CloudSyncData uploadData2(tableName2);
@@ -1112,6 +1116,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadNotifyCheck001, TestSize.Leve
             return E_OK;});
 
     EXPECT_EQ(cloudSyncer.CallDoSyncInner(cloudSyncer.GetCurrentCloudTaskInfos()), E_OK);
+    EXPECT_EQ(res.tableProcess[cloudSyncer.GetCurrentContextTableName()].process, PROCESSING);
+    cloudSyncer.CallNotify();
+    RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(res.tableProcess[cloudSyncer.GetCurrentContextTableName()].process, FINISHED);
     EXPECT_EQ(res.tableProcess[tableName2].process, FINISHED);
     storageProxy.reset();
@@ -1220,6 +1227,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadNotifyCheck003, TestSize.Leve
     });
     // test when count == 0
     EXPECT_EQ(cloudSyncer.CallDoSyncInner(cloudSyncer.GetCurrentCloudTaskInfos()), E_OK);
+    cloudSyncer.CallNotify();
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(res.tableProcess[cloudSyncer.GetCurrentContextTableName()].process, FINISHED);
     EXPECT_EQ(res.tableProcess[tableName2].process, FINISHED);

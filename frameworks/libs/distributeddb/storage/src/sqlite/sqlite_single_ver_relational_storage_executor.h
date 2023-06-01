@@ -17,7 +17,7 @@
 #ifdef RELATIONAL_STORE
 
 #include "cloud/cloud_db_constant.h"
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "data_transformer.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
@@ -143,9 +143,8 @@ private:
 
     int PutVBucketByType(VBucket &vBucket, int cid, Type &cloudValue);
 
-    static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
-    static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+    int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData,
+        std::map<int, int> &statisticMap);
 
     std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
 
@@ -181,6 +180,9 @@ private:
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
     int UpdateCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+
+    int GetUpdateLogRecordStatement(const TableSchema &tableSchema, const VBucket &vBucket, OpType opType,
+        std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt);
 
     int UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 

@@ -24,7 +24,7 @@ public:
 
     int DoDownload(TaskId taskId) override;
 
-    int DoUpload(TaskId taskId) override;
+    int DoUpload(TaskId taskId, bool lastTable) override;
 
     void SetSyncAction(bool doDownload, bool doUpload);
 

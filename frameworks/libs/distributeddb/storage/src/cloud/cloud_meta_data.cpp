@@ -14,9 +14,6 @@
  */
 
 #include "cloud/cloud_meta_data.h"
-
-#include <unordered_map>
-
 #include "cloud/cloud_db_constant.h"
 #include "db_errno.h"
 #include "parcel.h"

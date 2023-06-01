@@ -21,7 +21,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class ICloudDataTranslate {

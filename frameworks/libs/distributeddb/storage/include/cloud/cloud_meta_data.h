@@ -20,7 +20,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
 #include "types_export.h"

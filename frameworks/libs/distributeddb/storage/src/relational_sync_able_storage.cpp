@@ -895,7 +895,7 @@ int RelationalSyncAbleStorage::StartTransaction(TransactType type)
         LOGD("Transaction started already.");
         return -E_TRANSACT_STATE;
     }
-    int errCode;
+    int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(type == TransactType::IMMEDIATE ? true : false,
         OperatePerm::NORMAL_PERM, errCode));
@@ -944,7 +944,7 @@ int RelationalSyncAbleStorage::Rollback()
 int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
     int64_t &count)
 {
-    int errCode;
+    int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
     if (handle == nullptr) {
         return errCode;

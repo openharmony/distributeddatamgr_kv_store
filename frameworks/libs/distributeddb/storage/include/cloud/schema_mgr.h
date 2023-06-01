@@ -17,10 +17,9 @@
 #define SCHEMA_MGR_H
 
 #include <string>
-#include <unordered_map>
 #include <vector>
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "icloud_sync_storage_interface.h"
 #include "relational_schema_object.h"
 

@@ -281,9 +281,8 @@ int StorageProxy::GetPrimaryColNames(const TableName &tableName, std::vector<std
     return E_OK;
 }
 
-int StorageProxy::NotifyChangedData(ChangedData &&changedData)
+int StorageProxy::NotifyChangedData(const std::string deviceName, ChangedData &&changedData)
 {
-    const std::string deviceName = CloudDbConstant::CLOUD_DEVICE_NAME;
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;

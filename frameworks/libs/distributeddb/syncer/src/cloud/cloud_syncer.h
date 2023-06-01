@@ -19,11 +19,11 @@
 #include <condition_variable>
 #include <mutex>
 #include "cloud_db_proxy.h"
-#include "cloud_store_types.h"
-#include "cloud_sync_strategy.h"
+#include "cloud/cloud_store_types.h"
+#include "cloud/cloud_sync_strategy.h"
 #include "data_transformer.h"
 #include "db_common.h"
-#include "icloud_db.h"
+#include "cloud/icloud_db.h"
 #include "ref_object.h"
 #include "runtime_context.h"
 #include "storage_proxy.h"
@@ -67,6 +67,8 @@ protected:
         void UpdateProcess(const InnerProcessInfo &process);
 
         void NotifyProcess(const CloudTaskInfo &taskInfo, const InnerProcessInfo &process);
+    
+        std::vector<std::string> GetDevices() const;
     protected:
         std::mutex processMutex_;
         SyncProcess syncProcess_;
@@ -78,6 +80,12 @@ protected:
         std::shared_ptr<ProcessNotifier> notifier;
         std::shared_ptr<CloudSyncStrategy> strategy;
     };
+    struct UploadParam {
+        int64_t count = 0;
+        TaskId taskId = 0u;
+        LocalWaterMark localMark = 0u;
+        bool lastTable = false;
+    };
 
     int TriggerSync();
 
@@ -85,7 +93,7 @@ protected:
 
     int DoSync(TaskId taskId);
 
-    int DoSyncInner(const CloudTaskInfo &info);
+    int DoSyncInner(const CloudTaskInfo &taskInfo);
 
     void DoFinished(TaskId taskId, int errCode, const InnerProcessInfo &processInfo);
 
@@ -95,8 +103,7 @@ protected:
 
     int PreCheck(TaskId &taskId, const TableName &tableName);
 
-    int DoBatchUpload(CloudSyncData &uploadData, const int64_t &count, const TaskId taskId,
-        LocalWaterMark &localMark, InnerProcessInfo &innerProcessInfo);
+    int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
     
     int CheckCloudSyncDataValid(CloudSyncData uploadData, const std::string &tableName, const int64_t &count,
         TaskId &taskId);
@@ -113,10 +120,9 @@ protected:
     int PreProcessBatchUpload(TaskId taskId, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo,
         LocalWaterMark &localMark);
 
-    virtual int DoUpload(TaskId taskId);
+    virtual int DoUpload(TaskId taskId, bool lastTable);
 
-    int DoUploadInner(CloudSyncer::TaskId taskId, const std::string tableName, const int64_t count,
-        LocalWaterMark &localMark);
+    int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
 
     int CheckDownloadDatum(VBucket &datum);
 
@@ -156,6 +162,10 @@ protected:
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableName &tableName,
         DownloadData &downloadData, InnerProcessInfo &info, std::vector<std::string> &pkColNames);
+
+    void NotifyInBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
+
+    int NotifyChangedData(ChangedData &&changedData);
 
     static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
 

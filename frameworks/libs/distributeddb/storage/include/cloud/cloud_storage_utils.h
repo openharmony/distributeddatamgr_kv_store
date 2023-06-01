@@ -16,7 +16,7 @@
 #ifndef CLOUD_STORAGE_UTILS_H
 #define CLOUD_STORAGE_UTILS_H
 
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
@@ -39,18 +39,22 @@ public:
     static int TextToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
     static int BlobToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
 
+    static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
+    static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+
     template<typename T>
     static int GetValueFromVBucket(const std::string &fieldName, const VBucket &vBucket, T &outVal)
     {
         if (vBucket.find(fieldName) == vBucket.end()) {
-            LOGW("vbucket doesn't contains field: %s.", fieldName.c_str());
+            LOGW("vbucket doesn't contains the field want to get");
             return -E_NOT_FOUND;
         }
         Type cloudValue = vBucket.at(fieldName);
         T *value = std::get_if<T>(&cloudValue);
         if (value == nullptr) {
             LOGE("Get cloud data fail because type mismatch.");
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         outVal = *value;
         return E_OK;

@@ -97,6 +97,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
 
     TestCloudSyncer cloudSyncer2(storageProxy);
     cloudSyncer2.InitCloudSyncerForSync();
+    cloudSyncer2.SetMockICloudDB(idb);
     errCode = cloudSyncer2.Sync(devices, SYNC_MODE_CLOUD_FORCE_PULL, tables, [&res](
         const std::map<std::string, SyncProcess> &process) {
         res = process.begin()->second;

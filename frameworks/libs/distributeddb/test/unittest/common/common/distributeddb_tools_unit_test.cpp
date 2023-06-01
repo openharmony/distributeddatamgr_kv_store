@@ -757,43 +757,6 @@ void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData& data)
 void RelationalStoreObserverUnitTest::
     OnChange(DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
 {
-    LOGW("changedData tableName [%s]", data.tableName.c_str());
-    if (data.tableName == "worker1") {
-        for (const auto &fieldName : data.field) {
-            LOGW("fieldName [%s]", fieldName.c_str());
-        }
-        for (uint64_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
-            for (size_t j = 0; j < data.primaryData[i].size(); j++) {
-                for (size_t k = 0; k < data.primaryData[i][j].size(); k++) {
-                    LOGW("tableName1 name %s", std::get<std::string>(data.primaryData[i][j][k]).c_str());
-                }
-            }
-        }
-    }
-    if (data.tableName == "worker2") {
-        for (const auto &fieldName : data.field) {
-            LOGW("fieldName [%s]", fieldName.c_str());
-        }
-        for (uint64_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
-            for (size_t j = 0; j < data.primaryData[i].size(); j++) {
-                for (size_t k = 0; k < data.primaryData[i][j].size(); k++) {
-                    LOGW("tableName2 ID %d", std::get<std::int64_t>(data.primaryData[i][j][k]));
-                }
-            }
-        }
-    }
-    if (data.tableName == "worker3") {
-        for (const auto &fieldName : data.field) {
-            LOGW("fieldName [%s]", fieldName.c_str());
-        }
-        for (uint64_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
-            for (size_t j = 0; j < data.primaryData[i].size(); j++) {
-                for (size_t k = 0; k < data.primaryData[i][j].size(); k++) {
-                    LOGW("tableName3 No primary key and return rowid %d", std::get<std::int64_t>(data.primaryData[i][j][k]));
-                }
-            }
-        }
-    }
     savedChangedData_[data.tableName] = data;
 }
 

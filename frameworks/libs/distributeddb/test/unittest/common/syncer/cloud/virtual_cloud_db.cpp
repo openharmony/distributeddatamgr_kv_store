@@ -53,7 +53,6 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         };
         cloudData_[tableName].push_back(cloudData);
         auto gid = std::get<std::string>(extend[i][g_gidField]);
-        LOGD("insert gid %s", gid.c_str());
     }
     return OK;
 }
@@ -207,7 +206,6 @@ DBStatus VirtualCloudDb::UpdateCloudData(const std::string &tableName, VirtualCl
         if (srcGid != paramGid) {
             continue;
         }
-        LOGD("src gid %s", srcGid.c_str());
         if (paramDelete) {
             if (data.extend.find(g_deleteField) != data.extend.end() &&
                 std::get<bool>(data.extend[g_deleteField])) {

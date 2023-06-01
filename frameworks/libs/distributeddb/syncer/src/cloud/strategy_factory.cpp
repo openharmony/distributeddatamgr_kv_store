@@ -14,7 +14,7 @@
  */
 
 #include "strategy_factory.h"
-#include "cloud_merge_strategy.h"
+#include "cloud/cloud_merge_strategy.h"
 namespace DistributedDB {
 std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode mode)
 {

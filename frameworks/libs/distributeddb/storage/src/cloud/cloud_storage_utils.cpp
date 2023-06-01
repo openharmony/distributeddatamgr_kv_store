@@ -29,7 +29,7 @@ int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field 
     } else {
         if (errCode != E_OK) {
             LOGE("get int from vbucket failed, %d", errCode);
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         errCode = SQLiteUtils::BindInt64ToStatement(upsertStmt, index, val);
     }
@@ -43,14 +43,14 @@ int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field 
 int CloudStorageUtils::BindBool(int index, const VBucket &vBucket, const Field &field,
     sqlite3_stmt *upsertStmt)
 {
-    bool val = 0;
+    bool val = false;
     int errCode = GetValueFromVBucket<bool>(field.colName, vBucket, val);
     if (field.nullable && errCode == -E_NOT_FOUND) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         if (errCode != E_OK) {
             LOGE("get bool from vbucket failed, %d", errCode);
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         errCode = SQLiteUtils::BindInt64ToStatement(upsertStmt, index, val);
     }
@@ -71,7 +71,7 @@ int CloudStorageUtils::BindDouble(int index, const VBucket &vBucket, const Field
     } else {
         if (errCode != E_OK) {
             LOGE("get double from vbucket failed, %d", errCode);
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_double(upsertStmt, index, val));
     }
@@ -92,7 +92,7 @@ int CloudStorageUtils::BindText(int index, const VBucket &vBucket, const Field &
     } else {
         if (errCode != E_OK) {
             LOGE("get string from vbucket failed, %d", errCode);
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         errCode = SQLiteUtils::BindTextToStatement(upsertStmt, index, str);
     }
@@ -140,14 +140,14 @@ int CloudStorageUtils::BindBlob(int index, const VBucket &vBucket, const Field &
     return errCode;
 ERROR:
     LOGE("get blob from vbucket failed, %d", errCode);
-    return -E_INVALID_DATA;
+    return -E_CLOUD_ERROR;
 }
 
 int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
 {
     int64_t val = 0;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     DBCommon::StringToVector(std::to_string(val), value);
     return E_OK;
@@ -157,7 +157,7 @@ int CloudStorageUtils::BoolToVector(const VBucket &vBucket, const Field &field, 
 {
     bool val = false;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     DBCommon::StringToVector(std::to_string(val ? 1 : 0), value);
     return E_OK;
@@ -167,7 +167,7 @@ int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field
 {
     double val = 0.0;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     std::ostringstream s;
     s << val;
@@ -179,7 +179,7 @@ int CloudStorageUtils::TextToVector(const VBucket &vBucket, const Field &field, 
 {
     std::string val;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-        return -E_INVALID_DATA;
+        return -E_CLOUD_ERROR;
     }
     DBCommon::StringToVector(val, value);
     return E_OK;
@@ -192,7 +192,7 @@ int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, 
     } else if (field.type == TYPE_INDEX<Asset>) {
         Asset val;
         if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         int errCode = RuntimeContext::GetInstance()->AssetToBlob(val, value);
         if (errCode != E_OK) {
@@ -202,7 +202,7 @@ int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, 
     } else {
         Assets val;
         if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
-            return -E_INVALID_DATA;
+            return -E_CLOUD_ERROR;
         }
         int errCode = RuntimeContext::GetInstance()->AssetsToBlob(val, value);
         if (errCode != E_OK) {
@@ -210,5 +210,38 @@ int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, 
         }
         return errCode;
     }
+}
+
+std::set<std::string> CloudStorageUtils::GetCloudPrimaryKey(const TableSchema &tableSchema)
+{
+    std::set<std::string> pkSet;
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            pkSet.insert(field.colName);
+        }
+    }
+    return pkSet;
+}
+
+std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema)
+{
+    std::vector<Field> pkVec;
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            pkVec.push_back(field);
+        }
+    }
+    return pkVec;
+}
+
+std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema)
+{
+    std::map<std::string, Field> pkMap;
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            pkMap[field.colName] = field;
+        }
+    }
+    return pkMap;
 }
 }
