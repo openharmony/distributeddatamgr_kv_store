@@ -40,11 +40,13 @@ config("module_private_config") {
     "../storage/src/upgrader",
     "../common/include",
     "../common/include/relational",
+    "../common/include/cloud",
     "../common/src",
     "../communicator/include",
     "../communicator/src",
     "../syncer/include",
     "../syncer/src",
+    "../syncer/src/cloud",
     "//third_party/openssl/include/",
   ]
 
@@ -394,7 +396,8 @@ distributeddb_unittest("DistributedDBCloudSyncerProgressManagerTest") {
 }
 
 distributeddb_unittest("DistributedDBCloudSchemaMgrTest") {
-  sources = [ "unittest/common/storage/storage/distributeddb_cloud_schema_mgr_test.cpp" ]
+  sources =
+      [ "unittest/common/storage/distributeddb_cloud_schema_mgr_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBStorageDataOperationTest") {
@@ -813,17 +816,30 @@ distributeddb_unittest("DistributedDBSqliteUtilsTest") {
   sources = [ "unittest/common/storage/distributeddb_sqlite_utils_test.cpp" ]
 }
 
-
 distributeddb_unittest("DistributedDBCloudStrategyTest") {
-  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
+  sources =
+      [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
 }
 
-distributeddb_unittest("DistributedDBDistributedDBCloudSyncerUploadTest") {
-  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp" ]
+distributeddb_unittest("DistributedDBCloudSyncerUploadTest") {
+  sources = [
+    "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp",
+  ]
+}
+
+distributeddb_unittest("DistributedDBCloudSyncerDownloadTest") {
+  sources = [
+    "unittest/common/syncer/cloud/distributeddb_cloud_syncer_download_test.cpp",
+  ]
 }
 
 distributeddb_unittest("DistributedDBCloudDBProxyTest") {
-  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_db_proxy_test.cpp" ]
+  sources =
+      [ "unittest/common/syncer/cloud/distributeddb_cloud_db_proxy_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesRelationalExtTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_ext_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBCloudSaveCloudDataTest") {
@@ -839,6 +855,14 @@ group("unittest") {
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
     ":DistributedDBCloudDBProxyTest",
+    ":DistributedDBCloudInterfacesRelationalExtTest",
+    ":DistributedDBCloudInterfacesRelationalSyncTest",
+    ":DistributedDBCloudSaveCloudDataTest",
+    ":DistributedDBCloudSchemaMgrTest",
+    ":DistributedDBCloudStrategyTest",
+    ":DistributedDBCloudSyncerDownloadTest",
+    ":DistributedDBCloudSyncerProgressManagerTest",
+    ":DistributedDBCloudSyncerUploadTest",
     ":DistributedDBCommonTest",
     ":DistributedDBCommunicatorDeepTest",
     ":DistributedDBCommunicatorProxyTest",
@@ -860,7 +884,6 @@ group("unittest") {
     ":DistributedDBInterfacesNBDelegateLocalBatchTest",
     ":DistributedDBInterfacesNBDelegateSchemaPutTest",
     ":DistributedDBInterfacesNBDelegateTest",
-    ":DistributedDBCloudInterfacesRelationalExtTest",
     ":DistributedDBInterfacesNBPublishTest",
     ":DistributedDBInterfacesNBResultsetPerfTest",
     ":DistributedDBInterfacesNBTransactionTest",
@@ -888,9 +911,6 @@ group("unittest") {
     ":DistributedDBRelationalResultSetTest",
     ":DistributedDBRelationalSchemaObjectTest",
     ":DistributedDBRelationalSyncableStorageTest",
-    ":DistributedDBCloudInterfacesRelationalSyncTest",
-    ":DistributedDBCloudSyncerProgressManagerTest",
-    ":DistributedDBCloudSchemaMgrTest",
     ":DistributedDBRelationalVerP2PSyncTest",
     ":DistributedDBSchemaObjectTest",
     ":DistributedDBSchemalTest",
@@ -921,12 +941,9 @@ group("unittest") {
     ":DistributedDBStorageSingleVerUpgradeTest",
     ":DistributedDBStorageTransactionDataTest",
     ":DistributedDBStorageTransactionRecordTest",
-    ":DistributedDBCloudStrategyTest",
-    ":DistributedDBDistributedDBCloudSyncerUploadTest",
     ":DistributedDBSyncerDeviceManagerTest",
     ":DistributedDBThreadPoolTest",
     ":DistributedDBTimeSyncTest",
-    ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
   ]

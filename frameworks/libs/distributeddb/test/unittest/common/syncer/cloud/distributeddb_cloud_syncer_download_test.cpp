@@ -26,9 +26,9 @@ using namespace DistributedDB;
 using namespace DistributedDBUnitTest;
 
 namespace {
-static int64_t photoCount = 10;
-static double dataHeight = 166.0;
-class CloudSyncerDownloadTest : public testing::Test {
+static int64_t g_photoCount = 10;
+static double g_dataHeight = 166.0;
+class DistributedDBCloudSyncerDownloadTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -41,7 +41,7 @@ std::shared_ptr<TestStorageProxy> g_storageProxy = nullptr;
 MockICloudDB *g_idb = nullptr;
 std::unique_ptr<TestCloudSyncer> g_cloudSyncer = nullptr;
 
-void CloudSyncerDownloadTest::SetUpTestCase(void)
+void DistributedDBCloudSyncerDownloadTest::SetUpTestCase(void)
 {
     g_iCloud = new MockICloudSyncStorageInterface();
     g_storageProxy = std::make_shared<TestStorageProxy>(g_iCloud);
@@ -50,32 +50,32 @@ void CloudSyncerDownloadTest::SetUpTestCase(void)
     g_cloudSyncer->SetMockICloudDB(g_idb);
 }
 
-void CloudSyncerDownloadTest::TearDownTestCase(void)
+void DistributedDBCloudSyncerDownloadTest::TearDownTestCase(void)
 {
     g_cloudSyncer = nullptr;
     g_storageProxy = nullptr;
     delete g_iCloud;
 }
 
-void CloudSyncerDownloadTest::SetUp(void)
+void DistributedDBCloudSyncerDownloadTest::SetUp(void)
 {
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
 }
 
-void CloudSyncerDownloadTest::TearDown(void)
+void DistributedDBCloudSyncerDownloadTest::TearDown(void)
 {
 }
 
 
 std::vector<VBucket> GetRetCloudData(uint64_t cnt)
 {
-    std::vector<uint8_t> photo(photoCount, 'v');
+    std::vector<uint8_t> photo(g_photoCount, 'v');
     std::vector<VBucket> cloudData;
     static uint64_t totalCnt = 0;
     for (uint64_t i = totalCnt; i < totalCnt + cnt; ++i) {
         VBucket data;
         data.insert_or_assign("name", "Cloud" + std::to_string(i));
-        data.insert_or_assign("height", dataHeight);
+        data.insert_or_assign("height", g_dataHeight);
         data.insert_or_assign("married", (bool)0);
         data.insert_or_assign("photo", photo);
         data.insert_or_assign("age", 13L);
@@ -100,13 +100,13 @@ struct InvalidCloudDataOpt {
 
 std::vector<VBucket> GetInvalidTypeCloudData(uint64_t cnt, InvalidCloudDataOpt fieldOpt)
 {
-    std::vector<uint8_t> photo(photoCount, 'v');
+    std::vector<uint8_t> photo(g_photoCount, 'v');
     std::vector<VBucket> cloudData;
     static uint64_t totalCnt = 0;
     for (uint64_t i = totalCnt; i < totalCnt + cnt; ++i) {
         VBucket data;
         data.insert_or_assign("name", "Cloud" + std::to_string(i));
-        data.insert_or_assign("height", dataHeight);
+        data.insert_or_assign("height", g_dataHeight);
         data.insert_or_assign("married", (bool)0);
         data.insert_or_assign("photo", photo);
         data.insert_or_assign("age", 13L);
@@ -134,13 +134,13 @@ std::vector<VBucket> GetInvalidTypeCloudData(uint64_t cnt, InvalidCloudDataOpt f
 
 std::vector<VBucket> GetInvalidFieldCloudData(uint64_t cnt, InvalidCloudDataOpt fieldOpt)
 {
-    std::vector<uint8_t> photo(photoCount, 'v');
+    std::vector<uint8_t> photo(g_photoCount, 'v');
     std::vector<VBucket> cloudData;
     static uint64_t totalCnt = 0;
     for (uint64_t i = totalCnt; i < totalCnt + cnt; ++i) {
         VBucket data;
         data.insert_or_assign("name", "Cloud" + std::to_string(i));
-        data.insert_or_assign("height", dataHeight);
+        data.insert_or_assign("height", g_dataHeight);
         data.insert_or_assign("married", (bool)0);
         data.insert_or_assign("photo", photo);
         data.insert_or_assign("age", 13L);
@@ -184,7 +184,7 @@ LogInfo GetLogInfo(uint64_t timestamp, bool isDeleted)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest001, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest001, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -197,7 +197,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest001, TestSize.Level1)
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetRetCloudData(5);
-            return QUERY_END;});    
+            return QUERY_END;});
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
 
     //  1. Read meta data success
@@ -249,7 +249,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest001, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest002, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest002, TestSize.Level1)
 {
     TaskId taskId = 6u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -263,7 +263,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest002, TestSize.Level1)
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetRetCloudData(5);
-            return QUERY_END;});    
+            return QUERY_END;});
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
 
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
@@ -309,7 +309,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest002, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest002, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest002, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -357,7 +357,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest002, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest003, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -424,7 +424,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest003, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest004, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -490,7 +490,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest004, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest005, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest005, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -521,7 +521,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockQueryTest005, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest006, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest006, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -567,7 +567,7 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest006, TestSize.Level1)
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest007, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -581,7 +581,6 @@ HWTEST_F(CloudSyncerDownloadTest, DownloadMockTest007, TestSize.Level1)
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
-
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetRetCloudData(3);

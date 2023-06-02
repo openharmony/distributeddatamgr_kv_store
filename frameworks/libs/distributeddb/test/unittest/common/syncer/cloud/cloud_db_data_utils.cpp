@@ -22,7 +22,7 @@ std::vector<VBucket> CloudDBDataUtils::GenerateRecords(int recordCounts, const T
     std::vector<VBucket> records;
     records.resize(recordCounts);
     for (int i = 0; i < recordCounts; ++i) {
-        records.push_back(std::move(GenerateRecord(schema, i)));
+        records.push_back(GenerateRecord(schema, i));
     }
     return records;
 }

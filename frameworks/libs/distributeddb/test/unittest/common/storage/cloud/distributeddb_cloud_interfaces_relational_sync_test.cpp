@@ -270,56 +270,6 @@ namespace {
             begin, count, begin, count);
     }
 
-    void UpdateCloudTableRecord(int64_t begin, int64_t count, int photoSize)
-    {
-        std::vector<uint8_t> photo(photoSize, 'v');
-        std::vector<VBucket> record1;
-        std::vector<VBucket> extend1;
-        for (int64_t i = begin; i < count; ++i) {
-            Timestamp now = TimeHelper::GetSysCurrentTime();
-            VBucket data;
-            data.insert_or_assign("name", "Cloud" + std::to_string(i));
-            data.insert_or_assign("height", 178.0); // 178.0 is random double value
-            data.insert_or_assign("married", (bool)1);
-            data.insert_or_assign("photo", photo);
-            data.insert_or_assign("assert", KEY_1);
-            data.insert_or_assign("age", 18L); // 18L is random value for age
-            record1.push_back(data);
-            VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-            log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
-            extend1.push_back(log);
-        }
-        int errCode = g_virtualCloudDb->BatchUpdate(g_tableName1, std::move(record1), extend1);
-        ASSERT_EQ(errCode, DBStatus::OK);
-
-        std::vector<VBucket> record2;
-        std::vector<VBucket> extend2;
-        for (int64_t i = begin; i < count; ++i) {
-            Timestamp now = TimeHelper::GetSysCurrentTime();
-            VBucket data;
-            data.insert_or_assign("id", i);
-            data.insert_or_assign("name", "Cloud" + std::to_string(i));
-            data.insert_or_assign("height", 188.3); // 180.3 is random double value
-            data.insert_or_assign("photo", photo);
-            data.insert_or_assign("asserts", KEY_1);
-            data.insert_or_assign("age", 38L);
-            record2.push_back(data);
-            VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-            log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i + 20));
-            extend2.push_back(log);
-        }
-        errCode = g_virtualCloudDb->BatchUpdate(g_tableName2, std::move(record2), extend2);
-        ASSERT_EQ(errCode, DBStatus::OK);
-        LOGD("Update cloud record worker1[primary key]:[cloud%d - cloud%d) , worker2[primary key]:[%d - %d)",
-            begin, count, begin, count);
-    }
-
     int QueryCountCallback(void *data, int count, char **colValue, char **colName)
     {
         if (count != 1) {
@@ -430,18 +380,6 @@ namespace {
             return syncProcess.process == FINISHED;
         });
         ASSERT_EQ(result, true);
-    }
-
-    void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
-                       RelationalDBProperties &properties)
-    {
-        properties.SetStringProp(RelationalDBProperties::DATA_DIR, storePath);
-        properties.SetStringProp(RelationalDBProperties::APP_ID, appId);
-        properties.SetStringProp(RelationalDBProperties::USER_ID, userId);
-        properties.SetStringProp(RelationalDBProperties::STORE_ID, g_storeID);
-        std::string identifier = userId + "-" + appId + "-" + g_storeID;
-        std::string hashIdentifier = DBCommon::TransferHashString(identifier);
-        properties.SetStringProp(RelationalDBProperties::IDENTIFIER_DATA, hashIdentifier);
     }
 
     class DistributedDBCloudInterfacesRelationalSyncTest : public testing::Test {

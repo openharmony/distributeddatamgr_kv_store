@@ -46,7 +46,7 @@ public:
 
     virtual int PutMetaData(const Key &key, const Value &value) = 0;
 
-    virtual int ChkSchema(const TableName &tableName) = 0; 
+    virtual int ChkSchema(const TableName &tableName) = 0;
 
     virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
 

@@ -98,7 +98,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
     EXPECT_EQ(errCode, E_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime] (sqlite3_stmt *stmt) {
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
-        EXPECT_LT(labs(sqlite3_column_int64(stmt, 0) - curTime), diff);
+        EXPECT_LT(sqlite3_column_int64(stmt, 0) - curTime, diff);
         return OK;
     }), SQLITE_OK);
 

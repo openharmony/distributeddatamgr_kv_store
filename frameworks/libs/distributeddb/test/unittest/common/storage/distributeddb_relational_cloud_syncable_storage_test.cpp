@@ -110,14 +110,14 @@ void CreateAndInitUserTable(int64_t count, int64_t photoSize)
     ASSERT_EQ(RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob), E_OK);
     for (int i = 1; i <= count; ++i) {
         string sql = "INSERT OR REPLACE INTO " + g_tableName
-            + " (name, height, married, photo, assert, asserts, age) VALUES ('Tom" + std::to_string(i) + "', '175.8', '0', '"
-            + photo + "', ? , ?,  '18');";
+            + " (name, height, married, photo, assert, asserts, age) VALUES ('Tom"
+             + std::to_string(i) + "', '175.8', '0', '" + photo + "', ? , ?,  '18');";
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-        if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
+        if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) { // 1 is asset index
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        if (SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false) != E_OK) {
+        if (SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false) != E_OK) { // 2 is assets index
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
         EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
@@ -168,7 +168,7 @@ int QueryCountCallback(void *data, int count, char **colValue, char **colName)
         return 0;
     }
     auto expectCount = reinterpret_cast<int64_t>(data);
-    EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount);
+    EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount); // 10 means decimal
     return 0;
 }
 

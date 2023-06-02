@@ -754,8 +754,8 @@ void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData& data)
     LOGD("Onchange() called success!");
 }
 
-void RelationalStoreObserverUnitTest::
-    OnChange(DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
+void RelationalStoreObserverUnitTest::OnChange(
+    DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
 {
     savedChangedData_[data.tableName] = data;
 }
