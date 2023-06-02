@@ -38,7 +38,7 @@ static constexpr JSUtil::JsFeatureSpace FEATURE_NAME_SPACES[] = {
 
 const std::optional<JSUtil::JsFeatureSpace> JSUtil::GetJsFeatureSpace(const std::string &name)
 {
-    auto jsFeature = JsFeatureSpace{ nullptr, nullptr, false };
+    auto jsFeature = JsFeatureSpace{ name.data(), nullptr, false };
     auto iter = std::lower_bound(FEATURE_NAME_SPACES,
         FEATURE_NAME_SPACES + sizeof(FEATURE_NAME_SPACES) / sizeof(FEATURE_NAME_SPACES[0]), jsFeature,
         [](const JsFeatureSpace &JsFeatureSpace1, const JsFeatureSpace &JsFeatureSpace2) {
