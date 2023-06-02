@@ -203,10 +203,7 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
 {
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
-    if (conn_->SetCloudDB(cloudDb) != E_OK) {
+    if (conn_ == nullptr || conn_->SetCloudDB(cloudDb) != E_OK) {
         return DB_ERROR;
     }
     return OK;

@@ -29,7 +29,6 @@ public:
     static const std::string DELETE_FIELD;
     static const std::string CURSOR_FIELD;
     static const uint32_t MAX_UPLOAD_SIZE;
-    static const std::string CLOUD_DEVICE_NAME;
     static const std::string ROW_ID_FIELD_NAME;
     static const uint32_t MAX_DOWNLOAD_RETRY_TIME;
 };

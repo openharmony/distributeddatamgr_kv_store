@@ -939,8 +939,8 @@ int CloudSyncer::CheckParamValid(const std::vector<DeviceID> &devices, SyncMode 
         return -E_INVALID_ARGS;
     }
     for (const auto &dev: devices) {
-        if (dev != CloudDbConstant::CLOUD_DEVICE_NAME) {
-            LOGE("[CloudSyncer] invalid devices %s", STR_MASK(dev));
+        if (dev.size() == 0) {
+            LOGE("[CloudSyncer] invalid devices");
             return -E_INVALID_ARGS;
         }
     }

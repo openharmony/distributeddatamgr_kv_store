@@ -38,7 +38,7 @@ namespace {
     const string g_tableName1 = "worker1";
     const string g_tableName2 = "worker2";
     const string g_tableName3 = "worker3";
-    const string DEVICE_CLOUD = "cloud";
+    const string DEVICE_CLOUD = "cloud_dev";
     const string DB_SUFFIX = ".db";
     const int64_t g_syncWaitTime = 10;
     string g_testDir;
