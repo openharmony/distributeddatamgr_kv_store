@@ -177,6 +177,31 @@ LogInfo GetLogInfo(uint64_t timestamp, bool isDeleted)
     return logInfo;
 }
 
+static void Expect2GetLogInfoByPrimaryKeyOrGidCall()
+{
+    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(0, false); // Gen data with timestamp 0
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(1, false); // Gen data with timestamp 1
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(2, false); // Gen data with timestamp 2
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(3, false); // Gen data with timestamp 3
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(4, false); // Gen data with timestamp 4
+            return E_OK;
+    });
+}
+
 /**
  * @tc.name: DownloadMockTest001
  * @tc.desc: Test situation with all possible output for GetCloudWaterMark
@@ -196,29 +221,16 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest001, TestSize.Lev
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(5);
-            return QUERY_END;});
+            data = GetRetCloudData(5); // Gen 5 data
+            return QUERY_END;
+    });
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
 
     //  1. Read meta data success
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(0, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(1, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(2, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(3, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(4, false);
-            return E_OK;});
+    Expect2GetLogInfoByPrimaryKeyOrGidCall();
+
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
 
@@ -262,8 +274,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest002, TestSize.Lev
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(5);
-            return QUERY_END;});
+            data = GetRetCloudData(5); // Gen 5 data
+            return QUERY_END;
+    });
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
 
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
@@ -274,22 +287,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest002, TestSize.Lev
     taskId = 7u;
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(-E_NOT_FOUND));
-    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(0, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(1, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(2, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(3, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(4, false);
-            return E_OK;});
+    Expect2GetLogInfoByPrimaryKeyOrGidCall();
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     // when we coudln't find key in get meta data, read local water mark will return default value and E_OK
     EXPECT_EQ(errCode, E_OK);
@@ -327,25 +325,10 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest002, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(5);
+            data = GetRetCloudData(5); // Gen 5 data
             return QUERY_END;});
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(0, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(1, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(2, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(3, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(4, false);
-            return E_OK;});
+    Expect2GetLogInfoByPrimaryKeyOrGidCall();
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
 }
@@ -375,7 +358,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidTypeCloudData(5, {.invalidCursor = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
@@ -384,7 +368,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidTypeCloudData(5, {.invalidCursor = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
@@ -394,17 +379,39 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidTypeCloudData(5, {.invalidDeleteField = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
+}
 
-    taskId = 4u;
+/**
+ * @tc.name: DownloadMockQueryTest00302
+ * @tc.desc: Query data success but return invalid data (type mismatch)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: WanYi
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00302, TestSize.Level1)
+{
+    TaskId taskId = 4u;
+    EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidTypeCloudData(5, {.invalidGID = false});
-            return QUERY_END;});
-    errCode = g_cloudSyncer->CallDoDownload(taskId);
+            return QUERY_END;
+        });
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
     taskId = 5u;
@@ -412,7 +419,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidTypeCloudData(5, {.invalidModifyField = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 }
@@ -442,7 +450,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidFieldCloudData(5, {.invalidCreateField = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
@@ -451,25 +460,48 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
             data = GetInvalidFieldCloudData(5, {.invalidCursor = false});
-            return QUERY_END;});
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
+}
 
-    taskId = 3u;
+/**
+ * @tc.name: DownloadMockQueryTest00402
+ * @tc.desc: Query data success but return invalid data (field mismatch)
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: WanYi
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestSize.Level1)
+{
+    TaskId taskId = 3u;
+    EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetUploadCount(_, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Commit()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, Rollback()).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, PutCloudSyncData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidDeleteField = false});
-            return QUERY_END;});
-    errCode = g_cloudSyncer->CallDoDownload(taskId);
+            data = GetInvalidFieldCloudData(5, {.invalidDeleteField = false}); // Generate 5 data
+            return QUERY_END;
+        });
+    int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
     taskId = 4u;
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidGID = false});
-            return QUERY_END;});
+            data = GetInvalidFieldCloudData(5, {.invalidGID = false}); // Generate 5 data
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 
@@ -477,8 +509,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidModifyField = false});
-            return QUERY_END;});
+            data = GetInvalidFieldCloudData(5, {.invalidModifyField = false}); // Generate 5 data
+            return QUERY_END;
+        });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 }
@@ -507,8 +540,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest005, TestSiz
 
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillRepeatedly([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(0);
-            return OK;});
+            data = GetRetCloudData(0); // Gen 0 data
+            return OK;
+        });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_CLOUD_ERROR);
 }
@@ -538,26 +572,94 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest006, TestSize.Lev
 
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(5);
-            return QUERY_END;});
+            data = GetRetCloudData(5); // Gen 5 data
+            return QUERY_END;
+        });
     EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
         .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(0, false);
-            return E_OK;})
+            info = GetLogInfo(0, false); // Gen log info with timestamp 0
+            return E_OK;
+        })
         .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(1, false);
-            return -E_NOT_FOUND;})
+            info = GetLogInfo(1, false); // Gen log info with timestamp 1
+            return -E_NOT_FOUND;
+        })
         .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(2, false);
-            return E_OK;})
+            info = GetLogInfo(2, false); // Gen log info with timestamp 2
+            return E_OK;
+        })
         .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(3, false);
-            return E_OK;})
+            info = GetLogInfo(3, false); // Gen log info with timestamp 3
+            return E_OK;
+        })
         .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(4, false);
-            return E_OK;});
+            info = GetLogInfo(4, false); // Gen log info with timestamp 4
+            return E_OK;
+        });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
+}
+
+static void ExpectQueryCall()
+{
+    EXPECT_CALL(*g_idb, Query(_, _, _))
+        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudData(3); // Gen 3 data
+            return OK;
+        })
+        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudData(3); // Gen 3 data
+            return OK;
+        })
+        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
+            data = GetRetCloudData(4); // Gen 4 data
+            return QUERY_END;
+        });
+}
+
+static void ExpectGetLogInfoByPrimaryKeyOrGidCall()
+{
+    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(0, false); // Gen log info with timestamp 0
+            return -E_NOT_FOUND;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(1, false); // Gen log info with timestamp 1
+            return -E_NOT_FOUND;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(2, false); // Gen log info with timestamp 2
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(3, false); // Gen log info with timestamp 3
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(4, false); // Gen log info with timestamp 4
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(5, false); // Gen log info with timestamp 5
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(6, false); // Gen log info with timestamp 6
+            return -E_NOT_FOUND;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(7, false); // Gen log info with timestamp 7
+            return -E_NOT_FOUND;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(8, false); // Gen log info with timestamp 8
+            return E_OK;
+        })
+        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
+            info = GetLogInfo(9, false); // Gen log info with timestamp 9
+            return E_OK;
+        });
 }
 
 /**
@@ -581,47 +683,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
-    EXPECT_CALL(*g_idb, Query(_, _, _))
-        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(3);
-            return OK;})
-        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(3);
-            return OK;})
-        .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetRetCloudData(4);
-            return QUERY_END;});
-    EXPECT_CALL(*g_iCloud, GetLogInfoByPrimaryKeyOrGid(_, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(0, false);
-            return -E_NOT_FOUND;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(1, false);
-            return -E_NOT_FOUND;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(2, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(3, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(4, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(5, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(6, false);
-            return -E_NOT_FOUND;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(7, false);
-            return -E_NOT_FOUND;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(8, false);
-            return E_OK;})
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info) {
-            info = GetLogInfo(9, false);
-            return E_OK;});
+    ExpectQueryCall();
+    ExpectGetLogInfoByPrimaryKeyOrGidCall();
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, E_OK);
 }

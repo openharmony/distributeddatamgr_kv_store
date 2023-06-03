@@ -22,14 +22,14 @@
 namespace DistributedDB {
 class CloudDbConstant {
 public:
-    static const std::string CLOUD_META_TABLE_PREFIX;
-    static const std::string GID_FIELD;
-    static const std::string CREATE_FIELD;
-    static const std::string MODIFY_FIELD;
-    static const std::string DELETE_FIELD;
-    static const std::string CURSOR_FIELD;
+    static constexpr const char *CLOUD_META_TABLE_PREFIX = "naturalbase_cloud_meta_";
+    static constexpr const char *GID_FIELD = "#_gid";
+    static constexpr const char *CREATE_FIELD = "#_createTime";
+    static constexpr const char *MODIFY_FIELD = "#_modifyTime";
+    static constexpr const char *DELETE_FIELD = "#_deleted";
+    static constexpr const char *CURSOR_FIELD = "#_cursor";
     static const uint32_t MAX_UPLOAD_SIZE;
-    static const std::string ROW_ID_FIELD_NAME;
+    static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
     static const uint32_t MAX_DOWNLOAD_RETRY_TIME;
 };
 } // namespace DistributedDB

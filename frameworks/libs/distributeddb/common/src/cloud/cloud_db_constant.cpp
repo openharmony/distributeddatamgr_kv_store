@@ -16,13 +16,6 @@
 #include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
-    const std::string CloudDbConstant::CLOUD_META_TABLE_PREFIX = "naturalbase_cloud_meta_";
-    const std::string CloudDbConstant::GID_FIELD = "#_gid";
-    const std::string CloudDbConstant::CREATE_FIELD = "#_createTime";
-    const std::string CloudDbConstant::MODIFY_FIELD = "#_modifyTime";
-    const std::string CloudDbConstant::DELETE_FIELD = "#_deleted";
-    const std::string CloudDbConstant::CURSOR_FIELD = "#_cursor";
     const uint32_t CloudDbConstant::MAX_UPLOAD_SIZE = 1024 * 1024 * 8;
-    const std::string CloudDbConstant::ROW_ID_FIELD_NAME = "rowid";
     const uint32_t CloudDbConstant::MAX_DOWNLOAD_RETRY_TIME = 50;
 }

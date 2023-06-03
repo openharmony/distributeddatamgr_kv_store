@@ -1578,16 +1578,20 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
 {
     if (tableSchema_.fields[cid].type == TYPE_INDEX<Asset>) {
         Asset asset;
-        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
-        if (errCode != E_OK) {
-            return errCode;
+        if (cloudValue.index() == TYPE_INDEX<Bytes>) {
+            int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
+            if (errCode != E_OK) {
+                return errCode;
+            }
         }
         vBucket.insert_or_assign(tableSchema_.fields[cid].colName, asset);
     } else if (tableSchema_.fields[cid].type == TYPE_INDEX<Assets>) {
         Assets assets;
-        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
-        if (errCode != E_OK) {
-            return errCode;
+        if (cloudValue.index() == TYPE_INDEX<Bytes) {
+            int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+            if (errCode != E_OK) {
+                return errCode;
+            }
         }
         vBucket.insert_or_assign(tableSchema_.fields[cid].colName, assets);
     } else {

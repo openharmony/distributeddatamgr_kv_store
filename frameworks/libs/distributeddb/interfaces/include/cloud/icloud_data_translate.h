@@ -26,7 +26,7 @@
 namespace DistributedDB {
 class ICloudDataTranslate {
 public:
-    virtual ~ICloudDataTranslate() {};
+    virtual ~ICloudDataTranslate() = default;
     virtual std::vector<uint8_t> AssetToBlob(const Asset &asset) = 0;
     virtual std::vector<uint8_t> AssetsToBlob(const Assets &assets) = 0;
     virtual Asset BlobToAsset(const std::vector<uint8_t> &blob) = 0;

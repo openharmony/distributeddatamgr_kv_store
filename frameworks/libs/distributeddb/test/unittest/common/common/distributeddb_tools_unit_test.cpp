@@ -792,7 +792,6 @@ static bool IsPrimaryKeyEq(DistributedDB::Type &input, DistributedDB::Type &expe
         case TYPE_INDEX<Assets>:
             LOGE("NOT HANDLE THIS SITUATION");
             return false;
-            break;
         default: {
             break;
         }

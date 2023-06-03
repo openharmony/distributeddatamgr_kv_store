@@ -116,7 +116,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
     conn->RegisterObserverAction([option, storeId, userId, appId](const std::string &changedDevice,
         ChangedData &&changedData, bool isChangedData) {
         if (isChangedData && option.observer != nullptr) {
-            option.observer->OnChange(Origin::ORIGIN_CLOUD, CloudDbConstant::CLOUD_DEVICE_NAME, std::move(changedData));
+            option.observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             LOGD("begin to observer on changed data");
             return;
         }

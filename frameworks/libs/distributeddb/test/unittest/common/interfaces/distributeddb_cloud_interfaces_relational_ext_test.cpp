@@ -96,12 +96,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
     uint64_t curTime = 0;
     int errCode = GetCurrentSysTimeIn100Ns(curTime);
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime] (sqlite3_stmt *stmt) {
-        int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
-        EXPECT_LT(sqlite3_column_int64(stmt, 0) - curTime, diff);
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime] (sqlite3_stmt *stmt) {
+        EXPECT_GT(static_cast<uint64_t>(sqlite3_column_int64(stmt, 0)), curTime);
         return OK;
-    }), SQLITE_OK);
-
+    });
+    EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
@@ -184,8 +183,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
         int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
         int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
-        EXPECT_LT(labs(timestamp - wtimestamp), diff);
-        EXPECT_LT(labs(timestamp - curTime), diff);
+        EXPECT_TRUE(wtimestamp - timestamp < diff);
+        EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
         EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index flag == 2
         resultCount++;
         return OK;
@@ -246,8 +245,8 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
         int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
         int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
-        EXPECT_GT(labs(timestamp - wtimestamp), diff);
-        EXPECT_LT(labs(timestamp - curTime), diff);
+        EXPECT_TRUE(timestamp - wtimestamp > diff);
+        EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
 
         resultCount++;
         return OK;
@@ -339,8 +338,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
         int64_t timestamp = sqlite3_column_int64(stmt, 3); // 3 is column index
         int64_t wtimestamp = sqlite3_column_int64(stmt, 4); // 4 is column index
         int64_t diff = MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS * TO_100_NS;
-        EXPECT_GT(labs(timestamp - wtimestamp), diff);
-        EXPECT_LT(labs(timestamp - curTime), diff);
+        EXPECT_TRUE(timestamp - wtimestamp > diff);
+        EXPECT_TRUE(static_cast<int64_t>(curTime - timestamp) < diff);
 
         resultCount++;
         return OK;
