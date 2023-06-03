@@ -1587,7 +1587,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
         vBucket.insert_or_assign(tableSchema_.fields[cid].colName, asset);
     } else if (tableSchema_.fields[cid].type == TYPE_INDEX<Assets>) {
         Assets assets;
-        if (cloudValue.index() == TYPE_INDEX<Bytes) {
+        if (cloudValue.index() == TYPE_INDEX<Bytes>) {
             int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
             if (errCode != E_OK) {
                 return errCode;
