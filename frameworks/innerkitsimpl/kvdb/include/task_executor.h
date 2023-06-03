@@ -33,7 +33,7 @@ public:
     TaskId Reset(TaskId taskId, Duration interval);
 
 private:
-    size_t MAX_THREADS = 2;
+    size_t MAX_THREADS = 6;
     size_t MIN_THREADS = 0;
     TaskExecutor();
     ~TaskExecutor();
