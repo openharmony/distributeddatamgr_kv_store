@@ -821,25 +821,26 @@ int RuntimeContextImpl::SetTimerByThreadPool(int milliSeconds, const TimerAction
     if (allocTimerId) {
         errCode = AllocTimerId(nullptr, timerId);
     } else {
-        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         if (taskIds_.find(timerId) == taskIds_.end()) {
-            LOGD("[RuntimeContext] Timer has been remove");
+            LOGD("[SetTimerByThreadPool] Timer has been remove");
             return -E_NO_SUCH_ENTRY;
         }
     }
     if (errCode != E_OK) {
         return errCode;
     }
-    {
-        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
-        timerFinalizers_[timerId] = finalizer;
+    std::lock_guard<std::mutex> autoLock(timerTaskLock_);
+    if (!allocTimerId && taskIds_.find(timerId) == taskIds_.end()) {
+        LOGD("[SetTimerByThreadPool] Timer has been remove");
+        return -E_NO_SUCH_ENTRY;
     }
+    timerFinalizers_[timerId] = finalizer;
     Duration duration = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
         std::chrono::milliseconds(milliSeconds));
     TaskId taskId = threadPool->Execute([milliSeconds, action, timerId, this]() {
         ThreadPoolTimerAction(milliSeconds, action, timerId);
     }, duration);
-    std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
     taskIds_[timerId] = taskId;
     return E_OK;
 }
@@ -852,7 +853,7 @@ int RuntimeContextImpl::ModifyTimerByThreadPool(TimerId timerId, int milliSecond
     }
     TaskId taskId;
     {
-        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         if (taskIds_.find(timerId) == taskIds_.end()) {
             return -E_NO_SUCH_ENTRY;
         }
@@ -875,7 +876,7 @@ void RuntimeContextImpl::RemoveTimerByThreadPool(TimerId timerId, bool wait)
     }
     TaskId taskId;
     {
-        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         if (taskIds_.find(timerId) == taskIds_.end()) {
             return;
         }
@@ -885,7 +886,7 @@ void RuntimeContextImpl::RemoveTimerByThreadPool(TimerId timerId, bool wait)
     bool removeBeforeExecute = threadPool->Remove(taskId, wait);
     TimerFinalizer timerFinalizer = nullptr;
     if (removeBeforeExecute) {
-        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         timerFinalizer = timerFinalizers_[timerId];
         timerFinalizers_.erase(timerId);
     }
@@ -897,16 +898,21 @@ void RuntimeContextImpl::RemoveTimerByThreadPool(TimerId timerId, bool wait)
 void RuntimeContextImpl::ThreadPoolTimerAction(int milliSeconds, const TimerAction &action, TimerId timerId)
 {
     TimerFinalizer timerFinalizer = nullptr;
+    bool timerExist = true;
     {
-        std::lock_guard<std::mutex> autoLock(timerFinalizerLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         if (timerFinalizers_.find(timerId) == timerFinalizers_.end()) {
-            LOGD("[RuntimeContext] Timer has been finalize");
+            LOGD("[ThreadPoolTimerAction] Timer has been finalize");
             return;
         }
         timerFinalizer = timerFinalizers_[timerId];
         timerFinalizers_.erase(timerId);
+        if (taskIds_.find(timerId) == taskIds_.end()) {
+            LOGD("[ThreadPoolTimerAction] Timer has been removed");
+            timerExist = false;
+        }
     }
-    if (action(timerId) == E_OK) {
+    if (timerExist && action(timerId) == E_OK) {
         // schedule task again
         int errCode = SetTimerByThreadPool(milliSeconds, action, timerFinalizer, false, timerId);
         if (errCode == E_OK) {
@@ -918,7 +924,7 @@ void RuntimeContextImpl::ThreadPoolTimerAction(int milliSeconds, const TimerActi
         timerFinalizer();
     }
     {
-        std::lock_guard<std::mutex> autoLock(mappingTaskIdLock_);
+        std::lock_guard<std::mutex> autoLock(timerTaskLock_);
         taskIds_.erase(timerId);
     }
     std::lock_guard<std::mutex> autoLock(timersLock_);
