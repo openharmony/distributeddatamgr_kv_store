@@ -196,6 +196,9 @@ int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
     if (param.syncQuery.GetRelationTableName().empty()) {
         return -E_NOT_SUPPORT;
     }
+    if (!param.syncQuery.GetRelationTableNames().empty()) {
+        return -E_NOT_SUPPORT;
+    }
     return E_OK;
 }
 }

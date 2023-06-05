@@ -26,7 +26,10 @@
 #include "types_export.h"
 
 namespace DistributedDB {
+using TableName = std::string;
 using Timestamp = uint64_t;
+using LocalWaterMark = Timestamp;
+using CloudWaterMark = std::string;
 using ContinueToken = void *;
 using DeviceID = std::string;
 using TimeOffset = int64_t;

@@ -61,11 +61,15 @@ std::string SplitDeviceLogTableManager::GetUpdateTrigger(const TableInfo &table,
     updateTrigger += "ON '" + table.GetTableName() + "'\n";
     updateTrigger += "BEGIN\n";
     if (table.GetPrimaryKey().size() == 1 && table.GetPrimaryKey().at(0) == "rowid") {
+        // primary key is rowid, it can't be changed
         updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
         updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22";
         updateTrigger += " WHERE hash_key=" + CalcPrimaryKeyHash("OLD.", table, identity) +
             " AND flag&0x02=0x02;\n";
     } else {
+        // primary key may be changed, so we need to set the old log record deleted, then insert or replace a new
+        // log record(if primary key not change, insert or replace will modify the log record we set deleted in previous
+        // step)
         updateTrigger += "\t UPDATE " + logTblName;
         updateTrigger += " SET data_key=-1,timestamp=get_sys_time(0), device='', flag=0x03";
         updateTrigger += " WHERE hash_key=" + CalcPrimaryKeyHash("OLD.", table, identity) + " AND flag&0x02=0x02;\n";

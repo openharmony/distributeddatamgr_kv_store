@@ -80,6 +80,8 @@ protected:
 
     bool initialized_ = false; // use function need after init
     bool isTableNameSpecified_ = false;
+    std::vector<std::string> tables_;
+    bool isWithDeviceSyncQuery_ = true;
 
 private:
     int Parse();

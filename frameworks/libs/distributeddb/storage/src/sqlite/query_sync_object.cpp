@@ -361,4 +361,14 @@ std::string QuerySyncObject::GetRelationTableName() const
     }
     return tableName_;
 }
+
+std::vector<std::string> QuerySyncObject::GetRelationTableNames() const
+{
+    return tables_;
+}
+
+bool QuerySyncObject::GetIsDeviceSyncQuery() const
+{
+    return isWithDeviceSyncQuery_;
+}
 } // namespace DistributedDB

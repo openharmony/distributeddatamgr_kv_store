@@ -20,6 +20,7 @@
 #include "log_print.h"
 #include "param_check_utils.h"
 #include "relational_store_instance.h"
+#include "relational_store_changed_data_impl.h"
 #include "sync_operation.h"
 
 namespace DistributedDB {
@@ -74,6 +75,11 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
     if (conn_ == nullptr) {
         LOGE("Invalid connection for operation!");
         return DB_ERROR;
+    }
+
+    if (mode > SYNC_MODE_PUSH_PULL) {
+        LOGE("not support other mode");
+        return NOT_SUPPORT;
     }
 
     RelationalStoreConnection::SyncInfo syncInfo{devices, mode,
@@ -184,16 +190,33 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceData()
 DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
     const SyncProcessCallback &onProcess, int64_t waitTime)
 {
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    int errCode = conn_->Sync(devices, mode, query, onProcess, waitTime);
+    if (errCode != E_OK) {
+        LOGW("[RelationalStore Delegate] cloud sync failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
     return OK;
 }
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
 {
+    if (conn_ == nullptr || conn_->SetCloudDB(cloudDb) != E_OK) {
+        return DB_ERROR;
+    }
     return OK;
 }
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
 {
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    if (conn_->SetCloudDbSchema(schema) != E_OK) {
+        return DB_ERROR;
+    }
     return OK;
 }
 } // namespace DistributedDB

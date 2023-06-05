@@ -21,11 +21,12 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class ICloudDb {
 public:
+    virtual ~ICloudDb() {};
     /**
      ** param[in & out] extend: will fill gid after insert ok
     **/

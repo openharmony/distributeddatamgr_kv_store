@@ -1388,6 +1388,22 @@ void SQLiteUtils::GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **arg
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetSysCurrentTime());
 }
 
+void SQLiteUtils::GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 0 || argv == nullptr) {
+        LOGE("Parameter does not meet restrictions.");
+        return;
+    }
+
+    uint64_t curTime = 0;
+    int errCode = TimeHelper::GetSysCurrentRawTime(curTime);
+    if (errCode != E_OK) {
+        sqlite3_result_error(ctx, "get raw sys time failed.", errCode);
+        return;
+    }
+    sqlite3_result_int64(ctx, (sqlite3_int64)(curTime));
+}
+
 void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     if (ctx == nullptr || argc != 0 || argv == nullptr) {
@@ -1410,6 +1426,13 @@ int SQLiteUtils::RegisterGetLastTime(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &GetLastTime;
     return SQLiteUtils::RegisterFunction(db, "get_last_time", 0, nullptr, func);
+}
+
+int SQLiteUtils::RegisterGetRawSysTime(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &GetRawSysTime;
+    return SQLiteUtils::RegisterFunction(db, "get_raw_sys_time", 0, nullptr, func);
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)

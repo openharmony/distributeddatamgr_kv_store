@@ -20,6 +20,7 @@
 
 #include "db_types.h"
 #include "query_object.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerRelationalContinueToken {
@@ -37,6 +38,10 @@ public:
     const QueryObject &GetQuery() const;
     void SetFieldNames(const std::vector<std::string> &fieldNames);
     void UpdateNextSyncOffset(int addOffset);
+    void SetCloudTableSchema(const TableSchema &tableSchema);
+    int GetCloudStatement(sqlite3 *db, sqlite3_stmt *&queryStmt, bool &isFirstTime);
+    void GetCloudTableSchema(TableSchema &tableSchema);
+    int ReleaseCloudStatement();
 private:
     std::string GetDeletedDataSQL() const;
     int GetQuerySyncStatement(sqlite3 *db, sqlite3_stmt *&stmt);
@@ -52,6 +57,8 @@ private:
     SyncTimeRange timeRange_;
     std::vector<std::string> fieldNames_;
     unsigned int magicEnd_ = MAGIC_END;
+    TableSchema tableSchema_;
+    sqlite3_stmt *queryStmt_ = nullptr;
 };
 }  // namespace DistributedDB
 #endif  // RELATIONAL_STORE

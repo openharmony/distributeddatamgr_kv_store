@@ -45,6 +45,11 @@ public:
     void RegisterObserverAction(const RelationalObserverAction &action) override;
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
+    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
+    int SetCloudDbSchema(const DataBaseSchema &schema) override;
+
+    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+        const SyncProcessCallback &onProcess, int64_t waitTime) override;
 
 protected:
 

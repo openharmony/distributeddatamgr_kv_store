@@ -15,6 +15,7 @@
 
 #include "auto_launch.h"
 
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_dump_helper.h"
 #include "db_dfx_adapter.h"
@@ -1034,7 +1035,8 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
     return E_OK;
 }
 
-int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param, DBType &openType)
+int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param,
+    DBType &openType)
 {
     std::lock_guard<std::mutex> lock(extLock_);
     if (autoLaunchRequestCallbackMap_.empty()) {
@@ -1257,7 +1259,14 @@ int AutoLaunch::RegisterKvObserver(AutoLaunchItem &autoLaunchItem, const std::st
 int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const std::string &identifier, bool isExt)
 {
     RelationalStoreConnection *conn = static_cast<RelationalStoreConnection *>(autoLaunchItem.conn);
-    conn->RegisterObserverAction([this, autoLaunchItem, identifier](const std::string &changedDevice) {
+    conn->RegisterObserverAction([this, autoLaunchItem, identifier](const std::string &changedDevice,
+        ChangedData &&changedData, bool isChangedData) {
+        if (isChangedData && autoLaunchItem.storeObserver) {
+            LOGD("begin to observer on changed data");
+            autoLaunchItem.storeObserver->OnChange(
+                Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
+            return;
+        }
         RelationalStoreChangedDataImpl data(changedDevice);
         std::string userId;
         std::string appId;

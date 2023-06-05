@@ -22,6 +22,7 @@ config("distrdb_config") {
     "interfaces/src",
     "interfaces/src/relational",
     "common/include",
+    "common/include/cloud",
     "common/include/relational",
     "communicator/include",
     "storage/include",
@@ -31,8 +32,10 @@ config("distrdb_config") {
     "storage/src/sqlite",
     "storage/src/sqlite/relational",
     "storage/src/upgrader",
+    "storage/src/cloud",
     "syncer/include",
     "syncer/src",
+    "syncer/src/cloud",
     "//third_party/openssl/include/",
   ]
 

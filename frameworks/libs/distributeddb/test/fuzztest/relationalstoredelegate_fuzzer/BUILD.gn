@@ -21,12 +21,15 @@ ohos_fuzztest("RelationalstoredelegateFuzzTest") {
   module_out_path = "kv_store/distributeddb"
 
   include_dirs = [
+    "..../interfaces/include/cloud",
+    "..../storage/src/cloud",
+    "..../common/include/cloud",
+    "..../syncer/cloud",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include/distributeddb",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",

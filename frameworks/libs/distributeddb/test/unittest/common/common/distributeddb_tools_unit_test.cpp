@@ -27,13 +27,14 @@
 #include <set>
 #include <sys/types.h>
 
-
+#include "cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
 #include "platform_specific.h"
 #include "runtime_config.h"
 #include "single_ver_data_packet.h"
+#include "store_observer.h"
 #include "value_hash_calc.h"
 
 using namespace DistributedDB;
@@ -751,6 +752,110 @@ void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData& data)
     data.GetStoreProperty(storeProperty_);
     LOGD("Onchangedata : %s", changeDevice_.c_str());
     LOGD("Onchange() called success!");
+}
+
+void RelationalStoreObserverUnitTest::OnChange(
+    DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
+{
+    savedChangedData_[data.tableName] = data;
+}
+
+void RelationalStoreObserverUnitTest::SetExpectedResult(DistributedDB::ChangedData &changedData)
+{
+    expectedChangedData_[changedData.tableName] = changedData;
+}
+
+static bool IsPrimaryKeyEq(DistributedDB::Type &input, DistributedDB::Type &expected)
+{
+    if (input.index() != expected.index()) {
+        return false;
+    }
+    switch (expected.index()) {
+        case TYPE_INDEX<int64_t>:
+            if (std::get<int64_t>(input) != std::get<int64_t>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<std::string>:
+            if (std::get<std::string>(input) != std::get<std::string>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<bool>:
+            if (std::get<bool>(input) != std::get<bool>(expected)) {
+                return false;
+            }
+            break;
+        case TYPE_INDEX<double>:
+        case TYPE_INDEX<Bytes>:
+        case TYPE_INDEX<Asset>:
+        case TYPE_INDEX<Assets>:
+            LOGE("NOT HANDLE THIS SITUATION");
+            return false;
+        default: {
+            break;
+        }
+    }
+    return true;
+}
+
+static bool IsPrimaryDataEq(
+    uint64_t type, DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    for (size_t m = 0; m < input.primaryData[type].size(); m++) {
+        for (size_t k = 0; k < input.primaryData[type][m].size(); k++) {
+            if (!IsPrimaryKeyEq(input.primaryData[type][m][k], expected.primaryData[type][m][k])) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool IsAllTypePrimaryDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    for (uint64_t type = ChangeType::OP_INSERT; type < ChangeType::OP_BUTT; ++type) {
+        if (!IsPrimaryDataEq(type, input, expected)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
+{
+    if (input.tableName != expected.tableName) {
+        return false;
+    }
+    if (input.field.size() != expected.field.size()) {
+        return false;
+    }
+    for (size_t i = 0; i < input.field.size(); i++) {
+        if (input.field[i] != expected.field[i]) {
+            return false;
+        }
+    }
+    return IsAllTypePrimaryDataEq(input, expected);
+}
+
+bool RelationalStoreObserverUnitTest::IsAllChangedDataEq()
+{
+    for (auto iter = expectedChangedData_.begin(); iter != expectedChangedData_.end(); ++iter) {
+        auto iterInSavedChangedData = savedChangedData_.find(iter->first);
+        if (iterInSavedChangedData == savedChangedData_.end()) {
+            return false;
+        }
+        if (!isChangedDataEq(iterInSavedChangedData->second, iter->second)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void RelationalStoreObserverUnitTest::ClearChangedData()
+{
+    expectedChangedData_.clear();
+    savedChangedData_.clear();
 }
 
 void RelationalStoreObserverUnitTest::ResetToZero()

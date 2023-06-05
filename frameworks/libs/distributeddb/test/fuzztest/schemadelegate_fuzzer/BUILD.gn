@@ -21,6 +21,10 @@ ohos_fuzztest("SchemaDelegateFuzzTest") {
   module_out_path = "kv_store/distributeddb"
 
   include_dirs = [
+    "..../interfaces/include/cloud",
+    "..../storage/src/cloud",
+    "..../common/include/cloud",
+    "..../syncer/cloud",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/fuzztest/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",

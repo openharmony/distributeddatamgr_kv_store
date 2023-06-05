@@ -141,6 +141,12 @@ public:
     int GetSortType() const;
     void SetSortType(bool isAsc);
 
+    std::vector<std::string> GetTables();
+    void SetTables(const std::vector<std::string> &tableNames);
+
+    void SetIsDeviceSyncQuery(bool isDeviceSync = true);
+    bool GetIsDeviceSyncQuery() const;
+
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
@@ -153,6 +159,8 @@ private:
     bool isTableNameSpecified_;
     std::set<Key> keys_;
     int sortType_ = 0;
+    std::vector<std::string> tables_;
+    bool isWithDeviceSyncQuery_ = false;
 };
 
 // specialize for double

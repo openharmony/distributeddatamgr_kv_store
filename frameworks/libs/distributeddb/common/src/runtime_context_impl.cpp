@@ -924,4 +924,50 @@ void RuntimeContextImpl::ThreadPoolTimerAction(int milliSeconds, const TimerActi
     std::lock_guard<std::mutex> autoLock(timersLock_);
     timers_.erase(timerId);
 }
+
+void RuntimeContextImpl::SetCloudTranslate(const std::shared_ptr<ICloudDataTranslate> &dataTranslate)
+{
+    std::unique_lock<std::shared_mutex> autoLock(dataTranslateLock_);
+    dataTranslate_ = dataTranslate;
+}
+
+int RuntimeContextImpl::AssetToBlob(const Asset &asset, std::vector<uint8_t> &blob)
+{
+    std::shared_lock<std::shared_mutex> autoLock(dataTranslateLock_);
+    if (dataTranslate_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    blob = dataTranslate_->AssetToBlob(asset);
+    return E_OK;
+}
+
+int RuntimeContextImpl::AssetsToBlob(const Assets &assets, std::vector<uint8_t> &blob)
+{
+    std::shared_lock<std::shared_mutex> autoLock(dataTranslateLock_);
+    if (dataTranslate_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    blob = dataTranslate_->AssetsToBlob(assets);
+    return E_OK;
+}
+
+int RuntimeContextImpl::BlobToAsset(const std::vector<uint8_t> &blob, Asset &asset)
+{
+    std::shared_lock<std::shared_mutex> autoLock(dataTranslateLock_);
+    if (dataTranslate_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    asset = dataTranslate_->BlobToAsset(blob);
+    return E_OK;
+}
+
+int RuntimeContextImpl::BlobToAssets(std::vector<uint8_t> &blob, Assets &assets)
+{
+    std::shared_lock<std::shared_mutex> autoLock(dataTranslateLock_);
+    if (dataTranslate_ == nullptr) {
+        return -E_NOT_INIT;
+    }
+    assets = dataTranslate_->BlobToAssets(blob);
+    return E_OK;
+}
 } // namespace DistributedDB

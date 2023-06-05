@@ -31,6 +31,11 @@ public:
     static void StringToVector(const std::string &src, std::vector<uint8_t> &dst);
     static void VectorToString(const std::vector<uint8_t> &src, std::string &dst);
 
+    static inline std::string GetLogTableName(const std::string &tableName)
+    {
+        return DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    }
+
     static std::string VectorToHexString(const std::vector<uint8_t> &inVec, const std::string &separator = "");
 
     static void PrintHexVector(const std::vector<uint8_t> &data, int line = 0, const std::string &tag = "");

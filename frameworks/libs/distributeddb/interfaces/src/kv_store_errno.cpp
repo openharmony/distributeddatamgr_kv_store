@@ -67,6 +67,8 @@ namespace {
         { -E_NOT_PERMIT, PERMISSION_CHECK_FORBID_SYNC },
         { -E_REMOTE_OVER_SIZE, OVER_MAX_LIMITS },
         { -E_CONSTRAINT, CONSTRAINT },
+        { -E_CLOUD_ERROR, CLOUD_ERROR },
+        { -E_DB_CLOSED, DB_CLOSED },
     };
 }
 

@@ -74,10 +74,14 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n";
     if (table.GetIdentifyKey().size() == 1 && table.GetIdentifyKey().at(0) == "rowid") {
+        // primary key is rowid, it can't be changed
         updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
         updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22";
         updateTrigger += " WHERE data_key = OLD.rowid;";
     } else {
+        // primary key may be changed, so we need to set the old log record deleted, then insert or replace a new
+        // log record(if primary key not change, insert or replace will modify the log record we set deleted in previous
+        // step)
         updateTrigger += "\t UPDATE " + logTblName;
         updateTrigger += " SET data_key=-1, timestamp=get_sys_time(0), device='', flag=0x03";
         updateTrigger += " WHERE data_key = OLD.rowid;\n";

@@ -21,11 +21,12 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class ICloudDataTranslate {
 public:
+    virtual ~ICloudDataTranslate() = default;
     virtual std::vector<uint8_t> AssetToBlob(const Asset &asset) = 0;
     virtual std::vector<uint8_t> AssetsToBlob(const Assets &assets) = 0;
     virtual Asset BlobToAsset(const std::vector<uint8_t> &blob) = 0;

@@ -27,7 +27,8 @@
 
 namespace DistributedDB {
 class IRelationalStore;
-using RelationalObserverAction = std::function<void(const std::string &device)>;
+using RelationalObserverAction =
+    std::function<void(const std::string &device, ChangedData &&changedData, bool isChangedData)>;
 class RelationalStoreConnection : public IConnection, public virtual RefObject {
 public:
     struct SyncInfo {
@@ -59,6 +60,11 @@ public:
     virtual void RegisterObserverAction(const RelationalObserverAction &action) = 0;
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
+    virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
+    virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
+
+    virtual int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
+        const SyncProcessCallback &onProcess, int64_t waitTime) = 0;
 
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.

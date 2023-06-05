@@ -19,6 +19,7 @@
 #include <vector>
 #include "sqlite_import.h"
 #include "data_value.h"
+#include "cloud/cloud_store_types.h"
 
 namespace DistributedDB {
 class SQLiteRelationalUtils {
@@ -26,6 +27,10 @@ public:
     static int GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value);
 
     static std::vector<DataValue> GetSelectValues(sqlite3_stmt *stmt);
+
+    static int GetCloudValueByType(sqlite3_stmt *statement, int type, int cid, Type &cloudValue);
+
+    static void CalCloudValueLen(Type &cloudValue, uint32_t &totalSize);
 };
 } // namespace DistributedDB
 #endif // SQLITE_RELATIONAL_UTILS_H
