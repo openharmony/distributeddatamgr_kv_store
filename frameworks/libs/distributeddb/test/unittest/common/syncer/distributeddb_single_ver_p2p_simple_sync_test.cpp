@@ -1549,18 +1549,14 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, CalculateSyncData005, TestSize
     Value value1 = {'1'};
     EXPECT_EQ(g_kvDelegatePtr->Put(key1, value1), OK);
     std::thread thread1([]() {
-        if (g_kvDelegatePtr != nullptr) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            CipherPassword passwd; // random password
-            vector<uint8_t> passwdBuffer(10, 45);  // 10 and 45 as random password.
-            passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
-            g_kvDelegatePtr->Rekey(passwd);
-        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        CipherPassword passwd; // random password
+        vector<uint8_t> passwdBuffer(10, 45);  // 10 and 45 as random password.
+        passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
+        g_kvDelegatePtr->Rekey(passwd);
     });
     std::thread thread2([&dataSize, &key1, &value1]() {
-        if (g_kvDelegatePtr != nullptr) {
-            dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
-        }
+        dataSize = g_kvDelegatePtr->GetSyncDataSize(DEVICE_B);
         if (dataSize > 0) {
             uint32_t expectedDataSize = (key1.size() + value1.size());
             uint32_t externalSize = 70u;

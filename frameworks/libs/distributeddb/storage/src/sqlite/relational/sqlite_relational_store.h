@@ -108,7 +108,7 @@ private:
     int ResetLifeCycleTimer();
 
     void IncreaseConnectionCounter();
-    int InitStorageEngine(const RelationalDBProperties &kvDBProp);
+    int InitStorageEngine(const RelationalDBProperties &properties);
 
     int EraseAllDeviceWatermark(const std::vector<std::string> &tableNameList);
 

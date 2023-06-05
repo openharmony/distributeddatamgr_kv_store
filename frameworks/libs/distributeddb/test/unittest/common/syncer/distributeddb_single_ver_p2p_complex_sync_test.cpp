@@ -1543,10 +1543,8 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync003, TestSize.Leve
     std::thread thread1([]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait 1s
         g_deviceB->SetClearRemoteStaleData(true);
-        if (g_kvDelegatePtr != nullptr) {
-            g_mgr.CloseKvStore(g_kvDelegatePtr);
-            g_kvDelegatePtr = nullptr;
-        }
+        g_mgr.CloseKvStore(g_kvDelegatePtr);
+        g_kvDelegatePtr = nullptr;
         ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
         KvStoreNbDelegate::Option option;
         g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
@@ -1658,10 +1656,8 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSyncTask001, Tes
      * @tc.expected: step3. interface should return OK.
      */
     std::thread thread1([]() {
-        if (g_kvDelegatePtr != nullptr) {
-            g_mgr.CloseKvStore(g_kvDelegatePtr);
-            g_kvDelegatePtr = nullptr;
-        }
+        g_mgr.CloseKvStore(g_kvDelegatePtr);
+        g_kvDelegatePtr = nullptr;
     });
     std::thread thread2([]() {
         g_deviceB->Offline();
@@ -1711,10 +1707,8 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, DeviceOfflineSyncTask002, Tes
      * @tc.steps: step3. close db
      * @tc.expected: step3. interface should return OK.
      */
-    if (g_kvDelegatePtr != nullptr) {
-        g_mgr.CloseKvStore(g_kvDelegatePtr);
-        g_kvDelegatePtr = nullptr;
-    }
+    g_mgr.CloseKvStore(g_kvDelegatePtr);
+    g_kvDelegatePtr = nullptr;
     ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
 }
 
