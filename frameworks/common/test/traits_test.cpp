@@ -28,8 +28,9 @@ public:
     };
     class Convertible {
     public:
-        explicit Convertible(const From &) {};
-        Convertible() {}
+        // Convertible is auto convert type, do not add explicit to stop the type convert.
+        Convertible(const From &){};
+        Convertible(){}
         Convertible(Convertible &&) noexcept {};
         Convertible &operator=(Convertible &&) noexcept
         {
@@ -204,9 +205,8 @@ HWTEST_F(TraitsTest, get_if_convertible_type, TestSize.Level0)
     //    the get_if will return it.
     std::variant<std::monostate, int64_t, double, const char *, From> value;
     value = int64_t(1);
-    auto *fVal = Traits::get_if<float>(&value);
-    static_assert(std::is_same_v<decltype(*fVal), int64_t &>, "int64_t convert to float implicitly!");
-    ASSERT_NE(fVal, nullptr);
+    auto *fVal = Traits::get_if<double>(&value);
+    ASSERT_EQ(fVal, nullptr);
     ASSERT_EQ(*fVal, 1);
 
     value = "test case";
