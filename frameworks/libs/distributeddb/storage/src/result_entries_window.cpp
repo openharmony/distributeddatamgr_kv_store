@@ -175,7 +175,7 @@ int ResultEntriesWindow::LoadData(int begin, int target) const
             continue;
         }
         bufferSize += next.key.size() + next.value.size();
-        buffer_.push_back(move(next));
+        buffer_.push_back(std::move(next));
     }
     if (buffer_.size() == static_cast<size_t>(totalCount_)) {
         (void)(rawCursor_->Close());

@@ -58,6 +58,8 @@ protected:
 
         void MoveInRecordAndExtend(std::vector<VBucket> &record, std::vector<VBucket> &extend);
 
+        void MoveInExtend(std::vector<VBucket> &extend);
+
         void MoveOutRecordAndExtend(std::vector<VBucket> &record, std::vector<VBucket> &extend);
 
         void MoveInQueryExtendAndData(VBucket &extend, std::vector<VBucket> &data);
@@ -113,7 +115,7 @@ protected:
     int InnerAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
-    DBStatus DMLActionTask(const std::shared_ptr<CloudActionContext> &context,
+    static DBStatus DMLActionTask(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
     void InnerActionTask(const std::shared_ptr<CloudActionContext> &context,

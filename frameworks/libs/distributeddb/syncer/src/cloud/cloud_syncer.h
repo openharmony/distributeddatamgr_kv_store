@@ -110,7 +110,7 @@ protected:
 
     bool CheckCloudSyncDataEmpty(CloudSyncData &uploadData);
 
-    int GetWaterMarkInner(std::vector<VBucket>& extend, LocalWaterMark &waterMark);
+    int GetWaterMarkInner(const std::vector<VBucket>& extend, LocalWaterMark &waterMark);
 
     int CalculateLocalWaterMark(CloudSyncData &uploadData, const int64_t &count, TaskId taskId,
         LocalWaterMark &waterMark);
@@ -157,13 +157,13 @@ protected:
     int SaveData(const TableName &tablename, DownloadData &downloadData,
         Info &downloadInfo, CloudWaterMark &latestCloudWaterMark, ChangedData &changedData);
 
-    int SaveChangedData(DownloadData &data,
+    int SaveChangedData(DownloadData &downloadData,
         int dataIndex, LogInfo &localLogInfo, LogInfo &cloudLogInfo, ChangedData &changedData);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableName &tableName,
-        DownloadData &downloadData, InnerProcessInfo &info, std::vector<std::string> &pkColNames);
+        DownloadData &downloadData, InnerProcessInfo &info, const std::vector<std::string> &pkColNames);
 
-    void NotifyInBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
+    void NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo);
 
     int NotifyChangedData(ChangedData &&changedData);
 

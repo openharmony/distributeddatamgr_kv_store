@@ -274,7 +274,7 @@ public:
 
     void OnChange(DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data);
 
-    void SetExpectedResult(DistributedDB::ChangedData &changedData);
+    void SetExpectedResult(const DistributedDB::ChangedData &changedData);
 
     bool IsAllChangedDataEq();
 

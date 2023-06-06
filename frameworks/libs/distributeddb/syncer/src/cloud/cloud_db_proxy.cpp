@@ -218,7 +218,7 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
     switch (action) {
         case INSERT: {
             status = cloudDb->BatchInsert(context->GetTableName(), std::move(record), extend);
-            context->MoveInRecordAndExtend(record, extend);
+            context->MoveInExtend(extend);
             break;
         }
         case UPDATE: {
@@ -313,6 +313,12 @@ void CloudDBProxy::CloudActionContext::MoveInRecordAndExtend(std::vector<VBucket
 {
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     record_ = std::move(record);
+    extend_ = std::move(extend);
+}
+
+void CloudDBProxy::CloudActionContext::MoveInExtend(std::vector<VBucket> &extend)
+{
+    std::lock_guard<std::mutex> autoLock(actionMutex_);
     extend_ = std::move(extend);
 }
 
