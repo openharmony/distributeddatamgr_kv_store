@@ -318,11 +318,9 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
         if (!ITypesUtil::Unmarshalling(key, parcel)) {
             return false;
         }
-        V value;
-        if (!ITypesUtil::Unmarshalling(value, parcel)) {
+        if (!ITypesUtil::Unmarshalling(val[key], parcel)) {
             return false;
         }
-        val.insert({ key, value });
     }
     return true;
 }
