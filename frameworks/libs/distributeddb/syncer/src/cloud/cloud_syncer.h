@@ -163,7 +163,7 @@ protected:
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableName &tableName,
         DownloadData &downloadData, InnerProcessInfo &info, std::vector<std::string> &pkColNames);
 
-    void NotifyInBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
+    void NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo);
 
     int NotifyChangedData(ChangedData &&changedData);
 

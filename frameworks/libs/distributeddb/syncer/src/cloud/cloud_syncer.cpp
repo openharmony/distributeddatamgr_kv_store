@@ -45,7 +45,7 @@ CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
 }
 
 int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
-    const std::vector<std::string> &tables, const SyncProcessCallback &onProcess, int64_t waitTime)
+    const std::vector<std::string> &tables, const SyncProcessCallback &callback, int64_t waitTime)
 {
     int errCode = CheckParamValid(devices, mode);
     if (errCode != E_OK) {
@@ -57,7 +57,7 @@ int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
     CloudTaskInfo taskInfo;
     taskInfo.mode = mode;
     taskInfo.table = tables;
-    taskInfo.callback = onProcess;
+    taskInfo.callback = callback;
     taskInfo.timeout = waitTime;
     taskInfo.devices = devices;
     errCode = TryToAddSyncTask(std::move(taskInfo));
@@ -600,7 +600,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableNa
     return NotifyChangedData(std::move(changedData));
 }
 
-void CloudSyncer::NotifyInBatchUpload(UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo)
+void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo)
 {
     std::lock_guard<std::mutex> autoLock(contextLock_);
     if (uploadParam.lastTable) {
