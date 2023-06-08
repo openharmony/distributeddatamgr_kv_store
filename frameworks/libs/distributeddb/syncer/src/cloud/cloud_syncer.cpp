@@ -327,7 +327,7 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode, const InnerProcessInfo 
     }
 }
 
-static int GetCloudPkVals(VBucket &datum, std::vector<std::string> &pkColNames, int64_t dataKey,
+static int GetCloudPkVals(VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
     std::vector<Type> &cloudPkVals)
 {
     if (!cloudPkVals.empty()) {
@@ -366,7 +366,7 @@ static int SaveChangedtData(VBucket &datum, ChangedData &changedData, int64_t da
     return E_OK;
 }
 
-static bool shouldSaveData(LogInfo &localLogInfo, LogInfo &cloudLogInfo)
+static bool shouldSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo)
 {
     // if timeStamp, write timestamp, cloudGid are all the same,
     // we thought that the datum is mostly be the same between cloud and local
@@ -421,7 +421,7 @@ static LogInfo GetCloudLogInfo(VBucket &datum)
 }
 
 static void UpdateChangedData(
-    DownloadData &downloadData, std::vector<size_t> &InsertDataNoPrimaryKeys, ChangedData &changedData)
+    DownloadData &downloadData, const std::vector<size_t> &InsertDataNoPrimaryKeys, ChangedData &changedData)
 {
     if (InsertDataNoPrimaryKeys.empty()) {
         return;
@@ -432,8 +432,8 @@ static void UpdateChangedData(
     }
 }
 
-int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData, Info &downloadInfo,
-    CloudWaterMark &latestCloudWaterMark, ChangedData &changedData)
+int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData,
+    Info &downloadInfo, CloudWaterMark &latestCloudWaterMark, ChangedData &changedData)
 {
     if (!IsChngDataEmpty(changedData)) {
         // changedData.primaryData should have no member inside
@@ -555,7 +555,7 @@ int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
 }
 
 int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableName &tableName,
-    DownloadData &downloadData, InnerProcessInfo &info, std::vector<std::string> &pkColNames)
+    DownloadData &downloadData, InnerProcessInfo &info, const std::vector<std::string> &pkColNames)
 {
     int ret = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
     if (ret != E_OK) {
@@ -587,7 +587,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableNa
         return ret;
     }
     {
-        std::lock_guard<std::mutex> autoLock(contextLock_);
+        std::lock_guard<std::mutex> autoLock(queueLock_);
         currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
     }
     // use the cursor of the last datum in data set to update cloud water mark
@@ -597,7 +597,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableNa
         return ret;
     }
     // call OnChange to notify changedData object
-    return NotifyChangedData(std::move(changedData));
+    return NotifyChangedData(std::move(changedData));    
 }
 
 void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo)
@@ -653,7 +653,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
                 continue;
             }
             {
-                std::lock_guard<std::mutex> autoLock(contextLock_);
+                std::lock_guard<std::mutex> autoLock(queueLock_);
                 currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
             }
             break;
@@ -870,10 +870,9 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
         if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
             LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
-            return ret;
+            goto RELEASE_EXIT;
         }
     }
-    return E_OK;
 
 RELEASE_EXIT:
     if (getDataUnfinished) {
@@ -1206,7 +1205,7 @@ int CloudSyncer::CheckCloudSyncDataValid(CloudSyncData uploadData, const std::st
     return E_OK;
 }
 
-int CloudSyncer::GetWaterMarkInner(std::vector<VBucket>& extend, LocalWaterMark &waterMark)
+int CloudSyncer::GetWaterMarkInner(const std::vector<VBucket>& extend, LocalWaterMark &waterMark)
 {
     for (const auto &extendData: extend) {
         if (extendData.empty() || extendData.find(CloudDbConstant::MODIFY_FIELD) == extendData.end()) {

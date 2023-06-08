@@ -760,7 +760,7 @@ void RelationalStoreObserverUnitTest::OnChange(
     savedChangedData_[data.tableName] = data;
 }
 
-void RelationalStoreObserverUnitTest::SetExpectedResult(DistributedDB::ChangedData &changedData)
+void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
 {
     expectedChangedData_[changedData.tableName] = changedData;
 }

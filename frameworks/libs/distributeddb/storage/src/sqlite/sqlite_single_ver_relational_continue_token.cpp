@@ -193,7 +193,7 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, sqlit
     return errCode;
 }
 
-void SQLiteSingleVerRelationalContinueToken::GetCloudTableSchema(TableSchema &tableSchema)
+void SQLiteSingleVerRelationalContinueToken::GetCloudTableSchema(TableSchema &tableSchema) const
 {
     tableSchema = tableSchema_;
 }

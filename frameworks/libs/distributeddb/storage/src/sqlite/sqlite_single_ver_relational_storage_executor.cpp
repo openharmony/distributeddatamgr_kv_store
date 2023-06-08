@@ -2284,12 +2284,15 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string 
     }
 
     errCode = SQLiteUtils::StepWithRetry(deleteStmt, false);
-    SQLiteUtils::ResetStatement(deleteStmt, true, errCode);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(deleteStmt, true, ret);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         LOGE("delete data failed when sync with cloud:%d", errCode);
         return errCode;
+    }
+    if (ret != E_OK) {
+        LOGE("reset delete statement failed:%d", ret);
+        return ret;
     }
 
     // update log
