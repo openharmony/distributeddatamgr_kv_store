@@ -160,6 +160,7 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_natural_store_connection.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_relational_continue_token.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_relational_storage_executor.cpp",
+  "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_relational_storage_extend_executor.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_result_set.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_schema_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/sqlite/sqlite_single_ver_storage_engine.cpp",

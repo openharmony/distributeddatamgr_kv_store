@@ -150,9 +150,12 @@ public:
 
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 
-    int GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, LogInfo &logInfo) override;
+    int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+        LogInfo &logInfo, VBucket &assetInfo) override;
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
+
+    int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
 
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,

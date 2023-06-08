@@ -42,6 +42,19 @@ public:
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
+
+    template<typename T>
+    static int GetValueFromOneField(Type &cloudValue, T &outVal)
+    {
+        T *value = std::get_if<T>(&cloudValue);
+        if (value == nullptr) {
+            LOGE("Get cloud data fail because type mismatch.");
+            return -E_CLOUD_ERROR;
+        }
+        outVal = *value;
+        return E_OK;
+    }
 
     template<typename T>
     static int GetValueFromVBucket(const std::string &fieldName, const VBucket &vBucket, T &outVal)
@@ -51,13 +64,7 @@ public:
             return -E_NOT_FOUND;
         }
         Type cloudValue = vBucket.at(fieldName);
-        T *value = std::get_if<T>(&cloudValue);
-        if (value == nullptr) {
-            LOGE("Get cloud data fail because type mismatch.");
-            return -E_CLOUD_ERROR;
-        }
-        outVal = *value;
-        return E_OK;
+        return GetValueFromOneField(cloudValue, outVal);
     }
 };
 }

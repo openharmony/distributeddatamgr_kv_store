@@ -37,6 +37,7 @@ namespace {
     std::string g_dbDir;
     std::string g_testDir;
     std::string g_tableName = "sync_data";
+    std::string g_assetTableName = "asset_sync_data";
     std::string g_storePath;
     std::string g_gid = "abcd";
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
@@ -142,6 +143,25 @@ namespace {
         SetCloudSchema(pkType, nullable);
     }
 
+    void PrepareDataBaseForAsset(const std::string &tableName, PrimaryKeyType pkType, bool nullable = true)
+    {
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        std::string sql;
+        if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
+            sql = "create table " + tableName + "(id int primary key, name TEXT, age REAL, sex INTEGER, image BLOB," \
+                " video BLOB);";
+        } else if (pkType == PrimaryKeyType::NO_PRIMARY_KEY) {
+            sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB, video BLOB);";
+        } else {
+            sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB, video BLOB" \
+                " PRIMARY KEY(id, name, age))";
+        }
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION), OK);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
     void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
         RelationalDBProperties &properties)
     {
@@ -203,7 +223,7 @@ namespace {
         return StorageProxy::GetCloudDb(store);
     }
 
-    void GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType pkType, const std::string &gidStr, int64_t id,
+    void GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType pkType, const std::string &gidStr, int64_t id,
         int expectCode, bool compositePkMatch = false)
     {
         /**
@@ -213,7 +233,7 @@ namespace {
         PrepareDataBase(g_tableName, pkType);
 
         /**
-         * @tc.steps:step2. call GetLogInfoByPrimaryKeyOrGid.
+         * @tc.steps:step2. call GetInfoByPrimaryKeyOrGid.
          * @tc.expected: step2. return expectCode.
          */
         std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
@@ -232,146 +252,147 @@ namespace {
         }
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
         LogInfo logInfo;
-        EXPECT_EQ(storageProxy->GetLogInfoByPrimaryKeyOrGid(g_tableName, vBucket, logInfo), expectCode);
+        VBucket assetInfo;
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, logInfo, assetInfo), expectCode);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest001
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has single primary key and gid = "", id = 100;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest001
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has single primary key and gid = "", id = 100;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest001, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest001, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, "", 100L, -E_NOT_FOUND);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, "", 100L, -E_NOT_FOUND);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest002
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has single primary key and gid = "", id = 1;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest002
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has single primary key and gid = "", id = 1;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest002, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest002, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, "", 1, E_OK);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, "", 1, E_OK);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest003
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd0, id = 100;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest003
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd0, id = 100;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest003, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest003, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(0), 100L, E_OK);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(0), 100L, E_OK);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest004
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd0, id = 2, which will
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest004
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd0, id = 2, which will
      * match two records;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest004, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest004, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(0), 2L,
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(0), 2L,
             -E_CLOUD_ERROR);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest005
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd100, id = 100;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest005
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has single primary key and gid = abcd100, id = 100;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest005, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest005, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(100), 100L,
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, g_gid + std::to_string(100), 100L,
             -E_NOT_FOUND);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest006
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has no primary key and gid = abcd0, id = 100;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest006
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has no primary key and gid = abcd0, id = 100;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest006, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest006, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, g_gid + std::to_string(0), 100L, E_OK);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, g_gid + std::to_string(0), 100L, E_OK);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest007
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has no primary key and gid = "", id = 1;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest007
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has no primary key and gid = "", id = 1;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest007, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest007, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, "", 1L, -E_CLOUD_ERROR);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, "", 1L, -E_CLOUD_ERROR);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest008
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has no primary key and gid = abcd100, id = 1;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest008
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has no primary key and gid = abcd100, id = 1;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest008, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest008, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, g_gid + std::to_string(100), 1L,
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::NO_PRIMARY_KEY, g_gid + std::to_string(100), 1L,
             -E_NOT_FOUND);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest009
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has composite primary key and gid = "", primary key match;
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest009
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has composite primary key and gid = "", primary key match;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest009, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest009, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "", 1L, E_OK, true);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "", 1L, E_OK, true);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest010
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has composite primary key and gid = "",
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest010
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has composite primary key and gid = "",
      * primary key mismatch;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest010, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest010, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "", 1L, -E_NOT_FOUND, false);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "", 1L, -E_NOT_FOUND, false);
     }
 
     /**
-     * @tc.name: GetLogInfoByPrimaryKeyOrGidTest011
-     * @tc.desc: Test GetLogInfoByPrimaryKeyOrGid when table has composite primary key and gid match,
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest011
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has composite primary key and gid match,
      * primary key mismatch
      * primary key mismatch;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetLogInfoByPrimaryKeyOrGidTest011, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest011, TestSize.Level0)
     {
-        GetLogInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "abcd0", 11L, E_OK, false);
+        GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "abcd0", 11L, E_OK, false);
     }
 
     void ConstructDownloadData(DownloadData &downloadData, GidType gidType, bool nullable, bool vBucketContains)
@@ -659,5 +680,10 @@ namespace {
         ConstructMultiDownloadData(downloadData, GidType::GID_MATCH);
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level0)
+    {
+        PrepareDataBaseForAsset(g_assetTableName, PrimaryKeyType::NO_PRIMARY_KEY, true);
     }
 }

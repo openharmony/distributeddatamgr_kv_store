@@ -192,7 +192,8 @@ int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncDa
     return store_->GetCloudDataNext(continueStmtToken, cloudDataResult);
 }
 
-int StorageProxy::GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, LogInfo &logInfo)
+int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+    LogInfo &logInfo, VBucket &assetInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -203,7 +204,7 @@ int StorageProxy::GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, cons
         return -E_TRANSACT_STATE;
     }
 
-    return store_->GetLogInfoByPrimaryKeyOrGid(tableName, vBucket, logInfo);
+    return store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, logInfo, assetInfo);
 }
 
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
@@ -291,4 +292,12 @@ int StorageProxy::NotifyChangedData(const std::string deviceName, ChangedData &&
     return E_OK;
 }
 
+int StorageProxy::FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->FillCloudAsset(tableName, asset, isFullReplace);
+}
 }

@@ -60,7 +60,8 @@ public:
 
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) const;
 
-    int GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, LogInfo &logInfo);
+    int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+        LogInfo &logInfo, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
     
@@ -73,6 +74,8 @@ public:
     int NotifyChangedData(const std::string deviceName, ChangedData &&changedData);
 
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
+
+    int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace);
 
 protected:
     void Init();

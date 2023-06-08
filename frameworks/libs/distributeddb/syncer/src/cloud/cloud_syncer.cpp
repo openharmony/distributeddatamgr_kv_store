@@ -452,8 +452,9 @@ int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData
             return ret;
         }
         LogInfo localLogInfo;
+        VBucket assetInfo;
         bool isExist = true;
-        ret = storageProxy_->GetLogInfoByPrimaryKeyOrGid(tableName, downloadData.data[i], localLogInfo);
+        ret = storageProxy_->GetInfoByPrimaryKeyOrGid(tableName, downloadData.data[i], localLogInfo, assetInfo);
         if (ret == -E_NOT_FOUND) {
             isExist = false;
         } else if (ret != E_OK) {
