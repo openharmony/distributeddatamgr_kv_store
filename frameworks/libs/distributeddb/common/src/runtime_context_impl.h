@@ -227,9 +227,8 @@ private:
     mutable std::shared_mutex threadPoolLock_;
     std::shared_ptr<IThreadPool> threadPool_;
 
-    mutable std::mutex mappingTaskIdLock_;
+    mutable std::mutex timerTaskLock_;
     std::map<TimerId, TaskId> taskIds_;
-    mutable std::mutex timerFinalizerLock_;
     std::map<TimerId, TimerFinalizer> timerFinalizers_;
 
     mutable std::shared_mutex dataTranslateLock_;
