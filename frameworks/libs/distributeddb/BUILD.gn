@@ -101,5 +101,6 @@ ohos_shared_library("distributeddb") {
   ]
 
   subsystem_name = "distributeddatamgr"
+  innerapi_tags = [ "platformsdk_indirect" ]
   part_name = "kv_store"
 }
