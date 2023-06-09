@@ -39,7 +39,10 @@ protected:
     ~SingleVerRelationalSyncTaskContext() override;
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
 
+    mutable std::mutex querySyncIdMutex_;
     std::string querySyncId_;
+
+    mutable std::mutex deleteSyncIdMutex_;
     std::string deleteSyncId_;
 
     // for relational syncStrategy

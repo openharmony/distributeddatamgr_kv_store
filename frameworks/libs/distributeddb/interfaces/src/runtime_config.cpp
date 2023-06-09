@@ -137,6 +137,34 @@ void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::Translat
     RuntimeContext::GetInstance()->SetTranslateToDeviceIdCallback(callback);
 }
 
+void RuntimeConfig::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
+{
+    DBTypeInner innerType = (type == DBType::DB_KV ? DBTypeInner::DB_KV : DBTypeInner::DB_RELATION);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, innerType);
+}
+
+std::string RuntimeConfig::GetStoreIdentifier(const std::string &userId, const std::string &appId,
+    const std::string &storeId, bool syncDualTupleMode)
+{
+    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode)) {
+        return "";
+    }
+    if (syncDualTupleMode) {
+        return DBCommon::TransferHashString(appId + "-" + storeId);
+    }
+    return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
+}
+
+void RuntimeConfig::ReleaseAutoLaunch(const std::string &userId, const std::string &appId, const std::string &storeId,
+    DBType type)
+{
+    DBProperties properties;
+    properties.SetIdentifier(userId, appId, storeId);
+
+    DBTypeInner innerType = (type == DBType::DB_KV ? DBTypeInner::DB_KV : DBTypeInner::DB_RELATION);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(innerType, properties);
+}
+
 void RuntimeConfig::SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool)
 {
     RuntimeContext::GetInstance()->SetThreadPool(threadPool);

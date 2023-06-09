@@ -28,6 +28,7 @@
 #include "kv_store_errno.h"
 #include "relational_store_changed_data_impl.h"
 #include "relational_store_delegate_impl.h"
+#include "runtime_config.h"
 #include "runtime_context.h"
 #include "platform_specific.h"
 
@@ -111,23 +112,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
         conn->Close();
         return DB_ERROR;
     }
-    const std::string userId = userId_;
-    const std::string appId = appId_;
-    conn->RegisterObserverAction([option, storeId, userId, appId](const std::string &changedDevice,
-        ChangedData &&changedData, bool isChangedData) {
-        if (isChangedData && option.observer != nullptr) {
-            option.observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
-            LOGD("begin to observer on changed data");
-            return;
-        }
-        RelationalStoreChangedDataImpl data(changedDevice);
-        data.SetStoreProperty({userId, appId, storeId});
-        if (option.observer) {
-            LOGD("begin to observer on changed, changedDevice=%s", STR_MASK(changedDevice));
-            option.observer->OnChange(data);
-        }
-    });
-    return OK;
+    return delegate->RegisterObserver(option.observer);
 }
 
 DBStatus RelationalStoreManager::CloseStore(RelationalStoreDelegate *store)
@@ -158,19 +143,13 @@ std::string RelationalStoreManager::GetDistributedTableName(const std::string &d
 
 void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)
 {
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBType::DB_RELATION);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBTypeInner::DB_RELATION);
 }
 
 std::string RelationalStoreManager::GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,
     const std::string &storeId, bool syncDualTupleMode)
 {
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode)) {
-        return "";
-    }
-    if (syncDualTupleMode) {
-        return DBCommon::TransferHashString(appId + "-" + storeId);
-    }
-    return DBCommon::TransferHashString(DBCommon::GenerateIdentifierId(storeId, appId, userId));
+    return RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
 }
 } // namespace DistributedDB
 #endif

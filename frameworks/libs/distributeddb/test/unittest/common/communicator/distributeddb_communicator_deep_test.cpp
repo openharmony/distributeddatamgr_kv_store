@@ -857,3 +857,43 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
     ExtendInfo info;
     EXPECT_EQ(adapter->GetExtendHeaderHandle(info), nullptr);
 }
+
+/**
+ * @tc.name: NetworkAdapter007
+ * @tc.desc: Test networkAdapter recv invalid head length
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGJ
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter007, TestSize.Level1)
+{
+    auto processCommunicator = std::make_shared<MockProcessCommunicator>();
+    auto adapter = std::make_shared<NetworkAdapter>("NetworkAdapter007", processCommunicator);
+    OnDataReceive onDataReceive;
+    OnDeviceChange onDeviceChange;
+    InitAdapter(adapter, processCommunicator, onDataReceive, onDeviceChange);
+    ASSERT_NE(onDeviceChange, nullptr);
+    /**
+     * @tc.steps: step1. CheckAndGetDataHeadInfo return invalid headLen
+     * @tc.expected: step1. adapter check this len
+     */
+    EXPECT_CALL(*processCommunicator, CheckAndGetDataHeadInfo).WillOnce([](const uint8_t *, uint32_t, uint32_t &headLen,
+        std::vector<std::string> &) {
+        headLen = UINT32_MAX;
+        return OK;
+    });
+    /**
+     * @tc.steps: step2. Adapter ignore data because len is too large
+     * @tc.expected: step2. BytesReceive never call
+     */
+    int callByteReceiveCount = 0;
+    int res = adapter->RegBytesReceiveCallback([&callByteReceiveCount](const std::string &, const uint8_t *, uint32_t,
+        const std::string &) {
+        callByteReceiveCount++;
+    }, nullptr);
+    EXPECT_EQ(res, E_OK);
+    std::vector<uint8_t> data = { 1u };
+    DeviceInfos deviceInfos;
+    onDataReceive(deviceInfos, data.data(), 1u);
+    EXPECT_EQ(callByteReceiveCount, 0);
+}

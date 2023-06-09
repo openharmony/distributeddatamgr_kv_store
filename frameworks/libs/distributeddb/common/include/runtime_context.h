@@ -38,6 +38,7 @@ using TimerAction = std::function<int(TimerId timerId)>;
 using TimerFinalizer = std::function<void(void)>;
 using TaskAction = std::function<void(void)>;
 using TimeChangedAction = std::function<void(void *)>;
+using TimeFinalizeAction = std::function<void(void)>;
 using LockStatusNotifier = std::function<void(void *isLocked)>;
 using UserChangedAction = std::function<void(void *)>;
 
@@ -71,7 +72,8 @@ public:
     virtual void ShrinkMemory(const std::string &description) = 0;
 
     // Register a time changed lister, it will be callback when local time changed.
-    virtual NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode) = 0;
+    virtual NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action,
+        const TimeFinalizeAction &finalize, int &errCode) = 0;
 
     // Get the global context object(singleton), never return nullptr.
     static RuntimeContext *GetInstance();
@@ -92,7 +94,7 @@ public:
 
     virtual void GetAutoLaunchSyncDevices(const std::string &identifier, std::vector<std::string> &devices) const = 0;
 
-    virtual void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type) = 0;
+    virtual void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type) = 0;
 
     virtual NotificationChain::Listener *RegisterLockStatusLister(const LockStatusNotifier &action, int &errCode) = 0;
 
@@ -134,7 +136,7 @@ public:
 
     virtual void DumpCommonInfo(int fd) = 0;
 
-    virtual void CloseAutoLaunchConnection(DBType type, const DBProperties &properties) = 0;
+    virtual void CloseAutoLaunchConnection(DBTypeInner type, const DBProperties &properties) = 0;
 
     virtual int SetPermissionConditionCallback(const PermissionConditionCallback &callback) = 0;
 

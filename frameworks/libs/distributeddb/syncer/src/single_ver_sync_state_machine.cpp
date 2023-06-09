@@ -796,6 +796,7 @@ void SingleVerSyncStateMachine::ScheduleMsgAndHandle(Message *inMsg)
             if (dataSync_->IsNeedReloadQueue()) {
                 continue;
             }
+            dataSync_->ScheduleInfoHandle(false, false, nullptr);
             break;
         }
         bool isNeedClearMap = false;
@@ -1111,6 +1112,9 @@ void SingleVerSyncStateMachine::DataRecvErrCodeHandle(uint32_t sessionId, int er
     if (IsNeedErrCodeHandle(sessionId)) {
         switch (errCode) {
             case E_OK:
+                break;
+            case -E_NOT_PERMIT:
+                context_->SetOperationStatus(SyncOperation::OP_PERMISSION_CHECK_FAILED);
                 break;
             case -E_RECV_FINISHED:
                 context_->SetOperationStatus(SyncOperation::OP_RECV_FINISHED);

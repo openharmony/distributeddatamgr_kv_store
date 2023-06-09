@@ -104,7 +104,7 @@ public:
 
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
-    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) override;
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const override;
 protected:
 
     // trigger query auto sync or auto subscribe
@@ -188,6 +188,8 @@ protected:
 
     int CloseInner(bool isClosedOperation);
 
+    int InitStorageResource(ISyncInterface *syncInterface);
+
     static int SyncModuleInit();
 
     static int SyncResourceInit();
@@ -222,6 +224,9 @@ protected:
     bool engineFinalize_;
     std::condition_variable engineFinalizeCv_;
 
+    std::mutex timeChangeListenerMutex_;
+    bool timeChangeListenerFinalize_;
+    std::condition_variable timeChangeCv_;
     NotificationChain::Listener *timeChangedListener_;
 };
 } // namespace DistributedDB

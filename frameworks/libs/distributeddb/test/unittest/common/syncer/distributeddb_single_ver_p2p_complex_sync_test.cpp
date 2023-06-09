@@ -1988,3 +1988,42 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, UpdateKey001, TestSize.Level1
     EXPECT_EQ(g_kvDelegatePtr->Get(k3, actualValue), OK);
     EXPECT_EQ(v3, actualValue);
 }
+
+/**
+  * @tc.name: MetaBusy001
+  * @tc.desc: test sync normal when update water mark busy
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, MetaBusy001, TestSize.Level1)
+{
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    Key key = {'1'};
+    Value value = {'1'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+    std::vector<std::string> devices = { g_deviceB->GetDeviceId() };
+    std::map<std::string, DBStatus> result;
+    ASSERT_EQ(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result), OK);
+    ASSERT_EQ(result.size(), devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    value = {'2'};
+    EXPECT_EQ(g_kvDelegatePtr->Put(key, value), OK);
+    g_deviceB->SetSaveDataCallback([] () {
+        RuntimeContext::GetInstance()->ScheduleTask([]() {
+            g_deviceB->EraseWaterMark("real_device");
+        });
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    });
+    EXPECT_EQ(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result), OK);
+    EXPECT_EQ(result.size(), devices.size());
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == OK);
+    }
+    g_deviceB->SetSaveDataCallback(nullptr);
+    RuntimeContext::GetInstance()->StopTaskPool();
+}

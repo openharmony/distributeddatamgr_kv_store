@@ -36,7 +36,8 @@ public:
     void StopTimeTickMonitor();
 
     // Register a time changed lister, it will be callback when local time changed.
-    NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode);
+    NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action,
+        const TimeFinalizeAction &finalize, int &errCode);
 
     // Notify TIME_CHANGE_EVENT.
     void NotifyTimeChange(TimeOffset offset) const;

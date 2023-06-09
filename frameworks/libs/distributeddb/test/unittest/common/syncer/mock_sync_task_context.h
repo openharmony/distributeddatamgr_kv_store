@@ -97,8 +97,23 @@ public:
     {
         syncOperation_ = operation;
     }
+
+    int CallTimeout(TimerId id)
+    {
+        return SingleVerKvSyncTaskContext::TimeOut(id);
+    }
+
+    int GetUseCount()
+    {
+        return usedCount_;
+    }
+
+    void SetAutoSync(bool autoSync)
+    {
+        isAutoSync_ = autoSync;
+    }
 private:
     std::function<void ()> forkGetDeviceIdFunc_;
 };
 } // namespace DistributedDB
-#endif  // #define MOCK_SINGLE_VER_STATE_MACHINE_H
+#endif  // #define MOCK_SYNC_TASK_CONTEXT_H

@@ -49,6 +49,7 @@ GenericSyncer::GenericSyncer()
       manualSyncEnable_(true),
       closing_(false),
       engineFinalize_(false),
+      timeChangeListenerFinalize_(true),
       timeChangedListener_(nullptr)
 {
 }
@@ -93,24 +94,17 @@ int GenericSyncer::Initialize(ISyncInterface *syncInterface, bool isNeedActive)
         label.resize(3); // only show 3 Bytes enough
         label_ = DBCommon::VectorToHexString(label);
 
-        // As metadata_ will be used in EraseDeviceWaterMark, it should not be clear even if engine init failed.
-        // It will be clear in destructor.
-        int errCodeMetadata = InitMetaData(syncInterface);
-
-        // As timeHelper_ will be used in GetTimestamp, it should not be clear even if engine init failed.
-        // It will be clear in destructor.
-        int errCodeTimeHelper = InitTimeHelper(syncInterface);
-
-        if (!IsNeedActive(syncInterface)) {
-            return -E_NO_NEED_ACTIVE;
+        int errCode = InitStorageResource(syncInterface);
+        if (errCode != E_OK) {
+            return errCode;
         }
         // As timeChangedListener_ will record time change, it should not be clear even if engine init failed.
         // It will be clear in destructor.
         int errCodeTimeChangedListener = InitTimeChangedListener();
-        if (errCodeMetadata != E_OK || errCodeTimeHelper != E_OK || errCodeTimeChangedListener != E_OK) {
+        if (errCodeTimeChangedListener != E_OK) {
             return -E_INTERNAL_ERROR;
         }
-        int errCode = CheckSyncActive(syncInterface, isNeedActive);
+        errCode = CheckSyncActive(syncInterface, isNeedActive);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -309,21 +303,35 @@ uint64_t GenericSyncer::GetTimestamp()
 void GenericSyncer::QueryAutoSync(const InternalSyncParma &param)
 {
     if (!initialized_) {
-        LOGE("[Syncer] Syncer has not Init");
+        LOGW("[Syncer] Syncer has not Init");
         return;
     }
     LOGI("[GenericSyncer] trigger query syncmode=%u,dev=%s", param.mode, GetSyncDevicesStr(param.devices).c_str());
-    RefObject::IncObjRef(syncEngine_);
-    int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, param] {
+    ISyncInterface *syncInterface = nullptr;
+    ISyncEngine *engine = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (syncInterface_ == nullptr || syncEngine_ == nullptr) {
+            LOGW("[Syncer] Syncer has not Init");
+            return;
+        }
+        syncInterface = syncInterface_;
+        engine = syncEngine_;
+        syncInterface->IncRefCount();
+        RefObject::IncObjRef(engine);
+    }
+    int retCode = RuntimeContext::GetInstance()->ScheduleTask([this, param, engine, syncInterface] {
         int errCode = Sync(param);
         if (errCode != E_OK) {
             LOGE("[GenericSyncer] sync start by QueryAutoSync failed err %d", errCode);
         }
-        RefObject::DecObjRef(syncEngine_);
+        RefObject::DecObjRef(engine);
+        syncInterface->DecRefCount();
     });
     if (retCode != E_OK) {
         LOGE("[GenericSyncer] QueryAutoSync triggler sync retCode:%d", retCode);
-        RefObject::DecObjRef(syncEngine_);
+        RefObject::DecObjRef(engine);
+        syncInterface->DecRefCount();
     }
 }
 
@@ -788,7 +796,7 @@ int GenericSyncer::StatusCheck() const
 {
     if (!initialized_) {
         LOGE("[Syncer] Syncer is not initialized, return!");
-        return -E_NOT_INIT;
+        return -E_BUSY;
     }
     if (closing_) {
         LOGW("[Syncer] Syncer is closing, return!");
@@ -914,10 +922,21 @@ int GenericSyncer::InitTimeChangedListener()
     timeChangedListener_ = RuntimeContext::GetInstance()->RegisterTimeChangedLister(
         [this](void *changedOffset) {
             RecordTimeChangeOffset(changedOffset);
+        },
+        [this]() {
+            {
+                std::lock_guard<std::mutex> autoLock(timeChangeListenerMutex_);
+                timeChangeListenerFinalize_ = true;
+            }
+            timeChangeCv_.notify_all();
         }, errCode);
     if (timeChangedListener_ == nullptr) {
         LOGE("[GenericSyncer] Init RegisterTimeChangedLister failed");
         return errCode;
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(timeChangeListenerMutex_);
+        timeChangeListenerFinalize_ = false;
     }
     return E_OK;
 }
@@ -938,6 +957,12 @@ void GenericSyncer::ReleaseInnerResource()
         timeChangedListener->Drop(true);
         RuntimeContext::GetInstance()->StopTimeTickMonitorIfNeed();
     }
+    std::unique_lock<std::mutex> uniqueLock(timeChangeListenerMutex_);
+    LOGD("[GenericSyncer] Begin wait time change listener finalize");
+    timeChangeCv_.wait(uniqueLock, [this]() {
+        return timeChangeListenerFinalize_;
+    });
+    LOGD("[GenericSyncer] End wait time change listener finalize");
 }
 
 void GenericSyncer::RecordTimeChangeOffset(void *changedOffset)
@@ -1052,8 +1077,32 @@ bool GenericSyncer::IsNeedActive(ISyncInterface *syncInterface)
     return true;
 }
 
-int GenericSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+int GenericSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const
 {
+    (void)clientId;
+    (void)hashDevId;
     return -E_NOT_SUPPORT;
+}
+
+int GenericSyncer::InitStorageResource(ISyncInterface *syncInterface)
+{
+    // As metadata_ will be used in EraseDeviceWaterMark, it should not be clear even if engine init failed.
+    // It will be clear in destructor.
+    int errCode = InitMetaData(syncInterface);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    // As timeHelper_ will be used in GetTimestamp, it should not be clear even if engine init failed.
+    // It will be clear in destructor.
+    errCode = InitTimeHelper(syncInterface);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    if (!IsNeedActive(syncInterface)) {
+        return -E_NO_NEED_ACTIVE;
+    }
+    return errCode;
 }
 } // namespace DistributedDB

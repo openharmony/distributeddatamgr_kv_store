@@ -23,6 +23,7 @@
 #include "kv_store_nb_delegate.h"
 #include "kv_virtual_device.h"
 #include "platform_specific.h"
+#include "runtime_config.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -493,8 +494,9 @@ HWTEST_F(DistributedDBSingleVerMultiUserTest, MultiUser003, TestSize.Level3)
     Value actualValue;
     g_kvDelegatePtr2->Get(key, actualValue);
     EXPECT_EQ(actualValue, value);
-    std::this_thread::sleep_for(std::chrono::seconds(70));
-    g_mgr1.SetAutoLaunchRequestCallback(nullptr);
+
+    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_KV);
     CloseStore();
     delete observer;
 }

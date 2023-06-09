@@ -21,6 +21,9 @@
 namespace DistributedDB {
 class DBProperties {
 public:
+    DBProperties() = default;
+    virtual ~DBProperties() = default;
+
     // Get the string property according the name
     std::string GetStringProp(const std::string &name, const std::string &defaultValue) const;
 
@@ -54,10 +57,9 @@ public:
     static const std::string IDENTIFIER_DIR;
     static const std::string DUAL_TUPLE_IDENTIFIER_DATA;
     static const std::string SYNC_DUAL_TUPLE_MODE;
+    static const std::string AUTO_LAUNCH_ID;
 
 protected:
-    DBProperties() = default;
-    virtual ~DBProperties() = default;
 
     std::map<std::string, std::string> stringProperties_;
     std::map<std::string, bool> boolProperties_;

@@ -1075,6 +1075,31 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark002, TestSiz
 }
 
 /**
+ * @tc.name: ClearQueryWaterMark 003
+ * @tc.desc: Test metaData clear watermark busy.
+ * @tc.type: FUNC
+ * @tc.require: AR000FN6G9
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, ClearQueryWaterMark003, TestSize.Level1)
+{
+    VirtualSingleVerSyncDBInterface storage;
+    Metadata meta;
+    /**
+     * @tc.steps: step1. initialize meta with storage
+     * @tc.expected: step1. E_OK
+     */
+    int errCode = meta.Initialize(&storage);
+    ASSERT_EQ(errCode, E_OK);
+    /**
+     * @tc.steps: step2. set busy and erase water mark
+     * @tc.expected: step2. -E_BUSY
+     */
+    storage.SetBusy(false, true);
+    EXPECT_EQ(meta.EraseDeviceWaterMark("DEVICE_ID", true), -E_BUSY);
+}
+
+/**
  * @tc.name: GetQueryLastTimestamp001
  * @tc.desc: Test function of GetQueryLastTimestamp.
  * @tc.type: FUNC

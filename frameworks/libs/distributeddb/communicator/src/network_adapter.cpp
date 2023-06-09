@@ -264,6 +264,10 @@ void NetworkAdapter::OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const u
         LOGI("[NAdapt][OnDataRecv] userId dismatched, drop packet");
         return;
     }
+    if (headLength >= length) {
+        LOGW("[NAdapt][OnDataRecv] head len is too big, drop packet");
+        return;
+    }
     {
         std::lock_guard<std::mutex> onReceiveLockGard(onReceiveMutex_);
         if (!onReceiveHandle_) {

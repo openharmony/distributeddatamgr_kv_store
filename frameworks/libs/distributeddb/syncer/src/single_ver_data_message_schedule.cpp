@@ -51,11 +51,6 @@ bool SingleVerDataMessageSchedule::IsNeedReloadQueue()
 Message *SingleVerDataMessageSchedule::MoveNextMsg(SingleVerSyncTaskContext *context, bool &isNeedHandle,
     bool &isNeedContinue)
 {
-    uint32_t remoteVersion = context->GetRemoteSoftwareVersion();
-    if (remoteVersion < SOFTWARE_VERSION_RELEASE_3_0) {
-        // just get last msg when remote version is < 103 or >=103 but just open db now
-        return GetLastMsgFromQueue();
-    }
     {
         std::lock_guard<std::mutex> lock(workingLock_);
         if (isWorking_) {
@@ -63,6 +58,11 @@ Message *SingleVerDataMessageSchedule::MoveNextMsg(SingleVerSyncTaskContext *con
             return nullptr;
         }
         isWorking_ = true;
+    }
+    uint32_t remoteVersion = context->GetRemoteSoftwareVersion();
+    if (remoteVersion < SOFTWARE_VERSION_RELEASE_3_0) {
+        // just get last msg when remote version is < 103 or >=103 but just open db now
+        return GetLastMsgFromQueue();
     }
     ResetTimer(context);
     UpdateMsgMap();

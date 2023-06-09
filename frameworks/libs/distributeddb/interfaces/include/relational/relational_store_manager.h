@@ -42,8 +42,10 @@ public:
 
     DB_API DBStatus CloseStore(RelationalStoreDelegate *store);
 
+    // deprecated
     DB_API static void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback);
 
+    // deprecated
     DB_API static std::string GetRelationalStoreIdentifier(const std::string &userId, const std::string &appId,
         const std::string &storeId, bool syncDualTupleMode = false);
 private:

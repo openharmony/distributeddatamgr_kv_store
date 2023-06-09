@@ -51,6 +51,8 @@ public:
     int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
         const SyncProcessCallback &onProcess, int64_t waitTime) override;
 
+    int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
+
 protected:
 
     int Pragma(int cmd, void *parameter) override;

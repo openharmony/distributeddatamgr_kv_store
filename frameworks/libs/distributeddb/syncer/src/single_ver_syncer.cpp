@@ -56,11 +56,20 @@ int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNe
 int SingleVerSyncer::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
     const std::string &tableName)
 {
-    std::lock_guard<std::mutex> lock(syncerLock_);
-    if (metadata_ == nullptr) {
-        return -E_NOT_INIT;
+    std::shared_ptr<Metadata> metadata;
+    ISyncInterface *storage = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(syncerLock_);
+        if (metadata_ == nullptr || syncInterface_ == nullptr) {
+            return -E_NOT_INIT;
+        }
+        metadata = metadata_;
+        storage = syncInterface_;
+        storage->IncRefCount();
     }
-    return metadata_->EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
+    int errCode = metadata->EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
+    storage->DecRefCount();
+    return errCode;
 }
 
 int SingleVerSyncer::SetStaleDataWipePolicy(WipePolicy policy)
@@ -93,13 +102,13 @@ ISyncEngine *SingleVerSyncer::CreateSyncEngine()
     return new (std::nothrow) SingleVerSyncEngine();
 }
 
-int SingleVerSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
+int SingleVerSyncer::GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const
 {
     std::shared_ptr<Metadata> metadata = nullptr;
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (metadata_ == nullptr) {
-            return -E_NOT_INIT;
+            return -E_BUSY;
         }
         metadata = metadata_;
     }

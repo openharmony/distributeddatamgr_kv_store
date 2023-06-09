@@ -37,6 +37,15 @@ struct MetaDataValue {
 
 class Metadata {
 public:
+    class MetaWaterMarkAutoLock final {
+    public:
+        explicit MetaWaterMarkAutoLock(std::shared_ptr<Metadata> metadata);
+        ~MetaWaterMarkAutoLock();
+    private:
+        DISABLE_COPY_ASSIGN_MOVE(MetaWaterMarkAutoLock);
+        const std::shared_ptr<Metadata> metadataPtr_;
+    };
+
     Metadata();
     virtual ~Metadata();
 
@@ -115,6 +124,10 @@ public:
     int SaveClientId(const std::string &deviceId, const std::string &clientId);
 
     int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const;
+
+    void LockWaterMark() const;
+
+    void UnlockWaterMark() const;
 private:
 
     int SaveMetaDataValue(const DeviceID &deviceId, const MetaDataValue &inValue, bool isNeedHash = true);
@@ -174,6 +187,8 @@ private:
 
     std::mutex clientIdLock_;
     std::map<DeviceID, std::string> clientIdCache_;
+
+    mutable std::recursive_mutex waterMarkMutex_;
 };
 }  // namespace DistributedDB
 #endif

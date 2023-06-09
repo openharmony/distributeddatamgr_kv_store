@@ -992,10 +992,10 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceData(const std::string &deviceName,
         hashDeviceId = DBCommon::TransferHashString(deviceName);
     }
 
-    return RemoveDeviceDataInner(hashDeviceId, isNeedNotify, isInSync);
+    return RemoveDeviceDataInner(hashDeviceId, isNeedNotify);
 }
 
-int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify)
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify) const
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
@@ -1457,9 +1457,16 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
 
     std::unique_ptr<SingleVerDatabaseOper> operation = std::make_unique<SingleVerDatabaseOper>(this, storageEngine_);
     operation->SetLocalDevId(localDev);
+    errCode = TryToDisableConnection(OperatePerm::NORMAL_WRITE);
+    if (errCode != E_OK) {
+        LOGE("disable connection failed! errCode %d", errCode);
+        ReleaseHandle(handle);
+        return errCode;
+    }
     LOGI("Begin export the kv store");
     errCode = operation->Export(filePath, passwd);
 
+    ReEnableConnection(OperatePerm::NORMAL_WRITE);
     ReleaseHandle(handle);
     return errCode;
 }
@@ -2383,7 +2390,7 @@ void SQLiteSingleVerNaturalStore::Dump(int fd)
     SyncAbleKvDB::Dump(fd);
 }
 
-int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify, bool isInSync)
+int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify)
 {
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);

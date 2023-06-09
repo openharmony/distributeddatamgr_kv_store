@@ -325,7 +325,7 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     const int tableCount = DBConstant::MAX_DISTRIBUTED_TABLE_COUNT + 10; // 10: additional size for test abnormal scene
-    for (int i = 0; i < tableCount; i++) {
+    for (int i=0; i<tableCount; i++) {
         std::string sql = "CREATE TABLE TEST_" + std::to_string(i) + "(id INT PRIMARY KEY, value TEXT);";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
     }
@@ -341,7 +341,7 @@ void CreateDistributedTableOverLimitTest(TableSyncType tableSyncTpe)
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
 
-    for (int i = 0; i < tableCount; i++) {
+    for (int i=0; i<tableCount; i++) {
         if (i < DBConstant::MAX_DISTRIBUTED_TABLE_COUNT) {
             EXPECT_EQ(delegate->CreateDistributedTable("TEST_" + std::to_string(i), tableSyncTpe), OK);
         } else {
@@ -986,6 +986,24 @@ void AddDeviceSchema(RelationalVirtualDevice *device, sqlite3 *db, const std::st
     device->SetTableInfo(table);
 }
 
+void AddErrorTrigger(sqlite3 *db, const std::string &name)
+{
+    ASSERT_NE(db, nullptr);
+    ASSERT_NE(name, "");
+    std::string sql = "CREATE TRIGGER IF NOT EXISTS "
+        "naturalbase_rdb_aux_" + name + "_log_ON_DELETE BEFORE DELETE \n"
+        "ON naturalbase_rdb_aux_" + name + "_log \n"
+        "BEGIN \n"
+        "\t INSERT INTO naturalbase_rdb_aux_" + name + "_log VALUES(no_exist_func(), '', '', '', '', '', ''); \n"
+        "END;";
+    char *errMsg = nullptr;
+    EXPECT_EQ(sqlite3_exec(db, sql.c_str(), nullptr, nullptr, &errMsg), SQLITE_OK);
+    if (errMsg != nullptr) {
+        LOGE("sql error %s", errMsg);
+        LOGE("sql %s", sql.c_str());
+    }
+}
+
 /**
   * @tc.name: RelationalRemoveDeviceDataTest002
   * @tc.desc: Test remove device data and syn
@@ -1178,6 +1196,53 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest00
     EXPECT_EQ(status, OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     RuntimeConfig::SetTranslateToDeviceIdCallback(nullptr);
+}
+
+/**
+  * @tc.name: RelationalRemoveDeviceDataTest006
+  * @tc.desc: Test remove device data with busy
+  * @tc.type: FUNC
+  * @tc.require: AR000GK58F
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalRemoveDeviceDataTest006, TestSize.Level1)
+{
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "CREATE TABLE IF NOT EXISTS t2(a INT, b TEXT)"), SQLITE_OK);
+    AddDeviceSchema(g_deviceB, db, "t2");
+
+    RelationalStoreDelegate *delegate = nullptr;
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID,
+        { .observer = observer }, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    EXPECT_EQ(delegate->CreateDistributedTable("t2"), OK);
+
+    g_deviceB->PutDeviceData("t2", std::vector<TableT1>{
+        {1, "111", 1, 2, 1}, // test data
+    });
+    std::vector<std::string> devices = {DEVICE_B};
+    Query query = Query::Select("t2");
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, true);
+    EXPECT_EQ(status, OK);
+
+    auto beforeCallCount = observer->GetCallCount();
+    AddErrorTrigger(db, "t2");
+    EXPECT_EQ(delegate->RemoveDeviceData(DEVICE_B), DB_ERROR);
+
+    status = delegate->Sync(devices, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, true);
+    EXPECT_EQ(status, OK);
+    auto afterCallCount = observer->GetCallCount();
+    EXPECT_NE(beforeCallCount, afterCallCount);
+
+    status = g_mgr.CloseStore(delegate);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    delete observer;
 }
 
 /**
@@ -1431,8 +1496,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, GetDistributedTableName001, Test
   * @tc.require:
   * @tc.author: zhangshjie
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, TestSize.Level0)
-{
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, TestSize.Level0) {
     /**
      * @tc.steps:step1. Prepare db file
      * @tc.expected: step1. Return OK.
@@ -1473,8 +1537,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, T
   * @tc.require:
   * @tc.author: zhangshjie
   */
-HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, TestSize.Level0)
-{
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, TestSize.Level0) {
     /**
      * @tc.steps:step1. Prepare db file
      * @tc.expected: step1. Return OK.

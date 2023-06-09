@@ -127,7 +127,7 @@ public:
 
     int RemoveSubscribe(const std::vector<std::string> &subscribeIds) override;
 
-    void SetBusy(bool busy);
+    void SetBusy(bool busy, bool readBusy = false);
 
     void PutDeviceData(const std::string &deviceName, const Key &key, const Value &value);
 
@@ -141,6 +141,8 @@ public:
 
     void SetGetDataErrCode(int whichTime, int errCode, bool isGetDataControl);
     void ResetDataControl();
+
+    void SetSaveDataCallback(const std::function<void()> &callback);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
         std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const;
@@ -165,6 +167,7 @@ private:
     uint64_t saveDataDelayTime_ = 0;
     SecurityOption secOption_;
     bool busy_ = false;
+    bool readBusy_ = false;
 
     std::mutex deviceDataLock_;
     std::map<std::string, std::map<Key, Value>> deviceData_;
@@ -175,6 +178,9 @@ private:
     int countDown_ = -1;
     int expectedErrCode_ = E_OK;
     bool isGetDataControl_ = true; // control get data: true, control save data : false
+
+    std::mutex saveDataMutex_;
+    std::function<void()> saveDataCallback_;
 };
 }  // namespace DistributedDB
 

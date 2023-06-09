@@ -90,15 +90,13 @@ int SyncTaskContext::AddSyncTarget(ISyncTarget *target)
         }
     }
     RefObject::IncObjRef(this);
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, targetMode]() {
-        CancelCurrentSyncRetryIfNeed(targetMode);
+    auto syncId = static_cast<uint32_t>(target->GetSyncId());
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, targetMode, syncId]() {
+        CancelCurrentSyncRetryIfNeed(targetMode, syncId);
         RefObject::DecObjRef(this);
     });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this);
-    }
-    if (taskExecStatus_ == RUNNING) {
-        return E_OK;
     }
     if (onSyncTaskAdd_) {
         RefObject::IncObjRef(this);
@@ -544,22 +542,13 @@ int SyncTaskContext::TimeOut(TimerId id)
     if (!timeOutCallback_) {
         return E_OK;
     }
-    int errCode = IncUsedCount();
-    if (errCode != E_OK) {
-        LOGW("[SyncTaskContext][TimeOut] IncUsedCount failed! errCode=", errCode);
-        // if return is not E_OK, the timer will be removed
-        // we removed timer when context call StopTimer
-        return E_OK;
-    }
     IncObjRef(this);
-    errCode = RuntimeContext::GetInstance()->ScheduleTask([this, id]() {
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, id]() {
         timeOutCallback_(id);
-        SafeExit();
         DecObjRef(this);
     });
     if (errCode != E_OK) {
         LOGW("[SyncTaskContext][TimeOut] Trigger TimeOut Async Failed! TimerId=" PRIu64 " errCode=%d", id, errCode);
-        SafeExit();
         DecObjRef(this);
     }
     return E_OK;
@@ -602,8 +591,8 @@ void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam 
 void SyncTaskContext::KillWait()
 {
     StopTimer();
-    stateMachine_->NotifyClosing();
     UnlockObj();
+    stateMachine_->NotifyClosing();
     stateMachine_->AbortImmediately();
     LockObj();
     LOGW("[SyncTaskContext] Try to kill a context, now wait.");
@@ -635,10 +624,13 @@ void SyncTaskContext::ClearSyncOperation()
     }
 }
 
-void SyncTaskContext::CancelCurrentSyncRetryIfNeed(int newTargetMode)
+void SyncTaskContext::CancelCurrentSyncRetryIfNeed(int newTargetMode, uint32_t syncId)
 {
     AutoLock lock(this);
     if (!isAutoSync_) {
+        return;
+    }
+    if (syncId_ >= syncId) {
         return;
     }
     int mode = SyncOperation::TransferSyncMode(newTargetMode);

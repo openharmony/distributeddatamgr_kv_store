@@ -1199,7 +1199,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
     CheckData(dataMap);
 
     OpenStore();
-    std::this_thread::sleep_for(std::chrono::seconds(61)); // sleep 61s
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
     EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_CLOSED);
 }
 
@@ -1631,6 +1631,70 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level0)
     ASSERT_NE(mgr, nullptr);
     mgr->CloseStore(rdbDelegatePtr);
     mgr = nullptr;
+}
+
+/*
+* @tc.name: relation observer 004
+* @tc.desc: Test relation register observer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
+     * @tc.expected: step1. create and insert ok
+     */
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    g_observer->ResetToZero();
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB, g_deviceC});
+    g_rdbDelegatePtr->RegisterObserver(observer);
+    /**
+     * @tc.steps: step2. device A pull sync mode
+     * @tc.expected: step2. sync ok
+     */
+    BlockSync(SyncMode::SYNC_MODE_PULL_ONLY, OK, {DEVICE_B, DEVICE_C});
+    /**
+     * @tc.steps: step3. device A check observer
+     * @tc.expected: step2. data change device is deviceB
+     */
+    EXPECT_EQ(observer->GetCallCount(), 1u);
+    EXPECT_EQ(g_observer->GetCallCount(), 0u);
+    EXPECT_EQ(observer->GetDataChangeDevice(), DEVICE_B);
+    CheckIdentify(observer);
+}
+
+/*
+* @tc.name: relation observer 005
+* @tc.desc: Test relation unregister observer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
+     * @tc.expected: step1. create and insert ok
+     */
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    g_observer->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB, g_deviceC});
+    g_rdbDelegatePtr->UnRegisterObserver();
+    /**
+     * @tc.steps: step2. device A pull sync mode
+     * @tc.expected: step2. sync ok
+     */
+    BlockSync(SyncMode::SYNC_MODE_PULL_ONLY, OK, {DEVICE_B, DEVICE_C});
+    /**
+     * @tc.steps: step3. device A check observer
+     * @tc.expected: step2. data change device is deviceB
+     */
+    EXPECT_EQ(g_observer->GetCallCount(), 0u);
 }
 
 /**
@@ -2431,9 +2495,10 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_002, Te
     properties.SetStringProp(DBProperties::USER_ID, USER_ID);
     properties.SetStringProp(DBProperties::APP_ID, APP_ID);
     properties.SetStringProp(DBProperties::STORE_ID, STORE_ID_1);
+    properties.SetIntProp(DBProperties::AUTO_LAUNCH_ID, 7); // 7: invalid AUTO LAUNCH ID
     const string &id = RelationalStoreManager::GetRelationalStoreIdentifier(USER_ID, APP_ID, STORE_ID_1);
     properties.SetStringProp(DBProperties::IDENTIFIER_DATA, id);
-    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBType::DB_RELATION, properties);
+    RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_RELATION, properties);
 
     encryptedParam.option.passwd = g_rekeyPasswd;
     RelationalStoreManager::SetAutoLaunchRequestCallback(callback);

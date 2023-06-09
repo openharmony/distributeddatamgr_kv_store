@@ -80,7 +80,8 @@ void TimeTickMonitor::StopTimeTickMonitor()
     isStarted_ = false;
 }
 
-NotificationChain::Listener *TimeTickMonitor::RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode)
+NotificationChain::Listener *TimeTickMonitor::RegisterTimeChangedLister(const TimeChangedAction &action,
+    const TimeFinalizeAction &finalize, int &errCode)
 {
     if (timeChangedNotifier_ == nullptr) {
         errCode = -E_NOT_INIT;
@@ -92,7 +93,7 @@ NotificationChain::Listener *TimeTickMonitor::RegisterTimeChangedLister(const Ti
         return nullptr;
     }
 
-    return timeChangedNotifier_->RegisterListener(TIME_CHANGE_EVENT, action, nullptr, errCode);
+    return timeChangedNotifier_->RegisterListener(TIME_CHANGE_EVENT, action, finalize, errCode);
 }
 
 int TimeTickMonitor::PrepareNotifierChain()

@@ -195,13 +195,15 @@ private:
         ISyncTaskContext *context) const;
 
     int HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-        AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion) const;
+        AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
+        std::pair<bool, bool> &schemaSyncStatus) const;
 
     void HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-        ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket) const;
+        ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus) const;
 
     int HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-        AbilitySyncAckPacket &sendPacket, ISyncTaskContext *context, bool sendOpinion) const;
+        AbilitySyncAckPacket &sendPacket, ISyncTaskContext *context, bool sendOpinion,
+        std::pair<bool, bool> &schemaSyncStatus) const;
 
     void GetPacketSecOption(SecurityOption &option) const;
 

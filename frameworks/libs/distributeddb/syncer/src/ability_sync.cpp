@@ -466,7 +466,8 @@ int AbilitySync::AckNotifyRecv(const Message *message, ISyncTaskContext *context
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
     context->SetRemoteSoftwareVersion(remoteSoftwareVersion);
     AbilitySyncAckPacket sendPacket;
-    errCode = HandleVersionV3AckSchemaParam(packet, sendPacket, context, false);
+    std::pair<bool, bool> schemaSyncStatus;
+    errCode = HandleVersionV3AckSchemaParam(packet, sendPacket, context, false, schemaSyncStatus);
     int ackCode = errCode;
     LOGI("[AckNotifyRecv] receive dev = %s ack notify, remoteSoftwareVersion = %u, ackCode = %d",
         STR_MASK(deviceId_), remoteSoftwareVersion, errCode);
@@ -537,12 +538,13 @@ void AbilitySync::HandleVersionV3AckSecOptionParam(const AbilitySyncAckPacket *p
 }
 
 int AbilitySync::HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-    AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion) const
+    AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
+    std::pair<bool, bool> &schemaSyncStatus) const
 {
     if (IsSingleRelationalVer()) {
-        return HandleRelationAckSchemaParam(recvPacket, sendPacket, context, sendOpinion);
+        return HandleRelationAckSchemaParam(recvPacket, sendPacket, context, sendOpinion, schemaSyncStatus);
     }
-    HandleKvAckSchemaParam(recvPacket, context, sendPacket);
+    HandleKvAckSchemaParam(recvPacket, context, sendPacket, schemaSyncStatus);
     return E_OK;
 }
 
@@ -1134,7 +1136,7 @@ RelationalSyncOpinion AbilitySync::MakeRelationSyncOpinion(const AbilitySyncRequ
 }
 
 void AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
-    ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket) const
+    ISyncTaskContext *context, AbilitySyncAckPacket &sendPacket, std::pair<bool, bool> &schemaSyncStatus) const
 {
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
@@ -1146,10 +1148,14 @@ void AbilitySync::HandleKvAckSchemaParam(const AbilitySyncAckPacket *recvPacket,
     SyncStrategy localStrategy = SchemaNegotiate::ConcludeSyncStrategy(syncOpinion, remoteOpinion);
     SetAbilityAckSyncOpinionInfo(sendPacket, syncOpinion);
     (static_cast<SingleVerKvSyncTaskContext *>(context))->SetSyncStrategy(localStrategy, true);
+    schemaSyncStatus = {
+        localStrategy.permitSync,
+        true
+    };
 }
 
 int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPacket, AbilitySyncAckPacket &sendPacket,
-    ISyncTaskContext *context, bool sendOpinion) const
+    ISyncTaskContext *context, bool sendOpinion, std::pair<bool, bool> &schemaSyncStatus) const
 {
     std::string remoteSchema = recvPacket->GetSchema();
     uint8_t remoteSchemaType = recvPacket->GetSchemaType();
@@ -1178,6 +1184,12 @@ int AbilitySync::HandleRelationAckSchemaParam(const AbilitySyncAckPacket *recvPa
     if (sendOpinion) {
         sendPacket.SetRelationalSyncOpinion(localOpinion);
     }
+    auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
+    auto strategy = localStrategy.find(singleVerContext->GetQuery().GetRelationTableName());
+    schemaSyncStatus = {
+        !(strategy == localStrategy.end()) && strategy->second.permitSync,
+        true
+    };
     return errCode;
 }
 
@@ -1186,14 +1198,13 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
 {
     HandleVersionV3AckSecOptionParam(packet, context);
     AbilitySyncAckPacket ackPacket;
-    int errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true);
+    std::pair<bool, bool> schemaSyncStatus;
+    int errCode = HandleVersionV3AckSchemaParam(packet, ackPacket, context, true, schemaSyncStatus);
     if (errCode != E_OK) {
         context->SetTaskErrCode(errCode);
         return errCode;
     }
     auto singleVerContext = static_cast<SingleVerSyncTaskContext *>(context);
-    auto query = singleVerContext->GetQuery();
-    std::pair<bool, bool> schemaSyncStatus = (singleVerContext->GetSchemaSyncStatus(query));
     if (!schemaSyncStatus.first) {
         singleVerContext->SetTaskErrCode(-E_SCHEMA_MISMATCH);
         LOGE("[AbilitySync][AckRecv] scheme check failed");

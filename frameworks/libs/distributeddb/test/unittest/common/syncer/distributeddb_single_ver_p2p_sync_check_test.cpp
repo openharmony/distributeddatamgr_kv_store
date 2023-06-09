@@ -261,6 +261,47 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck002, TestSize.Lev
     EXPECT_TRUE(item.value == value);
 }
 
+/**
+ * @tc.name: sec option check Sync 003
+ * @tc.desc: if sec option equal, check not pass, forbid sync
+ * @tc.type: FUNC
+ * @tc.require: AR000EV1G6
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck003, TestSize.Level1)
+{
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    adapter->ForkCheckDeviceSecurityAbility([](const std::string &, const SecurityOption &) {
+        return false;
+    });
+    /**
+     * @tc.steps: step1. record packet
+     * @tc.expected: step1. sync should failed in source.
+     */
+    std::atomic<int> messageCount = 0;
+    g_communicatorAggregator->RegOnDispatch([&messageCount](const std::string &, Message *) {
+        messageCount++;
+    });
+    /**
+     * @tc.steps: step2. deviceA call sync and wait
+     * @tc.expected: step2. sync should return SECURITY_OPTION_CHECK_ERROR.
+     */
+    DBStatus status = OK;
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
+    EXPECT_EQ(status, OK);
+    EXPECT_EQ(messageCount, 6); // 6 = 2 time sync + 4 ability sync
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == SECURITY_OPTION_CHECK_ERROR);
+    }
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
+    g_communicatorAggregator->RegOnDispatch(nullptr);
+}
+
 #ifndef LOW_LEVEL_MEM_DEV
 /**
  * @tc.name: BigDataSync001

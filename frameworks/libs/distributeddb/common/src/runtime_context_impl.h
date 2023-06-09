@@ -60,7 +60,8 @@ public:
     void ShrinkMemory(const std::string &description) override;
 
     // Register a time changed lister, it will be callback when local time changed.
-    NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action, int &errCode) override;
+    NotificationChain::Listener *RegisterTimeChangedLister(const TimeChangedAction &action,
+        const TimeFinalizeAction &finalize, int &errCode) override;
 
     int SetPermissionCheckCallback(const PermissionCheckCallback &callback) override;
 
@@ -78,7 +79,7 @@ public:
 
     void GetAutoLaunchSyncDevices(const std::string &identifier, std::vector<std::string> &devices) const override;
 
-    void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type) override;
+    void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type) override;
 
     NotificationChain::Listener *RegisterLockStatusLister(const LockStatusNotifier &action, int &errCode) override;
 
@@ -120,7 +121,7 @@ public:
 
     void DumpCommonInfo(int fd) override;
 
-    void CloseAutoLaunchConnection(DBType type, const DBProperties &properties) override;
+    void CloseAutoLaunchConnection(DBTypeInner type, const DBProperties &properties) override;
 
     int SetPermissionConditionCallback(const PermissionConditionCallback &callback) override;
 

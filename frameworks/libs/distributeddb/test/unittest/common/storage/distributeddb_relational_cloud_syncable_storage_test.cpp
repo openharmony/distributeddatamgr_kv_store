@@ -109,15 +109,15 @@ void CreateAndInitUserTable(int64_t count, int64_t photoSize)
     ASSERT_EQ(RuntimeContext::GetInstance()->AssetToBlob(g_localAsset, assetBlob), E_OK);
     ASSERT_EQ(RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob), E_OK);
     for (int i = 1; i <= count; ++i) {
-        string sql = "INSERT OR REPLACE INTO " + g_tableName
-            + " (name, height, married, photo, assert, asserts, age) VALUES ('Tom"
-             + std::to_string(i) + "', '175.8', '0', '" + photo + "', ? , ?,  '18');";
+        string sql = "INSERT OR REPLACE INTO " + g_tableName +
+            " (name, height, married, photo, assert, asserts, age) VALUES ('Tom" + std::to_string(i) +
+            "', '175.8', '0', '" + photo + "', ? , ?,  '18');";
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
         if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) { // 1 is asset index
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        if (SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false) != E_OK) { // 2 is assets index
+        if (SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false) != E_OK) { // 2 is index of asserts
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
         EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
@@ -146,10 +146,10 @@ void InitLogData(int64_t insCount, int64_t updCount, int64_t delCount, int64_t e
             flag = std::to_string(g_localFlag | g_deleteFlag);
             cloudGid = "''";
         }
-        string sql = "INSERT OR REPLACE INTO " + g_logTblName
-            + " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)"
-            + " VALUES ('" + std::to_string(i) + "', '', '', '" +  std::to_string(g_startTime + i) + "', '"
-            + std::to_string(g_startTime + i) + "','" + flag + "','" + std::to_string(i) + "', " + cloudGid + ");";
+        string sql = "INSERT OR REPLACE INTO " + g_logTblName +
+            " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)" +
+            " VALUES ('" + std::to_string(i) + "', '', '', '" +  std::to_string(g_startTime + i) + "', '" +
+            std::to_string(g_startTime + i) + "','" + flag + "','" + std::to_string(i) + "', " + cloudGid + ");";
         ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
     }
     sqlite3_close(db);
@@ -168,7 +168,7 @@ int QueryCountCallback(void *data, int count, char **colValue, char **colName)
         return 0;
     }
     auto expectCount = reinterpret_cast<int64_t>(data);
-    EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount); // 10 means decimal
+    EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount); // 10: decimal
     return 0;
 }
 
@@ -453,13 +453,14 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
     int64_t insCount = 100;
     InitLogData(insCount, insCount, insCount, insCount);
     EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime, resCount), E_OK);
-    EXPECT_EQ(resCount, 3 * insCount);
+    EXPECT_EQ(resCount, insCount + insCount + insCount);
 
     /**
      * @tc.steps: There are no matching data anymore
      * @tc.expected: count is 0 and return E_OK.
      */
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime * 2, resCount), E_OK);
+    Timestamp invalidTime = g_startTime + g_startTime;
+    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, invalidTime, resCount), E_OK);
     EXPECT_EQ(resCount, 0);
 }
 
@@ -485,9 +486,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
      */
     EXPECT_EQ(storageProxy->GetUploadCount(g_tableName, g_startTime, resCount), -E_TRANSACT_STATE);
 
+    int timeOffset = 30;
     EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(storageProxy->GetUploadCount(g_tableName, g_startTime + 30, resCount), E_OK);
-    EXPECT_EQ(resCount, 2 * insCount - 30);
+    EXPECT_EQ(storageProxy->GetUploadCount(g_tableName, g_startTime + timeOffset, resCount), E_OK);
+    EXPECT_EQ(resCount, insCount + insCount - timeOffset);
     EXPECT_EQ(storageProxy->Rollback(), E_OK);
 
     /**
@@ -495,8 +497,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
      * @tc.expected: return E_OK.
      */
     EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    EXPECT_EQ(storageProxy->GetUploadCount(g_tableName, g_startTime + 30, resCount), E_OK);
-    EXPECT_EQ(resCount, 2 * insCount - 30);
+    EXPECT_EQ(storageProxy->GetUploadCount(g_tableName, g_startTime + timeOffset, resCount), E_OK);
+    EXPECT_EQ(resCount, insCount + insCount - timeOffset);
     EXPECT_EQ(storageProxy->Commit(), E_OK);
 }
 
@@ -548,7 +550,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      */
     EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_ARGS);
     syncData.insData.rowid.push_back(1);
-    syncData.insData.rowid.push_back(2);
+    syncData.insData.rowid.push_back(2); // 2 is random id
 
     /**
      * @tc.steps: insData set is empty
@@ -571,7 +573,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      * @tc.expected: return -SQLITE_ERROR.
      */
     VBucket bucket2;
-    bucket2.insert_or_assign(CloudDbConstant::CREATE_FIELD, 2L);
+    bucket2.insert_or_assign(CloudDbConstant::CREATE_FIELD, 2L); // 2L is random field
     syncData.insData.extend.push_back(bucket2);
     EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -SQLITE_ERROR);
 
@@ -619,10 +621,12 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid002, TestS
     ASSERT_NE(storageProxy, nullptr);
     CreateLogTable();
     int64_t insCount = 100;
-    InitLogData(insCount, insCount / 2, insCount / 2, insCount);
+    int64_t updCount = 50;
+    int64_t delCount = 50;
+    InitLogData(insCount, updCount, delCount, insCount);
 
     CloudSyncData syncData(g_tableName);
-    for (int64_t i = 1; i <= 3 * insCount; ++i) {
+    for (int64_t i = 1; i <= 3 * insCount; ++i) { // 3 is insert,update and delete type data
         syncData.insData.rowid.push_back(i);
         VBucket bucket1;
         bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(g_startTime + i));
@@ -635,13 +639,13 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid002, TestS
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
     std::string querySql = "SELECT COUNT(*) FROM " + g_logTblName + " WHERE cloud_gid in (";
-    for (int64_t i = 1; i <= 2 * insCount; ++i) {
+    for (int64_t i = 1; i <= (insCount + updCount + delCount); ++i) {
         querySql += "'" + std::to_string(g_startTime + i) + "',";
     }
     querySql.pop_back();
     querySql += ");";
-    EXPECT_EQ(sqlite3_exec(db, querySql.c_str(), QueryCountCallback, reinterpret_cast<void *>(2 * insCount), nullptr),
-        SQLITE_OK);
+    EXPECT_EQ(sqlite3_exec(db, querySql.c_str(),
+        QueryCountCallback, reinterpret_cast<void *>(insCount + updCount + delCount), nullptr), SQLITE_OK);
     sqlite3_close(db);
 }
 
@@ -660,7 +664,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid003, TestS
     int64_t insCount = 10;
     InitLogData(insCount, insCount, insCount, insCount);
     CloudSyncData syncData(g_tableName);
-    for (int64_t i = 1; i <= 3 * insCount; ++i) {
+    for (int64_t i = 1; i <= (insCount + insCount + insCount); ++i) {
         syncData.insData.rowid.push_back(i);
         VBucket bucket1;
         bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(g_startTime + i));
@@ -689,8 +693,11 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
     ASSERT_NE(storageProxy, nullptr);
     CreateLogTable();
     int64_t insCount = 100;
-    InitLogData(insCount, insCount / 2, insCount / 4, insCount);
-    CreateAndInitUserTable(3 * insCount, 10);
+    int64_t updCount = 50;
+    int64_t delCount = 25;
+    int64_t photoSize = 10;
+    InitLogData(insCount, updCount, delCount, insCount);
+    CreateAndInitUserTable(3 * insCount, photoSize); // 3 is insert,update and delete type data
 
     ContinueToken token;
     CloudSyncData cloudSyncData;
@@ -703,16 +710,17 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
      * @tc.steps: There is currently no handle under the transaction
      * @tc.expected: return -E_INVALID_DB.
      */
-    EXPECT_EQ(g_cloudStore->GetCloudData(tableSchema, g_startTime + 10, token, cloudSyncData), -E_INVALID_DB);
+    int timeOffset = 10;
+    EXPECT_EQ(g_cloudStore->GetCloudData(tableSchema, g_startTime + timeOffset, token, cloudSyncData), -E_INVALID_DB);
 
     EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + 10, token, cloudSyncData), E_OK);
+    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData), E_OK);
     EXPECT_EQ(storageProxy->Commit(), E_OK);
-    EXPECT_EQ(cloudSyncData.insData.record.size() + cloudSyncData.updData.record.size()
-        + cloudSyncData.delData.record.size(), (uint64_t)insCount + insCount / 2 + insCount / 4 - 10);
-    ASSERT_EQ(cloudSyncData.insData.record.size(), (uint64_t)insCount - 10);
-    ASSERT_EQ(cloudSyncData.updData.record.size(), (uint64_t)insCount / 2);
-    ASSERT_EQ(cloudSyncData.delData.record.size(), (uint64_t)insCount / 4);
+    EXPECT_EQ(cloudSyncData.insData.record.size() + cloudSyncData.updData.record.size() +
+        cloudSyncData.delData.record.size(), static_cast<uint64_t>(insCount + updCount + delCount - timeOffset));
+    ASSERT_EQ(cloudSyncData.insData.record.size(), static_cast<uint64_t>(insCount - timeOffset));
+    ASSERT_EQ(cloudSyncData.updData.record.size(), static_cast<uint64_t>(updCount));
+    ASSERT_EQ(cloudSyncData.delData.record.size(), static_cast<uint64_t>(delCount));
 
     EXPECT_EQ(cloudSyncData.insData.record[0].find(CloudDbConstant::GID_FIELD), cloudSyncData.insData.record[0].end());
     EXPECT_NE(cloudSyncData.updData.record[0].find(CloudDbConstant::GID_FIELD), cloudSyncData.insData.record[0].end());
@@ -724,7 +732,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
      * @tc.expected: return E_OK.
      */
     EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + 10, token, cloudSyncData), E_OK);
+    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData), E_OK);
     EXPECT_EQ(storageProxy->Commit(), E_OK);
 }
 
@@ -741,8 +749,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestS
     ASSERT_NE(storageProxy, nullptr);
     CreateLogTable();
     int64_t insCount = 1024;
+    int64_t photoSize = 1024 * 8;
     InitLogData(insCount, insCount, insCount, insCount);
-    CreateAndInitUserTable(3 * insCount, 1024 * 8);
+    CreateAndInitUserTable(3 * insCount, photoSize); // 3 is insert,update and delete type data
 
     TableSchema tableSchema;
     tableSchema.name = g_tableName;
@@ -755,22 +764,23 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestS
      */
     ContinueToken token;
     CloudSyncData cloudSyncData1;
+    int timeOffset = 10;
     EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + 10, token, cloudSyncData1), -E_UNFINISHED);
-    EXPECT_LT(cloudSyncData1.insData.record.size() + cloudSyncData1.updData.record.size()
-        + cloudSyncData1.delData.record.size(), (uint64_t)insCount);
-    EXPECT_EQ(cloudSyncData1.delData.record.size(), (uint64_t)0);
+    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData1), -E_UNFINISHED);
+    EXPECT_LT(cloudSyncData1.insData.record.size() + cloudSyncData1.updData.record.size() +
+        cloudSyncData1.delData.record.size(), static_cast<uint64_t>(insCount));
+    EXPECT_EQ(cloudSyncData1.delData.record.size(), 0u);
 
     CloudSyncData cloudSyncData2;
     EXPECT_EQ(storageProxy->GetCloudDataNext(token, cloudSyncData2), -E_UNFINISHED);
-    EXPECT_LT(cloudSyncData2.insData.record.size() + cloudSyncData2.updData.record.size()
-        + cloudSyncData2.delData.record.size(), (uint64_t)insCount);
+    EXPECT_LT(cloudSyncData2.insData.record.size() + cloudSyncData2.updData.record.size() +
+        cloudSyncData2.delData.record.size(), static_cast<uint64_t>(insCount));
 
     CloudSyncData cloudSyncData3;
     EXPECT_EQ(storageProxy->GetCloudDataNext(token, cloudSyncData3), E_OK);
-    EXPECT_GT(cloudSyncData3.insData.record.size() + cloudSyncData3.updData.record.size()
-        + cloudSyncData3.delData.record.size(), (uint64_t)insCount);
-    EXPECT_EQ(cloudSyncData3.insData.record.size(), (uint64_t)0);
+    EXPECT_GT(cloudSyncData3.insData.record.size() + cloudSyncData3.updData.record.size() +
+        cloudSyncData3.delData.record.size(), static_cast<uint64_t>(insCount));
+    EXPECT_EQ(cloudSyncData3.insData.record.size(), 0u);
 
     /**
      * @tc.steps: Finished querying, the token has been release.
@@ -793,8 +803,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestS
     ASSERT_NE(storageProxy, nullptr);
     CreateLogTable();
     int64_t insCount = 1024;
+    int64_t photoSize = 1024 * 8;
     InitLogData(insCount, insCount, insCount, insCount);
-    CreateAndInitUserTable(2 * insCount, 1024 * 8);
+    CreateAndInitUserTable(2 * insCount, photoSize); // 2 is insert,update type data
 
     TableSchema tableSchema;
     tableSchema.name = g_tableName;
@@ -815,6 +826,48 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestS
     ASSERT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_UNFINISHED);
     EXPECT_EQ(storageProxy->Rollback(), E_OK);
     ASSERT_EQ(storageProxy->ReleaseContinueToken(token), E_OK);
+}
+
+/**
+ * @tc.name: GetCloudData004
+ * @tc.desc: Test get cloudData when asset or assets is NULL
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level1)
+{
+    std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+    ASSERT_NE(storageProxy, nullptr);
+    CreateLogTable();
+    int64_t insCount = 10;
+    int64_t photoSize = 10;
+    InitLogData(insCount, insCount, insCount, insCount);
+    CreateAndInitUserTable(3 * insCount, photoSize); // 3 is insert,update and delete type data
+
+    TableSchema tableSchema;
+    tableSchema.name = g_tableName;
+    tableSchema.fields = g_cloudFiled;
+    SetDbSchema(tableSchema);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, "UPDATE " + g_tableName + " SET assert = NULL, asserts = NULL;"), E_OK);
+    sqlite3_close(db);
+    ContinueToken token;
+    CloudSyncData cloudSyncData;
+    EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
+    EXPECT_NE(cloudSyncData.insData.record.size(), 0u);
+    for (const auto &item: cloudSyncData.insData.record) {
+        auto assert = item.find("assert");
+        auto asserts = item.find("asserts");
+        ASSERT_NE(assert, item.end());
+        ASSERT_NE(asserts, item.end());
+        EXPECT_EQ(assert->second.index(), static_cast<size_t>(TYPE_INDEX<Asset>));
+        EXPECT_EQ(asserts->second.index(), static_cast<size_t>(TYPE_INDEX<Assets>));
+    }
+    EXPECT_EQ(storageProxy->Commit(), E_OK);
 }
 }
 #endif // RELATIONAL_STORE

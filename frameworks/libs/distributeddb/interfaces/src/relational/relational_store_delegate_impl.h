@@ -55,6 +55,9 @@ public:
 
     DBStatus SetCloudDbSchema(const DataBaseSchema &schema) override;
 
+    DBStatus RegisterObserver(StoreObserver *observer) override;
+
+    DBStatus UnRegisterObserver() override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

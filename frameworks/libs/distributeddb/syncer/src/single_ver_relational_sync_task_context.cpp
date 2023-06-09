@@ -28,28 +28,48 @@ SingleVerRelationalSyncTaskContext::~SingleVerRelationalSyncTaskContext()
 
 std::string SingleVerRelationalSyncTaskContext::GetQuerySyncId() const
 {
+    std::lock_guard<std::mutex> autoLock(querySyncIdMutex_);
     return querySyncId_;
 }
 
 std::string SingleVerRelationalSyncTaskContext::GetDeleteSyncId() const
 {
+    std::lock_guard<std::mutex> autoLock(deleteSyncIdMutex_);
     return deleteSyncId_;
 }
 
 void SingleVerRelationalSyncTaskContext::Clear()
 {
-    querySyncId_.clear();
-    deleteSyncId_.clear();
+    {
+        std::lock_guard<std::mutex> autoLock(querySyncIdMutex_);
+        querySyncId_.clear();
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(deleteSyncIdMutex_);
+        deleteSyncId_.clear();
+    }
     SingleVerSyncTaskContext::Clear();
 }
 
-void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam)
+void SingleVerRelationalSyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &TaskParam)
 {
-    SingleVerSyncTaskContext::CopyTargetData(target, taskParam);
-    std::string hashTableName = DBCommon::TransferHashString(query_.GetRelationTableName());
+    SingleVerSyncTaskContext::CopyTargetData(target, TaskParam);
+    std::string hashTableName;
+    std::string queryId;
+    {
+        std::lock_guard<std::mutex> autoLock(queryMutex_);
+        hashTableName = DBCommon::TransferHashString(query_.GetRelationTableName());
+        queryId = query_.GetIdentify();
+    }
     std::string hexTableName = DBCommon::TransferStringToHex(hashTableName);
-    querySyncId_ = hexTableName + query_.GetIdentify(); // save as deviceId + hexTableName + queryId
-    deleteSyncId_ = GetDeviceId() + hexTableName; // save as deviceId + hexTableName
+    {
+        std::lock_guard<std::mutex> autoLock(querySyncIdMutex_);
+        querySyncId_ = hexTableName + queryId; // save as deviceId + hexTableName + queryId
+    }
+    {
+        std::lock_guard<std::mutex> autoLock(deleteSyncIdMutex_);
+        deleteSyncId_ = GetDeviceId() + hexTableName; // save as deviceId + hexTableName
+    }
 }
 
 void SingleVerRelationalSyncTaskContext::SetRelationalSyncStrategy(RelationalSyncStrategy &strategy, bool isSchemaSync)

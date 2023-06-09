@@ -40,6 +40,9 @@ public:
     int Subscribe(QuerySyncObject query, bool wait, int id);
     int UnSubscribe(QuerySyncObject query, bool wait, int id);
     int UnSubscribe(const QuerySyncObject &query, bool wait, int id, const SyncOperation::UserCallback &callback);
+
+    void SetSaveDataCallback(const std::function<void()> &callback);
+    void EraseWaterMark(const std::string &dev);
 };
 } // namespace DistributedDB
 

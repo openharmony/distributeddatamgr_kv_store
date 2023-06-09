@@ -26,6 +26,7 @@ SingleVerKvSyncTaskContext::~SingleVerKvSyncTaskContext()
 
 std::string SingleVerKvSyncTaskContext::GetQuerySyncId() const
 {
+    std::lock_guard<std::mutex> autoLock(queryMutex_);
     return query_.GetIdentify();
 }
 

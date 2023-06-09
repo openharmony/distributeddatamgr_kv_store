@@ -119,6 +119,7 @@ using RawString = const std::string::value_type *;
 
 enum class OperatePerm {
     NORMAL_PERM,
+    NORMAL_WRITE,
     REKEY_MONOPOLIZE_PERM,
     IMPORT_MONOPOLIZE_PERM,
     DISABLE_PERM,

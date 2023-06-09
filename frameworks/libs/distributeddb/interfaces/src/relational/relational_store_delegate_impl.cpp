@@ -15,6 +15,8 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_delegate_impl.h"
 
+#include "cloud/cloud_db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
@@ -218,6 +220,40 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &sch
         return DB_ERROR;
     }
     return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
+{
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    int errCode = conn_->GetStoreInfo(userId, appId, storeId);
+    if (errCode != E_OK) {
+        return DB_ERROR;
+    }
+    conn_->RegisterObserverAction([observer, userId, appId, storeId](const std::string &changedDevice,
+        ChangedData &&changedData, bool isChangedData) {
+        if (isChangedData && observer != nullptr) {
+            observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
+            LOGD("begin to observer on changed data");
+            return;
+        }
+        RelationalStoreChangedDataImpl data(changedDevice);
+        data.SetStoreProperty({userId, appId, storeId});
+        if (observer != nullptr) {
+            LOGD("begin to observer on changed, changedDevice=%s", STR_MASK(changedDevice));
+            observer->OnChange(data);
+        }
+    });
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::UnRegisterObserver()
+{
+    return RegisterObserver(nullptr);
 }
 } // namespace DistributedDB
 #endif

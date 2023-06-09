@@ -19,12 +19,18 @@
 #include <memory>
 #include <mutex>
 
+#include "auto_launch_export.h"
 #include "cloud/icloud_data_translate.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"
 #include "ithread_pool.h"
 #include "store_types.h"
 namespace DistributedDB {
+enum class DBType {
+    DB_KV,
+    DB_RELATION,
+};
+
 class RuntimeConfig final {
 public:
     DB_API RuntimeConfig() = default;
@@ -53,6 +59,14 @@ public:
     DB_API static bool IsProcessSystemApiAdapterValid();
 
     DB_API static void SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback);
+
+    DB_API static void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type);
+
+    DB_API static std::string GetStoreIdentifier(const std::string &userId, const std::string &appId,
+        const std::string &storeId, bool syncDualTupleMode = false);
+
+    DB_API static void ReleaseAutoLaunch(const std::string &userId, const std::string &appId,
+        const std::string &storeId, DBType type);
 
     DB_API static void SetThreadPool(const std::shared_ptr<IThreadPool> &threadPool);
 

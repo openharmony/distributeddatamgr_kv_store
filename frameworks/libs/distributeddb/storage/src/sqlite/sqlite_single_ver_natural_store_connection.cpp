@@ -1276,6 +1276,14 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType
     if (handle == nullptr) {
         return errCode;
     }
+
+    errCode = kvDB_->TryToDisableConnection(OperatePerm::NORMAL_WRITE);
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        LOGE("Start transaction failed, %d", errCode);
+        return errCode;
+    }
+
     if (CheckLogOverLimit(handle)) {
         LOGW("Over the log limit");
         ReleaseExecutor(handle);
@@ -1399,6 +1407,7 @@ bool SQLiteSingleVerNaturalStoreConnection::IsExtendedCacheDBMode() const
 
 void SQLiteSingleVerNaturalStoreConnection::ReleaseExecutor(SQLiteSingleVerStorageExecutor *&executor) const
 {
+    kvDB_->ReEnableConnection(OperatePerm::NORMAL_WRITE);
     SQLiteSingleVerNaturalStore *naturalStore = GetDB<SQLiteSingleVerNaturalStore>();
     if (naturalStore != nullptr) {
         naturalStore->ReleaseHandle(executor);
