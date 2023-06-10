@@ -158,7 +158,6 @@ void SingleVerDataSyncUtils::TransSendDataItemToLocal(const SingleVerSyncTaskCon
     const std::string &localHashName, const std::vector<SendDataItem> &data)
 {
     TimeOffset offset = context->GetTimeOffset();
-    Timestamp currentLocalTime = context->GetCurrentLocalTime();
     for (auto &item : data) {
         if (item == nullptr) {
             continue;
@@ -171,6 +170,7 @@ void SingleVerDataSyncUtils::TransSendDataItemToLocal(const SingleVerSyncTaskCon
             item->SetWriteTimestamp(tempWriteTimestamp - static_cast<Timestamp>(offset));
         }
 
+        Timestamp currentLocalTime = context->GetCurrentLocalTime();
         if (item->GetTimestamp() > currentLocalTime) {
             item->SetTimestamp(currentLocalTime);
         }

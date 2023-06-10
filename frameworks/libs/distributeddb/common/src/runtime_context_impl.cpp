@@ -284,7 +284,7 @@ void RuntimeContextImpl::ShrinkMemory(const std::string &description)
 }
 
 NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const TimeChangedAction &action,
-    int &errCode)
+    const TimeFinalizeAction &finalize, int &errCode)
 {
     std::lock_guard<std::mutex> autoLock(timeTickMonitorLock_);
     if (timeTickMonitor_ == nullptr) {
@@ -297,7 +297,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
         }
         LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
-    return timeTickMonitor_->RegisterTimeChangedLister(action, errCode);
+    return timeTickMonitor_->RegisterTimeChangedLister(action, finalize, errCode);
 }
 
 int RuntimeContextImpl::PrepareLoop(IEventLoop *&loop)
@@ -427,7 +427,7 @@ void RuntimeContextImpl::GetAutoLaunchSyncDevices(const std::string &identifier,
     return autoLaunch_.GetAutoLaunchSyncDevices(identifier, devices);
 }
 
-void RuntimeContextImpl::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
+void RuntimeContextImpl::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type)
 {
     autoLaunch_.SetAutoLaunchRequestCallback(callback, type);
 }
@@ -559,7 +559,7 @@ bool RuntimeContextImpl::CheckDeviceSecurityAbility(const std::string &devId, co
         }
         tempSystemApiAdapter = systemApiAdapter_;
     }
-    
+
     return tempSystemApiAdapter->CheckDeviceSecurityAbility(devId, option);
 }
 
@@ -709,7 +709,7 @@ void RuntimeContextImpl::DumpCommonInfo(int fd)
     autoLaunch_.Dump(fd);
 }
 
-void RuntimeContextImpl::CloseAutoLaunchConnection(DBType type, const DBProperties &properties)
+void RuntimeContextImpl::CloseAutoLaunchConnection(DBTypeInner type, const DBProperties &properties)
 {
     autoLaunch_.CloseConnection(type, properties);
 }

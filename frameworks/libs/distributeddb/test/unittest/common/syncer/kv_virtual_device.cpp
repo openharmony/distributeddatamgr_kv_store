@@ -134,4 +134,15 @@ int KvVirtualDevice::UnSubscribe(const QuerySyncObject &query, bool wait, int id
     RefObject::KillAndDecObjRef(operation);
     return E_OK;
 }
+
+void KvVirtualDevice::SetSaveDataCallback(const std::function<void()> &callback)
+{
+    auto *syncAble = static_cast<VirtualSingleVerSyncDBInterface *>(storage_);
+    syncAble->SetSaveDataCallback(callback);
+}
+
+void KvVirtualDevice::EraseWaterMark(const std::string &dev)
+{
+    metadata_->EraseDeviceWaterMark(dev, true);
+}
 } // namespace DistributedDB

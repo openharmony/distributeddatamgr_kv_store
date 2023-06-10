@@ -997,6 +997,7 @@ int SingleVerDataSync::DataRequestRecv(SingleVerSyncTaskContext *context, const 
     if (errCode != E_OK) {
         return errCode;
     }
+    Metadata::MetaWaterMarkAutoLock autoLock(metadata_);
     if (WaterMarkErrHandle(curType, context, message)) {
         return E_OK;
     }

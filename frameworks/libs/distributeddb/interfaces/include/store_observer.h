@@ -27,6 +27,7 @@ enum ChangeType : uint32_t {
     OP_DELETE,
     OP_BUTT,
 };
+
 struct ChangedData {
     std::string tableName;
     // CLOUD_COOPERATION mode, primaryData store primary keys

@@ -32,6 +32,7 @@
 #include "kvdb_manager.h"
 #include "kv_store_nb_delegate_impl.h"
 #include "network_adapter.h"
+#include "runtime_config.h"
 #include "runtime_context.h"
 #include "param_check_utils.h"
 #include "auto_launch.h"
@@ -541,7 +542,7 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     }
     AutoLaunchParam param{ userId, appId, storeId, option, notifier, {}};
     std::shared_ptr<DBProperties> ptr;
-    int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBType::DB_KV, true, ptr);
+    int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_KV, true, ptr);
     if (errCode != E_OK) {
         LOGE("[KvStoreManager] Enable auto launch failed:%d", errCode);
         return TransferDBErrno(errCode);
@@ -578,19 +579,13 @@ DBStatus KvStoreDelegateManager::DisableKvStoreAutoLaunch(const std::string &use
 
 void KvStoreDelegateManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)
 {
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, DBTypeInner::DB_KV);
 }
 
 std::string KvStoreDelegateManager::GetKvStoreIdentifier(const std::string &userId, const std::string &appId,
     const std::string &storeId, bool syncDualTupleMode)
 {
-    if (!ParamCheckUtils::CheckStoreParameter(storeId, appId, userId, syncDualTupleMode)) {
-        return "";
-    }
-    if (syncDualTupleMode) {
-        return DBCommon::TransferHashString(appId + "-" + storeId);
-    }
-    return DBCommon::TransferHashString(userId + "-" + appId + "-" + storeId);
+    return RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
 }
 
 DBStatus KvStoreDelegateManager::SetProcessSystemAPIAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter)

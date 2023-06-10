@@ -961,19 +961,19 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::ClearRemoteData001(SQLit
     /**
      * @tc.steps: step4.Invoke the interface for clearing the synchronization data of the B device.
      */
-    EXPECT_EQ(store->RemoveDeviceData("deviceA", false), E_OK);
+    EXPECT_NE(store->RemoveDeviceData("deviceA", false), E_OK);
 
     /**
      * @tc.steps: step5. The device obtains the data of keyA and valueB.
      * @tc.expected: step5. The value of [keyA, valueA] is obtained,
      *  and the value of NOT_FOUND is obtained by querying keyB.
      */
-    EXPECT_EQ(connection->Get(option, dataItem1.key, valueRead), -E_NOT_FOUND);
+    EXPECT_EQ(connection->Get(option, dataItem1.key, valueRead), E_OK);
     EXPECT_EQ(connection->Get(option, dataItem2.key, valueRead), E_OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(valueRead, dataItem2.value), true);
 
-    EXPECT_EQ(store->RemoveDeviceData("deviceB", false), E_OK);
-    EXPECT_EQ(connection->Get(option, dataItem2.key, valueRead), -E_NOT_FOUND);
+    EXPECT_NE(store->RemoveDeviceData("deviceB", false), E_OK);
+    EXPECT_EQ(connection->Get(option, dataItem2.key, valueRead), E_OK);
 }
 
 /**

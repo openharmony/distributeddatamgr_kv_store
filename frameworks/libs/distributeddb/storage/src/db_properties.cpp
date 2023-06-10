@@ -28,6 +28,7 @@ const std::string DBProperties::IDENTIFIER_DATA = "identifier";
 const std::string DBProperties::IDENTIFIER_DIR = "identifierDir";
 const std::string DBProperties::DUAL_TUPLE_IDENTIFIER_DATA = "dualTupleIdentifier";
 const std::string DBProperties::SYNC_DUAL_TUPLE_MODE = "syncDualTuple";
+const std::string DBProperties::AUTO_LAUNCH_ID = "autoLaunchID";
 
 std::string DBProperties::GetStringProp(const std::string &name, const std::string &defaultValue) const
 {

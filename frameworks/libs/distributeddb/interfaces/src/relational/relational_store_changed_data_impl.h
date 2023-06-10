@@ -33,6 +33,7 @@ public:
     void GetStoreProperty(StoreProperty &storeProperty) const override;
 
     void SetStoreProperty(const StoreProperty &storeProperty);
+
 private:
     mutable std::mutex mutex_;
     mutable std::string changedDevice_;

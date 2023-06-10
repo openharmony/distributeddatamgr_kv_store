@@ -18,6 +18,7 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "platform_specific.h"
+#include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -522,5 +523,53 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck003, Tes
     EXPECT_EQ(kvStore->Rekey(passwd), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(kvStore), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID2), OK);
+}
+
+/**
+  * @tc.name: SingleVerRekeyCheck004
+  * @tc.desc: Test rekey and removeDeviceData
+  * @tc.type: FUNC
+  * @tc.require: AR000CQDT7
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck004, TestSize.Level3)
+{
+    DBStatus status;
+    KvStoreNbDelegate *kvStore = nullptr;
+    auto communicator = new(std::nothrow) VirtualCommunicatorAggregator();
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(communicator);
+    /**
+     * @tc.steps:step1. Get the single version delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore(STORE_ID2, option, [&status, &kvStore](DBStatus dbStatus, KvStoreNbDelegate *delegate) {
+        status = dbStatus;
+        kvStore = delegate;
+    });
+    ASSERT_TRUE(kvStore != nullptr);
+    /**
+     * @tc.steps:step2. call remove device data and rekey at same time.
+     */
+    std::thread removeDevThread([&kvStore]() {
+        for (int i = 0; i < 100; ++i) { // loop 100 times
+            int errCode = kvStore->RemoveDeviceData("DEVICES");
+            EXPECT_TRUE(errCode == OK || errCode == BUSY);
+            std::this_thread::sleep_for(std::chrono::milliseconds(100)); // sleep 100 ms
+        }
+    });
+    for (uint8_t i = 0; i < 100; ++i) { // loop 100 times
+        CipherPassword passwd;
+        vector<uint8_t> passwdBuffer(10, 45u + i); // len 10 value 45
+        int errCode = passwd.SetValue(passwdBuffer.data(), passwdBuffer.size());
+        EXPECT_EQ(errCode, CipherPassword::ErrorCode::OK);
+        errCode = kvStore->Rekey(passwd);
+        LOGI("Re key error code %d", errCode);
+        EXPECT_EQ(kvStore->Rekey(passwd), OK);
+    }
+    removeDevThread.join();
+
+    EXPECT_EQ(g_mgr.CloseKvStore(kvStore), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID2), OK);
+    RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
 }
 #endif

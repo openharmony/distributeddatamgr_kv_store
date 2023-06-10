@@ -90,6 +90,9 @@ std::vector<uint8_t> VirtualSingleVerSyncDBInterface::GetIdentifier() const
 
 int VirtualSingleVerSyncDBInterface::GetMetaData(const Key &key, Value &value) const
 {
+    if (readBusy_) {
+        return -E_BUSY;
+    }
     auto iter = metadata_.find(key);
     if (iter != metadata_.end()) {
         value = iter->second;
@@ -464,6 +467,14 @@ int VirtualSingleVerSyncDBInterface::InterceptData(std::vector<SingleVerKvEntry 
 int VirtualSingleVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject &query,
     const std::vector<SingleVerKvEntry *> &entries, const std::string &deviceName)
 {
+    std::function<void()> callback;
+    {
+        std::lock_guard<std::mutex> autoLock(saveDataMutex_);
+        callback = saveDataCallback_;
+    }
+    if (callback) {
+        callback();
+    }
     std::this_thread::sleep_for(std::chrono::milliseconds(saveDataDelayTime_));
     std::vector<VirtualDataItem> dataItems;
     for (auto kvEntry : entries) {
@@ -496,9 +507,10 @@ int VirtualSingleVerSyncDBInterface::RemoveSubscribe(const std::vector<std::stri
     return E_OK;
 }
 
-void VirtualSingleVerSyncDBInterface::SetBusy(bool busy)
+void VirtualSingleVerSyncDBInterface::SetBusy(bool busy, bool readBusy)
 {
     busy_ = busy;
+    readBusy_ = readBusy;
 }
 
 void VirtualSingleVerSyncDBInterface::PutDeviceData(const std::string &deviceName, const Key &key, const Value &value)
@@ -571,5 +583,11 @@ bool VirtualSingleVerSyncDBInterface::GetDataInner(Timestamp begin, Timestamp en
         }
     }
     return isFinished;
+}
+
+void VirtualSingleVerSyncDBInterface::SetSaveDataCallback(const std::function<void()> &callback)
+{
+    std::lock_guard<std::mutex> autoLock(saveDataMutex_);
+    saveDataCallback_ = callback;
 }
 }  // namespace DistributedDB

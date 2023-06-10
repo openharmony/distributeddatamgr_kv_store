@@ -515,7 +515,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, StorageEngineTest001, TestSize.Level
     ASSERT_EQ(errCode, E_OK);
     ASSERT_NE(storageEngine, nullptr);
     storageEngine->SetEngineState(EngineState::CACHEDB);
-    EXPECT_EQ(g_store->RemoveDeviceData("device1", false), -1);
+    EXPECT_NE(g_store->RemoveDeviceData("device1", false), E_OK);
     storageEngine->Release();
 }
 

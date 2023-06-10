@@ -26,7 +26,7 @@ using Duration = std::chrono::steady_clock::duration;
 class IThreadPool {
 public:
     IThreadPool() = default;
-    virtual ~IThreadPool() {};
+    virtual ~IThreadPool() = default;
 
     virtual TaskId Execute(const Task &task) = 0;
 

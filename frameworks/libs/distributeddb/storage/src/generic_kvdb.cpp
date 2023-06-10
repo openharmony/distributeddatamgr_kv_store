@@ -55,8 +55,12 @@ const KvDBProperties &GenericKvDB::GetMyProperties() const
 IKvDBConnection *GenericKvDB::GetDBConnection(int &errCode)
 {
     std::lock_guard<std::mutex> lock(connectMutex_);
-    if (operatePerm_ != OperatePerm::NORMAL_PERM) {
-        errCode = (operatePerm_ == OperatePerm::DISABLE_PERM) ? -E_STALE : -E_BUSY;
+    if (operatePerm_ == OperatePerm::DISABLE_PERM) {
+        errCode = -E_STALE;
+        return nullptr;
+    } else if (operatePerm_ == OperatePerm::REKEY_MONOPOLIZE_PERM ||
+        operatePerm_ == OperatePerm::IMPORT_MONOPOLIZE_PERM) {
+        errCode = -E_BUSY;
         return nullptr;
     }
 
@@ -157,11 +161,11 @@ int GenericKvDB::TryToDisableConnection(OperatePerm perm)
     if (operatePerm_ != OperatePerm::NORMAL_PERM) {
         return -E_BUSY;
     }
-    // more than one connection, should prevent the rekey operation.
-    if (connectionCount_ > 1) {
+    // more than one connection, should prevent the rekey/import operation.
+    if ((perm == OperatePerm::REKEY_MONOPOLIZE_PERM || perm == OperatePerm::IMPORT_MONOPOLIZE_PERM) &&
+        connectionCount_ > 1) {
         return -E_BUSY;
     }
-
     operatePerm_ = perm;
     return E_OK;
 }

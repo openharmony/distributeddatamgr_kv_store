@@ -249,7 +249,7 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync002, TestSize.Level3)
      * @tc.expected: step2. all messages enter the queue.
      */
     EXPECT_TRUE(g_syncEngine->GetDiscardMsgNum() == 0);
-    EXPECT_TRUE(g_syncEngine->GetQueueCacheSize() / NUM == TEST_TWO);
+    EXPECT_EQ(g_syncEngine->GetQueueCacheSize() / NUM, 0);
 
     /**
      * @tc.steps: step3. set block in function DispatchMessage as false after a period of time.
@@ -302,12 +302,13 @@ HWTEST_F(DistributeddbAntiDosSyncTest, AntiDosAttackSync003, TestSize.Level3)
         uint32_t sessionId = index;
         uint32_t sequenceId = index;
         message->SetMessageType(TYPE_REQUEST);
-        message->SetTarget(srcTarget);
+        const std::string target = srcTarget + std::to_string(index);
+        message->SetTarget(target);
         int errCode = message->SetExternalObject(packet);
         ASSERT_TRUE(errCode == E_OK);
         message->SetSessionId(sessionId);
         message->SetSequenceId(sequenceId);
-        g_communicator->CallbackOnMessage(srcTarget, message);
+        g_communicator->CallbackOnMessage(target, message);
     }
 
     /**

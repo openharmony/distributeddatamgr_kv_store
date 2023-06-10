@@ -597,7 +597,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableNa
         return ret;
     }
     // call OnChange to notify changedData object
-    return NotifyChangedData(std::move(changedData));    
+    return NotifyChangedData(std::move(changedData));
 }
 
 void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo)

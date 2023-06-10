@@ -23,6 +23,7 @@
 #include "kvdb_pragma.h"
 #include "log_print.h"
 #include "platform_specific.h"
+#include "runtime_config.h"
 #include "virtual_communicator_aggregator.h"
 
 using namespace std;
@@ -615,9 +616,9 @@ void ConflictNotifierCallback(const KvStoreNbConflictData &data)
     data.GetKey(key);
     data.GetValue(KvStoreNbConflictData::ValueType::OLD_VALUE, oldValue);
     data.GetValue(KvStoreNbConflictData::ValueType::NEW_VALUE, newValue);
-    EXPECT_TRUE(key == KEY1);
-    EXPECT_TRUE(oldValue == VALUE1);
-    EXPECT_TRUE(newValue == VALUE2);
+    EXPECT_EQ(key, KEY1);
+    EXPECT_EQ(oldValue, VALUE1);
+    EXPECT_EQ(newValue, VALUE2);
     g_finished = true;
     g_cv.notify_one();
 }
@@ -673,7 +674,8 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
      * @tc.expected: step1. success.
      */
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
+        DBTypeInner::DB_KV);
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -716,7 +718,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch007, TestSize.Level3)
         g_statusMap.clear();
         g_finished = false;
     }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     delete observer;
 }
 
@@ -736,7 +738,8 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
      * @tc.expected: step1. success.
      */
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false), DBType::DB_KV);
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false),
+        DBTypeInner::DB_KV);
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -754,7 +757,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch008, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(observer->GetCallCount() == 0);
     EXPECT_TRUE(g_finished == false);
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     delete observer;
 }
 
@@ -772,7 +775,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
      * @tc.steps: step1. SetAutoLaunchRequestCallback
      * @tc.expected: step1. success.
      */
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(AutoLaunchCallBackBadParam, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(AutoLaunchCallBackBadParam, DBTypeInner::DB_KV);
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -795,7 +798,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch009, TestSize.Level3)
         g_statusMap.clear();
         g_finished = false;
     }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     delete observer;
 }
 
@@ -815,9 +818,10 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
      * @tc.expected: step1. success.
      */
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false), DBType::DB_KV);
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, false),
+        DBTypeInner::DB_KV);
 
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     /**
      * @tc.steps: step2. RunCommunicatorLackCallback
      * @tc.expected: step2. success.
@@ -834,7 +838,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     EXPECT_TRUE(observer->GetCallCount() == 0);
     EXPECT_TRUE(g_finished == false);
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     delete observer;
 }
 
@@ -848,8 +852,11 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch010, TestSize.Level3)
 HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch011, TestSize.Level3)
 {
     EXPECT_EQ(KvStoreDelegateManager::GetKvStoreIdentifier("", APP_ID, STORE_ID_0), "");
+    EXPECT_EQ(RuntimeConfig::GetStoreIdentifier("", APP_ID, STORE_ID_0), "");
     EXPECT_EQ(KvStoreDelegateManager::GetKvStoreIdentifier(
         USER_ID, APP_ID, STORE_ID_0), DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0));
+    EXPECT_EQ(RuntimeConfig::GetStoreIdentifier(USER_ID, APP_ID, STORE_ID_0),
+        DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0));
 }
 
 /**
@@ -951,7 +958,8 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
     KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
     ASSERT_TRUE(observer != nullptr);
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(
-        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true),
+        DBTypeInner::DB_KV);
 
     /**
      * @tc.steps: step2. RunOnConnectCallback RunCommunicatorLackCallback
@@ -998,7 +1006,7 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
         g_statusMap.clear();
         g_finished = false;
     }
-    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(nullptr, DBTypeInner::DB_KV);
     delete observer;
     /**
      * @tc.steps: step4. param A B disable
@@ -1009,4 +1017,95 @@ HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch013, TestSize.Level3)
     EXPECT_TRUE(RuntimeContext::GetInstance()->DisableKvStoreAutoLaunch(g_identifierC, g_dualIdentifierC, USER_ID)
         == E_OK);
     g_communicatorAggregator->RunOnConnectCallback(REMOTE_DEVICE_ID, false);
+}
+
+/**
+ * @tc.name: AutoLaunch014
+ * @tc.desc: enhancement callback and release auto launch connection
+ * @tc.type: FUNC
+ * @tc.require: AR000I0EKP
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch014, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetAutoLaunchRequestCallback
+     * @tc.expected: step1. success.
+     */
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    ASSERT_TRUE(observer != nullptr);
+    RuntimeConfig::SetAutoLaunchRequestCallback(
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
+
+    /**
+     * @tc.steps: step2. RunCommunicatorLackCallback
+     * @tc.expected: step2. success.
+     */
+    LabelType label(g_identifierA.begin(), g_identifierA.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(label);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+
+    /**
+     * @tc.steps: step3. PutSyncData key1 value1
+     * @tc.expected: step3. db open, notify WRITE_OPENED
+     */
+    PutSyncData(g_propA, KEY1, VALUE1);
+    PutSyncData(g_propA, KEY1, VALUE2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    EXPECT_EQ(observer->GetCallCount(), 2u); // 2: observer count
+    {
+        std::unique_lock<std::mutex> lock(g_cvMutex);
+        g_cv.wait(lock, [] {return g_finished;});
+        EXPECT_TRUE(g_statusMap[g_identifierA] == WRITE_OPENED);
+        g_statusMap.clear();
+        g_finished = false;
+    }
+
+    /**
+     * @tc.steps: step4. Release autolaunch db connection
+     * @tc.expected: step3. success
+     */
+    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
+    EXPECT_EQ(g_statusMap[DBCommon::TransferHashString(USER_ID + "-" + APP_ID + "-" + STORE_ID_0)],
+        AutoLaunchStatus::WRITE_CLOSED);
+    delete observer;
+}
+
+/**
+ * @tc.name: AutoLaunch015
+ * @tc.desc: release auto launch connection when autolaunch execute
+ * @tc.type: FUNC
+ * @tc.require: AR000I0EKP
+ */
+HWTEST_F(DistributedDBAutoLaunchUnitTest, AutoLaunch015, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. SetAutoLaunchRequestCallback
+     * @tc.expected: step1. success.
+     */
+    KvStoreObserverUnitTest *observer = new (std::nothrow) KvStoreObserverUnitTest;
+    ASSERT_TRUE(observer != nullptr);
+    RuntimeConfig::SetAutoLaunchRequestCallback(
+        std::bind(AutoLaunchCallBack, std::placeholders::_1, std::placeholders::_2, observer, true), DBType::DB_KV);
+
+    std::thread th ([&]() {
+        /**
+         * @tc.steps: step2. RunCommunicatorLackCallback
+         * @tc.expected: step2. success.
+         */
+        LabelType label(g_identifierA.begin(), g_identifierA.end());
+        g_communicatorAggregator->RunCommunicatorLackCallback(label);
+        std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    });
+
+    /**
+     * @tc.steps: step4. Release autolaunch db connection
+     * @tc.expected: step3. success
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
+    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_KV);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_0, DBType::DB_KV);
+
+    th.join();
+    delete observer;
 }

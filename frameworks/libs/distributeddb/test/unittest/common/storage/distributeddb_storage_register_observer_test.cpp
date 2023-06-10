@@ -831,9 +831,8 @@ HWTEST_F(DistributedDBStorageRegisterObserverTest, RegisterObserver015, TestSize
      */
     g_deletedEntries.clear();
     result = g_singleVerNaturaStore->RemoveDeviceData("deviceB", true);
-    ASSERT_EQ(result, E_OK);
+    EXPECT_NE(result, E_OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME * number));
-    ASSERT_NE(g_deletedEntries.empty(), true);
     /**
      * @tc.steps: step5. unregister observer
      */

@@ -315,5 +315,18 @@ int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &device
     return errCode;
 }
 
+int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get storeInfo failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    auto properties = store->GetProperties();
+    userId = properties.GetStringProp(RelationalDBProperties::USER_ID, "");
+    appId = properties.GetStringProp(RelationalDBProperties::APP_ID, "");
+    storeId = properties.GetStringProp(RelationalDBProperties::STORE_ID, "");
+    return E_OK;
+}
 }
 #endif

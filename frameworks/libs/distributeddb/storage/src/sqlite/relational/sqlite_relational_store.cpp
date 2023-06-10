@@ -443,31 +443,32 @@ int SQLiteRelationalStore::RemoveDeviceData()
         return -E_NOT_SUPPORT;
     }
 
-    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
-    if (tables.empty()) {
+    std::vector<std::string> tableNameList = GetAllDistributedTableName();
+    if (tableNameList.empty()) {
         return E_OK;
     }
-
-    int errCode = E_OK;
+    // erase watermark first
+    int errCode = EraseAllDeviceWatermark(tableNameList);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     auto *handle = GetHandleAndStartTransaction(errCode);
     if (handle == nullptr) {
         return errCode;
     }
 
-    std::vector<std::string> tableNameList;
-    for (const auto &table: tables) {
-        errCode = handle->DeleteDistributedDeviceTable("", table.second.GetTableName());
+    for (const auto &table: tableNameList) {
+        errCode = handle->DeleteDistributedDeviceTable("", table);
         if (errCode != E_OK) {
             LOGE("delete device data failed. %d", errCode);
             break;
         }
 
-        errCode = handle->DeleteDistributedAllDeviceTableLog(table.second.GetTableName());
+        errCode = handle->DeleteDistributedAllDeviceTableLog(table);
         if (errCode != E_OK) {
             LOGE("delete device data failed. %d", errCode);
             break;
         }
-        tableNameList.push_back(table.second.GetTableName());
     }
 
     if (errCode != E_OK) {
@@ -479,7 +480,7 @@ int SQLiteRelationalStore::RemoveDeviceData()
     errCode = handle->Commit();
     ReleaseHandle(handle);
     storageEngine_->NotifySchemaChanged();
-    return (errCode != E_OK) ? errCode : EraseAllDeviceWatermark(tableNameList);
+    return errCode;
 }
 
 int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std::string &tableName)
@@ -766,18 +767,6 @@ SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndSta
 int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
     const std::string &tableName, bool isNeedHash)
 {
-    int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        return errCode;
-    }
-
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseHandle(handle);
-        return errCode;
-    }
-
     std::string hashHexDev;
     std::string hashDev;
     std::string devTableName;
@@ -792,6 +781,16 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
         hashHexDev = DBCommon::TransferStringToHex(hashDev);
         devTableName = GetDevTableName(mappingDev, hashHexDev);
     }
+    // erase watermark first
+    int errCode = syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    auto *handle = GetHandleAndStartTransaction(errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+
     errCode = handle->DeleteDistributedDeviceTable(devTableName, tableName);
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (errCode != E_OK) {
@@ -818,10 +817,10 @@ END:
     errCode = handle->Commit();
     ReleaseHandle(handle);
     storageEngine_->NotifySchemaChanged();
-    return (errCode != E_OK) ? errCode : syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
+    return errCode;
 }
 
-int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices)
+int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices) const
 {
     int errCode = E_OK;
     auto *handle = GetHandle(true, errCode);
@@ -835,6 +834,16 @@ int SQLiteRelationalStore::GetExistDevices(std::set<std::string> &hashDevices)
     }
     ReleaseHandle(handle);
     return errCode;
+}
+
+std::vector<std::string> SQLiteRelationalStore::GetAllDistributedTableName()
+{
+    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
+    std::vector<std::string> tableNames;
+    for (const auto &table: tables) {
+        tableNames.push_back(table.second.GetTableName());
+    }
+    return tableNames;
 }
 
 int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)

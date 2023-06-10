@@ -35,7 +35,7 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
     static constexpr const char *CLOSE_CONN_TASK = "auto launch close relational connection";
     (void)RuntimeContext::GetInstance()->ScheduleQueuedTask(
         std::string(CLOSE_CONN_TASK),
-        [properties] { RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBType::DB_RELATION, properties); }
+        [properties] { RuntimeContext::GetInstance()->CloseAutoLaunchConnection(DBTypeInner::DB_RELATION, properties); }
     );
 }
 }

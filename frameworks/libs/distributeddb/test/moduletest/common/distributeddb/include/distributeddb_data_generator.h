@@ -34,7 +34,7 @@ struct EntrySize {
     }
 };
 
-enum DBType {
+enum DBTypeInner {
     UNENCRYPTED_DISK_DB = 0,
     ENCRYPTED_DISK_DB,
     MEMORY_DB

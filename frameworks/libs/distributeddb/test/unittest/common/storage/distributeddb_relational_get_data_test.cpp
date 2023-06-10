@@ -1704,4 +1704,18 @@ HWTEST_F(DistributedDBRelationalGetDataTest, StopSync001, TestSize.Level1)
     }
     userChangeThread.join();
 }
+
+/**
+ * @tc.name: EraseDeviceWaterMark001
+ * @tc.desc: Test Relational erase water mark.
+ * @tc.type: FUNC
+ * @tc.require: AR000H2QPN
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, EraseDeviceWaterMark001, TestSize.Level1)
+{
+    auto syncAbleEngine = std::make_unique<SyncAbleEngine>(nullptr);
+    ASSERT_NE(syncAbleEngine, nullptr);
+    EXPECT_EQ(syncAbleEngine->EraseDeviceWaterMark("", true), -E_INVALID_ARGS);
+}
 #endif

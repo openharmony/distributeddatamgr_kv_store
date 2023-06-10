@@ -25,6 +25,28 @@ public:
     {
         RecordTimeChangeOffset(changedOffset);
     }
+
+    void CallQueryAutoSync(const InternalSyncParma &param)
+    {
+        SingleVerKVSyncer::QueryAutoSync(param);
+    }
+
+    void Init(ISyncEngine *engine, ISyncInterface *storage, bool init)
+    {
+        syncEngine_ = engine;
+        syncInterface_ = storage;
+        initialized_ = init;
+    }
+
+    int CallStatusCheck() const
+    {
+        return SingleVerKVSyncer::StatusCheck();
+    }
+
+    void SetMetadata(const std::shared_ptr<Metadata> &metadata)
+    {
+        metadata_ = metadata;
+    }
 };
 }
 #endif // MOCK_SINGLE_VER_KV_SYNCER_H

@@ -66,6 +66,8 @@ public:
     virtual int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
         const SyncProcessCallback &onProcess, int64_t waitTime) = 0;
 
+    virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
+
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

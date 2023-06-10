@@ -1079,3 +1079,33 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, DeleteUserKeyValue
     DistributedDBStorageSingleVerNaturalStoreTestCase::DeleteUserKeyValue006(g_store, g_connection, url);
 }
 
+/**
+ * @tc.name: EraseDeviceWaterMark001
+ * @tc.desc: Test erase water mark
+ * @tc.type: FUNC
+ * @tc.require: AR000CKRTC AR000CQE0D
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, EraseDeviceWaterMark001, TestSize.Level1)
+{
+    auto store = new (std::nothrow) SQLiteSingleVerNaturalStore;
+    ASSERT_NE(store, nullptr);
+    EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_INVALID_DB);
+    RefObject::KillAndDecObjRef(store);
+}
+
+/**
+ * @tc.name: ExportBusy001
+ * @tc.desc: Test export with busy
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, ExportBusy001, TestSize.Level1)
+{
+    ASSERT_NE(g_store, nullptr);
+    ASSERT_EQ(g_store->TryToDisableConnection(OperatePerm::NORMAL_WRITE), E_OK);
+    CipherPassword password;
+    EXPECT_EQ(g_store->Export(g_testDir, password), -E_BUSY);
+    g_store->ReEnableConnection(OperatePerm::NORMAL_WRITE);
+}

@@ -16,6 +16,7 @@
 #include "meta_data.h"
 
 #include <openssl/rand.h>
+
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
@@ -158,25 +159,26 @@ int Metadata::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 
 int Metadata::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
+    std::lock_guard<std::recursive_mutex> autoLock(waterMarkMutex_);
     // try to erase all the waterMark
     // erase deleteSync recv waterMark
     WaterMark waterMark = 0;
     int errCodeDeleteSync = SetRecvDeleteSyncWaterMark(deviceId, waterMark, isNeedHash);
+    if (errCodeDeleteSync != E_OK) {
+        LOGE("[Metadata] erase deleteWaterMark failed errCode:%d", errCodeDeleteSync);
+        return errCodeDeleteSync;
+    }
     // erase querySync recv waterMark
     int errCodeQuerySync = ResetRecvQueryWaterMark(deviceId, tableName, isNeedHash);
+    if (errCodeQuerySync != E_OK) {
+        LOGE("[Metadata] erase queryWaterMark failed errCode:%d", errCodeQuerySync);
+        return errCodeQuerySync;
+    }
     // peerWaterMark must be erased at last
     int errCode = SavePeerWaterMark(deviceId, 0, isNeedHash);
     if (errCode != E_OK) {
         LOGE("[Metadata] erase peerWaterMark failed errCode:%d", errCode);
         return errCode;
-    }
-    if (errCodeQuerySync != E_OK) {
-        LOGE("[Metadata] erase queryWaterMark failed errCode:%d", errCodeQuerySync);
-        return errCodeQuerySync;
-    }
-    if (errCodeDeleteSync != E_OK) {
-        LOGE("[Metadata] erase deleteWaterMark failed errCode:%d", errCodeDeleteSync);
-        return errCodeDeleteSync;
     }
     return E_OK;
 }
@@ -615,5 +617,30 @@ int Metadata::GetHashDeviceId(const std::string &clientId, std::string &hashDevI
     }
     DBCommon::VectorToString(value, hashDevId);
     return E_OK;
+}
+
+void Metadata::LockWaterMark() const
+{
+    waterMarkMutex_.lock();
+}
+
+void Metadata::UnlockWaterMark() const
+{
+    waterMarkMutex_.unlock();
+}
+
+Metadata::MetaWaterMarkAutoLock::MetaWaterMarkAutoLock(std::shared_ptr<Metadata> metadata)
+    : metadataPtr_(std::move(metadata))
+{
+    if (metadataPtr_ != nullptr) {
+        metadataPtr_->LockWaterMark();
+    }
+}
+
+Metadata::MetaWaterMarkAutoLock::~MetaWaterMarkAutoLock()
+{
+    if (metadataPtr_ != nullptr) {
+        metadataPtr_->UnlockWaterMark();
+    }
 }
 }  // namespace DistributedDB

@@ -285,7 +285,10 @@ uint32_t SyncAbleKvDB::GetAppendedLen() const
 int SyncAbleKvDB::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 {
     if (NeedStartSyncer()) {
-        StartSyncer();
+        int errCode = StartSyncer();
+        if (errCode != E_OK && errCode != -E_NO_NEED_ACTIVE) {
+            return errCode;
+        }
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash);
 }
@@ -423,8 +426,12 @@ bool SyncAbleKvDB::NeedStartSyncer() const
 
 int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
 {
+    int errCode = E_OK;
     if (NeedStartSyncer()) {
-        StartSyncer();
+        errCode = StartSyncer();
+    }
+    if (errCode != E_OK && errCode != -E_NO_NEED_ACTIVE) {
+        return errCode;
     }
     return syncer_.GetHashDeviceId(clientId, hashDevId);
 }

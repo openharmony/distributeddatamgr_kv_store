@@ -244,7 +244,7 @@ private:
     // Change value that should be amended, and neglect value that is incompatible
     void CheckAmendValueContentForSyncProcedure(std::vector<DataItem> &dataItems) const;
 
-    int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify);
+    int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify) const;
 
     int RemoveDeviceDataNormally(const std::string &hashDev, bool isNeedNotify);
 
@@ -275,7 +275,7 @@ private:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
-    int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify, bool isInSync);
+    int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 

@@ -374,7 +374,7 @@ namespace {
     {
         std::string dis_tableName = RelationalStoreManager::GetDistributedTableName(DEVICE_B, table);
         const std::string sql = "SELECT * FROM " + dis_tableName;
-        LOGE("exec sql: %s", sql.c_str());
+        LOGD("exec sql: %s", sql.c_str());
         return sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     }
 
@@ -699,9 +699,11 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
      * @tc.expected: step7. success.
      */
     CheckDataInRealDevice();
-    std::this_thread::sleep_for(std::chrono::seconds(70)); // the store will close after 60 sec aotumatically
-    g_mgr1.SetAutoLaunchRequestCallback(nullptr);
+
+    RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     EXPECT_EQ(g_currentStatus, AutoLaunchStatus::WRITE_CLOSED);
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     g_currentStatus = 0;
     CloseStore();
 }

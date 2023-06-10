@@ -227,7 +227,7 @@ protected:
 
     void ClearSyncTarget();
 
-    void CancelCurrentSyncRetryIfNeed(int newTargetMode);
+    void CancelCurrentSyncRetryIfNeed(int newTargetMode, uint32_t syncId);
 
     virtual void SaveLastPushTaskExecStatus(int finalStatus);
 

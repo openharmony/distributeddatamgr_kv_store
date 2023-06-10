@@ -446,7 +446,7 @@ IKvDB *KvDBManager::GetDataBase(const KvDBProperties &property, int &errCode, bo
 
     kvDB = CreateDataBase(property, errCode);
     if (errCode != E_OK) {
-        LOGE("Create data base failed, errCode = [%d]", errCode);
+        LOGE("Create database failed, errCode = [%d]", errCode);
     }
     return kvDB;
 }

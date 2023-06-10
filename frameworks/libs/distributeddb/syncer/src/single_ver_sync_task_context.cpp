@@ -200,7 +200,10 @@ void SingleVerSyncTaskContext::CopyTargetData(const ISyncTarget *target, const T
     if (mode_ == SyncModeType::RESPONSE_PULL) {
         responseSessionId_ = targetTmp->GetResponseSessionId();
     }
-    query_ = targetTmp->GetQuery();
+    {
+        std::lock_guard<std::mutex> autoLock(queryMutex_);
+        query_ = targetTmp->GetQuery();
+    }
     isQuerySync_ = targetTmp->IsQuerySync();
 }
 
@@ -215,7 +218,10 @@ void SingleVerSyncTaskContext::Clear()
     SetOperationStatus(SyncOperation::OP_WAITING);
     SetEndMark(0);
     SetResponseSessionId(0);
-    query_ = QuerySyncObject();
+    {
+        std::lock_guard<std::mutex> autoLock(queryMutex_);
+        query_ = QuerySyncObject();
+    }
     isQuerySync_ = false;
 }
 
@@ -324,11 +330,13 @@ void SingleVerSyncTaskContext::SetReceiveWaterMarkErr(bool isErr)
 
 void SingleVerSyncTaskContext::SetRemoteSeccurityOption(SecurityOption secOption)
 {
+    std::lock_guard<std::mutex> autoLock(securityOptionMutex_);
     remoteSecOption_ = secOption;
 }
 
 SecurityOption SingleVerSyncTaskContext::GetRemoteSeccurityOption() const
 {
+    std::lock_guard<std::mutex> autoLock(securityOptionMutex_);
     return remoteSecOption_;
 }
 
@@ -377,11 +385,13 @@ bool SingleVerSyncTaskContext::FindResponseSyncTarget(uint32_t responseSessionId
 
 void SingleVerSyncTaskContext::SetQuery(const QuerySyncObject &query)
 {
+    std::lock_guard<std::mutex> autoLock(queryMutex_);
     query_ = query;
 }
 
-const QuerySyncObject &SingleVerSyncTaskContext::GetQuery() const
+QuerySyncObject SingleVerSyncTaskContext::GetQuery() const
 {
+    std::lock_guard<std::mutex> autoLock(queryMutex_);
     return query_;
 }
 

@@ -107,7 +107,7 @@ public:
 
     int GetSyncDataSize(const std::string &device, size_t &size) const override;
 
-    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) override;
+    int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const override;
 private:
     std::mutex syncerLock_;
     std::shared_ptr<ISyncer> syncer_;

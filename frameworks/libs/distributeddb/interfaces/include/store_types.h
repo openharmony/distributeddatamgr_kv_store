@@ -152,12 +152,12 @@ struct SyncProcess {
     DBStatus errCode = OK;
     std::map<std::string, TableProcessInfo> tableProcess;
 };
+
 using KvStoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using StoreCorruptionHandler = std::function<void (const std::string &appId, const std::string &userId,
     const std::string &storeId)>;
 using SyncStatusCallback = std::function<void(const std::map<std::string, std::vector<TableStatus>> &devicesMap)>;
-using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
 
 using SyncProcessCallback = std::function<void(const std::map<std::string, SyncProcess> &process)>;
 

@@ -60,8 +60,8 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     }
     std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
-    context->MoveInRecordAndExtend(record, extend);
     context->SetTableName(tableName);
+    context->MoveInRecordAndExtend(record, extend);
     int errCode = InnerAction(context, cloudDb, UPDATE);
     uploadInfo = context->GetInfo();
     if (errCode != E_OK) {
@@ -77,8 +77,8 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     if (iCloudDb_ == nullptr) {
         return -E_CLOUD_ERROR;
     }
-    std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
+    std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
     context->MoveInRecordAndExtend(record, extend);
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, DELETE);

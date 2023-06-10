@@ -39,7 +39,7 @@ enum class AutoLaunchItemState {
     IDLE,
 };
 
-enum class DBType {
+enum class DBTypeInner {
     DB_KV = 1,
     DB_RELATION,
     DB_INVALID,
@@ -58,13 +58,13 @@ struct AutoLaunchItem {
     bool isDisable = false;
     bool inObserver = false;
     bool isAutoSync = true;
-    DBType type = DBType::DB_INVALID;
+    DBTypeInner type = DBTypeInner::DB_INVALID;
     StoreObserver *storeObserver = nullptr;
 };
 
 class AutoLaunch {
 public:
-    static int GetAutoLaunchProperties(const AutoLaunchParam &param, const DBType &openType, bool checkDir,
+    static int GetAutoLaunchProperties(const AutoLaunchParam &param, const DBTypeInner &openType, bool checkDir,
         std::shared_ptr<DBProperties> &propertiesPtr);
 
     AutoLaunch() = default;
@@ -83,11 +83,11 @@ public:
 
     void GetAutoLaunchSyncDevices(const std::string &identifier, std::vector<std::string> &devices) const;
 
-    void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type);
+    void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type);
 
     void Dump(int fd);
 
-    void CloseConnection(DBType type, const DBProperties &properties);
+    void CloseConnection(DBTypeInner type, const DBProperties &properties);
 
 protected:
     static int OpenOneConnection(AutoLaunchItem &autoLaunchItem);
@@ -156,7 +156,7 @@ protected:
 
     void ExtConnectionLifeCycleCallbackTask(const std::string &identifier, const std::string &userId);
 
-    int ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param, DBType &openType);
+    int ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param, DBTypeInner &openType);
 
     int RegisterLifeCycleCallback(AutoLaunchItem &autoLaunchItem, const std::string &identifier, bool isExt);
 
@@ -174,6 +174,9 @@ protected:
 
     int RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const std::string &identifier, bool isExt);
 
+    std::string GetAutoLaunchItemUid(const std::string &identifier, const std::string &originalUserId,
+        bool &handleByCallback);
+
     mutable std::mutex dataLock_;
     mutable std::mutex communicatorLock_;
     std::set<std::string> onlineDevices_;
@@ -183,7 +186,7 @@ protected:
     std::condition_variable cv_;
 
     std::mutex extLock_;
-    std::map<DBType, AutoLaunchRequestCallback> autoLaunchRequestCallbackMap_;
+    std::map<DBTypeInner, AutoLaunchRequestCallback> autoLaunchRequestCallbackMap_;
     // key: label, value: <userId, AutoLaunchItem>
     std::map<std::string, std::map<std::string, AutoLaunchItem>> extItemMap_;
 };

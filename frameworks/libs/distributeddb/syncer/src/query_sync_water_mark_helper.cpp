@@ -312,7 +312,10 @@ int QuerySyncWaterMarkHelper::SetSendDeleteSyncWaterMark(const DeviceID &deviceI
     DeleteWaterMark deleteWaterMark;
     // lock prevent different thread visit deleteSyncCache_
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
-    GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
+    int errCode = GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     deleteWaterMark.sendWaterMark = waterMark;
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }
@@ -324,7 +327,10 @@ int QuerySyncWaterMarkHelper::SetRecvDeleteSyncWaterMark(const DeviceID &deviceI
     DeleteWaterMark deleteWaterMark;
     // lock prevent different thread visit deleteSyncCache_
     std::lock_guard<std::mutex> autoLock(deleteSyncLock_);
-    GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
+    int errCode = GetDeleteWaterMarkFromCache(hashId, deleteWaterMark);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     deleteWaterMark.recvWaterMark = waterMark;
     return UpdateDeleteSyncCacheAndSave(hashId, deleteWaterMark);
 }

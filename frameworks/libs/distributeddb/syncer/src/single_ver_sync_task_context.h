@@ -114,7 +114,7 @@ public:
 
     // For query sync
     void SetQuery(const QuerySyncObject &query);
-    const QuerySyncObject &GetQuery() const;
+    QuerySyncObject GetQuery() const;
     void SetQuerySync(bool isQuerySync);
     bool IsQuerySync() const;
     std::set<CompressAlgorithm> GetRemoteCompressAlgo() const;
@@ -141,6 +141,7 @@ protected:
     void CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam) override;
 
     // For querySync
+    mutable std::mutex queryMutex_;
     QuerySyncObject query_;
     bool isQuerySync_ = false;
     
@@ -158,6 +159,7 @@ private:
     volatile uint32_t responseSessionId_ = 0;
 
     bool needClearRemoteStaleData_;
+    mutable std::mutex securityOptionMutex_;
     SecurityOption remoteSecOption_ = {0, 0}; // remote targe can handle secOption data or not.
     volatile bool isReceivcPermitChecked_ = false;
     volatile bool isSendPermitChecked_ = false;

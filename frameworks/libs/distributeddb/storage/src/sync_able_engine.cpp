@@ -94,7 +94,10 @@ uint64_t SyncAbleEngine::GetTimestamp()
 int SyncAbleEngine::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash, const std::string &tableName)
 {
     if (NeedStartSyncer()) {
-        StartSyncer();
+        int errCode = StartSyncer();
+        if (errCode != E_OK && errCode != -E_NO_NEED_ACTIVE) {
+            return errCode;
+        }
     }
     return syncer_.EraseDeviceWaterMark(deviceId, isNeedHash, tableName);
 }
@@ -290,7 +293,10 @@ bool SyncAbleEngine::NeedStartSyncer() const
 int SyncAbleEngine::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
 {
     if (NeedStartSyncer()) {
-        StartSyncer();
+        int errCode = StartSyncer();
+        if (errCode != E_OK && errCode != -E_NO_NEED_ACTIVE) {
+            return errCode;
+        }
     }
     return syncer_.GetHashDeviceId(clientId, hashDevId);
 }

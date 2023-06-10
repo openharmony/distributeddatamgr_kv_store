@@ -91,8 +91,10 @@ public:
     DB_API static DBStatus DisableKvStoreAutoLaunch(const std::string &userId, const std::string &appId,
         const std::string &storeId);
 
+    // deprecated
     DB_API static void SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback);
 
+    // deprecated
     DB_API static std::string GetKvStoreIdentifier(const std::string &userId, const std::string &appId,
         const std::string &storeId, bool syncDualTupleMode = false);
 

@@ -124,7 +124,7 @@ public:
 
     virtual int GetSyncDataSize(const std::string &device, size_t &size) const = 0;
 
-    virtual int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) = 0;
+    virtual int GetHashDeviceId(const std::string &clientId, std::string &hashDevId) const = 0;
 };
 } // namespace DistributedDB
 

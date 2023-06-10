@@ -33,6 +33,21 @@ public:
         AutoLaunch::ExtConnectionLifeCycleCallbackTask(identifier, userId);
     }
 
+    void SetWhiteListItem(const std::string &id, const std::string &userId, const AutoLaunchItem &item)
+    {
+        autoLaunchItemMap_[id][userId] = item;
+    }
+
+    void ClearWhiteList()
+    {
+        autoLaunchItemMap_.clear();
+    }
+
+    std::string CallGetAutoLaunchItemUid(const std::string &identifier, const std::string &originalUserId, bool &ext)
+    {
+        return AutoLaunch::GetAutoLaunchItemUid(identifier, originalUserId, ext);
+    }
+
     MOCK_METHOD1(TryCloseConnection, void(AutoLaunchItem &));
 };
 } // namespace DistributedDB
