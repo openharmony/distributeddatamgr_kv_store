@@ -28,9 +28,9 @@ public:
     static constexpr const char *MODIFY_FIELD = "#_modifyTime";
     static constexpr const char *DELETE_FIELD = "#_deleted";
     static constexpr const char *CURSOR_FIELD = "#_cursor";
-    static const uint32_t MAX_UPLOAD_SIZE;
     static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
-    static const uint32_t MAX_DOWNLOAD_RETRY_TIME;
+    static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 1024 * 2;
+    static constexpr uint32_t MAX_DOWNLOAD_RETRY_TIME = 50;
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H
