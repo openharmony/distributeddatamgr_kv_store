@@ -78,7 +78,6 @@ ohos_source_set("src_file") {
 
   sources = [
     "../common/src/auto_launch.cpp",
-    "../common/src/cloud/cloud_db_constant.cpp",
     "../common/src/data_compression.cpp",
     "../common/src/data_value.cpp",
     "../common/src/db_common.cpp",
