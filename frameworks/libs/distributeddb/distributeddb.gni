@@ -16,7 +16,6 @@ distributeddb_path =
 
 distributeddb_src = [
   "${distributeddb_path}/common/src/auto_launch.cpp",
-  "${distributeddb_path}/common/src/cloud/cloud_db_constant.cpp",
   "${distributeddb_path}/common/src/data_compression.cpp",
   "${distributeddb_path}/common/src/data_value.cpp",
   "${distributeddb_path}/common/src/db_common.cpp",

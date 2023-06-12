@@ -749,7 +749,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestS
     ASSERT_NE(storageProxy, nullptr);
     CreateLogTable();
     int64_t insCount = 1024;
-    int64_t photoSize = 1024 * 8;
+    int64_t photoSize = 512 * 3;
     InitLogData(insCount, insCount, insCount, insCount);
     CreateAndInitUserTable(3 * insCount, photoSize); // 3 is insert,update and delete type data
 
