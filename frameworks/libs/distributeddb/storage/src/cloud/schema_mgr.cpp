@@ -58,10 +58,6 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
             return -E_SCHEMA_MISMATCH;
         }
         FieldInfo &localField = localFields[cloudField.colName];
-        if (!CompareType(localField, cloudField)) {
-            LOGE("Type mismatch between local and cloud schema : %d", -E_SCHEMA_MISMATCH);
-            return -E_SCHEMA_MISMATCH;
-        }
         if (!CompareNullable(localField, cloudField)) {
             LOGE("The nullable property is mismatched between local and cloud schema : %d", -E_SCHEMA_MISMATCH);
             return -E_SCHEMA_MISMATCH;
