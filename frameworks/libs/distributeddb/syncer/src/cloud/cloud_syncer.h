@@ -158,7 +158,7 @@ protected:
         Info &downloadInfo, CloudWaterMark &latestCloudWaterMark, ChangedData &changedData);
 
     int SaveChangedData(DownloadData &downloadData,
-        int dataIndex, LogInfo &localLogInfo, LogInfo &cloudLogInfo, ChangedData &changedData);
+        int dataIndex, DataInfoWithLog &localLogInfo, LogInfo &cloudLogInfo, ChangedData &changedData);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, const TableName &tableName,
         DownloadData &downloadData, InnerProcessInfo &info, const std::vector<std::string> &pkColNames);

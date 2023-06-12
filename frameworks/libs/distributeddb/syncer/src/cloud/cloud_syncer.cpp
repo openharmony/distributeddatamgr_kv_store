@@ -350,15 +350,15 @@ static int GetCloudPkVals(VBucket &datum, const std::vector<std::string> &pkColN
     return E_OK;
 }
 
-static int SaveChangedtData(VBucket &datum, ChangedData &changedData, int64_t dataKey, ChangeType type)
+static int SaveChangedtData(VBucket &datum, ChangedData &changedData, DataInfoWithLog &localInfo, ChangeType type)
 {
+    int ret = E_OK;
     std::vector<Type> cloudPkVals;
     if (type == ChangeType::OP_DELETE) {
-        cloudPkVals.push_back(dataKey);
-        changedData.primaryData[type].emplace_back(std::move(cloudPkVals));
-        return E_OK;
+        ret = GetCloudPkVals(localInfo.primaryKeys, changedData.field, localInfo.logInfo.dataKey, cloudPkVals);
+    } else {
+        ret = GetCloudPkVals(datum, changedData.field, localInfo.logInfo.dataKey, cloudPkVals);
     }
-    int ret = GetCloudPkVals(datum, changedData.field, dataKey, cloudPkVals);
     if (ret != E_OK) {
         return ret;
     }
@@ -382,21 +382,21 @@ static bool shouldSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogI
 }
 
 int CloudSyncer::SaveChangedData(DownloadData &downloadData,
-    int dataIndex, LogInfo &localLogInfo, LogInfo &cloudLogInfo, ChangedData &changedData)
+    int dataIndex, DataInfoWithLog &localInfo, LogInfo &cloudLogInfo, ChangedData &changedData)
 {
     switch (downloadData.opType[dataIndex]) {
         case OpType::INSERT:
             return SaveChangedtData(
-                downloadData.data[dataIndex], changedData, localLogInfo.dataKey, ChangeType::OP_INSERT);
+                downloadData.data[dataIndex], changedData, localInfo, ChangeType::OP_INSERT);
         case OpType::UPDATE:
-            if (shouldSaveData(localLogInfo, cloudLogInfo)) {
+            if (shouldSaveData(localInfo.logInfo, cloudLogInfo)) {
                 return SaveChangedtData(
-                    downloadData.data[dataIndex], changedData, localLogInfo.dataKey, ChangeType::OP_UPDATE);
+                    downloadData.data[dataIndex], changedData, localInfo, ChangeType::OP_UPDATE);
             }
             break;
         case OpType::DELETE:
             return SaveChangedtData(
-                downloadData.data[dataIndex], changedData, localLogInfo.dataKey, ChangeType::OP_DELETE);
+                downloadData.data[dataIndex], changedData, localInfo, ChangeType::OP_DELETE);
         default:
             break;
     }
@@ -472,7 +472,7 @@ int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData
             InsertDataNoPrimaryKeys.push_back(i);
             continue;
         }
-        ret = SaveChangedData(downloadData, i, dataInfoWithLog.logInfo, cloudLogInfo, changedData);
+        ret = SaveChangedData(downloadData, i, dataInfoWithLog, cloudLogInfo, changedData);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);
             return ret;
