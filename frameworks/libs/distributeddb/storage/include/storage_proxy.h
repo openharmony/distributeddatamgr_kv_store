@@ -61,7 +61,7 @@ public:
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) const;
 
     int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
-        LogInfo &logInfo, VBucket &assetInfo);
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
     

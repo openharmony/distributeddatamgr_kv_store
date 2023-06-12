@@ -15,6 +15,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cloud/cloud_storage_utils.h"
 #include "cloud_store_types.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
@@ -251,9 +252,24 @@ namespace {
             vBucket["age"] = 10.11; // 10.11 is test age
         }
         vBucket[CloudDbConstant::GID_FIELD] = gidStr;
-        LogInfo logInfo;
+        DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
-        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, logInfo, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), expectCode);
+        if (expectCode == E_OK) {
+            if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
+                int64_t val = -1;
+                // id is pk
+                EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket("id", dataInfoWithLog.primaryKeys, val), E_OK);
+                LOGD("ID = %d", val);
+            } else if (pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY) {
+                EXPECT_TRUE(dataInfoWithLog.primaryKeys.find("id") != dataInfoWithLog.primaryKeys.end());
+                std::string name;
+                EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket("name", dataInfoWithLog.primaryKeys, name), E_OK);
+                LOGD("name = %s", name.c_str());
+            } else {
+                EXPECT_EQ(dataInfoWithLog.primaryKeys.size(), 0u);
+            }
+        }
     }
 
     /**

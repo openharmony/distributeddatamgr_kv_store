@@ -35,7 +35,7 @@ public:
     MOCK_METHOD4(GetCloudData, int(const TableSchema &, const Timestamp &, ContinueToken &, CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));
     MOCK_METHOD1(ReleaseCloudDataToken, int(ContinueToken &));
-    MOCK_METHOD4(GetInfoByPrimaryKeyOrGid, int(const std::string &, const VBucket &, LogInfo &, VBucket &));
+    MOCK_METHOD4(GetInfoByPrimaryKeyOrGid, int(const std::string &, const VBucket &, DataInfoWithLog &, VBucket &));
     MOCK_METHOD2(PutCloudSyncData, int(const std::string &, DownloadData &));
     MOCK_METHOD3(TriggerObserverAction, void(const std::string &, ChangedData &&, bool));
     MOCK_METHOD3(FillCloudAsset, int(const std::string &, VBucket &, bool));

@@ -100,7 +100,7 @@ public:
         SQLiteSingleVerRelationalContinueToken &token);
 
     int GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket,
-        LogInfo &logInfo, VBucket &assetInfo);
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
 
@@ -164,8 +164,8 @@ private:
 
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
-    int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields, LogInfo &logInfo,
-        VBucket &assetInfo);
+    int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
+        const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int InsertCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
 

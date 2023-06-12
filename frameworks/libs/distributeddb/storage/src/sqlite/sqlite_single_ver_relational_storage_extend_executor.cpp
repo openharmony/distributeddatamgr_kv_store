@@ -23,7 +23,7 @@ namespace DistributedDB {
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
     std::set<std::string> &pkSet, std::vector<Field> &assetFields, std::string &querySql)
 {
-    if (assetFields.empty()) {
+    if (assetFields.empty() && pkSet.empty()) {
         return GetQueryLogSql(tableName, vBucket, pkSet, querySql);
     }
     std::string cloudGid;
@@ -39,8 +39,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     }
     std::string sql = "select a.data_key, a.device, a.ori_device, a.timestamp, a.wtimestamp, a.flag, a.hash_key,"
         " a.cloud_gid";
-    for (const auto &field: assetFields) {
+    for (const auto &field : assetFields) {
         sql += ", b." + field.colName;
+    }
+    for (const auto &pk : pkSet) {
+        sql += ", b." + pk;
     }
     sql += " from '" + DBCommon::GetLogTableName(tableName) + "' AS a LEFT JOIN '" + tableName + "' AS b ";
     sql += " ON (a.data_key = b.rowid) WHERE ";

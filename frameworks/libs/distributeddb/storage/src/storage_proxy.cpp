@@ -193,7 +193,7 @@ int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncDa
 }
 
 int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
-    LogInfo &logInfo, VBucket &assetInfo)
+    DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -204,7 +204,7 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
         return -E_TRANSACT_STATE;
     }
 
-    return store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, logInfo, assetInfo);
+    return store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
 }
 
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)

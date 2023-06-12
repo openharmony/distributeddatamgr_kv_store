@@ -1601,7 +1601,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema,
-    const VBucket &vBucket, LogInfo &logInfo, VBucket &assetInfo)
+    const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     std::string querySql;
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
@@ -1629,7 +1629,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
                 break;
             }
             alreadyFound = true;
-            errCode = GetInfoByStatement(selectStmt, assetFields, logInfo, assetInfo);
+            std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
+            errCode = GetInfoByStatement(selectStmt, assetFields, pkMap, dataInfoWithLog, assetInfo);
             if (errCode != E_OK) {
                 LOGE("Get info by statement fail, %d", errCode);
                 break;
@@ -1660,10 +1661,11 @@ void SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stm
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *statement,
-    std::vector<Field> &assetFields, LogInfo &logInfo, VBucket &assetInfo)
+    std::vector<Field> &assetFields, const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog,
+    VBucket &assetInfo)
 {
-    GetLogInfoByStatement(statement, logInfo);
-    int index = 8; // 8 is start index of assetInfo
+    GetLogInfoByStatement(statement, dataInfoWithLog.logInfo);
+    int index = 8; // 8 is start index of assetInfo or primary key
     int errCode = E_OK;
     for (const auto &field: assetFields) {
         Type cloudValue;
@@ -1672,6 +1674,23 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *s
             break;
         }
         errCode = PutVBucketByType(assetInfo, field, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    if (errCode != E_OK) {
+        LOGE("set asset field failed, errCode = %d", errCode);
+        return errCode;
+    }
+
+    // fill primary key
+    for (const auto &item : pkMap) {
+        Type cloudValue;
+        errCode = SQLiteRelationalUtils::GetCloudValueByType(statement, item.second.type, index++, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = PutVBucketByType(dataInfoWithLog.primaryKeys, item.second, cloudValue);
         if (errCode != E_OK) {
             break;
         }

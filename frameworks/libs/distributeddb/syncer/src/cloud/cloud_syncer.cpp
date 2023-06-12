@@ -451,10 +451,10 @@ int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData
             LOGE("[CloudSyncer] Invalid download data:%d", ret);
             return ret;
         }
-        LogInfo localLogInfo;
+        DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
         bool isExist = true;
-        ret = storageProxy_->GetInfoByPrimaryKeyOrGid(tableName, downloadData.data[i], localLogInfo, assetInfo);
+        ret = storageProxy_->GetInfoByPrimaryKeyOrGid(tableName, downloadData.data[i], dataInfoWithLog, assetInfo);
         if (ret == -E_NOT_FOUND) {
             isExist = false;
         } else if (ret != E_OK) {
@@ -465,14 +465,14 @@ int CloudSyncer::SaveData(const TableName &tableName, DownloadData &downloadData
         LogInfo cloudLogInfo = GetCloudLogInfo(downloadData.data[i]);
         // Tag datum to get opType and save changed data
         downloadData.opType[i] =
-            currentContext_.strategy->TagSyncDataStatus(isExist, localLogInfo, cloudLogInfo);
+            currentContext_.strategy->TagSyncDataStatus(isExist, dataInfoWithLog.logInfo, cloudLogInfo);
         // For no primary key situation,
         if (downloadData.opType[i] == OpType::INSERT && changedData.field.size() == 1 &&
             changedData.field[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
             InsertDataNoPrimaryKeys.push_back(i);
             continue;
         }
-        ret = SaveChangedData(downloadData, i, localLogInfo, cloudLogInfo, changedData);
+        ret = SaveChangedData(downloadData, i, dataInfoWithLog.logInfo, cloudLogInfo, changedData);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);
             return ret;

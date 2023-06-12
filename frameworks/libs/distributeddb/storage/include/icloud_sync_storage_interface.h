@@ -71,7 +71,7 @@ public:
     virtual int ReleaseCloudDataToken(ContinueToken &continueStmtToken) = 0;
 
     virtual int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
-        LogInfo &logInfo, VBucket &assetInfo) = 0;
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) = 0;
 
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
 

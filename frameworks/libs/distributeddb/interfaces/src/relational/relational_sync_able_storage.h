@@ -151,7 +151,7 @@ public:
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 
     int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
-        LogInfo &logInfo, VBucket &assetInfo) override;
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) override;
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
 

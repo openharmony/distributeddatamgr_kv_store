@@ -1063,7 +1063,7 @@ int RelationalSyncAbleStorage::GetCloudDbSchema(DataBaseSchema &cloudSchema)
 }
 
 int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
-    LogInfo &logInfo, VBucket &assetInfo)
+    DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     if (transactionHandle_ == nullptr) {
         LOGE(" the transaction has not been started");
@@ -1076,7 +1076,7 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
         LOGE("Get cloud schema failed when query log for cloud sync, %d", errCode);
         return errCode;
     }
-    return transactionHandle_->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, logInfo, assetInfo);
+    return transactionHandle_->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
 }
 
 int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)

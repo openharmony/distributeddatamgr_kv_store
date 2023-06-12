@@ -166,7 +166,7 @@ std::vector<VBucket> GetInvalidFieldCloudData(uint64_t cnt, InvalidCloudDataOpt 
     return cloudData;
 }
 
-LogInfo GetLogInfo(uint64_t timestamp, bool isDeleted)
+DataInfoWithLog GetLogInfo(uint64_t timestamp, bool isDeleted)
 {
     LogInfo logInfo;
     logInfo.timestamp = timestamp;
@@ -174,29 +174,31 @@ LogInfo GetLogInfo(uint64_t timestamp, bool isDeleted)
     if (isDeleted) {
         logInfo.flag = 1u;
     }
-    return logInfo;
+    DataInfoWithLog dataInfoWithLog;
+    dataInfoWithLog.logInfo = logInfo;
+    return dataInfoWithLog;
 }
 
 static void Expect2GetInfoByPrimaryKeyOrGidCall()
 {
     EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(0, false); // Gen data with timestamp 0
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(1, false); // Gen data with timestamp 1
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(2, false); // Gen data with timestamp 2
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(3, false); // Gen data with timestamp 3
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(4, false); // Gen data with timestamp 4
             return E_OK;
     });
@@ -576,23 +578,23 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest006, TestSize.Lev
             return QUERY_END;
         });
     EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(0, false); // Gen log info with timestamp 0
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(1, false); // Gen log info with timestamp 1
             return -E_NOT_FOUND;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(2, false); // Gen log info with timestamp 2
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(3, false); // Gen log info with timestamp 3
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(4, false); // Gen log info with timestamp 4
             return E_OK;
         });
@@ -620,43 +622,43 @@ static void ExpectQueryCall()
 static void ExpectGetInfoByPrimaryKeyOrGidCall()
 {
     EXPECT_CALL(*g_iCloud, GetInfoByPrimaryKeyOrGid(_, _, _, _))
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(0, false); // Gen log info with timestamp 0
             return -E_NOT_FOUND;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(1, false); // Gen log info with timestamp 1
             return -E_NOT_FOUND;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(2, false); // Gen log info with timestamp 2
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(3, false); // Gen log info with timestamp 3
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(4, false); // Gen log info with timestamp 4
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(5, false); // Gen log info with timestamp 5
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(6, false); // Gen log info with timestamp 6
             return -E_NOT_FOUND;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(7, false); // Gen log info with timestamp 7
             return -E_NOT_FOUND;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(8, false); // Gen log info with timestamp 8
             return E_OK;
         })
-        .WillOnce([](const std::string &, const VBucket &, LogInfo &info, VBucket &) {
+        .WillOnce([](const std::string &, const VBucket &, DataInfoWithLog &info, VBucket &) {
             info = GetLogInfo(9, false); // Gen log info with timestamp 9
             return E_OK;
         });
