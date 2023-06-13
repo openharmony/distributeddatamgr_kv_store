@@ -1136,3 +1136,25 @@ HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, LocalDataBatchNotCheck
     g_kvNbDelegatePtr = nullptr;
 }
 #endif
+
+/**
+ * @tc.name: RemoveDeviceDataEx001
+ * @tc.desc: Test the remove device data without communicator.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBInterfacesNBDelegateLocalBatchTest, RemoveDeviceDataEx001, TestSize.Level0)
+{
+    const KvStoreNbDelegate::Option option = {true, true};
+    g_mgr.SetKvStoreConfig(g_config);
+    g_mgr.GetKvStore("RemoveDeviceDataEx001", option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData("device"), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->RemoveDeviceData(), OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+}

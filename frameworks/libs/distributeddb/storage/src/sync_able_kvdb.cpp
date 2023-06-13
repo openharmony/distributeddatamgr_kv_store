@@ -419,6 +419,10 @@ int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
 
 bool SyncAbleKvDB::NeedStartSyncer() const
 {
+    if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
+        LOGW("communicator not ready!");
+        return false;
+    }
     // don't start when check callback got not active
     // equivalent to !(!isSyncNeedActive_ && isSyncModuleActiveCheck_)
     return !started_ && (isSyncNeedActive_ || !isSyncModuleActiveCheck_);
