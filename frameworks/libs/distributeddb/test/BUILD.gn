@@ -222,6 +222,7 @@ ohos_source_set("src_file") {
     "../storage/src/sqlite/sqlite_single_ver_natural_store_connection.cpp",
     "../storage/src/sqlite/sqlite_single_ver_relational_continue_token.cpp",
     "../storage/src/sqlite/sqlite_single_ver_relational_storage_executor.cpp",
+    "../storage/src/sqlite/sqlite_single_ver_relational_storage_extend_executor.cpp",
     "../storage/src/sqlite/sqlite_single_ver_result_set.cpp",
     "../storage/src/sqlite/sqlite_single_ver_schema_database_upgrader.cpp",
     "../storage/src/sqlite/sqlite_single_ver_storage_engine.cpp",

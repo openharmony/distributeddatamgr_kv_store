@@ -14,9 +14,9 @@
  */
 
 #include "cloud/cloud_db_types.h"
-#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "runtime_context.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field &field,
@@ -221,6 +221,18 @@ std::set<std::string> CloudStorageUtils::GetCloudPrimaryKey(const TableSchema &t
         }
     }
     return pkSet;
+}
+
+std::vector<Field> CloudStorageUtils::GetCloudAsset(const TableSchema &tableSchema)
+{
+    std::vector<Field> assetFields;
+    for (const auto &item: tableSchema.fields) {
+        if (item.type != TYPE_INDEX<Asset> && item.type != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        assetFields.push_back(item);
+    }
+    return assetFields;
 }
 
 std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema)

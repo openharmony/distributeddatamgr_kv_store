@@ -1559,7 +1559,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
                 return errCode;
             }
             SQLiteRelationalUtils::CalCloudValueLen(cloudValue, totalSize);
-            errCode = PutVBucketByType(data, cid, cloudValue);
+            errCode = PutVBucketByType(data, tableSchema_.fields[cid], cloudValue);
             if (errCode != E_OK) {
                 return errCode;
             }
@@ -1574,9 +1574,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, int cid, Type &cloudValue)
+int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
 {
-    if (tableSchema_.fields[cid].type == TYPE_INDEX<Asset>) {
+    if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
         if (cloudValue.index() == TYPE_INDEX<Bytes>) {
             int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
@@ -1584,8 +1584,8 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
                 return errCode;
             }
         }
-        vBucket.insert_or_assign(tableSchema_.fields[cid].colName, asset);
-    } else if (tableSchema_.fields[cid].type == TYPE_INDEX<Assets>) {
+        vBucket.insert_or_assign(field.colName, asset);
+    } else if (field.type == TYPE_INDEX<Assets>) {
         Assets assets;
         if (cloudValue.index() == TYPE_INDEX<Bytes>) {
             int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
@@ -1593,19 +1593,20 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
                 return errCode;
             }
         }
-        vBucket.insert_or_assign(tableSchema_.fields[cid].colName, assets);
+        vBucket.insert_or_assign(field.colName, assets);
     } else {
-        vBucket.insert_or_assign(tableSchema_.fields[cid].colName, cloudValue);
+        vBucket.insert_or_assign(field.colName, cloudValue);
     }
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByPrimaryKeyOrGid(const TableSchema &tableSchema,
-    const VBucket &vBucket, LogInfo &logInfo)
+int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema,
+    const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
     std::string querySql;
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
-    int errCode = GetQueryLogSql(tableSchema.name, vBucket, pkSet, querySql);
+    std::vector<Field> assetFields = CloudStorageUtils::GetCloudAsset(tableSchema);
+    int errCode = GetQueryInfoSql(tableSchema.name, vBucket, pkSet, assetFields, querySql);
     if (errCode != E_OK) {
         LOGE("Get query log sql fail, %d", errCode);
         return errCode;
@@ -1628,20 +1629,20 @@ int SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByPrimaryKeyOrGid(const 
                 break;
             }
             alreadyFound = true;
-            GetLogInfoByStatement(selectStmt, logInfo);
-            continue;
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            if (alreadyFound) {
-                errCode = E_OK;
-            } else {
-                errCode = -E_NOT_FOUND;
+            std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
+            errCode = GetInfoByStatement(selectStmt, assetFields, pkMap, dataInfoWithLog, assetInfo);
+            if (errCode != E_OK) {
+                LOGE("Get info by statement fail, %d", errCode);
+                break;
             }
+        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            alreadyFound ? errCode = E_OK : errCode = -E_NOT_FOUND;
             break;
         } else {
             LOGE("SQLite step failed when query log for cloud sync:%d", errCode);
             break;
         }
-    } while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW) || errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    } while (errCode == E_OK);
 
     int ret = E_OK;
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
@@ -1657,6 +1658,44 @@ void SQLiteSingleVerRelationalStorageExecutor::GetLogInfoByStatement(sqlite3_stm
     logInfo.flag = static_cast<uint64_t>(sqlite3_column_int(statement, 5)); // 5 is flag
     (void)SQLiteUtils::GetColumnBlobValue(statement, 6, logInfo.hashKey); // 6 is hash_key
     (void)SQLiteUtils::GetColumnTextValue(statement, 7, logInfo.cloudGid); // 7 is cloud_gid
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetInfoByStatement(sqlite3_stmt *statement,
+    std::vector<Field> &assetFields, const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog,
+    VBucket &assetInfo)
+{
+    GetLogInfoByStatement(statement, dataInfoWithLog.logInfo);
+    int index = 8; // 8 is start index of assetInfo or primary key
+    int errCode = E_OK;
+    for (const auto &field: assetFields) {
+        Type cloudValue;
+        errCode = SQLiteRelationalUtils::GetCloudValueByType(statement, field.type, index++, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = PutVBucketByType(assetInfo, field, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    if (errCode != E_OK) {
+        LOGE("set asset field failed, errCode = %d", errCode);
+        return errCode;
+    }
+
+    // fill primary key
+    for (const auto &item : pkMap) {
+        Type cloudValue;
+        errCode = SQLiteRelationalUtils::GetCloudValueByType(statement, item.second.type, index++, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = PutVBucketByType(dataInfoWithLog.primaryKeys, item.second, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+    }
+    return errCode;
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetInsertSqlForCloudSync(const TableSchema &tableSchema)

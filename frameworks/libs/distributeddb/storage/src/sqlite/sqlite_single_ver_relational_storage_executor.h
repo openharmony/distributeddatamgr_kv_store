@@ -99,7 +99,8 @@ public:
     int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
         SQLiteSingleVerRelationalContinueToken &token);
 
-    int GetLogInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket, LogInfo &logInfo);
+    int GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket,
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
 
@@ -141,7 +142,7 @@ private:
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &totalSize,
         const uint32_t &maxSize);
 
-    int PutVBucketByType(VBucket &vBucket, int cid, Type &cloudValue);
+    int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 
     int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData,
         std::map<int, int> &statisticMap);
@@ -156,9 +157,15 @@ private:
     int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
         std::string &querySql);
 
+    int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
+        std::vector<Field> &assetFields, std::string &querySql);
+
     int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
 
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
+
+    int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
+        const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int InsertCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
 

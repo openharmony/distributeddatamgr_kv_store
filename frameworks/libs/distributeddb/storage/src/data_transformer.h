@@ -57,6 +57,12 @@ struct OptTableDataWithLog {
     std::vector<OptRowDataWithLog> dataList;
 };
 
+// use for cloud sync
+struct DataInfoWithLog {
+    LogInfo logInfo;
+    VBucket primaryKeys;
+};
+
 class DataTransformer {
 public:
     static int TransformTableData(const TableDataWithLog &tableDataWithLog,

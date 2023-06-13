@@ -22,7 +22,6 @@
 #include "store_observer.h"
 
 namespace DistributedDB {
-struct TableSchema;
 
 enum class OpType : uint8_t {
     INSERT = 1,
@@ -71,12 +70,15 @@ public:
 
     virtual int ReleaseCloudDataToken(ContinueToken &continueStmtToken) = 0;
 
-    virtual int GetLogInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket, LogInfo &logInfo) = 0;
+    virtual int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
+        DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) = 0;
 
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
 
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
+
+    virtual int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace) = 0;
 };
 }
 
