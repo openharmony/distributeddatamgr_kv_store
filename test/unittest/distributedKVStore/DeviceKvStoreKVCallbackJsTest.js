@@ -606,11 +606,20 @@ describe('DeviceKvStoreCallbackTest', function () {
         console.info('DeviceKvStoreDeleteStringCallbackSucTest');
         try {
             kvStore.put(KEY_TEST_STRING_ELEMENT, VALUE_TEST_STRING_ELEMENT, function (err, data) {
+                if (err) {
+                    expect(null).assertFail();
+                    done();
+                    return;
+                }
                 console.info('DeviceKvStoreDeleteStringCallbackSucTest put success');
-                expect(err == undefined).assertTrue();
                 kvStore.delete(KEY_TEST_STRING_ELEMENT, function (err, data) {
+                    if (err) {
+                        expect(null).assertFail();
+                        done();
+                        return;
+                    }
                     console.info('DeviceKvStoreDeleteStringCallbackSucTest delete success');
-                    expect(err == undefined).assertTrue();
+                    expect(null).assertTrue();
                     done();
                 });
             })
