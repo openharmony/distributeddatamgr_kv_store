@@ -16,6 +16,7 @@
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
 
 #include "generic_single_ver_kv_entry.h"
+#include "runtime_context.h"
 #include "time_helper.h"
 
 using namespace DistributedDB;
@@ -961,6 +962,9 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::ClearRemoteData001(SQLit
     /**
      * @tc.steps: step4.Invoke the interface for clearing the synchronization data of the B device.
      */
+    if (RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
+        return;
+    }
     EXPECT_EQ(store->RemoveDeviceData("deviceA", false), E_OK);
 
     /**

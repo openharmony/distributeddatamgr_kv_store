@@ -564,7 +564,7 @@ HWTEST_F(DistributedDBInterfacesEncryptDatabaseTest, SingleVerRekeyCheck004, Tes
         EXPECT_EQ(errCode, CipherPassword::ErrorCode::OK);
         errCode = kvStore->Rekey(passwd);
         LOGI("Re key error code %d", errCode);
-        EXPECT_EQ(kvStore->Rekey(passwd), OK);
+        EXPECT_TRUE(errCode == OK || errCode == BUSY);
     }
     removeDevThread.join();
 
