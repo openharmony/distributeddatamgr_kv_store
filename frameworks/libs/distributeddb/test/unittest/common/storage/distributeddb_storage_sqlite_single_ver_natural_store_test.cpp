@@ -1090,7 +1090,11 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, EraseDeviceWaterMa
 {
     auto store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(store, nullptr);
-    EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_INVALID_DB);
+    if (RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
+        EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_INVALID_DB);
+    } else {
+        EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_NOT_INIT);
+    }
     RefObject::KillAndDecObjRef(store);
 }
 

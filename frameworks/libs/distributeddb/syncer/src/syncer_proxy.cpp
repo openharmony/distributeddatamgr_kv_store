@@ -106,7 +106,7 @@ void SyncerProxy::EnableAutoSync(bool enable)
 
 int SyncerProxy::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash)
 {
-    return syncer_->EraseDeviceWaterMark(deviceId, isNeedHash, "");
+    return EraseDeviceWaterMark(deviceId, isNeedHash, "");
 }
 
 int SyncerProxy::EraseDeviceWaterMark(const std::string &deviceId, bool isNeedHash,
