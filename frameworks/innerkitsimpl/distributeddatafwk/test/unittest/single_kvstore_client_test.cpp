@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <vector>
 #include "distributed_kv_data_manager.h"
+#include "file_ex.h"
 #include "types.h"
 
 using namespace testing::ext;
@@ -53,6 +54,7 @@ int SingleKvStoreClientTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size
 
 void SingleKvStoreClientTest::SetUpTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION };
@@ -67,6 +69,7 @@ void SingleKvStoreClientTest::SetUpTestCase(void)
 
 void SingleKvStoreClientTest::TearDownTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     (void)remove("/data/service/el1/public/database/odmf/key");
     (void)remove("/data/service/el1/public/database/odmf/kvdb");
     (void)remove("/data/service/el1/public/database/odmf");

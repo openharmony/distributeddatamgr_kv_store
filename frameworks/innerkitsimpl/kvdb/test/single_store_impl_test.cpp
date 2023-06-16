@@ -19,6 +19,7 @@
 #include "block_data.h"
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "file_ex.h"
 #include "kv_store_nb_delegate.h"
 #include "store_manager.h"
 #include "sys/stat.h"
@@ -69,12 +70,14 @@ public:
 
 void SingleStoreImplTest::SetUpTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void SingleStoreImplTest::TearDownTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
 
