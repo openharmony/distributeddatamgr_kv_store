@@ -277,7 +277,6 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
      * @tc.expected: step3. return ok.
      */
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     sql = "update " + tableName + " set name = 'lisi';";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 
@@ -369,7 +368,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
      * @tc.steps:step3. delete data.
      * @tc.expected: step3. return ok.
      */
-    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     sql = "delete from " + tableName + " where name = 'zhangsan';";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
