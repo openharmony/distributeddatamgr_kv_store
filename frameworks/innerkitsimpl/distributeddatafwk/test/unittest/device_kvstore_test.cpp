@@ -20,6 +20,7 @@
 #include <vector>
 #include "dev_manager.h"
 #include "distributed_kv_data_manager.h"
+#include "file_ex.h"
 #include "types.h"
 
 using namespace testing::ext;
@@ -58,6 +59,7 @@ Options DeviceKvStoreTest::options_;
 
 void DeviceKvStoreTest::SetUpTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 0);
     DistributedKvDataManager manager;
     options_.area = EL1;
     options_.baseDir = std::string("/data/service/el1/public/database/odmf");
@@ -72,6 +74,7 @@ void DeviceKvStoreTest::SetUpTestCase(void)
 
 void DeviceKvStoreTest::TearDownTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 1);
     DistributedKvDataManager manager;
     AppId appId = { "odmf" };
     manager.DeleteAllKvStore(appId, options_.baseDir);

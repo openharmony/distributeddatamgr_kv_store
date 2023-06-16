@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "dev_manager.h"
+#include "file_ex.h"
 #include "store_manager.h"
 #include "store_util.h"
 #include "sys/stat.h"
@@ -42,6 +43,7 @@ public:
 
 void BackupManagerTest::SetUpTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 0);
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     mkdir((baseDir + "/key").c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
@@ -49,6 +51,7 @@ void BackupManagerTest::SetUpTestCase(void)
 
 void BackupManagerTest::TearDownTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 1);
     std::string baseDir = "/data/service/el1/public/database/BackupManagerTest";
     StoreManager::GetInstance().Delete({ "BackupManagerTest" }, { "SingleKVStore" }, baseDir);
 
