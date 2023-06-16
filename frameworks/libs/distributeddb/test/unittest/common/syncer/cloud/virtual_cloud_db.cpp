@@ -161,7 +161,7 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
             return OK;
         }
     }
-    return data.empty() ? QUERY_END : OK;
+    return (data.empty() || data.size() < static_cast<size_t>(queryLimit_)) ? QUERY_END : OK;
 }
 
 DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<VBucket> &&record,

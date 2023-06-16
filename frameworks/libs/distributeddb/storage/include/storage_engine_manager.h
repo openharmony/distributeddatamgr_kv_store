@@ -48,8 +48,6 @@ private:
 
     void LockStatusNotifier(bool isAccessControlled);
 
-    void RemoveEngineFromCache(const std::string &identifier);
-
     StorageEngine *CreateStorageEngine(const KvDBProperties &property, int &errCode);
 
     StorageEngine *FindStorageEngine(const std::string &identifier);

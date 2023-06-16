@@ -51,7 +51,8 @@ public:
 
     int Rollback();
 
-    int GetUploadCount(const std::string &tableName, const LocalWaterMark &timestamp, int64_t &count);
+    int GetUploadCount(const std::string &tableName, const LocalWaterMark &timestamp, const bool isCloudForcePush,
+        int64_t &count);
 
     int FillCloudGid(const CloudSyncData &data);
 
@@ -64,12 +65,15 @@ public:
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
+
+    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList, std::vector<Asset> &assets);
     
     int CheckSchema(const TableName &tableName) const;
 
     int CheckSchema(std::vector<std::string> &tables);
 
-    int GetPrimaryColNames(const TableName &tableName, std::vector<std::string> &colNames);
+    int GetPrimaryColNamesWithAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
+        std::vector<Field> &assetFields);
 
     int NotifyChangedData(const std::string deviceName, ChangedData &&changedData);
 

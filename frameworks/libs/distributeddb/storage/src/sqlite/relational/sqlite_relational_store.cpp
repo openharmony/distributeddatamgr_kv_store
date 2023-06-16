@@ -88,6 +88,11 @@ void SQLiteRelationalStore::ReleaseResources()
         sqliteStorageEngine_->ClearEnginePasswd();
         sqliteStorageEngine_ = nullptr;
     }
+    if (cloudSyncer_ != nullptr) {
+        cloudSyncer_->Close();
+        RefObject::KillAndDecObjRef(cloudSyncer_);
+        cloudSyncer_ = nullptr;
+    }
     RefObject::DecObjRef(storageEngine_);
 }
 
@@ -367,8 +372,11 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
 
     // Sync Close
     syncAbleEngine_->Close();
-    cloudSyncer_->Close();
-    RefObject::KillAndDecObjRef(cloudSyncer_);
+    if (cloudSyncer_ != nullptr) {
+        cloudSyncer_->Close();
+        RefObject::KillAndDecObjRef(cloudSyncer_);
+        cloudSyncer_ = nullptr;
+    }
 
     if (sqliteStorageEngine_ != nullptr) {
         sqliteStorageEngine_ = nullptr;
@@ -431,6 +439,37 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
         LOGD("Notify schema changed.");
         storageEngine_->NotifySchemaChanged();
     }
+    return errCode;
+}
+
+int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
+{
+    auto tableMode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
+        RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
+    if (tableMode == DistributedTableMode::COLLABORATION) {
+        LOGE("Not support remove device data in collaboration mode.");
+        return -E_NOT_SUPPORT;
+    }
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
+        return -E_INVALID_DB;
+    }
+    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables();
+    std::vector<std::string> cloudTableNameList;
+    for (auto tableInfo: tables) {
+        if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION) {
+            cloudTableNameList.push_back(tableInfo.first);
+        }
+    }
+    if (cloudTableNameList.empty()) {
+        LOGI("[RelationalStore] device doesn't has cloud table, clean cloud data finished.");
+        return E_OK;
+    }
+    int errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] failed to clean cloud data, %d.", errCode);
+    }
+
     return errCode;
 }
 
@@ -862,6 +901,15 @@ int SQLiteRelationalStore::SetCloudDbSchema(const DataBaseSchema &schema)
         return -E_INVALID_DB;
     }
     return storageEngine_->SetCloudDbSchema(schema);
+}
+
+int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore][SetIAssetLoader] cloudSyncer was not initialized");
+        return -E_INVALID_DB;
+    }
+    return cloudSyncer_->SetIAssetLoader(loader);
 }
 
 int SQLiteRelationalStore::ChkSchema(const TableName &tableName)

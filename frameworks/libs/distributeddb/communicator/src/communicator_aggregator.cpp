@@ -143,7 +143,7 @@ ICommunicator *CommunicatorAggregator::AllocCommunicator(uint64_t commLabel, int
 ICommunicator *CommunicatorAggregator::AllocCommunicator(const std::vector<uint8_t> &commLabel, int &outErrorNo)
 {
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    LOGI("[CommAggr][Alloc] Label=%.6s.", VEC_TO_STR(commLabel));
+    LOGI("[CommAggr][Alloc] Label=%.3s.", VEC_TO_STR(commLabel));
     if (commLabel.size() != COMM_LABEL_LENGTH) {
         outErrorNo = -E_INVALID_ARGS;
         return nullptr;
@@ -170,7 +170,7 @@ void CommunicatorAggregator::ReleaseCommunicator(ICommunicator *inCommunicator)
     }
     Communicator *commPtr = static_cast<Communicator *>(inCommunicator);
     LabelType commLabel = commPtr->GetCommunicatorLabel();
-    LOGI("[CommAggr][Release] Label=%.6s.", VEC_TO_STR(commLabel));
+    LOGI("[CommAggr][Release] Label=%.3s.", VEC_TO_STR(commLabel));
 
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     if (commMap_.count(commLabel) == 0) {
@@ -241,13 +241,12 @@ int CommunicatorAggregator::GetLocalIdentity(std::string &outTarget) const
 void CommunicatorAggregator::ActivateCommunicator(const LabelType &commLabel)
 {
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
-    LOGI("[CommAggr][Activate] Label=%.6s.", VEC_TO_STR(commLabel));
+    LOGI("[CommAggr][Activate] Label=%.3s.", VEC_TO_STR(commLabel));
     if (commMap_.count(commLabel) == 0) {
         LOGW("[CommAggr][Activate] Communicator of this label not allocated.");
         return;
     }
     if (commMap_.at(commLabel).second) {
-        LOGW("[CommAggr][Activate] Communicator of this label had been activated.");
         return;
     }
     commMap_.at(commLabel).second = true; // Mark this communicator as activated
@@ -294,9 +293,6 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
     if (inBuff == nullptr) {
         return -E_INVALID_ARGS;
     }
-    LOGI("[CommAggr][Create] Enter, thread=%s, target=%s{private}, type=%d, nonBlock=%d, timeout=%u, prio=%d.",
-        GetThreadId().c_str(), dstTarget.c_str(), static_cast<int>(inType), inConfig.nonBlock, inConfig.timeout,
-        static_cast<int>(inConfig.prio));
 
     if (!ReGenerateLocalSourceIdIfNeed()) {
         delete inBuff;
@@ -311,8 +307,11 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         LOGE("[CommAggr][Create] Set phyHeader fail, thread=%s, errCode=%d", GetThreadId().c_str(), errCode);
         return errCode;
     }
-
-    SendTask task{inBuff, dstTarget, onEnd};
+    {
+        std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
+        sendRecord_[info.frameId] = {};
+    }
+    SendTask task{inBuff, dstTarget, onEnd, info.frameId};
     if (inConfig.nonBlock) {
         errCode = scheduler_.AddSendTaskIntoSchedule(task, inConfig.prio);
     } else {
@@ -323,7 +322,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         return errCode;
     }
     TriggerSendData();
-    LOGI("[CommAggr][Create] Exit ok, thread=%s, frameId=%u", GetThreadId().c_str(), info.frameId);
+    LOGI("[CommAggr][Create] Exit ok, dev=%.3s, frameId=%u", dstTarget.c_str(), info.frameId);
     return E_OK;
 }
 
@@ -358,16 +357,27 @@ void CommunicatorAggregator::SendDataRoutine()
     }
 }
 
-void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask,
+void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, uint32_t mtu,
     const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket)
 {
     bool taskNeedFinalize = true;
     int errCode = E_OK;
-    for (auto &entry : eachPacket) {
+    ResetFrameRecordIfNeed(inTask.frameId, mtu);
+    uint32_t startIndex;
+    {
+        std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
+        startIndex = sendRecord_[inTask.frameId].sendIndex;
+    }
+    for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()); ++index) {
+        auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
             ", totalLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
         ProtocolProto::DisplayPacketInformation(entry.first + entry.second.first, entry.second.second);
         errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second);
+        {
+            std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
+            sendRecord_[inTask.frameId].sendIndex = index;
+        }
         if (errCode == -E_WAIT_RETRY) {
             LOGE("[CommAggr][SendPackets] SendBytes temporally fail.");
             scheduler_.DelayTaskByTarget(inTask.dstTarget);
@@ -602,7 +612,8 @@ int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget
         if (!commLinker_->IsRemoteTargetOnline(srcTarget)) {
             LOGW("[CommAggr][CommReceive] Receive LabelExchange from offline target=%s{private}.", srcTarget.c_str());
             for (const auto &entry : changedLabels) {
-                LOGW("[CommAggr][CommReceive] REMEMBER: label=%s, inOnline=%d.", VEC_TO_STR(entry.first), entry.second);
+                LOGW("[CommAggr][CommReceive] REMEMBER: label=%.3s, inOnline=%d.", VEC_TO_STR(entry.first),
+                    entry.second);
             }
             return E_OK;
         }
@@ -611,7 +622,7 @@ int CommunicatorAggregator::OnCommLayerFrameReceive(const std::string &srcTarget
         for (auto &entry : changedLabels) {
             // Ignore nonactivated communicator
             if (commMap_.count(entry.first) != 0 && commMap_.at(entry.first).second) {
-                LOGI("[CommAggr][CommReceive] label=%s, srcTarget=%s{private}, isOnline=%d.",
+                LOGI("[CommAggr][CommReceive] label=%.3s, srcTarget=%s{private}, isOnline=%d.",
                     VEC_TO_STR(entry.first), srcTarget.c_str(), entry.second);
                 commMap_.at(entry.first).first->OnConnectChange(srcTarget, entry.second);
             }
@@ -668,7 +679,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
             return E_OK;
         }
     }
-    LOGI("[CommAggr][AppReceive] Communicator of %s not found or nonactivated.", VEC_TO_STR(toLabel));
+    LOGI("[CommAggr][AppReceive] Communicator of %.3s not found or nonactivated.", VEC_TO_STR(toLabel));
     int errCode = -E_NOT_FOUND;
     {
         std::lock_guard<std::mutex> onCommLackLockGuard(onCommLackMutex_);
@@ -683,7 +694,7 @@ int CommunicatorAggregator::OnAppLayerFrameReceive(const std::string &srcTarget,
     std::lock_guard<std::mutex> commMapLockGuard(commMapMutex_);
     int errCodeAgain = TryDeliverAppLayerFrameToCommunicatorNoMutex(srcTarget, inFrameBuffer, toLabel);
     if (errCodeAgain == E_OK) { // Attention: Here is equal to E_OK.
-        LOGI("[CommAggr][AppReceive] Communicator of %s found after try again(rare case).", VEC_TO_STR(toLabel));
+        LOGI("[CommAggr][AppReceive] Communicator of %.3s found after try again(rare case).", VEC_TO_STR(toLabel));
         return E_OK;
     }
     // Here, communicator is still not found, retain or discard according to the result of onCommLackHandle_
@@ -879,8 +890,8 @@ void CommunicatorAggregator::SendOnceData()
     }
     // <vector, extendHeadSize>
     std::vector<std::pair<std::vector<uint8_t>, uint32_t>> piecePackets;
-    errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer,
-        adapterHandle_->GetMtuSize(taskToSend.dstTarget), piecePackets);
+    uint32_t mtu = adapterHandle_->GetMtuSize(taskToSend.dstTarget);
+    errCode = ProtocolProto::SplitFrameIntoPacketsIfNeed(taskToSend.buffer, mtu, piecePackets);
     if (errCode != E_OK) {
         LOGE("[CommAggr] Split frame fail, errCode=%d.", errCode);
         TaskFinalizer(taskToSend, errCode);
@@ -904,7 +915,7 @@ void CommunicatorAggregator::SendOnceData()
         }
     }
 
-    SendPacketsAndDisposeTask(taskToSend, eachPacket);
+    SendPacketsAndDisposeTask(taskToSend, mtu, eachPacket);
 }
 
 void CommunicatorAggregator::TriggerSendData()
@@ -942,6 +953,15 @@ void CommunicatorAggregator::TriggerSendData()
     if (errCode != E_OK) {
         LOGW("[CommAggr] Trigger send data failed %d", errCode);
         RefObject::DecObjRef(this);
+    }
+}
+
+void CommunicatorAggregator::ResetFrameRecordIfNeed(uint32_t frameId, uint32_t mtu)
+{
+    std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
+    if (sendRecord_[frameId].splitMtu == 0u || sendRecord_[frameId].splitMtu != mtu) {
+        sendRecord_[frameId].splitMtu = mtu;
+        sendRecord_[frameId].sendIndex = 0u;
     }
 }
 

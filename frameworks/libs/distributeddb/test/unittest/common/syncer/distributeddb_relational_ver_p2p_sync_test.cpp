@@ -770,7 +770,6 @@ namespace {
             }
         }
     }
-}
 
 class DistributedDBRelationalVerP2PSyncTest : public testing::Test {
 public:
@@ -1291,6 +1290,64 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync003, TestSize.Leve
 
     OpenStore();
     std::this_thread::sleep_for(std::chrono::minutes(1));
+}
+
+
+/**
+* @tc.name: AutoLaunchSync 004
+* @tc.desc: Test invalid db type for autoLaunch.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync004, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. open rdb store, create distribute table and insert data
+     */
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+
+    /**
+     * @tc.steps: step2. set auto launch callBack
+     */
+    int currentStatus = 0;
+    const AutoLaunchNotifier notifier = [&currentStatus](const std::string &userId,
+        const std::string &appId, const std::string &storeId, AutoLaunchStatus status) {
+        printf("SET STATUS = %d\n", static_cast<int>(status));
+        currentStatus = static_cast<int>(status);
+    };
+    const AutoLaunchRequestCallback callback = [&notifier](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_id != identifier) {
+            return false;
+        }
+        param.path    = g_dbDir;
+        param.appId   = APP_ID;
+        param.userId  = USER_ID;
+        param.storeId = STORE_ID_1;
+        param.notifier = notifier;
+#ifndef OMIT_ENCRYPT
+        param.option.isEncryptedDb = true;
+        param.option.cipher = CipherType::DEFAULT;
+        param.option.passwd = g_correctPasswd;
+        param.option.iterateTimes = DEFAULT_ITER;
+#endif
+            return true;
+    };
+    RuntimeConfig::SetAutoLaunchRequestCallback(callback, static_cast<DBType>(3)); // 3 is invalid db type
+
+    /**
+     * @tc.steps: step3. close store ensure communicator has closed
+     */
+    g_mgr.CloseStore(g_rdbDelegatePtr);
+    g_rdbDelegatePtr = nullptr;
+    /**
+     * @tc.steps: step4. RunCommunicatorLackCallback to autolaunch store
+     */
+    LabelType labelType(g_id.begin(), g_id.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(currentStatus, AutoLaunchStatus::INVALID_PARAM);
 }
 
 /**
@@ -2515,6 +2572,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_002, Te
     std::this_thread::sleep_for(std::chrono::minutes(1));
     sqlite3_close(db);
     db = nullptr;
+}
 }
 #endif
 #endif

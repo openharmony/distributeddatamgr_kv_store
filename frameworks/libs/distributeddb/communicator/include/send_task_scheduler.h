@@ -37,6 +37,7 @@ struct SendTask {
     SerialBuffer *buffer = nullptr;
     std::string dstTarget;
     OnSendEnd onEnd;
+    uint32_t frameId = 0u;
 };
 
 struct SendTaskInfo {

@@ -462,7 +462,6 @@ int AbilitySync::AckNotifyRecv(const Message *message, ISyncTaskContext *context
         LOGE("[AbilitySync][AckNotifyRecv] received an errCode %d", errCode);
         return errCode;
     }
-    std::string schema = packet->GetSchema();
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
     context->SetRemoteSoftwareVersion(remoteSoftwareVersion);
     AbilitySyncAckPacket sendPacket;
@@ -514,7 +513,7 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
     }
 }
 
-void AbilitySync::HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context) const
+void AbilitySync::HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context)
 {
     int32_t remoteSecLabel = packet->GetSecLabel();
     int32_t remoteSecFlag = packet->GetSecFlag();
@@ -527,7 +526,7 @@ void AbilitySync::HandleVersionV3RequestParam(const AbilitySyncRequestPacket *pa
 }
 
 void AbilitySync::HandleVersionV3AckSecOptionParam(const AbilitySyncAckPacket *packet,
-    ISyncTaskContext *context) const
+    ISyncTaskContext *context)
 {
     int32_t remoteSecLabel = packet->GetSecLabel();
     int32_t remoteSecFlag = packet->GetSecFlag();
@@ -758,7 +757,6 @@ int AbilitySync::RequestPacketDeSerialization(const uint8_t *buffer, uint32_t le
 
 ERROR_OUT:
     delete packet;
-    packet = nullptr;
     return errCode;
 }
 
@@ -879,7 +877,6 @@ int AbilitySync::AckPacketDeSerialization(const uint8_t *buffer, uint32_t length
 
 ERROR_OUT:
     delete packet;
-    packet = nullptr;
     return errCode;
 }
 
@@ -933,7 +930,6 @@ int AbilitySync::SetAbilityRequestBodyInfo(AbilitySyncRequestPacket &packet, uin
 
 int AbilitySync::SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackCode, bool isAckNotify) const
 {
-    int errCode = E_OK;
     ackPacket.SetProtocolVersion(ABILITY_SYNC_VERSION_V1);
     ackPacket.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
     if (!isAckNotify) {
@@ -942,7 +938,7 @@ int AbilitySync::SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackC
         ackPacket.SetSecLabel(option.securityLabel);
         ackPacket.SetSecFlag(option.securityFlag);
         uint64_t dbCreateTime = 0;
-        errCode =
+        int errCode =
             (static_cast<SyncGenericInterface *>(storageInterface_))->GetDatabaseCreateTimestamp(dbCreateTime);
         if (errCode != E_OK) {
             LOGE("[AbilitySync][SyncStart] GetDatabaseCreateTimestamp failed, err %d", errCode);
@@ -961,19 +957,19 @@ int AbilitySync::SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackC
     return E_OK;
 }
 
-void AbilitySync::SetAbilityAckSchemaInfo(AbilitySyncAckPacket &ackPacket, const ISchema &schemaObj) const
+void AbilitySync::SetAbilityAckSchemaInfo(AbilitySyncAckPacket &ackPacket, const ISchema &schemaObj)
 {
     ackPacket.SetSchema(schemaObj.ToSchemaString());
     ackPacket.SetSchemaType(static_cast<uint32_t>(schemaObj.GetSchemaType()));
 }
 
-void AbilitySync::SetAbilityAckSyncOpinionInfo(AbilitySyncAckPacket &ackPacket, SyncOpinion localOpinion) const
+void AbilitySync::SetAbilityAckSyncOpinionInfo(AbilitySyncAckPacket &ackPacket, SyncOpinion localOpinion)
 {
     ackPacket.SetPermitSync(localOpinion.permitSync);
     ackPacket.SetRequirePeerConvert(localOpinion.requirePeerConvert);
 }
 
-int AbilitySync::GetDbAbilityInfo(DbAbility &dbAbility) const
+int AbilitySync::GetDbAbilityInfo(DbAbility &dbAbility)
 {
     int errCode = E_OK;
     for (const auto &item : SyncConfig::ABILITYBITS) {

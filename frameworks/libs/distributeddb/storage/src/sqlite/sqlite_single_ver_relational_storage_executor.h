@@ -81,7 +81,7 @@ public:
 
     int CheckQueryObjectLegal(const TableInfo &table, QueryObject &query, const std::string &schemaVersion);
 
-    int GetMaxTimestamp(const std::vector<std::string> &tableNames, Timestamp &maxTimestamp) const;
+    int GetMaxTimestamp(const std::vector<std::string> &tablesName, Timestamp &maxTimestamp) const;
 
     int ExecuteQueryBySqlStmt(const std::string &sql, const std::vector<std::string> &bindArgs, int packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data);
@@ -92,7 +92,8 @@ public:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, int64_t &count);
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+        int64_t &count);
 
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult);
 
@@ -104,12 +105,36 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
 
+    int FillCloudAsset(const TableSchema &tableSchema, VBucket &vBucket, bool isFullReplace);
+    int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
+        const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
+
 private:
-    int GetDataItemForSync(sqlite3_stmt *stmt, DataItem &dataItem, bool isGettingDeletedData) const;
+    int DoCleanLogs(const std::vector<std::string> &tableNameList);
+
+    int DoCleanLogAndData(const std::vector<std::string> &tableNameList,
+        const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
+
+    int CleanCloudDataOnLogTable(const std::string &logTableName);
+
+    int CleanCloudDataAndLogOnUserTable(const std::string &tableName, const std::string &logTableName);
+
+    int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys);
+
+    int GetCloudAssets(const std::string &tableName, const std::vector<AssetField> assetFields,
+        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+
+    int GetCloudAssetOnTable(const std::string &tableName,
+        const AssetField &assetField, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+
+    int GetCloudAssetsOnTable(const std::string &tableName,
+        const AssetField &assetField, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+
+    int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 
     int GetSyncDataPre(const DataItem &dataItem, sqlite3_stmt *queryStmt, DataItem &itemGet);
 
-    int CheckDataConflictDefeated(const DataItem &dataItem, sqlite3_stmt *queryStmt,  bool &isDefeated);
+    int CheckDataConflictDefeated(const DataItem &item, sqlite3_stmt *queryStmt,  bool &isDefeated);
 
     int SaveSyncDataItem(RelationalSyncDataInserter &inserter, SaveSyncDataStmt &saveStmt, DataItem &item);
 
@@ -124,7 +149,7 @@ private:
 
     int AlterAuxTableForUpgrade(const TableInfo &oldTableInfo, const TableInfo &newTableInfo);
 
-    int DeleteSyncLog(const DataItem &dataItem, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt);
+    int DeleteSyncLog(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmLogStmt);
     int ProcessMissQueryData(const DataItem &item, RelationalSyncDataInserter &inserter, sqlite3_stmt *&rmDataStmt,
         sqlite3_stmt *&rmLogStmt);
     int GetMissQueryData(sqlite3_stmt *fullStmt, DataItem &item);
@@ -160,6 +185,11 @@ private:
     int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
         std::vector<Field> &assetFields, std::string &querySql);
 
+    int GetQueryLogRowid(const std::string &tableName, const VBucket &vBucket, int64_t &rowId);
+
+    int GetFillAssetStatement(const std::string &tableName, const VBucket &vBucket, const std::vector<Field> &fields,
+    bool isFullReplace, sqlite3_stmt *&statement);
+
     int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
 
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
@@ -168,6 +198,8 @@ private:
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
     int InsertCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
+
+    int InsertLogRecord(const TableSchema &tableSchema, VBucket &vBucket);
 
     int BindOneField(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *updateStmt);
 
@@ -201,7 +233,7 @@ private:
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
 
-    int UpdateCloudGid(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+    int UpdateCloudGidOrFlag(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
@@ -209,8 +241,8 @@ private:
 
     DistributedTableMode mode_;
 
-    std::map<int32_t, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
-    std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
+    std::map<int, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
+    std::map<int, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
 };
 } // namespace DistributedDB
 #endif

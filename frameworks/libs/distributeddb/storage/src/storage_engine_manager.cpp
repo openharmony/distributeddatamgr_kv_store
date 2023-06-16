@@ -190,14 +190,6 @@ void StorageEngineManager::LockStatusNotifier(bool isAccessControlled)
     }
 }
 
-void StorageEngineManager::RemoveEngineFromCache(const std::string &identifier)
-{
-    StorageEngineManager *manager = GetInstance();
-    if (manager != nullptr) {
-        manager->EraseStorageEngine(identifier);
-    }
-}
-
 StorageEngine *StorageEngineManager::CreateStorageEngine(const KvDBProperties &property, int &errCode)
 {
     int databaseType = GetDatabaseType(property);

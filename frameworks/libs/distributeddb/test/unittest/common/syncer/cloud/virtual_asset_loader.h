@@ -13,21 +13,20 @@
  * limitations under the License.
  */
 
-#ifndef DIFFERENTIAL_STRATEGY_H
-#define DIFFERENTIAL_STRATEGY_H
-#include "cloud_sync_strategy.h"
+#ifndef VIRTUAL_ASSETLOADER_H
+#define VIRTUAL_ASSETLOADER_H
+#include "iAssetLoader.h"
 
 namespace DistributedDB {
-class CloudMergeStrategy : public CloudSyncStrategy {
+class VirtualAssetLoader : public IAssetLoader {
 public:
-    CloudMergeStrategy() = default;
-    ~CloudMergeStrategy() override = default;
+    VirtualAssetLoader() = default;
+    ~VirtualAssetLoader() override = default;
 
-    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo) override;
+    DBStatus Download(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets) override;
 
-    bool JudgeUpdateCursor() override;
-
-    bool JudgeUpload() override;
+    DBStatus RemoveLocalAssets(const std::vector<Asset> &assets) override;
 };
 }
-#endif // DIFFERENTIAL_STRATEGY_H
+#endif // VIRTUAL_ASSETLOADER_H

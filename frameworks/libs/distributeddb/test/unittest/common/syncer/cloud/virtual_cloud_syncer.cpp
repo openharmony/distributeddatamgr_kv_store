@@ -52,4 +52,20 @@ void VirtualCloudSyncer::SetDownloadFunc(const std::function<int()> &function)
 {
     downloadFunc_ = function;
 }
+
+void VirtualCloudSyncer::Notify(bool notifyIfError)
+{
+    TaskId currentTaskId;
+    {
+        std::lock_guard<std::mutex> autoLock(contextLock_);
+        currentTaskId = currentContext_.currentTaskId;
+    }
+    CloudTaskInfo taskInfo;
+    {
+        std::lock_guard<std::mutex> autoLock(queueLock_);
+        taskInfo = cloudTaskInfos_[currentTaskId];
+    }
+    std::lock_guard<std::mutex> autoLock(contextLock_);
+    currentContext_.notifier->NotifyProcess(taskInfo, {}, notifyIfError);
+}
 }

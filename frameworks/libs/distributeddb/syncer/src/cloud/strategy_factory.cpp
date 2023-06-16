@@ -13,14 +13,23 @@
  * limitations under the License.
  */
 
-#include "strategy_factory.h"
+#include "cloud/cloud_force_pull_strategy.h"
+#include "cloud/cloud_force_push_strategy.h"
 #include "cloud/cloud_merge_strategy.h"
+#include "strategy_factory.h"
+
 namespace DistributedDB {
 std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode mode)
 {
     switch (mode) {
         case SyncMode::SYNC_MODE_CLOUD_MERGE:
             return std::make_shared<CloudMergeStrategy>();
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+        case SyncMode::SYNC_MODE_CLOUD_FORCE_PULL:
+            return std::make_shared<CloudForcePullStrategy>();
+        case SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH:
+            return std::make_shared<CloudForcePushStrategy>();
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
         default:
             LOGW("[StrategyFactory] Not support mode %d", static_cast<int>(mode));
             return std::make_shared<CloudSyncStrategy>();

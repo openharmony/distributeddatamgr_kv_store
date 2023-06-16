@@ -56,7 +56,9 @@ namespace {
         "CREATE INDEX key_index ON sync_data (key, flag);";
 
     const std::string NO_PRIMARI_KEY_SQL = "CREATE TABLE IF NOT EXISTS t1 (a INT, b INT, c INT);";
-}
+
+    const std::string ASSET_AFFINITY_SQL = "CREATE TABLE IF NOT EXISTS t1 (a ASSET PRIMARY KEY, b ASSETS," \
+        "c asset, d assets, e aSSet, f AssEtS, g passet, h asset0, j assets1, k assetsq, m ass2et, n asusets);";
 
 class DistributedDBRelationalSchemaAnalysisTest : public testing::Test {
 public:
@@ -175,5 +177,30 @@ HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable004, TestSize.L
     table = AnalysisTable("t6_autoincrement", "create table t6_autoincrement(a integer, b integer primary key);");
     EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
     EXPECT_EQ(table.GetAutoIncrement(), false);
+}
+
+/**
+ * @tc.name: AnalysisTable005
+ * @tc.desc: Analysis with table with asset or assets affinity
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBRelationalSchemaAnalysisTest, AnalysisTable005, TestSize.Level1)
+{
+    TableInfo table = AnalysisTable("t1", ASSET_AFFINITY_SQL);
+    EXPECT_EQ(table.GetPrimaryKey().size(), 1u);
+    std::vector<FieldInfo> fieldInfos = table.GetFieldInfos();
+    EXPECT_EQ(fieldInfos.size(), 12u); // 12 is column count
+    int index = 1;
+    for (const auto &field : fieldInfos) {
+        if (index < 7) { // 7 is field index
+            EXPECT_EQ(field.GetStorageType(), StorageType::STORAGE_TYPE_BLOB); // asset and assets affinity blob
+        } else {
+            EXPECT_EQ(field.GetStorageType(), StorageType::STORAGE_TYPE_NULL); // asset and assets affinity blob
+        }
+        index++;
+    }
+}
 }
 #endif // RELATIONAL_STORE

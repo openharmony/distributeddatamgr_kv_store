@@ -34,6 +34,8 @@ public:
 
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
 
+    DBStatus DoClean(ClearMode mode);
+
     DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) override;
 
     DBStatus RemoveDeviceData(const std::string &device, const std::string &tableName) override;
@@ -58,6 +60,8 @@ public:
     DBStatus RegisterObserver(StoreObserver *observer) override;
 
     DBStatus UnRegisterObserver() override;
+
+    DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

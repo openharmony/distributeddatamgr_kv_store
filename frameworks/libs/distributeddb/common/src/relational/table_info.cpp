@@ -21,6 +21,9 @@
 #include "log_print.h"
 
 namespace DistributedDB {
+constexpr const char *ASSET = "asset";
+constexpr const char *ASSETS = "assets";
+
 const std::string &FieldInfo::GetFieldName() const
 {
     return fieldName_;
@@ -49,7 +52,7 @@ inline uint32_t AffinityPatternHex(const std::string &ss)
 static uint32_t affinityTable[] = {
     AffinityPatternHex("char"), AffinityPatternHex("clob"), AffinityPatternHex("text"),
     AffinityPatternHex("blob"), AffinityPatternHex("real"), AffinityPatternHex("floa"),
-    AffinityPatternHex("doub"), AffinityPatternHex("int")
+    AffinityPatternHex("doub"), AffinityPatternHex("int"),
 };
 
 enum AffinityPattern : uint32_t {
@@ -62,6 +65,11 @@ enum AffinityPattern : uint32_t {
     AFFINITY_DOUB,
     AFFINITY_INT,
 };
+}
+
+bool IsAssetType(const std::string &dataType)
+{
+    return (strcasecmp(dataType.c_str(), ASSET) == 0 || strcasecmp(dataType.c_str(), ASSETS) == 0);
 }
 
 static StorageType AffinityType(const std::string &dataType)
@@ -96,7 +104,11 @@ void FieldInfo::SetDataType(const std::string &dataType)
 {
     dataType_ = dataType;
     std::transform(dataType_.begin(), dataType_.end(), dataType_.begin(), ::tolower);
-    storageType_ = AffinityType(dataType_);
+    if (IsAssetType(dataType_)) {
+        storageType_ = StorageType::STORAGE_TYPE_BLOB; // use for cloud sync
+    } else {
+        storageType_ = AffinityType(dataType_);
+    }
 }
 
 bool FieldInfo::IsNotNull() const
@@ -179,11 +191,6 @@ int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
         return (isLite && defaultValue_ == "NULL") || defaultValue_ == inField.GetDefaultValue();
     }
     return hasDefaultValue_ == inField.HasDefaultValue();
-}
-
-bool FieldInfo::Empty() const
-{
-    return fieldName_.empty();
 }
 
 const std::string &TableInfo::GetTableName() const

@@ -153,7 +153,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
     PrepareData(tableName, false);
 
     /**
-     * @tc.steps:step2. insert data into sync_data_tmp.
+     * @tc.steps:step2. insert data into sync_data.
      * @tc.expected: step2. return ok.
      */
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
@@ -194,6 +194,66 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
+/**
+ * @tc.name: InsertTriggerTest002
+ * @tc.desc: Test insert trigger in sqlite when use "insert or replace"
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest002, TestSize.Level1)
+{
+    /**
+    * @tc.steps:step1. prepare data.
+    * @tc.expected: step1. return ok.
+    */
+    const std::string tableName = "sync_data";
+    PrepareData(tableName, false);
+
+    /**
+     * @tc.steps:step2. insert data into sync_data.
+     * @tc.expected: step2. return ok.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    std::string sql = "insert into " + tableName + " VALUES(2, 1, 'zhangsan1');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+
+    // update cloud_gid in log table
+    std::string gid = "test_gid";
+    sql = "update " + DBCommon::GetLogTableName(tableName) + " set cloud_gid = '" + gid + "'";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    // use insert or replace to update data
+    sql = "insert or replace into " + tableName + " VALUES(3, 1, 'zhangsan1');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+
+    /**
+     * @tc.steps:step3. select data from log table.
+     * @tc.expected: step3. return ok.
+     */
+    sql = "select data_key, device, ori_device, flag, cloud_gid from " + DBCommon::GetLogTableName(tableName);
+    int resultCount = 0;
+    int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&resultCount, gid] (sqlite3_stmt *stmt) {
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 3); // 3 is row id
+        std::string device = "";
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
+        EXPECT_EQ(device, "");
+        std::string oriDevice = "";
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
+        EXPECT_EQ(oriDevice, "");
+
+        EXPECT_EQ(sqlite3_column_int(stmt, 3), 2); // 3 is column index flag == 2
+        std::string gidStr;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 4, gidStr), E_OK); // 4 is column index
+        EXPECT_EQ(gid, gidStr);
+        resultCount++;
+        return OK;
+    });
+    EXPECT_EQ(errCode, SQLITE_OK);
+    EXPECT_EQ(resultCount, 1);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
 void UpdateTriggerTest(bool primaryKeyIsRowId)
 {
     /**
@@ -216,6 +276,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
      * @tc.steps:step3. update data.
      * @tc.expected: step3. return ok.
      */
+    std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_TIME));
     sql = "update " + tableName + " set name = 'lisi';";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
@@ -296,7 +357,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
     PrepareData(tableName, true);
 
     /**
-     * @tc.steps:step2. insert data into sync_data_tmp.
+     * @tc.steps:step2. insert data into sync_data.
      * @tc.expected: step2. return ok.
      */
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
@@ -327,10 +388,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
         EXPECT_EQ(sqlite3_column_int64(stmt, 0), -1);
         EXPECT_EQ(sqlite3_column_int(stmt, 5), 3); // 5 is column index, flag == 3
 
-        std::string device = "";
+        std::string device = "de";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
-        std::string oriDevice = "";
+        std::string oriDevice = "de";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 2, oriDevice), E_OK); // 2 is column index
         EXPECT_EQ(oriDevice, "");
 

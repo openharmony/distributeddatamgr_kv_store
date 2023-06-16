@@ -22,6 +22,7 @@
 #include "cloud/cloud_store_types.h"
 #include "cloud/icloud_db.h"
 #include "cloud/icloud_data_translate.h"
+#include "cloud/iAssetLoader.h"
 #include "query.h"
 #include "store_types.h"
 #include "store_observer.h"
@@ -75,6 +76,8 @@ public:
     DB_API virtual DBStatus RegisterObserver(StoreObserver *observer) = 0;
 
     DB_API virtual DBStatus UnRegisterObserver() = 0;
+
+    DB_API virtual DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

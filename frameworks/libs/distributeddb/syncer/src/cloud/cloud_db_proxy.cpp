@@ -31,6 +31,12 @@ int CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
     return E_OK;
 }
 
+void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    std::unique_lock<std::shared_mutex> writeLock(assetLoaderMutex_);
+    iAssetLoader_ = loader;
+}
+
 int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
     std::vector<VBucket> &extend, Info &uploadInfo)
 {
@@ -174,6 +180,27 @@ bool CloudDBProxy::IsNotExistCloudDB() const
 {
     std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
     return iCloudDb_ == nullptr;
+}
+
+int CloudDBProxy::Download(const std::string &tableName, const std::string &gid, const Type &prefix,
+    std::map<std::string, Assets> &assets)
+{
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("Asset loader has not been set %d", -E_INVALID_DB);
+        return -E_INVALID_DB;
+    }
+    return iAssetLoader_->Download(tableName, gid, prefix, assets);
+}
+
+int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
+{
+    std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
+    if (iAssetLoader_ == nullptr) {
+        LOGE("Asset loader has not been set %d", -E_INVALID_DB);
+        return -E_INVALID_DB;
+    }
+    return iAssetLoader_->RemoveLocalAssets(assets) == OK? E_OK: -E_CLOUD_ERROR;
 }
 
 int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context,

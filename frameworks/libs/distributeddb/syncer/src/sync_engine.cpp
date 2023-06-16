@@ -280,7 +280,7 @@ int SyncEngine::InitComunicator(const ISyncInterface *syncInterface)
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
     if (isSyncDualTupleMode) {
         std::vector<uint8_t> dualTuplelabel = syncInterface->GetDualTupleIdentifier();
-        LOGI("[SyncEngine] dual tuple mode, original identifier=%.6s, target identifier=%.6s", VEC_TO_STR(label),
+        LOGI("[SyncEngine] dual tuple mode, original identifier=%.3s, target identifier=%.3s", VEC_TO_STR(label),
             VEC_TO_STR(dualTuplelabel));
         communicator_ = communicatorAggregator->AllocCommunicator(dualTuplelabel, errCode);
     } else {
@@ -768,7 +768,7 @@ int SyncEngine::SetEqualIdentifier(const std::string &identifier, const std::vec
     for (const auto &dev : targets) {
         targetDevices += DBCommon::StringMasking(dev) + ",";
     }
-    LOGI("[SyncEngine] set equal identifier=%s, original=%s, targetDevices=%s",
+    LOGI("[SyncEngine] set equal identifier=%.3s, original=%.3s, targetDevices=%s",
         DBCommon::TransferStringToHex(identifier).c_str(), label_.c_str(),
         targetDevices.substr(0, (targetDevices.size() > 0 ? targetDevices.size() - 1 : 0)).c_str());
     {

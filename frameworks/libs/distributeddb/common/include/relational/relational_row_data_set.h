@@ -28,7 +28,6 @@ public:
     RelationalRowDataSet(const RelationalRowDataSet &) = delete;
     RelationalRowDataSet &operator=(const RelationalRowDataSet &) = delete;
 
-    RelationalRowDataSet(RelationalRowDataSet &&) noexcept;
     RelationalRowDataSet &operator=(RelationalRowDataSet &&) noexcept;
 
     int GetSize() const;

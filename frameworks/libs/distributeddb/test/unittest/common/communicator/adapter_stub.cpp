@@ -80,6 +80,17 @@ int AdapterStub::SendBytes(const std::string &dstTarget, const uint8_t *bytes, u
     LOGI("[UT][Stub][Send] Send length=%" PRIu32 " to dstTarget=%s begin.", length, dstTarget.c_str());
     ApplySendBlock();
 
+    {
+        std::lock_guard<std::mutex> autoLock(sendBytesMutex_);
+        if (onSendBytes_) {
+            int errCode = onSendBytes_();
+            if (errCode != E_OK) {
+                LOGI("[UT][Stub][Send] failed for %s errCode %d.", dstTarget.c_str(), errCode);
+                return errCode;
+            }
+        }
+    }
+
     if (QuerySendRetry(dstTarget)) {
         LOGI("[UT][Stub][Send] Retry for %s true.", dstTarget.c_str());
         return -E_WAIT_RETRY;
@@ -351,6 +362,12 @@ bool AdapterStub::QuerySendPartialLoss()
 bool AdapterStub::QuerySendTotalLoss()
 {
     return isTotalLossSimulated_;
+}
+
+void AdapterStub::ForkSendBytes(const DistributedDB::OnSendBytes &onSendBytes)
+{
+    std::lock_guard<std::mutex> autoLock(sendBytesMutex_);
+    onSendBytes_ = onSendBytes;
 }
 
 namespace {

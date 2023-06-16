@@ -18,8 +18,8 @@
 
 namespace DistributedDB {
 SQLiteSingleVerRelationalContinueToken::SQLiteSingleVerRelationalContinueToken(
-    const SyncTimeRange &timeRange, const QueryObject &queryObject)
-    : isGettingDeletedData_(false), queryObj_(queryObject), tableName_(queryObj_.GetTableName()), timeRange_(timeRange)
+    const SyncTimeRange &timeRange, const QueryObject &object)
+    : isGettingDeletedData_(false), queryObj_(object), tableName_(queryObj_.GetTableName()), timeRange_(timeRange)
 {}
 
 bool SQLiteSingleVerRelationalContinueToken::CheckValid() const
@@ -173,7 +173,8 @@ void SQLiteSingleVerRelationalContinueToken::SetCloudTableSchema(const TableSche
     tableSchema_ = schema;
 }
 
-int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, sqlite3_stmt *&queryStmt, bool &isFirstTime)
+int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, const bool &isCloudForcePush,
+    sqlite3_stmt *&queryStmt, bool &isFirstTime)
 {
     if (queryStmt_ != nullptr) {
         queryStmt = queryStmt_;
@@ -185,7 +186,8 @@ int SQLiteSingleVerRelationalContinueToken::GetCloudStatement(sqlite3 *db, sqlit
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = helper.GetRelationalCloudQueryStatement(db, timeRange_.beginTime, tableSchema_.fields, queryStmt_);
+    errCode = helper.GetRelationalCloudQueryStatement(db, timeRange_.beginTime, tableSchema_.fields,
+        isCloudForcePush, queryStmt_);
     if (errCode == E_OK) {
         queryStmt = queryStmt_;
     }

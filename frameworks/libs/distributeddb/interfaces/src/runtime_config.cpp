@@ -139,7 +139,12 @@ void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::Translat
 
 void RuntimeConfig::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBType type)
 {
-    DBTypeInner innerType = (type == DBType::DB_KV ? DBTypeInner::DB_KV : DBTypeInner::DB_RELATION);
+    DBTypeInner innerType = DBTypeInner::DB_INVALID;
+    if (type == DBType::DB_KV) {
+        innerType = DBTypeInner::DB_KV;
+    } else if (type == DBType::DB_RELATION) {
+        innerType = DBTypeInner::DB_RELATION;
+    }
     RuntimeContext::GetInstance()->SetAutoLaunchRequestCallback(callback, innerType);
 }
 

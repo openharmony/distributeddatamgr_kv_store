@@ -143,6 +143,41 @@ ERROR:
     return -E_CLOUD_ERROR;
 }
 
+int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt)
+{
+    int errCode;
+    Bytes val;
+    if (field.type == TYPE_INDEX<Asset>) {
+        Asset asset;
+        errCode = GetValueFromVBucket(field.colName, vBucket, asset);
+        if (!(IsFieldValid(field, errCode))) {
+            goto ERROR;
+        }
+        UpdateAssetByFlag(asset);
+        RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+    } else {
+        Assets assets;
+        errCode = GetValueFromVBucket(field.colName, vBucket, assets);
+        if (!(IsFieldValid(field, errCode))) {
+            goto ERROR;
+        }
+        UpdateAssetsByFlag(assets);
+        RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+    }
+    if (errCode == -E_NOT_FOUND) {
+        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
+    } else {
+        errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
+    }
+    if (errCode != E_OK) {
+        LOGE("Bind blob to asset failed, %d", errCode);
+    }
+    return errCode;
+ERROR:
+    LOGE("get Asset from vbucket failed, %d", errCode);
+    return -E_CLOUD_ERROR;
+}
+
 int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
 {
     int64_t val = 0;
@@ -255,5 +290,67 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
         }
     }
     return pkMap;
+}
+
+void CloudStorageUtils::UpdateAssetByFlag(Asset &asset)
+{
+    if (static_cast<AssetOpType>(asset.flag) == AssetOpType::INSERT &&
+        static_cast<AssetStatus>(asset.status) != AssetStatus::NORMAL) {
+        Asset insAsset;
+        insAsset.name = asset.name;
+        insAsset.status = asset.status;
+        insAsset.timestamp = asset.timestamp;
+        asset = insAsset;
+    }
+}
+
+void CloudStorageUtils::UpdateAssetsByFlag(Assets &assets)
+{
+    for (auto asset = assets.begin(); asset != assets.end();) {
+        UpdateAssetByFlag(*asset);
+        if (static_cast<AssetOpType>(asset->flag) == AssetOpType::DELETE
+            && static_cast<AssetStatus>(asset->status) == AssetStatus::NORMAL) {
+            asset = assets.erase(asset);
+        } else {
+            asset++;
+        }
+    }
+}
+
+int CloudStorageUtils::CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+    std::vector<Field> &fields)
+{
+    for (const auto &field: tableSchema.fields) {
+        auto it = vBucket.find(field.colName);
+        if (it == vBucket.end()) {
+            continue;
+        }
+        if (it->second.index() != TYPE_INDEX<Asset> && it->second.index() != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        if (field.type == TYPE_INDEX<Asset>) {
+            auto assets = std::get_if<Assets>(&it->second);
+            if (assets != nullptr && assets->size() == 1) {
+                Asset asset = (*assets)[0];
+                vBucket[field.colName] = asset;
+            }
+        }
+        fields.push_back(field);
+    }
+    if (fields.size() == 0) {
+        LOGE("No assets need to be filled.");
+        return -E_CLOUD_ERROR;
+    }
+    return E_OK;
+}
+
+bool CloudStorageUtils::IsContainsPrimaryKey(const TableSchema &tableSchema)
+{
+    for (const auto &field : tableSchema.fields) {
+        if (field.primary) {
+            return true;
+        }
+    }
+    return false;
 }
 }

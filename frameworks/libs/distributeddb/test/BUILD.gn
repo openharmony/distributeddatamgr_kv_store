@@ -64,6 +64,7 @@ config("module_private_config") {
     "OMIT_FLATBUFFER",
     "OMIT_MULTI_VER",
     "RELATIONAL_STORE",
+    "MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA",
     "SQLITE_DISTRIBUTE_RELATIONAL",
     "USE_DFX_ABILITY",
     "TRACE_SQLITE_EXECUTE",
@@ -243,6 +244,8 @@ ohos_source_set("src_file") {
     "../storage/src/upgrader/single_ver_schema_database_upgrader.cpp",
     "../syncer/src/ability_sync.cpp",
     "../syncer/src/cloud/cloud_db_proxy.cpp",
+    "../syncer/src/cloud/cloud_force_pull_strategy.cpp",
+    "../syncer/src/cloud/cloud_force_push_strategy.cpp",
     "../syncer/src/cloud/cloud_merge_strategy.cpp",
     "../syncer/src/cloud/cloud_syncer.cpp",
     "../syncer/src/cloud/strategy_factory.cpp",
@@ -293,6 +296,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
     "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
+    "unittest/common/syncer/cloud/virtual_asset_loader.cpp",
     "unittest/common/syncer/cloud/virtual_cloud_data_translate.cpp",
     "unittest/common/syncer/cloud/virtual_cloud_db.cpp",
     "unittest/common/syncer/cloud/virtual_cloud_syncer.cpp",
@@ -839,6 +843,16 @@ distributeddb_unittest("DistributedDBCloudDBProxyTest") {
       [ "unittest/common/syncer/cloud/distributeddb_cloud_db_proxy_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudAssetCompareTest") {
+  sources = [
+    "unittest/common/syncer/cloud/distributeddb_cloud_asset_compare_test.cpp",
+  ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesRelationalExtTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_ext_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBCloudSaveCloudDataTest") {
   sources = [ "unittest/common/storage/cloud/distributeddb_cloud_save_cloud_data_test.cpp" ]
 }
@@ -851,6 +865,7 @@ group("unittest") {
   deps += [
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
+    ":DistributedDBCloudAssetCompareTest",
     ":DistributedDBCloudDBProxyTest",
     ":DistributedDBCloudInterfacesRelationalExtTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",

@@ -12,17 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef DIFFERENTIAL_STRATEGY_H
-#define DIFFERENTIAL_STRATEGY_H
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+#ifndef CLOUD_COVER_LOCAL_H
+#define CLOUD_COVER_LOCAL_H
 #include "cloud_sync_strategy.h"
 
 namespace DistributedDB {
-class CloudMergeStrategy : public CloudSyncStrategy {
+class CloudForcePullStrategy : public CloudSyncStrategy {
 public:
-    CloudMergeStrategy() = default;
-    ~CloudMergeStrategy() override = default;
-
     OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
@@ -30,4 +27,5 @@ public:
     bool JudgeUpload() override;
 };
 }
-#endif // DIFFERENTIAL_STRATEGY_H
+#endif // CLOUD_COVER_LOCAL_H
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA

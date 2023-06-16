@@ -30,7 +30,7 @@ public:
     MOCK_METHOD1(StartTransaction, int(TransactType));
     MOCK_METHOD0(Commit, int(void));
     MOCK_METHOD0(Rollback, int(void));
-    MOCK_METHOD3(GetUploadCount, int(const std::string &, const Timestamp &, int64_t &));
+    MOCK_METHOD4(GetUploadCount, int(const std::string &, const Timestamp &, const bool, int64_t &));
     MOCK_METHOD1(FillCloudGid, int(const CloudSyncData &));
     MOCK_METHOD4(GetCloudData, int(const TableSchema &, const Timestamp &, ContinueToken &, CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));
@@ -39,6 +39,8 @@ public:
     MOCK_METHOD2(PutCloudSyncData, int(const std::string &, DownloadData &));
     MOCK_METHOD3(TriggerObserverAction, void(const std::string &, ChangedData &&, bool));
     MOCK_METHOD3(FillCloudAsset, int(const std::string &, VBucket &, bool));
+    MOCK_METHOD3(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
+        std::vector<Asset> &assets));
 };
 
 }

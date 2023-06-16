@@ -47,7 +47,7 @@ int Communicator::RegOnConnectCallback(const OnConnectCallback &onConnect, const
     if (onConnect && errCode == E_OK) {
         // Register action and success
         for (auto &entry : onlineTargets_) {
-            LOGI("[Comm][RegConnect] Label=%.6s, online target=%s{private}.", VEC_TO_STR(commLabel_), entry.c_str());
+            LOGI("[Comm][RegConnect] Label=%.3s, online target=%s{private}.", VEC_TO_STR(commLabel_), entry.c_str());
             onConnectHandle_(entry, true);
         }
     }
@@ -119,12 +119,12 @@ int Communicator::SendMessage(const std::string &dstTarget, const Message *inMsg
     SerialBuffer *buffer = ProtocolProto::ToSerialBuffer(inMsg, extendHandle, false, error);
     extendHandle = nullptr;
     if (error != E_OK) {
-        LOGE("[Comm][Send] Serial fail, label=%s, error=%d.", VEC_TO_STR(commLabel_), error);
+        LOGE("[Comm][Send] Serial fail, label=%.3s, error=%d.", VEC_TO_STR(commLabel_), error);
         return error;
     }
     int errCode = ProtocolProto::SetDivergeHeader(buffer, commLabel_);
     if (errCode != E_OK) {
-        LOGE("[Comm][Send] Set header fail, label=%s, errCode=%d.", VEC_TO_STR(commLabel_), errCode);
+        LOGE("[Comm][Send] Set header fail, label=%.3s, errCode=%d.", VEC_TO_STR(commLabel_), errCode);
         delete buffer;
         buffer = nullptr;
         return errCode;
@@ -157,7 +157,7 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
         // for the former case the message will be handled and release by sync module.
         // for the latter case the message is released in TriggerUnknownMessageFeedback.
         if (error != E_OK) {
-            LOGE("[Comm][Receive] ToMessage fail, label=%s, error=%d.", VEC_TO_STR(commLabel_), error);
+            LOGE("[Comm][Receive] ToMessage fail, label=%.3s, error=%d.", VEC_TO_STR(commLabel_), error);
             if (error == -E_VERSION_NOT_SUPPORT) {
                 TriggerVersionNegotiation(srcTarget);
             } else if (error == -E_NOT_REGISTER) {
@@ -165,10 +165,10 @@ void Communicator::OnBufferReceive(const std::string &srcTarget, const SerialBuf
             }
             return;
         }
-        LOGI("[Comm][Receive] label=%s, srcTarget=%s{private}.", VEC_TO_STR(commLabel_), srcTarget.c_str());
+        LOGI("[Comm][Receive] label=%.3s, srcTarget=%s{private}.", VEC_TO_STR(commLabel_), srcTarget.c_str());
         onMessageHandle_(srcTarget, message);
     } else {
-        LOGE("[Comm][Receive] label=%s, src.size=%zu or buf or handle invalid.", VEC_TO_STR(commLabel_),
+        LOGE("[Comm][Receive] label=%.3s, src.size=%zu or buf or handle invalid.", VEC_TO_STR(commLabel_),
             srcTarget.size());
         if (inBuf != nullptr) {
             delete inBuf;
@@ -181,7 +181,7 @@ void Communicator::OnConnectChange(const std::string &target, bool isConnect)
 {
     std::lock_guard<std::mutex> connectHandleLockGuard(connectHandleMutex_);
     if (target.size() == 0) {
-        LOGE("[Comm][Connect] Target size zero, label=%s.", VEC_TO_STR(commLabel_));
+        LOGE("[Comm][Connect] Target size zero, label=%.3s.", VEC_TO_STR(commLabel_));
         return;
     }
     if (isConnect) {
@@ -189,7 +189,8 @@ void Communicator::OnConnectChange(const std::string &target, bool isConnect)
     } else {
         onlineTargets_.erase(target);
     }
-    LOGI("[Comm][Connect] Label=%s, target=%s{private}, Online=%d", VEC_TO_STR(commLabel_), target.c_str(), isConnect);
+    LOGI("[Comm][Connect] Label=%.3s, target=%s{private}, Online=%d", VEC_TO_STR(commLabel_), target.c_str(),
+        isConnect);
     if (onConnectHandle_) {
         onConnectHandle_(target, isConnect);
     } else {

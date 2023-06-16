@@ -1051,11 +1051,6 @@ int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, Auto
         LOGI("[AutoLaunch] autoLaunchRequestCallback is not need open");
         return -E_NOT_FOUND; // not E_OK is ok for communicator
     }
-    // inner error happened
-    if (openType >= DBTypeInner::DB_INVALID) {
-        LOGW("[AutoLaunch] Unknown DB Type, Ignore the open request");
-        return -E_NOT_FOUND; // not E_OK is ok for communicator
-    }
     return E_OK;
 }
 

@@ -209,7 +209,7 @@ static int CreateBufferThenAddIntoScheduler(SendTaskScheduler &scheduler, const 
         eachBuff = nullptr;
         return errCode;
     }
-    SendTask task{eachBuff, dstTarget};
+    SendTask task{eachBuff, dstTarget, nullptr, 0u};
     errCode = scheduler.AddSendTaskIntoSchedule(task, inPrio);
     if (errCode != E_OK) {
         delete eachBuff;
@@ -500,6 +500,66 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment003, TestSize.Level3)
     // CleanUp
     AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
     AdapterStub::DisconnectAdapterStub(g_envDeviceB.adapterHandle, g_envDeviceC.adapterHandle);
+}
+
+/**
+ * @tc.name: Fragment 004
+ * @tc.desc: Test fragmentation in send and receive when rate limit
+ * @tc.type: FUNC
+ * @tc.require: AR000BVDGI AR000CQE0M
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCommunicatorDeepTest, Fragment004, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. connect device A with device B
+     */
+    Message *recvMsgForBB = nullptr;
+    g_commBB->RegOnMessageCallback([&recvMsgForBB](const std::string &srcTarget, Message *inMsg) {
+        recvMsgForBB = inMsg;
+    }, nullptr);
+    AdapterStub::ConnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    std::atomic<int> count = 0;
+    g_envDeviceA.adapterHandle->ForkSendBytes([&count]() {
+        count++;
+        if (count % 3 == 0) { // retry each 3 packet
+            return -E_WAIT_RETRY;
+        }
+        return E_OK;
+    });
+    /**
+     * @tc.steps: step2. device A send message(registered and giant) to device B using communicator AB
+     * @tc.expected: step2. communicator BB received the message
+     */
+    const uint32_t dataLength = 13 * 1024 * 1024; // 13 MB, 1024 is scale
+    Message *sendMsg = BuildRegedGiantMessage(dataLength);
+    ASSERT_NE(sendMsg, nullptr);
+    SendConfig conf = {false, false, 0};
+    int errCode = g_commAB->SendMessage(DEVICE_NAME_B, sendMsg, conf);
+    EXPECT_EQ(errCode, E_OK);
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // Wait 5s to make sure send done
+    ASSERT_NE(recvMsgForBB, nullptr);
+    ASSERT_EQ(recvMsgForBB->GetMessageId(), REGED_GIANT_MSG_ID);
+    /**
+     * @tc.steps: step3. Compare received data with send data
+     * @tc.expected: step3. equal
+     */
+    Message *oriMsgForAB = BuildRegedGiantMessage(dataLength);
+    ASSERT_NE(oriMsgForAB, nullptr);
+    auto *recvObjForBB = recvMsgForBB->GetObject<RegedGiantObject>();
+    ASSERT_NE(recvObjForBB, nullptr);
+    auto *oriObjForAB = oriMsgForAB->GetObject<RegedGiantObject>();
+    ASSERT_NE(oriObjForAB, nullptr);
+    bool isEqual = RegedGiantObject::CheckEqual(*oriObjForAB, *recvObjForBB);
+    EXPECT_EQ(isEqual, true);
+    g_envDeviceA.adapterHandle->ForkSendBytes(nullptr);
+
+    // CleanUp
+    AdapterStub::DisconnectAdapterStub(g_envDeviceA.adapterHandle, g_envDeviceB.adapterHandle);
+    delete oriMsgForAB;
+    oriMsgForAB = nullptr;
+    delete recvMsgForBB;
+    recvMsgForBB = nullptr;
 }
 
 namespace {

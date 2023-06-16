@@ -79,6 +79,7 @@ int SyncTaskContext::AddSyncTarget(ISyncTarget *target)
         return -E_INVALID_ARGS;
     }
     int targetMode = target->GetMode();
+    auto syncId = static_cast<uint32_t>(target->GetSyncId());
     {
         std::lock_guard<std::mutex> lock(targetQueueLock_);
         if (target->GetTaskType() == ISyncTarget::REQUEST) {
@@ -90,7 +91,6 @@ int SyncTaskContext::AddSyncTarget(ISyncTarget *target)
         }
     }
     RefObject::IncObjRef(this);
-    auto syncId = static_cast<uint32_t>(target->GetSyncId());
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, targetMode, syncId]() {
         CancelCurrentSyncRetryIfNeed(targetMode, syncId);
         RefObject::DecObjRef(this);

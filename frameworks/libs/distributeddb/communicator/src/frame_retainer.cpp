@@ -28,7 +28,7 @@ const int RETAIN_SURVAIL_PERIOD_IN_MILLISECOND = 1000; // Period is 1 s
 inline void LogRetainInfo(const std::string &logPrefix, const LabelType &label, const std::string &target,
     uint64_t order, const RetainWork &work)
 {
-    LOGI("%s : Label=%s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", remainTime=%" PRIu32
+    LOGI("%s : Label=%.3s, target=%s{private}, retainOrder=%" PRIu64 ", frameId=%" PRIu32 ", remainTime=%" PRIu32
         ", frameSize=%" PRIu32 ".", logPrefix.c_str(), VEC_TO_STR(label), target.c_str(), ULL(order),
         work.frameId, work.remainTime, work.buffer->GetSize());
 }

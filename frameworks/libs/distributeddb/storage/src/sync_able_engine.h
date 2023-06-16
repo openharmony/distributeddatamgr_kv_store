@@ -34,12 +34,6 @@ public:
     void WakeUpSyncer();
     void Close();
 
-    // Enable auto sync
-    void EnableAutoSync(bool enable);
-
-    int EnableManualSync(void);
-    int DisableManualSync(void);
-
     // Get The current virtual timestamp
     uint64_t GetTimestamp();
 

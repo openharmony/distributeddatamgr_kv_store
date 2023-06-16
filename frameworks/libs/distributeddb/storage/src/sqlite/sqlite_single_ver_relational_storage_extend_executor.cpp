@@ -55,5 +55,115 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     return E_OK;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogRowid(const std::string &tableName,
+    const VBucket &vBucket, int64_t &rowId)
+{
+    std::string cloudGid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    if (errCode != E_OK) {
+        LOGE("Miss gid when fill Asset");
+        return errCode;
+    }
+    std::string sql = "SELECT data_key FROM " + DBCommon::GetLogTableName(tableName) + " where cloud_gid = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get select rowid statement failed, %d", errCode);
+        return errCode;
+    }
+
+    int index = 1;
+    errCode = SQLiteUtils::BindTextToStatement(stmt, index, cloudGid);
+    if (errCode != E_OK) {
+        LOGE("Bind cloud gid to query log rowid statement failed. %d", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        LOGE("Not find rowid from log by cloud gid. %d", errCode);
+        errCode = -E_NOT_FOUND;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        rowId = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+        errCode = E_OK;
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetFillAssetStatement(const std::string &tableName,
+    const VBucket &vBucket, const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement)
+{
+    std::string sql = "UPDATE " + tableName + " SET ";
+    for (const auto &field: fields) {
+        sql += field.colName + " = ?,";
+    }
+    sql.pop_back();
+    sql += " WHERE rowid = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get fill asset statement failed, %d", errCode);
+        return errCode;
+    }
+    for (size_t i = 0; i < fields.size(); ++i) {
+        if (isFullReplace) {
+            errCode = bindCloudFieldFuncMap_[TYPE_INDEX<Bytes>](i+1, vBucket, fields[i], stmt);
+        } else {
+            errCode = BindOneField(i+1, vBucket, fields[i], stmt);
+        }
+        if (errCode != E_OK) {
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            return errCode;
+        }
+    }
+    statement = stmt;
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudAsset(const TableSchema &tableSchema,
+    VBucket &vBucket, bool isFullReplace)
+{
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        LOGE("Fail to set log trigger off, %d", errCode);
+        return errCode;
+    }
+    std::vector<Field> assetsField;
+    errCode = CloudStorageUtils::CheckAssetFromSchema(tableSchema, vBucket, assetsField);
+    if (errCode != E_OK) {
+        goto END;
+    }
+
+    int64_t rowId;
+    errCode = GetQueryLogRowid(tableSchema.name, vBucket, rowId);
+    if (errCode != E_OK) {
+        goto END;
+    }
+    errCode = GetFillAssetStatement(tableSchema.name, vBucket, assetsField, isFullReplace, stmt);
+    if (errCode != E_OK) {
+        goto END;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(stmt, assetsField.size() + 1, rowId);
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        goto END;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("Fill cloud asset failed:%d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+END:
+    errCode = SetLogTriggerStatus(true);
+    if (errCode != E_OK) {
+        LOGE("Fail to set log trigger off, %d", errCode);
+    }
+    return errCode;
+}
 } // namespace DistributedDB
 #endif

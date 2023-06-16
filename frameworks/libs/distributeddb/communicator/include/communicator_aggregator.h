@@ -94,7 +94,7 @@ public:
 private:
     // Working in a dedicated thread
     void SendDataRoutine();
-    void SendPacketsAndDisposeTask(const SendTask &inTask,
+    void SendPacketsAndDisposeTask(const SendTask &inTask, uint32_t mtu,
         const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket);
 
     int RetryUntilTimeout(SendTask &inTask, uint32_t timeout, Priority inPrio);
@@ -141,6 +141,8 @@ private:
 
     void TriggerSendData();
 
+    void ResetFrameRecordIfNeed(uint32_t frameId, uint32_t mtu);
+
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
     static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
@@ -186,6 +188,13 @@ private:
     bool sendTaskStart_ = false;
     mutable std::mutex scheduleSendTaskMutex_;
     std::condition_variable finalizeCv_;
+
+    struct FrameSendRecord {
+        uint32_t splitMtu = 0u;
+        uint32_t sendIndex = 0u;
+    };
+    std::mutex sendRecordMutex_;
+    std::map<uint32_t, FrameSendRecord> sendRecord_;
 };
 } // namespace DistributedDB
 

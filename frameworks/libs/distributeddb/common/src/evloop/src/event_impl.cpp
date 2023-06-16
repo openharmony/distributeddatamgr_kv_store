@@ -357,9 +357,6 @@ int EventImpl::Dispatch()
     if (!IsKilled()) {
         if (revents_) {
             errCode = action_(revents_);
-            if (errCode != E_OK) {
-                LOGI("ev action() returns '%d'.", errCode);
-            }
         }
     }
     return errCode;

@@ -34,7 +34,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localIn
     if ((cloudInfo.flag & 0x1) == 1) {
         type = OpType::DELETE;
     } else {
-        type = OpType::UPDATE;
+        type = IsDelete(localInfo) ? OpType::INSERT : OpType::UPDATE;
     }
     return type;
 }

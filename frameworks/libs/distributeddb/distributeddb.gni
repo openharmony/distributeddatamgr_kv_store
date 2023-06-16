@@ -180,6 +180,8 @@ distributeddb_src = [
   "${distributeddb_path}/storage/src/upgrader/single_ver_database_upgrader.cpp",
   "${distributeddb_path}/storage/src/upgrader/single_ver_schema_database_upgrader.cpp",
   "${distributeddb_path}/syncer/src/ability_sync.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_pull_strategy.cpp",
+  "${distributeddb_path}/syncer/src/cloud/cloud_force_push_strategy.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_merge_strategy.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_db_proxy.cpp",
   "${distributeddb_path}/syncer/src/cloud/cloud_syncer.cpp",

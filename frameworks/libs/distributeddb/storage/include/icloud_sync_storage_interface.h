@@ -28,6 +28,9 @@ enum class OpType : uint8_t {
     UPDATE, // update data, gid and timestamp at same time
     DELETE,
     ONLY_UPDATE_GID,
+    // used in Cloud Force Push strategy, when SET_CLOUD_FORCE_PUSH_FLAG_ONE, upload process won't process this record
+    SET_CLOUD_FORCE_PUSH_FLAG_ONE,
+    SET_CLOUD_FORCE_PUSH_FLAG_ZERO,
     NOT_HANDLE
 };
 
@@ -59,7 +62,8 @@ public:
 
     virtual int Rollback() = 0;
 
-    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, int64_t &count) = 0;
+    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+        int64_t &count) = 0;
 
     virtual int FillCloudGid(const CloudSyncData &data) = 0;
 
@@ -74,6 +78,9 @@ public:
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) = 0;
 
     virtual int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) = 0;
+
+    virtual int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+        std::vector<Asset> &assets) = 0;
 
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;

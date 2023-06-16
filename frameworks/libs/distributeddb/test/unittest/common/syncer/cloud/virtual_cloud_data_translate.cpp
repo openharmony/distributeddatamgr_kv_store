@@ -27,6 +27,8 @@ uint32_t CalculateLens(const Asset &asset)
     len += Parcel::GetStringLen(asset.createTime);
     len += Parcel::GetStringLen(asset.size);
     len += Parcel::GetStringLen(asset.hash);
+    len += Parcel::GetInt64Len();
+    len += Parcel::GetInt64Len();
     return len;
 }
 
@@ -48,6 +50,8 @@ void WriteAsset(Parcel &parcel, const Asset &asset)
     parcel.WriteString(asset.createTime);
     parcel.WriteString(asset.size);
     parcel.WriteString(asset.hash);
+    parcel.WriteUInt32(asset.status);
+    parcel.WriteInt64(asset.timestamp);
 }
 
 void ReadAsset(Parcel &parcel, Asset &asset)
@@ -59,6 +63,8 @@ void ReadAsset(Parcel &parcel, Asset &asset)
     parcel.ReadString(asset.createTime);
     parcel.ReadString(asset.size);
     parcel.ReadString(asset.hash);
+    parcel.ReadUInt32(asset.status);
+    parcel.ReadInt64(asset.timestamp);
 }
 
 std::vector<uint8_t> VirtualCloudDataTranslate::AssetToBlob(const Asset &asset)

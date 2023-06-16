@@ -134,7 +134,8 @@ int StorageProxy::Rollback()
     return errCode;
 }
 
-int StorageProxy::GetUploadCount(const std::string &tableName, const LocalWaterMark &localMark, int64_t &count)
+int StorageProxy::GetUploadCount(const std::string &tableName, const LocalWaterMark &localMark,
+    const bool isCloudForcePush, int64_t &count)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -144,7 +145,7 @@ int StorageProxy::GetUploadCount(const std::string &tableName, const LocalWaterM
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-    return store_->GetUploadCount(tableName, localMark, count);
+    return store_->GetUploadCount(tableName, localMark, isCloudForcePush, count);
 }
 
 int StorageProxy::FillCloudGid(const CloudSyncData &data)
@@ -221,6 +222,20 @@ int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &d
     return store_->PutCloudSyncData(tableName, downloadData);
 }
 
+int StorageProxy::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+    std::vector<Asset> &assets)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (!transactionExeFlag_.load()) {
+        LOGE("the transaction has not been started");
+        return -E_TRANSACT_STATE;
+    }
+    return store_->CleanCloudData(mode, tableNameList, assets);
+}
+
 int StorageProxy::ReleaseContinueToken(ContinueToken &continueStmtToken)
 {
     return store_->ReleaseCloudDataToken(continueStmtToken);
@@ -253,7 +268,8 @@ int StorageProxy::CheckSchema(std::vector<std::string> &tables)
     return E_OK;
 }
 
-int StorageProxy::GetPrimaryColNames(const TableName &tableName, std::vector<std::string> &colNames)
+int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
+    std::vector<Field> &assetFields)
 {
     if (!colNames.empty()) {
         // output parameter should be empty
@@ -274,6 +290,9 @@ int StorageProxy::GetPrimaryColNames(const TableName &tableName, std::vector<std
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
             colNames.push_back(field.colName);
+        }
+        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+            assetFields.push_back(field);
         }
     }
     if (colNames.empty()) {

@@ -48,6 +48,8 @@ public:
 
     int Sync(const ISyncer::SyncParma &syncParam, uint64_t connectionId);
 
+    int CleanCloudData(ClearMode mode);
+
     void ReleaseDBConnection(RelationalStoreConnection *connection);
 
     void WakeUpSyncer() override;
@@ -80,6 +82,8 @@ public:
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
 
     int SetCloudDbSchema(const DataBaseSchema &schema);
+
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int ChkSchema(const TableName &tableName);
 
