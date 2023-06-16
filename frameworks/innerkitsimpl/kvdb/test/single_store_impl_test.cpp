@@ -70,14 +70,14 @@ public:
 
 void SingleStoreImplTest::SetUpTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 0);
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void SingleStoreImplTest::TearDownTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 1);
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     std::string baseDir = "/data/service/el1/public/database/SingleStoreImplTest";
     StoreManager::GetInstance().Delete({ "SingleStoreImplTest" }, { "SingleKVStore" }, baseDir);
 

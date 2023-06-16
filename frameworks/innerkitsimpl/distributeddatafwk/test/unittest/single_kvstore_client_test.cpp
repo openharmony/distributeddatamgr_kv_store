@@ -54,7 +54,7 @@ int SingleKvStoreClientTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size
 
 void SingleKvStoreClientTest::SetUpTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 0);
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     DistributedKvDataManager manager;
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION };
@@ -69,7 +69,7 @@ void SingleKvStoreClientTest::SetUpTestCase(void)
 
 void SingleKvStoreClientTest::TearDownTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", 1);
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     (void)remove("/data/service/el1/public/database/odmf/key");
     (void)remove("/data/service/el1/public/database/odmf/kvdb");
     (void)remove("/data/service/el1/public/database/odmf");
