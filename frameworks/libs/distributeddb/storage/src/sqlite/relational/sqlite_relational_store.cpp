@@ -945,7 +945,15 @@ int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMod
             return errCode;
         }
     }
-    return cloudSyncer_->Sync(devices, mode, tableNames, onProcess, waitTime);
+    std::vector<std::string> syncTable;
+    std::set<std::string> addTable;
+    for (const auto &table: tableNames) {
+        if (addTable.find(table) == addTable.end()) {
+            addTable.insert(table);
+            syncTable.push_back(table);
+        }
+    }
+    return cloudSyncer_->Sync(devices, mode, syncTable, onProcess, waitTime);
 }
 }
 #endif
