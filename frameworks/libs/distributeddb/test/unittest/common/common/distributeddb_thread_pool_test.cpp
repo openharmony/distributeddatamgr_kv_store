@@ -389,4 +389,48 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer005, TestSize.Level1)
         EXPECT_EQ(finalizeCountArray[i], 1);
     }
 }
+
+/**
+ * @tc.name: SetTimer006
+ * @tc.desc: Test repeat remove timer when time action finished
+ * @tc.type: FUNC
+ * @tc.require: AR000I0KU9
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBThreadPoolTest, SetTimer006, TestSize.Level1)
+{
+    ASSERT_NE(threadPoolPtr_, nullptr);
+    std::atomic<TaskId> currentId = 1;
+    std::shared_ptr<TimerWatcher> watcher = std::make_shared<TimerWatcher>();
+    ASSERT_NO_FATAL_FAILURE(MockSchedule(threadPoolPtr_, watcher, currentId));
+    int removeCount = 0;
+    MockRemove(threadPoolPtr_, false, removeCount);
+
+    std::mutex dataMutex;
+    std::set<TimerId> removeSet;
+    std::set<TimerId> checkSet;
+    std::set<TimerId> timerSet;
+    for (int i = 0; i < 10; ++i) { // 10 timer
+        TimerId id;
+        int errCode = RuntimeContext::GetInstance()->SetTimer(1, [&dataMutex, &removeSet, &checkSet](TimerId timerId) {
+            LOGI("Timer %" PRIu64 " running", timerId);
+            std::lock_guard<std::mutex> autoLock(dataMutex);
+            if (removeSet.find(timerId) != removeSet.end()) {
+                EXPECT_TRUE(checkSet.find(timerId) == checkSet.end());
+                checkSet.insert(timerId);
+                return -E_END_TIMER;
+            }
+            return E_OK;
+        }, nullptr, id);
+        EXPECT_EQ(errCode, E_OK);
+        timerSet.insert(id);
+    }
+    for (const auto &timer: timerSet) {
+        RuntimeContext::GetInstance()->RemoveTimer(timer);
+        LOGI("Timer %" PRIu64 " remove", timer);
+        std::lock_guard<std::mutex> autoLock(dataMutex);
+        removeSet.insert(timer);
+    }
+    watcher->SafeExit();
+}
 }

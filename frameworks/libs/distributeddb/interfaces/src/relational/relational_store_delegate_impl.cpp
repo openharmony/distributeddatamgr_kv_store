@@ -43,6 +43,25 @@ RelationalStoreDelegateImpl::~RelationalStoreDelegateImpl()
 
 DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &device, ClearMode mode)
 {
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+    if (mode >= BUTT) {
+        LOGE("Invalid mode for Remove device data, %d.", INVALID_ARGS);
+        return INVALID_ARGS;
+    }
+    if (mode == FLAG_ONLY || mode == FLAG_AND_DATA) {
+        if (conn_ == nullptr) {
+            LOGE("Invalid connection for operation!");
+            return DB_ERROR;
+        }
+
+        int errCode = conn_->DoClean(mode);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
+            return TransferDBErrno(errCode);
+        }
+        return OK;
+    }
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
     return RemoveDeviceData(device, "");
 }
 
@@ -248,6 +267,17 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
             observer->OnChange(data);
         }
     });
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    if (conn_->SetIAssetLoader(loader) != E_OK) {
+        return DB_ERROR;
+    }
     return OK;
 }
 

@@ -76,20 +76,6 @@ namespace {
         "type='table' AND tbl_name=?);";
 
     bool g_configLog = false;
-
-    // statement must not be null
-    std::string GetColString(sqlite3_stmt *statement, int nCol)
-    {
-        std::string rowString;
-        for (int i = 0; i < nCol; i++) {
-            if (sqlite3_column_name(statement, i) != nullptr) {
-                rowString += sqlite3_column_name(statement, i);
-            }
-            int blankFill = (i + 1) * 16 - rowString.size(); // each column width 16
-            rowString.append(static_cast<std::string::size_type>((blankFill > 0) ? blankFill : 0), ' ');
-        }
-        return rowString;
-    }
 }
 
 namespace TriggerMode {
@@ -497,20 +483,22 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
     }
 
     int keySize = sqlite3_column_bytes(statement, index);
-    if (keySize < 0 || keySize > MAX_BLOB_READ_SIZE) {
-        LOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
-        value.resize(MAX_BLOB_READ_SIZE + 1); // Reset value size to invalid
-        return E_OK; // Return OK for continue get data, but value is invalid
+    if (keySize < 0) {
+        LOGW("[SQLiteUtils][Column blob] size less than zero:%d", keySize);
+        value.resize(0);
+        return E_OK;
     }
-
     auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(statement, index));
     if (keySize == 0 || keyRead == nullptr) {
         value.resize(0);
     } else {
+        if (keySize > MAX_BLOB_READ_SIZE) {
+            LOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
+            keySize = MAX_BLOB_READ_SIZE + 1;
+        }
         value.resize(keySize);
         value.assign(keyRead, keyRead + keySize);
     }
-
     return E_OK;
 }
 
@@ -521,19 +509,21 @@ int SQLiteUtils::GetColumnTextValue(sqlite3_stmt *statement, int index, std::str
     }
 
     int valSize = sqlite3_column_bytes(statement, index);
-    if (valSize < 0 || valSize > MAX_TEXT_READ_SIZE) {
-        LOGW("[SQLiteUtils][Column text] size over limit:%d", valSize);
-        value.resize(MAX_TEXT_READ_SIZE + 1); // Reset value size to invalid
-        return E_OK; // Return OK for continue get data, but value is invalid
+    if (valSize < 0) {
+        LOGW("[SQLiteUtils][Column Text] size less than zero:%d", valSize);
+        value = {};
+        return E_OK;
     }
-
     const unsigned char *val = sqlite3_column_text(statement, index);
     if (valSize == 0 || val == nullptr) {
         value = {};
-    } else {
-        value = std::string(reinterpret_cast<const char *>(val));
+        return E_OK;
     }
-
+    value = std::string(reinterpret_cast<const char *>(val));
+    if (valSize > MAX_TEXT_READ_SIZE) {
+        LOGW("[SQLiteUtils][Column text] size over limit:%d", valSize);
+        value.resize(MAX_TEXT_READ_SIZE + 1); // Reset value size to invalid
+    }
     return E_OK;
 }
 
@@ -1204,29 +1194,6 @@ int SQLiteUtils::SaveSchema(sqlite3 *db, const std::string &strSchema)
     }
     errCode = E_OK;
     ResetStatement(statement, true, errCode);
-    return errCode;
-}
-
-int SQLiteUtils::GetSchema(const OpenDbProperties &properties, std::string &strSchema)
-{
-    sqlite3 *db = nullptr;
-    int errCode = OpenDatabase(properties, db);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    int version = 0;
-    errCode = GetVersion(db, version);
-    if (version <= 0 || errCode != E_OK) {
-        // if version does exist, it represents database is error
-        (void)sqlite3_close_v2(db);
-        db = nullptr;
-        return -E_INVALID_VERSION;
-    }
-
-    errCode = GetSchema(db, strSchema);
-    (void)sqlite3_close_v2(db);
-    db = nullptr;
     return errCode;
 }
 
@@ -2022,51 +1989,6 @@ int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, ui
     return E_OK;
 }
 
-int SQLiteUtils::ExplainPlan(sqlite3 *db, const std::string &execSql, bool isQueryPlan)
-{
-    if (db == nullptr) {
-        return -E_INVALID_DB;
-    }
-
-    sqlite3_stmt *statement = nullptr;
-    std::string explainSql = (isQueryPlan ? "explain query plan " : "explain ") + execSql;
-    int errCode = GetStatement(db, explainSql, statement);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-
-    bool isFirst = true;
-    errCode = StepWithRetry(statement); // memory db does not support schema
-    while (errCode == MapSQLiteErrno(SQLITE_ROW)) {
-        int nCol = sqlite3_column_count(statement);
-        nCol = std::min(nCol, 8); // Read 8 column at most
-
-        if (isFirst) {
-            LOGD("#### %s", GetColString(statement, nCol).c_str());
-            isFirst = false;
-        }
-
-        std::string rowString;
-        for (int i = 0; i < nCol; i++) {
-            if (sqlite3_column_text(statement, i) != nullptr) {
-                rowString += reinterpret_cast<const std::string::value_type *>(sqlite3_column_text(statement, i));
-            }
-            int blankFill = (i + 1) * 16 - rowString.size(); // each column width 16
-            rowString.append(static_cast<std::string::size_type>((blankFill > 0) ? blankFill : 0), ' ');
-        }
-        LOGD("#### %s", rowString.c_str());
-        errCode = StepWithRetry(statement);
-    }
-    if (errCode != MapSQLiteErrno(SQLITE_DONE)) {
-        LOGE("[SqlUtil][Explain] StepWithRetry fail, errCode=%d.", errCode);
-        ResetStatement(statement, true, errCode);
-        return errCode;
-    }
-    errCode = E_OK;
-    ResetStatement(statement, true, errCode);
-    return errCode;
-}
-
 int SQLiteUtils::SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
     const std::vector<std::string> &sqls)
 {
@@ -2205,35 +2127,6 @@ int SQLiteUtils::SetPersistWalMode(sqlite3 *db)
         LOGE("Set persist wal mode failed. %d", errCode);
     }
     return SQLiteUtils::MapSQLiteErrno(errCode);
-}
-
-int SQLiteUtils::CheckSchemaChanged(sqlite3_stmt *stmt, const TableInfo &table, int offset)
-{
-    if (stmt == nullptr) {
-        return  -E_INVALID_ARGS;
-    }
-
-    int columnNum = sqlite3_column_count(stmt);
-    if (columnNum - offset != static_cast<int>(table.GetFields().size())) {
-        LOGE("Schema field number does not match.");
-        return -E_DISTRIBUTED_SCHEMA_CHANGED;
-    }
-
-    auto fields = table.GetFields();
-    for (int i = offset; i < columnNum; i++) {
-        const char *name = sqlite3_column_name(stmt, i);
-        std::string colName = (name == nullptr) ? std::string() : name;
-        const char *declType = sqlite3_column_decltype(stmt, i);
-        std::string colType = (declType == nullptr) ? std::string() : declType;
-        transform(colType.begin(), colType.end(), colType.begin(), ::tolower);
-
-        auto it = fields.find(colName);
-        if (it == fields.end() || it->second.GetDataType() != colType) {
-            LOGE("Schema field define does not match.");
-            return -E_DISTRIBUTED_SCHEMA_CHANGED;
-        }
-    }
-    return E_OK;
 }
 
 int64_t SQLiteUtils::GetLastRowId(sqlite3 *db)

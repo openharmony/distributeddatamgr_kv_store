@@ -20,6 +20,7 @@
 #include <mutex>
 #include <shared_mutex>
 #include "cloud/icloud_db.h"
+#include "cloud/iAssetLoader.h"
 
 namespace DistributedDB {
 class CloudDBProxy {
@@ -28,6 +29,8 @@ public:
     ~CloudDBProxy() = default;
 
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
+
+    void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int BatchInsert(const std::string &tableName, std::vector<VBucket> &record,
         std::vector<VBucket> &extend, Info &uploadInfo);
@@ -49,6 +52,11 @@ public:
     int HeartBeat();
 
     bool IsNotExistCloudDB() const;
+
+    int Download(const std::string &tableName, const std::string &gid, const Type &prefix,
+        std::map<std::string, Assets> &assets);
+
+    int RemoveLocalAssets(const std::vector<Asset> &assets);
 
 protected:
     class CloudActionContext {
@@ -122,7 +130,9 @@ protected:
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
     mutable std::shared_mutex cloudMutex_;
+    mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;
+    std::shared_ptr<IAssetLoader> iAssetLoader_;
     std::atomic<int64_t> timeout_;
 
     std::mutex asyncTaskMutex_;

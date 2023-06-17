@@ -143,8 +143,8 @@ int SyncStateMachine::SwitchMachineState(uint8_t event)
     const std::map<uint8_t, EventToState> &table = (*tableIter).switchTable;
     auto eventToStateIter = table.find(currentState_);
     if (eventToStateIter == table.end()) {
-        LOGE("[SyncStateMachine][SwitchState] tableVer:%d, Can't find EventToState with currentSate %u",
-            (*tableIter).version, currentState_);
+        LOGE("[SyncStateMachine][SwitchState] Can't find EventToState with currentSate %u",
+            currentState_);
         SetCurStateErrStatus();
         return E_OK;
     }
@@ -152,14 +152,14 @@ int SyncStateMachine::SwitchMachineState(uint8_t event)
     const EventToState &eventToState = eventToStateIter->second;
     auto stateIter = eventToState.find(event);
     if (stateIter == eventToState.end()) {
-        LOGD("[SyncStateMachine][SwitchState] tableVer:%d, Can't find event %u int currentSate %u ignore",
-            (*tableIter).version, event, currentState_);
+        LOGD("[SyncStateMachine][SwitchState] Can't find event %u int currentSate %u ignore",
+            event, currentState_);
         return -E_NOT_FOUND;
     }
 
     currentState_ = stateIter->second;
-    LOGD("[SyncStateMachine][SwitchState] tableVer:%d, from state %u move to state %u with event %u dev %s{private}",
-        (*tableIter).version, eventToStateIter->first, currentState_, event, syncContext_->GetDeviceId().c_str());
+    LOGD("[SyncStateMachine][SwitchState] from state %u move to state %u with event %u dev %s{private}",
+        eventToStateIter->first, currentState_, event, syncContext_->GetDeviceId().c_str());
     return E_OK;
 }
 

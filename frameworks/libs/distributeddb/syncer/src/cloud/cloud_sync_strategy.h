@@ -20,6 +20,7 @@
 #include "db_errno.h"
 #include "db_types.h"
 #include "icloud_sync_storage_interface.h"
+
 namespace DistributedDB {
 class CloudSyncStrategy {
 public:
@@ -42,6 +43,11 @@ public:
     virtual bool JudgeUpload()
     {
         return false;
+    }
+
+    bool IsDelete(const LogInfo &info)
+    {
+        return (info.flag & 0x1) == 1;
     }
 };
 }

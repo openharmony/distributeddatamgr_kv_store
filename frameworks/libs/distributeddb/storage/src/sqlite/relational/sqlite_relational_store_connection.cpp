@@ -171,6 +171,21 @@ int SQLiteRelationalStoreConnection::RemoveDeviceData()
     return errCode;
 }
 
+int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int errCode = store->CleanCloudData(mode);
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] failed to clean cloud data, %d.", errCode);
+    }
+    return errCode;
+}
+
 int SQLiteRelationalStoreConnection::RemoveDeviceData(const std::string &device)
 {
     return RemoveDeviceData(device, {});
@@ -291,6 +306,21 @@ int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &sche
         LOGE("[RelationalConnection] SetCloudDbSchema failed. %d", ret);
     }
     return ret;
+}
+
+int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+
+    int ret = store->SetIAssetLoader(loader);
+    if (ret != E_OK) {
+        LOGE("[RelationalConnection] Set asset loader failed. %d", ret);
+    }
+    return E_OK;
 }
 
 int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,

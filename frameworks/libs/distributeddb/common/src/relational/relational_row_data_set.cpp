@@ -24,19 +24,6 @@ RelationalRowDataSet::~RelationalRowDataSet()
     RelationalRowData::Release(data_);
 }
 
-RelationalRowDataSet::RelationalRowDataSet(RelationalRowDataSet &&r) noexcept
-{
-    if (&r == this) {
-        return;
-    }
-
-    colNames_ = std::move(r.colNames_);
-    data_ = std::move(r.data_);
-    serialLength_ = r.serialLength_;
-
-    r.serialLength_ = Parcel::GetUInt32Len() + Parcel::GetUInt32Len();
-}
-
 RelationalRowDataSet &RelationalRowDataSet::operator=(RelationalRowDataSet &&r) noexcept
 {
     if (&r == this) {

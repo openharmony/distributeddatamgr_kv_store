@@ -105,9 +105,9 @@ public:
         };
     }
 
-    int CallDoSyncInner(const CloudTaskInfo &taskInfo)
+    int CallDoSyncInner(const CloudTaskInfo &taskInfo, const bool &needUpload)
     {
-        return DoSyncInner(taskInfo);
+        return DoSyncInner(taskInfo, needUpload);
     }
 
     SyncProcessCallback getCallback(TaskId taskId)
@@ -120,10 +120,10 @@ public:
         return currentContext_.currentTaskId;
     }
     
-    int CallDoUpload(TaskId taskId)
+    int CallDoUpload(TaskId taskId, bool lastTable = false)
     {
         storageProxy_->StartTransaction();
-        int ret = CloudSyncer::DoUpload(taskId, false);
+        int ret = CloudSyncer::DoUpload(taskId, lastTable);
         storageProxy_->Commit();
         return ret;
     }
@@ -214,6 +214,24 @@ public:
     {
         auto info = cloudTaskInfos_[currentContext_.currentTaskId];
         currentContext_.notifier->NotifyProcess(info, {});
+    }
+
+    void SetAssetFields(const TableName &tableName, const std::vector<Field> &assetFields)
+    {
+        currentContext_.tableName = tableName;
+        currentContext_.assetFields[currentContext_.tableName] = assetFields;
+    }
+
+    std::map<std::string, Assets> TestTagAssetsInSingleRecord(
+        VBucket &CoveredData, VBucket &BeCoveredData)
+    {
+        return TagAssetsInSingleRecord(CoveredData, BeCoveredData, false);
+    }
+
+    void SetCloudWaterMarks(const TableName &tableName, const CloudWaterMark &mark)
+    {
+        currentContext_.tableName = tableName;
+        currentContext_.cloudWaterMarks[tableName] = mark;
     }
 
     CloudTaskInfo taskInfo_;

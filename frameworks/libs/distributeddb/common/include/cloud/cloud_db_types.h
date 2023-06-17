@@ -31,8 +31,14 @@ struct CloudSyncData {
     CloudSyncBatch insData;
     CloudSyncBatch updData;
     CloudSyncBatch delData;
+    bool isCloudForcePushStrategy = false;
     CloudSyncData() = default;
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
+};
+
+struct AssetField {
+    DistributedDB::Field field;
+    int64_t index = 0u;
 };
 
 template<typename Tp, typename... Types>

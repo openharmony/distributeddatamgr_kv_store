@@ -27,6 +27,7 @@ public:
     static int BindDouble(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindText(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
     static int BindBlob(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
+    static int BindAsset(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *upsertStmt);
 
     static inline bool IsFieldValid(const Field &field, int errCode)
     {
@@ -42,7 +43,12 @@ public:
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+    static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
+    static void UpdateAssetByFlag(Asset &asset);
+    static void UpdateAssetsByFlag(Assets &assets);
+    static int CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+        std::vector<Field> &fields);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

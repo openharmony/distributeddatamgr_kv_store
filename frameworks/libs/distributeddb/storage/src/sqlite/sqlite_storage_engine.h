@@ -64,8 +64,6 @@ protected:
 
     virtual int ReInit();
 
-    bool IsNeedMigrate() const override;
-
     OpenDbProperties option_;
 };
 } // namespace DistributedDB

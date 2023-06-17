@@ -64,8 +64,6 @@ public:
 
     virtual void SetEngineState(EngineState state);
 
-    virtual bool IsNeedMigrate() const;
-
     virtual int ExecuteMigrate();
 
     virtual void SetNotifiedCallback(const std::function<void(int, KvDBCommitNotifyFilterAbleData *)> &callback);

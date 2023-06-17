@@ -236,15 +236,10 @@ void CommunicatorLinker::SuspendByOnceTimer(const std::function<void(void)> &inA
     RuntimeContext *context = RuntimeContext::GetInstance();
     int errCode = context->SetTimer(static_cast<int>(inCountDown), [inAction](TimerId inTimerId)->int{
         // Note: inAction should be captured by value (must not by reference)
-        LOGI("[Linker][Suspend] Timer Due : inTimerId=%" PRIu64 ".", ULL(inTimerId));
         inAction();
         return -E_END_TIMER;
     }, nullptr, thisTimerId);
-    if (errCode == E_OK) {
-        LOGI("[Linker][Suspend] SetTimer Success : thisTimerId=%" PRIu64 ", wait=%u(ms).",
-            ULL(thisTimerId), inCountDown);
-    } else {
-        LOGI("[Linker][Suspend] SetTimer Fail Raise Thread Instead : errCode=%d, wait=%u(ms).", errCode, inCountDown);
+    if (errCode != E_OK) {
         std::thread timerThread([inAction, inCountDown]() {
             // Note: inAction and inCountDown should be captured by value (must not by reference)
             std::this_thread::sleep_for(std::chrono::milliseconds(inCountDown));

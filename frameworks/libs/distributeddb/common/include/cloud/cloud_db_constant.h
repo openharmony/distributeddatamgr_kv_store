@@ -31,6 +31,9 @@ public:
     static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     static constexpr uint32_t MAX_DOWNLOAD_RETRY_TIME = 50;
+    // cloud data timestamp is utc ms precision
+    // used for 100ns to ms when handle cloud data timestamp
+    static constexpr uint32_t TEN_THOUSAND = 10000;
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

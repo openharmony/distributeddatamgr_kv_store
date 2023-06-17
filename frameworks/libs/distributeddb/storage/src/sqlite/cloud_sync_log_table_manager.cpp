@@ -56,7 +56,7 @@ std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
 std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, const std::string &identity)
 {
-    std::string logTblName = DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+    std::string logTblName = GetLogTableName(table);
     std::string insertTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     insertTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_INSERT AFTER INSERT \n";
     insertTrigger += "ON '" + table.GetTableName() + "'\n";
@@ -67,7 +67,10 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)";
     insertTrigger += " VALUES (new.rowid, '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
-    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '');\n";
+    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
+    insertTrigger += logTblName + " where hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    insertTrigger += ") THEN (select cloud_gid from " + logTblName + " where hash_key = ";
+    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END);\n";
     insertTrigger += "END;";
     return insertTrigger;
 }
@@ -75,13 +78,14 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
 std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, const std::string &identity)
 {
     (void)identity;
+    std::string logTblName = GetLogTableName(table);
     std::string updateTrigger = "CREATE TRIGGER IF NOT EXISTS ";
     updateTrigger += "naturalbase_rdb_" + table.GetTableName() + "_ON_UPDATE AFTER UPDATE \n";
     updateTrigger += "ON '" + table.GetTableName() + "'\n";
     updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
-    updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+    updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += " WHERE data_key = OLD.rowid;\n";
     updateTrigger += "END;";
@@ -97,7 +101,7 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     deleteTrigger += "WHERE key = 'log_trigger_switch' AND VALUE = 'true')\n";
     deleteTrigger += "BEGIN\n";
-    deleteTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
+    deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
     deleteTrigger += " WHERE data_key = OLD.rowid;";
     deleteTrigger += "END;";

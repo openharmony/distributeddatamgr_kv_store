@@ -174,12 +174,10 @@ bool SubscribeManager::IsLastRemoteContainSubscribe(const std::string &device, c
 {
     std::shared_lock<std::shared_mutex> lockGuard(remoteSubscribedMapLock_);
     if (remoteSubscribedMap_.find(device) == remoteSubscribedMap_.end()) {
-        LOGI("[SubscribeManager] dev=%s not in remoteSubscribedMap", STR_MASK(device));
         return false;
     }
     auto iter = remoteSubscribedTotalMap_.find(queryId);
     if (iter == remoteSubscribedTotalMap_.end()) {
-        LOGD("[SubscribeManager] queryId=%s not in remoteSubscribedTotalMap", STR_MASK(queryId));
         return false;
     }
     return iter->second.second == 1;

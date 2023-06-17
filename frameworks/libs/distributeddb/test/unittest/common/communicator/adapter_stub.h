@@ -25,6 +25,7 @@
 #include "iadapter.h"
 
 namespace DistributedDB {
+using OnSendBytes = std::function<int (void)>;
 class AdapterStub : public IAdapter {
 public:
     /*
@@ -81,6 +82,7 @@ public:
     void SimulateSendBitErrorInPacketTypeField(bool doFlag, uint8_t inPacketType);
     void SimulateSendBitErrorInPaddingLenField(bool doFlag, uint8_t inPaddingLen);
     void SimulateSendBitErrorInMessageIdField(bool doFlag, uint32_t inMessageId);
+    void ForkSendBytes(const OnSendBytes &onSendBytes);
 private:
     void Connect(AdapterStub *inStub);
     void Disconnect(AdapterStub *inStub);
@@ -130,6 +132,9 @@ private:
     uint8_t packetTypeField_ = 0;
     uint8_t paddingLenField_ = 0;
     uint32_t messageIdField_ = 0;
+
+    std::mutex sendBytesMutex_;
+    OnSendBytes onSendBytes_;
 };
 }
 

@@ -82,7 +82,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
 
@@ -139,7 +139,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
 
@@ -196,7 +196,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
 
@@ -285,6 +285,38 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSiz
     EXPECT_EQ(errCode, -E_DB_CLOSED);
 
     RuntimeContext::GetInstance()->StopTaskPool();
+    storageProxy.reset();
+    delete iCloud;
+    idb = nullptr;
+}
+
+/**
+ * @tc.name: SyncerMgrCheck006
+ * @tc.desc: Test timeout for cloud sync
+ * @tc.type: FUNC
+ * @tc.require: SR000HPUOS
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest,  DISABLED_SyncerMgrCheck006, TestSize.Level1)
+{
+    MockICloudSyncStorageInterface *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    TestCloudSyncer cloudSyncer(storageProxy);
+    std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
+    cloudSyncer.SetMockICloudDB(idb);
+    std::vector<DeviceID> devices = {"cloud"};
+    std::vector<std::string> tables = {"TestTableA", "TestTableB" };
+    cloudSyncer.InitCloudSyncerForSync();
+    SyncProcess res;
+
+    int errCode = cloudSyncer.Sync(devices, SYNC_MODE_CLOUD_FORCE_PULL, tables, [&res](
+        const std::map<std::string, SyncProcess> &process) {
+        res = process.begin()->second;
+    }, 0);
+    EXPECT_EQ(errCode, -E_TIMEOUT);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    EXPECT_EQ(res.process, FINISHED);
+
     storageProxy.reset();
     delete iCloud;
     idb = nullptr;

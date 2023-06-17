@@ -130,8 +130,6 @@ public:
 
     static int SaveSchema(sqlite3 *db, const std::string &strSchema);
 
-    static int GetSchema(const OpenDbProperties &properties, std::string &strSchema);
-
     static int GetSchema(sqlite3 *db, std::string &strSchema);
 
     static int IncreaseIndex(sqlite3 *db, const IndexName &name, const IndexInfo &info, SchemaType type,
@@ -149,8 +147,6 @@ public:
     static int RegisterMetaDataUpdateFunction(sqlite3 *db);
 
     static int GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size);
-
-    static int ExplainPlan(sqlite3 *db, const std::string &execSql, bool isQueryPlan);
 
     static int AttachNewDatabase(sqlite3 *db, CipherType type, const CipherPassword &password,
         const std::string &attachDbAbsPath, const std::string &attachAsName = "backup");
@@ -192,8 +188,6 @@ public:
     static int CheckTableEmpty(sqlite3 *db, const std::string &tableName, bool &isEmpty);
 
     static int SetPersistWalMode(sqlite3 *db);
-
-    static int CheckSchemaChanged(sqlite3_stmt *stmt, const TableInfo &table, int offset);
 
     static int64_t GetLastRowId(sqlite3 *db);
 

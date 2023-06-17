@@ -1138,12 +1138,13 @@ int SqliteQueryHelper::BindKeysToStmt(const std::set<Key> &keys, sqlite3_stmt *&
 }
 
 int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
-    const std::vector<Field> &fields, sqlite3_stmt *&statement)
+    const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
     sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
     sql += tableName_ + "' AS a ON (a.rowid = b.data_key)";
-    sql += " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)":
+        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
 

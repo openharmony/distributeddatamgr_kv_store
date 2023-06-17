@@ -27,6 +27,7 @@
 #include "time_helper.h"
 #include "runtime_config.h"
 #include "virtual_cloud_data_translate.h"
+#include "virtual_asset_loader.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -41,11 +42,14 @@ namespace {
     const string DEVICE_CLOUD = "cloud_dev";
     const string DB_SUFFIX = ".db";
     const int64_t g_syncWaitTime = 10;
+    const int g_arrayHalfSub = 2;
+    int g_syncIndex = 0;
     string g_testDir;
     string g_storePath;
     std::mutex g_processMutex;
     std::condition_variable g_processCondition;
     std::shared_ptr<VirtualCloudDb> g_virtualCloudDb;
+    std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreObserverUnitTest *g_observer = nullptr;
     using CloudSyncStatusCallback = std::function<void(const std::map<std::string, SyncProcess> &onProcess)>;
@@ -97,12 +101,12 @@ namespace {
     const std::vector<std::string> g_tablesPKey = {g_cloudFiled1[0].colName, g_cloudFiled2[0].colName};
     const std::vector<string> g_prefix = {"Local", ""};
     const Asset g_localAsset = {
-        .version = 1, .name = "Phone", .uri = "/local/sync", .modifyTime = "123456", .createTime = "",
-        .size = "256", .hash = " "
+        .version = 1, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/local/sync",
+        .modifyTime = "123456", .createTime = "", .size = "256", .hash = "ASE"
     };
     const Asset g_cloudAsset = {
-        .version = 2, .name = "CloudPhone", .uri = "/cloud/sync", .modifyTime = "123456",
-        .createTime = "0", .size = "1024", .hash = "A56"
+        .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
+        .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
     };
 
     void CreateUserDBAndTable(sqlite3 *&db)
@@ -116,10 +120,12 @@ namespace {
     void InsertUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count, int64_t photoSize)
     {
         std::string photo(photoSize, 'v');
-        std::vector<uint8_t> assetBlob;
-        RuntimeContext::GetInstance()->AssetToBlob(g_localAsset, assetBlob);
         int errCode;
+        std::vector<uint8_t> assetBlob;
         for (int64_t i = begin; i < count; ++i) {
+            Asset asset = g_localAsset;
+            asset.name = asset.name + std::to_string(i);
+            RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
             string sql = "INSERT OR REPLACE INTO " + g_tableName1
                          + " (name, height, married, photo, assert, age) VALUES ('Local" + std::to_string(i) +
                          "', '175.8', '0', '" + photo + "', ? , '18');";
@@ -131,11 +137,14 @@ namespace {
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        std::vector<Asset> assets;
-        assets.push_back(g_localAsset);
-        assets.push_back(g_localAsset);
-        RuntimeContext::GetInstance()->AssetsToBlob(assets, assetBlob);
         for (int64_t i = begin; i < count; ++i) {
+            std::vector<Asset> assets;
+            Asset asset = g_localAsset;
+            asset.name = g_localAsset.name + std::to_string(i);
+            assets.push_back(asset);
+            asset.name = g_localAsset.name + std::to_string(i + 1);
+            assets.push_back(asset);
+            RuntimeContext::GetInstance()->AssetsToBlob(assets, assetBlob);
             string sql = "INSERT OR REPLACE INTO " + g_tableName2
                          + " (id, name, height, photo, asserts, age) VALUES ('" + std::to_string(i) + "', 'Local"
                          + std::to_string(i) + "', '155.10', '"+ photo + "',  ? , '21');";
@@ -204,10 +213,11 @@ namespace {
             data.insert_or_assign("age", 13L);
             record1.push_back(data);
             VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now);
+            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
             extend1.push_back(log);
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));  // wait for 1 ms
         }
         int errCode = g_virtualCloudDb->BatchInsert(g_tableName3, std::move(record1), extend1);
         ASSERT_EQ(errCode, DBStatus::OK);
@@ -224,48 +234,50 @@ namespace {
         std::vector<uint8_t> photo(photoSize, 'v');
         std::vector<VBucket> record1;
         std::vector<VBucket> extend1;
+        Timestamp now = TimeHelper::GetSysCurrentTime();
         for (int64_t i = begin; i < count; ++i) {
-            Timestamp now = TimeHelper::GetSysCurrentTime();
             VBucket data;
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
             data.insert_or_assign("height", 166.0); // 166.0 is random double value
             data.insert_or_assign("married", false);
             data.insert_or_assign("photo", photo);
-            data.insert_or_assign("assert", g_cloudAsset);
+            Asset asset = g_cloudAsset;
+            asset.name = asset.name + std::to_string(i);
+            data.insert_or_assign("assert", asset);
             data.insert_or_assign("age", 13L);
             record1.push_back(data);
             VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now);
+            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
             extend1.push_back(log);
         }
-        int errCode = g_virtualCloudDb->BatchInsert(g_tableName1, std::move(record1), extend1);
-        ASSERT_EQ(errCode, DBStatus::OK);
+        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName1, std::move(record1), extend1), DBStatus::OK);
 
-        std::vector<VBucket> record2;
-        std::vector<VBucket> extend2;
-        std::vector<Asset> assets;
-        assets.push_back(g_cloudAsset);
-        assets.push_back(g_cloudAsset);
+        std::vector<VBucket> record2, extend2;
+        now = TimeHelper::GetSysCurrentTime();
         for (int64_t i = begin; i < count; ++i) {
-            Timestamp now = TimeHelper::GetSysCurrentTime();
             VBucket data;
             data.insert_or_assign("id", i);
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
             data.insert_or_assign("height", 180.3); // 180.3 is random double value
             data.insert_or_assign("photo", photo);
+            std::vector<Asset> assets;
+            Asset asset = g_cloudAsset;
+            for (int64_t j = i; j <= i + 1; j++) {
+                asset.name = g_cloudAsset.name + std::to_string(j);
+                assets.push_back(asset);
+            }
             data.insert_or_assign("asserts", assets);
             data.insert_or_assign("age", 28L);
             record2.push_back(data);
             VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now);
+            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
             extend2.push_back(log);
         }
-        errCode = g_virtualCloudDb->BatchInsert(g_tableName2, std::move(record2), extend2);
-        ASSERT_EQ(errCode, DBStatus::OK);
+        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName2, std::move(record2), extend2), DBStatus::OK);
         LOGD("insert cloud record worker1[primary key]:[cloud%d - cloud%d) , worker2[primary key]:[%d - %d)",
             begin, count, begin, count);
     }
@@ -287,6 +299,60 @@ namespace {
                                    + " like 'Cloud%'";
             EXPECT_EQ(sqlite3_exec(db, queryDownload.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(expectCounts[i]), nullptr), SQLITE_OK);
+        }
+    }
+
+    void CheckCloudRecordNum(sqlite3 *&db, std::vector<std::string> tableList, std::vector<int> countList)
+    {
+        int i = 0;
+        for (const auto &tableName: tableList) {
+            std::string sql = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where device = 'cloud'" + " and cloud_gid is not null and cloud_gid != '' and flag & 0x2 = 0;";
+            EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
+            i++;
+        }
+    }
+
+    void CheckCleanLogNum(sqlite3 *&db, const std::vector<std::string> tableList, int count)
+    {
+        for (const auto &tableName: tableList) {
+            std::string sql1 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where device = 'cloud';";
+            EXPECT_EQ(sqlite3_exec(db, sql1.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+            std::string sql2 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where cloud_gid " + " is not null and cloud_gid != '';";
+            EXPECT_EQ(sqlite3_exec(db, sql2.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+            std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where flag & 0x02 = 0;";
+            EXPECT_EQ(sqlite3_exec(db, sql3.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+        }
+    }
+
+    void CheckCleanDataAndLogNum(sqlite3 *&db, const std::vector<std::string> tableList, int count,
+        std::vector<int> localNum)
+    {
+        int i = 0;
+        for (const auto &tableName: tableList) {
+            std::string sql1 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where device = 'cloud';";
+            EXPECT_EQ(sqlite3_exec(db, sql1.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+            std::string sql2 = "select count(*) from " + DBCommon::GetLogTableName(tableName) + " where cloud_gid "
+                " is not null and cloud_gid != '';";
+            EXPECT_EQ(sqlite3_exec(db, sql2.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+            std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName) +
+                " where flag & 0x02 = 0;";
+            EXPECT_EQ(sqlite3_exec(db, sql3.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
+            std::string local_sql = "select count(*) from " + tableName +";";
+            EXPECT_EQ(sqlite3_exec(db, local_sql.c_str(), QueryCountCallback,
+                reinterpret_cast<void *>(localNum[i]), nullptr), SQLITE_OK);
+            i++;
         }
     }
 
@@ -343,22 +409,198 @@ namespace {
         dataBaseSchema.tables.push_back(tableSchema2);
     }
 
-    void GetCallback(SyncProcess &syncProcess, CloudSyncStatusCallback &callback)
+    void InitProcessForTest1(const uint32_t &cloudCount, const uint32_t &localCount,
+        std::vector<SyncProcess> &expectProcess)
     {
-        callback = [&syncProcess](const std::map<std::string, SyncProcess> &process) {
+        expectProcess.clear();
+        std::vector<TableProcessInfo> infos;
+        uint32_t index = 1;
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount, localCount, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount, localCount, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount, localCount, 0}
+        });
+
+        for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
+            SyncProcess syncProcess;
+            syncProcess.errCode = OK;
+            syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
+            syncProcess.tableProcess.insert_or_assign(g_tables[0], std::move(infos[g_arrayHalfSub * i]));
+            syncProcess.tableProcess.insert_or_assign(g_tables[1], std::move(infos[g_arrayHalfSub * i + 1]));
+            expectProcess.push_back(syncProcess);
+        }
+    }
+
+    void InitProcessForCleanCloudData1(const uint32_t &cloudCount, const uint32_t &localCount,
+        std::vector<SyncProcess> &expectProcess)
+    {
+        expectProcess.clear();
+        std::vector<TableProcessInfo> infos;
+        uint32_t index = 1;
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
+            SyncProcess syncProcess;
+            syncProcess.errCode = OK;
+            syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
+            syncProcess.tableProcess.insert_or_assign(g_tables[0], std::move(infos[g_arrayHalfSub * i]));
+            syncProcess.tableProcess.insert_or_assign(g_tables[1], std::move(infos[g_arrayHalfSub * i + 1]));
+            expectProcess.push_back(syncProcess);
+        }
+    }
+
+
+    void InitProcessForTest2(const uint32_t &cloudCount, const uint32_t &localCount,
+        std::vector<SyncProcess> &expectProcess)
+    {
+        expectProcess.clear();
+        std::vector<TableProcessInfo> infos;
+        uint32_t index = 1;
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount, localCount, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount, localCount, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount - cloudCount, localCount - cloudCount, 0}
+        });
+
+        for (size_t i = 0; i <= infos.size() / g_arrayHalfSub; ++i) {
+            SyncProcess syncProcess;
+            syncProcess.errCode = OK;
+            syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
+            syncProcess.tableProcess.insert_or_assign(g_tables[0], std::move(infos[g_arrayHalfSub * i]));
+            syncProcess.tableProcess.insert_or_assign(g_tables[1], std::move(infos[g_arrayHalfSub * i + 1]));
+            expectProcess.push_back(syncProcess);
+        }
+    }
+
+    void InitProcessForTest9(const uint32_t &cloudCount, const uint32_t &localCount,
+        std::vector<SyncProcess> &expectProcess)
+    {
+        expectProcess.clear();
+        std::vector<TableProcessInfo> infos;
+        uint32_t index = 1;
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+        infos.push_back(TableProcessInfo{
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+        });
+
+        for (size_t i = 0; i <= infos.size() / g_arrayHalfSub; ++i) {
+            SyncProcess syncProcess;
+            syncProcess.errCode = OK;
+            syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
+            syncProcess.tableProcess.insert_or_assign(g_tables[0], std::move(infos[g_arrayHalfSub * i]));
+            syncProcess.tableProcess.insert_or_assign(g_tables[1], std::move(infos[g_arrayHalfSub * i + 1]));
+            expectProcess.push_back(syncProcess);
+        }
+    }
+
+    void GetCallback(SyncProcess &syncProcess, CloudSyncStatusCallback &callback,
+        std::vector<SyncProcess> &expectProcess)
+    {
+        g_syncIndex = 0;
+        callback = [&syncProcess, &expectProcess](const std::map<std::string, SyncProcess> &process) {
             LOGI("devices size = %d", process.size());
             ASSERT_EQ(process.size(), 1u);
             syncProcess = std::move(process.begin()->second);
             ASSERT_EQ(process.begin()->first, DEVICE_CLOUD);
+            ASSERT_NE(syncProcess.tableProcess.empty(), true);
             LOGI("current sync process status:%d, db status:%d ", syncProcess.process, syncProcess.errCode);
-            if (syncProcess.tableProcess.empty()) {
-                LOGI("sync process tableProcess is empty");
-                return;
-            }
             std::for_each(g_tables.begin(), g_tables.end(), [&](const auto &item) {
                 auto table1 = syncProcess.tableProcess.find(item);
                 if (table1 != syncProcess.tableProcess.end()) {
-                    LOGI("table[%s], sync process status:%d, [downloadInfo](batchIndex:%u, total:%u, successCount:%u, "
+                    LOGI("table[%s], table process status:%d, [downloadInfo](batchIndex:%u, total:%u, successCount:%u, "
                          "failCount:%u) [uploadInfo](batchIndex:%u, total:%u, successCount:%u,failCount:%u",
                          item.c_str(), table1->second.process, table1->second.downLoadInfo.batchIndex,
                          table1->second.downLoadInfo.total, table1->second.downLoadInfo.successCount,
@@ -367,10 +609,106 @@ namespace {
                          table1->second.upLoadInfo.failCount);
                 }
             });
+            if (expectProcess.empty()) {
+                if (syncProcess.process == FINISHED) {
+                    g_processCondition.notify_one();
+                }
+                return;
+            }
+            ASSERT_LE(static_cast<size_t>(g_syncIndex), expectProcess.size());
+            for (size_t i = 0; i < g_tables.size(); ++i) {
+                SyncProcess head = expectProcess[g_syncIndex];
+                for (auto &expect : head.tableProcess) {
+                    auto real = syncProcess.tableProcess.find(expect.first);
+                    ASSERT_NE(real, syncProcess.tableProcess.end());
+                    EXPECT_EQ(expect.second.process, real->second.process);
+                    EXPECT_EQ(expect.second.downLoadInfo.batchIndex, real->second.downLoadInfo.batchIndex);
+                    EXPECT_EQ(expect.second.downLoadInfo.total, real->second.downLoadInfo.total);
+                    EXPECT_EQ(expect.second.downLoadInfo.successCount, real->second.downLoadInfo.successCount);
+                    EXPECT_EQ(expect.second.downLoadInfo.failCount, real->second.downLoadInfo.failCount);
+                    EXPECT_EQ(expect.second.upLoadInfo.batchIndex, real->second.upLoadInfo.batchIndex);
+                    EXPECT_EQ(expect.second.upLoadInfo.total, real->second.upLoadInfo.total);
+                    EXPECT_EQ(expect.second.upLoadInfo.successCount, real->second.upLoadInfo.successCount);
+                    EXPECT_EQ(expect.second.upLoadInfo.failCount, real->second.upLoadInfo.failCount);
+                }
+            }
+            g_syncIndex++;
             if (syncProcess.process == FINISHED) {
                 g_processCondition.notify_one();
             }
         };
+    }
+
+    void CheckAllAssetAfterUpload(int64_t localCount)
+    {
+        VBucket extend;
+        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+        std::vector<VBucket> data1;
+        g_virtualCloudDb->Query(g_tables[0], extend, data1);
+        for (size_t j = 0; j < data1.size(); ++j) {
+            auto entry = data1[j].find("assert");
+            ASSERT_NE(entry, data1[j].end());
+            Asset asset = std::get<Asset>(entry->second);
+            bool isLocal = j >= (size_t)(localCount / g_arrayHalfSub);
+            Asset baseAsset = isLocal ? g_localAsset : g_cloudAsset;
+            EXPECT_EQ(asset.version, baseAsset.version);
+            EXPECT_EQ(asset.name, baseAsset.name + std::to_string(isLocal ? j - localCount / g_arrayHalfSub : j));
+            EXPECT_EQ(asset.uri, baseAsset.uri);
+            EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
+            EXPECT_EQ(asset.createTime, baseAsset.createTime);
+            EXPECT_EQ(asset.size, baseAsset.size);
+            EXPECT_EQ(asset.hash, baseAsset.hash);
+        }
+
+        std::vector<VBucket> data2;
+        g_virtualCloudDb->Query(g_tables[1], extend, data2);
+        for (size_t j = 0; j < data2.size(); ++j) {
+            auto entry = data2[j].find("asserts");
+            ASSERT_NE(entry, data2[j].end());
+            Assets assets = std::get<Assets>(entry->second);
+            Asset baseAsset = j >= (size_t)(localCount / g_arrayHalfSub) ? g_localAsset : g_cloudAsset;
+            int index = j;
+            for (const auto &asset: assets) {
+                EXPECT_EQ(asset.version, baseAsset.version);
+                EXPECT_EQ(asset.name, baseAsset.name + std::to_string(index++));
+                EXPECT_EQ(asset.uri, baseAsset.uri);
+                EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
+                EXPECT_EQ(asset.createTime, baseAsset.createTime);
+                EXPECT_EQ(asset.size, baseAsset.size);
+                EXPECT_EQ(asset.hash, baseAsset.hash);
+            }
+        }
+    }
+
+    void CheckAssetAfterDownload(sqlite3 *&db, int64_t localCount)
+    {
+        string queryDownload = "select assert from " + g_tables[0] + " where rowid in (";
+        for (int64_t i = 1; i <= localCount; ++i) {
+            queryDownload +=  "'" + std::to_string(i) + "',";
+        }
+        queryDownload.pop_back();
+        queryDownload += ");";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, queryDownload, stmt), E_OK);
+        int index = 0;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            std::vector<uint8_t> blobValue;
+            ASSERT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue), E_OK);
+            Asset asset;
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset), E_OK);
+            bool isCloud = index >= localCount;
+            Asset baseAsset = isCloud ? g_cloudAsset : g_localAsset;
+            EXPECT_EQ(asset.version, baseAsset.version);
+            EXPECT_EQ(asset.name,
+                baseAsset.name + std::to_string(isCloud ?  index - localCount / g_arrayHalfSub : index));
+            EXPECT_EQ(asset.uri, baseAsset.uri);
+            EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
+            EXPECT_EQ(asset.createTime, baseAsset.createTime);
+            EXPECT_EQ(asset.size, baseAsset.size);
+            EXPECT_EQ(asset.hash, baseAsset.hash);
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            index++;
+        }
     }
 
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
@@ -380,6 +718,7 @@ namespace {
             return syncProcess.process == FINISHED;
         });
         ASSERT_EQ(result, true);
+        LOGD("-------------------sync end--------------");
     }
 
     class DistributedDBCloudInterfacesRelationalSyncTest : public testing::Test {
@@ -415,7 +754,6 @@ namespace {
         db = RelationalTestUtils::CreateDataBase(g_storePath);
         ASSERT_NE(db, nullptr);
         CreateUserDBAndTable(db);
-
         g_observer = new (std::nothrow) RelationalStoreObserverUnitTest();
         ASSERT_NE(g_observer, nullptr);
         ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option { .observer = g_observer },
@@ -425,8 +763,10 @@ namespace {
         ASSERT_EQ(delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
         ASSERT_EQ(delegate->CreateDistributedTable(g_tableName3, CLOUD_COOPERATION), DBStatus::OK);
         g_virtualCloudDb = make_shared<VirtualCloudDb>();
+        g_virtualAssetLoader = make_shared<VirtualAssetLoader>();
         ASSERT_EQ(delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
-        // sync before setting cloud db schema,it should return SCHEMA_NOT_SET
+        ASSERT_EQ(delegate->SetIAssetLoader(g_virtualAssetLoader), DBStatus::OK);
+        // sync before setting cloud db schema,it should return SCHEMA_MISMATCH
         Query query = Query::Select().FromTable(g_tables);
         CloudSyncStatusCallback callback;
         ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
@@ -460,7 +800,8 @@ namespace {
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestSize.Level0)
 {
     int64_t paddingSize = 10;
-    int cloudCount = 20;
+    int64_t cloudCount = 20;
+    int64_t localCount = cloudCount / g_arrayHalfSub;
     ChangedData changedDataForTable1;
     ChangedData changedDataForTable2;
     changedDataForTable1.tableName = g_tableName1;
@@ -474,11 +815,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
     g_observer->SetExpectedResult(changedDataForTable1);
     g_observer->SetExpectedResult(changedDataForTable2);
     InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, cloudCount / 2, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize);
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForTest1(cloudCount, localCount, expectProcess);
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
     EXPECT_TRUE(g_observer->IsAllChangedDataEq());
@@ -486,7 +829,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:[10 - 20)");
     CheckDownloadResult(db, {20L, 10L}); // 20 and 10 means the num of downloads from cloud db by worker1 and worker2
     LOGD("expect upload:worker1[primary key]:[local0 - local10), worker2[primary key]:[0 - 10)");
-    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 form the cloud db
+    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 from the cloud db
 }
 
 /**
@@ -498,20 +841,23 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
  */
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestSize.Level0)
 {
-    int localCount = 20;
+    int64_t localCount = 20;
+    int64_t cloudCount = 10;
     int64_t paddingSize = 100;
     InsertUserTableRecord(db, 0, localCount, paddingSize);
-    InsertCloudTableRecord(0, localCount / 2, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize);
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForTest2(cloudCount, localCount, expectProcess);
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud10), worker2[primary key]:[0 - 10)");
     CheckDownloadResult(db, {10L, 10L}); // 10 and 10 means the num of downloads from cloud db by worker1 and worker2
     LOGD("expect upload:worker1[primary key]:[local0 - local20), worker2[primary key]:[10 - 20)");
-    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 form the cloud db
+    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 from the cloud db
 }
 
 /**
@@ -528,24 +874,25 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
     InsertCloudTableRecord(0, cloudCount, paddingSize);
     InsertUserTableRecord(db, 0, cloudCount, paddingSize);
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForTest1(cloudCount, cloudCount, expectProcess);
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
-    LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:none");
     CheckDownloadResult(db, {20L, 0L}); // 20 and 0 means the num of downloads from cloud db by worker1 and worker2
-    LOGD("expect upload:worker1[primary key]:[local0 - local20), worker2[primary key]:[0 - 20)");
-    CheckCloudTotalCount({40L, 20L}); // 40 and 20 means the total num of worker1 and worker2 form the cloud db
+    CheckCloudTotalCount({40L, 20L}); // 40 and 20 means the total num of worker1 and worker2 from the cloud db
 
-    UpdateUserTableRecord(db, 5, 10); // 5 is start id to be updated, 10 is updated count
+    int updateCount = 10;
+    UpdateUserTableRecord(db, 5, updateCount); // 5 is start id to be updated
     syncProcess = {};
-    LOGD("sync after update-----------------------");
+    InitProcessForTest1(cloudCount, updateCount, expectProcess);
+    GetCallback(syncProcess, callback, expectProcess);
+    LOGD("-------------------sync after update--------------");
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
-    LOGD("sync finish-----------------------");
 
-    LOGD("expect get result upload worker1[primary key]:[local5 - local15)");
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
     std::vector<VBucket> data1;
@@ -554,22 +901,20 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
         EXPECT_EQ(std::get<int64_t>(data1[j]["age"]), 99); // 99 is the updated age field of cloud db
     }
 
-    LOGD("expect get result upload worker2[primary key]:[5 - 15)");
     std::vector<VBucket> data2;
     g_virtualCloudDb->Query(g_tables[1], extend, data2);
     for (int j = 5; j < 15; ++j) { // index[5, 15) in cloud db expected to be updated
         EXPECT_EQ(std::get<int64_t>(data2[j]["age"]), 99); // 99 is the updated age field of cloud db
     }
 
-    DeleteUserTableRecord(db, 0, 3); // 0 is start id to be deleted, 3 is deleted count
+    int deleteCount = 3;
+    DeleteUserTableRecord(db, 0, deleteCount);
     syncProcess = {};
-
-    LOGD("sync after delete-----------------------");
+    InitProcessForTest1(updateCount, deleteCount, expectProcess);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
-    LOGD("sync finish-----------------------");
 
-    LOGD("expect upload:worker1[primary key]:[local0 - local3), worker2[primary key]:[0 - 3)");
     CheckCloudTotalCount({37L, 17L}); // 37 and 17 means the total num of worker1 and worker2 from the cloud db
 }
 
@@ -591,9 +936,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
         thread.join();
     }
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
 }
@@ -641,11 +987,12 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestS
     g_observer->SetExpectedResult(changedDataForTable1);
     g_observer->SetExpectedResult(changedDataForTable2);
     InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, cloudCount / 2, paddingSize);
+    InsertUserTableRecord(db, 0, cloudCount / g_arrayHalfSub, paddingSize);
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     // Set correct cloudDbSchema (correct version)
     DataBaseSchema correctSchema;
     GetCloudDbSchema(correctSchema);
@@ -657,7 +1004,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestS
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:[10 - 20)");
     CheckDownloadResult(db, {20L, 10L}); // 20 and 10 means the num of downloads from cloud db by worker1 and worker2
     LOGD("expect upload:worker1[primary key]:[local0 - local10), worker2[primary key]:[0 - 10)");
-    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 form the cloud db
+    CheckCloudTotalCount({30L, 20L}); // 30 and 20 means the total num of worker1 and worker2 from the cloud db
 
     // Reset cloudDbSchema (invalid version - null)
     DataBaseSchema nullSchema;
@@ -685,49 +1032,17 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest007, TestS
     int64_t paddingSize = 100;
     int localCount = 20;
     InsertUserTableRecord(db, 0, localCount, paddingSize);
-    InsertCloudTableRecord(0, localCount / 2, paddingSize);
+    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize);
     Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
 
-    VBucket extend;
-    extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
-    std::vector<VBucket> data1;
-    g_virtualCloudDb->Query(g_tables[0], extend, data1);
-    for (size_t j = 0; j < data1.size(); ++j) {
-        auto entry = data1[j].find("assert");
-        ASSERT_NE(entry, data1[j].end());
-        Asset asset = std::get<Asset>(entry->second);
-        Asset baseAsset = j >= (size_t)(localCount / 2) ? g_localAsset : g_cloudAsset;
-        EXPECT_EQ(asset.version, baseAsset.version);
-        EXPECT_EQ(asset.name, baseAsset.name);
-        EXPECT_EQ(asset.uri, baseAsset.uri);
-        EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
-        EXPECT_EQ(asset.createTime, baseAsset.createTime);
-        EXPECT_EQ(asset.size, baseAsset.size);
-        EXPECT_EQ(asset.hash, baseAsset.hash);
-    }
-
-    std::vector<VBucket> data2;
-    g_virtualCloudDb->Query(g_tables[1], extend, data2);
-    for (size_t j = 0; j < data2.size(); ++j) {
-        auto entry = data2[j].find("asserts");
-        ASSERT_NE(entry, data2[j].end());
-        Assets assets = std::get<Assets>(entry->second);
-        Asset baseAsset = j >= (size_t)(localCount / 2) ? g_localAsset : g_cloudAsset;
-        for (const auto &asset: assets) {
-            EXPECT_EQ(asset.version, baseAsset.version);
-            EXPECT_EQ(asset.name, baseAsset.name);
-            EXPECT_EQ(asset.uri, baseAsset.uri);
-            EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
-            EXPECT_EQ(asset.createTime, baseAsset.createTime);
-            EXPECT_EQ(asset.size, baseAsset.size);
-            EXPECT_EQ(asset.hash, baseAsset.hash);
-        }
-    }
+    CheckAssetAfterDownload(db, localCount);
+    CheckAllAssetAfterUpload(localCount);
 }
 
 /*
@@ -744,6 +1059,40 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest008, TestS
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime), CLOUD_ERROR);
 }
 
+/**
+ * @tc.name: CloudSyncTest009
+ * @tc.desc: The second time there was no data change and sync was called.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int cloudCount = 20;
+    InsertCloudTableRecord(0, cloudCount, paddingSize);
+    InsertUserTableRecord(db, 0, cloudCount, paddingSize);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForTest1(cloudCount, cloudCount, expectProcess);
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:none");
+    CheckDownloadResult(db, {20L, 0L}); // 20 and 0 means the num of downloads from cloud db by worker1 and worker2
+    LOGD("expect upload:worker1[primary key]:[local0 - local20), worker2[primary key]:[0 - 20)");
+    CheckCloudTotalCount({40L, 20L}); // 40 and 20 means the total num of worker1 and worker2 from the cloud db
+
+    syncProcess = {};
+    InitProcessForTest9(cloudCount, 0, expectProcess);
+    GetCallback(syncProcess, callback, expectProcess);
+    LOGD("--------------the second sync-------------");
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+}
+
 /*
  * @tc.name: DataNotifier001
  * @tc.desc: Notify data without primary key
@@ -757,12 +1106,97 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DataNotifier001, TestSi
     int localCount = 20;
     InsertRecordWithoutPk2LocalAndCloud(db, 0, localCount, paddingSize);
     Query query = Query::Select().FromTable({g_tableName3});
+    std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback);
+    GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
 }
 
+/**
+ * @tc.name: CloudSyncAssetTest001
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wanyi
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, TestSize.Level1)
+{
+    int64_t paddingSize = 100;
+    int localCount = 20;
+    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    CheckAssetAfterDownload(db, localCount);
+    CheckAllAssetAfterUpload(localCount);
+}
+
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+/*
+ * @tc.name: CleanCloudDataTest001
+ * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest001, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    int cloudCount = 20;
+    InsertCloudTableRecord(0, cloudCount, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    std::string device = "";
+    CheckCloudRecordNum(db, g_tables, {20, 20});
+    ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_ONLY), DBStatus::OK);
+    CheckCleanLogNum(db, g_tables, 0);
+}
+
+/*
+ * @tc.name: CleanCloudDataTest002
+ * @tc.desc: Test FLAG_AND_DATA mode of RemoveDeviceData
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    int cloudCount = 20;
+    InsertCloudTableRecord(0, cloudCount, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    std::string device = "";
+    CheckCloudRecordNum(db, g_tables, {20, 20});    // 20 means cloud data num
+    ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, g_tables, 0, {localCount, 0});
+}
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 }
 #endif // RELATIONAL_STORE

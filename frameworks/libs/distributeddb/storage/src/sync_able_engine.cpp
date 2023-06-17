@@ -64,24 +64,6 @@ void SyncAbleEngine::Close()
     StopSyncer();
 }
 
-void SyncAbleEngine::EnableAutoSync(bool enable)
-{
-    if (NeedStartSyncer()) {
-        StartSyncer();
-    }
-    return syncer_.EnableAutoSync(enable);
-}
-
-int SyncAbleEngine::EnableManualSync(void)
-{
-    return syncer_.EnableManualSync();
-}
-
-int SyncAbleEngine::DisableManualSync(void)
-{
-    return syncer_.DisableManualSync();
-}
-
 // Get The current virtual timestamp
 uint64_t SyncAbleEngine::GetTimestamp()
 {

@@ -131,7 +131,8 @@ public:
 
     int Rollback() override;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, int64_t &count) override;
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+        int64_t &count) override;
 
     int FillCloudGid(const CloudSyncData &data) override;
 
@@ -154,6 +155,9 @@ public:
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo) override;
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
+
+    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+        std::vector<Asset> &assets) override;
 
     int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
 

@@ -26,6 +26,8 @@
 #include "relational_sync_able_storage.h"
 #include "sqlite_relational_store.h"
 #include "storage_proxy.h"
+#include "virtual_cloud_data_translate.h"
+#include "runtime_config.h"
 
 
 using namespace testing::ext;
@@ -117,50 +119,42 @@ namespace {
         EXPECT_EQ(g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION), OK);
 
         /**
-         * @tc.steps:step3. insert 4 row.
+         * @tc.steps:step3. insert some row.
          * @tc.expected: step3. return ok.
          */
         if (pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY) {
             sql = "insert into " + tableName + "(id, name, age)" \
-                " values(1, 'zhangsan1', 10.1), (1, 'zhangsan2', 10.1), (2, 'zhangsan1', 10.0), (3, 'zhangsan3', 30);";
+                " values(1, 'zhangsan1', 10.1), (1, 'zhangsan2', 10.1), (2, 'zhangsan1', 10.0), (3, 'zhangsan3', 30),"
+                " (4, 'zhangsan4', 40.123), (5, 'zhangsan5', 50.123);";
         } else {
             sql = "insert into " + tableName + "(id, name)" \
-                " values(1, 'zhangsan1'), (2, 'zhangsan2'), (3, 'zhangsan3'), (4, 'zhangsan4');";
+                " values(1, 'zhangsan1'), (2, 'zhangsan2'), (3, 'zhangsan3'), (4, 'zhangsan4'),"
+                " (5, 'zhangsan5'), (6, 'zhangsan6'), (7, 'zhangsan7');";
         }
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 
         /**
-         * @tc.steps:step3. preset cloud gid.
-         * @tc.expected: step3. return ok.
+         * @tc.steps:step4. preset cloud gid.
+         * @tc.expected: step4. return ok.
          */
-        for (int i = 0; i < 3; i++) { // update first 3 records
-            sql = "update " + DBCommon::GetLogTableName(tableName) + " set cloud_gid = '" + g_gid + std::to_string(i) +
-                "' where data_key = " + std::to_string(i + 1);
+        for (int i = 0; i < 7; i++) { // update first 7 records
+            if (i == 4) { // 4 is id
+                sql = "update " + DBCommon::GetLogTableName(tableName) + " set cloud_gid = '" +
+                    g_gid + std::to_string(i) + "', flag = 6 where data_key = " + std::to_string(i + 1);
+            } else {
+                sql = "update " + DBCommon::GetLogTableName(tableName) + " set cloud_gid = '" +
+                    g_gid + std::to_string(i) + "' where data_key = " + std::to_string(i + 1);
+            }
             EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+            if (pkType != PrimaryKeyType::COMPOSITE_PRIMARY_KEY && i == 6) { // 6 is index
+                sql = "delete from " + tableName + " where id = 7;";
+                EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+            }
         }
 
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 
         SetCloudSchema(pkType, nullable);
-    }
-
-    void PrepareDataBaseForAsset(const std::string &tableName, PrimaryKeyType pkType, bool nullable = true)
-    {
-        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-        EXPECT_NE(db, nullptr);
-        std::string sql;
-        if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
-            sql = "create table " + tableName + "(id int primary key, name TEXT, age REAL, sex INTEGER, image BLOB," \
-                " video BLOB);";
-        } else if (pkType == PrimaryKeyType::NO_PRIMARY_KEY) {
-            sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB, video BLOB);";
-        } else {
-            sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB, video BLOB" \
-                " PRIMARY KEY(id, name, age))";
-        }
-        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-        EXPECT_EQ(g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION), OK);
-        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 
     void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
@@ -413,10 +407,10 @@ namespace {
 
     void ConstructDownloadData(DownloadData &downloadData, GidType gidType, bool nullable, bool vBucketContains)
     {
-        for (int i = 0; i < 5; i++) { // 5 is record counts
+        for (int i = 0; i < 7; i++) { // 7 is record counts
             VBucket vBucket;
             if (i == 3) { // 3 is record index
-                vBucket["id"] = 2L + i; // id = 4 already pre_insert
+                vBucket["id"] = 4L + i; // id = 5, 6 already pre_insert
             } else {
                 vBucket["id"] = 1L + i;
             }
@@ -450,8 +444,8 @@ namespace {
             downloadData.data.push_back(vBucket);
         }
 
-        downloadData.opType = { OpType::UPDATE, OpType::DELETE, OpType::ONLY_UPDATE_GID,
-            OpType::INSERT, OpType::NOT_HANDLE };
+        downloadData.opType = { OpType::UPDATE, OpType::DELETE, OpType::ONLY_UPDATE_GID, OpType::INSERT,
+            OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO, OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE, OpType::NOT_HANDLE };
     }
 
     void SaveCloudDataTest(PrimaryKeyType pkType, GidType gidType = GidType::GID_MATCH, bool nullable = true,
@@ -495,6 +489,17 @@ namespace {
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest001, TestSize.Level0)
     {
         SaveCloudDataTest(PrimaryKeyType::NO_PRIMARY_KEY);
+        // there is one log record with cloud_gid = abcd3(id = 7 will delete first, then insert again)
+        std::string sql = "select count(data_key) from " + DBCommon::GetLogTableName(g_tableName) +
+            " where cloud_gid = '" + g_gid + std::to_string(3) + "'"; // 3 is gid index
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // will get only 1 log record
+            return OK;
+        });
+        EXPECT_EQ(errCode, SQLITE_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 
     /**
@@ -696,10 +701,5 @@ namespace {
         ConstructMultiDownloadData(downloadData, GidType::GID_MATCH);
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
-    }
-
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level0)
-    {
-        PrepareDataBaseForAsset(g_assetTableName, PrimaryKeyType::NO_PRIMARY_KEY, true);
     }
 }

@@ -39,6 +39,7 @@ public:
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
 
+    int DoClean(ClearMode mode) override;
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;
     int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
@@ -47,6 +48,7 @@ public:
         std::shared_ptr<ResultSet> &result) override;
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
         const SyncProcessCallback &onProcess, int64_t waitTime) override;

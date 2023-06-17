@@ -71,21 +71,23 @@ void ModifyRecords(std::vector<VBucket> &expectRecord)
     expectRecord = tempRecord;
 }
 
-DBStatus Sync(CloudSyncer *cloudSyncer)
+DBStatus Sync(CloudSyncer *cloudSyncer, int &callCount)
 {
     std::mutex processMutex;
     std::condition_variable cv;
     SyncProcess syncProcess;
-    const auto callback = [&syncProcess, &processMutex, &cv](const std::map<std::string, SyncProcess> &process) {
+    const auto callback = [&callCount, &syncProcess, &processMutex, &cv](
+        const std::map<std::string, SyncProcess> &process) {
         {
             std::lock_guard<std::mutex> autoLock(processMutex);
-            syncProcess = std::move(process.begin()->second);
-            if (process.size() >= 1u) {
+            syncProcess = process.begin()->second;
+            if (!process.empty()) {
                 syncProcess = process.begin()->second;
             } else {
                 SyncProcess tmpProcess;
                 syncProcess = tmpProcess;
             }
+            callCount++;
         }
         cv.notify_all();
     };
@@ -193,7 +195,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::string("");
     std::vector<VBucket> actualRecords;
-    EXPECT_EQ(proxy.Query(TABLE_NAME, extend, actualRecords), OK);
+    EXPECT_EQ(proxy.Query(TABLE_NAME, extend, actualRecords), -E_QUERY_END);
     /**
      * @tc.steps: step3. proxy query data
      * @tc.expected: step3. data is equal to expect
@@ -255,7 +257,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::string("");
     std::vector<VBucket> actualRecords;
-    EXPECT_EQ(proxy.Query(TABLE_NAME, extend, actualRecords), OK);
+    EXPECT_EQ(proxy.Query(TABLE_NAME, extend, actualRecords), -E_QUERY_END);
     ASSERT_EQ(actualRecords.size(), expectRecords.size());
     for (size_t i = 0; i < actualRecords.size(); ++i) {
         for (const auto &field: schema.fields) {
@@ -363,7 +365,8 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest005, TestSize.Level0)
      * @tc.steps: step2. call sync and wait sync finish
      * @tc.expected: step2. CLOUD_ERROR by lock error
      */
-    EXPECT_EQ(Sync(cloudSyncer), CLOUD_ERROR);
+    int callCount = 0;
+    EXPECT_EQ(Sync(cloudSyncer, callCount), CLOUD_ERROR);
     /**
      * @tc.steps: step3. get cloud lock status and heartbeat count
      * @tc.expected: step3. cloud is unlock and no heartbeat
@@ -396,8 +399,9 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     ASSERT_NE(cloudSyncer, nullptr);
     ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
     cloudSyncer->SetSyncAction(true, false);
-    cloudSyncer->SetDownloadFunc([]() {
+    cloudSyncer->SetDownloadFunc([cloudSyncer]() {
         std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
+        cloudSyncer->Notify(false);
         return E_OK;
     });
     virtualCloudDb_->SetHeartbeatError(true);
@@ -405,7 +409,10 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
      * @tc.steps: step2. call sync and wait sync finish
      * @tc.expected: step2. sync failed by heartbeat error
      */
-    EXPECT_EQ(Sync(cloudSyncer), CLOUD_ERROR);
+    int callCount = 0;
+    EXPECT_EQ(Sync(cloudSyncer, callCount), CLOUD_ERROR);
+    RuntimeContext::GetInstance()->StopTaskPool();
+    EXPECT_EQ(callCount, 1);
     /**
      * @tc.steps: step3. get cloud lock status and heartbeat count
      * @tc.expected: step3. cloud is unlock and twice heartbeat

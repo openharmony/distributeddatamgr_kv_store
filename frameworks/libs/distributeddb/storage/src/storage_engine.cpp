@@ -338,12 +338,6 @@ void StorageEngine::SetEngineState(EngineState state)
     engineState_ = state;
 }
 
-bool StorageEngine::IsNeedMigrate() const
-{
-    LOGI("No need to migrate!");
-    return false;
-}
-
 int StorageEngine::ExecuteMigrate()
 {
     LOGW("Migration is not supported!");
@@ -437,8 +431,8 @@ StorageExecutor *StorageEngine::FetchStorageExecutor(bool isWrite, std::list<Sto
     auto item = idleList.front();
     usingList.push_back(item);
     idleList.remove(item);
-    LOGD("Get executor[%d] from [%.6s], using[%zu]", isWrite,
-        DBCommon::TransferStringToHex(identifier_).c_str(), usingList.size());
+    LOGD("Get executor[%d] from [%.3s]", isWrite,
+        DBCommon::TransferStringToHex(identifier_).c_str());
     errCode = E_OK;
     return item;
 }

@@ -92,7 +92,6 @@ void DeviceManager::RegDeviceOffLineCallBack(const std::function<void(std::strin
 
 void DeviceManager::OnDeviceConnectCallback(const std::string &targetDev, bool isConnect)
 {
-    LOGD("[DeviceManager] DeviceConnectCallback dev = %s{private}, status = %d", targetDev.c_str(), isConnect);
     if (targetDev.empty()) {
         LOGE("[DeviceManager] DeviceConnectCallback invalid device!");
     }
@@ -112,7 +111,6 @@ void DeviceManager::OnDeviceConnectCallback(const std::string &targetDev, bool i
         }
         if (offlineCallback_) {
             offlineCallback_(targetDev);
-            LOGD("[DeviceManager] DeviceConnectCallback call offline callback");
         }
     }
 }

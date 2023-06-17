@@ -123,11 +123,6 @@ void SQLiteStorageEngine::SetEngineState(EngineState state)
     engineState_ = state; // Current usage logically can guarantee no concurrency
 }
 
-bool SQLiteStorageEngine::IsNeedMigrate() const
-{
-    return false;
-}
-
 int SQLiteStorageEngine::ExecuteMigrate()
 {
     return -E_NOT_SUPPORT;

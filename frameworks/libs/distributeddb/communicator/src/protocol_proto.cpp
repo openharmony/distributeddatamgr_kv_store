@@ -195,7 +195,7 @@ SerialBuffer *ProtocolProto::BuildFeedbackMessageFrame(const Message *inMsg, con
     }
     int errCode = ProtocolProto::SetDivergeHeader(buffer, inLabel);
     if (errCode != E_OK) {
-        LOGE("[Proto][BuildFeedback] Set DivergeHeader fail, label=%s, errCode=%d.", VEC_TO_STR(inLabel), errCode);
+        LOGE("[Proto][BuildFeedback] Set DivergeHeader fail, label=%.3s, errCode=%d.", VEC_TO_STR(inLabel), errCode);
         outErrorNo = errCode;
         delete buffer;
         buffer = nullptr;
@@ -899,7 +899,7 @@ int ProtocolProto::ParseLabelExchange(const uint8_t *bytes, uint32_t length, Par
         // the length is checked just above
         LabelType commLabel(bytePtr + i * COMM_LABEL_LENGTH, bytePtr + (i + 1) * COMM_LABEL_LENGTH);
         if (commLabels.count(commLabel) != 0) {
-            LOGW("[Proto][ParseLabel] Duplicate Label Detected, commLabel=%s.", VEC_TO_STR(commLabel));
+            LOGW("[Proto][ParseLabel] Duplicate Label Detected, commLabel=%.3s.", VEC_TO_STR(commLabel));
         } else {
             commLabels.insert(commLabel);
         }

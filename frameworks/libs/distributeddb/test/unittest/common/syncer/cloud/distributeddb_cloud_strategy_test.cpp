@@ -128,5 +128,114 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      */
     cloudInfo.flag = 0x01; // it means delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::DELETE);
+    /**
+     * @tc.steps: step7. cloud is new and local is delete
+     * @tc.expected: step7 insert cloud record
+     */
+    cloudInfo.flag = 0; // it means no delete
+    localInfo.flag = 0x01; // it means delete
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::INSERT);
 }
+
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+/**
+ * @tc.name: TagOpTyeTest002
+ * @tc.desc: Verify local cover cloud strategy tag operation type function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. build local cover cloud strategy
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+
+    /**
+     * @tc.steps: step2. local not exist cloud record
+     * @tc.expected: step2. not handle
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+
+    /**
+     * @tc.steps: step3. local has cloud record but don't have gid
+     * @tc.expected: step3. only update gid
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+
+    /**
+     * @tc.steps: step4. local has cloud record and have gid
+     * @tc.expected: step4. not handle
+     */
+    localInfo.cloudGid = "gid";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    localInfo.cloudGid = "";
+    /**
+     * @tc.steps: step5. local has cloud record(without gid) but cloud flag is delete
+     * @tc.expected: step5. ONLY UPDATE GID
+     */
+    cloudInfo.flag = 0x01; // it means delete
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+}
+
+/**
+ * @tc.name: TagOpTyeTest003
+ * @tc.desc: Verify cloud cover local strategy tag operation type function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. cloud cover local strategy
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_FORCE_PULL);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+
+    /**
+     * @tc.steps: step2. local not exist cloud record(without gid) and its not deleted in cloud
+     * @tc.expected: step2. insert
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, localInfo, cloudInfo), OpType::INSERT);
+
+    /**
+     * @tc.steps: step3. local not exist cloud record and it's deleted in cloud (without gid)
+     * @tc.expected: step3. not handle
+     */
+    localInfo.cloudGid = "";
+    cloudInfo.flag = 0x01; // it means delete
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+
+    /**
+     * @tc.steps: step4. local not exist cloud record and it's deleted in cloud (with gid)
+     * @tc.expected: step4. delete
+     */
+    localInfo.cloudGid = "gid";
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, localInfo, cloudInfo), OpType::DELETE);
+
+    /**
+     * @tc.steps: step5. local exist cloud record and its deleted in cloud
+     * @tc.expected: step5. delete
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::DELETE);
+    localInfo.cloudGid = "";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::DELETE);
+
+    /**
+     * @tc.steps: step6. local exist cloud record and its not deleted in cloud(WITH OR WITHOUT gid)
+     * @tc.expected: step6. UPDATE
+     */
+    cloudInfo.flag = 0x00;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE);
+    localInfo.cloudGid = "gid";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE);
+}
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 }

@@ -189,10 +189,10 @@ private:
 
     bool SecLabelCheck(const AbilitySyncRequestPacket *packet) const;
 
-    void HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context) const;
+    static void HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context);
 
-    void HandleVersionV3AckSecOptionParam(const AbilitySyncAckPacket *packet,
-        ISyncTaskContext *context) const;
+    static void HandleVersionV3AckSecOptionParam(const AbilitySyncAckPacket *packet,
+        ISyncTaskContext *context);
 
     int HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvPacket,
         AbilitySyncAckPacket &sendPacket,  ISyncTaskContext *context, bool sendOpinion,
@@ -211,11 +211,11 @@ private:
 
     int SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackCode, bool isAckNotify) const;
 
-    void SetAbilityAckSchemaInfo(AbilitySyncAckPacket &ackPacket, const ISchema &schemaObj) const;
+    static void SetAbilityAckSchemaInfo(AbilitySyncAckPacket &ackPacket, const ISchema &schemaObj);
 
-    void SetAbilityAckSyncOpinionInfo(AbilitySyncAckPacket &ackPacket, SyncOpinion localOpinion) const;
+    static void SetAbilityAckSyncOpinionInfo(AbilitySyncAckPacket &ackPacket, SyncOpinion localOpinion);
 
-    int GetDbAbilityInfo(DbAbility &dbAbility) const;
+    static int GetDbAbilityInfo(DbAbility &dbAbility);
 
     int AckMsgCheck(const Message *message, ISyncTaskContext *context) const;
 
@@ -227,7 +227,7 @@ private:
 
     int SendAckWithEmptySchema(const Message *message, int ackCode, bool isAckNotify);
 
-    int SendAck(const Message *message, const AbilitySyncAckPacket &ackPacket, bool isAckNotify);
+    int SendAck(const Message *inMsg, const AbilitySyncAckPacket &ackPacket, bool isAckNotify);
 
     int HandleRequestRecv(const Message *message, ISyncTaskContext *context, bool isCompatible);
 

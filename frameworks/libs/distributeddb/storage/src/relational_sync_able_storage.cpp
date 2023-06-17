@@ -864,7 +864,7 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
             LOGE("Get remote device schema from meta failed. err=%d", errCode);
             return errCode;
         }
-        remoteSchema = std::string(remoteSchemaBuff.begin(), remoteSchemaBuff.end());
+        std::string remoteSchema(remoteSchemaBuff.begin(), remoteSchemaBuff.end());
         errCode = remoteDeviceSchema_.Put(deviceId, remoteSchema);
     }
 
@@ -942,14 +942,14 @@ int RelationalSyncAbleStorage::Rollback()
 }
 
 int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
-    int64_t &count)
+    const bool isCloudForcePush, int64_t &count)
 {
     int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = handle->GetUploadCount(tableName, timestamp, count);
+    errCode = handle->GetUploadCount(tableName, timestamp, isCloudForcePush, count);
     if (transactionHandle_ == nullptr) {
         ReleaseHandle(handle);
     }
@@ -1006,16 +1006,17 @@ int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, cons
 int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken,
     CloudSyncData &cloudDataResult)
 {
-    if (transactionHandle_ == nullptr) {
-        LOGE(" the transaction has not been started");
-        return -E_INVALID_DB;
-    }
     if (continueStmtToken == nullptr) {
         return -E_INVALID_ARGS;
     }
     auto token = static_cast<SQLiteSingleVerRelationalContinueToken *>(continueStmtToken);
     if (!token->CheckValid()) {
         return -E_INVALID_ARGS;
+    }
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started, release the token");
+        ReleaseCloudDataToken(continueStmtToken);
+        return -E_INVALID_DB;
     }
     int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
     if (errCode != -E_UNFINISHED) {
@@ -1095,6 +1096,28 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
 }
 
+int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+    std::vector<Asset> &assets)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE(" the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    std::vector<TableSchema> tableSchemaList;
+    for (const auto &tableName: tableNameList) {
+        TableSchema tableSchema;
+        int errCode = GetCloudTableSchema(tableName, tableSchema);
+        if (errCode != E_OK) {
+            LOGE("Get cloud schema failed when clean cloud data, %d", errCode);
+            // if a table in local which cannot find schema and cloud, not handle.
+        } else {
+            tableSchemaList.push_back(tableSchema);
+        }
+    }
+
+    return transactionHandle_->DoCleanInner(mode, tableNameList, tableSchemaList, assets);
+}
+
 int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)
 {
     std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
@@ -1103,7 +1126,35 @@ int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, T
 
 int RelationalSyncAbleStorage::FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace)
 {
-    return E_OK;
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    int errCode = E_OK;
+    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+    if (writeHandle == nullptr) {
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    TableSchema tableSchema;
+    errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
+        return errCode;
+    }
+    errCode = writeHandle->FillCloudAsset(tableSchema, asset, isFullReplace);
+    if (errCode != E_OK) {
+        writeHandle->Rollback();
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->Commit();
+    ReleaseHandle(writeHandle);
+    return errCode;
 }
 }
 #endif

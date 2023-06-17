@@ -39,7 +39,7 @@ public:
     void SetFieldNames(const std::vector<std::string> &fieldNames);
     void UpdateNextSyncOffset(int addOffset);
     void SetCloudTableSchema(const TableSchema &schema);
-    int GetCloudStatement(sqlite3 *db, sqlite3_stmt *&queryStmt, bool &isFirstTime);
+    int GetCloudStatement(sqlite3 *db, const bool &isCloudForcePush, sqlite3_stmt *&queryStmt, bool &isFirstTime);
     void GetCloudTableSchema(TableSchema &tableSchema) const;
     int ReleaseCloudStatement();
 private:

@@ -31,18 +31,41 @@ enum TableSyncType {
 };
 
 enum ClearMode {
-    FLAG_AND_DATA = 0,
-    FLAG_ONLY = 1,
+    DEFAULT = 0,        // use for device to device sync
+    FLAG_AND_DATA = 1,  // use for device to cloud sync
+    FLAG_ONLY = 2,
+    BUTT = 3,
+};
+
+enum class AssetOpType {
+    NO_CHANGE = 0,
+    INSERT,
+    DELETE,
+    UPDATE
+};
+
+enum class AssetStatus {
+    NORMAL = 0,
+    DOWNLOADING,
+    ABNORMAL,
+    INSERT,
+    DELETE,
+    UPDATE
 };
 
 struct Asset {
     uint32_t version = 0;
     std::string name;
+    std::string assetId;
+    std::string subpath;
     std::string uri;
     std::string modifyTime;
     std::string createTime;
     std::string size;
     std::string hash;
+    uint32_t flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+    uint32_t status = static_cast<uint32_t>(AssetStatus::NORMAL);
+    int64_t timestamp = 0;
 };
 using Nil = std::monostate;
 using Assets = std::vector<Asset>;
