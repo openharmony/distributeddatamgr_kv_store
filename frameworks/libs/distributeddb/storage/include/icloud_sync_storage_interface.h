@@ -85,7 +85,9 @@ public:
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
 
-    virtual int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace) = 0;
+    virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) = 0;
+
+    virtual int FillCloudAssetForUpload(const CloudSyncData &data) = 0;
 };
 }
 

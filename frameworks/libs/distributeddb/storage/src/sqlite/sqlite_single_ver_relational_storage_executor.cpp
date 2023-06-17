@@ -33,6 +33,7 @@
 namespace DistributedDB {
 namespace {
 static constexpr const char* ROWID = "ROWID";
+static constexpr const char* TIMESTAMP = "TIMESTAMP";
 static constexpr const char* FLAG = "FLAG";
 static constexpr const char* DATAKEY = "DATA_KEY";
 static constexpr const char* DEVICE_FIELD = "DEVICE";
@@ -515,7 +516,9 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
 {
     flags.insert_or_assign(ROWID,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 0))); // 0 means hash_key index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, 0))); // 0 means data_key index
+    flags.insert_or_assign(TIMESTAMP,
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, 3))); // 3 means timestamp index
     flags.insert_or_assign(FLAG,
         static_cast<int64_t>(sqlite3_column_int64(logStatement, 5))); // 5 means flag index
 }
@@ -524,7 +527,8 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
 {
     int64_t *rowid = std::get_if<int64_t>(&flags[ROWID]);
     int64_t *flag = std::get_if<int64_t>(&flags[FLAG]);
-    if (rowid == nullptr || flag == nullptr) {
+    int64_t *timeStamp = std::get_if<int64_t>(&flags[TIMESTAMP]);
+    if (rowid == nullptr || flag == nullptr || timeStamp == nullptr) {
         return -E_INVALID_DATA;
     }
     if ((static_cast<uint64_t>(*flag) & DataItem::DELETE_FLAG) != 0) {
@@ -539,6 +543,13 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
     } else {
         if (!data.empty()) {
             cloudSyncData.updData.record.push_back(data);
+            VBucket asset;
+            CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
+            if (!asset.empty()) {
+                cloudSyncData.updData.rowid.push_back(*rowid);
+                cloudSyncData.updData.timestamp.push_back(*timeStamp);
+                cloudSyncData.updData.assets.push_back(asset);
+            }
         }
         cloudSyncData.updData.extend.push_back(log);
     }

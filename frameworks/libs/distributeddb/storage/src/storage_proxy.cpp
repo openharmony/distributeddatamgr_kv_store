@@ -311,12 +311,21 @@ int StorageProxy::NotifyChangedData(const std::string deviceName, ChangedData &&
     return E_OK;
 }
 
-int StorageProxy::FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace)
+int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->FillCloudAsset(tableName, asset, isFullReplace);
+    return store_->FillCloudAssetForDownload(tableName, asset, isFullReplace);
+}
+
+int StorageProxy::FillCloudAssetForUpload(const CloudSyncData &data)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->FillCloudAssetForUpload(data);
 }
 }
