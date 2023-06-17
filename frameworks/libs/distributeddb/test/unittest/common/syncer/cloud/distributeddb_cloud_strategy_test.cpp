@@ -135,6 +135,12 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
     cloudInfo.flag = 0; // it means no delete
     localInfo.flag = 0x01; // it means delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::INSERT);
+    /**
+     * @tc.steps: step8. cloud is new and local both delete
+     * @tc.expected: step8 not handle cloud record
+     */
+    cloudInfo.flag = 0x01; // it means delete
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
 }
 
 #ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
