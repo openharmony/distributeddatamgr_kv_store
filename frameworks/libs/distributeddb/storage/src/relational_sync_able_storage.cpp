@@ -40,10 +40,10 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 }
 }
 
-#define CHECK_STORAGE_ENGINE do {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
+#define CHECK_STORAGE_ENGINE do { \
+    if (storageEngine_ == nullptr) { \
+        return -E_INVALID_DB; \
+    } \
 } while (0)
 
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)
@@ -857,7 +857,7 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
     if (errCode == -E_NOT_FOUND) {
         LOGW("Get remote device schema miss cached.");
         std::string keyStr = DBConstant::REMOTE_DEVICE_SCHEMA_KEY_PREFIX + DBCommon::TransferHashString(deviceId);
-        Key remoteSchemaKey(keyStr.begin(), keyStr.end());\
+        Key remoteSchemaKey(keyStr.begin(), keyStr.end());
         Value remoteSchemaBuff;
         errCode = GetMetaData(remoteSchemaKey, remoteSchemaBuff);
         if (errCode != E_OK) {
