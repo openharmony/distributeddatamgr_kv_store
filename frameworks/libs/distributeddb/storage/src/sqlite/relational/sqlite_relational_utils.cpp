@@ -107,9 +107,6 @@ int SQLiteRelationalUtils::GetCloudValueByType(sqlite3_stmt *statement, int type
             cloudValue = blobValue;
             break;
         }
-        case SQLITE_NULL: {
-            break;
-        }
         case SQLITE3_TEXT: {
             bool isBlob = (type == TYPE_INDEX<Bytes> || type == TYPE_INDEX<Asset> || type == TYPE_INDEX<Assets>);
             if (isBlob) {
@@ -126,8 +123,9 @@ int SQLiteRelationalUtils::GetCloudValueByType(sqlite3_stmt *statement, int type
             cloudValue = str;
             break;
         }
-        default:
-            break;
+        default: {
+            cloudValue = Nil();
+        }
     }
     return E_OK;
 }

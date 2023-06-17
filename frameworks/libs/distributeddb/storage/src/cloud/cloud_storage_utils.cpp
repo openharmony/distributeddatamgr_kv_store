@@ -153,9 +153,11 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
         if (!(IsFieldValid(field, errCode))) {
             goto ERROR;
         }
-        errCode = RebuildFillAsset(asset);
         if (errCode == E_OK) {
-            RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+            errCode = RebuildFillAsset(asset);
+            if (errCode == E_OK) {
+                RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+            }
         }
     } else {
         Assets assets;
@@ -163,14 +165,17 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
         if (!(IsFieldValid(field, errCode))) {
             goto ERROR;
         }
-        RebuildFillAssets(assets);
-        if (assets.empty()) {
-            errCode = -E_NOT_FOUND;
-        } else {
-            RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+        if (errCode == E_OK) {
+            RebuildFillAssets(assets);
+            if (assets.empty()) {
+                errCode = -E_NOT_FOUND;
+            } else {
+                RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+            }
         }
     }
-    if (errCode == -E_NOT_FOUND) {
+    if (errCode == -E_NOT_FOUND || (errCode == -E_CLOUD_ERROR &&
+        vBucket.at(field.colName).index() == TYPE_INDEX<Nil>)) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
         errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
@@ -302,28 +307,18 @@ int CloudStorageUtils::RebuildFillAsset(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     AssetStatus status = static_cast<AssetStatus>(asset.status);
-    switch (status) {
-        case AssetStatus::ABNORMAL:
-        case AssetStatus::DOWNLOADING: {
-            if (flag == AssetOpType::INSERT) {
-                Asset insAsset;
-                insAsset.name = asset.name;
-                insAsset.status = asset.status;
-                insAsset.timestamp = asset.timestamp;
-                asset = insAsset;
-            }
-            break;
-        }
-        case AssetStatus::INSERT:
-        case AssetStatus::UPDATE: {
+    switch (StatusToFlag(status)) {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE: {
             asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
             break;
         }
-        case AssetStatus::DELETE: {
+        case AssetOpType::DELETE: {
             return -E_NOT_FOUND;
         }
-        default:
-            break;
+        default: {
+            return FillAssetForDownload(status, flag, asset);
+        }
     }
     return E_OK;
 }
@@ -331,10 +326,7 @@ int CloudStorageUtils::RebuildFillAsset(Asset &asset)
 void CloudStorageUtils::RebuildFillAssets(Assets &assets)
 {
     for (auto asset = assets.begin(); asset != assets.end();) {
-        RebuildFillAsset(*asset);
-        AssetOpType flag = static_cast<AssetOpType>(asset->flag);
-        AssetStatus status = static_cast<AssetStatus>(asset->status);
-        if ((flag == AssetOpType::DELETE && status == AssetStatus::NORMAL) || status == AssetStatus::DELETE) {
+        if (RebuildFillAsset(*asset) == -E_NOT_FOUND) {
             asset = assets.erase(asset);
         } else {
             asset++;
@@ -390,5 +382,54 @@ void CloudStorageUtils::ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &
             asset.insert_or_assign(item.first, data);
         }
     }
+}
+
+AssetOpType CloudStorageUtils::StatusToFlag(AssetStatus status)
+{
+    switch (status) {
+        case AssetStatus::INSERT:
+            return AssetOpType::INSERT;
+        case AssetStatus::DELETE:
+            return AssetOpType::DELETE;
+        case AssetStatus::UPDATE:
+            return AssetOpType::UPDATE;
+        default:
+            return AssetOpType::NO_CHANGE;
+    }
+}
+
+AssetStatus CloudStorageUtils::FlagToStatus(AssetOpType opType)
+{
+    switch (opType) {
+        case AssetOpType::INSERT:
+            return AssetStatus::INSERT;
+        case AssetOpType::DELETE:
+            return AssetStatus::DELETE;
+        case AssetOpType::UPDATE:
+            return AssetStatus::UPDATE;
+        default:
+            return AssetStatus::NORMAL;
+    }
+}
+
+int CloudStorageUtils::FillAssetForDownload(AssetStatus status, AssetOpType opType, Asset &asset)
+{
+    switch (opType) {
+        case AssetOpType::INSERT: {
+            if (status == AssetStatus::DOWNLOADING || status == AssetStatus::ABNORMAL) {
+                asset.hash = std::string("");
+            }
+            break;
+        }
+        case AssetOpType::DELETE: {
+            if (status == AssetStatus::NORMAL) {
+                return -E_NOT_FOUND;
+            }
+            break;
+        }
+        default:
+            break;
+    }
+    return E_OK;
 }
 }

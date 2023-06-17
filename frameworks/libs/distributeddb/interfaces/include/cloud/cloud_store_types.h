@@ -39,7 +39,7 @@ enum ClearMode {
 
 enum class AssetOpType {
     NO_CHANGE = 0,
-    INSERT = 3,
+    INSERT,
     DELETE,
     UPDATE
 };

@@ -807,11 +807,14 @@ std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
     }
     for (Field &field : fields) {
         if (data.find(field.colName) != data.end()) {
-            if (field.type == TYPE_INDEX<Asset>) {
+            if (field.type == TYPE_INDEX<Asset> && data[field.colName].index() == TYPE_INDEX<Asset>) {
                 assets[field.colName] = { std::get<Asset>(data[field.colName]) };
-                continue;
+            } else if (field.type == TYPE_INDEX<Assets> && data[field.colName].index() == TYPE_INDEX<Assets>) {
+                assets[field.colName] = std::get<Assets>(data[field.colName]);
+            } else {
+                Assets emptyAssets;
+                assets[field.colName] = emptyAssets;
             }
-            assets[field.colName] = std::get<Assets>(data[field.colName]);
         }
     }
     return assets;

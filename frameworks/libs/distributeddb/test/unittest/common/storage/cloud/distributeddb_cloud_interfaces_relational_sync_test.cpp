@@ -119,12 +119,12 @@ namespace {
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_LOCAL_TABLE_WITHOUT_PRIMARY_KEY_SQL), SQLITE_OK);
     }
 
-    void InsertUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count, int64_t photoSize)
+    void InsertUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull)
     {
         std::string photo(photoSize, 'v');
         int errCode;
         std::vector<uint8_t> assetBlob;
-        for (int64_t i = begin; i < count; ++i) {
+        for (int64_t i = begin; i < begin + count; ++i) {
             Asset asset = g_localAsset;
             asset.name = asset.name + std::to_string(i);
             RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
@@ -133,13 +133,17 @@ namespace {
                          "', '175.8', '0', '" + photo + "', ? , '18');";
             sqlite3_stmt *stmt = nullptr;
             ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-            if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
-                SQLiteUtils::ResetStatement(stmt, true, errCode);
+            if (assetIsNull) {
+                ASSERT_EQ(sqlite3_bind_null(stmt, 1), E_OK);
+            } else {
+                if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
+                    SQLiteUtils::ResetStatement(stmt, true, errCode);
+                }
             }
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        for (int64_t i = begin; i < count; ++i) {
+        for (int64_t i = begin; i < begin + count; ++i) {
             std::vector<Asset> assets;
             Asset asset = g_localAsset;
             asset.name = g_localAsset.name + std::to_string(i);
@@ -152,8 +156,12 @@ namespace {
                          + std::to_string(i) + "', '155.10', '"+ photo + "',  ? , '21');";
             sqlite3_stmt *stmt = nullptr;
             ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-            if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
-                SQLiteUtils::ResetStatement(stmt, true, errCode);
+            if (assetIsNull) {
+                ASSERT_EQ(sqlite3_bind_null(stmt, 1), E_OK);
+            } else {
+                if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
+                    SQLiteUtils::ResetStatement(stmt, true, errCode);
+                }
             }
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -231,13 +239,13 @@ namespace {
         }
     }
 
-    void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize)
+    void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull)
     {
         std::vector<uint8_t> photo(photoSize, 'v');
         std::vector<VBucket> record1;
         std::vector<VBucket> extend1;
         Timestamp now = TimeHelper::GetSysCurrentTime();
-        for (int64_t i = begin; i < count; ++i) {
+        for (int64_t i = begin; i < begin + count; ++i) {
             VBucket data;
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
             data.insert_or_assign("height", 166.0); // 166.0 is random double value
@@ -245,7 +253,7 @@ namespace {
             data.insert_or_assign("photo", photo);
             Asset asset = g_cloudAsset;
             asset.name = asset.name + std::to_string(i);
-            data.insert_or_assign("assert", asset);
+            assetIsNull ? data.insert_or_assign("assert", Nil()) : data.insert_or_assign("assert", asset);
             data.insert_or_assign("age", 13L);
             record1.push_back(data);
             VBucket log;
@@ -258,7 +266,7 @@ namespace {
 
         std::vector<VBucket> record2, extend2;
         now = TimeHelper::GetSysCurrentTime();
-        for (int64_t i = begin; i < count; ++i) {
+        for (int64_t i = begin; i < begin + count; ++i) {
             VBucket data;
             data.insert_or_assign("id", i);
             data.insert_or_assign("name", "Cloud" + std::to_string(i));
@@ -270,7 +278,7 @@ namespace {
                 asset.name = g_cloudAsset.name + std::to_string(j);
                 assets.push_back(asset);
             }
-            data.insert_or_assign("asserts", assets);
+            assetIsNull ? data.insert_or_assign("asserts", Nil()) : data.insert_or_assign("asserts", assets);
             data.insert_or_assign("age", 28L);
             record2.push_back(data);
             VBucket log;
@@ -296,7 +304,7 @@ namespace {
         } else if (opType == AssetOpType::INSERT) {
             asset.name = "Test10";
         }
-        asset.status = static_cast<uint32_t>(opType);
+        asset.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(opType));
         sqlite3_stmt *stmt = nullptr;
         RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
         ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
@@ -313,24 +321,24 @@ namespace {
         Asset asset2 = g_localAsset;
         Assets assets;
         asset1.name = g_localAsset.name + std::to_string(rowid);
-        asset1.status = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        asset1.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(AssetOpType::NO_CHANGE));
         asset2.name = g_localAsset.name + std::to_string(rowid + 1);
-        asset2.status = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        asset2.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(AssetOpType::NO_CHANGE));
         if (opType == AssetOpType::UPDATE) {
             assets.push_back(asset1);
             asset2.uri = "/data/test";
-            asset2.status = static_cast<uint32_t>(opType);
+            asset2.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(opType));
             assets.push_back(asset2);
         } else if (opType == AssetOpType::INSERT) {
             assets.push_back(asset1);
             assets.push_back(asset2);
             Asset asset3;
-            asset3.status = static_cast<uint32_t>(opType);
+            asset3.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(opType));
             asset3.name = "Test10";
             assets.push_back(asset3);
         } else if (opType == AssetOpType::DELETE) {
             assets.push_back(asset1);
-            asset2.status = static_cast<uint32_t>(opType);
+            asset2.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(opType));
             assets.push_back(asset2);
         } else {
             assets.push_back(asset1);
@@ -988,8 +996,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
     }
     g_observer->SetExpectedResult(changedDataForTable1);
     g_observer->SetExpectedResult(changedDataForTable2);
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, localCount, expectProcess);
@@ -1018,8 +1026,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestS
     int64_t localCount = 20;
     int64_t cloudCount = 10;
     int64_t paddingSize = 100;
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest2(cloudCount, localCount, expectProcess);
@@ -1045,8 +1053,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, cloudCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, cloudCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, cloudCount, expectProcess);
@@ -1104,8 +1112,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
     int64_t paddingSize = 1024 * 8;
     vector<thread> threads;
     int cloudCount = 1024;
-    threads.emplace_back(InsertCloudTableRecord, 0, cloudCount, paddingSize);
-    threads.emplace_back(InsertUserTableRecord, std::ref(db), 0, cloudCount, paddingSize);
+    threads.emplace_back(InsertCloudTableRecord, 0, cloudCount, paddingSize, false);
+    threads.emplace_back(InsertUserTableRecord, std::ref(db), 0, cloudCount, paddingSize, false);
     for (auto &thread: threads) {
         thread.join();
     }
@@ -1160,8 +1168,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestS
     }
     g_observer->SetExpectedResult(changedDataForTable1);
     g_observer->SetExpectedResult(changedDataForTable2);
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, cloudCount / g_arrayHalfSub, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, cloudCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
@@ -1205,8 +1213,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest007, TestS
 {
     int64_t paddingSize = 100;
     int localCount = 20;
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
-    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
@@ -1245,8 +1253,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestS
 {
     int64_t paddingSize = 10;
     int cloudCount = 20;
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, cloudCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, cloudCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, cloudCount, expectProcess);
@@ -1273,8 +1281,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, Test
     int64_t paddingSize = 10;
     int cloudCount = 20;
     int localCount = 10;
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
@@ -1339,6 +1347,43 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestS
     EXPECT_EQ(callCount, 2); // 2 is onProcess count
 }
 
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestSize.Level0)
+{
+    int64_t localCount = 20;
+    int64_t cloudCount = 10;
+    int64_t paddingSize = 10;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    InsertCloudTableRecord(localCount + cloudCount, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, localCount + cloudCount, localCount, paddingSize, true);
+    syncProcess = {};
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    InsertCloudTableRecord(2 * (localCount + cloudCount), cloudCount, paddingSize, false); // 2 is offset
+    InsertUserTableRecord(db, 2 * (localCount + cloudCount), localCount, paddingSize, false); // 2 is offset
+    syncProcess = {};
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    InsertCloudTableRecord(3 * (localCount + cloudCount), cloudCount, paddingSize, true); // 3 is offset
+    InsertUserTableRecord(db, 3 * (localCount + cloudCount), localCount, paddingSize, true); // 3 is offset
+    syncProcess = {};
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+}
+
 /*
  * @tc.name: DataNotifier001
  * @tc.desc: Notify data without primary key
@@ -1371,8 +1416,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, 
 {
     int64_t paddingSize = 100;
     int localCount = 20;
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
-    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     SyncProcess syncProcess;
@@ -1398,8 +1443,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest001, 
     int64_t paddingSize = 10;
     int localCount = 10;
     int cloudCount = 20;
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
@@ -1427,8 +1472,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, 
     int64_t paddingSize = 10;
     int localCount = 10;
     int cloudCount = 20;
-    InsertCloudTableRecord(0, cloudCount, paddingSize);
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);

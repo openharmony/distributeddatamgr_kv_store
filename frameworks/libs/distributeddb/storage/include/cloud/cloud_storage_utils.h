@@ -50,6 +50,9 @@ public:
     static int CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
         std::vector<Field> &fields);
     static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
+    static AssetOpType StatusToFlag(AssetStatus status);
+    static AssetStatus FlagToStatus(AssetOpType opType);
+    static int FillAssetForDownload(AssetStatus status, AssetOpType opType, Asset &asset);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
