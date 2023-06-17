@@ -1619,8 +1619,8 @@ int CloudSyncer::CheckParamValid(const std::vector<DeviceID> &devices, SyncMode 
         return -E_INVALID_ARGS;
     }
     for (const auto &dev: devices) {
-        if (dev.size() == 0) {
-            LOGE("[CloudSyncer] invalid devices");
+        if (dev.empty() || dev.size() > DBConstant::MAX_DEV_LENGTH) {
+            LOGE("[CloudSyncer] invalid device, size %zu", dev.size());
             return -E_INVALID_ARGS;
         }
     }
