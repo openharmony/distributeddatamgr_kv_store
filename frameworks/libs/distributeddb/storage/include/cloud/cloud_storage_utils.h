@@ -45,10 +45,11 @@ public:
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
-    static void UpdateAssetByFlag(Asset &asset);
-    static void UpdateAssetsByFlag(Assets &assets);
+    static int RebuildFillAsset(Asset &asset);
+    static void RebuildFillAssets(Assets &assets);
     static int CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
         std::vector<Field> &fields);
+    static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

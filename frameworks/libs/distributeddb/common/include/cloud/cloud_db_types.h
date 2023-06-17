@@ -24,6 +24,8 @@ struct CloudSyncBatch {
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     std::vector<int64_t> rowid;
+    std::vector<int64_t> timestamp;
+    std::vector<VBucket> assets;
 };
 
 struct CloudSyncData {

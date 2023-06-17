@@ -79,7 +79,9 @@ public:
 
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 
-    int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace);
+    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace);
+
+    int FillCloudAssetForUpload(const CloudSyncData &data);
 
 protected:
     void Init();

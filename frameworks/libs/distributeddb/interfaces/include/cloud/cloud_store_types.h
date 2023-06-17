@@ -39,7 +39,7 @@ enum ClearMode {
 
 enum class AssetOpType {
     NO_CHANGE = 0,
-    INSERT,
+    INSERT = 3,
     DELETE,
     UPDATE
 };
@@ -48,7 +48,7 @@ enum class AssetStatus {
     NORMAL = 0,
     DOWNLOADING,
     ABNORMAL,
-    INSERT,
+    INSERT, // INSERT/DELETE/UPDATE are for client use
     DELETE,
     UPDATE
 };

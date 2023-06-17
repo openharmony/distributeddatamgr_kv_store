@@ -91,7 +91,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogRowid(const std::string
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetFillAssetStatement(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(const std::string &tableName,
     const VBucket &vBucket, const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement)
 {
     std::string sql = "UPDATE " + tableName + " SET ";
@@ -141,7 +141,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAsset(const TableSchema &
     if (errCode != E_OK) {
         goto END;
     }
-    errCode = GetFillAssetStatement(tableSchema.name, vBucket, assetsField, isFullReplace, stmt);
+    errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, isFullReplace, stmt);
     if (errCode != E_OK) {
         goto END;
     }
@@ -162,6 +162,80 @@ END:
     errCode = SetLogTriggerStatus(true);
     if (errCode != E_OK) {
         LOGE("Fail to set log trigger off, %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const CloudSyncData &data)
+{
+    if (data.updData.assets.empty() || data.updData.rowid.empty() || data.updData.timestamp.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    if (data.updData.assets.size() != data.updData.rowid.size() ||
+        data.updData.assets.size() != data.updData.timestamp.size()) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        LOGE("Fail to set log trigger off, %d", errCode);
+        return errCode;
+    }
+    sqlite3_stmt *stmt = nullptr;
+    for (size_t i = 0; i < data.updData.assets.size(); ++i) {
+        errCode = GetFillUploadAssetStatement(data.tableName, data.updData.assets[i], stmt);
+        if (errCode != E_OK) {
+            goto END;
+        }
+        int64_t rowid = data.updData.rowid[i];
+        errCode = SQLiteUtils::BindInt64ToStatement(stmt, data.updData.assets[i].size() + 1, rowid);
+        if (errCode != E_OK) {
+            break;
+        }
+        int64_t timeStamp = data.updData.timestamp[i];
+        errCode = SQLiteUtils::BindInt64ToStatement(stmt, data.updData.assets[i].size() + 2, timeStamp); // 2 is index
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = SQLiteUtils::StepWithRetry(stmt, false);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            SQLiteUtils::ResetStatement(stmt, false, errCode);
+        } else {
+            LOGE("Fill upload asset failed:%d", errCode);
+            break;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    END:
+    int endCode = SetLogTriggerStatus(true);
+    if (endCode != E_OK) {
+        LOGE("Fail to set log trigger off, %d", endCode);
+    }
+    return errCode;
+}
+int SQLiteSingleVerRelationalStorageExecutor::GetFillUploadAssetStatement(const std::string &tableName,
+    const VBucket &vBucket, sqlite3_stmt *&statement)
+{
+    std::string sql = "UPDATE " + tableName + " SET ";
+    for (const auto &item: vBucket) {
+        sql += item.first + " = ?,";
+    }
+    sql.pop_back();
+    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(tableName) + " WHERE timestamp = ?);";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int index = 1;
+    for (const auto &item: vBucket) {
+        Field field = {
+            .colName = item.first, .type = static_cast<int32_t>(item.second.index())
+        };
+        errCode = bindCloudFieldFuncMap_[item.second.index()](index++, vBucket, field, statement);
+        if (errCode != E_OK) {
+            SQLiteUtils::ResetStatement(statement, true, errCode);
+            return errCode;
+        }
     }
     return errCode;
 }

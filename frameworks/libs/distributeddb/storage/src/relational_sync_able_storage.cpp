@@ -1124,7 +1124,8 @@ int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, T
     return schemaMgr_.GetCloudTableSchema(tableName, tableSchema);
 }
 
-int RelationalSyncAbleStorage::FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace)
+int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset,
+    bool isFullReplace)
 {
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
@@ -1147,6 +1148,33 @@ int RelationalSyncAbleStorage::FillCloudAsset(const std::string &tableName, VBuc
         return errCode;
     }
     errCode = writeHandle->FillCloudAsset(tableSchema, asset, isFullReplace);
+    if (errCode != E_OK) {
+        writeHandle->Rollback();
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->Commit();
+    ReleaseHandle(writeHandle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::FillCloudAssetForUpload(const CloudSyncData &data)
+{
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    int errCode = E_OK;
+    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
+            storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+    if (writeHandle == nullptr) {
+        return errCode;
+    }
+    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseHandle(writeHandle);
+        return errCode;
+    }
+    errCode = writeHandle->FillCloudAssetForUpload(data);
     if (errCode != E_OK) {
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);

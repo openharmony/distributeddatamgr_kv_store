@@ -186,7 +186,8 @@ public:
 
     void initFullCloudSyncData(CloudSyncData &uploadData, int size)
     {
-        VBucket tmp = {std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1)};
+        VBucket tmp = {std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+                       std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1)};
         uploadData.insData.record = std::vector<VBucket>(size, tmp);
         uploadData.insData.extend = std::vector<VBucket>(size, tmp);
         uploadData.updData.record = std::vector<VBucket>(size, tmp);
