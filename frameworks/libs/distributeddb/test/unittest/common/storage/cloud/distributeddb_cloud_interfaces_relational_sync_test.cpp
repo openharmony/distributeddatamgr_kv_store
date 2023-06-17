@@ -16,10 +16,12 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "distributeddb_tools_unit_test.h"
+#include "cloud/cloud_storage_utils.h"
 #include "relational_store_manager.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "relational_store_instance.h"
 #include "sqlite_relational_store.h"
+#include "sqlite_relational_utils.h"
 #include "store_observer.h"
 #include "log_table_manager_factory.h"
 #include "cloud_db_constant.h"
@@ -280,6 +282,140 @@ namespace {
         ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName2, std::move(record2), extend2), DBStatus::OK);
         LOGD("insert cloud record worker1[primary key]:[cloud%d - cloud%d) , worker2[primary key]:[%d - %d)",
             begin, count, begin, count);
+    }
+
+    void UpdateAssetForTest(sqlite3 *&db, AssetOpType opType, int64_t cloudCount, int64_t rowid)
+    {
+        string sql = "UPDATE " + g_tables[0] + " SET assert = ? where rowid = '" + std::to_string(rowid) + "';";
+        std::vector<uint8_t> assetBlob;
+        int errCode;
+        Asset asset = g_cloudAsset;
+        asset.name = "Phone" + std::to_string(rowid - cloudCount - 1);
+        if (opType == AssetOpType::UPDATE) {
+            asset.uri = "/data/test";
+        } else if (opType == AssetOpType::INSERT) {
+            asset.name = "Test10";
+        }
+        asset.status = static_cast<uint32_t>(opType);
+        sqlite3_stmt *stmt = nullptr;
+        RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+        if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) == E_OK) {
+            EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+        }
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void UpdateAssetsForTest(sqlite3 *&db, AssetOpType opType, int64_t rowid)
+    {
+        string sql = "UPDATE " + g_tables[1] + " SET asserts = ? where rowid = '" + std::to_string(rowid) + "';";
+        Asset asset1 = g_localAsset;
+        Asset asset2 = g_localAsset;
+        Assets assets;
+        asset1.name = g_localAsset.name + std::to_string(rowid);
+        asset1.status = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        asset2.name = g_localAsset.name + std::to_string(rowid + 1);
+        asset2.status = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        if (opType == AssetOpType::UPDATE) {
+            assets.push_back(asset1);
+            asset2.uri = "/data/test";
+            asset2.status = static_cast<uint32_t>(opType);
+            assets.push_back(asset2);
+        } else if (opType == AssetOpType::INSERT) {
+            assets.push_back(asset1);
+            assets.push_back(asset2);
+            Asset asset3;
+            asset3.status = static_cast<uint32_t>(opType);
+            asset3.name = "Test10";
+            assets.push_back(asset3);
+        } else if (opType == AssetOpType::DELETE) {
+            assets.push_back(asset1);
+            asset2.status = static_cast<uint32_t>(opType);
+            assets.push_back(asset2);
+        } else {
+            assets.push_back(asset1);
+            assets.push_back(asset2);
+        }
+        sqlite3_stmt *stmt = nullptr;
+        std::vector<uint8_t> assetsBlob;
+        RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob);
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+        if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetsBlob, false) == E_OK) {
+            EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void CheckFillAssetForTest10(sqlite3 *&db)
+    {
+        std::string sql = "SELECT assert from " + g_tables[0] + " WHERE rowid in ('27','28','29','30');";
+        sqlite3_stmt *stmt = nullptr;
+        int index = 0;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+        int suffixId = 6;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            if (index == 0 || index == 1 || index == 3) { // 3 is rowid index of 29
+                ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+                Type cloudValue;
+                ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Asset>, 0, cloudValue), E_OK);
+                std::vector<uint8_t> assetBlob;
+                Asset asset;
+                ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetBlob), E_OK);
+                ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(assetBlob, asset), E_OK);
+                ASSERT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+                if (index == 0) {
+                    ASSERT_EQ(asset.name, g_cloudAsset.name + std::to_string(suffixId + index));
+                } else if (index == 1) {
+                    ASSERT_EQ(asset.name, "Test10");
+                } else {
+                    ASSERT_EQ(asset.name, g_cloudAsset.name + std::to_string(suffixId + index));
+                    ASSERT_EQ(asset.uri, "/data/test");
+                }
+            } else {
+                ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
+            }
+            index++;
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void CheckFillAssetsForTest10(sqlite3 *&db)
+    {
+        std::string sql = "SELECT asserts from " + g_tables[1] + " WHERE rowid in ('0','1','2','3');";
+        sqlite3_stmt *stmt = nullptr;
+        int index = 0;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+        int insertIndex = 2;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+            Type cloudValue;
+            ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+            std::vector<uint8_t> assetsBlob;
+            Assets assets;
+            ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
+            if (index == 0) {
+                ASSERT_EQ(assets.size(), 2u);
+                ASSERT_EQ(assets[0].name, g_localAsset.name + std::to_string(index));
+                ASSERT_EQ(assets[1].name, g_localAsset.name + std::to_string(index + 1));
+            } else if (index == 1) {
+                ASSERT_EQ(assets.size(), 3u);
+                ASSERT_EQ(assets[insertIndex].name, "Test10");
+                ASSERT_EQ(assets[insertIndex].status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            } else if (index == 2) { // 2 is the third element
+                ASSERT_EQ(assets.size(), 1u);
+                ASSERT_EQ(assets[0].name, g_cloudAsset.name + std::to_string(index));
+            } else {
+                ASSERT_EQ(assets.size(), 2u);
+                ASSERT_EQ(assets[1].uri, "/data/test");
+                ASSERT_EQ(assets[1].status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            }
+            index++;
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
     int QueryCountCallback(void *data, int count, char **colValue, char **colName)
@@ -680,10 +816,46 @@ namespace {
         }
     }
 
+    void CheckAssetsAfterDownload(sqlite3 *&db, int64_t localCount)
+    {
+        string queryDownload = "select asserts from " + g_tables[1] + " where rowid in (";
+        for (int64_t i = 0; i < localCount; ++i) {
+            queryDownload +=  "'" + std::to_string(i) + "',";
+        }
+        queryDownload.pop_back();
+        queryDownload += ");";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, queryDownload, stmt), E_OK);
+        int index = 0;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            std::vector<uint8_t> blobValue;
+            ASSERT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue), E_OK);
+            Assets assets;
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets), E_OK);
+            bool isLocal = index >= localCount / g_arrayHalfSub;
+            Asset baseAsset = isLocal ? g_localAsset : g_cloudAsset;
+            int nameIndex = index;
+            for (const auto &asset: assets) {
+                EXPECT_EQ(asset.version, baseAsset.version);
+                EXPECT_EQ(asset.name, baseAsset.name + std::to_string(nameIndex));
+                EXPECT_EQ(asset.uri, baseAsset.uri);
+                EXPECT_EQ(asset.modifyTime, baseAsset.modifyTime);
+                EXPECT_EQ(asset.createTime, baseAsset.createTime);
+                EXPECT_EQ(asset.size, baseAsset.size);
+                EXPECT_EQ(asset.hash, baseAsset.hash);
+                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+                nameIndex++;
+            }
+            index++;
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
     void CheckAssetAfterDownload(sqlite3 *&db, int64_t localCount)
     {
         string queryDownload = "select assert from " + g_tables[0] + " where rowid in (";
-        for (int64_t i = 1; i <= localCount; ++i) {
+        for (int64_t i = 0; i < localCount; ++i) {
             queryDownload +=  "'" + std::to_string(i) + "',";
         }
         queryDownload.pop_back();
@@ -709,6 +881,8 @@ namespace {
             EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
             index++;
         }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
@@ -732,7 +906,7 @@ namespace {
         RelationalStoreDelegate *delegate = nullptr;
     };
 
-
+    
     void DistributedDBCloudInterfacesRelationalSyncTest::SetUpTestCase(void)
     {
         DistributedDBToolsUnitTest::TestDirInit(g_testDir);
@@ -1043,6 +1217,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest007, TestS
 
     CheckAssetAfterDownload(db, localCount);
     CheckAllAssetAfterUpload(localCount);
+    CheckAssetsAfterDownload(db, localCount);
 }
 
 /*
@@ -1091,6 +1266,43 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestS
     LOGD("--------------the second sync-------------");
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
+}
+
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int cloudCount = 20;
+    int localCount = 10;
+    InsertCloudTableRecord(0, cloudCount, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    int rowid = 27;
+    UpdateAssetForTest(db, AssetOpType::NO_CHANGE, cloudCount, rowid++);
+    UpdateAssetForTest(db, AssetOpType::INSERT, cloudCount, rowid++);
+    UpdateAssetForTest(db, AssetOpType::DELETE, cloudCount, rowid++);
+    UpdateAssetForTest(db, AssetOpType::UPDATE, cloudCount, rowid++);
+
+    int id = 0;
+    UpdateAssetsForTest(db, AssetOpType::NO_CHANGE, id++);
+    UpdateAssetsForTest(db, AssetOpType::INSERT, id++);
+    UpdateAssetsForTest(db, AssetOpType::DELETE, id++);
+    UpdateAssetsForTest(db, AssetOpType::UPDATE, id++);
+
+    syncProcess = {};
+    GetCallback(syncProcess, callback, expectProcess);
+    LOGD("--------------the second sync-------------");
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+    CheckFillAssetForTest10(db);
+    CheckFillAssetsForTest10(db);
 }
 
 /*

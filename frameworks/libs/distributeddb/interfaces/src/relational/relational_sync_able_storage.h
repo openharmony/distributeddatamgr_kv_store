@@ -159,7 +159,9 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         std::vector<Asset> &assets) override;
 
-    int FillCloudAsset(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
+    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
+
+    int FillCloudAssetForUpload(const CloudSyncData &data) override;
 
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,

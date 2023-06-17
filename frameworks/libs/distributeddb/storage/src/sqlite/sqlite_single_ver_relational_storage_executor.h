@@ -109,6 +109,8 @@ public:
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
 
+    int FillCloudAssetForUpload(const CloudSyncData &data);
+
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -187,8 +189,10 @@ private:
 
     int GetQueryLogRowid(const std::string &tableName, const VBucket &vBucket, int64_t &rowId);
 
-    int GetFillAssetStatement(const std::string &tableName, const VBucket &vBucket, const std::vector<Field> &fields,
-    bool isFullReplace, sqlite3_stmt *&statement);
+    int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
+        const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement);
+
+    int GetFillUploadAssetStatement(const std::string &tableName, const VBucket &vBucket, sqlite3_stmt *&statement);
 
     int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
 
@@ -241,8 +245,8 @@ private:
 
     DistributedTableMode mode_;
 
-    std::map<int, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
-    std::map<int, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
+    std::map<int32_t, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
+    std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
 };
 } // namespace DistributedDB
 #endif

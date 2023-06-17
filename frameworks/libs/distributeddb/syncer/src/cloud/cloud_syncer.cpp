@@ -659,13 +659,13 @@ int CloudSyncer::FillCloudAssets(
 {
     int ret = E_OK;
     if (!normalAssets.empty() && normalAssets.size() > 1) {
-        ret = storageProxy_->FillCloudAsset(tableName, normalAssets, true);
+        ret = storageProxy_->FillCloudAssetForDownload(tableName, normalAssets, true);
         if (ret != E_OK) {
             return ret;
         }
     }
     if (!failedAssets.empty() && failedAssets.size() > 1) {
-        ret = storageProxy_->FillCloudAsset(tableName, failedAssets, false);
+        ret = storageProxy_->FillCloudAssetForDownload(tableName, failedAssets, false);
         if (ret != E_OK) {
             return ret;
         }
@@ -1284,6 +1284,11 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
         errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
             uploadData.updData.extend, updateInfo);
         if (errCode != E_OK) {
+            return errCode;
+        }
+        errCode = storageProxy_->FillCloudAssetForUpload(uploadData);
+        if (errCode != E_OK) {
+            LOGE("Cannot fill cloud asset during upload procedure");
             return errCode;
         }
         innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;

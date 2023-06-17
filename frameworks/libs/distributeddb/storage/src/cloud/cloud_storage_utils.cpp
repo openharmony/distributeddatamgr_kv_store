@@ -153,16 +153,22 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
         if (!(IsFieldValid(field, errCode))) {
             goto ERROR;
         }
-        UpdateAssetByFlag(asset);
-        RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+        errCode = RebuildFillAsset(asset);
+        if (errCode == E_OK) {
+            RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+        }
     } else {
         Assets assets;
         errCode = GetValueFromVBucket(field.colName, vBucket, assets);
         if (!(IsFieldValid(field, errCode))) {
             goto ERROR;
         }
-        UpdateAssetsByFlag(assets);
-        RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+        RebuildFillAssets(assets);
+        if (assets.empty()) {
+            errCode = -E_NOT_FOUND;
+        } else {
+            RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+        }
     }
     if (errCode == -E_NOT_FOUND) {
         errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
@@ -292,24 +298,43 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
     return pkMap;
 }
 
-void CloudStorageUtils::UpdateAssetByFlag(Asset &asset)
+int CloudStorageUtils::RebuildFillAsset(Asset &asset)
 {
-    if (static_cast<AssetOpType>(asset.flag) == AssetOpType::INSERT &&
-        static_cast<AssetStatus>(asset.status) != AssetStatus::NORMAL) {
-        Asset insAsset;
-        insAsset.name = asset.name;
-        insAsset.status = asset.status;
-        insAsset.timestamp = asset.timestamp;
-        asset = insAsset;
+    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    switch (status) {
+        case AssetStatus::ABNORMAL:
+        case AssetStatus::DOWNLOADING: {
+            if (flag == AssetOpType::INSERT) {
+                Asset insAsset;
+                insAsset.name = asset.name;
+                insAsset.status = asset.status;
+                insAsset.timestamp = asset.timestamp;
+                asset = insAsset;
+            }
+            break;
+        }
+        case AssetStatus::INSERT:
+        case AssetStatus::UPDATE: {
+            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+            break;
+        }
+        case AssetStatus::DELETE: {
+            return -E_NOT_FOUND;
+        }
+        default:
+            break;
     }
+    return E_OK;
 }
 
-void CloudStorageUtils::UpdateAssetsByFlag(Assets &assets)
+void CloudStorageUtils::RebuildFillAssets(Assets &assets)
 {
     for (auto asset = assets.begin(); asset != assets.end();) {
-        UpdateAssetByFlag(*asset);
-        if (static_cast<AssetOpType>(asset->flag) == AssetOpType::DELETE
-            && static_cast<AssetStatus>(asset->status) == AssetStatus::NORMAL) {
+        RebuildFillAsset(*asset);
+        AssetOpType flag = static_cast<AssetOpType>(asset->flag);
+        AssetStatus status = static_cast<AssetStatus>(asset->status);
+        if ((flag == AssetOpType::DELETE && status == AssetStatus::NORMAL) || status == AssetStatus::DELETE) {
             asset = assets.erase(asset);
         } else {
             asset++;
@@ -352,5 +377,18 @@ bool CloudStorageUtils::IsContainsPrimaryKey(const TableSchema &tableSchema)
         }
     }
     return false;
+}
+
+void CloudStorageUtils::ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset)
+{
+    for (const auto &item: vBucket) {
+        if (item.second.index() == TYPE_INDEX<Asset>) {
+            Asset data = std::get<Asset>(item.second);
+            asset.insert_or_assign(item.first, data);
+        } else if (item.second.index() == TYPE_INDEX<Assets>) {
+            Assets data = std::get<Assets>(item.second);
+            asset.insert_or_assign(item.first, data);
+        }
+    }
 }
 }

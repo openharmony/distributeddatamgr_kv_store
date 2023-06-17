@@ -253,9 +253,7 @@ void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isFullReplac
         }
         vBucket["assert"] = asset;
         vBucket["asserts"] = assets;
-        ASSERT_EQ(g_storageProxy->StartTransaction(), E_OK);
-        ASSERT_EQ(g_storageProxy->FillCloudAsset(g_tableName, vBucket, isFullReplace), E_OK);
-        ASSERT_EQ(g_storageProxy->Rollback(), E_OK);
+        ASSERT_EQ(g_storageProxy->FillCloudAssetForDownload(g_tableName, vBucket, isFullReplace), E_OK);
     }
 }
 
@@ -1043,6 +1041,47 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, Tes
     fillCloudAssetTest(insCount, AssetStatus::NORMAL, true);
     fillCloudAssetTest(insCount, AssetStatus::DOWNLOADING, true);
     fillCloudAssetTest(insCount, AssetStatus::ABNORMAL, true);
+}
+
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, TestSize.Level1)
+{
+    int64_t insCount = 10;
+    int64_t photoSize = 10;
+    InitUserAndLogForAsset(insCount, photoSize);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT timestamp FROM " + DBCommon::GetLogTableName(g_tableName)
+        + " WHERE data_key = 1;", stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timeStamp = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+    CloudSyncData syncData(g_tableName);
+    syncData.updData.rowid.push_back(1L);
+    VBucket bucket1;
+    Asset asset = g_localAsset;
+    asset.size = "888";
+    asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+    asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
+    bucket1.insert_or_assign("assert", asset);
+    Assets assets;
+    assets.push_back(asset);
+    assets.push_back(asset);
+    bucket1.insert_or_assign("asserts", assets);
+    syncData.updData.assets.push_back(bucket1);
+    syncData.updData.timestamp.push_back(timeStamp);
+    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
+
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT assert, asserts FROM " + g_tableName + " WHERE rowid = 1;",
+        stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
+    ASSERT_EQ(sqlite3_column_type(stmt, 1), SQLITE_NULL);
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    sqlite3_close(db);
 }
 }
 #endif // RELATIONAL_STORE
