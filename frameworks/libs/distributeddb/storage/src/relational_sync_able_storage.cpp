@@ -40,10 +40,10 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 }
 }
 
-#define CHECK_STORAGE_ENGINE do { \
-    if (storageEngine_ == nullptr) { \
-        return -E_INVALID_DB; \
-    } \
+#define CHECK_STORAGE_ENGINE do {
+    if (storageEngine_ == nullptr) {
+        return -E_INVALID_DB;
+    }
 } while (0)
 
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)

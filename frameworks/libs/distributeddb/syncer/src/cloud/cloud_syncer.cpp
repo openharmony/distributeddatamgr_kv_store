@@ -629,9 +629,6 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &Cove
     // For every column contain asset or assets, assetFields are in context
     for (const Field &assetField : assetFields) {
         res[assetField.colName] = TagAssetsInSingleCol(CoveredData, BeCoveredData, assetField, WriteToCoveredData);
-        // if res == {}, 那么这一个资产列，就不要加入结果集了。
-        // If asset field == assets Type && BeCoveredAsset is from cloud,
-        // then, BeCoveredAsset will be put into CoverBucket
     }
     return res;
 }
@@ -872,7 +869,6 @@ void CloudSyncer::TagStatus(bool isExist, const TableName &tableName, size_t idx
         }
         prefix = pKVals[0];
     }
-    // TODO: return ret;
     switch (strategy)
     {
         case OpType::INSERT:
