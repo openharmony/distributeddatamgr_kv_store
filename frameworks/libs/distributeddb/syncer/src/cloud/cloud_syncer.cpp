@@ -1324,10 +1324,10 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     CloudWaterMark cloudWaterMark;
     {
         std::lock_guard<std::mutex> autoLock(contextLock_);
-        auto it =  currentContext_.cloudWaterMarks.find(tableName);
+        auto it = currentContext_.cloudWaterMarks.find(tableName);
         if (it == currentContext_.cloudWaterMarks.end()) {
-            LOGE("Cloud water mark do not exist %d", -E_NOT_FOUND);
-            return -E_NOT_FOUND;
+            LOGD("[CloudSyncer] Not found water mark just return");
+            return E_OK;
         }
         cloudWaterMark = currentContext_.cloudWaterMarks[tableName];
     }
