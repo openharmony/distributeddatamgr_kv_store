@@ -1324,10 +1324,10 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     CloudWaterMark cloudWaterMark;
     {
         std::lock_guard<std::mutex> autoLock(contextLock_);
-        auto it =  currentContext_.cloudWaterMarks.find(tableName);
+        auto it = currentContext_.cloudWaterMarks.find(tableName);
         if (it == currentContext_.cloudWaterMarks.end()) {
-            LOGE("Cloud water mark do not exist %d", -E_NOT_FOUND);
-            return -E_NOT_FOUND;
+            LOGD("[CloudSyncer] Not found water mark just return");
+            return E_OK;
         }
         cloudWaterMark = currentContext_.cloudWaterMarks[tableName];
     }
@@ -1619,8 +1619,8 @@ int CloudSyncer::CheckParamValid(const std::vector<DeviceID> &devices, SyncMode 
         return -E_INVALID_ARGS;
     }
     for (const auto &dev: devices) {
-        if (dev.size() == 0) {
-            LOGE("[CloudSyncer] invalid devices");
+        if (dev.empty() || dev.size() > DBConstant::MAX_DEV_LENGTH) {
+            LOGE("[CloudSyncer] invalid device, size %zu", dev.size());
             return -E_INVALID_ARGS;
         }
     }

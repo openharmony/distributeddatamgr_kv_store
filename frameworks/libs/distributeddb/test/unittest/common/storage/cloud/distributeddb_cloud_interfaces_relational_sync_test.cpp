@@ -1305,6 +1305,40 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, Test
     CheckFillAssetsForTest10(db);
 }
 
+/**
+ * @tc.name: CloudSyncTest011
+ * @tc.desc: Test sync with same table name.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest011, TestSize.Level0)
+{
+    Query query = Query::Select().FromTable({g_tableName1, g_tableName1});
+    bool syncFinish = false;
+    std::mutex syncMutex;
+    std::condition_variable cv;
+    std::atomic<int> callCount = 0;
+    CloudSyncStatusCallback callback = [&callCount, &cv, &syncFinish, &syncMutex](
+        const std::map<std::string, SyncProcess> &onProcess) {
+        ASSERT_NE(onProcess.find(DEVICE_CLOUD), onProcess.end());
+        SyncProcess syncProcess = onProcess.at(DEVICE_CLOUD);
+        callCount++;
+        if (syncProcess.process == FINISHED) {
+            std::lock_guard<std::mutex> autoLock(syncMutex);
+            syncFinish = true;
+        }
+        cv.notify_all();
+    };
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    std::unique_lock<std::mutex> uniqueLock(syncMutex);
+    cv.wait(uniqueLock, [&syncFinish]() {
+        return syncFinish;
+    });
+    RuntimeContext::GetInstance()->StopTaskPool();
+    EXPECT_EQ(callCount, 2); // 2 is onProcess count
+}
+
 /*
  * @tc.name: DataNotifier001
  * @tc.desc: Notify data without primary key
