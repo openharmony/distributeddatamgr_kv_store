@@ -943,8 +943,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestS
         auto asserts = item.find("asserts");
         ASSERT_NE(assert, item.end());
         ASSERT_NE(asserts, item.end());
-        EXPECT_EQ(assert->second.index(), static_cast<size_t>(TYPE_INDEX<Asset>));
-        EXPECT_EQ(asserts->second.index(), static_cast<size_t>(TYPE_INDEX<Assets>));
+        EXPECT_EQ(assert->second.index(), static_cast<size_t>(TYPE_INDEX<Nil>));
+        EXPECT_EQ(asserts->second.index(), static_cast<size_t>(TYPE_INDEX<Nil>));
     }
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }

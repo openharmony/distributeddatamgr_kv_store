@@ -1609,22 +1609,18 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
 
 int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue)
 {
-    if (field.type == TYPE_INDEX<Asset>) {
+    if (field.type == TYPE_INDEX<Asset> && cloudValue.index() == TYPE_INDEX<Bytes>) {
         Asset asset;
-        if (cloudValue.index() == TYPE_INDEX<Bytes>) {
-            int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
-            if (errCode != E_OK) {
-                return errCode;
-            }
+        int errCode = RuntimeContext::GetInstance()->BlobToAsset(std::get<Bytes>(cloudValue), asset);
+        if (errCode != E_OK) {
+            return errCode;
         }
         vBucket.insert_or_assign(field.colName, asset);
-    } else if (field.type == TYPE_INDEX<Assets>) {
+    } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
         Assets assets;
-        if (cloudValue.index() == TYPE_INDEX<Bytes>) {
-            int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
-            if (errCode != E_OK) {
-                return errCode;
-            }
+        int errCode = RuntimeContext::GetInstance()->BlobToAssets(std::get<Bytes>(cloudValue), assets);
+        if (errCode != E_OK) {
+            return errCode;
         }
         vBucket.insert_or_assign(field.colName, assets);
     } else {
