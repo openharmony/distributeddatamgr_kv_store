@@ -1050,7 +1050,12 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck016, TestSize.Level1
         return E_OK;
     });
     ExpectCallForTestCase016(idb, uploadData);
-    EXPECT_EQ(cloudSyncer.CallDoUpload(8u), -E_INTERNAL_ERROR);
+    EXPECT_EQ(cloudSyncer.CallDoUpload(8u), E_OK);
+    EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillOnce(Return(-E_INVALID_DB));
+    EXPECT_EQ(cloudSyncer.CallDoUpload(8u), -E_INVALID_DB);
+
+    EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillOnce(Return(-E_INVALID_ARGS));
+    EXPECT_EQ(cloudSyncer.CallDoUpload(8u), -E_INVALID_ARGS);
     RuntimeContext::GetInstance()->StopTaskPool();
 
     storageProxy.reset();
