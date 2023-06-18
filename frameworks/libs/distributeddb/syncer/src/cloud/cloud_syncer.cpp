@@ -549,11 +549,11 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
     return res;
 }
 
-static std::unordered_map<std::string, Asset> GenAssetsMap(Assets &assets)
+static std::unordered_map<std::string, size_t> GenAssetsMap(Assets &assets)
 {
-    std::unordered_map<std::string, Asset> assetsMap;
-    for (const auto &asset : assets) {
-        assetsMap[asset.name] = asset;
+    std::unordered_map<std::string, size_t> assetsMap;
+    for (size_t i = 0; i < assets.size(); i++) {
+        assetsMap[assets[i].name] = i;
     }
     return assetsMap;
 }
@@ -581,7 +581,7 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
     }
     Assets &covered = std::get<Assets>(coveredData[assetFieldName]);
     Assets &beCovered = std::get<Assets>(beCoveredData[assetFieldName]);
-    std::unordered_map<std::string, Asset> CoveredAssetsMap = GenAssetsMap(covered);
+    std::unordered_map<std::string, size_t> CoveredAssetsMap = GenAssetsMap(covered);
     for (Asset &beCoveredAsset : beCovered) {
         auto it = CoveredAssetsMap.find(beCoveredAsset.name);
         if (it == CoveredAssetsMap.end()) {
@@ -591,7 +591,7 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
             }
             continue;
         }
-        Asset &coveredAsset = it->second;
+        Asset &coveredAsset = covered[it->second];
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, coveredAsset, res);
         }
@@ -601,7 +601,7 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
         continue;
     }
     for (auto &noHandledAssetKvPair : CoveredAssetsMap) {
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, noHandledAssetKvPair.second, res);
+        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, covered[noHandledAssetKvPair.second], res);
     }
     return res;
 }

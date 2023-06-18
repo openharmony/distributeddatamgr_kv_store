@@ -44,7 +44,7 @@ enum class AssetOpType {
     UPDATE
 };
 
-enum class AssetStatus {
+enum AssetStatus : uint32_t {
     NORMAL = 0,
     DOWNLOADING,
     ABNORMAL,

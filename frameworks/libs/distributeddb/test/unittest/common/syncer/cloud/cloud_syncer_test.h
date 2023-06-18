@@ -224,9 +224,9 @@ public:
     }
 
     std::map<std::string, Assets> TestTagAssetsInSingleRecord(
-        VBucket &CoveredData, VBucket &BeCoveredData)
+        VBucket &CoveredData, VBucket &BeCoveredData, bool WriteToCoveredData = false)
     {
-        return TagAssetsInSingleRecord(CoveredData, BeCoveredData, false);
+        return TagAssetsInSingleRecord(CoveredData, BeCoveredData, WriteToCoveredData);
     }
 
     void SetCloudWaterMarks(const TableName &tableName, const CloudWaterMark &mark)
