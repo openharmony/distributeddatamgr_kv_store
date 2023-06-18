@@ -523,4 +523,52 @@ namespace {
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
+
+
+    /**
+     * @tc.name: AssetCmpTest015
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest015, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_ASSET_SAME_NAME_BUT_CHANGE, DATA_BASELINE);
+        std::map<std::string, Assets> expectedList;
+        TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, a1Changed);
+        expectedList[FIELD_HOUSE] = { a1Changed };
+        expectedList[FIELD_CARS] = {};
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest016
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest016, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_BASELINE, DATA_ASSET_SAME_NAME_BUT_CHANGE);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::UPDATE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest017
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest017, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_BASELINE, DATA_ASSETS_SAME_NAME_PARTIALLY_CHANGED, true);
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::UPDATE));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+    }
 }
