@@ -577,6 +577,10 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
     if (!coveredHasAssets) {
         // all the element in assets will be set to DELETE
         TagAssets(AssetOpType::DELETE, AssetStatus::DOWNLOADING, std::get<Assets>(beCoveredData[assetFieldName]), res);
+        if (WriteToCoveredData) {
+            LOGD("Write assets to be deleted from beCoveredData to CoveredData");
+            coveredData[assetFieldName] = res;
+        }
         return res;
     }
     Assets &covered = std::get<Assets>(coveredData[assetFieldName]);
