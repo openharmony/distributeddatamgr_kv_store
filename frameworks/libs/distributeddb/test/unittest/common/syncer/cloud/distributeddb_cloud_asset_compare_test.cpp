@@ -571,4 +571,37 @@ namespace {
         EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::UPDATE));
         EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
     }
+
+    /**
+     * @tc.name: AssetCmpTest018
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest018, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_BASELINE, DATA_EMPTY, true);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest019
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest019, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_EMPTY, DATA_BASELINE, true);
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+    }
 }
