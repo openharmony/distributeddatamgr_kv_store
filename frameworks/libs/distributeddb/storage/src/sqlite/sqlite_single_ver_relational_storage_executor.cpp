@@ -2086,37 +2086,38 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
     const AssetField &assetField, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
+    int ret = E_OK;
+    sqlite3_stmt *selectStmt = nullptr;
     for (const auto &rowId: datakeys) {
         std::string queryAssetsSql = "SELECT " + assetField.field.colName + " FROM " + tableName +
             " WHERE " + ROWID + " = " + std::to_string(rowId) + ";";
-        sqlite3_stmt *selectStmt = nullptr;
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
         if (errCode != E_OK) {
             LOGE("Get select assets statement failed, %d", errCode);
-            SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-            return errCode;
+            goto END;
         }
         errCode = SQLiteUtils::StepWithRetry(selectStmt);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
             std::vector<uint8_t> blobValue;
             errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, assetField.index, blobValue);
             if (errCode != E_OK) {
-                return errCode;
-                SQLiteUtils::ResetStatement(selectStmt, true, errCode);
+                goto END;
             }
             Assets tmpAssets;
             errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, tmpAssets);
             if (errCode != E_OK) {
-                SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-                return errCode;
+                goto END;
             }
             for (const auto &asset: tmpAssets) {
                 assets.push_back(asset);
             }
         }
-        SQLiteUtils::ResetStatement(selectStmt, true, errCode);
+        SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
+END:
+    SQLiteUtils::ResetStatement(selectStmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &tableName,
@@ -2185,7 +2186,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(const std::string 
         LOGE("Get insert statement failed when save cloud data, %d", errCode);
         return errCode;
     }
-
+    CloudStorageUtils::FillAssetFromVBucketBeforeDownload(vBucket);
     errCode = BindValueToUpsertStatement(vBucket, tableSchema.fields, insertStmt);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(insertStmt, true, errCode);
@@ -2446,9 +2447,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(const std::string &tableName, const VBucket &vBucket,
+int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(const std::string &tableName, VBucket &vBucket,
     const TableSchema &tableSchema)
 {
+    CloudStorageUtils::FillAssetFromVBucketBeforeDownload(vBucket);
     sqlite3_stmt *updateStmt = nullptr;
     int errCode = GetUpdateDataTableStatement(vBucket, tableSchema, updateStmt);
     if (errCode != E_OK) {

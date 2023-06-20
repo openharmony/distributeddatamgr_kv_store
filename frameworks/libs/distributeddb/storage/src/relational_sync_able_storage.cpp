@@ -1147,7 +1147,7 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
         LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
         return errCode;
     }
-    errCode = writeHandle->FillCloudAsset(tableSchema, asset, isFullReplace);
+    errCode = writeHandle->FillCloudAssetForDownload(tableSchema, asset, isFullReplace);
     if (errCode != E_OK) {
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);
