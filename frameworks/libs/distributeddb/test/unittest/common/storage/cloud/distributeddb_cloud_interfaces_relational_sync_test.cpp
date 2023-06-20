@@ -1478,7 +1478,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestS
 {
     int64_t paddingSize = 10;
     int localCount = 10;
-    InsertUserTableRecord(db, 0, localCount, paddingSize);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForMannualSync1(expectProcess);
