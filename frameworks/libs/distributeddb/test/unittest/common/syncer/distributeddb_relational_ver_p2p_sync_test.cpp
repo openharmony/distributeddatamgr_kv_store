@@ -21,12 +21,14 @@
 #include "distributeddb_tools_unit_test.h"
 #include "isyncer.h"
 #include "kv_virtual_device.h"
+#include "mock_sync_task_context.h"
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
 #include "relational_schema_object.h"
 #include "relational_store_manager.h"
 #include "relational_virtual_device.h"
 #include "runtime_config.h"
+#include "single_ver_sync_target.h"
 #include "virtual_relational_ver_sync_db_interface.h"
 
 using namespace testing::ext;
@@ -1754,6 +1756,59 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer005, TestSize.Level0)
     EXPECT_EQ(g_observer->GetCallCount(), 0u);
 }
 
+
+/*
+* @tc.name: relation observer 001
+* @tc.desc: Test observer is destructed when sync finish
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer006, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
+     * @tc.expected: step1. create and insert ok
+     */
+    g_observer->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB, g_deviceC});
+
+    /**
+     * @tc.steps: step2. device A pull sync mode
+     * @tc.expected: step2. sync ok
+     */
+    int count = 0;
+    PermissionCheckCallbackV2 callback = [&count](const std::string &userId, const std::string &appId,
+        const std::string &storeId, const std::string &deviceId, uint8_t flag) -> bool {
+        if ((flag == CHECK_FLAG_RECEIVE) && (count == 0)) {
+            for (int i = 0; i < 10; i++) { // 10 is capacity of thread pool
+                RuntimeContext::GetInstance()->ScheduleTask([] () {
+                    std::this_thread::sleep_for(std::chrono::seconds(6)); // sleep 6 seconds
+                });
+            }
+            count++;
+        }
+        return true;
+    };
+    EXPECT_EQ(RuntimeConfig::SetPermissionCheckCallback(callback), E_OK);
+
+    /**
+     * @tc.steps: step3. device A check observer
+     * @tc.expected: step2. data change device is deviceB
+     */
+    Query query = Query::Select(g_tableName);
+    g_rdbDelegatePtr->Sync({DEVICE_B}, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, false);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    ASSERT_EQ(g_mgr.CloseStore(g_rdbDelegatePtr), OK);
+    g_rdbDelegatePtr = nullptr;
+    delete g_observer;
+    g_observer = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10 second to wait sync finish
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+
 /**
 * @tc.name: remote query 001
 * @tc.desc: Test rdb remote query
@@ -2572,6 +2627,34 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSyncAfterRekey_002, Te
     std::this_thread::sleep_for(std::chrono::minutes(1));
     sqlite3_close(db);
     db = nullptr;
+}
+
+/**
+* @tc.name: AutoLaunchSyncAfterRekey_002
+* @tc.desc: Test AddSyncTarget will not cause heap_use_after_free
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, SyncTargetTest001, TestSize.Level1) {
+    MockSyncTaskContext syncTaskContext;
+    SyncOperation *operation = new SyncOperation(1, {}, 0, nullptr, false);
+    EXPECT_NE(operation, nullptr);
+    std::thread addTarget([&syncTaskContext, &operation]() {
+        auto *newTarget = new (std::nothrow) SingleVerSyncTarget;
+        EXPECT_NE(newTarget, nullptr);
+        newTarget->SetTaskType(ISyncTarget::REQUEST);
+        EXPECT_EQ(syncTaskContext.AddSyncTarget(newTarget), E_OK);
+        newTarget->SetSyncOperation(operation);
+    });
+
+    std::thread removeTarget([&syncTaskContext]() {
+        syncTaskContext.ClearAllSyncTask();
+    });
+    addTarget.join();
+    removeTarget.join();
+    syncTaskContext.ClearAllSyncTask();
+    RefObject::KillAndDecObjRef(operation);
 }
 }
 #endif

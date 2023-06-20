@@ -506,7 +506,7 @@ static bool IsDataContainField(const std::string &assetFieldName, VBucket &data)
     return true;
 }
 
-// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned 
+// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData)
 {
     Assets res = {};
@@ -558,7 +558,7 @@ static std::unordered_map<std::string, size_t> GenAssetsMap(Assets &assets)
     return assetsMap;
 }
 
-// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned 
+// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 // use VBucket rather than Type because we need to check whether it is empty
 static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
     bool WriteToCoveredData)
@@ -639,7 +639,7 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &Cove
 
 Assets CloudSyncer::TagAssetsInSingleCol(
     VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField, bool WriteToCoveredData)
-{   
+{
     // Define a list to store the tagged result
     Assets assets = {};
     switch (assetField.type) {
@@ -855,7 +855,7 @@ static bool IsSinglePrimaryKey(std::vector<std::string> &pKColNames)
 }
 
 void CloudSyncer::TagStatus(bool isExist, const TableName &tableName, size_t idx, DownloadData &downloadData,
-    std::vector<std::string> &pKColNames, DataInfoWithLog &localInfo, LogInfo &cloudLogInfo, VBucket &localAssetInfo, 
+    std::vector<std::string> &pKColNames, DataInfoWithLog &localInfo, LogInfo &cloudLogInfo, VBucket &localAssetInfo,
     AssetDownloadList &assetsDownloadList)
 {
     OpType strategy =
@@ -1204,10 +1204,7 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, std::vector<std::st
                 retryCnt++;
                 continue;
             }
-            {
-                std::lock_guard<std::mutex> autoLock(contextLock_);
-                currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
-            }
+            NotifyInEmptyDownload(taskId, info);
             break;
         }
         // Save data in transaction, update cloud water mark, notify process and changed data
@@ -1218,6 +1215,21 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, std::vector<std::st
         retryCnt = 0;
     }
     return E_OK;
+}
+
+void CloudSyncer::NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info)
+{
+    std::lock_guard<std::mutex> autoLock(contextLock_);
+    if (currentContext_.strategy->JudgeUpload()) {
+        currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
+    } else {
+        info.tableStatus = FINISHED;
+        if (cloudTaskInfos_[taskId].table.back() == info.tableName) {
+            currentContext_.notifier->UpdateProcess(info);
+        } else {
+            currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], info);
+        }
+    }
 }
 
 int CloudSyncer::PreCheckUpload(CloudSyncer::TaskId &taskId, const TableName &tableName, LocalWaterMark &localMark)

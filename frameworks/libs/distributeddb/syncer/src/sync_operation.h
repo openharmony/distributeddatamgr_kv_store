@@ -129,9 +129,12 @@ public:
 
     static DBStatus DBStatusTrans(int operationStatus);
 
+    void SetSyncContext(RefObject *context);
+
 protected:
     virtual ~SyncOperation();
 
+    RefObject *context_ = nullptr;
 private:
     DECLARE_OBJECT_TAG(SyncOperation);
 

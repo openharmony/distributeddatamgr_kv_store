@@ -52,7 +52,9 @@ RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingl
 {}
 
 RelationalSyncAbleStorage::~RelationalSyncAbleStorage()
-{}
+{
+    syncAbleEngine_ = nullptr;
+}
 
 // Get interface type of this relational db.
 int RelationalSyncAbleStorage::GetInterfaceType() const
@@ -1165,7 +1167,7 @@ int RelationalSyncAbleStorage::FillCloudAssetForUpload(const CloudSyncData &data
     }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-            storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
     if (writeHandle == nullptr) {
         return errCode;
     }
@@ -1183,6 +1185,11 @@ int RelationalSyncAbleStorage::FillCloudAssetForUpload(const CloudSyncData &data
     errCode = writeHandle->Commit();
     ReleaseHandle(writeHandle);
     return errCode;
+}
+
+void RelationalSyncAbleStorage::SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine)
+{
+    syncAbleEngine_ = syncAbleEngine;
 }
 }
 #endif

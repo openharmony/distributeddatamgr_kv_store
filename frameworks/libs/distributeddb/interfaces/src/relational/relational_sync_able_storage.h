@@ -23,6 +23,7 @@
 #include "cloud/schema_mgr.h"
 #include "sqlite_single_relational_storage_engine.h"
 #include "sqlite_single_ver_relational_continue_token.h"
+#include "sync_able_engine.h"
 
 namespace DistributedDB {
 using RelationalObserverAction =
@@ -163,6 +164,8 @@ public:
 
     int FillCloudAssetForUpload(const CloudSyncData &data) override;
 
+    void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
+
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -201,6 +204,7 @@ private:
 
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;
+    std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
 };
 }  // namespace DistributedDB
 #endif

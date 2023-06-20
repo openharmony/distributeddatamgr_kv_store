@@ -128,7 +128,7 @@ private:
     std::vector<std::string> GetAllDistributedTableName();
 
     // use for sync Interactive
-    std::unique_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
+    std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv
     RelationalSyncAbleStorage *storageEngine_ = nullptr; // For storage operate data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> sqliteStorageEngine_;

@@ -122,6 +122,8 @@ protected:
     int DoDownloadInner(CloudSyncer::TaskId taskId, std::vector<std::string> &colNames,
         InnerProcessInfo &info, CloudWaterMark &cloudWaterMark);
 
+    void NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info);
+
     int PreCheckUpload(TaskId &taskId, const TableName &tableName, LocalWaterMark &localMark);
 
     int PreCheck(TaskId &taskId, const TableName &tableName);

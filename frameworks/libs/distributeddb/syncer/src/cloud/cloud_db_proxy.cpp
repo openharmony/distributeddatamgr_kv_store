@@ -51,9 +51,6 @@ int CloudDBProxy::BatchInsert(const std::string &tableName, std::vector<VBucket>
     int errCode = InnerAction(context, cloudDb, INSERT);
     uploadInfo = context->GetInfo();
     context->MoveOutRecordAndExtend(record, extend);
-    if (errCode != E_OK) {
-        return -E_CLOUD_UPLOAD_FAILED;
-    }
     return errCode;
 }
 
@@ -70,9 +67,6 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     context->MoveInRecordAndExtend(record, extend);
     int errCode = InnerAction(context, cloudDb, UPDATE);
     uploadInfo = context->GetInfo();
-    if (errCode != E_OK) {
-        return -E_CLOUD_UPLOAD_FAILED;
-    }
     return errCode;
 }
 
@@ -89,9 +83,6 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, DELETE);
     uploadInfo = context->GetInfo();
-    if (errCode != E_OK) {
-        return -E_CLOUD_UPLOAD_FAILED;
-    }
     return errCode;
 }
 

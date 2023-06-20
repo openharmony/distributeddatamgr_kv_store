@@ -143,7 +143,6 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
 }
 
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 /**
  * @tc.name: TagOpTyeTest002
  * @tc.desc: Verify local cover cloud strategy tag operation type function.
@@ -243,5 +242,4 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest003, TestSize.Level0)
     localInfo.cloudGid = "gid";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE);
 }
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 }
