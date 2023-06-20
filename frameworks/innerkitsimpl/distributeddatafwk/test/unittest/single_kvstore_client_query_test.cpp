@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <vector>
 #include "distributed_kv_data_manager.h"
+#include "file_ex.h"
 #include "types.h"
 #include "gtest/gtest.h"
 namespace {
@@ -53,12 +54,14 @@ static constexpr uint32_t MAX_QUERY_LENGTH = 1024;
 
 void SingleKvStoreClientQueryTest::SetUpTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     std::string baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void SingleKvStoreClientQueryTest::TearDownTestCase(void)
 {
+    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/key");
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest/kvdb");
     (void)remove("/data/service/el1/public/database/SingleKvStoreClientQueryTest");
