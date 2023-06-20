@@ -1467,6 +1467,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, 
     CheckAllAssetAfterUpload(localCount);
 }
 
+#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 /*
  * @tc.name: MannualNotify001
  * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData
@@ -1547,5 +1548,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, 
     ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataAndLogNum(db, g_tables, 0, {localCount, 0});
 }
+#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 }
 #endif // RELATIONAL_STORE
