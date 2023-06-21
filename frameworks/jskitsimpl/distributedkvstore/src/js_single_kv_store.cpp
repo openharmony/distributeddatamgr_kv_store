@@ -395,6 +395,12 @@ napi_value JsSingleKVStore::StartTransaction(napi_env env, napi_callback_info in
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfo(env, info);
+    if (ctxt->status == napi_invalid_arg) {
+        ZLOGI("hello,yq!");
+        ctxt->isThrowError = true;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, ctxt->error, true);
+        return nullptr;
+    }
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
@@ -417,6 +423,12 @@ napi_value JsSingleKVStore::Commit(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfo(env, info);
+    if (ctxt->status == napi_invalid_arg) {
+        ZLOGI("hello,yq!");
+        ctxt->isThrowError = true;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, ctxt->error, true);
+        return nullptr;
+    }
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
@@ -439,6 +451,12 @@ napi_value JsSingleKVStore::Rollback(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
     ctxt->GetCbInfo(env, info);
+    if (ctxt->status == napi_invalid_arg) {
+        ZLOGI("hello,yq!");
+        ctxt->isThrowError = true;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, ctxt->error, true);
+        return nullptr;
+    }
 
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
@@ -1245,6 +1263,12 @@ napi_value JsSingleKVStore::GetSecurityLevel(napi_env env, napi_callback_info in
     };
     auto ctxt = std::make_shared<SecurityLevelContext>();
     ctxt->GetCbInfo(env, info);
+    if (ctxt->status == napi_invalid_arg) {
+        ZLOGI("hello,yq!");
+        ctxt->isThrowError = true;
+        ThrowNapiError(env, Status::INVALID_ARGUMENT, ctxt->error, true);
+        return nullptr;
+    }
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
