@@ -105,7 +105,7 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
 
-    int FillCloudAsset(const TableSchema &tableSchema, VBucket &vBucket, bool isFullReplace);
+    int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isFullReplace);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
 
@@ -222,7 +222,7 @@ private:
 
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
-    int UpdateCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+    int UpdateCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
 
     int GetUpdateLogRecordStatement(const TableSchema &tableSchema, const VBucket &vBucket, OpType opType,
         std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt);

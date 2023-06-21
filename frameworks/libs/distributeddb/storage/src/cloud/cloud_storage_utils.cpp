@@ -147,46 +147,49 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
 {
     int errCode;
     Bytes val;
+    auto entry = vBucket.find(field.colName);
+    if (entry == vBucket.end() || entry->second.index() == TYPE_INDEX<Nil>) {
+        if (!field.nullable) {
+            LOGE("field value is not allowed to be null, %d", -E_CLOUD_ERROR);
+            return -E_CLOUD_ERROR;
+        }
+        return SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
+    }
+
+    Type type = entry->second;
     if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
-        errCode = GetValueFromVBucket(field.colName, vBucket, asset);
-        if (!(IsFieldValid(field, errCode))) {
-            goto ERROR;
+        errCode = GetValueFromOneField(type, asset);
+        if (errCode != E_OK) {
+            LOGE("can not get asset from vBucket when bind, %d", errCode);
+            return errCode;
         }
-        if (errCode == E_OK) {
-            errCode = RebuildFillAsset(asset);
-            if (errCode == E_OK) {
-                RuntimeContext::GetInstance()->AssetToBlob(asset, val);
-            }
-        }
-    } else {
+        RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+    } else if (field.type == TYPE_INDEX<Assets>) {
         Assets assets;
-        errCode = GetValueFromVBucket(field.colName, vBucket, assets);
-        if (!(IsFieldValid(field, errCode))) {
-            goto ERROR;
+        errCode = GetValueFromOneField(type, assets);
+        if (errCode != E_OK) {
+            LOGE("can not get assets from vBucket when bind, %d", errCode);
+            return errCode;
         }
-        if (errCode == E_OK) {
-            RebuildFillAssets(assets);
-            if (assets.empty()) {
-                errCode = -E_NOT_FOUND;
-            } else {
-                RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
-            }
+        if (assets.empty()) {
+            errCode = -E_NOT_FOUND;
+        } else {
+            RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
         }
-    }
-    if (errCode == -E_NOT_FOUND || (errCode == -E_CLOUD_ERROR &&
-        vBucket.at(field.colName).index() == TYPE_INDEX<Nil>)) {
-        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     } else {
+        LOGE("field type is not asset or assets, %d", -E_CLOUD_ERROR);
+        return -E_CLOUD_ERROR;
+    }
+    if (errCode == E_OK) {
         errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
+    } else {
+        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     }
     if (errCode != E_OK) {
         LOGE("Bind blob to asset failed, %d", errCode);
     }
     return errCode;
-ERROR:
-    LOGE("get Asset from vbucket failed, %d", errCode);
-    return -E_CLOUD_ERROR;
 }
 
 int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
@@ -303,37 +306,6 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
     return pkMap;
 }
 
-int CloudStorageUtils::RebuildFillAsset(Asset &asset)
-{
-    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
-    AssetStatus status = static_cast<AssetStatus>(asset.status);
-    switch (StatusToFlag(status)) {
-        case AssetOpType::INSERT:
-        case AssetOpType::UPDATE: {
-            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
-            break;
-        }
-        case AssetOpType::DELETE: {
-            return -E_NOT_FOUND;
-        }
-        default: {
-            return FillAssetForDownload(status, flag, asset);
-        }
-    }
-    return E_OK;
-}
-
-void CloudStorageUtils::RebuildFillAssets(Assets &assets)
-{
-    for (auto asset = assets.begin(); asset != assets.end();) {
-        if (RebuildFillAsset(*asset) == -E_NOT_FOUND) {
-            asset = assets.erase(asset);
-        } else {
-            asset++;
-        }
-    }
-}
-
 int CloudStorageUtils::CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
     std::vector<Field> &fields)
 {
@@ -374,10 +346,10 @@ bool CloudStorageUtils::IsContainsPrimaryKey(const TableSchema &tableSchema)
 void CloudStorageUtils::ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset)
 {
     for (const auto &item: vBucket) {
-        if (item.second.index() == TYPE_INDEX<Asset>) {
+        if (IsAsset(item.second)) {
             Asset data = std::get<Asset>(item.second);
             asset.insert_or_assign(item.first, data);
-        } else if (item.second.index() == TYPE_INDEX<Assets>) {
+        } else if (IsAssets(item.second)) {
             Assets data = std::get<Assets>(item.second);
             asset.insert_or_assign(item.first, data);
         }
@@ -412,9 +384,11 @@ AssetStatus CloudStorageUtils::FlagToStatus(AssetOpType opType)
     }
 }
 
-int CloudStorageUtils::FillAssetForDownload(AssetStatus status, AssetOpType opType, Asset &asset)
+int CloudStorageUtils::FillAssetForDownload(Asset &asset)
 {
-    switch (opType) {
+    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    switch (flag) {
         case AssetOpType::INSERT: {
             if (status == AssetStatus::DOWNLOADING || status == AssetStatus::ABNORMAL) {
                 asset.hash = std::string("");
@@ -431,5 +405,135 @@ int CloudStorageUtils::FillAssetForDownload(AssetStatus status, AssetOpType opTy
             break;
     }
     return E_OK;
+}
+
+void CloudStorageUtils::FillAssetsForDownload(Assets &assets)
+{
+    for (auto asset = assets.begin(); asset != assets.end();) {
+        if (FillAssetForDownload(*asset) == -E_NOT_FOUND) {
+            asset = assets.erase(asset);
+        } else {
+            asset++;
+        }
+    }
+}
+
+int CloudStorageUtils::FillAssetForUpload(Asset &asset)
+{
+    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    switch (StatusToFlag(status)) {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE: {
+            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+            break;
+        }
+        case AssetOpType::DELETE: {
+            return -E_NOT_FOUND;
+        }
+        default: {
+            break;
+        }
+    }
+    return E_OK;
+}
+
+void CloudStorageUtils::FillAssetsForUpload(Assets &assets)
+{
+    for (auto asset = assets.begin(); asset != assets.end();) {
+        if (FillAssetForUpload(*asset) == -E_NOT_FOUND) {
+            asset = assets.erase(asset);
+        } else {
+            asset++;
+        }
+    }
+}
+
+void CloudStorageUtils::FillAssetFromVBucketBeforeDownload(VBucket &vBucket)
+{
+    for (auto &item: vBucket) {
+        if (IsAsset(item.second)) {
+            Asset asset;
+            GetValueFromType(item.second, asset);
+            FillAssetForDownload(asset);
+            vBucket[item.first] = asset;
+        } else if (IsAssets(item.second)) {
+            Assets assets;
+            GetValueFromType(item.second, assets);
+            for (auto &asset: assets) {
+                FillAssetForDownload(asset);
+            }
+            vBucket[item.first] = assets;
+        }
+    }
+}
+
+void CloudStorageUtils::FillAssetFromVBucketDownloadFinish(VBucket &vBucket)
+{
+    for (auto &item: vBucket) {
+        if (IsAsset(item.second)) {
+            Asset asset;
+            GetValueFromType(item.second, asset);
+            int errCode = FillAssetForDownload(asset);
+            if (errCode != E_OK) {
+                vBucket[item.first] = Nil();
+            } else {
+                vBucket[item.first] = asset;
+            }
+            continue;
+        }
+        if (IsAssets(item.second)) {
+            Assets assets;
+            GetValueFromType(item.second, assets);
+            FillAssetsForDownload(assets);
+            if (assets.empty()) {
+                vBucket[item.first] = Nil();
+            } else {
+                vBucket[item.first] = assets;
+            }
+        }
+    }
+}
+
+void CloudStorageUtils::FillAssetFromVBucketAfterUpload(VBucket &vBucket)
+{
+    for (auto &item: vBucket) {
+        if (IsAsset(item.second)) {
+            Asset asset;
+            GetValueFromType(item.second, asset);
+            int errCode = FillAssetForUpload(asset);
+            if (errCode != E_OK) {
+                vBucket[item.first] = Nil();
+            } else {
+                vBucket[item.first] = asset;
+            }
+            continue;
+        }
+        if (IsAssets(item.second)) {
+            Assets assets;
+            GetValueFromType(item.second, assets);
+            FillAssetsForUpload(assets);
+            if (assets.empty()) {
+                vBucket[item.first] = Nil();
+            } else {
+                vBucket[item.first] = assets;
+            }
+        }
+    }
+}
+
+bool CloudStorageUtils::IsAsset(const Type &type)
+{
+    if (type.index() == TYPE_INDEX<Asset>) {
+        return true;
+    }
+    return false;
+}
+
+bool CloudStorageUtils::IsAssets(const Type &type)
+{
+    if (type.index() == TYPE_INDEX<Assets>) {
+        return true;
+    }
+    return false;
 }
 }

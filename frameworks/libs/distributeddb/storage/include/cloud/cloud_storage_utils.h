@@ -45,14 +45,20 @@ public:
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
-    static int RebuildFillAsset(Asset &asset);
-    static void RebuildFillAssets(Assets &assets);
     static int CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
         std::vector<Field> &fields);
     static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
     static AssetOpType StatusToFlag(AssetStatus status);
     static AssetStatus FlagToStatus(AssetOpType opType);
-    static int FillAssetForDownload(AssetStatus status, AssetOpType opType, Asset &asset);
+    static int FillAssetForDownload(Asset &asset);
+    static void FillAssetsForDownload(Assets &assets);
+    static int FillAssetForUpload(Asset &asset);
+    static void FillAssetsForUpload(Assets &assets);
+    static void FillAssetFromVBucketBeforeDownload(VBucket &vBucket);
+    static void FillAssetFromVBucketDownloadFinish(VBucket &vBucket);
+    static void FillAssetFromVBucketAfterUpload(VBucket &vBucket);
+    static bool IsAsset(const Type &type);
+    static bool IsAssets(const Type &type);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
@@ -75,6 +81,17 @@ public:
         }
         Type cloudValue = vBucket.at(fieldName);
         return GetValueFromOneField(cloudValue, outVal);
+    }
+
+    template<typename T>
+    static int GetValueFromType(Type &cloudValue, T &outVal)
+    {
+        T *value = std::get_if<T>(&cloudValue);
+        if (value == nullptr) {
+            return -E_CLOUD_ERROR;
+        }
+        outVal = *value;
+        return E_OK;
     }
 };
 }

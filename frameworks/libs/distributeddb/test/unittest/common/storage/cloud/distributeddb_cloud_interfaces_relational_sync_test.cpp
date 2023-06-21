@@ -23,7 +23,6 @@
 #include "sqlite_relational_store.h"
 #include "sqlite_relational_utils.h"
 #include "store_observer.h"
-#include "log_table_manager_factory.h"
 #include "cloud_db_constant.h"
 #include "virtual_cloud_db.h"
 #include "time_helper.h"
@@ -134,11 +133,9 @@ namespace {
             sqlite3_stmt *stmt = nullptr;
             ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
             if (assetIsNull) {
-                ASSERT_EQ(sqlite3_bind_null(stmt, 1), E_OK);
+                ASSERT_EQ(sqlite3_bind_null(stmt, 1), SQLITE_OK);
             } else {
-                if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
-                    SQLiteUtils::ResetStatement(stmt, true, errCode);
-                }
+                ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
             }
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -159,9 +156,7 @@ namespace {
             if (assetIsNull) {
                 ASSERT_EQ(sqlite3_bind_null(stmt, 1), E_OK);
             } else {
-                if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) != E_OK) {
-                    SQLiteUtils::ResetStatement(stmt, true, errCode);
-                }
+                ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
             }
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -173,8 +168,7 @@ namespace {
     void UpdateUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
     {
         for (size_t i = 0; i < g_tables.size(); i++) {
-            string updateAge = "UPDATE " + g_tables[i] + " SET age = '99' where " + g_tablesPKey[i]
-                               + " in (";
+            string updateAge = "UPDATE " + g_tables[i] + " SET age = '99' where " + g_tablesPKey[i] + " in (";
             for (int64_t j = begin; j < begin + count; ++j) {
                 updateAge += "'" + g_prefix[i] + std::to_string(j) + "',";
             }
@@ -189,8 +183,7 @@ namespace {
     void DeleteUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
     {
         for (size_t i = 0; i < g_tables.size(); i++) {
-            string updateAge = "Delete from " + g_tables[i] + " where " + g_tablesPKey[i]
-                               + " in (";
+            string updateAge = "Delete from " + g_tables[i] + " where " + g_tablesPKey[i] + " in (";
             for (int64_t j = begin; j < count; ++j) {
                 updateAge += "'" + g_prefix[i] + std::to_string(j) + "',";
             }
@@ -1123,7 +1116,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
     CloudSyncStatusCallback callback;
     GetCallback(syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(syncProcess, 20); // 20 is wait time
 }
 
 /**
