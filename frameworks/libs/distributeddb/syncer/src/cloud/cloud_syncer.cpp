@@ -1424,10 +1424,10 @@ static void StatusToFlagForAssets(Assets &assets)
 static void StatusToFlagForAssetsInRecord(const std::vector<Field> &fields, VBucket &record)
 {
     for (const Field &field : fields) {
-        if (field.type == TYPE_INDEX<Assets>) {
+        if (field.type == TYPE_INDEX<Assets> && record[field.colName].index() == TYPE_INDEX<Assets>) {
             StatusToFlagForAssets(std::get<Assets>(record[field.colName]));
         }
-        if (field.type == TYPE_INDEX<Asset>) {
+        if (field.type == TYPE_INDEX<Asset> && record[field.colName].index() == TYPE_INDEX<Asset>) {
             StatusToFlagForAsset(std::get<Asset>(record[field.colName]));
         }
     }
