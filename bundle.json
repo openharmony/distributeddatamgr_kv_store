@@ -47,7 +47,7 @@
     "ram": "15360KB",
     "hisysevent_config": [],
     "deps": {
-      "thrid_party": [
+      "third_party": [
         "jsoncpp",
         "libuv",
         "libz",
