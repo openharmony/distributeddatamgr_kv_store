@@ -56,6 +56,12 @@ public:
             return status;
         }
     };
+
+    struct JsFeatureSpace {
+        const char* spaceName;
+        const char* nameBase64;
+        bool isComponent;
+    };
 	
     using JsSchema = class JsSchema;
     using Blob = OHOS::DistributedKv::Blob;
@@ -69,6 +75,7 @@ public:
     using ValueObject = OHOS::DataShare::DataShareValueObject;
     /* for kvStore Put/Get : boolean|string|number|Uint8Array */
     using KvStoreVariant = std::variant<std::string, int32_t, float, std::vector<uint8_t>, bool, double>;
+    using Descriptor = std::function<std::vector<napi_property_descriptor>()>;
 	
     static KvStoreVariant Blob2VariantValue(const Blob& blob);
     static Blob VariantValue2Blob(const KvStoreVariant& value);
@@ -184,10 +191,11 @@ public:
         return (jsValue == nullptr) ? StatusMsg(status) : GetValue(env, jsValue, value);
     };
 
+    static const std::optional<JsFeatureSpace> GetJsFeatureSpace(const std::string &name);
     /* napi_define_class  wrapper */
-    static napi_value DefineClass(napi_env env, const std::string& name,
-        const napi_property_descriptor* properties, size_t count, napi_callback newcb);
-
+    static napi_value DefineClass(napi_env env, const std::string &spaceName, const std::string &className,
+        const Descriptor &descriptor, napi_callback ctor);
+    static napi_value GetClass(napi_env env, const std::string &spaceName, const std::string &className);
     /* napi_new_instance  wrapper */
     static napi_ref NewWithRef(napi_env env, size_t argc, napi_value* argv, void** out, napi_value constructor);
 

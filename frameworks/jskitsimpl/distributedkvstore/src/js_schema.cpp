@@ -49,14 +49,16 @@ JsSchema::~JsSchema()
 napi_value JsSchema::Constructor(napi_env env)
 {
     ZLOGD("Init JsSchema");
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_GETTER_SETTER("root", JsSchema::GetRootNode, JsSchema::SetRootNode),
-        DECLARE_NAPI_GETTER_SETTER("indexes", JsSchema::GetIndexes, JsSchema::SetIndexes),
-        DECLARE_NAPI_GETTER_SETTER("mode", JsSchema::GetMode, JsSchema::SetMode),
-        DECLARE_NAPI_GETTER_SETTER("skip", JsSchema::GetSkip, JsSchema::SetSkip)
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_GETTER_SETTER("root", JsSchema::GetRootNode, JsSchema::SetRootNode),
+            DECLARE_NAPI_GETTER_SETTER("indexes", JsSchema::GetIndexes, JsSchema::SetIndexes),
+            DECLARE_NAPI_GETTER_SETTER("mode", JsSchema::GetMode, JsSchema::SetMode),
+            DECLARE_NAPI_GETTER_SETTER("skip", JsSchema::GetSkip, JsSchema::SetSkip),
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "Schema", properties, count, JsSchema::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "Schema", lambda, JsSchema::New);
 }
 
 napi_value JsSchema::New(napi_env env, napi_callback_info info)

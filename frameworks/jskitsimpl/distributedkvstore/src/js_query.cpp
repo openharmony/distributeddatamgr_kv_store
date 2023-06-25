@@ -29,36 +29,38 @@ const DataQuery& JsQuery::GetDataQuery() const
 
 napi_value JsQuery::Constructor(napi_env env)
 {
-    const napi_property_descriptor properties[] = {
-        DECLARE_NAPI_FUNCTION("reset", JsQuery::Reset),
-        DECLARE_NAPI_FUNCTION("equalTo", JsQuery::EqualTo),
-        DECLARE_NAPI_FUNCTION("notEqualTo", JsQuery::NotEqualTo),
-        DECLARE_NAPI_FUNCTION("greaterThan", JsQuery::GreaterThan),
-        DECLARE_NAPI_FUNCTION("lessThan", JsQuery::LessThan),
-        DECLARE_NAPI_FUNCTION("greaterThanOrEqualTo", JsQuery::GreaterThanOrEqualTo),
-        DECLARE_NAPI_FUNCTION("lessThanOrEqualTo", JsQuery::LessThanOrEqualTo),
-        DECLARE_NAPI_FUNCTION("isNull", JsQuery::IsNull),
-        DECLARE_NAPI_FUNCTION("inNumber", JsQuery::InNumber),
-        DECLARE_NAPI_FUNCTION("inString", JsQuery::InString),
-        DECLARE_NAPI_FUNCTION("notInNumber", JsQuery::NotInNumber),
-        DECLARE_NAPI_FUNCTION("notInString", JsQuery::NotInString),
-        DECLARE_NAPI_FUNCTION("like", JsQuery::Like),
-        DECLARE_NAPI_FUNCTION("unlike", JsQuery::Unlike),
-        DECLARE_NAPI_FUNCTION("and", JsQuery::And),
-        DECLARE_NAPI_FUNCTION("or", JsQuery::Or),
-        DECLARE_NAPI_FUNCTION("orderByAsc", JsQuery::OrderByAsc),
-        DECLARE_NAPI_FUNCTION("orderByDesc", JsQuery::OrderByDesc),
-        DECLARE_NAPI_FUNCTION("limit", JsQuery::Limit),
-        DECLARE_NAPI_FUNCTION("isNotNull", JsQuery::IsNotNull),
-        DECLARE_NAPI_FUNCTION("beginGroup", JsQuery::BeginGroup),
-        DECLARE_NAPI_FUNCTION("endGroup", JsQuery::EndGroup),
-        DECLARE_NAPI_FUNCTION("prefixKey", JsQuery::PrefixKey),
-        DECLARE_NAPI_FUNCTION("setSuggestIndex", JsQuery::SetSuggestIndex),
-        DECLARE_NAPI_FUNCTION("deviceId", JsQuery::DeviceId),
-        DECLARE_NAPI_FUNCTION("getSqlLike", JsQuery::GetSqlLike)
+    auto lambda = []() -> std::vector<napi_property_descriptor> {
+        std::vector<napi_property_descriptor> properties = {
+            DECLARE_NAPI_FUNCTION("reset", JsQuery::Reset),
+            DECLARE_NAPI_FUNCTION("equalTo", JsQuery::EqualTo),
+            DECLARE_NAPI_FUNCTION("notEqualTo", JsQuery::NotEqualTo),
+            DECLARE_NAPI_FUNCTION("greaterThan", JsQuery::GreaterThan),
+            DECLARE_NAPI_FUNCTION("lessThan", JsQuery::LessThan),
+            DECLARE_NAPI_FUNCTION("greaterThanOrEqualTo", JsQuery::GreaterThanOrEqualTo),
+            DECLARE_NAPI_FUNCTION("lessThanOrEqualTo", JsQuery::LessThanOrEqualTo),
+            DECLARE_NAPI_FUNCTION("isNull", JsQuery::IsNull),
+            DECLARE_NAPI_FUNCTION("inNumber", JsQuery::InNumber),
+            DECLARE_NAPI_FUNCTION("inString", JsQuery::InString),
+            DECLARE_NAPI_FUNCTION("notInNumber", JsQuery::NotInNumber),
+            DECLARE_NAPI_FUNCTION("notInString", JsQuery::NotInString),
+            DECLARE_NAPI_FUNCTION("like", JsQuery::Like),
+            DECLARE_NAPI_FUNCTION("unlike", JsQuery::Unlike),
+            DECLARE_NAPI_FUNCTION("and", JsQuery::And),
+            DECLARE_NAPI_FUNCTION("or", JsQuery::Or),
+            DECLARE_NAPI_FUNCTION("orderByAsc", JsQuery::OrderByAsc),
+            DECLARE_NAPI_FUNCTION("orderByDesc", JsQuery::OrderByDesc),
+            DECLARE_NAPI_FUNCTION("limit", JsQuery::Limit),
+            DECLARE_NAPI_FUNCTION("isNotNull", JsQuery::IsNotNull),
+            DECLARE_NAPI_FUNCTION("beginGroup", JsQuery::BeginGroup),
+            DECLARE_NAPI_FUNCTION("endGroup", JsQuery::EndGroup),
+            DECLARE_NAPI_FUNCTION("prefixKey", JsQuery::PrefixKey),
+            DECLARE_NAPI_FUNCTION("setSuggestIndex", JsQuery::SetSuggestIndex),
+            DECLARE_NAPI_FUNCTION("deviceId", JsQuery::DeviceId),
+            DECLARE_NAPI_FUNCTION("getSqlLike", JsQuery::GetSqlLike),
+        };
+        return properties;
     };
-    size_t count = sizeof(properties) / sizeof(properties[0]);
-    return JSUtil::DefineClass(env, "Query", properties, count, JsQuery::New);
+    return JSUtil::DefineClass(env, "ohos.data.distributedKVStore", "Query", lambda, JsQuery::New);
 }
 
 /*
