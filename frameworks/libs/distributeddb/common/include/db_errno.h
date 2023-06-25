@@ -127,7 +127,6 @@ constexpr int E_DENIED_SQL = (E_BASE + 105);  // denied sql, not permit to execu
 constexpr int E_USER_CHANGE = (E_BASE + 106); // user change
 constexpr int E_CONSTRAINT = (E_BASE + 107); // sql failed with constraint
 constexpr int E_CLOUD_ERROR = (E_BASE + 108); // cloud error
-constexpr int E_CLOUD_UPLOAD_FAILED = (E_BASE + 109); // upload failed
 constexpr int E_QUERY_END = (E_BASE + 110); // Indicates that query function has queried last data from cloud
 constexpr int E_DB_CLOSED = (E_BASE + 111); // db is closed
 // Num 150+ is reserved for schema related errno, since it may be added regularly

@@ -279,7 +279,10 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
             break;
         }
 
-        syncAbleEngine_ = std::make_unique<SyncAbleEngine>(storageEngine_);
+        syncAbleEngine_ = std::make_shared<SyncAbleEngine>(storageEngine_);
+        // to guarantee the life cycle of sync module and syncAbleEngine_ are the same, then the sync module will not
+        // be destructed when close store
+        storageEngine_->SetSyncAbleEngine(syncAbleEngine_);
         cloudSyncer_ = new(std::nothrow) CloudSyncer(StorageProxy::GetCloudDb(storageEngine_));
 
         errCode = CheckDBMode();
@@ -372,6 +375,10 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
 
     // Sync Close
     syncAbleEngine_->Close();
+    if (storageEngine_ != nullptr) {
+        storageEngine_->RegisterObserverAction(nullptr);
+    }
+
     if (cloudSyncer_ != nullptr) {
         cloudSyncer_->Close();
         RefObject::KillAndDecObjRef(cloudSyncer_);

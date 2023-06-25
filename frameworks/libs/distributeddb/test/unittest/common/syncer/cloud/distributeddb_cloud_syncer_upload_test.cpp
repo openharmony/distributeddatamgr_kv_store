@@ -916,7 +916,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1
             return DB_ERROR;
     });
     int errCode = cloudSyncer2.CallDoUpload(taskId);
-    EXPECT_EQ(errCode, -E_CLOUD_UPLOAD_FAILED);
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
     cloudSyncer2.CallNotify();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     EXPECT_EQ(cloudSyncer2.GetUploadSuccessCount(taskId), 1000);
@@ -983,7 +983,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck015, TestSize.Level1
     cloudSyncer3.CallNotify();
 
     RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(errCode, -E_CLOUD_UPLOAD_FAILED);
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
     EXPECT_EQ(cloudSyncer3.GetUploadSuccessCount(9u), 0);
     EXPECT_EQ(cloudSyncer3.GetUploadFailCount(9u), 3000);
 
@@ -1255,7 +1255,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadNotifyCheck002, TestSize.Leve
             cloudDataResult = uploadData;
             return E_OK;});
 
-    EXPECT_EQ(cloudSyncer.CallDoSyncInner(cloudSyncer.GetCurrentCloudTaskInfos(), true), -E_CLOUD_UPLOAD_FAILED);
+    EXPECT_EQ(cloudSyncer.CallDoSyncInner(cloudSyncer.GetCurrentCloudTaskInfos(), true), -E_CLOUD_ERROR);
     cloudSyncer.CallNotify();
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(res.tableProcess[cloudSyncer.GetCurrentContextTableName()].process, PROCESSING);

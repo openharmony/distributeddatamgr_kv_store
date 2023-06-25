@@ -1624,7 +1624,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck002, TestSize.Leve
 HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck003, TestSize.Level1)
 {
     auto *syncTaskContext = new (std::nothrow) MockSyncTaskContext();
-    syncTaskContext->CallSetTaskExecStatus(ISyncTaskContext::RUNNING);
+    syncTaskContext->CallSetTaskExecStatus(DistributedDB::ISyncTaskContext::RUNNING);
     int callCount = 0;
     std::condition_variable cv;
     std::mutex countMutex;

@@ -589,7 +589,43 @@ namespace {
             expectProcess.push_back(syncProcess);
         }
     }
+    void InitProcessForMannualSync1(std::vector<SyncProcess> &expectProcess)
+    {
+        expectProcess.clear();
+        std::vector<TableProcessInfo> infos;
+        // first notify, first table
+        infos.push_back(TableProcessInfo{
+            FINISHED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+        // first notify, second table
+        infos.push_back(TableProcessInfo{
+            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+        // second notify, first table
+        infos.push_back(TableProcessInfo{
+            FINISHED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+        // second notify, second table
+        infos.push_back(TableProcessInfo{
+            FINISHED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
 
+        infos.push_back(TableProcessInfo{
+            FINISHED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+        // second notify, second table
+        infos.push_back(TableProcessInfo{
+            FINISHED, {0, 0, 0, 0}, {0, 0, 0, 0}
+        });
+        for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
+            SyncProcess syncProcess;
+            syncProcess.errCode = OK;
+            syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
+            syncProcess.tableProcess.insert_or_assign(g_tables[0], std::move(infos[g_arrayHalfSub * i]));
+            syncProcess.tableProcess.insert_or_assign(g_tables[1], std::move(infos[g_arrayHalfSub * i + 1]));
+            expectProcess.push_back(syncProcess);
+        }
+    }
     void InitProcessForCleanCloudData1(const uint32_t &cloudCount, const uint32_t &localCount,
         std::vector<SyncProcess> &expectProcess)
     {
@@ -907,7 +943,7 @@ namespace {
         RelationalStoreDelegate *delegate = nullptr;
     };
 
-    
+
     void DistributedDBCloudInterfacesRelationalSyncTest::SetUpTestCase(void)
     {
         DistributedDBToolsUnitTest::TestDirInit(g_testDir);
@@ -1369,6 +1405,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestS
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
     WaitForSyncFinish(syncProcess, g_syncWaitTime);
 
+
     InsertCloudTableRecord(3 * (localCount + cloudCount), cloudCount, paddingSize, true); // 3 is offset
     InsertUserTableRecord(db, 3 * (localCount + cloudCount), localCount, paddingSize, true); // 3 is offset
     syncProcess = {};
@@ -1424,6 +1461,29 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, 
 }
 
 #ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+/*
+ * @tc.name: MannualNotify001
+ * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    InitProcessForMannualSync1(expectProcess);
+    SyncProcess syncProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+
+}
 /*
  * @tc.name: CleanCloudDataTest001
  * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData

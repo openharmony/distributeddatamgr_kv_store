@@ -209,13 +209,14 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const Clou
         }
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    END:
+END:
     int endCode = SetLogTriggerStatus(true);
     if (endCode != E_OK) {
         LOGE("Fail to set log trigger off, %d", endCode);
     }
     return errCode;
 }
+
 int SQLiteSingleVerRelationalStorageExecutor::GetFillUploadAssetStatement(const std::string &tableName,
     const VBucket &vBucket, sqlite3_stmt *&statement)
 {

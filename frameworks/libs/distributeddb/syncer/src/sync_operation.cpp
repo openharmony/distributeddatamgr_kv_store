@@ -37,6 +37,7 @@ SyncOperation::SyncOperation(uint32_t syncId, const std::vector<std::string> &de
 
 SyncOperation::~SyncOperation()
 {
+    RefObject::DecObjRef(context_);
     LOGD("SyncOperation::~SyncOperation()");
     Finalize();
 }
@@ -301,6 +302,13 @@ std::string SyncOperation::GetQueryId() const
 {
     std::lock_guard<std::mutex> lock(queryMutex_);
     return query_.GetIdentify();
+}
+
+void SyncOperation::SetSyncContext(RefObject *context)
+{
+    RefObject::DecObjRef(context_);
+    context_ = context;
+    RefObject::IncObjRef(context);
 }
 
 DBStatus SyncOperation::DBStatusTrans(int operationStatus)
