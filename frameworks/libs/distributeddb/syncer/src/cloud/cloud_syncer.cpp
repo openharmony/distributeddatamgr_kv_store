@@ -966,7 +966,6 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
     if (!ShouldProcessAssets()) {
         return;
     }
-    std::map<std::string, Assets> assetsMap;
     Type prefix;
     std::vector<Type> pKVals;
     int ret = E_OK;
@@ -980,6 +979,14 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
         }
         prefix = pKVals[0];
     }
+    TagDownloadAssets(idx, prefix, param, dataInfo, localAssetInfo);
+}
+
+void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
+    VBucket &localAssetInfo)
+{
+    OpType strategy = param.downloadData.opType[idx];
+    std::map<std::string, Assets> assetsMap;
     switch (strategy)
     {
         case OpType::INSERT:
@@ -994,6 +1001,7 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
                 std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
             break;
         case OpType::NOT_HANDLE:
+        case OpType::UPDATE_TIMESTAMP:
         case OpType::ONLY_UPDATE_GID:
         case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO: { // means upload need this data
             // Save the asset info into context
