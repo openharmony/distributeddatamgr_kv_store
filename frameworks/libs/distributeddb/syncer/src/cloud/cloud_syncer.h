@@ -85,7 +85,7 @@ protected:
         CloudWaterMark cloudWaterMark;
         std::vector<std::string> pkColNames;
         std::string tableName;
-        bool isLastBatch;
+        bool isLastBatch = false;
     };
     class ProcessNotifier {
     public:
