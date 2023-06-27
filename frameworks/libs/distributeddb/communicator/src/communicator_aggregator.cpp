@@ -401,6 +401,8 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
     }
     if (taskNeedFinalize) {
         TaskFinalizer(inTask, errCode);
+        std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
+        sendRecord_.erase(inTask.frameId);
     }
 }
 

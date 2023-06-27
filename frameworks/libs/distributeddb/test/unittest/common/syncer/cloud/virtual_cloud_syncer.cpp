@@ -68,4 +68,10 @@ void VirtualCloudSyncer::Notify(bool notifyIfError)
     std::lock_guard<std::mutex> autoLock(contextLock_);
     currentContext_.notifier->NotifyProcess(taskInfo, {}, notifyIfError);
 }
+
+size_t VirtualCloudSyncer::GetQueueCount()
+{
+    std::lock_guard<std::mutex> autoLock(queueLock_);
+    return taskQueue_.size();
+}
 }

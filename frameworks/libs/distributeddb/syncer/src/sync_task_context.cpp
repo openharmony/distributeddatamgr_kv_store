@@ -556,6 +556,7 @@ int SyncTaskContext::TimeOut(TimerId id)
 
 void SyncTaskContext::CopyTargetData(const ISyncTarget *target, const TaskParam &taskParam)
 {
+    retryTime_ = 0;
     mode_ = target->GetMode();
     status_ = SyncOperation::OP_SYNCING;
     isNeedRetry_ = SyncTaskContext::NO_NEED_RETRY;

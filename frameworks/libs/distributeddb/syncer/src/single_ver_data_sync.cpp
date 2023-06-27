@@ -933,7 +933,7 @@ int SingleVerDataSync::DoAbilitySyncIfNeed(SingleVerSyncTaskContext *context, co
         } else {
             SendDataAck(context, message, -E_NEED_ABILITY_SYNC, 0);
         }
-        return -E_WAIT_NEXT_MESSAGE;
+        return -E_NEED_ABILITY_SYNC;
     }
 }
 

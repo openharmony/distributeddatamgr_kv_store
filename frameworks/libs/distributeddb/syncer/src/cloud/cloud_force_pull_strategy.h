@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 #ifndef CLOUD_COVER_LOCAL_H
 #define CLOUD_COVER_LOCAL_H
 #include "cloud_sync_strategy.h"
@@ -28,4 +27,3 @@ public:
 };
 }
 #endif // CLOUD_COVER_LOCAL_H
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA

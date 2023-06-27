@@ -73,6 +73,7 @@ namespace {
     VBucket DATA_NULL_ASSET;
     VBucket DATA_ASSET_IN_ASSETS;
     VBucket DATA_NULL_ASSETS;
+    VBucket DATA_ALL_NULL_ASSETS;
 
     Asset GenAsset(std::string name, std::string hash)
     {
@@ -102,8 +103,8 @@ namespace {
         a3Changed = GenAsset("truck", "truck1Changed");
         a4 = GenAsset("sedan", "sedan1");
         a4Changed = GenAsset("sedan", "sedan1Changed");
-        a5 = GenAsset("truck", "truck1");
-        a5Changed = GenAsset("truck", "truck1Changed");
+        a5 = GenAsset("trucker", "truck1");
+        a5Changed = GenAsset("trucker", "truck1Changed");
         DATA_BASELINE = GenDatum(1, "Jack", a1, Assets({a2, a3, a4})); // id is 1
         DATA_EMPTY_ASSET = GenDatum(2, "PoorGuy", a1, Assets({})); // id is 2
         DATA_EMPTY_ASSET.erase(FIELD_HOUSE);
@@ -119,7 +120,8 @@ namespace {
         std::monostate nil;
         DATA_NULL_ASSET = GenDatum(11, "Lob3", nil, Assets({a1, a2, a3})); // id is 11
         DATA_ASSET_IN_ASSETS = GenDatum(12, "Lob4", Assets({a1}), Assets({a2, a3, a4})); // id is 12
-        DATA_NULL_ASSETS = GenDatum(13, "Lob5", Assets({a1}), nil); // id is 12
+        DATA_NULL_ASSETS = GenDatum(13, "Lob5", Assets({a1}), nil); // id is 13
+        DATA_ALL_NULL_ASSETS = GenDatum(14, "Nico", nil, nil); // id is 14
     }
 
     void CreateDB()
@@ -603,5 +605,124 @@ namespace {
         EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
         EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
         EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest020
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest020, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_ALL_NULL_ASSETS, DATA_BASELINE, true);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+
+        std::map<std::string, Assets> expectedList;
+        TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a1);
+        TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a2);
+        TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a3);
+        TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a4);
+        expectedList[FIELD_HOUSE] = { a1 };
+        expectedList[FIELD_CARS] = { a2, a3, a4 };
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest021
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest021, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_ALL_NULL_ASSETS, DATA_ALL_NULL_ASSETS, true);
+        ASSERT_TRUE(DATA_ALL_NULL_ASSETS[FIELD_HOUSE].index() == TYPE_INDEX<Nil>);
+        ASSERT_TRUE(DATA_ALL_NULL_ASSETS[FIELD_CARS].index() == TYPE_INDEX<Nil>);
+
+        std::map<std::string, Assets> expectedList;
+        expectedList[FIELD_HOUSE] = {};
+        expectedList[FIELD_CARS] = {};
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest022
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest022, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_BASELINE, DATA_ALL_NULL_ASSETS, true);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+
+        std::map<std::string, Assets> expectedList;
+        TagAsset(AssetOpType::INSERT, AssetStatus::NORMAL, a1);
+        TagAsset(AssetOpType::INSERT, AssetStatus::NORMAL, a2);
+        TagAsset(AssetOpType::INSERT, AssetStatus::NORMAL, a3);
+        TagAsset(AssetOpType::INSERT, AssetStatus::NORMAL, a4);
+        expectedList[FIELD_HOUSE] = { a1 };
+        expectedList[FIELD_CARS] = { a2, a3, a4 };
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
+        ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest023
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest023, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_ASSET_SAME_NAME_BUT_CHANGE, DATA_BASELINE, true);
+        EXPECT_EQ(std::get<Asset>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_HOUSE]).flag,
+            static_cast<uint32_t>(AssetOpType::UPDATE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest024
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest024, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_ASSETS_DIFFERENT_CHANGED_FIELD, DATA_BASELINE, true);
+        EXPECT_EQ(std::get<Asset>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_HOUSE]).flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::UPDATE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_CARS])[3].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
     }
 }

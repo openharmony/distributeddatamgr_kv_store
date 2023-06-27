@@ -55,7 +55,7 @@ public:
 
     void GetTimeOffset(const DeviceID &deviceId, TimeOffset &outValue);
 
-    void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
+    virtual void GetLocalWaterMark(const DeviceID &deviceId, uint64_t &outValue);
 
     int SaveLocalWaterMark(const DeviceID &deviceId, uint64_t inValue);
 

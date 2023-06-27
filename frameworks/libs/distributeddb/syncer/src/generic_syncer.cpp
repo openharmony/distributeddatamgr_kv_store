@@ -1024,6 +1024,7 @@ int GenericSyncer::CloseInner(bool isClosedOperation)
 int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) const
 {
     uint64_t localWaterMark = 0;
+    std::shared_ptr<Metadata> metadata = nullptr;
     {
         std::lock_guard<std::mutex> lock(syncerLock_);
         if (metadata_ == nullptr || syncInterface_ == nullptr) {
@@ -1034,8 +1035,9 @@ int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) cons
             return -E_BUSY;
         }
         syncInterface_->IncRefCount();
-        metadata_->GetLocalWaterMark(device, localWaterMark);
+        metadata = metadata_;
     }
+    metadata->GetLocalWaterMark(device, localWaterMark);
     uint32_t expectedMtuSize = 1024u * 1024u; // 1M
     DataSizeSpecInfo syncDataSizeInfo = {expectedMtuSize, static_cast<size_t>(MAX_TIMESTAMP)};
     std::vector<SendDataItem> outData;

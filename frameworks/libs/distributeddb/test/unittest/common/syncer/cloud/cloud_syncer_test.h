@@ -45,7 +45,7 @@ public:
         cloudTaskInfos_[taskId].taskId = taskId;
         currentContext_.currentTaskId = taskId;
         currentContext_.tableName = "TestTable" + std::to_string(taskId);
-        currentContext_.notifier = std::make_shared<ProcessNotifier>();
+        currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
         currentContext_.notifier->Init({currentContext_.tableName}, { "cloud" });
         currentContext_.strategy = std::make_shared<CloudMergeStrategy>();
         closed_ = false;

@@ -62,6 +62,11 @@ void SingleVerSyncEngine::EnableClearRemoteStaleData(bool enable)
 
 int SingleVerSyncEngine::StartAutoSubscribeTimer()
 {
+    if (syncInterface_->IsSupportSubscribe() == -E_NOT_SUPPORT) {
+        LOGI("[StartAutoSubscribeTimer] no need to start subscribe timer");
+        return E_OK;
+    }
+
     std::lock_guard<std::mutex> lockGuard(timerLock_);
     if (subscribeTimerId_ > 0) {
         LOGI("[SingleSyncEngine] subscribeTimerId is already set");

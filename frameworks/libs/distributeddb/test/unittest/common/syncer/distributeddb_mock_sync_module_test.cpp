@@ -380,7 +380,6 @@ void TimeSync001()
     delete storage;
     delete communicator;
 }
-}
 
 class DistributedDBMockSyncModuleTest : public testing::Test {
 public:
@@ -795,6 +794,31 @@ HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck003, TestSize.Level1)
     delete message;
 }
 #endif
+
+/**
+ * @tc.name: DataSyncCheck004
+ * @tc.desc: Test dataSync do ability sync.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, DataSyncCheck004, TestSize.Level1)
+{
+    MockSingleVerDataSync dataSync;
+    auto *message = new (std::nothrow) DistributedDB::Message();
+    ASSERT_TRUE(message != nullptr);
+    message->SetMessageType(TYPE_NOTIFY);
+    auto *context = new (std::nothrow) SingleVerKvSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    auto *communicator = new (std::nothrow) VirtualCommunicator("DEVICE", nullptr);
+    ASSERT_NE(communicator, nullptr);
+    dataSync.SetCommunicatorHandle(communicator);
+    EXPECT_EQ(dataSync.CallDoAbilitySyncIfNeed(context, message, false), -E_NEED_ABILITY_SYNC);
+    delete message;
+    RefObject::KillAndDecObjRef(context);
+    dataSync.SetCommunicatorHandle(nullptr);
+    RefObject::KillAndDecObjRef(communicator);
+}
 
 /**
  * @tc.name: AutoLaunchCheck001
@@ -1741,6 +1765,45 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck005, TestSize.Leve
     EXPECT_EQ(context->GetQuerySyncId(), "");
     RefObject::KillAndDecObjRef(context);
 }
+
+/**
+ * @tc.name: SyncTaskContextCheck006
+ * @tc.desc: test context call get query id async.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. prepare context
+     */
+    auto context = new (std::nothrow) SingleVerRelationalSyncTaskContext();
+    ASSERT_NE(context, nullptr);
+    VirtualCommunicator communicator("device", nullptr);
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    SingleVerSyncStateMachine stateMachine;
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+    ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
+    (void)stateMachine.Initialize(context, &dbSyncInterface, metadata, &communicator);
+    (void)context->Initialize("device", &dbSyncInterface, metadata, &communicator);
+    /**
+     * @tc.steps: step2. add sync target into context
+     */
+    auto target = new (std::nothrow) SingleVerSyncTarget();
+    ASSERT_NE(target, nullptr);
+    target->SetTaskType(ISyncTarget::RESPONSE);
+    EXPECT_EQ(context->AddSyncTarget(target), E_OK);
+    /**
+     * @tc.steps: step3. move to next target
+     * @tc.expected: retry time will be reset to zero
+     */
+    context->SetRetryTime(AUTO_RETRY_TIMES);
+    context->MoveToNextTarget();
+    EXPECT_EQ(context->GetRetryTime(), 0);
+    context->Clear();
+    RefObject::KillAndDecObjRef(context);
+}
 #ifdef RUN_AS_ROOT
 /**
  * @tc.name: TimeChangeListenerTest001
@@ -1947,6 +2010,31 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck006, TestSize.Level1)
 }
 
 /**
+ * @tc.name: SyncerCheck007
+ * @tc.desc: Test syncer get sync data size without syncer lock.
+ * @tc.type: FUNC
+ * @tc.require: AR000CCPOM
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck007, TestSize.Level1)
+{
+    MockSingleVerKVSyncer syncer;
+    auto mockMeta = std::make_shared<MockMetadata>();
+    auto metadata = std::static_pointer_cast<Metadata>(mockMeta);
+    EXPECT_CALL(*mockMeta, GetLocalWaterMark).WillRepeatedly([&syncer](const DeviceID &, uint64_t &) {
+        syncer.TestSyncerLock();
+    });
+    syncer.SetMetadata(metadata);
+    auto syncDBInterface = new VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(syncDBInterface, nullptr);
+    syncer.Init(nullptr, syncDBInterface, true);
+    size_t size = 0u;
+    EXPECT_EQ(syncer.GetSyncDataSize("device", size), E_OK);
+    syncer.SetMetadata(nullptr);
+    delete syncDBInterface;
+}
+
+/**
  * @tc.name: SessionId001
  * @tc.desc: Test syncer call set sync retry before init.
  * @tc.type: FUNC
@@ -2018,4 +2106,23 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SingleVerDataSyncUtils001, TestSize.Le
     SingleVerDataSyncUtils::TransSendDataItemToLocal(&context, "", data);
     EXPECT_NE(data[0]->GetTimestamp(), data[1]->GetTimestamp());
     SingleVerKvEntry::Release(data);
+}
+
+/**
+ * @tc.name: SyncTimerResetTest001
+ * @tc.desc: Test it will retrurn ok when sync with a timer already exists.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncTimerResetTest001, TestSize.Level1) {
+    MockSingleVerStateMachine stateMachine;
+    MockSyncTaskContext syncTaskContext;
+    MockCommunicator communicator;
+    VirtualSingleVerSyncDBInterface dbSyncInterface;
+    Init(stateMachine, syncTaskContext, communicator, dbSyncInterface);
+
+    EXPECT_EQ(stateMachine.CallStartWatchDog(), E_OK);
+    EXPECT_EQ(stateMachine.CallPrepareNextSyncTask(), E_OK);
+}
 }

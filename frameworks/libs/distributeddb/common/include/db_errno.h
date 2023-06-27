@@ -129,6 +129,7 @@ constexpr int E_CONSTRAINT = (E_BASE + 107); // sql failed with constraint
 constexpr int E_CLOUD_ERROR = (E_BASE + 108); // cloud error
 constexpr int E_QUERY_END = (E_BASE + 110); // Indicates that query function has queried last data from cloud
 constexpr int E_DB_CLOSED = (E_BASE + 111); // db is closed
+constexpr int E_NOT_SET = (E_BASE + 112); // asset loader is not set
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

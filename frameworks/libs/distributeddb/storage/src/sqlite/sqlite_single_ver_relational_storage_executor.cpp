@@ -42,6 +42,7 @@ static constexpr const char* FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bi
 static constexpr const char* SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
 static constexpr const int SET_FLAG_ZERO_MASK = 0x03; // clear 2th bit of flag
 static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag
+static constexpr const int SET_CLOUD_FLAG = 0x05; // set 1th bit of flag to 0
 
 int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, const char *f)
 {
@@ -1886,7 +1887,8 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
             case OpType::ONLY_UPDATE_GID:
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO:
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE:
-                errCode = UpdateCloudGidOrFlag(vBucket, tableSchema, op);
+            case OpType::UPDATE_TIMESTAMP:
+                errCode = OnlyUpdateLogTable(vBucket, tableSchema, op);
                 break;
             case OpType::NOT_HANDLE:
                 break;
@@ -2166,12 +2168,13 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
     if (ret != E_OK) {
         LOGE("Fail to set log trigger on, %d", ret);
     }
-    LOGD("save cloud data ok, insert count = %d, update count = %d, delete count = %d, only update gid count = %d, "
-         "set LCC flag zero count = %d, set LCC flag one count = %d, not handle count = %d",
-         statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
+    LOGD("save cloud data: %d, insert cnt = %d, update cnt = %d, delete cnt = %d, only update gid cnt = %d, "
+         "set LCC flag zero cnt = %d, set LCC flag one cnt = %d, update timestamp cnt = %d, not handle cnt = %d",
+         errCode, statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
+         statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)],
          statisticMap[static_cast<int>(OpType::NOT_HANDLE)]);
     return errCode == E_OK ? ret : errCode;
 }
@@ -2488,6 +2491,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK); // clear 2th bit of flag
     } else if (opType == OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE) {
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
+    }  else if (opType == OpType::UPDATE_TIMESTAMP) {
+        updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) + ", timestamp = ?";
+        updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += "data_key = -1, flag = 1, ";
@@ -2651,7 +2657,7 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string 
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudGidOrFlag(const VBucket &vBucket,
+int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateLogTable(const VBucket &vBucket,
     const TableSchema &tableSchema, OpType opType)
 {
     return UpdateLogRecord(vBucket, tableSchema, opType);

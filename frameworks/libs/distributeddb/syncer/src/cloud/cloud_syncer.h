@@ -61,14 +61,37 @@ protected:
         int64_t timeout;
         std::vector<std::string> devices;
     };
+    struct DataInfo {
+        DataInfoWithLog localInfo;
+        LogInfo cloudLogInfo;
+    };
     struct InnerProcessInfo {
         std::string tableName;
         ProcessStatus tableStatus = ProcessStatus::PREPARED;
         Info downLoadInfo;
         Info upLoadInfo;
     };
+    struct AssetDownloadList {
+        // assets in following list will fill STATUS and timestamp after calling downloading
+        DownloadList downloadList;
+        // assets in following list won't fill STATUS and timestamp after calling downloading
+        DownloadList completeDownloadList;
+    };
+    struct SyncParam {
+        DownloadData downloadData;
+        ChangedData changedData;
+        InnerProcessInfo info;
+        AssetDownloadList assetsDownloadList;
+        CloudWaterMark cloudWaterMark;
+        std::vector<std::string> pkColNames;
+        std::string tableName;
+        bool isLastBatch = false;
+    };
     class ProcessNotifier {
     public:
+        explicit ProcessNotifier(CloudSyncer *syncer);
+        ~ProcessNotifier();
+
         void Init(const std::vector<std::string> &tableName, const std::vector<std::string> &devices);
 
         void UpdateProcess(const InnerProcessInfo &process);
@@ -81,12 +104,7 @@ protected:
         std::mutex processMutex_;
         SyncProcess syncProcess_;
         std::vector<std::string> devices_;
-    };
-    struct AssetDownloadList {
-        // assets in following list will fill STATUS and timestamp after calling downloading
-        DownloadList downloadList;
-        // assets in following list won't fill STATUS and timestamp after calling downloading
-        DownloadList completeDownloadList;
+        CloudSyncer *syncer_;
     };
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -113,14 +131,15 @@ protected:
 
     int DoSync(TaskId taskId);
 
-    int DoSyncInner(const CloudTaskInfo &taskInfo, const bool &needUpload);
+    int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload);
+
+    int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
     void DoFinished(TaskId taskId, int errCode, const InnerProcessInfo &processInfo);
 
     virtual int DoDownload(TaskId taskId);
 
-    int DoDownloadInner(CloudSyncer::TaskId taskId, std::vector<std::string> &colNames,
-        InnerProcessInfo &info, CloudWaterMark &cloudWaterMark);
+    int DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param);
 
     void NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info);
 
@@ -185,21 +204,18 @@ protected:
 
     void SetTaskFailed(TaskId taskId, int errCode);
     
-    int SaveDatum(const std::string &tableName, size_t idx, DownloadData &downloadData,
-        AssetDownloadList &assetsDownloadList, ChangedData &changedData, std::vector<size_t> &InsertDataNoPrimaryKeys);
+    int SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys);
 
-    int SaveData(const TableName &tablename, DownloadData &downloadData,
-        Info &downloadInfo, CloudWaterMark &latestCloudWaterMark, ChangedData &changedData);
+    int SaveData(SyncParam &param);
 
-    int SaveDataInTransaction(CloudSyncer::TaskId taskId,  DownloadData &downloadData,
-        std::vector<std::string> &pkColNames, InnerProcessInfo &info, CloudWaterMark &newCloudWaterMark,
-        ChangedData &changedData);
+    void NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param);
 
-    int SaveChangedData(DownloadData &downloadData, int dataIndex, DataInfoWithLog &localLogInfo,
-        LogInfo &cloudLogInfo, ChangedData &changedData, std::vector<size_t> &InsertDataNoPrimaryKeys);
+    int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
-    int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, DownloadData &downloadData,
-        std::vector<std::string> &pkColNames, InnerProcessInfo &info, CloudWaterMark &newCloudWaterMark);
+    int SaveChangedData(SyncParam &param, int dataIndex, DataInfo &dataInfo,
+        std::vector<size_t> &InsertDataNoPrimaryKeys);
+
+    int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
 
     void NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo, bool lastBatch);
 
@@ -215,9 +231,10 @@ protected:
     Assets TagAssetsInSingleCol(VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField,
         bool WriteToCoveredData);
 
-    void TagStatus(bool isExist, const TableName &tableName, size_t idx, DownloadData &downloadData,
-        std::vector<std::string> &pKColNames, DataInfoWithLog &localInfo, LogInfo &cloudLogInfo,
-        VBucket &localAssetInfo, AssetDownloadList &assetsDownloadList);
+    void TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
+
+    void TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
+        VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);
 
@@ -234,9 +251,17 @@ protected:
 
     bool ShouldProcessAssets();
 
+    void IncSyncCallbackTaskCount();
+
+    void DecSyncCallbackTaskCount();
+
+    void WaitAllSyncCallbackTaskFinish();
+
     static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
 
     void ModifyCloudDataTime(VBucket &data);
+
+    int SaveCloudWaterMark(const TableName &tableName);
 
     std::mutex queueLock_;
     TaskId currentTaskId_;
@@ -261,6 +286,10 @@ protected:
     std::condition_variable heartbeatCv_;
     int32_t heartBeatCount_;
     std::atomic<int32_t> failedHeartBeatCount_;
+
+    std::mutex syncCallbackMutex_;
+    std::condition_variable syncCallbackCv_;
+    int32_t syncCallbackCount_;
 };
 }
 #endif // CLOUD_SYNCER_H

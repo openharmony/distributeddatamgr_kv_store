@@ -53,6 +53,7 @@ namespace {
     std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreObserverUnitTest *g_observer = nullptr;
+    SyncProcess g_syncProcess;
     using CloudSyncStatusCallback = std::function<void(const std::map<std::string, SyncProcess> &onProcess)>;
     const std::string CREATE_LOCAL_TABLE_SQL =
             "CREATE TABLE IF NOT EXISTS " + g_tableName1 + "(" \
@@ -629,35 +630,22 @@ namespace {
     void InitProcessForCleanCloudData1(const uint32_t &cloudCount, const uint32_t &localCount,
         std::vector<SyncProcess> &expectProcess)
     {
+        // cloudCount also means data count in one batch
         expectProcess.clear();
         std::vector<TableProcessInfo> infos;
         uint32_t index = 1;
         infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
         infos.push_back(TableProcessInfo{
             PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
         });
 
         infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
         infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
-        });
-
-        infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
-        });
-        infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
-        });
-
-        infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
-        });
-        infos.push_back(TableProcessInfo{
-            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
 
         for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
@@ -975,6 +963,7 @@ namespace {
         ASSERT_EQ(delegate->CreateDistributedTable(g_tableName3, CLOUD_COOPERATION), DBStatus::OK);
         g_virtualCloudDb = make_shared<VirtualCloudDb>();
         g_virtualAssetLoader = make_shared<VirtualAssetLoader>();
+        g_syncProcess = {};
         ASSERT_EQ(delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
         ASSERT_EQ(delegate->SetIAssetLoader(g_virtualAssetLoader), DBStatus::OK);
         // sync before setting cloud db schema,it should return SCHEMA_MISMATCH
@@ -1030,11 +1019,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest001, TestS
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, localCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     EXPECT_TRUE(g_observer->IsAllChangedDataEq());
     g_observer->ClearChangedData();
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:[10 - 20)");
@@ -1060,11 +1048,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest002, TestS
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest2(cloudCount, localCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud10), worker2[primary key]:[0 - 10)");
     CheckDownloadResult(db, {10L, 10L}); // 10 and 10 means the num of downloads from cloud db by worker1 and worker2
     LOGD("expect upload:worker1[primary key]:[local0 - local20), worker2[primary key]:[10 - 20)");
@@ -1087,22 +1074,21 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, cloudCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     CheckDownloadResult(db, {20L, 0L}); // 20 and 0 means the num of downloads from cloud db by worker1 and worker2
     CheckCloudTotalCount({40L, 20L}); // 40 and 20 means the total num of worker1 and worker2 from the cloud db
 
     int updateCount = 10;
     UpdateUserTableRecord(db, 5, updateCount); // 5 is start id to be updated
-    syncProcess = {};
+    g_syncProcess = {};
     InitProcessForTest1(cloudCount, updateCount, expectProcess);
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     LOGD("-------------------sync after update--------------");
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     VBucket extend;
     extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
@@ -1120,11 +1106,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest003, TestS
 
     int deleteCount = 3;
     DeleteUserTableRecord(db, 0, deleteCount);
-    syncProcess = {};
+    g_syncProcess = {};
     InitProcessForTest1(updateCount, deleteCount, expectProcess);
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     CheckCloudTotalCount({37L, 17L}); // 37 and 17 means the total num of worker1 and worker2 from the cloud db
 }
@@ -1148,11 +1134,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
     }
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, 20); // 20 is wait time
+    WaitForSyncFinish(g_syncProcess, 20); // 20 is wait time
 }
 
 /**
@@ -1165,7 +1150,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest004, TestS
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest005, TestSize.Level0)
 {
     Query query = Query::Select().FromTable(g_tables).OrderBy("123", true);
-    SyncProcess syncProcess;
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, nullptr, g_syncWaitTime),
         DBStatus::NOT_SUPPORT);
 
@@ -1201,15 +1185,14 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest006, TestS
     InsertUserTableRecord(db, 0, cloudCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     // Set correct cloudDbSchema (correct version)
     DataBaseSchema correctSchema;
     GetCloudDbSchema(correctSchema);
     ASSERT_EQ(delegate->SetCloudDbSchema(correctSchema), DBStatus::OK);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     EXPECT_TRUE(g_observer->IsAllChangedDataEq());
     g_observer->ClearChangedData();
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:[10 - 20)");
@@ -1246,11 +1229,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest007, TestS
     InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     CheckAssetAfterDownload(db, localCount);
     CheckAllAssetAfterUpload(localCount);
@@ -1287,22 +1269,21 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest009, TestS
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForTest1(cloudCount, cloudCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     LOGD("expect download:worker1[primary key]:[cloud0 - cloud20), worker2[primary key]:none");
     CheckDownloadResult(db, {20L, 0L}); // 20 and 0 means the num of downloads from cloud db by worker1 and worker2
     LOGD("expect upload:worker1[primary key]:[local0 - local20), worker2[primary key]:[0 - 20)");
     CheckCloudTotalCount({40L, 20L}); // 40 and 20 means the total num of worker1 and worker2 from the cloud db
 
-    syncProcess = {};
+    g_syncProcess = {};
     InitProcessForTest9(cloudCount, 0, expectProcess);
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     LOGD("--------------the second sync-------------");
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 }
 
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, TestSize.Level0)
@@ -1314,11 +1295,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, Test
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     int rowid = 27;
     UpdateAssetForTest(db, AssetOpType::NO_CHANGE, cloudCount, rowid++);
@@ -1332,11 +1312,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest0010, Test
     UpdateAssetsForTest(db, AssetOpType::DELETE, id++);
     UpdateAssetsForTest(db, AssetOpType::UPDATE, id++);
 
-    syncProcess = {};
-    GetCallback(syncProcess, callback, expectProcess);
+    g_syncProcess = {};
+    GetCallback(g_syncProcess, callback, expectProcess);
     LOGD("--------------the second sync-------------");
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     CheckFillAssetForTest10(db);
     CheckFillAssetsForTest10(db);
@@ -1385,33 +1365,32 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestS
     InsertUserTableRecord(db, 0, localCount, paddingSize, true);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     InsertCloudTableRecord(localCount + cloudCount, cloudCount, paddingSize, false);
     InsertUserTableRecord(db, localCount + cloudCount, localCount, paddingSize, true);
-    syncProcess = {};
-    GetCallback(syncProcess, callback, expectProcess);
+    g_syncProcess = {};
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     InsertCloudTableRecord(2 * (localCount + cloudCount), cloudCount, paddingSize, false); // 2 is offset
     InsertUserTableRecord(db, 2 * (localCount + cloudCount), localCount, paddingSize, false); // 2 is offset
-    syncProcess = {};
-    GetCallback(syncProcess, callback, expectProcess);
+    g_syncProcess = {};
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
 
     InsertCloudTableRecord(3 * (localCount + cloudCount), cloudCount, paddingSize, true); // 3 is offset
     InsertUserTableRecord(db, 3 * (localCount + cloudCount), localCount, paddingSize, true); // 3 is offset
-    syncProcess = {};
-    GetCallback(syncProcess, callback, expectProcess);
+    g_syncProcess = {};
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 }
 
 /*
@@ -1428,11 +1407,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DataNotifier001, TestSi
     InsertRecordWithoutPk2LocalAndCloud(db, 0, localCount, paddingSize);
     Query query = Query::Select().FromTable({g_tableName3});
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 }
 
 /**
@@ -1450,17 +1428,15 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest001, 
     InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 
     CheckAssetAfterDownload(db, localCount);
     CheckAllAssetAfterUpload(localCount);
 }
 
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 /*
  * @tc.name: MannualNotify001
  * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData
@@ -1476,13 +1452,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestS
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForMannualSync1(expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
         DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
-
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 }
 /*
  * @tc.name: CleanCloudDataTest001
@@ -1501,12 +1475,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest001, 
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
         DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     std::string device = "";
     CheckCloudRecordNum(db, g_tables, {20, 20});
     ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_ONLY), DBStatus::OK);
@@ -1530,17 +1503,15 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, 
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
-    SyncProcess syncProcess;
     CloudSyncStatusCallback callback;
-    GetCallback(syncProcess, callback, expectProcess);
+    GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
         DBStatus::OK);
-    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
     std::string device = "";
     CheckCloudRecordNum(db, g_tables, {20, 20});    // 20 means cloud data num
     ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataAndLogNum(db, g_tables, 0, {localCount, 0});
 }
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 }
 #endif // RELATIONAL_STORE

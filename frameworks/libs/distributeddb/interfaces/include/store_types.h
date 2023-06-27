@@ -71,6 +71,7 @@ enum DBStatus {
     CLOUD_ERROR, // cloud error
     QUERY_END, // Indicates that query function has queried last data from cloud
     DB_CLOSED, // db is closed
+    UNSET_ERROR, // something should be set not be set
 };
 
 struct KvStoreConfig {

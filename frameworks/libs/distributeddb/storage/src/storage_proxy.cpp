@@ -326,6 +326,9 @@ int StorageProxy::FillCloudAssetForUpload(const CloudSyncData &data)
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
+    if (data.updData.assets.empty()) {
+        return E_OK;
+    }
     return store_->FillCloudAssetForUpload(data);
 }
 }

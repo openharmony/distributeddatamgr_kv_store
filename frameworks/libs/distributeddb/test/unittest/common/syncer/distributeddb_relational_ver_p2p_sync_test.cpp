@@ -2118,6 +2118,26 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery011, TestSize.Level1)
 }
 
 /**
+* @tc.name: remote query 012
+* @tc.desc: Test rdb remote query with invalid dev
+* @tc.type: FUNC
+* @tc.require: AR000GK58G
+* @tc.author: zhangqiquan
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, RemoteQuery012, TestSize.Level1)
+{
+    std::map<std::string, DataValue> dataMap;
+    std::string invalidDev = std::string(DBConstant::MAX_DEV_LENGTH + 1, '0');
+    PrepareEnvironment(dataMap, {g_deviceB});
+    ASSERT_NE(g_rdbDelegatePtr, nullptr);
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM " + g_tableName;
+    std::shared_ptr<ResultSet> result = nullptr;
+    EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(invalidDev, condition, DBConstant::MIN_TIMEOUT, result), INVALID_ARGS);
+    EXPECT_EQ(result, nullptr);
+}
+
+/**
 * @tc.name: RelationalPemissionTest001
 * @tc.desc: deviceB PermissionCheck not pass test, SYNC_MODE_PUSH_ONLY
 * @tc.type: FUNC

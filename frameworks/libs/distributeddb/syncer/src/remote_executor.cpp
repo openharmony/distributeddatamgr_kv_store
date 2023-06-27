@@ -310,6 +310,10 @@ bool RemoteExecutor::CheckParamValid(const std::string &device, uint64_t timeout
         LOGD("[RemoteExecutor][CheckParamValid] device is empty");
         return false;
     }
+    if (device.length() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[RemoteExecutor] dev is too long len=%zu", device.length());
+        return false;
+    }
     ICommunicator *communicator = GetAndIncCommunicator();
     if (communicator == nullptr) {
         return false;

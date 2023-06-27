@@ -140,10 +140,9 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      * @tc.expected: step8 not handle cloud record
      */
     cloudInfo.flag = 0x01; // it means delete
-    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE_TIMESTAMP);
 }
 
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 /**
  * @tc.name: TagOpTyeTest002
  * @tc.desc: Verify local cover cloud strategy tag operation type function.
@@ -243,5 +242,30 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest003, TestSize.Level0)
     localInfo.cloudGid = "gid";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE);
 }
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
+/**
+ * @tc.name: TagOpTyeTest004
+ * @tc.desc: Verify cloud cover local strategy tag operation type function.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. cloud cover local strategy
+     */
+    auto strategy = StrategyFactory::BuildSyncStrategy(SyncMode::SYNC_MODE_CLOUD_FORCE_PULL);
+    ASSERT_NE(strategy, nullptr);
+    LogInfo localInfo;
+    LogInfo cloudInfo;
+
+    cloudInfo.flag = 0x01;
+    localInfo.flag = 0x01;
+    localInfo.cloudGid = "";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE_TIMESTAMP);
+
+    cloudInfo.flag = 0x00;
+    localInfo.flag = 0x01;
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::INSERT);
+}
 }
