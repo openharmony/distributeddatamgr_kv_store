@@ -29,8 +29,8 @@ public:
     class Convertible {
     public:
         // Convertible is auto convert type, do not add explicit to stop the type convert.
-        Convertible(const From &){};
-        Convertible(){}
+        Convertible(const From &) {};
+        Convertible() {}
         Convertible(Convertible &&) noexcept {};
         Convertible &operator=(Convertible &&) noexcept
         {
