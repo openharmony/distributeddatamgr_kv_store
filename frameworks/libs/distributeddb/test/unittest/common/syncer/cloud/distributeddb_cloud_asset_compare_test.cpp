@@ -693,10 +693,14 @@ namespace {
     {
         auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
             DATA_ASSET_SAME_NAME_BUT_CHANGE, DATA_BASELINE, true);
-        EXPECT_EQ(std::get<Asset>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::UPDATE));
-        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
-        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
-        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Asset>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_HOUSE]).flag,
+            static_cast<uint32_t>(AssetOpType::UPDATE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_ASSET_SAME_NAME_BUT_CHANGE[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
     }
 
     /**

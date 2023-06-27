@@ -740,9 +740,9 @@ namespace {
          * @tc.steps:step3. verify data
          * @tc.expected: step3. verify data ok.
          */
-         std::string gid = g_gid + std::to_string(1);
-         sql = "select device, timestamp, flag from " + DBCommon::GetLogTableName(g_tableName) +
-             " where cloud_gid = '" + gid + "'";
+        std::string gid = g_gid + std::to_string(1);
+        sql = "select device, timestamp, flag from " + DBCommon::GetLogTableName(g_tableName) +
+            " where cloud_gid = '" + gid + "'";
         int count = 0;
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
             std::string device = "cloud";

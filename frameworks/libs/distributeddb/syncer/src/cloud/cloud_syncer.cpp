@@ -586,7 +586,7 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
         }
         if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Assets>) {
             TagAssetsWithNormalStatus(writeToCoveredData, AssetOpType::DELETE,
-                std::get<Assets>(beCoveredData[assetFieldName]), res);  
+                std::get<Assets>(beCoveredData[assetFieldName]), res);
         }
         return res;
     }
@@ -824,9 +824,9 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
     ChangedData &changedAssets)
 {
     for (auto &assetsDownloadInfo : downloadList) {
-        std::string gid = std::get<0>(assetsDownloadInfo); // 0 means gid is the first element in assetsDownloadInfo
-        Type primaryKey = std::get<1>(assetsDownloadInfo); // 1 means primaryKey is the second element in assetsDownloadInfo
-        OpType strategy = std::get<2>(assetsDownloadInfo); // 2 means strategy is the third element in assetsDownloadInfo
+        std::string gid = std::get<0>(assetsDownloadInfo); // 0 means gid is the first element in assetsInfo
+        Type primaryKey = std::get<1>(assetsDownloadInfo); // 1 means primaryKey is the second element in assetsInfo
+        OpType strategy = std::get<2>(assetsDownloadInfo); // 2 means strategy is the third element in assetsInfo
         // 3 means assets info [colName, assets] is the forth element in assetsDownloadInfo
         std::map<std::string, Assets> assets = std::get<3>(assetsDownloadInfo);
         // Download data (include deleting)
@@ -975,11 +975,11 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
             ret = GetCloudPkVals(
                 dataInfo.localInfo.primaryKeys, param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pKVals);
         } else {
-            ret = GetCloudPkVals(param.downloadData.data[idx], param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pKVals);
+            ret = GetCloudPkVals(param.downloadData.data[idx], param.pkColNames,
+                dataInfo.localInfo.logInfo.dataKey, pKVals);
         }
         prefix = pKVals[0];
     }
-    // TODO: return ret;
     switch (strategy)
     {
         case OpType::INSERT:
@@ -1012,7 +1012,6 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
         default:
             break;
     }
-    return;
 }
 
 int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys)
@@ -1626,7 +1625,7 @@ int CloudSyncer::PreProcessBatchUpload(TaskId taskId, CloudSyncData &uploadData,
 
 int CloudSyncer::SaveCloudWaterMark(const TableName &tableName)
 {
-    CloudWaterMark cloudWaterMark;   
+    CloudWaterMark cloudWaterMark;
     {
         std::lock_guard<std::mutex> autoLock(contextLock_);
         auto it = currentContext_.cloudWaterMarks.find(tableName);
