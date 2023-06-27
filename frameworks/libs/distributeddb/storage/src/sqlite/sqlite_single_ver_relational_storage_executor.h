@@ -176,7 +176,8 @@ private:
 
     std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
 
-    int GetPrimaryKeyHashValue(const VBucket &vBucket, const TableSchema &tableSchema, std::vector<uint8_t> &hashValue);
+    int GetPrimaryKeyHashValue(const VBucket &vBucket, const TableSchema &tableSchema, std::vector<uint8_t> &hashValue,
+        bool allowEmpty = false);
 
     int GetQueryLogStatement(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &querySql,
         std::set<std::string> &pkSet, sqlite3_stmt *&selectStmt);
@@ -194,7 +195,8 @@ private:
 
     int InitFillUploadAssetStatement(const CloudSyncData &data, const int &index, sqlite3_stmt *&statement);
 
-    int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
+    int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
+        std::vector<uint8_t> &hashValue);
 
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
@@ -215,7 +217,7 @@ private:
     int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt);
 
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
-        const std::string &tableName);
+        const std::string &tableName, bool queryByPk = true);
 
     int GetUpdateSqlForCloudSync(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &gidStr,
         const std::set<std::string> &pkSet, std::string &updateSql);
@@ -230,7 +232,7 @@ private:
     int UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
     int BindValueToUpdateLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
-        std::vector<std::string> &colNames, std::map<std::string, Field> &pkMap, sqlite3_stmt *updateLogStmt);
+        const std::vector<std::string> &colNames, bool allowPrimaryKeyEmpty, sqlite3_stmt *updateLogStmt);
 
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
