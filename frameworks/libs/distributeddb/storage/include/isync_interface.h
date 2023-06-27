@@ -69,6 +69,8 @@ public:
     virtual const DBProperties &GetDbProperties() const = 0;
 
     virtual int GetSecurityOption(SecurityOption &option) const = 0;
+
+    virtual int IsSupportSubscribe() const = 0;
 };
 } // namespace DistributedDB
 

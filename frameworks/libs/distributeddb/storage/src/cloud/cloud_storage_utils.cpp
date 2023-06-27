@@ -164,7 +164,7 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             LOGE("can not get asset from vBucket when bind, %d", errCode);
             return errCode;
         }
-        RuntimeContext::GetInstance()->AssetToBlob(asset, val);
+        errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, val);
     } else if (field.type == TYPE_INDEX<Assets>) {
         Assets assets;
         errCode = GetValueFromOneField(type, assets);
@@ -172,22 +172,21 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             LOGE("can not get assets from vBucket when bind, %d", errCode);
             return errCode;
         }
-        if (assets.empty()) {
-            errCode = -E_NOT_FOUND;
-        } else {
-            RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
+        if (!assets.empty()) {
+            errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
         }
     } else {
         LOGE("field type is not asset or assets, %d", -E_CLOUD_ERROR);
         return -E_CLOUD_ERROR;
     }
-    if (errCode == E_OK) {
-        errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
-    } else {
-        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
-    }
     if (errCode != E_OK) {
-        LOGE("Bind blob to asset failed, %d", errCode);
+        LOGE("assets or asset to blob fail, %d", -E_CLOUD_ERROR);
+        return -E_CLOUD_ERROR;
+    }
+    if (val.empty()) {
+        errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
+    } else {
+        errCode = SQLiteUtils::BindBlobToStatement(upsertStmt, index, val);
     }
     return errCode;
 }

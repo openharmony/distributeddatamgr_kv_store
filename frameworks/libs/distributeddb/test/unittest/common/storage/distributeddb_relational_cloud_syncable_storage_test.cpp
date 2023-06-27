@@ -1060,6 +1060,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     CloudSyncData syncData(g_tableName);
+    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
     syncData.updData.rowid.push_back(1L);
     VBucket bucket1;
     Asset asset = g_localAsset;
@@ -1082,6 +1083,51 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
     ASSERT_EQ(sqlite3_column_type(stmt, 1), SQLITE_NULL);
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     sqlite3_close(db);
+}
+
+/**
+ * @tc.name: FillCloudAsset003
+ * @tc.desc: The twice fill have different assert columns
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, TestSize.Level0)
+{
+    int64_t insCount = 2;
+    int64_t photoSize = 10;
+    InitUserAndLogForAsset(insCount, photoSize);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT timestamp FROM " + DBCommon::GetLogTableName(g_tableName) +
+        " WHERE data_key in ('1', '2');", stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    int64_t timeStamp1 = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
+    int64_t timeStamp2 = static_cast<int64_t>(sqlite3_column_int64(stmt, 1));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    sqlite3_close(db);
+
+    CloudSyncData syncData(g_tableName);
+    syncData.updData.rowid.push_back(1L);
+    syncData.updData.rowid.push_back(2L);
+    VBucket bucket1, bucket2;
+    Asset asset = g_localAsset;
+    asset.size = "888";
+    asset.status = static_cast<uint32_t>(AssetStatus::UPDATE);
+    Assets assets;
+    assets.push_back(asset);
+    assets.push_back(asset);
+    bucket1.insert_or_assign("assert", asset);
+    bucket2.insert_or_assign("assert", asset);
+    bucket2.insert_or_assign("asserts", assets);
+    syncData.updData.assets.push_back(bucket1);
+    syncData.updData.assets.push_back(bucket2);
+    syncData.updData.timestamp.push_back(timeStamp1);
+    syncData.updData.timestamp.push_back(timeStamp2);
+    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
 }
 }
 #endif // RELATIONAL_STORE

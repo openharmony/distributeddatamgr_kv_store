@@ -144,6 +144,11 @@ public:
     {
         return {};
     }
+
+    int IsSupportSubscribe() const override
+    {
+        return -E_NOT_SUPPORT;
+    }
 };
 }
 #endif // SYNC_GENERIC_INTERFACE_H

@@ -47,6 +47,13 @@ public:
     {
         metadata_ = metadata;
     }
+
+    void TestSyncerLock()
+    {
+        LOGD("begin get lock");
+        std::lock_guard<std::mutex> autoLock(syncerLock_);
+        LOGD("get lock success");
+    }
 };
 }
 #endif // MOCK_SINGLE_VER_KV_SYNCER_H

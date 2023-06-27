@@ -192,7 +192,7 @@ private:
     int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
         const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement);
 
-    int GetFillUploadAssetStatement(const std::string &tableName, const VBucket &vBucket, sqlite3_stmt *&statement);
+    int InitFillUploadAssetStatement(const CloudSyncData &data, const int &index, sqlite3_stmt *&statement);
 
     int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, std::vector<uint8_t> &hashValue);
 
@@ -237,7 +237,7 @@ private:
 
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
 
-    int UpdateCloudGidOrFlag(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
+    int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

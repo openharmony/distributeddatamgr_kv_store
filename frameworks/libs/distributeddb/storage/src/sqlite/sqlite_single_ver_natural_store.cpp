@@ -2251,11 +2251,10 @@ int SQLiteSingleVerNaturalStore::InterceptData(std::vector<SingleVerKvEntry *> &
 int SQLiteSingleVerNaturalStore::AddSubscribe(const std::string &subscribeId, const QueryObject &query,
     bool needCacheSubscribe)
 {
-    const SchemaObject &localSchema = MyProp().GetSchemaConstRef();
-    if (localSchema.GetSchemaType() != SchemaType::NONE && localSchema.GetSchemaType() != SchemaType::JSON) {
-        // Flatbuffer schema is not support subscribe
+    if (IsSupportSubscribe() != E_OK) {
         return -E_NOT_SUPPORT;
     }
+    const SchemaObject &localSchema = MyProp().GetSchemaConstRef();
     QueryObject queryInner = query;
     queryInner.SetSchema(localSchema);
     if (IsExtendedCacheDBMode() && needCacheSubscribe) { // cache auto subscribe when engine state is in CACHEDB mode
@@ -2388,6 +2387,16 @@ void SQLiteSingleVerNaturalStore::Dump(int fd)
     DBDumpHelper::Dump(fd, "\tdb userId = %s, appId = %s, storeId = %s, label = %s\n",
         userId.c_str(), appId.c_str(), storeId.c_str(), label.c_str());
     SyncAbleKvDB::Dump(fd);
+}
+
+int SQLiteSingleVerNaturalStore::IsSupportSubscribe() const
+{
+    const SchemaObject &localSchema = MyProp().GetSchemaConstRef();
+    if (localSchema.GetSchemaType() != SchemaType::NONE && localSchema.GetSchemaType() != SchemaType::JSON) {
+        // Flatbuffer schema is not support subscribe
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
 }
 
 int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify)

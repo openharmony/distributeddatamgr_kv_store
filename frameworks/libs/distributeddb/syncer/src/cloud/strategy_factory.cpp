@@ -24,12 +24,10 @@ std::shared_ptr<CloudSyncStrategy> StrategyFactory::BuildSyncStrategy(SyncMode m
     switch (mode) {
         case SyncMode::SYNC_MODE_CLOUD_MERGE:
             return std::make_shared<CloudMergeStrategy>();
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
         case SyncMode::SYNC_MODE_CLOUD_FORCE_PULL:
             return std::make_shared<CloudForcePullStrategy>();
         case SyncMode::SYNC_MODE_CLOUD_FORCE_PUSH:
             return std::make_shared<CloudForcePushStrategy>();
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
         default:
             LOGW("[StrategyFactory] Not support mode %d", static_cast<int>(mode));
             return std::make_shared<CloudSyncStrategy>();

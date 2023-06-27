@@ -183,65 +183,65 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const Clou
     }
     sqlite3_stmt *stmt = nullptr;
     for (size_t i = 0; i < data.updData.assets.size(); ++i) {
-        VBucket assetData = data.updData.assets.at(i);
-        CloudStorageUtils::FillAssetFromVBucketAfterUpload(assetData);
-        errCode = GetFillUploadAssetStatement(data.tableName, assetData, stmt);
-        if (errCode != E_OK) {
-            goto END;
-        }
-        int64_t rowid = data.updData.rowid[i];
-        errCode = SQLiteUtils::BindInt64ToStatement(stmt, assetData.size() + 1, rowid);
-        if (errCode != E_OK) {
-            break;
-        }
-        int64_t timeStamp = data.updData.timestamp[i];
-        errCode = SQLiteUtils::BindInt64ToStatement(stmt, assetData.size() + 2, timeStamp); // 2 is index
+        errCode = InitFillUploadAssetStatement(data, i, stmt);
         if (errCode != E_OK) {
             break;
         }
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            SQLiteUtils::ResetStatement(stmt, false, errCode);
-        } else {
+        if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             LOGE("Fill upload asset failed:%d", errCode);
             break;
         }
+        errCode = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        stmt = nullptr;
+        if (errCode != E_OK) {
+            break;
+        }
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-END:
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
     int endCode = SetLogTriggerStatus(true);
     if (endCode != E_OK) {
         LOGE("Fail to set log trigger off, %d", endCode);
+        return endCode;
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetFillUploadAssetStatement(const std::string &tableName,
-    const VBucket &vBucket, sqlite3_stmt *&statement)
+int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const CloudSyncData &data,
+    const int &index, sqlite3_stmt *&statement)
 {
-    std::string sql = "UPDATE " + tableName + " SET ";
+    VBucket vBucket = data.updData.assets.at(index);
+    CloudStorageUtils::FillAssetFromVBucketAfterUpload(vBucket);
+    std::string sql = "UPDATE " + data.tableName + " SET ";
     for (const auto &item: vBucket) {
         sql += item.first + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(tableName) + " WHERE timestamp = ?);";
+    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(data.tableName) +
+        " WHERE timestamp = ?);";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
         return errCode;
     }
-    int index = 1;
+    int batchIndex = 1;
     for (const auto &item: vBucket) {
         Field field = {
             .colName = item.first, .type = static_cast<int32_t>(item.second.index())
         };
-        errCode = bindCloudFieldFuncMap_[TYPE_INDEX<Assets>](index++, vBucket, field, statement);
+        errCode = bindCloudFieldFuncMap_[TYPE_INDEX<Assets>](batchIndex++, vBucket, field, statement);
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(statement, true, errCode);
             return errCode;
         }
     }
-    return errCode;
+    int64_t rowid = data.updData.rowid[index];
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 1, rowid);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int64_t timeStamp = data.updData.timestamp[index];
+    return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 2, timeStamp); // 2 is index;
 }
 } // namespace DistributedDB
 #endif

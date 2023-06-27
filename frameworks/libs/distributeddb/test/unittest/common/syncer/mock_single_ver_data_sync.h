@@ -42,6 +42,16 @@ public:
         return SingleVerDataSync::RemoveDeviceDataIfNeed(context);
     }
 
+    int CallDoAbilitySyncIfNeed(SingleVerSyncTaskContext *context, const Message *message, bool isControlMsg)
+    {
+        return SingleVerDataSync::DoAbilitySyncIfNeed(context, message, isControlMsg);
+    }
+
+    void SetCommunicatorHandle(ICommunicator *communicator)
+    {
+        communicateHandle_ = communicator;
+    }
+
     MOCK_METHOD1(RemoveDeviceDataIfNeed, int(SingleVerSyncTaskContext *));
 };
 } // namespace DistributedDB

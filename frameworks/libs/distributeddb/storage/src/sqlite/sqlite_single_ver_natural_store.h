@@ -192,6 +192,8 @@ public:
 
     void Dump(int fd) override;
 
+    int IsSupportSubscribe() const override;
+
 private:
     struct TransPair {
         int index;

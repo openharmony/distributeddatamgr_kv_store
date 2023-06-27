@@ -72,11 +72,13 @@ int SyncEngine::Initialize(ISyncInterface *syncInterface, const std::shared_ptr<
     if ((syncInterface == nullptr) || (metadata == nullptr)) {
         return -E_INVALID_ARGS;
     }
+    syncInterface_ = syncInterface;
     int errCode = StartAutoSubscribeTimer();
     if (errCode != OK) {
+        syncInterface_ = nullptr;
         return errCode;
     }
-    syncInterface_ = syncInterface;
+
     errCode = InitComunicator(syncInterface);
     if (errCode != E_OK) {
         LOGE("[SyncEngine] Init Communicator failed");
@@ -1140,6 +1142,10 @@ void SyncEngine::SetRemoteExector(RemoteExecutor *executor)
 bool SyncEngine::CheckDeviceIdValid(const std::string &checkDeviceId, const std::string &localDeviceId)
 {
     if (checkDeviceId.empty()) {
+        return false;
+    }
+    if (checkDeviceId.length() > DBConstant::MAX_DEV_LENGTH) {
+        LOGE("[SyncEngine] dev is too long len=%zu", checkDeviceId.length());
         return false;
     }
     return localDeviceId != checkDeviceId;

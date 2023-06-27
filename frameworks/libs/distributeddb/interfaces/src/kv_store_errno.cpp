@@ -69,6 +69,7 @@ namespace {
         { -E_CONSTRAINT, CONSTRAINT },
         { -E_CLOUD_ERROR, CLOUD_ERROR },
         { -E_DB_CLOSED, DB_CLOSED },
+        { -E_NOT_SET, UNSET_ERROR },
     };
 }
 

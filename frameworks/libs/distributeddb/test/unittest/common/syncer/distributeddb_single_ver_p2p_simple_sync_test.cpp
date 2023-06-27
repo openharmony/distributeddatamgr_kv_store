@@ -745,8 +745,10 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync010, TestSize.Level1
 {
     DBStatus status = OK;
     std::vector<std::string> devices;
+    std::string invalidDev = std::string(DBConstant::MAX_DEV_LENGTH + 1, '0');
     devices.push_back(DEVICE_A);
     devices.push_back(g_deviceB->GetDeviceId());
+    devices.push_back(invalidDev);
 
     std::map<std::string, DBStatus> result;
     status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result);
@@ -754,6 +756,7 @@ HWTEST_F(DistributedDBSingleVerP2PSimpleSyncTest, NormalSync010, TestSize.Level1
 
     ASSERT_EQ(result.size(), devices.size());
     EXPECT_EQ(result[DEVICE_A], INVALID_ARGS);
+    EXPECT_EQ(result[invalidDev], INVALID_ARGS);
     EXPECT_EQ(result[DEVICE_B], OK);
 }
 

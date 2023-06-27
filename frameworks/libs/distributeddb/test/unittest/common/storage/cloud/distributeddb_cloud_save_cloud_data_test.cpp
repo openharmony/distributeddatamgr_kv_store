@@ -47,6 +47,8 @@ namespace {
     IRelationalStore *g_store = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
     ICloudSyncStorageInterface *g_cloudStore = nullptr;
+    constexpr const int64_t BASE_MODIFY_TIME = 12345678L;
+    constexpr const int64_t BASE_CREATE_TIME = 12345679L;
 
     enum class PrimaryKeyType {
         NO_PRIMARY_KEY,
@@ -638,9 +640,9 @@ namespace {
 
     void ConstructMultiDownloadData(DownloadData &downloadData, GidType gidType)
     {
-        for (int i = 0; i < 5; i++) { // 5 is record counts
+        for (int i = 0; i < 6; i++) { // 6 is record counts
             VBucket vBucket;
-            if (i == 0) {
+            if (i <= 1) {
                 vBucket["id"] = 1L + i;
             } else {
                 vBucket["id"] = 10L + i; // 10 is id offset for cloud data
@@ -663,14 +665,14 @@ namespace {
             }
 
             vBucket[CloudDbConstant::GID_FIELD] = gid;
-            int64_t cTime = 12345678L + i;
+            int64_t cTime = BASE_CREATE_TIME + i;
             vBucket[CloudDbConstant::CREATE_FIELD] = cTime;
-            int64_t mTime = 12345679L + i;
+            int64_t mTime = BASE_MODIFY_TIME + i;
             vBucket[CloudDbConstant::MODIFY_FIELD] = mTime;
             downloadData.data.push_back(vBucket);
         }
 
-        downloadData.opType = { OpType::UPDATE, OpType::INSERT, OpType::INSERT,
+        downloadData.opType = { OpType::UPDATE, OpType::UPDATE_TIMESTAMP, OpType::INSERT, OpType::INSERT,
             OpType::INSERT, OpType::NOT_HANDLE };
     }
 
@@ -701,5 +703,61 @@ namespace {
         ConstructMultiDownloadData(downloadData, GidType::GID_MATCH);
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest014
+     * @tc.desc: Test save cloud data with
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest014, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. create db, create table.
+         * @tc.expected: step1. return ok.
+         */
+        PrepareDataBase(g_tableName, PrimaryKeyType::NO_PRIMARY_KEY, true);
+
+        std::string sql = "delete from " + g_tableName + " where id = 2";
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        /**
+         * @tc.steps:step2. call PutCloudSyncData
+         * @tc.expected: step2. return ok.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+
+        DownloadData downloadData;
+        ConstructMultiDownloadData(downloadData, GidType::GID_MATCH);
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+
+        /**
+         * @tc.steps:step3. verify data
+         * @tc.expected: step3. verify data ok.
+         */
+         std::string gid = g_gid + std::to_string(1);
+         sql = "select device, timestamp, flag from " + DBCommon::GetLogTableName(g_tableName) +
+             " where cloud_gid = '" + gid + "'";
+        int count = 0;
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
+            std::string device = "cloud";
+            std::vector<uint8_t> deviceVec;
+            (void)SQLiteUtils::GetColumnBlobValue(stmt, 0, deviceVec);    // 0 is device
+            std::string getDevice;
+            DBCommon::VectorToString(deviceVec, getDevice);
+            EXPECT_EQ(device, getDevice);
+            EXPECT_EQ(sqlite3_column_int64(stmt, 1), BASE_MODIFY_TIME + 1);
+            EXPECT_EQ(sqlite3_column_int(stmt, 2), 1); // 2 is flag
+            count++;
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(count, 1);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 }

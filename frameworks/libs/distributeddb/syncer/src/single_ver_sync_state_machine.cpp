@@ -276,9 +276,13 @@ const std::vector<StateSwitchTable> &SingleVerSyncStateMachine::GetStateSwitchTa
 int SingleVerSyncStateMachine::PrepareNextSyncTask()
 {
     int errCode = StartWatchDog();
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_UNEXPECTED_DATA) {
         LOGE("[StateMachine][PrepareNextSyncTask] WatchDog start failed,err=%d", errCode);
         return errCode;
+    }
+    if (errCode == -E_UNEXPECTED_DATA) {
+        LOGI("[PrepareNextSyncTask] timer already exists, reset the timer.");
+        (void)ResetWatchDog();
     }
 
     if (currentState_ != State::IDLE && currentState_ != State::SYNC_TASK_FINISHED) {
@@ -615,6 +619,7 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
             // while recv last notify means ability sync finished,it is better to reset watchDog to avoid timeout.
             LOGI("[StateMachine][AbilitySyncRecv] ability sync finished,label=%s,dev=%s",
                 dataSync_->GetLabel().c_str(), STR_MASK(context_->GetDeviceId()));
+            context_->SetRemoteSoftwareVersion(packet->GetSoftwareVersion());
             currentRemoteVersionId_ = context_->GetRemoteSoftwareVersionId();
             std::lock_guard<std::mutex> lock(stateMachineLock_);
             (void)ResetWatchDog();

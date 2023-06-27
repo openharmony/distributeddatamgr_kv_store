@@ -57,6 +57,16 @@ public:
         SyncStateMachine::SwitchMachineState(event);
     }
 
+    int CallPrepareNextSyncTask()
+    {
+        return SingleVerSyncStateMachine::PrepareNextSyncTask();
+    }
+
+    int CallStartWatchDog()
+    {
+        return SingleVerSyncStateMachine::StartWatchDog();
+    }
+
     uint8_t GetCurrentState()
     {
         return currentState_;

@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
 #include "cloud_force_pull_strategy.h"
 #include "db_common.h"
 #include "db_errno.h"
@@ -25,9 +24,10 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &loc
     if (existInLocal) {
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
             return OpType::DELETE;
+        } else if (IsDelete(cloudInfo)) {
+            return OpType::UPDATE_TIMESTAMP;
         } else {
-            // When gid doestn't exist in local, it will fill gid on local also.
-            return OpType::UPDATE;
+            return IsDelete(localInfo) ? OpType::INSERT : OpType::UPDATE;
         }
     } else {
         if (IsDelete(cloudInfo)) {
@@ -48,4 +48,3 @@ bool CloudForcePullStrategy::JudgeUpload()
     return false;
 }
 }
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA

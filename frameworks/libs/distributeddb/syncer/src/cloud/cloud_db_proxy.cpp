@@ -178,10 +178,10 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
 {
     std::shared_lock<std::shared_mutex> readLock(assetLoaderMutex_);
     if (iAssetLoader_ == nullptr) {
-        LOGE("Asset loader has not been set %d", -E_INVALID_DB);
-        return -E_INVALID_DB;
+        LOGE("Asset loader has not been set %d", -E_NOT_SET);
+        return -E_NOT_SET;
     }
-    return iAssetLoader_->Download(tableName, gid, prefix, assets);
+    return iAssetLoader_->Download(tableName, gid, prefix, assets) == OK ? E_OK : -E_CLOUD_ERROR;
 }
 
 int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)

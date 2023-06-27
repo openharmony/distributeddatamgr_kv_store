@@ -43,7 +43,6 @@ RelationalStoreDelegateImpl::~RelationalStoreDelegateImpl()
 
 DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &device, ClearMode mode)
 {
-#ifdef MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
     if (mode >= BUTT) {
         LOGE("Invalid mode for Remove device data, %d.", INVALID_ARGS);
         return INVALID_ARGS;
@@ -61,7 +60,6 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         }
         return OK;
     }
-#endif // MANNUAL_SYNC_AND_CLEAN_CLOUD_DATA
     return RemoveDeviceData(device, "");
 }
 

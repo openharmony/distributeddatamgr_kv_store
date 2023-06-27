@@ -31,6 +31,8 @@ public:
     void SetDownloadFunc(const std::function<int (void)> &);
 
     void Notify(bool notifyIfError = false);
+
+    size_t GetQueueCount();
 private:
     std::function<int (void)> downloadFunc_;
     std::atomic<bool> doDownload_;
