@@ -43,7 +43,7 @@ public:
 
     int GetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark);
 
-    int PutCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark);
+    int SetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark);
     
     int StartTransaction(TransactType type = TransactType::DEFERRED);
 

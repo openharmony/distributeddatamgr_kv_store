@@ -535,4 +535,33 @@ bool CloudStorageUtils::IsAssets(const Type &type)
     }
     return false;
 }
+
+int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
+    std::vector<uint8_t> &hashValue)
+{
+    if (allowEmpty && vBucket.find(field.colName) == vBucket.end()) {
+        return E_OK; // if vBucket from cloud doesn't contain primary key and allowEmpty, no need to calculate hash
+    }
+    static std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVecFunc = {
+        {TYPE_INDEX<int64_t>, &CloudStorageUtils::Int64ToVector},
+        {TYPE_INDEX<bool>, &CloudStorageUtils::BoolToVector},
+        {TYPE_INDEX<double>, &CloudStorageUtils::DoubleToVector},
+        {TYPE_INDEX<std::string>, &CloudStorageUtils::TextToVector},
+        {TYPE_INDEX<Bytes>, &CloudStorageUtils::BlobToVector},
+        {TYPE_INDEX<Asset>, &CloudStorageUtils::BlobToVector},
+        {TYPE_INDEX<Assets>, &CloudStorageUtils::BlobToVector},
+    };
+    auto it = toVecFunc.find(field.type);
+    if (it == toVecFunc.end()) {
+        LOGE("unknown cloud type when convert field to vector.");
+        return -E_CLOUD_ERROR;
+    }
+    std::vector<uint8_t> value;
+    int errCode = it->second(vBucket, field, value);
+    if (errCode != E_OK) {
+        LOGE("convert cloud field fail, %d", errCode);
+        return errCode;
+    }
+    return DBCommon::CalcValueHash(value, hashValue);
+}
 }

@@ -195,9 +195,6 @@ private:
 
     int InitFillUploadAssetStatement(const CloudSyncData &data, const int &index, sqlite3_stmt *&statement);
 
-    int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
-        std::vector<uint8_t> &hashValue);
-
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,

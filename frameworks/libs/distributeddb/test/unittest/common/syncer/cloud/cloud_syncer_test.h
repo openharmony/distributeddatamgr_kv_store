@@ -229,6 +229,11 @@ public:
         return TagAssetsInSingleRecord(CoveredData, BeCoveredData, WriteToCoveredData);
     }
 
+    bool TestIsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)
+    {
+        return IsDataContainDuplicateAsset(assetFields, data);
+    }
+
     void SetCloudWaterMarks(const TableName &tableName, const CloudWaterMark &mark)
     {
         currentContext_.tableName = tableName;

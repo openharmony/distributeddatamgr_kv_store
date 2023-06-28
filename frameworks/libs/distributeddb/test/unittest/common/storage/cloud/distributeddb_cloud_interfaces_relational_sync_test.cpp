@@ -238,6 +238,8 @@ namespace {
         std::vector<uint8_t> photo(photoSize, 'v');
         std::vector<VBucket> record1;
         std::vector<VBucket> extend1;
+        std::vector<VBucket> record2;
+        std::vector<VBucket> extend2;
         Timestamp now = TimeHelper::GetSysCurrentTime();
         for (int64_t i = begin; i < begin + count; ++i) {
             VBucket data;
@@ -245,45 +247,35 @@ namespace {
             data.insert_or_assign("height", 166.0); // 166.0 is random double value
             data.insert_or_assign("married", false);
             data.insert_or_assign("photo", photo);
+            data.insert_or_assign("age", 13L);
             Asset asset = g_cloudAsset;
             asset.name = asset.name + std::to_string(i);
             assetIsNull ? data.insert_or_assign("assert", Nil()) : data.insert_or_assign("assert", asset);
-            data.insert_or_assign("age", 13L);
             record1.push_back(data);
             VBucket log;
             log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
             extend1.push_back(log);
-        }
-        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName1, std::move(record1), extend1), DBStatus::OK);
 
-        std::vector<VBucket> record2, extend2;
-        now = TimeHelper::GetSysCurrentTime();
-        for (int64_t i = begin; i < begin + count; ++i) {
-            VBucket data;
-            data.insert_or_assign("id", i);
-            data.insert_or_assign("name", "Cloud" + std::to_string(i));
-            data.insert_or_assign("height", 180.3); // 180.3 is random double value
-            data.insert_or_assign("photo", photo);
             std::vector<Asset> assets;
-            Asset asset = g_cloudAsset;
+            data.insert_or_assign("id", i);
+            data.insert_or_assign("height", 180.3); // 180.3 is random double value
             for (int64_t j = i; j <= i + 1; j++) {
                 asset.name = g_cloudAsset.name + std::to_string(j);
                 assets.push_back(asset);
             }
+            data.erase("assert");
+            data.erase("married");
             assetIsNull ? data.insert_or_assign("asserts", Nil()) : data.insert_or_assign("asserts", assets);
-            data.insert_or_assign("age", 28L);
             record2.push_back(data);
-            VBucket log;
-            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
-            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
-            log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
             extend2.push_back(log);
         }
+        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName1, std::move(record1), extend1), DBStatus::OK);
         ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName2, std::move(record2), extend2), DBStatus::OK);
         LOGD("insert cloud record worker1[primary key]:[cloud%d - cloud%d) , worker2[primary key]:[%d - %d)",
             begin, count, begin, count);
+        std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
     void UpdateAssetForTest(sqlite3 *&db, AssetOpType opType, int64_t cloudCount, int64_t rowid)
@@ -1394,6 +1386,63 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest012, TestS
 }
 
 /*
+ * @tc.name: CloudSyncTest013
+ * @tc.desc: test increment watermark when cloud db query data size is 0
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest013, TestSize.Level0)
+{
+    /**
+     * @tc.steps: insert some data into cloud db
+     * @tc.expected: return ok.
+     */
+    int64_t paddingSize = 10;
+    int64_t cloudCount = 10;
+    SyncProcess syncProcess;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, true);
+    /**
+     * @tc.steps: try to cloud sync
+     * @tc.expected: return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    CloudSyncStatusCallback callback = [&syncProcess](const std::map<std::string, SyncProcess> &process) {
+        LOGI("devices size = %d", process.size());
+        ASSERT_EQ(process.size(), 1u);
+        syncProcess = std::move(process.begin()->second);
+        if (syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    uint32_t queryTimes = g_virtualCloudDb->GetQueryTimes(g_tableName1);
+    /**
+     * @tc.steps: insert some increment data into cloud db
+     * @tc.expected: return ok.
+     */
+    VBucket data;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    data.insert_or_assign("name", "Cloud" + std::to_string(0));
+    data.insert_or_assign("height", 166.0); // 166.0 is random double value
+    data.insert_or_assign("married", false);
+    data.insert_or_assign("age", 13L);
+    VBucket log;
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::CURSOR_FIELD, "0123");
+    g_virtualCloudDb->SetIncrementData(g_tableName1, data, log);
+    syncProcess.process = PREPARED;
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(syncProcess, g_syncWaitTime);
+    uint32_t lastQueryTimes = g_virtualCloudDb->GetQueryTimes(g_tableName1);
+    ASSERT_EQ(lastQueryTimes - queryTimes, 2u);
+}
+
+/*
  * @tc.name: DataNotifier001
  * @tc.desc: Notify data without primary key
  * @tc.type: FUNC
@@ -1512,6 +1561,124 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, 
     CheckCloudRecordNum(db, g_tables, {20, 20});    // 20 means cloud data num
     ASSERT_EQ(delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CheckCleanDataAndLogNum(db, g_tables, 0, {localCount, 0});
+}
+
+/*
+ * @tc.name: CalPrimaryKeyHash001
+ * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CalPrimaryKeyHash001, TestSize.Level0)
+{
+   /**
+     * @tc.steps: step1. local insert one data, primary key is string
+     * @tc.expected: OK.
+     */
+    std::string photo(1u, 'v');
+    std::string name = "Local0";
+    std::map<std::string, Type> primaryKey = {{"name", name}};
+    string sql = "INSERT OR REPLACE INTO " + g_tableName1
+        + " (name, height, married, photo, age) VALUES ('Local" + std::to_string(0) +
+        "', '175.8', '0', '" + photo + "', '18');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    EXPECT_NE(result.size(), 0u);
+    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(g_tableName1);
+   /**
+     * @tc.steps: step1. query timestamp use hashKey
+     * @tc.expected: OK.
+     */
+    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
+        LOGD("get timestamp = %" PRIu64, timestamp);
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    }
+    EXPECT_EQ(errCode, E_OK);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+}
+
+/*
+ * @tc.name: CalPrimaryKeyHash002
+ * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is int
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CalPrimaryKeyHash002, TestSize.Level0)
+{
+   /**
+     * @tc.steps: step1. local insert one data, primary key is int
+     * @tc.expected: OK.
+     */
+    int64_t id = 1;
+    std::map<std::string, Type> primaryKey = {{"id", id}};
+    std::string sql = "INSERT OR REPLACE INTO " + g_tableName2
+        + " (id, name, height) VALUES ('" + '1' + "', 'Local"
+        + std::to_string(0) + "', '155.10');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    EXPECT_NE(result.size(), 0u);
+    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(g_tableName2);
+   /**
+     * @tc.steps: step1. query timestamp use hashKey
+     * @tc.expected: OK.
+     */
+    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
+        LOGD("get timestamp = %" PRIu64, timestamp);
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    }
+    EXPECT_EQ(errCode, E_OK);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+}
+
+/*
+ * @tc.name: CloudSyncAssetTest002
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest002, TestSize.Level0)
+{
+    int64_t paddingSize = 10;
+    int localCount = 3;
+    int cloudCount = 3;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, true);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PUSH, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
 }
 }
 #endif // RELATIONAL_STORE

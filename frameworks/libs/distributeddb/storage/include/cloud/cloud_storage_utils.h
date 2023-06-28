@@ -93,6 +93,9 @@ public:
         outVal = *value;
         return E_OK;
     }
+
+    static int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
+        std::vector<uint8_t> &hashValue);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

@@ -140,17 +140,37 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
     if (blockTimeMs_ != 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(blockTimeMs_));
     }
+    if (queryTimes_.find(tableName) == queryTimes_.end()) {
+        queryTimes_[tableName] = 0;
+    }
+    queryTimes_[tableName]++;
     std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
     if (cloudData_.find(tableName) == cloudData_.end()) {
         return QUERY_END;
     }
-    LOGD("extend size: %zu type: %zu  expect: %zu", extend.size(), extend[g_cursorField].index(),
-        TYPE_INDEX<std::string>);
     std::string cursor = std::get<std::string>(extend[g_cursorField]);
-    cursor = cursor.empty() ? "0" : cursor;
-    for (auto &tableData : cloudData_[tableName]) {
+    bool isIncreCursor = (cursor.substr(0, increPrefix_.size()) == increPrefix_);
+    LOGD("extend size: %zu type: %zu  expect: %zu, cursor: %s", extend.size(), extend[g_cursorField].index(),
+        TYPE_INDEX<std::string>, cursor.c_str());
+    if (isIncreCursor) {
+        GetCloudData(cursor, isIncreCursor, incrementCloudData_[tableName], data);
+    } else {
+        cursor = cursor.empty() ? "0" : cursor;
+        GetCloudData(cursor, isIncreCursor, cloudData_[tableName], data);
+    }
+    if (!isIncreCursor && data.empty() && isSetCrementCloudData_) {
+        extend[g_cursorField] = increPrefix_;
+        return OK;
+    }
+    return (data.empty() || data.size() < static_cast<size_t>(queryLimit_)) ? QUERY_END : OK;
+}
+
+void VirtualCloudDb::GetCloudData(const std::string &cursor, bool isIncreCursor, std::vector<CloudData> allData,
+    std::vector<VBucket> &data)
+{
+    for (auto &tableData : allData) {
         std::string srcCursor = std::get<std::string>(tableData.extend[g_cursorField]);
-        if (std::stol(srcCursor) > std::stol(cursor)) {
+        if ((!isIncreCursor && std::stol(srcCursor) > std::stol(cursor)) || isIncreCursor) {
             VBucket bucket = tableData.record;
             for (const auto &ex: tableData.extend) {
                 bucket.insert(ex);
@@ -158,10 +178,9 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
             data.push_back(std::move(bucket));
         }
         if (data.size() >= static_cast<size_t>(queryLimit_)) {
-            return OK;
+            return;
         }
     }
-    return (data.empty() || data.size() < static_cast<size_t>(queryLimit_)) ? QUERY_END : OK;
 }
 
 DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<VBucket> &&record,
@@ -249,5 +268,25 @@ bool VirtualCloudDb::GetLockStatus()
 void VirtualCloudDb::SetHeartbeatError(bool heartbeatError)
 {
     heartbeatError_ = heartbeatError;
+}
+
+void VirtualCloudDb::SetIncrementData(const std::string &tableName, const VBucket &record, const VBucket &extend)
+{
+    std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
+    isSetCrementCloudData_ = true;
+    auto iter = incrementCloudData_.find(tableName);
+    if (iter == incrementCloudData_.end()) {
+        return;
+    }
+    CloudData data = {record, extend};
+    iter->second.push_back(data);
+}
+
+uint32_t VirtualCloudDb::GetQueryTimes(const std::string &tableName)
+{
+    if (queryTimes_.find(tableName) == queryTimes_.end()) {
+        return 0;
+    }
+    return queryTimes_[tableName];
 }
 }

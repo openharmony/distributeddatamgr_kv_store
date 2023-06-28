@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <utility>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
@@ -442,7 +443,7 @@ static int SaveChangedtData(VBucket &datum, ChangedData &changedData, DataInfoWi
     return E_OK;
 }
 
-static bool shouldSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo)
+static bool ShouldSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo)
 {
     // if timeStamp, write timestamp, cloudGid are all the same,
     // we thought that the datum is mostly be the same between cloud and local
@@ -471,7 +472,7 @@ int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, DataInfo &data
             return SaveChangedtData(
                 param.downloadData.data[dataIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_INSERT);
         case OpType::UPDATE:
-            if (shouldSaveData(dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo)) {
+            if (ShouldSaveData(dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo)) {
                 return SaveChangedtData(
                     param.downloadData.data[dataIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_UPDATE);
             }
@@ -564,7 +565,7 @@ static bool IsDataContainField(const std::string &assetFieldName, VBucket &data)
 
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned 
 static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
-    bool writeToCoveredData)
+    bool setNormalStatus)
 {
     Assets res = {};
     bool beCoveredHasAsset = IsDataContainField<Asset>(assetFieldName, beCoveredData) ||
@@ -576,16 +577,16 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
             return res;
         }
         TagAssetWithNormalStatus(
-            writeToCoveredData, AssetOpType::INSERT, std::get<Asset>(coveredData[assetFieldName]), res);
+            setNormalStatus, AssetOpType::INSERT, std::get<Asset>(coveredData[assetFieldName]), res);
         return res;
     }
     if (!coveredHasAsset) {
         if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Asset>) {
-            TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::DELETE,
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Asset>(beCoveredData[assetFieldName]), res);
         }
         if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Assets>) {
-            TagAssetsWithNormalStatus(writeToCoveredData, AssetOpType::DELETE,
+            TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
                 std::get<Assets>(beCoveredData[assetFieldName]), res);
         }
         return res;
@@ -603,12 +604,12 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
         beCovered = beCoveredDataInAssets[0];
     }
     if (covered.name != beCovered.name) {
-        TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::INSERT, covered, res);
-        TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::DELETE, beCovered, res);
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res);
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE, beCovered, res);
         return res;
     }
     if (covered.hash != beCovered.hash) {
-        TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::UPDATE, covered, res);
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res);
     }
     return res;
 }
@@ -625,7 +626,7 @@ static std::unordered_map<std::string, size_t> GenAssetsMap(Assets &assets)
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned 
 // use VBucket rather than Type because we need to check whether it is empty
 static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
-    bool writeToCoveredData)
+    bool setNormalStatus)
 {
     Assets res = {};
     bool beCoveredHasAssets = IsDataContainField<Assets>(assetFieldName, beCoveredData);
@@ -635,18 +636,15 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
             return res;
         }
         // all the element in assets will be set to INSERT
-        TagAssetsWithNormalStatus(writeToCoveredData,
+        TagAssetsWithNormalStatus(setNormalStatus,
             AssetOpType::INSERT, std::get<Assets>(coveredData[assetFieldName]), res);
         return res;
     }
     if (!coveredHasAssets) {
         // all the element in assets will be set to DELETE
-        TagAssetsWithNormalStatus(writeToCoveredData,
+        TagAssetsWithNormalStatus(setNormalStatus,
             AssetOpType::DELETE, std::get<Assets>(beCoveredData[assetFieldName]), res);
-        if (writeToCoveredData) {
-            LOGD("Write assets to be deleted from beCoveredData to CoveredData");
-            coveredData[assetFieldName] = res;
-        }
+        coveredData[assetFieldName] = res;
         return res;
     }
     Assets &covered = std::get<Assets>(coveredData[assetFieldName]);
@@ -655,25 +653,46 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
     for (Asset &beCoveredAsset : beCovered) {
         auto it = CoveredAssetsMap.find(beCoveredAsset.name);
         if (it == CoveredAssetsMap.end()) {
-            TagAssetWithNormalStatus(writeToCoveredData,
-                AssetOpType::DELETE, beCoveredAsset, res);
-            if (writeToCoveredData) {
-                std::get<Assets>(coveredData[assetFieldName]).push_back(beCoveredAsset);
-            }
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE, beCoveredAsset, res);
+            std::get<Assets>(coveredData[assetFieldName]).push_back(beCoveredAsset);
             continue;
         }
         Asset &coveredAsset = covered[it->second];
         if (beCoveredAsset.hash != coveredAsset.hash) {
-            TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::UPDATE, coveredAsset, res);
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res);
         }
         // Erase element which has been handled, remaining element will be set to Insert
         CoveredAssetsMap.erase(it);
         // flag in Asset is defaultly set to NoChange, so we just go to next iteration
     }
     for (auto &noHandledAssetKvPair : CoveredAssetsMap) {
-        TagAssetWithNormalStatus(writeToCoveredData, AssetOpType::INSERT, covered[noHandledAssetKvPair.second], res);
+        TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered[noHandledAssetKvPair.second], res);
     }
     return res;
+}
+
+static bool IsAssetsContainDuplicateAsset(Assets &assets)
+{
+    std::unordered_set<std::string> set;
+    for (const auto &asset : assets) {
+        if (set.find(asset.name) != set.end()) {
+            return true;
+        }
+        set.insert(asset.name);
+    }
+    return false;
+}
+
+bool CloudSyncer::IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)
+{
+    for (auto &assetField : assetFields) {
+        if (assetField.type == TYPE_INDEX<Assets> && data[assetField.colName].index() == TYPE_INDEX<Assets>) {
+            if (IsAssetsContainDuplicateAsset(std::get<Assets>(data[assetField.colName]))) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool CloudSyncer::ShouldProcessAssets()
@@ -712,7 +731,7 @@ void CloudSyncer::WaitAllSyncCallbackTaskFinish()
 }
 
 std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &CoveredData, VBucket &BeCoveredData,
-    bool writeToCoveredData)
+    bool setNormalStatus)
 {
     // Define a map to store the result
     std::map<std::string, Assets> res = {};
@@ -723,7 +742,7 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &Cove
     }
     // For every column contain asset or assets, assetFields are in context
     for (const Field &assetField : assetFields) {
-        Assets assets = TagAssetsInSingleCol(CoveredData, BeCoveredData, assetField, writeToCoveredData);
+        Assets assets = TagAssetsInSingleCol(CoveredData, BeCoveredData, assetField, setNormalStatus);
         if (!assets.empty()) {
             res[assetField.colName] = assets;
         }
@@ -732,17 +751,17 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &Cove
 }
 
 Assets CloudSyncer::TagAssetsInSingleCol(
-    VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField, bool writeToCoveredData)
+    VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField, bool setNormalStatus)
 {   
     // Define a list to store the tagged result
     Assets assets = {};
     switch (assetField.type) {
         case TYPE_INDEX<Assets>: {
-            assets = TagAssets(assetField.colName, CoveredData, BeCoveredData, writeToCoveredData);
+            assets = TagAssets(assetField.colName, CoveredData, BeCoveredData, setNormalStatus);
             break;
         }
         case TYPE_INDEX<Asset>: {
-            assets = TagAsset(assetField.colName, CoveredData, BeCoveredData, writeToCoveredData);
+            assets = TagAsset(assetField.colName, CoveredData, BeCoveredData, setNormalStatus);
             break;
         }
         default:
@@ -823,6 +842,7 @@ static ChangeType OpTypeToChangeType(OpType strategy)
 int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
     ChangedData &changedAssets)
 {
+    int downloadStatus = E_OK;
     for (auto &assetsDownloadInfo : downloadList) {
         std::string gid = std::get<0>(assetsDownloadInfo); // 0 means gid is the first element in assetsInfo
         Type primaryKey = std::get<1>(assetsDownloadInfo); // 1 means primaryKey is the second element in assetsInfo
@@ -852,6 +872,7 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
             if (ret != E_OK) {
                 return ret;
             }
+            downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
             continue;
         }
         // if success, update ChangedData && Write every attribute of asset into database
@@ -862,7 +883,7 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
             return ret;
         }
     }
-    return E_OK;
+    return downloadStatus;
 }
 
 int CloudSyncer::DownloadNotifyAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,
@@ -1006,14 +1027,12 @@ void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &p
         case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO: { // means upload need this data
             // Save the asset info into context
             assetsMap = GetAssetsFromVBucket(param.downloadData.data[idx]);
-            if (!assetsMap.empty()) {
-                {
-                    std::lock_guard<std::mutex> autoLock(contextLock_);
-                    if (currentContext_.assetsInfo.find(param.tableName) == currentContext_.assetsInfo.end()) {
-                        currentContext_.assetsInfo[param.tableName] = {};
-                    }
-                    currentContext_.assetsInfo[param.tableName][dataInfo.cloudLogInfo.cloudGid] = assetsMap;
+            {
+                std::lock_guard<std::mutex> autoLock(contextLock_);
+                if (currentContext_.assetsInfo.find(param.tableName) == currentContext_.assetsInfo.end()) {
+                    currentContext_.assetsInfo[param.tableName] = {};
                 }
+                currentContext_.assetsInfo[param.tableName][dataInfo.cloudLogInfo.cloudGid] = assetsMap;
             }
             break;
         }
@@ -1240,17 +1259,8 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
         LOGE("Someting wrong happened during assets downloading due to error %d", ret);
         return ret;
     }
-    bool isUpdateCloudCursor = true;
-    {
-        std::lock_guard<std::mutex> autoLock(queueLock_);
-        isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
-    }
+    UpdateCloudWaterMark(param);
     (void)NotifyInDownload(taskId, param);
-    // use the cursor of the last datum in data set to update cloud water mark
-    if (isUpdateCloudCursor) {
-        std::lock_guard<std::mutex> autoLock(contextLock_);
-        currentContext_.cloudWaterMarks[param.info.tableName] = param.cloudWaterMark;
-    }
     return E_OK;
 }
 
@@ -1303,7 +1313,6 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
 {
     // Query data by batch until reaching end and not more data need to be download
     bool queryEnd = false;
-    uint32_t retryCnt = 0;
     int ret = E_OK;
     while (!queryEnd) {
         ret = PreCheck(taskId, param.info.tableName);
@@ -1324,13 +1333,9 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
             return ret;
         }
         if (param.downloadData.data.empty()) {
-            if (ret == E_OK && retryCnt >= CloudDbConstant::MAX_DOWNLOAD_RETRY_TIME) {
-                LOGE("Cloud Db send empty data but didn't return QUERY_END for too much time");
-                return -E_CLOUD_ERROR;
-            }
-            if (ret == E_OK && retryCnt < CloudDbConstant::MAX_DOWNLOAD_RETRY_TIME) {
-                LOGW("Cloud Db return E_OK but send empty data, it should return QUERY_END, retry");
-                retryCnt++;
+            if (ret == E_OK) {
+                LOGD("try to query cloud data use increment water mark");
+                UpdateCloudWaterMark(param);
                 continue;
             }
             NotifyInEmptyDownload(taskId, param.info);
@@ -1341,7 +1346,6 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
         if (ret != E_OK) {
             return ret;
         }
-        retryCnt = 0;
     }
     return E_OK;
 }
@@ -1643,7 +1647,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName)
         }
         cloudWaterMark = currentContext_.cloudWaterMarks[tableName];
     }
-    int errCode = storageProxy_->PutCloudWaterMark(tableName, cloudWaterMark);
+    int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Cannot set cloud water mark while Uploading, %d.", errCode);
     }
@@ -1739,10 +1743,14 @@ int CloudSyncer::CheckDownloadDatum(VBucket &datum)
             LOGE("Cloud data do not contain expected type");
             return -E_CLOUD_ERROR;
         }
+    std::lock_guard<std::mutex> autoLock(contextLock_);
+    if (IsDataContainDuplicateAsset(currentContext_.assetFields[currentContext_.tableName], datum)) {
+        return -E_CLOUD_ERROR;
+    }
     return E_OK;
 }
 
-int CloudSyncer::QueryCloudData(const std::string &tableName, const CloudWaterMark &cloudWaterMark,
+int CloudSyncer::QueryCloudData(const std::string &tableName, CloudWaterMark &cloudWaterMark,
     DownloadData &downloadData)
 {
     VBucket extend = {
@@ -1753,6 +1761,15 @@ int CloudSyncer::QueryCloudData(const std::string &tableName, const CloudWaterMa
     if (ret == -E_QUERY_END) {
         LOGI("[CloudSyncer] Download data from cloud database success and no more data need to be downloaded");
         return -E_QUERY_END;
+    }
+    if (ret == E_OK && downloadData.data.empty()) {
+        if (extend[CloudDbConstant::CURSOR_FIELD].index() != TYPE_INDEX<std::string>) {
+            LOGE("[CloudSyncer] cursor type is not valid=%d", extend[CloudDbConstant::CURSOR_FIELD].index());
+            return -E_CLOUD_ERROR;
+        }
+        cloudWaterMark = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
+        LOGD("[CloudSyncer] Download data is empty, try to use other cursor=%s", cloudWaterMark.c_str());
+        return ret;
     }
     if (ret == E_OK) {
         LOGI("[CloudSyncer] Download data from cloud database success but still has data to download");
@@ -2129,7 +2146,7 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     int index = 1;
     for (const auto &tableName: tableNameList) {
         LOGD("[CloudSyncer] Start clean cloud water mark. table index: %d.", index);
-        int ret = storageProxy_->PutCloudWaterMark(tableName, emptyString);
+        int ret = storageProxy_->SetCloudWaterMark(tableName, emptyString);
         if (ret != E_OK) {
         LOGE("[CloudSyncer] failed to put cloud water mark after clean cloud data, %d.", ret);
             return ret;
@@ -2169,5 +2186,19 @@ void CloudSyncer::ModifyCloudDataTime(VBucket &data)
     int64_t createTime = std::get<int64_t>(data[CloudDbConstant::CREATE_FIELD]) * CloudDbConstant::TEN_THOUSAND;
     data[CloudDbConstant::MODIFY_FIELD] = modifyTime;
     data[CloudDbConstant::CREATE_FIELD] = createTime;
+}
+
+void CloudSyncer::UpdateCloudWaterMark(const SyncParam &param)
+{
+    bool isUpdateCloudCursor = true;
+    {
+        std::lock_guard<std::mutex> autoLock(queueLock_);
+        isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
+    }
+    // use the cursor of the last datum in data set to update cloud water mark
+    if (isUpdateCloudCursor) {
+        std::lock_guard<std::mutex> autoLock(contextLock_);
+        currentContext_.cloudWaterMarks[param.info.tableName] = param.cloudWaterMark;
+    }
 }
 } // namespace DistributedDB

@@ -55,6 +55,7 @@ int CloudMetaData::GetCloudWaterMark(TableName tableName, CloudWaterMark &cloudM
         }
     }
     cloudMark = cloudMetaVals_[tableName].cloudMark;
+    LOGD("[Meta] get cloud water mark=%s", cloudMark.c_str());
     return E_OK;
 }
 
@@ -97,6 +98,7 @@ int CloudMetaData::SetCloudWaterMark(TableName tableName, CloudWaterMark &cloudM
     } else {
         iter->second.cloudMark = cloudMark;
     }
+    LOGD("[Meta] set cloud water mark=%s", cloudMark.c_str());
     return E_OK;
 }
 

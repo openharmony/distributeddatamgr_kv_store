@@ -19,6 +19,7 @@
 
 #include "auto_launch.h"
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "relational_store_instance.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
@@ -139,6 +140,46 @@ std::string RelationalStoreManager::GetDistributedTableName(const std::string &d
         return {};
     }
     return DBCommon::GetDistributedTableName(device, tableName);
+}
+
+DB_API std::string RelationalStoreManager::GetDistributedLogTableName(const std::string &tableName)
+{
+    return DBCommon::GetLogTableName(tableName);
+}
+
+DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std::map<std::string, Type> primaryKey)
+{
+    std::vector<uint8_t> result;
+    if (primaryKey.empty()) {
+        LOGW("primaryKey is empty");
+        return result;
+    }
+    int errCode = E_OK;
+    if (primaryKey.size() == 1) {
+        auto iter = primaryKey.begin();
+        Field field = { iter->first, static_cast<int32_t>(iter->second.index()), true, false};
+        errCode = CloudStorageUtils::CalculateHashKeyForOneField(field, primaryKey, false, result);
+        if (errCode != E_OK) {
+            // never happen
+            LOGE("calc hash fail when there is one primary key errCode = %d", errCode);
+            return result;
+        }
+    } else {
+        std::vector<uint8_t> tempRes;
+        for (const auto &item: primaryKey) {
+            std::vector<uint8_t> temp;
+            Field field = { item.first, static_cast<int32_t>(item.second.index()), true, false};
+            errCode = CloudStorageUtils::CalculateHashKeyForOneField(field, primaryKey, false, temp);
+            if (errCode != E_OK) {
+                // never happen
+                LOGE("calc hash fail when there is more than one primary key errCode = %d", errCode);
+                return result;
+            }
+            tempRes.insert(tempRes.end(), temp.begin(), temp.end());
+        }
+        errCode = DBCommon::CalcValueHash(tempRes, result);
+    }
+    return result;
 }
 
 void RelationalStoreManager::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback)

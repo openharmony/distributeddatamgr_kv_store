@@ -85,7 +85,7 @@ int StorageProxy::GetCloudWaterMark(const std::string &tableName, CloudWaterMark
     return cloudMetaData_->GetCloudWaterMark(tableName, cloudMark);
 }
 
-int StorageProxy::PutCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark)
+int StorageProxy::SetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
