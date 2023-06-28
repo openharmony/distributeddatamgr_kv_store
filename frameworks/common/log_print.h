@@ -49,6 +49,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 }
 } // end namespace CloudData
 
+namespace UDMF {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001614, "UDMF" };
+}
+} // end namespace UDMF
+
 namespace AppDistributedKv {
 static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
 {
