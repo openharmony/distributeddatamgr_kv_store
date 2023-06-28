@@ -82,8 +82,8 @@ namespace {
     void SetCloudSchema(PrimaryKeyType pkType, bool nullable)
     {
         TableSchema tableSchema;
-        Field field1 = { "id", TYPE_INDEX<int64_t>,
-            pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY || pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
+        bool isIdPk = pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY || pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY;
+        Field field1 = { "id", TYPE_INDEX<int64_t>, isIdPk, !isIdPk };
         Field field2 = { "name", TYPE_INDEX<std::string>, pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
         Field field3 = { "age", TYPE_INDEX<double>, pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
         Field field4 = { "sex", TYPE_INDEX<bool>, false, nullable };
@@ -397,7 +397,6 @@ namespace {
      * @tc.name: GetInfoByPrimaryKeyOrGidTest011
      * @tc.desc: Test GetInfoByPrimaryKeyOrGid when table has composite primary key and gid match,
      * primary key mismatch
-     * primary key mismatch;
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
@@ -405,6 +404,53 @@ namespace {
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest011, TestSize.Level0)
     {
         GetInfoByPrimaryKeyOrGidTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, "abcd0", 11L, E_OK, false);
+    }
+
+    void VbucketWithoutPrimaryDataTest(PrimaryKeyType pkType)
+    {
+        /**
+         * @tc.steps:step1. create db, create table.
+         * @tc.expected: step1. return ok.
+         */
+        PrepareDataBase(g_tableName, pkType);
+
+        /**
+         * @tc.steps:step2. call GetInfoByPrimaryKeyOrGid.
+         * @tc.expected: step2. return E_OK.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
+        VBucket vBucket;
+        std::string gid = g_gid + std::to_string(0);
+        vBucket[CloudDbConstant::GID_FIELD] = gid;
+        DataInfoWithLog dataInfoWithLog;
+        VBucket assetInfo;
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), E_OK);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest012
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when vbucket doesn't contain pk data and gid match,
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest012, TestSize.Level0)
+    {
+        VbucketWithoutPrimaryDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest013
+     * @tc.desc: Test GetInfoByPrimaryKeyOrGid when vbucket doesn't contain pk(composite pk) data and gid match,
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest013, TestSize.Level0)
+    {
+        VbucketWithoutPrimaryDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
     }
 
     void ConstructDownloadData(DownloadData &downloadData, GidType gidType, bool nullable, bool vBucketContains)
@@ -561,7 +607,7 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest006, TestSize.Level0)
     {
-        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY);
+        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY, true, true, -E_CLOUD_ERROR);
     }
 
     /**
@@ -574,7 +620,7 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest007, TestSize.Level0)
     {
-        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY, true, false);
+        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_MATCH, true, false);
     }
 
     /**
@@ -616,24 +662,12 @@ namespace {
 
     /**
      * @tc.name: PutCloudSyncDataTest011
-     * @tc.desc: Test save cloud data into table with SINGLE_PRIMARY_KEY primary key, gid is empty, primary key mismatch
-     * @tc.type: FUNC
-     * @tc.require:
-     * @tc.author: zhangshijie
-     */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest011, TestSize.Level0)
-    {
-        SaveCloudDataTest(PrimaryKeyType::SINGLE_PRIMARY_KEY, GidType::GID_EMPTY);
-    }
-
-    /**
-     * @tc.name: PutCloudSyncDataTest012
      * @tc.desc: Test save cloud data into table with composite primary key, invalid gid
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest012, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest011, TestSize.Level0)
     {
         SaveCloudDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY, GidType::GID_INVALID, true, true, -E_CLOUD_ERROR);
     }
@@ -677,13 +711,13 @@ namespace {
     }
 
     /**
-     * @tc.name: PutCloudSyncDataTest013
+     * @tc.name: PutCloudSyncDataTest012
      * @tc.desc: Test save cloud data into table with no primary key, multi cloud data
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest013, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest012, TestSize.Level0)
     {
         /**
          * @tc.steps:step1. create db, create table.
@@ -706,13 +740,13 @@ namespace {
     }
 
     /**
-     * @tc.name: PutCloudSyncDataTest014
+     * @tc.name: PutCloudSyncDataTest013
      * @tc.desc: Test save cloud data with
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
      */
-    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest014, TestSize.Level0)
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest013, TestSize.Level0)
     {
         /**
          * @tc.steps:step1. create db, create table.
@@ -759,5 +793,39 @@ namespace {
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest014
+     * @tc.desc: Test PutCloudSyncData when vbucket doesn't contain pk data and gid match,
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest014, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. create db, create table.
+         * @tc.expected: step1. return ok.
+         */
+        PrepareDataBase(g_tableName, PrimaryKeyType::SINGLE_PRIMARY_KEY);
+
+        /**
+         * @tc.steps:step2. construct data without primary key value, call PutCloudSyncData.
+         * @tc.expected: step2. return E_OK.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+
+        DownloadData downloadData;
+        VBucket vBucket;
+        std::string gid = g_gid + std::to_string(0);
+        vBucket[CloudDbConstant::GID_FIELD] = gid;
+        vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
+        downloadData.data.push_back(vBucket);
+        downloadData.opType = { OpType::DELETE };
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 }
