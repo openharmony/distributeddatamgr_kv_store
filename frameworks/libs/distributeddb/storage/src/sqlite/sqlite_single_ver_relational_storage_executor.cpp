@@ -63,14 +63,6 @@ SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecut
     bindCloudFieldFuncMap_[TYPE_INDEX<Bytes>] = &CloudStorageUtils::BindBlob;
     bindCloudFieldFuncMap_[TYPE_INDEX<Asset>] = &CloudStorageUtils::BindAsset;
     bindCloudFieldFuncMap_[TYPE_INDEX<Assets>] = &CloudStorageUtils::BindAsset;
-
-    toVectorFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::Int64ToVector;
-    toVectorFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BoolToVector;
-    toVectorFuncMap_[TYPE_INDEX<double>] = &CloudStorageUtils::DoubleToVector;
-    toVectorFuncMap_[TYPE_INDEX<std::string>] = &CloudStorageUtils::TextToVector;
-    toVectorFuncMap_[TYPE_INDEX<Bytes>] = &CloudStorageUtils::BlobToVector;
-    toVectorFuncMap_[TYPE_INDEX<Asset>] = &CloudStorageUtils::BlobToVector;
-    toVectorFuncMap_[TYPE_INDEX<Assets>] = &CloudStorageUtils::BlobToVector;
 }
 
 
@@ -1761,12 +1753,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
         errCode = DBCommon::CalcValueHash(value, hashValue);
     } else if (pkMap.size() == 1) {
         std::vector<Field> pkVec = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
-        errCode = CalculateHashKeyForOneField(pkVec.at(0), vBucket, allowEmpty, hashValue);
+        errCode = CloudStorageUtils::CalculateHashKeyForOneField(pkVec.at(0), vBucket, allowEmpty, hashValue);
     } else {
         std::vector<uint8_t> tempRes;
         for (const auto &item: pkMap) {
             std::vector<uint8_t> temp;
-            errCode = CalculateHashKeyForOneField(item.second, vBucket, allowEmpty, temp);
+            errCode = CloudStorageUtils::CalculateHashKeyForOneField(item.second, vBucket, allowEmpty, temp);
             if (errCode != E_OK) {
                 LOGE("calc hash fail when there is more than one primary key. errCode = %d", errCode);
                 return errCode;
@@ -1823,26 +1815,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
     return errCode != E_OK ? errCode : ret;
-}
-
-int SQLiteSingleVerRelationalStorageExecutor::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket,
-    bool allowEmpty, std::vector<uint8_t> &hashValue)
-{
-    if (allowEmpty && vBucket.find(field.colName) == vBucket.end()) {
-        return E_OK; // if vBucket from cloud doesn't contain primary key and allowEmpty, no need to calculate hash
-    }
-    auto it = toVectorFuncMap_.find(field.type);
-    if (it == toVectorFuncMap_.end()) {
-        LOGE("unknown cloud type when convert field to vector.");
-        return -E_CLOUD_ERROR;
-    }
-    std::vector<uint8_t> value;
-    int errCode = it->second(vBucket, field, value);
-    if (errCode != E_OK) {
-        LOGE("convert cloud field fail, %d", errCode);
-        return errCode;
-    }
-    return DBCommon::CalcValueHash(value, hashValue);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &tableName, const VBucket &vBucket,

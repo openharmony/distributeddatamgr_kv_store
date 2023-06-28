@@ -99,7 +99,7 @@ namespace {
     void SetAndGetWaterMark(TableName tableName, CloudWaterMark mark)
     {
     CloudWaterMark retMark;
-    EXPECT_EQ(g_storageProxy->PutCloudWaterMark(tableName, mark), E_OK);
+    EXPECT_EQ(g_storageProxy->SetCloudWaterMark(tableName, mark), E_OK);
     EXPECT_EQ(g_storageProxy->GetCloudWaterMark(tableName, retMark), E_OK);
     EXPECT_EQ(retMark, mark);
     }

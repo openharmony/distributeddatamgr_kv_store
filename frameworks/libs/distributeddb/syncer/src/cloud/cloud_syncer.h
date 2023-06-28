@@ -176,7 +176,7 @@ protected:
 
     int CheckDownloadDatum(VBucket &datum);
 
-    int QueryCloudData(const std::string &tableName, const CloudWaterMark &cloudWaterMark, DownloadData &downloadData);
+    int QueryCloudData(const std::string &tableName, CloudWaterMark &cloudWaterMark, DownloadData &downloadData);
 
     int CheckTaskIdValid(TaskId taskId);
 
@@ -251,6 +251,8 @@ protected:
 
     bool ShouldProcessAssets();
 
+    bool IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data);
+
     void IncSyncCallbackTaskCount();
 
     void DecSyncCallbackTaskCount();
@@ -262,6 +264,8 @@ protected:
     void ModifyCloudDataTime(VBucket &data);
 
     int SaveCloudWaterMark(const TableName &tableName);
+
+    void UpdateCloudWaterMark(const SyncParam &param);
 
     std::mutex queueLock_;
     TaskId currentTaskId_;

@@ -53,6 +53,10 @@ public:
     bool GetLockStatus();
 
     void SetHeartbeatError(bool heartbeatError);
+
+    void SetIncrementData(const std::string &tableName, const VBucket &record, const VBucket &extend);
+
+    uint32_t GetQueryTimes(const std::string &tableName);
 private:
     struct CloudData {
         VBucket record;
@@ -64,6 +68,9 @@ private:
 
     DBStatus UpdateCloudData(const std::string &tableName, CloudData &&cloudData);
 
+    void GetCloudData(const std::string &cursor, bool isIncreCursor, std::vector<CloudData> allData,
+        std::vector<VBucket> &data);
+
     std::atomic<bool> cloudError_ = false;
     std::atomic<bool> heartbeatError_ = false;
     std::atomic<bool> lockStatus_ = false;
@@ -74,6 +81,10 @@ private:
     std::atomic<int32_t> heartbeatCount_ = 0;
     std::mutex cloudDataMutex_;
     std::map<std::string, std::vector<CloudData>> cloudData_;
+    std::map<std::string, std::vector<CloudData>> incrementCloudData_;
+    bool isSetCrementCloudData_ = false;
+    std::string increPrefix_ = "increPrefix_";
+    std::map<std::string, uint32_t> queryTimes_;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

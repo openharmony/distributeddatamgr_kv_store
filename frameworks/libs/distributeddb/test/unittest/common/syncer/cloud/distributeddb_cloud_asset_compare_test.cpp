@@ -74,6 +74,9 @@ namespace {
     VBucket DATA_ASSET_IN_ASSETS;
     VBucket DATA_NULL_ASSETS;
     VBucket DATA_ALL_NULL_ASSETS;
+    VBucket DATA_EMPTY_ASSETS;
+    VBucket DATA_UPDATE_DELTE_NOCHANGE_INSERT;
+    VBucket DATA_SAME_NAME_ASSETS;
 
     Asset GenAsset(std::string name, std::string hash)
     {
@@ -105,6 +108,7 @@ namespace {
         a4Changed = GenAsset("sedan", "sedan1Changed");
         a5 = GenAsset("trucker", "truck1");
         a5Changed = GenAsset("trucker", "truck1Changed");
+        DATA_EMPTY.clear();
         DATA_BASELINE = GenDatum(1, "Jack", a1, Assets({a2, a3, a4})); // id is 1
         DATA_EMPTY_ASSET = GenDatum(2, "PoorGuy", a1, Assets({})); // id is 2
         DATA_EMPTY_ASSET.erase(FIELD_HOUSE);
@@ -122,6 +126,10 @@ namespace {
         DATA_ASSET_IN_ASSETS = GenDatum(12, "Lob4", Assets({a1}), Assets({a2, a3, a4})); // id is 12
         DATA_NULL_ASSETS = GenDatum(13, "Lob5", Assets({a1}), nil); // id is 13
         DATA_ALL_NULL_ASSETS = GenDatum(14, "Nico", nil, nil); // id is 14
+        DATA_EMPTY_ASSETS = GenDatum(15, "Lob6", a1, Assets({})); // id is 15
+        DATA_EMPTY_ASSETS.erase(FIELD_CARS);
+        DATA_UPDATE_DELTE_NOCHANGE_INSERT = GenDatum(16, "Nico321", nil, Assets({a2Changed, a4, a5})); // id is 16
+        DATA_SAME_NAME_ASSETS = GenDatum(16, "Nico156", nil, Assets({a1, a1Changed})); // id is 16
     }
 
     void CreateDB()
@@ -619,9 +627,9 @@ namespace {
         auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
             DATA_ALL_NULL_ASSETS, DATA_BASELINE, true);
         EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_EMPTY[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
 
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a1);
@@ -724,5 +732,96 @@ namespace {
             static_cast<uint32_t>(AssetOpType::INSERT));
         EXPECT_EQ(std::get<Assets>(DATA_ASSETS_DIFFERENT_CHANGED_FIELD[FIELD_CARS])[3].flag,
             static_cast<uint32_t>(AssetOpType::DELETE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest025
+     * @tc.desc: Cloud device contain a record without assets, local device insert an assets and begin to sync.
+     * CloudAsset will be a record without assets. Local data will be a record with assets.
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest025, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_BASELINE, DATA_NULL_ASSETS, true);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest026
+     * @tc.desc: Cloud device contain a record without assets, local device insert an assets and begin to sync.
+     * CloudAsset will be a record without assets. Local data will be a record with assets.
+     * In this case, record do not contain certain asset column
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest026, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_BASELINE, DATA_EMPTY_ASSETS, true);
+        EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_BASELINE[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::INSERT));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest027
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest027, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_UPDATE_DELTE_NOCHANGE_INSERT, DATA_BASELINE, false);
+        EXPECT_EQ(std::get<Assets>(DATA_UPDATE_DELTE_NOCHANGE_INSERT[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::UPDATE));
+        EXPECT_EQ(std::get<Assets>(DATA_UPDATE_DELTE_NOCHANGE_INSERT[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::NO_CHANGE));
+        EXPECT_EQ(std::get<Assets>(DATA_UPDATE_DELTE_NOCHANGE_INSERT[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::INSERT));
+        EXPECT_EQ(std::get<Assets>(DATA_UPDATE_DELTE_NOCHANGE_INSERT[FIELD_CARS])[3].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest028
+     * @tc.desc: Two same name asset appears in the assets field, this situation is not allowed
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest028, TestSize.Level0)
+    {
+        auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
+            DATA_ALL_NULL_ASSETS, DATA_BASELINE, true);
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+    }
+
+    /**
+     * @tc.name: AssetCmpTest029
+     * @tc.desc: Two same name asset appears in the assets field, this situation is not allowed
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wanyi
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetCmpTest029, TestSize.Level0)
+    {
+        Field field1 = { FIELD_HOUSE, TYPE_INDEX<Asset> };
+        Field field2 = { FIELD_CARS, TYPE_INDEX<Assets> };
+        std::vector<Field> assetFields = { field1, field2 };
+        ASSERT_TRUE(g_cloudSyncer->TestIsDataContainDuplicateAsset(assetFields, DATA_SAME_NAME_ASSETS));
+        ASSERT_TRUE(g_cloudSyncer->TestIsDataContainDuplicateAsset(assetFields, DATA_BASELINE) == false);
     }
 }
