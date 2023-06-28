@@ -979,13 +979,13 @@ static bool IsSinglePrimaryKey(std::vector<std::string> &pKColNames)
     return true;
 }
 
-void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
+int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
     OpType strategy =
         currentContext_.strategy->TagSyncDataStatus(isExist, dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
     param.downloadData.opType[idx] = strategy;
     if (!ShouldProcessAssets()) {
-        return;
+        return E_OK;
     }
     Type prefix;
     std::vector<Type> pKVals;
@@ -998,9 +998,14 @@ void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo
             ret = GetCloudPkVals(param.downloadData.data[idx], param.pkColNames,
                 dataInfo.localInfo.logInfo.dataKey, pKVals);
         }
+        if (ret != E_OK) {
+            LOGE("Can not get cloud primary key values or rowid");
+            return ret;
+        }
         prefix = pKVals[0];
     }
     TagDownloadAssets(idx, prefix, param, dataInfo, localAssetInfo);
+    return E_OK;
 }
 
 void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
@@ -1063,7 +1068,11 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &In
     // Get cloudLogInfo from cloud data
     dataInfo.cloudLogInfo = GetCloudLogInfo(param.downloadData.data[idx]);
     // Tag datum to get opType
-    TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
+    ret = TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
+        return ret;
+    }
     ret = SaveChangedData(param, idx, dataInfo, InsertDataNoPrimaryKeys);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);
