@@ -92,10 +92,10 @@ ohos_distributedtest("DistributedTest") {
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
+    "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "hitrace:libhitracechain",
-    "hilog:libhilog",
     "huks:libhukssdk",
     "ipc:ipc_core",
     "samgr:samgr_proxy",
@@ -120,10 +120,10 @@ ohos_distributedtest("DistributedTestAgent") {
   external_deps = [
     "c_utils:utils",
     "device_manager:devicemanagersdk",
+    "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "hitrace:libhitracechain",
-    "hilog:libhilog",
     "huks:libhukssdk",
     "ipc:ipc_core",
     "samgr:samgr_proxy",

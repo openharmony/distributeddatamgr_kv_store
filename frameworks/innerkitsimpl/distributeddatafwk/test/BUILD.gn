@@ -88,10 +88,10 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
   external_deps = [
     "c_utils:utils",
+    "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
     "hitrace:libhitracechain",
-    "hilog:libhilog",
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
