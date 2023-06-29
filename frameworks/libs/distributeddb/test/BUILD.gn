@@ -326,9 +326,9 @@ ohos_source_set("src_file") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hisysevent_native:libhisysevent",
-    "hitrace_native:hitrace_meter",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
   ]
   part_name = "kv_store"
 }
@@ -359,9 +359,9 @@ template("distributeddb_unittest") {
     ]
     external_deps = [
       "c_utils:utils",
-      "hisysevent_native:libhisysevent",
-      "hitrace_native:hitrace_meter",
-      "hiviewdfx_hilog_native:libhilog",
+      "hilog:libhilog",
+      "hisysevent:libhisysevent",
+      "hitrace:hitrace_meter",
     ]
   }
 }
