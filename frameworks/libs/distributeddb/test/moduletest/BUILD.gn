@@ -85,7 +85,7 @@ ohos_moduletest("DistributeddbKvTransactionTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -110,7 +110,7 @@ ohos_moduletest("DistributeddbKvTransactionPerfTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -133,7 +133,7 @@ ohos_moduletest("DistributeddbKvConcurrencyCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -156,7 +156,7 @@ ohos_moduletest("DistributeddbKvBatchCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -179,7 +179,7 @@ ohos_moduletest("DistributeddbKvCreateTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -202,7 +202,7 @@ ohos_moduletest("DistributeddbKvCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -225,7 +225,7 @@ ohos_moduletest("DistributeddbKvObserverTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -248,7 +248,7 @@ ohos_moduletest("DistributeddbKvObserverSnapTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -270,7 +270,7 @@ ohos_moduletest("DistributeddbKvBackupTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -293,7 +293,7 @@ ohos_moduletest("DistributeddbKvRealdelTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -318,7 +318,7 @@ ohos_moduletest("DistributeddbNbCreateTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -342,7 +342,7 @@ ohos_moduletest("DistributeddbNbCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -366,7 +366,7 @@ ohos_moduletest("DistributeddbNbObserverTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -392,7 +392,7 @@ ohos_moduletest("DistributeddbNbCursorTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -418,7 +418,7 @@ ohos_moduletest("DistributeddbNbBackupTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -443,7 +443,7 @@ ohos_moduletest("DistributeddbNbBatchCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -468,7 +468,7 @@ ohos_moduletest("DistributeddbNbLocalBatchCrudTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -492,7 +492,7 @@ ohos_moduletest("DistributeddbNbSchemaDbTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -517,7 +517,7 @@ ohos_moduletest("DistributeddbNbPredicateQueryTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -542,7 +542,7 @@ ohos_moduletest("DistributeddbNbPredicateQueryExpandTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -567,7 +567,7 @@ ohos_moduletest("DistributeddbNbAutolaunchTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -592,7 +592,7 @@ ohos_moduletest("DistributedbNbDbDamageTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -617,7 +617,7 @@ ohos_moduletest("DistributeddbNbCrudPowerTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -642,7 +642,7 @@ ohos_moduletest("DistributeddbNbSchemaTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }
@@ -667,7 +667,7 @@ ohos_moduletest("DistributeddbNbSchemaUpgradeTest") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
   ]
   part_name = "datamgr_service"
 }

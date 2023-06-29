@@ -88,10 +88,10 @@ ohos_source_set("distributeddatafwk_src_file") {
   ]
   external_deps = [
     "c_utils:utils",
-    "hisysevent_native:libhisysevent",
-    "hitrace_native:hitrace_meter",
-    "hitrace_native:libhitracechain",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
+    "hisysevent:libhisysevent",
+    "hitrace:hitrace_meter",
+    "hitrace:libhitracechain",
     "huks:libhukssdk",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
@@ -109,7 +109,7 @@ ohos_unittest("DistributedKvDataManagerTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -129,7 +129,7 @@ ohos_unittest("DistributedKvDataManagerEncryptTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -150,7 +150,7 @@ ohos_unittest("LocalSubscribeStoreTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -171,7 +171,7 @@ ohos_unittest("LocalSubscribeDeviceStoreTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -192,7 +192,7 @@ ohos_unittest("SingleKvStoreClientQueryTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -213,7 +213,7 @@ ohos_unittest("SingleKvStoreClientTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
@@ -234,7 +234,7 @@ ohos_unittest("DeviceKvStoreTest") {
 
   external_deps = [
     "c_utils:utils",
-    "hiviewdfx_hilog_native:libhilog",
+    "hilog:libhilog",
     "ipc:ipc_single",
     "samgr:samgr_proxy",
   ]
