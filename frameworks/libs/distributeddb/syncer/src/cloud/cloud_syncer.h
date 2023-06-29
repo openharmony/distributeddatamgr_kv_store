@@ -233,7 +233,7 @@ protected:
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 
-    void TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
+    int TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);
