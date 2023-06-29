@@ -162,8 +162,8 @@ namespace {
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        LOGD("insert user record worker1[primary key]:[local%d - cloud%d) , worker2[primary key]:[%d - %d)",
-            begin, count, begin, count);
+        LOGD("insert user record worker1[primary key]:[local%" PRId64 " - cloud%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
     }
 
     void UpdateUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
@@ -177,8 +177,8 @@ namespace {
             updateAge += ");";
             ASSERT_EQ(RelationalTestUtils::ExecSql(db, updateAge), SQLITE_OK);
         }
-        LOGD("update local record worker1[primary key]:[local%d - local%d) , worker2[primary key]:[%d - %d)",
-            begin, count, begin, count);
+        LOGD("update local record worker1[primary key]:[local%" PRId64 " - local%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
     }
 
     void DeleteUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
@@ -192,8 +192,8 @@ namespace {
             updateAge += ");";
             ASSERT_EQ(RelationalTestUtils::ExecSql(db, updateAge), SQLITE_OK);
         }
-        LOGD("delete local record worker1[primary key]:[local%d - local%d) , worker2[primary key]:[%d - %d)",
-             begin, count, begin, count);
+        LOGD("delete local record worker1[primary key]:[local%" PRId64 " - local%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
     }
 
     void InsertRecordWithoutPk2LocalAndCloud(sqlite3 *&db, int64_t begin, int64_t count, int photoSize)
@@ -273,8 +273,8 @@ namespace {
         }
         ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName1, std::move(record1), extend1), DBStatus::OK);
         ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_tableName2, std::move(record2), extend2), DBStatus::OK);
-        LOGD("insert cloud record worker1[primary key]:[cloud%d - cloud%d) , worker2[primary key]:[%d - %d)",
-            begin, count, begin, count);
+        LOGD("insert cloud record worker1[primary key]:[cloud%" PRId64 " - cloud%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
         std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 

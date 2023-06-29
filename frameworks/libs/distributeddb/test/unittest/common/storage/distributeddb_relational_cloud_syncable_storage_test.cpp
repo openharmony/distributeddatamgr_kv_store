@@ -105,9 +105,13 @@ void CreateAndInitUserTable(int64_t count, int64_t photoSize)
     std::string photo(photoSize, 'v');
     std::vector<uint8_t> assetBlob;
     std::vector<uint8_t> assetsBlob;
+    Asset asset = g_localAsset;
+    int id = 0;
     Assets assets;
-    assets.push_back(g_localAsset);
-    assets.push_back(g_localAsset);
+    asset.name = g_localAsset.name + std::to_string(id++);
+    assets.push_back(asset);
+    asset.name = g_localAsset.name + std::to_string(id++);
+    assets.push_back(asset);
     int errCode;
     ASSERT_EQ(RuntimeContext::GetInstance()->AssetToBlob(g_localAsset, assetBlob), E_OK);
     ASSERT_EQ(RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob), E_OK);
@@ -1007,8 +1011,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrG
         Asset asset = std::get<Asset>(entry1->second);
         EXPECT_EQ(asset.name, "Phone");
         Assets assets = std::get<Assets>(entry2->second);
+        int id = 0;
         for (const auto &item: assets) {
-            EXPECT_EQ(item.name, "Phone");
+            EXPECT_EQ(item.name, "Phone" + std::to_string(id++));
         }
     }
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);

@@ -627,9 +627,12 @@ namespace {
         auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(
             DATA_ALL_NULL_ASSETS, DATA_BASELINE, true);
         EXPECT_EQ(std::get<Asset>(DATA_BASELINE[FIELD_HOUSE]).flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[0].flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[1].flag, static_cast<uint32_t>(AssetOpType::DELETE));
-        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[2].flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[0].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[1].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
+        EXPECT_EQ(std::get<Assets>(DATA_ALL_NULL_ASSETS[FIELD_CARS])[2].flag,
+            static_cast<uint32_t>(AssetOpType::DELETE));
 
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::DELETE, AssetStatus::NORMAL, a1);

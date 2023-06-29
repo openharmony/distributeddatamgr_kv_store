@@ -54,11 +54,12 @@ public:
     static void FillAssetsForDownload(Assets &assets);
     static int FillAssetForUpload(Asset &asset);
     static void FillAssetsForUpload(Assets &assets);
-    static void FillAssetFromVBucketBeforeDownload(VBucket &vBucket);
-    static void FillAssetFromVBucketDownloadFinish(VBucket &vBucket);
-    static void FillAssetFromVBucketAfterUpload(VBucket &vBucket);
+    static void PrepareToFillAssetFromVBucket(VBucket &vBucket);
+    static void FillAssetFromVBucketFinish(VBucket &vBucket, std::function<int(Asset &)> fillAsset,
+        std::function<void(Assets &)> fillAssets);
     static bool IsAsset(const Type &type);
     static bool IsAssets(const Type &type);
+    static bool IsAssetsContainDuplicateAsset(Assets &assets);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

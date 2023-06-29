@@ -525,7 +525,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
  * @tc.require:
  * @tc.author: WanYi
  */
-HWTEST_F(DistributedDBCloudSyncerDownloadTest, DISABLED_DownloadMockQueryTest005, TestSize.Level1)
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest005, TestSize.Level1)
 {
     TaskId taskId = 1u;
     EXPECT_CALL(*g_iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));

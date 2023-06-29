@@ -45,7 +45,7 @@ public:
         return false;
     }
 
-    bool IsDelete(const LogInfo &info)
+    static bool IsDelete(const LogInfo &info)
     {
         return (info.flag & 0x1) == 1;
     }
