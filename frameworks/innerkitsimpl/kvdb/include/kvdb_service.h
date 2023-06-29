@@ -63,29 +63,6 @@ public:
     virtual Status Unsubscribe(const AppId &appId, const StoreId &storeId, sptr<IKvStoreObserver> observer) = 0;
     virtual Status GetBackupPassword(
         const AppId &appId, const StoreId &storeId, std::vector<uint8_t> &password) = 0;
-
-protected:
-    enum TransId : int32_t {
-        TRANS_HEAD,
-        TRANS_GET_STORE_IDS = TRANS_HEAD,
-        TRANS_BEFORE_CREATE,
-        TRANS_AFTER_CREATE,
-        TRANS_DELETE,
-        TRANS_SYNC,
-        TRANS_REGISTER_CALLBACK,
-        TRANS_UNREGISTER_CALLBACK,
-        TRANS_SET_SYNC_PARAM,
-        TRANS_GET_SYNC_PARAM,
-        TRANS_ENABLE_CAP,
-        TRANS_DISABLE_CAP,
-        TRANS_SET_CAP,
-        TRANS_ADD_SUB,
-        TRANS_RMV_SUB,
-        TRANS_SUB,
-        TRANS_UNSUB,
-        TRANS_GET_PASSWORD,
-        TRANS_BUTT,
-    };
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SERVICE_H

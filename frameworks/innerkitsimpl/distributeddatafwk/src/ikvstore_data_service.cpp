@@ -24,7 +24,8 @@
 
 namespace OHOS {
 namespace DistributedKv {
-constexpr KvStoreDataServiceStub::RequestHandler KvStoreDataServiceStub::HANDLERS[SERVICE_CMD_LAST];
+constexpr KvStoreDataServiceStub::RequestHandler
+    KvStoreDataServiceStub::HANDLERS[static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::SERVICE_CMD_LAST)];
 KvStoreDataServiceProxy::KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
@@ -47,7 +48,8 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::stri
 
     MessageParcel reply;
     MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(GET_FEATURE_INTERFACE, data, reply, mo);
+    int32_t error = Remote()->SendRequest(
+        static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::GET_FEATURE_INTERFACE), data, reply, mo);
     if (error != 0) {
         ZLOGE("SendRequest returned %{public}d", error);
         return nullptr;
@@ -83,19 +85,13 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     }
 
     MessageOption mo { MessageOption::TF_SYNC };
-    int32_t error = Remote()->SendRequest(REGISTERCLIENTDEATHOBSERVER, data, reply, mo);
+    int32_t error = Remote()->SendRequest(
+        static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::REGISTERCLIENTDEATHOBSERVER), data, reply, mo);
     if (error != 0) {
         ZLOGW("failed during IPC. errCode %d", error);
         return Status::IPC_ERROR;
     }
     return static_cast<Status>(reply.ReadInt32());
-}
-
-int32_t KvStoreDataServiceStub::NoSupport(MessageParcel &data, MessageParcel &reply)
-{
-    (void)data;
-    (void)reply;
-    return NOT_SUPPORT;
 }
 
 int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
@@ -135,7 +131,7 @@ int32_t KvStoreDataServiceStub::OnRemoteRequest(uint32_t code, MessageParcel &da
         ZLOGE("local descriptor is not equal to remote");
         return -1;
     }
-    if (code >= 0 && code < SERVICE_CMD_LAST) {
+    if (code >= 0 && code < static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::SERVICE_CMD_LAST)) {
         return (this->*HANDLERS[code])(data, reply);
     } else {
         MessageOption mo { MessageOption::TF_SYNC };
