@@ -396,7 +396,7 @@ napi_value JsSingleKVStore::DeleteBatch(napi_env env, napi_callback_info info)
 napi_value JsSingleKVStore::StartTransaction(napi_env env, napi_callback_info info)
 {
     auto ctxt = std::make_shared<ContextBase>();
-
+    ctxt->GetCbInfo(env, info);
     auto execute = [ctxt]() {
         auto& kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->kvStore_;
         Status status = kvStore->StartTransaction();
