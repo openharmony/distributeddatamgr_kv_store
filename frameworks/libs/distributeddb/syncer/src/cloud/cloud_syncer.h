@@ -231,9 +231,9 @@ protected:
     Assets TagAssetsInSingleCol(VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField,
         bool WriteToCoveredData);
 
-    void TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
+    int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 
-    void TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
+    int TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);

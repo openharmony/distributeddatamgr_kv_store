@@ -949,7 +949,7 @@ std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
     return assets;
 }
 
-static bool IsCompositeKey(std::vector<std::string> &pKColNames)
+static bool IsCompositeKey(const std::vector<std::string> &pKColNames)
 {
     if (pKColNames.empty()) {
         return false;
@@ -960,7 +960,7 @@ static bool IsCompositeKey(std::vector<std::string> &pKColNames)
     return false;
 }
 
-static bool IsNoPrimaryKey(std::vector<std::string> &pKColNames)
+static bool IsNoPrimaryKey(const std::vector<std::string> &pKColNames)
 {
     if (pKColNames.empty()) {
         return true;
@@ -971,7 +971,7 @@ static bool IsNoPrimaryKey(std::vector<std::string> &pKColNames)
     return false;
 }
 
-static bool IsSinglePrimaryKey(std::vector<std::string> &pKColNames)
+static bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames)
 {
     if (IsCompositeKey(pKColNames) || IsNoPrimaryKey(pKColNames)) {
         return false;
@@ -979,33 +979,36 @@ static bool IsSinglePrimaryKey(std::vector<std::string> &pKColNames)
     return true;
 }
 
-void CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
+static int GetSinglePk(VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal)
+{
+    std::vector<Type> pkVals;
+    int ret = E_OK;
+    if (IsSinglePrimaryKey(pkColNames)) {
+        ret = GetCloudPkVals(datum, pkColNames, dataKey, pkVals);
+        if (ret != E_OK) {
+            LOGE("Cannot get single primary key for the datum %d", ret);
+            return ret;
+        }
+        pkVal = pkVals[0];
+    }
+    return E_OK;
+}
+
+int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
     OpType strategy =
         currentContext_.strategy->TagSyncDataStatus(isExist, dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
     param.downloadData.opType[idx] = strategy;
     if (!ShouldProcessAssets()) {
-        return;
+        return E_OK;
     }
-    Type prefix;
-    std::vector<Type> pKVals;
-    int ret = E_OK;
-    if (IsSinglePrimaryKey(param.pkColNames)) {
-        if (strategy == OpType::DELETE) {
-            ret = GetCloudPkVals(
-                dataInfo.localInfo.primaryKeys, param.pkColNames, dataInfo.localInfo.logInfo.dataKey, pKVals);
-        } else {
-            ret = GetCloudPkVals(param.downloadData.data[idx], param.pkColNames,
-                dataInfo.localInfo.logInfo.dataKey, pKVals);
-        }
-        prefix = pKVals[0];
-    }
-    TagDownloadAssets(idx, prefix, param, dataInfo, localAssetInfo);
+    return TagDownloadAssets(idx, param, dataInfo, localAssetInfo);
 }
 
-void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &param, DataInfo &dataInfo,
-    VBucket &localAssetInfo)
+int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
+    Type prefix;
+    int ret = E_OK;
     OpType strategy = param.downloadData.opType[idx];
     std::map<std::string, Assets> assetsMap;
     switch (strategy)
@@ -1013,11 +1016,23 @@ void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &p
         case OpType::INSERT:
         case OpType::UPDATE:
             assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
+            ret = GetSinglePk(param.downloadData.data[idx], param.pkColNames,
+                dataInfo.localInfo.logInfo.dataKey, prefix);
+            if (ret != E_OK) {
+                LOGE("Can not get single primary key while strategy is UPDATE/INSERT in TagDownloadAssets %d", ret);
+                return ret;
+            }
             param.assetsDownloadList.downloadList.push_back(
                 std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
             break;
         case OpType::DELETE:
             assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
+            ret = GetSinglePk(dataInfo.localInfo.primaryKeys, param.pkColNames,
+                dataInfo.localInfo.logInfo.dataKey, prefix);
+            if (ret != E_OK) {
+                LOGE("Can not get single primary key while strategy is DELETE in TagDownloadAssets %d", ret);
+                return ret;
+            }
             param.assetsDownloadList.completeDownloadList.push_back(
                 std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
             break;
@@ -1039,6 +1054,7 @@ void CloudSyncer::TagDownloadAssets(size_t idx, const Type &prefix, SyncParam &p
         default:
             break;
     }
+    return E_OK;
 }
 
 int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys)
@@ -1063,7 +1079,11 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &In
     // Get cloudLogInfo from cloud data
     dataInfo.cloudLogInfo = GetCloudLogInfo(param.downloadData.data[idx]);
     // Tag datum to get opType
-    TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
+    ret = TagStatus(isExist, param, idx, dataInfo, localAssetInfo);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
+        return ret;
+    }
     ret = SaveChangedData(param, idx, dataInfo, InsertDataNoPrimaryKeys);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);

@@ -2517,8 +2517,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBu
         return errCode;
     }
 
-    errCode = BindValueToUpdateLogStatement(vBucket, tableSchema, updateColName, opType == OpType::DELETE,
-        updateLogStmt);
+    errCode = BindValueToUpdateLogStatement(vBucket, tableSchema, updateColName, opType == OpType::DELETE ||
+        opType == OpType::UPDATE_TIMESTAMP, updateLogStmt);
     int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind value to update log statement failed when update cloud data, %d", errCode);
