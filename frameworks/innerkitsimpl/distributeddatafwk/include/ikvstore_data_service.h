@@ -16,6 +16,7 @@
 #ifndef I_KV_STORE_DATA_SERVICE_H
 #define I_KV_STORE_DATA_SERVICE_H
 
+#include "distributeddata_ipc_interface_code.h"
 #include "iremote_broker.h"
 #include "ikvstore_client_death_observer.h"
 #include "ikvstore_observer.h"
@@ -27,21 +28,6 @@
 namespace OHOS::DistributedKv {
 class IKvStoreDataService : public IRemoteBroker {
 public:
-    enum {
-        GET_FEATURE_INTERFACE,
-        REGISTERCLIENTDEATHOBSERVER,
-        CLOSEKVSTORE,
-        CLOSEALLKVSTORE,
-        DELETEKVSTORE,
-        DELETEALLKVSTORE,
-        GETSINGLEKVSTORE,
-        GETLOCALDEVICE,
-        GETREMOTEDEVICES,
-        STARTWATCHDEVICECHANGE,
-        STOPWATCHDEVICECHANGE,
-        SERVICE_CMD_LAST,
-    };
-
     DECLARE_INTERFACE_DESCRIPTOR(u"OHOS.DistributedKv.IKvStoreDataService");
 
     virtual sptr<IRemoteObject> GetFeatureInterface(const std::string &name) = 0;
@@ -55,26 +41,17 @@ protected:
 class KvStoreDataServiceStub : public IRemoteStub<IKvStoreDataService> {
 public:
     int API_EXPORT OnRemoteRequest(uint32_t code, MessageParcel &data,
-                        MessageParcel &reply, MessageOption &option) override;
+                                   MessageParcel &reply, MessageOption &option) override;
 
 private:
-    int32_t NoSupport(MessageParcel &data, MessageParcel &reply);
     int32_t GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply);
 
     using RequestHandler = int32_t(KvStoreDataServiceStub::*)(MessageParcel&, MessageParcel&);
-    static constexpr RequestHandler HANDLERS[SERVICE_CMD_LAST] = {
-        [GET_FEATURE_INTERFACE] = &KvStoreDataServiceStub::GetFeatureInterfaceOnRemote,
-        [REGISTERCLIENTDEATHOBSERVER] = &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
-        [CLOSEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
-        [CLOSEALLKVSTORE] = &KvStoreDataServiceStub::NoSupport,
-        [DELETEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
-        [DELETEALLKVSTORE] = &KvStoreDataServiceStub::NoSupport,
-        [GETSINGLEKVSTORE] = &KvStoreDataServiceStub::NoSupport,
-        [GETLOCALDEVICE] = &KvStoreDataServiceStub::NoSupport,
-        [GETREMOTEDEVICES] = &KvStoreDataServiceStub::NoSupport,
-        [STARTWATCHDEVICECHANGE] = &KvStoreDataServiceStub::NoSupport,
-        [STOPWATCHDEVICECHANGE] = &KvStoreDataServiceStub::NoSupport,
+    static constexpr RequestHandler
+        HANDLERS[static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::SERVICE_CMD_LAST)] = {
+        &KvStoreDataServiceStub::GetFeatureInterfaceOnRemote,
+        &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
     };
 };
 
