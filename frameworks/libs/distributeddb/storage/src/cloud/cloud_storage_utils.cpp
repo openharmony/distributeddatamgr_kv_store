@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <set>
 
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
@@ -447,7 +448,7 @@ void CloudStorageUtils::FillAssetsForUpload(Assets &assets)
     }
 }
 
-void CloudStorageUtils::FillAssetFromVBucketBeforeDownload(VBucket &vBucket)
+void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket)
 {
     for (auto &item: vBucket) {
         if (IsAsset(item.second)) {
@@ -466,13 +467,14 @@ void CloudStorageUtils::FillAssetFromVBucketBeforeDownload(VBucket &vBucket)
     }
 }
 
-void CloudStorageUtils::FillAssetFromVBucketDownloadFinish(VBucket &vBucket)
+void CloudStorageUtils::FillAssetFromVBucketFinish(VBucket &vBucket, std::function<int(Asset &)> fillAsset,
+    std::function<void(Assets &)> fillAssets)
 {
     for (auto &item: vBucket) {
         if (IsAsset(item.second)) {
             Asset asset;
             GetValueFromType(item.second, asset);
-            int errCode = FillAssetForDownload(asset);
+            int errCode = fillAsset(asset);
             if (errCode != E_OK) {
                 vBucket[item.first] = Nil();
             } else {
@@ -483,34 +485,7 @@ void CloudStorageUtils::FillAssetFromVBucketDownloadFinish(VBucket &vBucket)
         if (IsAssets(item.second)) {
             Assets assets;
             GetValueFromType(item.second, assets);
-            FillAssetsForDownload(assets);
-            if (assets.empty()) {
-                vBucket[item.first] = Nil();
-            } else {
-                vBucket[item.first] = assets;
-            }
-        }
-    }
-}
-
-void CloudStorageUtils::FillAssetFromVBucketAfterUpload(VBucket &vBucket)
-{
-    for (auto &item: vBucket) {
-        if (IsAsset(item.second)) {
-            Asset asset;
-            GetValueFromType(item.second, asset);
-            int errCode = FillAssetForUpload(asset);
-            if (errCode != E_OK) {
-                vBucket[item.first] = Nil();
-            } else {
-                vBucket[item.first] = asset;
-            }
-            continue;
-        }
-        if (IsAssets(item.second)) {
-            Assets assets;
-            GetValueFromType(item.second, assets);
-            FillAssetsForUpload(assets);
+            fillAssets(assets);
             if (assets.empty()) {
                 vBucket[item.first] = Nil();
             } else {
@@ -563,5 +538,17 @@ int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBu
         return errCode;
     }
     return DBCommon::CalcValueHash(value, hashValue);
+}
+
+bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
+{
+    std::set<std::string> set;
+    for (const auto &asset : assets) {
+        if (set.find(asset.name) != set.end()) {
+            return true;
+        }
+        set.insert(asset.name);
+    }
+    return false;
 }
 }

@@ -525,7 +525,7 @@ static void TagAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets 
     asset.status = static_cast<uint32_t>(status);
     Timestamp timestamp;
     OS::GetCurrentSysTimeInMicrosecond(timestamp);
-    asset.timestamp = timestamp / CloudDbConstant::TEN_THOUSAND;
+    asset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
     res.push_back(asset);
 }
 
@@ -671,23 +671,11 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
     return res;
 }
 
-static bool IsAssetsContainDuplicateAsset(Assets &assets)
-{
-    std::unordered_set<std::string> set;
-    for (const auto &asset : assets) {
-        if (set.find(asset.name) != set.end()) {
-            return true;
-        }
-        set.insert(asset.name);
-    }
-    return false;
-}
-
 bool CloudSyncer::IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)
 {
     for (auto &assetField : assetFields) {
         if (assetField.type == TYPE_INDEX<Assets> && data[assetField.colName].index() == TYPE_INDEX<Assets>) {
-            if (IsAssetsContainDuplicateAsset(std::get<Assets>(data[assetField.colName]))) {
+            if (CloudStorageUtils::IsAssetsContainDuplicateAsset(std::get<Assets>(data[assetField.colName]))) {
                 return true;
             }
         }
@@ -790,7 +778,7 @@ int CloudSyncer::FillCloudAssets(
     return E_OK;
 }
 
-int CloudSyncer::HandleDownloadResult(const std::string &tableName, std::string gid,
+int CloudSyncer::HandleDownloadResult(const std::string &tableName, const std::string &gid,
     std::map<std::string, Assets> &DownloadResult, bool setAllNormal)
 {
     VBucket normalAssets;
@@ -951,13 +939,7 @@ std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
 
 static bool IsCompositeKey(const std::vector<std::string> &pKColNames)
 {
-    if (pKColNames.empty()) {
-        return false;
-    }
-    if (pKColNames.size() > 1) {
-        return true;
-    }
-    return false;
+    return (pKColNames.size() > 1);
 }
 
 static bool IsNoPrimaryKey(const std::vector<std::string> &pKColNames)
@@ -1011,8 +993,7 @@ int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataI
     int ret = E_OK;
     OpType strategy = param.downloadData.opType[idx];
     std::map<std::string, Assets> assetsMap;
-    switch (strategy)
-    {
+    switch (strategy) {
         case OpType::INSERT:
         case OpType::UPDATE:
             assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
@@ -1631,8 +1612,8 @@ void CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
     }
 }
 
-int CloudSyncer::PreProcessBatchUpload(TaskId taskId, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo,
-    LocalWaterMark &localMark)
+int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
+    CloudSyncData &uploadData, LocalWaterMark &localMark)
 {
     // Precheck and calculate local water mark which would be updated if batch upload successed.
     int ret = CheckTaskIdValid(taskId);
@@ -1660,8 +1641,7 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName)
     CloudWaterMark cloudWaterMark;
     {
         std::lock_guard<std::mutex> autoLock(contextLock_);
-        auto it = currentContext_.cloudWaterMarks.find(tableName);
-        if (it == currentContext_.cloudWaterMarks.end()) {
+        if (currentContext_.cloudWaterMarks.find(tableName) == currentContext_.cloudWaterMarks.end()) {
             LOGD("[CloudSyncer] Not found water mark just return");
             return E_OK;
         }
@@ -1702,12 +1682,12 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
     InnerProcessInfo info;
     info.tableName = tableName;
     info.tableStatus = ProcessStatus::PROCESSING;
-    info.upLoadInfo.total = uploadParam.count;
+    info.upLoadInfo.total = static_cast<uint32_t>(uploadParam.count);
     uint32_t batchIndex = 0;
 
     while (!CheckCloudSyncDataEmpty(uploadData)) {
         getDataUnfinished = (ret == -E_UNFINISHED);
-        ret = PreProcessBatchUpload(uploadParam.taskId, uploadData, info, uploadParam.localMark);
+        ret = PreProcessBatchUpload(uploadParam.taskId, info, uploadData, uploadParam.localMark);
         if (ret != E_OK) {
             goto RELEASE_EXIT;
         }

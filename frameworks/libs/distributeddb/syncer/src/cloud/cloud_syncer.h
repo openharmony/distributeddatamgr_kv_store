@@ -161,8 +161,8 @@ protected:
 
     void ClearCloudSyncData(CloudSyncData &uploadData);
 
-    int PreProcessBatchUpload(TaskId taskId, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo,
-        LocalWaterMark &localMark);
+    int PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
+        CloudSyncData &uploadData, LocalWaterMark &localMark);
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);
 
@@ -240,7 +240,7 @@ protected:
 
     int FillCloudAssets(const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets);
 
-    int HandleDownloadResult(const std::string &tableName, std::string gid,
+    int HandleDownloadResult(const std::string &tableName, const std::string &gid,
         std::map<std::string, Assets> &DownloadResult, bool setAllNormal);
 
     int DownloadNotifyAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,

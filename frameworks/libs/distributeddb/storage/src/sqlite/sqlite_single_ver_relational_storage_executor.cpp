@@ -923,10 +923,8 @@ int SQLiteSingleVerRelationalStorageExecutor::SaveSyncDataItems(RelationalSyncDa
         return saveStmt.ResetStatements(false);
     });
 
-    if (errCode == -E_NOT_FOUND) {
-        errCode = E_OK;
-    }
-    return saveStmt.ResetStatements(true);
+    int ret = saveStmt.ResetStatements(true);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::SaveSyncItems(RelationalSyncDataInserter &inserter, bool useTrans)
@@ -1615,6 +1613,10 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
         if (errCode != E_OK) {
             return errCode;
         }
+        if (CloudStorageUtils::IsAssetsContainDuplicateAsset(assets)) {
+            LOGE("assets is contain duplicate Asset");
+            return -E_CLOUD_ERROR;
+        }
         vBucket.insert_or_assign(field.colName, assets);
     } else {
         vBucket.insert_or_assign(field.colName, cloudValue);
@@ -2164,7 +2166,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(const std::string 
         LOGE("Get insert statement failed when save cloud data, %d", errCode);
         return errCode;
     }
-    CloudStorageUtils::FillAssetFromVBucketBeforeDownload(vBucket);
+    CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket);
     errCode = BindValueToUpsertStatement(vBucket, tableSchema.fields, insertStmt);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(insertStmt, true, errCode);
@@ -2428,7 +2430,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
 int SQLiteSingleVerRelationalStorageExecutor::UpdateCloudData(const std::string &tableName, VBucket &vBucket,
     const TableSchema &tableSchema)
 {
-    CloudStorageUtils::FillAssetFromVBucketBeforeDownload(vBucket);
+    CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket);
     sqlite3_stmt *updateStmt = nullptr;
     int errCode = GetUpdateDataTableStatement(vBucket, tableSchema, updateStmt);
     if (errCode != E_OK) {

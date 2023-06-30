@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LOCAL_COVER_CLOUD_H
-#define LOCAL_COVER_CLOUD_H
+#ifndef CLOUD_FORCE_PUSH_STRATEGY_H
+#define CLOUD_FORCE_PUSH_STRATEGY_H
 #include "cloud_sync_strategy.h"
 
 namespace DistributedDB {
@@ -26,4 +26,4 @@ public:
     bool JudgeUpload() override;
 };
 }
-#endif // LOCAL_COVER_CLOUD_H
+#endif // CLOUD_FORCE_PUSH_STRATEGY_H

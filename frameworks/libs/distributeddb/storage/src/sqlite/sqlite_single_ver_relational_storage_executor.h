@@ -191,7 +191,7 @@ private:
     int GetQueryLogRowid(const std::string &tableName, const VBucket &vBucket, int64_t &rowId);
 
     int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
-        const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement);
+        const std::vector<Field> &fields, sqlite3_stmt *&statement);
 
     int InitFillUploadAssetStatement(const CloudSyncData &data, const int &index, sqlite3_stmt *&statement);
 

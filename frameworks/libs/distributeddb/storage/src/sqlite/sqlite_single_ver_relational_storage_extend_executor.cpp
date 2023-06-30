@@ -26,14 +26,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     if (assetFields.empty() && pkSet.empty()) {
         return GetQueryLogSql(tableName, vBucket, pkSet, querySql);
     }
-    std::string cloudGid;
-    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    std::string gid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
     if (errCode != E_OK) {
         LOGE("Get cloud gid fail when query log table.");
         return errCode;
     }
 
-    if (pkSet.empty() && cloudGid.empty()) {
+    if (pkSet.empty() && gid.empty()) {
         LOGE("query log table failed because of both primary key and gid are empty.");
         return -E_CLOUD_ERROR;
     }
@@ -47,7 +47,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     }
     sql += " from '" + DBCommon::GetLogTableName(tableName) + "' AS a LEFT JOIN '" + tableName + "' AS b ";
     sql += " ON (a.data_key = b.rowid) WHERE ";
-    if (!cloudGid.empty()) {
+    if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
     }
     sql += "a.hash_key = ?";
@@ -92,7 +92,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogRowid(const std::string
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(const std::string &tableName,
-    const VBucket &vBucket, const std::vector<Field> &fields, bool isFullReplace, sqlite3_stmt *&statement)
+    const VBucket &vBucket, const std::vector<Field> &fields, sqlite3_stmt *&statement)
 {
     std::string sql = "UPDATE " + tableName + " SET ";
     for (const auto &field: fields) {
@@ -138,11 +138,12 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         goto END;
     }
     if (isFullReplace) {
-        CloudStorageUtils::FillAssetFromVBucketDownloadFinish(vBucket);
+        CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetForDownload,
+            CloudStorageUtils::FillAssetsForDownload);
     } else {
-        CloudStorageUtils::FillAssetFromVBucketBeforeDownload(vBucket);
+        CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket);
     }
-    errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, isFullReplace, stmt);
+    errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
     if (errCode != E_OK) {
         goto END;
     }
@@ -213,7 +214,8 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const
     const int &index, sqlite3_stmt *&statement)
 {
     VBucket vBucket = data.updData.assets.at(index);
-    CloudStorageUtils::FillAssetFromVBucketAfterUpload(vBucket);
+    CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetForUpload,
+        CloudStorageUtils::FillAssetsForUpload);
     std::string sql = "UPDATE " + data.tableName + " SET ";
     for (const auto &item: vBucket) {
         sql += item.first + " = ?,";
