@@ -2167,12 +2167,15 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
         return errCode;
     }
 
-    errCode = cloudDB_.RemoveLocalAssets(assets);
-    if (errCode != E_OK) {
-        LOGE("[Storage Executor] failed to remove local assets, %d.", errCode);
-        storageProxy_->Rollback();
-        return errCode;
+    if (!assets.empty() && mode == FLAG_AND_DATA) {
+        errCode = cloudDB_.RemoveLocalAssets(assets);
+        if (errCode != E_OK) {
+            LOGE("[Storage Executor] failed to remove local assets, %d.", errCode);
+            storageProxy_->Rollback();
+            return errCode;
+        }
     }
+
     storageProxy_->Commit();
 
     return errCode;
