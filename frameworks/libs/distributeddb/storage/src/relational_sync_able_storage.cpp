@@ -1160,10 +1160,13 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
     return errCode;
 }
 
-int RelationalSyncAbleStorage::FillCloudAssetForUpload(const CloudSyncData &data)
+int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data)
 {
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
+    }
+    if (opType == OpType::UPDATE && data.updData.assets.empty()) {
+        return E_OK;
     }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
@@ -1176,8 +1179,22 @@ int RelationalSyncAbleStorage::FillCloudAssetForUpload(const CloudSyncData &data
         ReleaseHandle(writeHandle);
         return errCode;
     }
-    errCode = writeHandle->FillCloudAssetForUpload(data);
+    if (opType == OpType::INSERT) {
+        errCode = writeHandle->UpdateCloudLogGid(data);
+        if (errCode != E_OK) {
+            LOGE("Failed to fill cloud log gid, %d.", errCode);
+            writeHandle->Rollback();
+            ReleaseHandle(writeHandle);
+            return errCode;
+        }
+        if (!data.insData.assets.empty()) {
+            errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.insData);
+        }
+    } else {
+        errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.updData);
+    }
     if (errCode != E_OK) {
+        LOGE("Failed to fill cloud asset, %d.", errCode);
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);
         return errCode;

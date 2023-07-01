@@ -162,7 +162,7 @@ void InitLogData(int64_t insCount, int64_t updCount, int64_t delCount, int64_t e
     sqlite3_close(db);
 }
 
-void UpdateLogGid(int64_t count)
+void InitLogGid(int64_t count)
 {
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -216,7 +216,7 @@ void SetDbSchema(const TableSchema &tableSchema)
     EXPECT_EQ(g_cloudStore->SetCloudDbSchema(dataBaseSchema), E_OK);
 }
 
-void InitUserAndLogForAsset(int64_t insCount, int64_t photoSize)
+void InitUserDataForAssetTest(int64_t insCount, int64_t photoSize)
 {
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -224,7 +224,6 @@ void InitUserAndLogForAsset(int64_t insCount, int64_t photoSize)
     sqlite3_close(db);
     EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName, DistributedDB::CLOUD_COOPERATION), OK);
     CreateAndInitUserTable(insCount, photoSize);
-    UpdateLogGid(insCount);
     SetDbSchema(g_tableSchema);
 }
 
@@ -994,7 +993,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrG
 {
     int64_t insCount = 100;
     int64_t photoSize = 10;
-    InitUserAndLogForAsset(insCount, photoSize);
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
 
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     for (int i = 1; i <= insCount; i++) {
@@ -1023,7 +1023,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, T
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
-    InitUserAndLogForAsset(insCount, photoSize);
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
 
     DownloadData downloadData;
     ConstructMultiDownloadData(insCount, downloadData);
@@ -1039,7 +1040,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, Tes
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
-    InitUserAndLogForAsset(insCount, photoSize);
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
     fillCloudAssetTest(insCount, AssetStatus::NORMAL, false);
     fillCloudAssetTest(insCount, AssetStatus::DOWNLOADING, false);
     fillCloudAssetTest(insCount, AssetStatus::ABNORMAL, false);
@@ -1052,7 +1054,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
-    InitUserAndLogForAsset(insCount, photoSize);
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
 
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -1065,7 +1068,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     CloudSyncData syncData(g_tableName);
-    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
     syncData.updData.rowid.push_back(1L);
     VBucket bucket1;
     Asset asset = g_localAsset;
@@ -1079,7 +1083,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
     bucket1.insert_or_assign("asserts", assets);
     syncData.updData.assets.push_back(bucket1);
     syncData.updData.timestamp.push_back(timeStamp);
-    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 
     ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT assert, asserts FROM " + g_tableName + " WHERE rowid = 1;",
         stmt), E_OK);
@@ -1101,7 +1106,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, Tes
 {
     int64_t insCount = 2;
     int64_t photoSize = 10;
-    InitUserAndLogForAsset(insCount, photoSize);
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
 
     sqlite3 *db = nullptr;
     ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
@@ -1132,7 +1138,58 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, Tes
     syncData.updData.assets.push_back(bucket2);
     syncData.updData.timestamp.push_back(timeStamp1);
     syncData.updData.timestamp.push_back(timeStamp2);
-    ASSERT_EQ(g_storageProxy->FillCloudAssetForUpload(syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+}
+
+/**
+ * @tc.name: FillCloudAsset004
+ * @tc.desc: Test fill asset for insert type
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset004, TestSize.Level0)
+{
+    int64_t insCount = 2;
+    int64_t photoSize = 10;
+    InitUserDataForAssetTest(insCount, photoSize);
+
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT timestamp FROM " + DBCommon::GetLogTableName(g_tableName) +
+        " WHERE data_key in ('1', '2');", stmt), E_OK);
+    ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt, false), SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
+    std::vector<int64_t> timeVector;
+    timeVector.push_back(static_cast<int64_t>(sqlite3_column_int64(stmt, 0)));
+    timeVector.push_back(static_cast<int64_t>(sqlite3_column_int64(stmt, 1)));
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    sqlite3_close(db);
+
+    CloudSyncData syncData(g_tableName);
+    for (int64_t i = 1; i <= insCount; ++i) {
+        syncData.insData.rowid.push_back(i);
+        VBucket bucket1;
+        bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
+        syncData.insData.extend.push_back(bucket1);
+
+        VBucket bucket2;
+        Asset asset = g_localAsset;
+        asset.size = "888";
+        Assets assets;
+        assets.push_back(asset);
+        assets.push_back(asset);
+        bucket2.insert_or_assign("assert", asset);
+        bucket2.insert_or_assign("asserts", assets);
+        syncData.insData.assets.push_back(bucket2);
+        syncData.insData.timestamp.push_back(timeVector[i - 1]);
+    }
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::INSERT, syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 }
 #endif // RELATIONAL_STORE

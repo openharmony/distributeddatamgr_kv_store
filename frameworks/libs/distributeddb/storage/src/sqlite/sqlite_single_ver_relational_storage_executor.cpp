@@ -531,6 +531,12 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         if (!data.empty()) {
             cloudSyncData.insData.record.push_back(data);
             cloudSyncData.insData.rowid.push_back(*rowid);
+            VBucket asset;
+            CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
+            if (!asset.empty()) {
+                cloudSyncData.insData.timestamp.push_back(*timeStamp);
+                cloudSyncData.insData.assets.push_back(asset);
+            }
         }
         cloudSyncData.insData.extend.push_back(log);
     } else {

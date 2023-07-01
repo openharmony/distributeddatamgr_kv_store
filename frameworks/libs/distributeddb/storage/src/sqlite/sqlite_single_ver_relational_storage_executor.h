@@ -109,7 +109,7 @@ public:
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
 
-    int FillCloudAssetForUpload(const CloudSyncData &data);
+    int FillCloudAssetForUpload(const std::string &tableName, const CloudSyncBatch &data);
 
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
@@ -193,7 +193,8 @@ private:
     int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
         const std::vector<Field> &fields, sqlite3_stmt *&statement);
 
-    int InitFillUploadAssetStatement(const CloudSyncData &data, const int &index, sqlite3_stmt *&statement);
+    int InitFillUploadAssetStatement(const std::string &tableName, const CloudSyncBatch &data,
+        const int &index, sqlite3_stmt *&statement);
 
     void GetLogInfoByStatement(sqlite3_stmt *statement, LogInfo &logInfo);
 
