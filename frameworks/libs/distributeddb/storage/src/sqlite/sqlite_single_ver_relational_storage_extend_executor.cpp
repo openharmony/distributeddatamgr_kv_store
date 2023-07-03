@@ -168,13 +168,13 @@ END:
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const CloudSyncData &data)
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const std::string &tableName,
+    const CloudSyncBatch &data)
 {
-    if (data.updData.assets.empty() || data.updData.rowid.empty() || data.updData.timestamp.empty()) {
+    if (data.assets.empty() || data.rowid.empty() || data.timestamp.empty()) {
         return -E_INVALID_ARGS;
     }
-    if (data.updData.assets.size() != data.updData.rowid.size() ||
-        data.updData.assets.size() != data.updData.timestamp.size()) {
+    if (data.assets.size() != data.rowid.size() || data.assets.size() != data.timestamp.size()) {
         return -E_INVALID_ARGS;
     }
     int errCode = SetLogTriggerStatus(false);
@@ -183,8 +183,8 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const Clou
         return errCode;
     }
     sqlite3_stmt *stmt = nullptr;
-    for (size_t i = 0; i < data.updData.assets.size(); ++i) {
-        errCode = InitFillUploadAssetStatement(data, i, stmt);
+    for (size_t i = 0; i < data.assets.size(); ++i) {
+        errCode = InitFillUploadAssetStatement(tableName, data, i, stmt);
         if (errCode != E_OK) {
             break;
         }
@@ -210,18 +210,18 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const Clou
     return errCode != E_OK ? errCode : ret;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const CloudSyncData &data,
-    const int &index, sqlite3_stmt *&statement)
+int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const std::string &tableName,
+    const CloudSyncBatch &data, const int &index, sqlite3_stmt *&statement)
 {
-    VBucket vBucket = data.updData.assets.at(index);
+    VBucket vBucket = data.assets.at(index);
     CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetForUpload,
         CloudStorageUtils::FillAssetsForUpload);
-    std::string sql = "UPDATE " + data.tableName + " SET ";
+    std::string sql = "UPDATE " + tableName + " SET ";
     for (const auto &item: vBucket) {
         sql += item.first + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(data.tableName) +
+    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(tableName) +
         " WHERE timestamp = ?);";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
@@ -237,12 +237,12 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const
             return errCode;
         }
     }
-    int64_t rowid = data.updData.rowid[index];
+    int64_t rowid = data.rowid[index];
     errCode = SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 1, rowid);
     if (errCode != E_OK) {
         return errCode;
     }
-    int64_t timeStamp = data.updData.timestamp[index];
+    int64_t timeStamp = data.timestamp[index];
     return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 2, timeStamp); // 2 is index;
 }
 

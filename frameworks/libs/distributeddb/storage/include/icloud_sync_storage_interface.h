@@ -89,7 +89,7 @@ public:
 
     virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) = 0;
 
-    virtual int FillCloudAssetForUpload(const CloudSyncData &data) = 0;
+    virtual int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data) = 0;
 };
 }
 

@@ -320,15 +320,16 @@ int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucke
     return store_->FillCloudAssetForDownload(tableName, asset, isFullReplace);
 }
 
-int StorageProxy::FillCloudAssetForUpload(const CloudSyncData &data)
+int StorageProxy::FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    if (data.updData.assets.empty()) {
-        return E_OK;
+    if (!transactionExeFlag_.load()) {
+        LOGE("the transaction has not been started");
+        return -E_TRANSACT_STATE;
     }
-    return store_->FillCloudAssetForUpload(data);
+    return store_->FillCloudGidAndAsset(opType, data);
 }
 }

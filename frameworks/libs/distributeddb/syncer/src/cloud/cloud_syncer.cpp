@@ -1433,9 +1433,9 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
             return errCode;
         }
         // we need to fill back gid after insert data to cloud.
-        int ret = storageProxy_->FillCloudGid(uploadData);
+        int ret = storageProxy_->FillCloudGidAndAsset(OpType::INSERT, uploadData);
         if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back gid when doing upload, %d.", ret);
+            LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", ret);
             return ret;
         }
         innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
@@ -1447,9 +1447,9 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
         if (errCode != E_OK) {
             return errCode;
         }
-        errCode = storageProxy_->FillCloudAssetForUpload(uploadData);
+        errCode = storageProxy_->FillCloudGidAndAsset(OpType::UPDATE, uploadData);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Cannot fill cloud asset during upload procedure");
+            LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errCode);
             return errCode;
         }
         innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
@@ -1713,7 +1713,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
             goto RELEASE_EXIT;
         }
 
-        ClearCloudSyncData(uploadData);
+        uploadData = CloudSyncData(tableName);
 
         if (continueStmtToken == nullptr) {
             break;

@@ -162,7 +162,7 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
 
-    int FillCloudAssetForUpload(const CloudSyncData &data) override;
+    int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data) override;
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
 
