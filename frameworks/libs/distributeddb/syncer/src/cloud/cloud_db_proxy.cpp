@@ -27,7 +27,9 @@ CloudDBProxy::CloudDBProxy()
 int CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
 {
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
-    iCloudDb_ = cloudDB;
+    if (!iCloudDb_) {
+        iCloudDb_ = cloudDB;
+    }
     return E_OK;
 }
 
@@ -98,9 +100,6 @@ int CloudDBProxy::Query(const std::string &tableName, VBucket &extend, std::vect
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, QUERY);
     context->MoveOutQueryExtendAndData(extend, data);
-    if (errCode != E_OK && errCode != -E_QUERY_END) {
-        return -E_CLOUD_ERROR;
-    }
     return errCode;
 }
 
@@ -306,7 +305,7 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
     LOGD("[CloudDBProxy] action %" PRIu8 " end res:%d", static_cast<uint8_t>(action), static_cast<int>(status));
 
     if (!setResAlready) {
-        context->SetActionRes(status == OK ? E_OK : -E_CLOUD_ERROR);
+        context->SetActionRes(GetInnerErrorCode(status));
     }
 
     context->FinishAndNotify();
@@ -315,6 +314,24 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
         asyncTaskCount_--;
     }
     asyncTaskCv_.notify_all();
+}
+
+int CloudDBProxy::GetInnerErrorCode(DBStatus status)
+{
+    switch (status) {
+        case OK:
+            return E_OK;
+        case CLOUD_NETWORK_ERROR:
+            return -E_CLOUD_NETWORK_ERROR;
+        case CLOUD_SYNC_UNSET:
+            return -E_CLOUD_SYNC_UNSET;
+        case CLOUD_FULL_RECORDS:
+            return -E_CLOUD_FULL_RECORDS;
+        case CLOUD_LOCK_ERROR:
+            return -E_CLOUD_LOCK_ERROR;
+        default:
+            return -E_CLOUD_ERROR;
+    }
 }
 
 CloudDBProxy::CloudActionContext::CloudActionContext()

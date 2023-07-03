@@ -20,10 +20,15 @@ namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
 OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
 {
+    bool isCloudDelete = IsDelete(cloudInfo);
     if (existInLocal) {
         if (localInfo.cloudGid.empty()) {
-            return OpType::ONLY_UPDATE_GID;
+            // when cloud data is deleted, we think it is different data
+            return isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
         } else {
+            if (isCloudDelete) {
+                return OpType::CLEAR_GID;
+            }
             if (localInfo.device == cloud_device_name && localInfo.timestamp == cloudInfo.timestamp) {
                 return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE;
             }

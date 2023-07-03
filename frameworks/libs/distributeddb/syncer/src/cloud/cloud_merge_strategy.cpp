@@ -18,8 +18,11 @@ namespace DistributedDB {
 
 OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
 {
+    bool isCloudDelete = IsDelete(cloudInfo);
+    bool isLocalDelete = IsDelete(localInfo);
     if (!existInLocal) {
-        if ((cloudInfo.flag & 0x1) == 1) {
+        // when cloud data is deleted, we think it is different data
+        if (isCloudDelete) {
             return OpType::NOT_HANDLE;
         }
         return OpType::INSERT;
@@ -27,14 +30,16 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localIn
     OpType type = OpType::NOT_HANDLE;
     if (localInfo.timestamp > cloudInfo.timestamp) {
         if (localInfo.cloudGid.empty()) {
-            type = OpType::ONLY_UPDATE_GID;
+            type = isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
+        } else {
+            type = isCloudDelete ? OpType::CLEAR_GID : type;
         }
         return type;
     }
-    if ((cloudInfo.flag & 0x1) == 1) {
-        type = IsDelete(localInfo) ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
+    if (isCloudDelete) {
+        type = isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
     } else {
-        type = IsDelete(localInfo) ? OpType::INSERT : OpType::UPDATE;
+        type = isLocalDelete ? OpType::INSERT : OpType::UPDATE;
     }
     return type;
 }

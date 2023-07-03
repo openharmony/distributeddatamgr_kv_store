@@ -945,8 +945,16 @@ int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMod
         LOGE("[RelationalStore] sync with empty table");
         return -E_INVALID_ARGS;
     }
+    SecurityOption option;
+    int errCode = storageEngine_->GetSecurityOption(option);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (errCode == E_OK && option.securityLabel == S4) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     for (const auto &table: tableNames) {
-        int errCode = ChkSchema(table);
+        errCode = ChkSchema(table);
         if (errCode != E_OK) {
             LOGE("[RelationalStore] schema check failed when sync");
             return errCode;

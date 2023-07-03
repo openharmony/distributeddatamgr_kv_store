@@ -20,6 +20,7 @@
 #include "cloud_db_types.h"
 #include "cloud_db_proxy.h"
 #include "distributeddb_tools_unit_test.h"
+#include "kv_store_errno.h"
 #include "mock_icloud_sync_storage_interface.h"
 #include "virtual_cloud_db.h"
 #include "virtual_cloud_syncer.h"
@@ -478,6 +479,56 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest007, TestSize.Level4)
         LOGI("end to wait sync");
     }
     RefObject::KillAndDecObjRef(cloudSyncer);
+}
+
+/**
+ * @tc.name: CloudDBProxyTest008
+ * @tc.desc: Verify cloud db heartbeat with diff status.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    CloudDBProxy proxy;
+    EXPECT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    /**
+     * @tc.steps: step2. proxy heartbeat with diff status
+     */
+    virtualCloudDb_->SetActionStatus(CLOUD_NETWORK_ERROR);
+    int errCode = proxy.HeartBeat();
+    EXPECT_EQ(errCode, -E_CLOUD_NETWORK_ERROR);
+    EXPECT_EQ(TransferDBErrno(errCode), CLOUD_NETWORK_ERROR);
+
+    virtualCloudDb_->SetActionStatus(CLOUD_SYNC_UNSET);
+    errCode = proxy.HeartBeat();
+    EXPECT_EQ(errCode, -E_CLOUD_SYNC_UNSET);
+    EXPECT_EQ(TransferDBErrno(errCode), CLOUD_SYNC_UNSET);
+
+    virtualCloudDb_->SetActionStatus(CLOUD_FULL_RECORDS);
+    errCode = proxy.HeartBeat();
+    EXPECT_EQ(errCode, -E_CLOUD_FULL_RECORDS);
+    EXPECT_EQ(TransferDBErrno(errCode), CLOUD_FULL_RECORDS);
+
+    virtualCloudDb_->SetActionStatus(CLOUD_LOCK_ERROR);
+    errCode = proxy.HeartBeat();
+    EXPECT_EQ(errCode, -E_CLOUD_LOCK_ERROR);
+    EXPECT_EQ(TransferDBErrno(errCode), CLOUD_LOCK_ERROR);
+
+    virtualCloudDb_->SetActionStatus(DB_ERROR);
+    errCode = proxy.HeartBeat();
+    EXPECT_EQ(errCode, -E_CLOUD_ERROR);
+    EXPECT_EQ(TransferDBErrno(errCode), CLOUD_ERROR);
+
+    /**
+     * @tc.steps: step3. proxy close cloud db
+     * @tc.expected: step3. E_OK
+     */
+    EXPECT_EQ(proxy.Close(), E_OK);
 }
 
 /**

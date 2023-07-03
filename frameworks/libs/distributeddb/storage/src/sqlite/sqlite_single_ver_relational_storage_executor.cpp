@@ -1544,6 +1544,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     }
     Timestamp queryTime = 0;
     uint32_t totalSize = 0;
+    uint32_t stepNum = 0;
     do {
         if (isStepNext) {
             errCode = StepNext(isMemDb_, queryStmt, queryTime);
@@ -1552,7 +1553,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
             }
         }
         isStepNext = true;
-        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, totalSize, maxSize);
+        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, stepNum++, totalSize, maxSize);
     } while (errCode == E_OK);
     if (errCode != -E_UNFINISHED) {
         (void)token.ReleaseCloudStatement();
@@ -1561,7 +1562,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t &totalSize, const uint32_t &maxSize)
+    CloudSyncData &cloudDataResult, uint32_t stepNum, uint32_t &totalSize, const uint32_t &maxSize)
 {
     VBucket log;
     VBucket extraLog;
@@ -1590,7 +1591,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         }
     }
 
-    if (totalSize < maxSize) {
+    if (IsGetCloudDataContinue(stepNum, totalSize, maxSize)) {
         errCode = IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
@@ -1865,6 +1866,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO:
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE:
             case OpType::UPDATE_TIMESTAMP:
+            case OpType::CLEAR_GID:
                 errCode = OnlyUpdateLogTable(vBucket, tableSchema, op);
                 break;
             case OpType::NOT_HANDLE:
@@ -2146,12 +2148,13 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
         LOGE("Fail to set log trigger on, %d", ret);
     }
     LOGD("save cloud data: %d, insert cnt = %d, update cnt = %d, delete cnt = %d, only update gid cnt = %d, "
-         "set LCC flag zero cnt = %d, set LCC flag one cnt = %d, update timestamp cnt = %d, not handle cnt = %d",
+         "set LCC flag zero cnt = %d, set LCC flag one cnt = %d, update timestamp cnt = %d, clear gid count = %d,"
+         " not handle cnt = %d",
          errCode, statisticMap[static_cast<int>(OpType::INSERT)], statisticMap[static_cast<int>(OpType::UPDATE)],
          statisticMap[static_cast<int>(OpType::DELETE)], statisticMap[static_cast<int>(OpType::ONLY_UPDATE_GID)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO)],
          statisticMap[static_cast<int>(OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE)],
-         statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)],
+         statisticMap[static_cast<int>(OpType::UPDATE_TIMESTAMP)], statisticMap[static_cast<int>(OpType::CLEAR_GID)],
          statisticMap[static_cast<int>(OpType::NOT_HANDLE)]);
     return errCode == E_OK ? ret : errCode;
 }
@@ -2469,17 +2472,20 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     } else if (opType == OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE) {
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
     }  else if (opType == OpType::UPDATE_TIMESTAMP) {
-        updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) + ", timestamp = ?";
+        updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) +
+            ", timestamp = ?, cloud_gid = ''";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
+    } else if (opType == OpType::CLEAR_GID) {
+        updateLogSql += "cloud_gid = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
-            updateLogSql += "data_key = -1, flag = 1, ";
+            updateLogSql += "data_key = -1, flag = 1, cloud_gid = '', ";
         } else {
-            updateLogSql += "flag = 0, ";
+            updateLogSql += "flag = 0, cloud_gid = ?, ";
+            updateColName.push_back(CloudDbConstant::GID_FIELD);
         }
-        updateLogSql += "device = 'cloud', timestamp = ?, cloud_gid = ?";
+        updateLogSql += "device = 'cloud', timestamp = ?";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
-        updateColName.push_back(CloudDbConstant::GID_FIELD);
     }
 
     std::string gidStr;
@@ -2508,6 +2514,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
     return errCode;
 }
 
+static inline bool IsAllowWithPrimaryKey(OpType opType)
+{
+    return (opType == OpType::DELETE || opType == OpType::UPDATE_TIMESTAMP || opType == OpType::CLEAR_GID ||
+        opType == OpType::ONLY_UPDATE_GID);
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBucket, const TableSchema &tableSchema,
     OpType opType)
 {
@@ -2519,8 +2531,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateLogRecord(const VBucket &vBu
         return errCode;
     }
 
-    errCode = BindValueToUpdateLogStatement(vBucket, tableSchema, updateColName, opType == OpType::DELETE ||
-        opType == OpType::UPDATE_TIMESTAMP, updateLogStmt);
+    errCode = BindValueToUpdateLogStatement(vBucket, tableSchema, updateColName, IsAllowWithPrimaryKey(opType),
+        updateLogStmt);
     int ret = E_OK;
     if (errCode != E_OK) {
         LOGE("bind value to update log statement failed when update cloud data, %d", errCode);

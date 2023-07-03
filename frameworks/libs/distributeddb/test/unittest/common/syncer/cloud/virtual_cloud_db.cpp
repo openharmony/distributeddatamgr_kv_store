@@ -87,6 +87,9 @@ DBStatus VirtualCloudDb::BatchDelete(const std::string &tableName, std::vector<V
 DBStatus VirtualCloudDb::HeartBeat()
 {
     heartbeatCount_++;
+    if (actionStatus_ != OK) {
+        return actionStatus_;
+    }
     if (cloudError_) {
         return DB_ERROR;
     }
@@ -134,6 +137,9 @@ DBStatus VirtualCloudDb::Close()
 
 DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data)
 {
+    if (actionStatus_ != OK) {
+        return actionStatus_;
+    }
     if (cloudError_) {
         return DB_ERROR;
     }
@@ -288,5 +294,10 @@ uint32_t VirtualCloudDb::GetQueryTimes(const std::string &tableName)
         return 0;
     }
     return queryTimes_[tableName];
+}
+
+void VirtualCloudDb::SetActionStatus(DBStatus status)
+{
+    actionStatus_ = status;
 }
 }

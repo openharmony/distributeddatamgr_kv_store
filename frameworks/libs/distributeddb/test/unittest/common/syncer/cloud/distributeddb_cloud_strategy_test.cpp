@@ -141,6 +141,23 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      */
     cloudInfo.flag = 0x01; // it means delete
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::UPDATE_TIMESTAMP);
+    /**
+     * @tc.steps: step9. cloud is delete and local not exist
+     * @tc.expected: step9 not handle cloud record
+     */
+    EXPECT_EQ(strategy->TagSyncDataStatus(false, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step10. cloud is old and delete, local has gid
+     * @tc.expected: step10 clear gid
+     */
+    localInfo.timestamp = 3u; // mark 3 means local is new
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::CLEAR_GID);
+    /**
+     * @tc.steps: step10. cloud is old and delete, local has not gid
+     * @tc.expected: step10 not handle cloud record
+     */
+    localInfo.cloudGid = "";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
 }
 
 /**
@@ -184,7 +201,13 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest002, TestSize.Level0)
      * @tc.expected: step5. ONLY UPDATE GID
      */
     cloudInfo.flag = 0x01; // it means delete
-    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step6. local has cloud record(with gid) but cloud flag is delete
+     * @tc.expected: step6. CLEAR_GID
+     */
+    localInfo.cloudGid = "gid";
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::CLEAR_GID);
 }
 
 /**

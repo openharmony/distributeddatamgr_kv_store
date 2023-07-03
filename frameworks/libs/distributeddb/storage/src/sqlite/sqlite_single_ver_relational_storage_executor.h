@@ -166,8 +166,8 @@ private:
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const TableInfo &table,
         const std::string &calPrimaryKeyHash);
 
-    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &totalSize,
-        const uint32_t &maxSize);
+    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
+        uint32_t &totalSize, const uint32_t &maxSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 
@@ -237,6 +237,8 @@ private:
     int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
+
+    bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

@@ -302,7 +302,7 @@ namespace {
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, a1);
         expectedList[FIELD_HOUSE] = { a1 };
-        expectedList[FIELD_CARS] = {};
+        expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -321,7 +321,7 @@ namespace {
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, a3);
         expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = { a3 };
+        expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -339,7 +339,7 @@ namespace {
             DATA_BASELINE, DATA_ALL_SAME);
         std::map<std::string, Assets> expectedList;
         expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = {};
+        expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -358,7 +358,7 @@ namespace {
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::DELETE, AssetStatus::DOWNLOADING, a5);
         expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = { a5 };
+        expectedList[FIELD_CARS] = { a2, a3, a4, a5 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -378,7 +378,7 @@ namespace {
         TagAsset(AssetOpType::DELETE, AssetStatus::DOWNLOADING, a5);
         TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
         expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = { a5, a4 };
+        expectedList[FIELD_CARS] = { a2, a3, a5, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -399,7 +399,7 @@ namespace {
         TagAsset(AssetOpType::DELETE, AssetStatus::DOWNLOADING, a5);
         TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
         expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = { a3, a5, a4 };
+        expectedList[FIELD_CARS] = { a2, a3, a5, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -506,8 +506,10 @@ namespace {
         TagAsset(AssetOpType::NO_CHANGE, AssetStatus::DOWNLOADING, a2);
         TagAsset(AssetOpType::NO_CHANGE, AssetStatus::DOWNLOADING, a3);
         TagAsset(AssetOpType::NO_CHANGE, AssetStatus::DOWNLOADING, a4);
-        expectedList[FIELD_HOUSE] = {};
-        expectedList[FIELD_CARS] = {};
+        a2.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+        a3.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+        a4.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+        expectedList[FIELD_CARS] = {a2, a3, a4};
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }
@@ -548,7 +550,7 @@ namespace {
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, a1Changed);
         expectedList[FIELD_HOUSE] = { a1Changed };
-        expectedList[FIELD_CARS] = {};
+        expectedList[FIELD_CARS] = {a2, a3, a4};
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_CARS, assetList, expectedList));
     }

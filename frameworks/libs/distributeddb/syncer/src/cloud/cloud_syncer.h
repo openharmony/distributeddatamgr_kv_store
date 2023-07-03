@@ -225,10 +225,10 @@ protected:
 
     std::map<std::string, Assets> GetAssetsFromVBucket(VBucket &data);
 
-    std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &CoveredData, VBucket &BeCoveredData,
+    std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
         bool WriteToCoveredData);
 
-    Assets TagAssetsInSingleCol(VBucket &CoveredData, VBucket &BeCoveredData, const Field &assetField,
+    Assets TagAssetsInSingleCol(VBucket &coveredData, VBucket &beCoveredData, const Field &assetField,
         bool WriteToCoveredData);
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
@@ -243,13 +243,13 @@ protected:
     int HandleDownloadResult(const std::string &tableName, const std::string &gid,
         std::map<std::string, Assets> &DownloadResult, bool setAllNormal);
 
-    int DownloadNotifyAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,
+    int DownloadAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,
         ChangedData &changedAssets);
 
     int CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
         ChangedData &changedAssets);
 
-    bool ShouldProcessAssets();
+    bool IsDataContainAssets();
 
     bool IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data);
 
