@@ -226,10 +226,10 @@ protected:
     std::map<std::string, Assets> GetAssetsFromVBucket(VBucket &data);
 
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
-        bool WriteToCoveredData);
+        bool setNormalStatus);
 
     Assets TagAssetsInSingleCol(VBucket &coveredData, VBucket &beCoveredData, const Field &assetField,
-        bool WriteToCoveredData);
+        bool setNormalStatus);
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 
@@ -243,7 +243,7 @@ protected:
     int HandleDownloadResult(const std::string &tableName, const std::string &gid,
         std::map<std::string, Assets> &DownloadResult, bool setAllNormal);
 
-    int DownloadAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,
+    int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         ChangedData &changedAssets);
 
     int CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
@@ -251,7 +251,7 @@ protected:
 
     bool IsDataContainAssets();
 
-    bool IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data);
+    bool IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data);
 
     void IncSyncCallbackTaskCount();
 

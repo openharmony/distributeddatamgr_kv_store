@@ -147,7 +147,7 @@ DBStatus VirtualCloudDb::Query(const std::string &tableName, VBucket &extend, st
         std::this_thread::sleep_for(std::chrono::milliseconds(blockTimeMs_));
     }
     if (queryTimes_.find(tableName) == queryTimes_.end()) {
-        queryTimes_[tableName] = 0;
+        queryTimes_.try_emplace(tableName, 0);
     }
     queryTimes_[tableName]++;
     std::lock_guard<std::mutex> autoLock(cloudDataMutex_);

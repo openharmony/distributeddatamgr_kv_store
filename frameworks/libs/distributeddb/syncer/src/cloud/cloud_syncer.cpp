@@ -663,7 +663,7 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
     return res;
 }
 
-bool CloudSyncer::IsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)
+bool CloudSyncer::IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data)
 {
     for (auto &assetField : assetFields) {
         if (assetField.type == TYPE_INDEX<Assets> && data[assetField.colName].index() == TYPE_INDEX<Assets>) {
@@ -875,7 +875,7 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
     return downloadStatus;
 }
 
-int CloudSyncer::DownloadAssets(InnerProcessInfo &info, std::vector<std::string> &pKColNames,
+int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
     ChangedData &changedAssets)
 {
     if (!IsDataContainAssets()) {
@@ -1614,7 +1614,7 @@ void CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
             StatusToFlagForAssetsInRecord(assetFields, uploadData.updData.record[i]);
             continue;
         }
-        for (auto &it : cloudAssets[gid]) {
+        for (const auto &it : cloudAssets[gid]) {
             cloudAsset[it.first] = it.second;
         }
         (void)TagAssetsInSingleRecord(uploadData.updData.record[i], cloudAsset, true);
