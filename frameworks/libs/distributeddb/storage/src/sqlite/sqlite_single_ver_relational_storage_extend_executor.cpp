@@ -245,5 +245,23 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const
     int64_t timeStamp = data.updData.timestamp[index];
     return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 2, timeStamp); // 2 is index;
 }
+
+bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize,
+    uint32_t maxSize)
+{
+    if (curNum == 0) {
+        return true;
+    }
+#ifdef MAX_UPLOAD_COUNT
+    if (curSize < maxSize && curNum < MAX_UPLOAD_COUNT) {
+        return true;
+    }
+#else
+    if (curSize < maxSize) {
+        return true;
+    }
+#endif
+    return false;
+}
 } // namespace DistributedDB
 #endif

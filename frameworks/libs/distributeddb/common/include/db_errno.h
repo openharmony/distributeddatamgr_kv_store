@@ -130,6 +130,10 @@ constexpr int E_CLOUD_ERROR = (E_BASE + 108); // cloud error
 constexpr int E_QUERY_END = (E_BASE + 110); // Indicates that query function has queried last data from cloud
 constexpr int E_DB_CLOSED = (E_BASE + 111); // db is closed
 constexpr int E_NOT_SET = (E_BASE + 112); // asset loader is not set
+constexpr int E_CLOUD_NETWORK_ERROR = (E_BASE + 113); // network error in cloud
+constexpr int E_CLOUD_SYNC_UNSET = (E_BASE + 114); // not set sync option in cloud
+constexpr int E_CLOUD_FULL_RECORDS = (E_BASE + 115); // cloud's record is full
+constexpr int E_CLOUD_LOCK_ERROR = (E_BASE + 116); // cloud failed to get sync lock
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

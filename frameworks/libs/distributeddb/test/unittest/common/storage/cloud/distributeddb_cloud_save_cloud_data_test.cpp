@@ -676,9 +676,9 @@ namespace {
     {
         for (int i = 0; i < 6; i++) { // 6 is record counts
             VBucket vBucket;
-            if (i <= 1) {
+            if (i < 1) { // UPDATE_TIMESTAMP doesn't contain pk
                 vBucket["id"] = 1L + i;
-            } else {
+            } else if (i > 1) {
                 vBucket["id"] = 10L + i; // 10 is id offset for cloud data
             }
 
@@ -690,7 +690,11 @@ namespace {
             vBucket["image"] = std::vector<uint8_t>(1, i);
             std::string gid;
             if (gidType == GidType::GID_MATCH) {
-                gid = g_gid + std::to_string(i);
+                if (i <= 1) { // first 2 exists in local
+                    gid = g_gid + std::to_string(i);
+                } else {
+                    gid = g_gid + std::to_string(10 + i); // 10 is id offset for cloud data
+                }
             } else if (gidType == GidType::GID_EMPTY) {
                 std::string emptyGid = "";
                 gid = emptyGid;
@@ -741,7 +745,7 @@ namespace {
 
     /**
      * @tc.name: PutCloudSyncDataTest013
-     * @tc.desc: Test save cloud data with
+     * @tc.desc: Test save cloud data with type = update_timestamp
      * @tc.type: FUNC
      * @tc.require:
      * @tc.author: zhangshijie
@@ -752,10 +756,11 @@ namespace {
          * @tc.steps:step1. create db, create table.
          * @tc.expected: step1. return ok.
          */
-        PrepareDataBase(g_tableName, PrimaryKeyType::NO_PRIMARY_KEY, true);
+        PrepareDataBase(g_tableName, PrimaryKeyType::SINGLE_PRIMARY_KEY, true);
 
         std::string sql = "delete from " + g_tableName + " where id = 2";
         sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
         /**
          * @tc.steps:step2. call PutCloudSyncData
@@ -774,9 +779,8 @@ namespace {
          * @tc.steps:step3. verify data
          * @tc.expected: step3. verify data ok.
          */
-        std::string gid = g_gid + std::to_string(1);
         sql = "select device, timestamp, flag from " + DBCommon::GetLogTableName(g_tableName) +
-            " where cloud_gid = '" + gid + "'";
+            " where data_key = -1 and cloud_gid = ''";
         int count = 0;
         int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
             std::string device = "cloud";
@@ -827,5 +831,71 @@ namespace {
         downloadData.opType = { OpType::DELETE };
         EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
         EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest015
+     * @tc.desc: Test clear gid and ONLY_UPDATE_GID
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest015, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. create db, create table.
+         * @tc.expected: step1. return ok.
+         */
+        PrepareDataBase(g_tableName, PrimaryKeyType::SINGLE_PRIMARY_KEY);
+
+        /**
+         * @tc.steps:step2. construct data type = clear_gid, call PutCloudSyncData.
+         * @tc.expected: step2. return E_OK.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+
+        DownloadData downloadData;
+        for (int i = 0; i < 2; i++) { // 2 is record count
+            VBucket vBucket;
+            std::string gid = g_gid + std::to_string(i * 4); // 4 is data index
+            vBucket[CloudDbConstant::GID_FIELD] = gid;
+            vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
+            downloadData.data.push_back(vBucket);
+        }
+        downloadData.opType = { OpType::ONLY_UPDATE_GID, OpType::CLEAR_GID };
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+
+        /**
+         * @tc.steps:step3. verify data
+         * @tc.expected: step3. verify data ok.
+         */
+        std::string sql = "select cloud_gid, flag from " + DBCommon::GetLogTableName(g_tableName) +
+            " where data_key = 1 or data_key = 5";
+        int count = 0;
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
+            std::string gid = "";
+            if (count == 0) {
+                gid = g_gid + "0";
+            }
+            const unsigned char *val = sqlite3_column_text(stmt, 0);
+            EXPECT_TRUE(val != nullptr);
+            std::string getGid = reinterpret_cast<const char *>(val);
+            LOGD("GET GID = %s", getGid.c_str());
+            EXPECT_EQ(getGid, gid);
+            if (count == 1) {
+                int flag = sqlite3_column_int(stmt, 1);
+                EXPECT_EQ(flag & 0x04, 0); // 0x04 is binay num of b100, clear gid will clear 2th bit of flag
+            }
+            count++;
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(count, 2); // 2 is result count
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 }

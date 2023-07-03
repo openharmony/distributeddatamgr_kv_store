@@ -70,6 +70,10 @@ namespace {
         { -E_CLOUD_ERROR, CLOUD_ERROR },
         { -E_DB_CLOSED, DB_CLOSED },
         { -E_NOT_SET, UNSET_ERROR },
+        { -E_CLOUD_NETWORK_ERROR, CLOUD_NETWORK_ERROR },
+        { -E_CLOUD_SYNC_UNSET, CLOUD_SYNC_UNSET },
+        { -E_CLOUD_FULL_RECORDS, CLOUD_FULL_RECORDS },
+        { -E_CLOUD_LOCK_ERROR, CLOUD_LOCK_ERROR },
     };
 }
 

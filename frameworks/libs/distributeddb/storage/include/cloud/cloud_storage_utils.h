@@ -60,6 +60,10 @@ public:
     static bool IsAsset(const Type &type);
     static bool IsAssets(const Type &type);
     static bool IsAssetsContainDuplicateAsset(Assets &assets);
+    static void EraseNoChangeAsset(std::map<std::string, Assets> &assetsMap);
+    static void MergeDownloadAsset(std::map<std::string, Assets> &downloadAssets,
+        std::map<std::string, Assets> &mergeAssets);
+    static std::map<std::string, size_t> GenAssetsIndexMap(Assets &assets);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

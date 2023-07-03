@@ -129,6 +129,8 @@ protected:
     void InnerActionTask(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
+    static int GetInnerErrorCode(DBStatus status);
+
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;

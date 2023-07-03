@@ -57,6 +57,8 @@ public:
     void SetIncrementData(const std::string &tableName, const VBucket &record, const VBucket &extend);
 
     uint32_t GetQueryTimes(const std::string &tableName);
+
+    void SetActionStatus(DBStatus status);
 private:
     struct CloudData {
         VBucket record;
@@ -85,6 +87,7 @@ private:
     bool isSetCrementCloudData_ = false;
     std::string increPrefix_ = "increPrefix_";
     std::map<std::string, uint32_t> queryTimes_;
+    DBStatus actionStatus_ = OK;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

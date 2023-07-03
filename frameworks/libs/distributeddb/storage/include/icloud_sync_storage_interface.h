@@ -32,6 +32,7 @@ enum class OpType : uint8_t {
     SET_CLOUD_FORCE_PUSH_FLAG_ONE,
     SET_CLOUD_FORCE_PUSH_FLAG_ZERO,
     UPDATE_TIMESTAMP,
+    CLEAR_GID,
     NOT_HANDLE
 };
 

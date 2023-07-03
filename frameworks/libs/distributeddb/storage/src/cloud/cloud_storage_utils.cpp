@@ -551,4 +551,46 @@ bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
     }
     return false;
 }
+
+void CloudStorageUtils::EraseNoChangeAsset(std::map<std::string, Assets> &assetsMap)
+{
+    for (auto &items: assetsMap) {
+        for (auto item = items.second.begin(); item != items.second.end();) {
+            if (static_cast<AssetOpType>((*item).status) == AssetOpType::NO_CHANGE) {
+                item = items.second.erase(item);
+            } else {
+                item++;
+            }
+        }
+    }
+}
+
+void CloudStorageUtils::MergeDownloadAsset(std::map<std::string, Assets> &downloadAssets,
+    std::map<std::string, Assets> &mergeAssets)
+{
+    for (auto &items: mergeAssets) {
+        auto downloadItem = downloadAssets.find(items.first);
+        if (downloadItem == downloadAssets.end()) {
+            continue;
+        }
+        std::map<std::string, size_t> beCoveredAssetsMap = GenAssetsIndexMap(items.second);
+        for (const Asset &asset: downloadItem->second) {
+            auto it = beCoveredAssetsMap.find(asset.name);
+            if (it == beCoveredAssetsMap.end()) {
+                continue;
+            }
+            items.second[it->second] = asset;
+        }
+    }
+}
+
+std::map<std::string, size_t> CloudStorageUtils::GenAssetsIndexMap(Assets &assets)
+{
+    // key of assetsIndexMap is name of asset, the value of it is index.
+    std::map<std::string, size_t> assetsIndexMap;
+    for (size_t i = 0; i < assets.size(); i++) {
+        assetsIndexMap[assets[i].name] = i;
+    }
+    return assetsIndexMap;
+}
 }
