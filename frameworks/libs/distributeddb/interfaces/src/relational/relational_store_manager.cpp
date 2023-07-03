@@ -178,6 +178,10 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
             tempRes.insert(tempRes.end(), temp.begin(), temp.end());
         }
         errCode = DBCommon::CalcValueHash(tempRes, result);
+        if (errCode != E_OK) {
+            LOGE("calc hash fail when calc the composite primary key errCode = %d", errCode);
+            return result;
+        }
     }
     return result;
 }
