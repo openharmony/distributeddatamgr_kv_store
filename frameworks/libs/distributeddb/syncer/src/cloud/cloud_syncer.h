@@ -137,7 +137,7 @@ protected:
 
     void DoFinished(TaskId taskId, int errCode, const InnerProcessInfo &processInfo);
 
-    virtual int DoDownload(TaskId taskId);
+    virtual int DoDownload(CloudSyncer::TaskId taskId);
 
     int DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -166,7 +166,7 @@ protected:
 
     int PutWaterMarkAfterBatchUpload(const std::string &tableName, UploadParam &uploadParam);
 
-    virtual int DoUpload(TaskId taskId, bool lastTable);
+    virtual int DoUpload(CloudSyncer::TaskId taskId, bool lastTable);
 
     void SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadData);
 
