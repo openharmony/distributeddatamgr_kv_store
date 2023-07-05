@@ -1990,7 +1990,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCleanCloudDataKeys(const std::s
             break;
         }
     } while (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW));
-
+    SQLiteUtils::ResetStatement(selectStmt, true, errCode);
     return (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) ? E_OK : errCode;
 }
 
