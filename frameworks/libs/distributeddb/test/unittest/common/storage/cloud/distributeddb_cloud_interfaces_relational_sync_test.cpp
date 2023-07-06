@@ -710,8 +710,7 @@ namespace {
         }
     }
 
-    void InitProcessForCleanCloudData1(const uint32_t &cloudCount, const uint32_t &localCount,
-        std::vector<SyncProcess> &expectProcess)
+    void InitProcessForCleanCloudData1(const uint32_t &cloudCount, std::vector<SyncProcess> &expectProcess)
     {
         // cloudCount also means data count in one batch
         expectProcess.clear();
@@ -1741,7 +1740,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest001, 
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
+    InitProcessForCleanCloudData1(cloudCount, expectProcess);
     CloudSyncStatusCallback callback;
     GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
@@ -1770,7 +1769,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest002, 
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
+    InitProcessForCleanCloudData1(cloudCount, expectProcess);
     CloudSyncStatusCallback callback;
     GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
@@ -1805,7 +1804,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest003, 
      */
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
-    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess);
+    InitProcessForCleanCloudData1(cloudCount, expectProcess);
     CloudSyncStatusCallback callback;
     GetCallback(g_syncProcess, callback, expectProcess);
     ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback, g_syncWaitTime),
@@ -1816,13 +1815,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest003, 
     /**
      * @tc.steps: step3. insert 10 records into local, so local will has 20 local records and 20 cloud records.
      */
-    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertUserTableRecord(db, 21, localCount, paddingSize, false);  // 21 means insert start index
     /**
      * @tc.steps: step4. call RemoveDeviceData synchronize with Sync with cloud force push strategy.
      */
     g_syncProcess = {};
     std::vector<SyncProcess> expectProcess2;
-    InitProcessForCleanCloudData1(cloudCount, localCount, expectProcess2);
+    InitProcessForCleanCloudData1(cloudCount, expectProcess2);
     CloudSyncStatusCallback callback2;
     GetCallback(g_syncProcess, callback2, expectProcess2);
     std::string device = "";
@@ -1830,7 +1829,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest003, 
     std::thread thread1([&]() {
         ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     });
-    std::condition_variable cv;
     std::thread thread2([&]() {
         ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_FORCE_PULL, query, callback2, g_syncWaitTime),
             DBStatus::OK);
