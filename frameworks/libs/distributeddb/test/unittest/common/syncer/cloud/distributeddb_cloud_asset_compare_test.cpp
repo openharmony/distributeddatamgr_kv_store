@@ -220,7 +220,6 @@ namespace {
     {
         if (target.name != expected.name ||
             target.flag != expected.flag ||
-            target.flag != expected.flag ||
             target.status != expected.status) {
             return false;
         }

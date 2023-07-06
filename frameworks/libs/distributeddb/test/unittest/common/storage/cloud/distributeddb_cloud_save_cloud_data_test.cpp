@@ -256,7 +256,6 @@ namespace {
                 int64_t val = -1;
                 // id is pk
                 EXPECT_EQ(CloudStorageUtils::GetValueFromVBucket("id", dataInfoWithLog.primaryKeys, val), E_OK);
-                LOGD("ID = %d", val);
             } else if (pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY) {
                 EXPECT_TRUE(dataInfoWithLog.primaryKeys.find("id") != dataInfoWithLog.primaryKeys.end());
                 std::string name;
