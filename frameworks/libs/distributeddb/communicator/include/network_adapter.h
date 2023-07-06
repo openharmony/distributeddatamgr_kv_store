@@ -44,7 +44,8 @@ public:
     uint32_t GetTimeout(const std::string &target) override;
     int GetLocalIdentity(std::string &outTarget) override;
 
-    int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length) override;
+    int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length,
+                  uint32_t totalLength) override;
 
     int RegBytesReceiveCallback(const BytesReceiveCallback &onReceive, const Finalizer &inOper) override;
     int RegTargetChangeCallback(const TargetChangeCallback &onChange, const Finalizer &inOper) override;

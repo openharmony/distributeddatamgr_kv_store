@@ -205,7 +205,7 @@ int NetworkAdapter::GetLocalIdentity(std::string &outTarget)
     return E_OK;
 }
 
-int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length)
+int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length, uint32_t totalLength)
 {
     if (bytes == nullptr || length == 0) {
         return -E_INVALID_ARGS;
@@ -213,7 +213,7 @@ int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes
     LOGI("[NAdapt][SendBytes] Enter, to=%s{private}, length=%u", dstTarget.c_str(), length);
     DeviceInfos dstDevInfo;
     dstDevInfo.identifier = dstTarget;
-    DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length);
+    DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length, totalLength);
     if (errCode == DBStatus::RATE_LIMIT) {
         LOGD("[NAdapt][SendBytes] rate limit!");
         return -E_WAIT_RETRY;

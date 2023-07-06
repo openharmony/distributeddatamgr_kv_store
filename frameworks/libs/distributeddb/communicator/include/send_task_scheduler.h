@@ -63,8 +63,8 @@ public:
     int AddSendTaskIntoSchedule(const SendTask &inTask, Priority inPrio);
 
     // This method for consumer, not recommend for multiple thread
-    int ScheduleOutSendTask(SendTask &outTask);
-    int ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo);
+    int ScheduleOutSendTask(SendTask &outTask, uint32_t totalLength = 0);
+    int ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t totalLength = 0);
 
     // This method for consumer, call ScheduleOutSendTask at least one time before each calling this
     int FinalizeLastScheduleTask();
@@ -88,6 +88,7 @@ private:
     std::vector<Priority> priorityOrder_;
     std::map<Priority, uint32_t> extraCapacityInByteByPrio_;
     std::map<std::string, TargetPolicy> policyMap_;
+    std::map<std::string, uint32_t> totalBytesByTarget_;
 
     std::map<Priority, uint32_t> taskCountByPrio_;
     std::map<Priority, uint32_t> taskDelayCountByPrio_;

@@ -94,6 +94,12 @@ public:
     // Only the identifier field of dstDevInfo must be valid, no requirement for other field.
     virtual DBStatus SendData(const DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length) = 0;
 
+    virtual DBStatus SendData(const DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length, uint32_t totalLength)
+    {
+        (void)totalLength;
+        return SendData(dstDevInfo, data, length);
+    }
+
     // The GetMtuSize function can be called anytime regardless of whether started or stopped.
     // The mtuSize should not less than 1K otherwise it will be regard as 1K.
     // For run on OHOS, there is agreement that the mtuSize should be nearly 5M.

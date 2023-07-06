@@ -358,7 +358,7 @@ void CommunicatorAggregator::SendDataRoutine()
 }
 
 void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, uint32_t mtu,
-    const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket)
+    const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket, uint32_t totalLength)
 {
     bool taskNeedFinalize = true;
     int errCode = E_OK;
@@ -373,7 +373,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
             ", totalLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
         ProtocolProto::DisplayPacketInformation(entry.first + entry.second.first, entry.second.second);
-        errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second);
+        errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second, totalLength);
         {
             std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
             sendRecord_[inTask.frameId].sendIndex = index;
@@ -886,7 +886,8 @@ void CommunicatorAggregator::InitSendThread()
 void CommunicatorAggregator::SendOnceData()
 {
     SendTask taskToSend;
-    int errCode = scheduler_.ScheduleOutSendTask(taskToSend);
+    uint32_t totalLength = 0;
+    int errCode = scheduler_.ScheduleOutSendTask(taskToSend, totalLength);
     if (errCode != E_OK) {
         return; // Not possible to happen
     }
@@ -917,7 +918,7 @@ void CommunicatorAggregator::SendOnceData()
         }
     }
 
-    SendPacketsAndDisposeTask(taskToSend, mtu, eachPacket);
+    SendPacketsAndDisposeTask(taskToSend, mtu, eachPacket, totalLength);
 }
 
 void CommunicatorAggregator::TriggerSendData()

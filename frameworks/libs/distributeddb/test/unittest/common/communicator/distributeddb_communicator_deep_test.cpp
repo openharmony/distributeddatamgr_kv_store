@@ -783,13 +783,13 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
      * @tc.expected: step1. adapter send failed
      */
     auto data = std::make_shared<uint8_t>(1u);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1), -E_INVALID_ARGS);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0), -E_INVALID_ARGS);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1, 0), -E_INVALID_ARGS);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0, 0), -E_INVALID_ARGS);
     /**
      * @tc.steps: step2. adapter send data with right param
      * @tc.expected: step2. adapter send ok
      */
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1), E_OK);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1, 0), E_OK);
     RuntimeContext::GetInstance()->StopTaskPool();
 }
 
@@ -911,7 +911,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
         return false;
     });
     auto data = std::make_shared<uint8_t>(1);
-    EXPECT_EQ(adapter->SendBytes("", data.get(), 1), -E_PERIPHERAL_INTERFACE_FAIL);
+    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), -E_PERIPHERAL_INTERFACE_FAIL);
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(adapter->IsDeviceOnline(""), false);
     ExtendInfo info;

@@ -95,7 +95,7 @@ private:
     // Working in a dedicated thread
     void SendDataRoutine();
     void SendPacketsAndDisposeTask(const SendTask &inTask, uint32_t mtu,
-        const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket);
+        const std::vector<std::pair<const uint8_t *, std::pair<uint32_t, uint32_t>>> &eachPacket, uint32_t totalLength);
 
     int RetryUntilTimeout(SendTask &inTask, uint32_t timeout, Priority inPrio);
     void TaskFinalizer(const SendTask &inTask, int result);
