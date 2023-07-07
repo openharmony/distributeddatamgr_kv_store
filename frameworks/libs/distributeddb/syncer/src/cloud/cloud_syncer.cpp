@@ -1992,9 +1992,9 @@ void CloudSyncer::HeartBeat(TimerId timerId, TaskId taskId)
             // heartbeat block twice should finish task now
             SetTaskFailed(taskId, -E_CLOUD_ERROR);
         } else {
-            LOGD("[CloudSyncer] Trigger heartbeat");
-            if (cloudDB_.HeartBeat() != E_OK) {
-                HeartBeatFailed(taskId);
+            int ret = cloudDB_.HeartBeat();
+            if (ret != E_OK) {
+                HeartBeatFailed(taskId, ret);
             } else {
                 failedHeartBeatCount_ = 0;
             }
@@ -2015,7 +2015,7 @@ void CloudSyncer::HeartBeat(TimerId timerId, TaskId taskId)
     }
 }
 
-void CloudSyncer::HeartBeatFailed(TaskId taskId)
+void CloudSyncer::HeartBeatFailed(TaskId taskId, int errCode)
 {
     failedHeartBeatCount_++;
     if (failedHeartBeatCount_ < MAX_HEARTBEAT_FAILED_LIMIT) {
@@ -2023,7 +2023,7 @@ void CloudSyncer::HeartBeatFailed(TaskId taskId)
     }
     LOGW("[CloudSyncer] heartbeat failed too much times!");
     FinishHeartBeatTimer();
-    SetTaskFailed(taskId, -E_CLOUD_ERROR);
+    SetTaskFailed(taskId, errCode);
 }
 
 void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode)
