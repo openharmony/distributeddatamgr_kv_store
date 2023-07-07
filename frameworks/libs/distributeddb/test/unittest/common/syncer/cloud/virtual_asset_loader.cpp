@@ -19,6 +19,12 @@ namespace DistributedDB {
 DBStatus VirtualAssetLoader::Download(const std::string &tableName, const std::string &gid, const Type &prefix,
     std::map<std::string, Assets> &assets)
 {
+    {
+        std::lock_guard<std::mutex> autoLock(dataMutex_);
+        if (downloadStatus_ != OK) {
+            return downloadStatus_;
+        }
+    }
     LOGD("Download GID:%s", gid.c_str());
     for (auto &item: assets) {
         for (auto &asset: item.second) {
@@ -34,4 +40,10 @@ DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::vector<Asset> &assets)
     return DBStatus::OK;
 }
 
+void VirtualAssetLoader::SetDownloadStatus(DBStatus status)
+{
+    std::lock_guard<std::mutex> autoLock(dataMutex_);
+    LOGD("[VirtualAssetLoader] set download status :%d", static_cast<int>(status));
+    downloadStatus_ = status;
+}
 }

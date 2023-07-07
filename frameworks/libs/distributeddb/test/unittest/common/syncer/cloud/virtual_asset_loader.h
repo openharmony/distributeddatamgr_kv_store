@@ -15,6 +15,7 @@
 
 #ifndef VIRTUAL_ASSETLOADER_H
 #define VIRTUAL_ASSETLOADER_H
+#include <mutex>
 #include "iAssetLoader.h"
 
 namespace DistributedDB {
@@ -27,6 +28,11 @@ public:
         std::map<std::string, Assets> &assets) override;
 
     DBStatus RemoveLocalAssets(const std::vector<Asset> &assets) override;
+
+    void SetDownloadStatus(DBStatus status);
+private:
+    std::mutex dataMutex_;
+    DBStatus downloadStatus_ = OK;
 };
 }
 #endif // VIRTUAL_ASSETLOADER_H
