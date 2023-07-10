@@ -200,7 +200,7 @@ protected:
 
     void HeartBeat(TimerId timerId, TaskId taskId);
 
-    void HeartBeatFailed(TaskId taskId);
+    void HeartBeatFailed(TaskId taskId, int errCode);
 
     void SetTaskFailed(TaskId taskId, int errCode);
     

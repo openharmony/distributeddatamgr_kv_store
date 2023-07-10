@@ -76,6 +76,7 @@ enum DBStatus {
     CLOUD_SYNC_UNSET, // not set sync option in cloud
     CLOUD_FULL_RECORDS, // cloud's record is full
     CLOUD_LOCK_ERROR, // cloud failed to get sync lock
+    CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud failed to download asset
 };
 
 struct KvStoreConfig {

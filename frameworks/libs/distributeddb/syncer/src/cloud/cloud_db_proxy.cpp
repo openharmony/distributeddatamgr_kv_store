@@ -180,7 +180,11 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
         LOGE("Asset loader has not been set %d", -E_NOT_SET);
         return -E_NOT_SET;
     }
-    return iAssetLoader_->Download(tableName, gid, prefix, assets) == OK ? E_OK : -E_CLOUD_ERROR;
+    DBStatus status = iAssetLoader_->Download(tableName, gid, prefix, assets);
+    if (status != OK) {
+        LOGE("[CloudDBProxy] download asset failed %d", static_cast<int>(status));
+    }
+    return GetInnerErrorCode(status);
 }
 
 int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
@@ -190,7 +194,11 @@ int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
         LOGE("Asset loader has not been set %d", -E_INVALID_DB);
         return -E_INVALID_DB;
     }
-    return iAssetLoader_->RemoveLocalAssets(assets) == OK? E_OK: -E_CLOUD_ERROR;
+    DBStatus status = iAssetLoader_->RemoveLocalAssets(assets);
+    if (status != OK) {
+        LOGE("[CloudDBProxy] remove local asset failed %d", static_cast<int>(status));
+    }
+    return GetInnerErrorCode(status);
 }
 
 int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context,
@@ -329,6 +337,8 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_FULL_RECORDS;
         case CLOUD_LOCK_ERROR:
             return -E_CLOUD_LOCK_ERROR;
+        case CLOUD_ASSET_SPACE_INSUFFICIENT:
+            return -E_CLOUD_ASSET_SPACE_INSUFFICIENT;
         default:
             return -E_CLOUD_ERROR;
     }
