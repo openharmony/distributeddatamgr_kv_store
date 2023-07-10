@@ -52,7 +52,8 @@ void SendTaskScheduler::Finalize()
     while (GetTotalTaskCount() != 0) {
         SendTask task;
         SendTaskInfo taskInfo;
-        int errCode = ScheduleOutSendTask(task, taskInfo);
+        uint32_t totalLength = 0;
+        int errCode = ScheduleOutSendTask(task, taskInfo, totalLength);
         if (errCode != E_OK) {
             LOGE("[Scheduler][Final] INTERNAL ERROR.");
             break; // Not possible to happen
@@ -88,7 +89,7 @@ int SendTaskScheduler::AddSendTaskIntoSchedule(const SendTask &inTask, Priority 
     return E_OK;
 }
 
-int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, uint32_t totalLength)
+int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, uint32_t &totalLength)
 {
     SendTaskInfo taskInfo;
     int errCode = ScheduleOutSendTask(outTask, taskInfo, totalLength);
@@ -99,7 +100,7 @@ int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, uint32_t totalLeng
     return errCode;
 }
 
-int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t totalLength)
+int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t &totalLength)
 {
     std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
     if (curTotalSizeByTask_ == 0) {

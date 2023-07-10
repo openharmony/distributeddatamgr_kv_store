@@ -63,8 +63,8 @@ public:
     int AddSendTaskIntoSchedule(const SendTask &inTask, Priority inPrio);
 
     // This method for consumer, not recommend for multiple thread
-    int ScheduleOutSendTask(SendTask &outTask, uint32_t &totalLength = 0);
-    int ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t &totalLength = 0);
+    int ScheduleOutSendTask(SendTask &outTask, uint32_t &totalLength);
+    int ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t &totalLength);
 
     // This method for consumer, call ScheduleOutSendTask at least one time before each calling this
     int FinalizeLastScheduleTask();
