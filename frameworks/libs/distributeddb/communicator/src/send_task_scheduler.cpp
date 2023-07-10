@@ -52,7 +52,8 @@ void SendTaskScheduler::Finalize()
     while (GetTotalTaskCount() != 0) {
         SendTask task;
         SendTaskInfo taskInfo;
-        int errCode = ScheduleOutSendTask(task, taskInfo);
+        uint32_t totalLength = 0;
+        int errCode = ScheduleOutSendTask(task, taskInfo, totalLength);
         if (errCode != E_OK) {
             LOGE("[Scheduler][Final] INTERNAL ERROR.");
             break; // Not possible to happen
@@ -73,6 +74,7 @@ int SendTaskScheduler::AddSendTaskIntoSchedule(const SendTask &inTask, Priority 
     uint32_t taskSizeByByte = inTask.buffer->GetSize();
     curTotalSizeByByte_ += taskSizeByByte;
     curTotalSizeByTask_++;
+    totalBytesByTarget_[inTask.dstTarget] += taskSizeByByte;
     if (policyMap_.count(inTask.dstTarget) == 0) {
         policyMap_[inTask.dstTarget] = TargetPolicy::NO_DELAY;
     }
@@ -87,10 +89,10 @@ int SendTaskScheduler::AddSendTaskIntoSchedule(const SendTask &inTask, Priority 
     return E_OK;
 }
 
-int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask)
+int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, uint32_t &totalLength)
 {
     SendTaskInfo taskInfo;
-    int errCode = ScheduleOutSendTask(outTask, taskInfo);
+    int errCode = ScheduleOutSendTask(outTask, taskInfo, totalLength);
     if (errCode == E_OK) {
         LOGI("[Scheduler][OutTask] dstTarget=%s{private}, delayFlag=%d, taskPrio=%d", outTask.dstTarget.c_str(),
             taskInfo.delayFlag, static_cast<int>(taskInfo.taskPrio));
@@ -98,7 +100,7 @@ int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask)
     return errCode;
 }
 
-int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo)
+int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outTaskInfo, uint32_t &totalLength)
 {
     std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
     if (curTotalSizeByTask_ == 0) {
@@ -110,6 +112,7 @@ int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outT
         int errCode = ScheduleDelayTask(outTask, outTaskInfo);
         if (errCode == E_OK) {
             // Update last schedule location
+            totalLength = totalBytesByTarget_[outTask.dstTarget];
             lastScheduleTarget_ = outTask.dstTarget;
             lastSchedulePriority_ = outTaskInfo.taskPrio;
             scheduledFlag_ = true;
@@ -120,6 +123,7 @@ int SendTaskScheduler::ScheduleOutSendTask(SendTask &outTask, SendTaskInfo &outT
         int errCode = ScheduleNoDelayTask(outTask, outTaskInfo);
         if (errCode == E_OK) {
             // Update last schedule location
+            totalLength = totalBytesByTarget_[outTask.dstTarget];
             lastScheduleTarget_ = outTask.dstTarget;
             lastSchedulePriority_ = outTaskInfo.taskPrio;
             scheduledFlag_ = true;
@@ -145,6 +149,8 @@ int SendTaskScheduler::FinalizeLastScheduleTask()
     uint32_t taskSize = task.buffer->GetSize();
     curTotalSizeByByte_ -= taskSize;
     bool isFullAfter = (curTotalSizeByByte_ >= MAX_CAPACITY);
+
+    totalBytesByTarget_[lastScheduleTarget_] -= taskSize;
 
     curTotalSizeByTask_--;
     taskCountByPrio_[lastSchedulePriority_]--;

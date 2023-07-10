@@ -279,38 +279,39 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, SendSchedule001, TestSize.Level2)
      */
     SendTask outTask;
     SendTaskInfo outTaskInfo;
+    uint32_t totalLength = 0;
     // high priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
     scheduler.FinalizeLastScheduleTask();
     // high priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::HIGH);
     scheduler.FinalizeLastScheduleTask();
     // normal priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
     scheduler.FinalizeLastScheduleTask();
     // normal priority target C
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_C);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::NORMAL);
     scheduler.FinalizeLastScheduleTask();
     // low priority target A
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_A);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
     scheduler.FinalizeLastScheduleTask();
     // low priority target B
-    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo);
+    errCode = scheduler.ScheduleOutSendTask(outTask, outTaskInfo, totalLength);
     ASSERT_EQ(errCode, E_OK);
     EXPECT_EQ(outTask.dstTarget, DEVICE_NAME_B);
     EXPECT_EQ(outTaskInfo.taskPrio, Priority::LOW);
@@ -783,13 +784,13 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter004, TestSize.Level1)
      * @tc.expected: step1. adapter send failed
      */
     auto data = std::make_shared<uint8_t>(1u);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1), -E_INVALID_ARGS);
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0), -E_INVALID_ARGS);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", nullptr, 1, 0), -E_INVALID_ARGS);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 0, 0), -E_INVALID_ARGS);
     /**
      * @tc.steps: step2. adapter send data with right param
      * @tc.expected: step2. adapter send ok
      */
-    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1), E_OK);
+    EXPECT_EQ(adapter->SendBytes("DEVICES_B", data.get(), 1, 0), E_OK);
     RuntimeContext::GetInstance()->StopTaskPool();
 }
 
@@ -911,7 +912,7 @@ HWTEST_F(DistributedDBCommunicatorDeepTest, NetworkAdapter006, TestSize.Level1)
         return false;
     });
     auto data = std::make_shared<uint8_t>(1);
-    EXPECT_EQ(adapter->SendBytes("", data.get(), 1), -E_PERIPHERAL_INTERFACE_FAIL);
+    EXPECT_EQ(adapter->SendBytes("", data.get(), 1, 0), -E_PERIPHERAL_INTERFACE_FAIL);
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(adapter->IsDeviceOnline(""), false);
     ExtendInfo info;

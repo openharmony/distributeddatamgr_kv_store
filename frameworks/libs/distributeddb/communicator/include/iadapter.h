@@ -54,7 +54,8 @@ public:
 
     // Not assume bytes to be heap memory. Not assume SendBytes to be not blocking
     // Return 0 as success. Return negative as error
-    virtual int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length) = 0;
+    virtual int SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length,
+                          uint32_t totalLength) = 0;
 
     // Pass nullptr as inHandle to do unReg if need (inDecRef also nullptr)
     // Return 0 as success. Return negative as error

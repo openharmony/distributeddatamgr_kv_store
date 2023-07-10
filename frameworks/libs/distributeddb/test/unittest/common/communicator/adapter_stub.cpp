@@ -75,10 +75,12 @@ int AdapterStub::GetLocalIdentity(std::string &outTarget)
     return E_OK;
 }
 
-int AdapterStub::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length)
+int AdapterStub::SendBytes(const std::string &dstTarget, const uint8_t *bytes, uint32_t length, uint32_t totalLength)
 {
     LOGI("[UT][Stub][Send] Send length=%" PRIu32 " to dstTarget=%s begin.", length, dstTarget.c_str());
     ApplySendBlock();
+
+    (void)totalLength;
 
     {
         std::lock_guard<std::mutex> autoLock(sendBytesMutex_);
