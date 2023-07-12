@@ -1157,6 +1157,7 @@ struct SyncContext : public ContextBase {
                     this->status = JSUtil::GetValue(env, argv[3], this->allowedDelayMs);
                     ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[3])),
                         Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                    this->status = napi_ok;
                 }
             }
             if (this->type == napi_number) {
@@ -1167,6 +1168,7 @@ struct SyncContext : public ContextBase {
                     this->status = JSUtil::GetValue(env, argv[2], this->allowedDelayMs);
                     ASSERT_BUSINESS_ERR(this, (this->status == napi_ok || JSUtil::IsNull(env, argv[2])),
                         Status::INVALID_ARGUMENT, "The parameters delay is incorrect.");
+                    this->status = napi_ok;
                 }
             }
             ASSERT_BUSINESS_ERR(this, (this->mode <= uint32_t(SyncMode::PUSH_PULL)) && (this->status == napi_ok),
