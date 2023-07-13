@@ -220,6 +220,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle)
         if (iter != writeUsingList_.end()) {
             writeUsingList_.remove(handle);
             if (writeIdleList_.size() >= 1) {
+                LOGD("[Recycle] delete handle");
                 delete handle;
                 handle = nullptr;
                 return;
@@ -389,6 +390,7 @@ void StorageEngine::CloseExecutor()
         std::lock_guard<std::mutex> lock(writeMutex_);
         for (auto &item : writeIdleList_) {
             if (item != nullptr) {
+                LOGD("[CloseExecutor] delete item");
                 delete item;
                 item = nullptr;
             }
