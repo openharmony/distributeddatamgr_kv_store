@@ -43,7 +43,7 @@ public:
     ExecutorPool(size_t max, size_t min)
         : pool_(max, min), delayTasks_(InnerTask(), NextTimer), taskId_(INVALID_TASK_ID)
     {
-        // When max equals 1, no timer thread.
+        // When max equals 1, timer thread schedules and executes tasks.
         if (max > 1) {
             execs_ = new (std::nothrow) TaskQueue(InnerTask());
         }
