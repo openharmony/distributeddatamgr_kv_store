@@ -297,6 +297,7 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterTimeChangedLister(const
         }
         LOGD("[RuntimeContext] TimeTickMonitor start success");
     }
+    LOGD("[RuntimeContext] call RegisterTimeChangedLister");
     return timeTickMonitor_->RegisterTimeChangedLister(action, finalize, errCode);
 }
 
@@ -756,6 +757,7 @@ void RuntimeContextImpl::StopTimeTickMonitorIfNeed()
         LOGD("[RuntimeContext] TimeTickMonitor exist because no listener");
         timeTickMonitor_ = nullptr;
     }
+    LOGD("[RuntimeContext] TimeTickMonitor can not stop because listener is not empty");
 }
 
 void RuntimeContextImpl::SetTranslateToDeviceIdCallback(const TranslateToDeviceIdCallback &callback)
