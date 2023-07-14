@@ -162,5 +162,30 @@ HWTEST_F(ExecutorPoolTest, Reset, TestSize.Level0)
     ASSERT_EQ(data->data, 3);
     executorPool_->Remove(temp);
 }
-//auto blockData = std::make_shared<BlockData<int>>(LONG_INTERVAL, testData);
+
+/**
+* @tc.name: MaxEqualsOne
+* @tc.desc:
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: CRJ
+*/
+HWTEST_F(ExecutorPoolTest, MaxEqualsOne, TestSize.Level0)
+{
+    auto executors = std::make_shared<ExecutorPool>(1, 0);
+    std::atomic<int> testNum = 1;
+    auto delayTask = [&testNum] {
+        testNum++;
+    };
+    auto task = [&testNum] {
+        testNum += 2;
+    };
+    executors->Schedule(std::chrono::milliseconds(SHORT_INTERVAL * 2), delayTask);
+    ASSERT_EQ(testNum, 1);
+    executors->Execute(task);
+    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
+    ASSERT_EQ(testNum, 3);
+    std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 2));
+    ASSERT_EQ(testNum, 4);
+}
 } // namespace OHOS::Test
