@@ -563,12 +563,23 @@ void TimeSync::CommErrHandlerFunc(int errCode, TimeSync *timeSync)
 
 void TimeSync::ResetTimer()
 {
-    std::lock_guard<std::mutex> lock(timeDriverLock_);
-    RuntimeContext::GetInstance()->RemoveTimer(driverTimerId_, true);
+    TimerId timerId;
+    {
+        std::lock_guard<std::mutex> lock(timeDriverLock_);
+        timerId = driverTimerId_;
+        driverTimerId_ = 0u;
+    }
+    if (timerId == 0u) {
+        return;
+    }
+    RuntimeContext::GetInstance()->RemoveTimer(timerId, true);
     int errCode = RuntimeContext::GetInstance()->SetTimer(
-        TIME_SYNC_INTERVAL, driverCallback_, nullptr, driverTimerId_);
+        TIME_SYNC_INTERVAL, driverCallback_, nullptr, timerId);
     if (errCode != E_OK) {
         LOGW("[TimeSync] Reset TimeSync timer failed err :%d", errCode);
+    } else {
+        std::lock_guard<std::mutex> lock(timeDriverLock_);
+        driverTimerId_ = timerId;
     }
 }
 

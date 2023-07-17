@@ -45,16 +45,20 @@ public:
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
-    static int CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+    static int GetAssetFieldsFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
         std::vector<Field> &fields);
     static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
     static AssetOpType StatusToFlag(AssetStatus status);
     static AssetStatus FlagToStatus(AssetOpType opType);
-    static int FillAssetForDownload(Asset &asset);
-    static void FillAssetsForDownload(Assets &assets);
+    static void ChangeAssetsOnVBucketToAsset(VBucket &vBucket, std::vector<Field> &fields);
+    static Type GetAssetFromAssets(Type &value);
+    static void FillAssetBeforeDownload(Asset &asset);
+    static void FillAssetAfterDownloadFail(Asset &asset);
+    static int FillAssetAfterDownload(Asset &asset);
+    static void FillAssetsAfterDownload(Assets &assets);
     static int FillAssetForUpload(Asset &asset);
     static void FillAssetsForUpload(Assets &assets);
-    static void PrepareToFillAssetFromVBucket(VBucket &vBucket);
+    static void PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset);
     static void FillAssetFromVBucketFinish(VBucket &vBucket, std::function<int(Asset &)> fillAsset,
         std::function<void(Assets &)> fillAssets);
     static bool IsAsset(const Type &type);
@@ -64,6 +68,10 @@ public:
     static void MergeDownloadAsset(std::map<std::string, Assets> &downloadAssets,
         std::map<std::string, Assets> &mergeAssets);
     static std::map<std::string, size_t> GenAssetsIndexMap(Assets &assets);
+    static bool IsVbucketContainsAllPK(const VBucket &vBucket, const std::set<std::string> &pkSet);
+    static bool CheckAssetStatus(const Assets &assets);
+
+    static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

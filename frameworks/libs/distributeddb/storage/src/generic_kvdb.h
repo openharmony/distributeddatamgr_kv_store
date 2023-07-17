@@ -98,10 +98,6 @@ public:
     // Get event notify counter.
     uint64_t GetEventNotifyCounter() const;
 
-    void OpenPerformanceAnalysis() override;
-
-    void ClosePerformanceAnalysis() override;
-
     void WakeUpSyncer() override {};
 
     void EnableAutonomicUpgrade() override {};
@@ -155,7 +151,9 @@ protected:
     const KvDBProperties &MyProp() const;
     KvDBProperties &MyProp();
 
+#ifndef OMIT_MULTI_VER
     static int GetWorkDir(const KvDBProperties &kvDBProp, std::string &workDir);
+#endif
 
     void CorruptNotify() const;
 

@@ -837,7 +837,7 @@ int SingleVerDataSync::PullResponseStart(SingleVerSyncTaskContext *context)
     int errCode = GetMatchData(context, syncData);
     if (!SingleVerDataSyncUtils::IsGetDataSuccessfully(errCode)) {
         if (context->GetRemoteSoftwareVersion() > SOFTWARE_VERSION_RELEASE_2_0) {
-            SendPullResponseDataPkt(errCode, syncData, context);
+            (void)SendPullResponseDataPkt(errCode, syncData, context);
         }
         return errCode;
     }
@@ -931,7 +931,7 @@ int SingleVerDataSync::DoAbilitySyncIfNeed(SingleVerSyncTaskContext *context, co
         if (isControlMsg) {
             SendControlAck(context, message, -E_NEED_ABILITY_SYNC, 0);
         } else {
-            SendDataAck(context, message, -E_NEED_ABILITY_SYNC, 0);
+            (void)SendDataAck(context, message, -E_NEED_ABILITY_SYNC, 0);
         }
         return -E_NEED_ABILITY_SYNC;
     }
@@ -1108,7 +1108,7 @@ int SingleVerDataSync::SendPullResponseDataPkt(int ackCode, SyncEntry &syncOutDa
 
 void SingleVerDataSync::SendFinishedDataAck(SingleVerSyncTaskContext *context, const Message *message)
 {
-    SendDataAck(context, message, E_OK, 0);
+    (void)SendDataAck(context, message, E_OK, 0);
 }
 
 int SingleVerDataSync::SendDataAck(SingleVerSyncTaskContext *context, const Message *message, int32_t recvCode,
@@ -1404,7 +1404,10 @@ int32_t SingleVerDataSync::ReSend(SingleVerSyncTaskContext *context, DataSyncReS
         if (reSendInfo.end > reSendInfo.start) {
             dataTime.endTime += 1;
         }
-        SaveLocalWaterMark(curType, context, dataTime, true);
+        errCode = SaveLocalWaterMark(curType, context, dataTime, true);
+        if (errCode != E_OK) {
+            LOGE("[DataSync][ReSend] SaveLocalWaterMark failed.");
+        }
     }
     return errCode;
 }
@@ -1470,7 +1473,7 @@ int SingleVerDataSync::CheckPermitSendData(int inMode, SingleVerSyncTaskContext 
     }
     if (mode == SyncModeType::RESPONSE_PULL) {
         SyncEntry syncData;
-        SendPullResponseDataPkt(-E_SECURITY_OPTION_CHECK_ERROR, syncData, context);
+        (void)SendPullResponseDataPkt(-E_SECURITY_OPTION_CHECK_ERROR, syncData, context);
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
     if (mode == SyncModeType::SUBSCRIBE_QUERY) {
@@ -1507,7 +1510,7 @@ bool SingleVerDataSync::WaterMarkErrHandle(SyncType syncType, SingleVerSyncTaskC
     if (syncType != SyncType::QUERY_SYNC_TYPE && packetLocalMark > peerMark) {
         LOGI("[DataSync][DataRequestRecv] packetLocalMark=%" PRIu64 ",current=%" PRIu64, packetLocalMark, peerMark);
         context->SetReceiveWaterMarkErr(true);
-        SendDataAck(context, message, LOCAL_WATER_MARK_NOT_INIT, 0);
+        (void)SendDataAck(context, message, LOCAL_WATER_MARK_NOT_INIT, 0);
         return true;
     }
     if (syncType == SyncType::QUERY_SYNC_TYPE && (packetLocalMark > peerMark || packetDeletedMark > deletedMark)) {
@@ -1515,7 +1518,7 @@ bool SingleVerDataSync::WaterMarkErrHandle(SyncType syncType, SingleVerSyncTaskC
             "packetLocalMark=%" PRIu64 ",peerMark=%" PRIu64, packetDeletedMark, deletedMark, packetLocalMark,
             peerMark);
         context->SetReceiveWaterMarkErr(true);
-        SendDataAck(context, message, LOCAL_WATER_MARK_NOT_INIT, 0);
+        (void)SendDataAck(context, message, LOCAL_WATER_MARK_NOT_INIT, 0);
         return true;
     }
     return false;

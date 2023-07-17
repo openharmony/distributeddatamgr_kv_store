@@ -19,6 +19,7 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
+#include "cloud_sync_utils.h"
 #include "db_errno.h"
 #include "cloud/icloud_db.h"
 #include "kv_store_errno.h"
@@ -35,6 +36,7 @@ namespace {
     const int MAX_HEARTBEAT_FAILED_LIMIT = 2;
     const int HEARTBEAT_PERIOD = 3;
 }
+
 CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
     : currentTaskId_(INVALID_TASK_ID),
       storageProxy_(std::move(storageProxy)),
@@ -90,6 +92,13 @@ int CloudSyncer::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 void CloudSyncer::Close()
 {
     closed_ = true;
+    CloudSyncer::TaskId currentTask;
+    {
+        std::lock_guard<std::mutex> autoLock(contextLock_);
+        currentTask = currentContext_.currentTaskId;
+    }
+    // mark current task db_closed
+    SetTaskFailed(currentTask, -E_DB_CLOSED);
     cloudDB_.Close();
     {
         LOGD("[CloudSyncer] begin wait current task finished");
@@ -286,40 +295,41 @@ int CloudSyncer::DoSync(TaskId taskId)
 
 int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload)
 {
-    int errCode = E_OK;
-    if (needUpload) {
-        errCode = storageProxy_->StartTransaction();
+    if (!needUpload) {
+        return E_OK;
+    }
+    int errCode = storageProxy_->StartTransaction();
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] start transaction Failed before doing upload.");
+        return errCode;
+    }
+    for (size_t i = 0; i < taskInfo.table.size(); ++i) {
+        size_t index = i + 1;
+        LOGD("[CloudSyncer] try upload table, index: %zu", index);
+        errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] start transaction Failed before doing upload.");
-            return errCode;
+            LOGE("[CloudSyncer] task is invalid, abort sync");
+            break;
         }
-        for (size_t i = 0; i < taskInfo.table.size(); ++i) {
-            LOGD("[CloudSyncer] try upload table, index: %zu", i + 1);
-            errCode = CheckTaskIdValid(taskInfo.taskId);
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncer] task is invalid, abort sync");
-                break;
-            }
-            {
-                std::lock_guard<std::mutex> autoLock(contextLock_);
-                currentContext_.tableName = taskInfo.table[i];
-            }
-            errCode = DoUpload(taskInfo.taskId, i == (taskInfo.table.size() - 1u));
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncer] upload failed %d", errCode);
-                break;
-            }
-            errCode = SaveCloudWaterMark(taskInfo.table[i]);
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
-                return errCode;
-            }
+        {
+            std::lock_guard<std::mutex> autoLock(contextLock_);
+            currentContext_.tableName = taskInfo.table[i];
         }
-        if (errCode == E_OK) {
-            storageProxy_->Commit();
-        } else {
-            storageProxy_->Rollback();
+        errCode = DoUpload(taskInfo.taskId, i == (taskInfo.table.size() - 1u));
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] upload failed %d", errCode);
+            break;
         }
+        errCode = SaveCloudWaterMark(taskInfo.table[i]);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
+            break;
+        }
+    }
+    if (errCode == E_OK) {
+        storageProxy_->Commit();
+    } else {
+        storageProxy_->Rollback();
     }
     return errCode;
 }
@@ -328,7 +338,8 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
 {
     int errCode = E_OK;
     for (size_t i = 0; i < taskInfo.table.size(); ++i) {
-        LOGD("[CloudSyncer] try download table, index: %zu", i + 1);
+        size_t index = i + 1;
+        LOGD("[CloudSyncer] try download table, index: %zu", index);
         errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
             LOGE("[CloudSyncer] task is invalid, abort sync");
@@ -402,30 +413,8 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode, const InnerProcessInfo 
     }
 }
 
-static int GetCloudPkVals(VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
-    std::vector<Type> &cloudPkVals)
-{
-    if (!cloudPkVals.empty()) {
-        LOGE("[CloudSyncer] Output paramater should be empty");
-        return -E_INVALID_ARGS;
-    }
-    if (pkColNames.size() == 1 && pkColNames[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
-        // if data don't have primary key, then use rowID as value
-        cloudPkVals.push_back(dataKey);
-        return E_OK;
-    }
-    for (const auto &pkColName : pkColNames) {
-        auto iter = datum.find(pkColName);
-        if (iter == datum.end()) {
-            LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
-            return -E_CLOUD_ERROR;
-        }
-        cloudPkVals.push_back(iter->second);
-    }
-    return E_OK;
-}
-
-static int SaveChangedDataByType(VBucket &datum, ChangedData &changedData, DataInfoWithLog &localInfo, ChangeType type)
+static int SaveChangedDataByType(VBucket &datum, ChangedData &changedData, const DataInfoWithLog &localInfo,
+    ChangeType type)
 {
     int ret = E_OK;
     std::vector<Type> cloudPkVals;
@@ -441,6 +430,11 @@ static int SaveChangedDataByType(VBucket &datum, ChangedData &changedData, DataI
     return E_OK;
 }
 
+inline bool EqualInMsLevel(const Timestamp cmp, const Timestamp beCmp)
+{
+    return cmp / CloudDbConstant::TEN_THOUSAND == beCmp / CloudDbConstant::TEN_THOUSAND;
+}
+
 static bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo)
 {
     // if timeStamp, write timestamp, cloudGid are all the same,
@@ -449,13 +443,25 @@ static bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInf
     // So, during the strategy policy [i.e. TagSyncDataStatus], the datum was tagged as UPDATE
     // But we won't notify the datum
     bool isSame = localLogInfo.timestamp == cloudLogInfo.timestamp &&
-        localLogInfo.wTimestamp == cloudLogInfo.wTimestamp &&
+        EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
         localLogInfo.cloudGid == cloudLogInfo.cloudGid;
     return !isSame;
 }
 
-int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, DataInfo &dataInfo,
-    std::vector<size_t> &InsertDataNoPrimaryKeys)
+int CloudSyncer::FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
+    size_t &delIdx)
+{
+    for (std::pair<Key, size_t> pair : deletedList) {
+        if (pair.first == hashKey) {
+            delIdx = pair.second;
+            return E_OK;
+        }
+    }
+    return E_INTERNAL_ERROR;
+}
+
+int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
+    std::vector<size_t> &InsertDataNoPrimaryKeys, std::vector<std::pair<Key, size_t>> &deletedList)
 {
     // For no primary key situation,
     if (param.downloadData.opType[dataIndex] == OpType::INSERT && param.changedData.field.size() == 1 &&
@@ -463,7 +469,28 @@ int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, DataInfo &data
         InsertDataNoPrimaryKeys.push_back(dataIndex);
         return E_OK;
     }
-    switch (param.downloadData.opType[dataIndex]) {
+    OpType opType = param.downloadData.opType[dataIndex];
+    Key hashKey = dataInfo.localInfo.logInfo.hashKey;
+    if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
+        if (opType == OpType::INSERT) {
+            size_t delIdx;
+            int errCode = FindDeletedListIndex(deletedList, hashKey, delIdx);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncer] FindDeletedListIndex could not find delete item.");
+                return errCode;
+            }
+            param.changedData.primaryData[ChangeType::OP_DELETE].erase(
+                param.changedData.primaryData[ChangeType::OP_DELETE].begin() + delIdx);
+            opType = OpType::UPDATE;
+        } else if (opType == OpType::DELETE) {
+            std::pair<Key, size_t> pair{hashKey, static_cast<size_t>(
+                param.changedData.primaryData[ChangeType::OP_DELETE].size())};
+            deletedList.emplace_back(pair);
+        } else {
+            LOGW("[CloudSyncer] deletePrimaryKeySet ignore opType %d.", opType);
+        }
+    }
+    switch (opType) {
         case OpType::INSERT:
             return SaveChangedDataByType(
                 param.downloadData.data[dataIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_INSERT);
@@ -501,8 +528,8 @@ static LogInfo GetCloudLogInfo(VBucket &datum)
 /**
  * UpdateChangedData will be used for Insert case, which we can only get rowid after we saved data in db.
 */
-static void UpdateChangedData(
-    DownloadData &downloadData, const std::vector<size_t> &InsertDataNoPrimaryKeys, ChangedData &changedData)
+static void UpdateChangedData(DownloadData &downloadData, const std::vector<size_t> &InsertDataNoPrimaryKeys,
+    ChangedData &changedData)
 {
     if (InsertDataNoPrimaryKeys.empty()) {
         return;
@@ -524,6 +551,8 @@ static void TagAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets 
     Timestamp timestamp;
     OS::GetCurrentSysTimeInMicrosecond(timestamp);
     asset.timestamp = static_cast<int64_t>(timestamp / CloudDbConstant::TEN_THOUSAND);
+    asset.status = asset.flag == static_cast<uint32_t>(AssetOpType::NO_CHANGE) ?
+        static_cast<uint32_t>(AssetStatus::NORMAL) : asset.status;
     res.push_back(asset);
 }
 
@@ -562,7 +591,7 @@ static bool IsDataContainField(const std::string &assetFieldName, const VBucket 
     return true;
 }
 
-// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned 
+// AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
     bool setNormalStatus)
 {
@@ -591,16 +620,16 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
         return res;
     }
     Asset &covered = std::get<Asset>(coveredData[assetFieldName]);
-    Assets beCoveredDataInAssets;
     Asset beCovered;
-    int ret = CloudStorageUtils::GetValueFromVBucket(assetFieldName, beCoveredData, beCoveredDataInAssets);
-    if (ret != E_OK) {
+    if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Asset>) {
         // This indicates that asset in cloudData is stored as Asset
         beCovered = std::get<Asset>(beCoveredData[assetFieldName]);
+    } else if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Assets>) {
+        // Stored as ASSETS, first element in assets will be the target asset
+        beCovered = (std::get<Assets>(beCoveredData[assetFieldName]))[0];
     } else {
-        // This indicates that asset in cloudData is stored as ASSETS
-        // first element in assets will be the target asset
-        beCovered = beCoveredDataInAssets[0];
+        LOGE("The type of data is neither Asset nor Assets");
+        return res;
     }
     if (covered.name != beCovered.name) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT, covered, res);
@@ -609,6 +638,9 @@ static Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, 
     }
     if (covered.hash != beCovered.hash) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res);
+    } else {
+        Assets tmpAssets;
+        TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets);
     }
     return res;
 }
@@ -651,7 +683,7 @@ static Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData,
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res);
         } else {
-            res.push_back(coveredAsset);
+            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::NO_CHANGE, coveredAsset, res);
         }
         // Erase element which has been handled, remaining element will be set to Insert
         coveredAssetsIndexMap.erase(it);
@@ -737,7 +769,7 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &cove
 
 Assets CloudSyncer::TagAssetsInSingleCol(
     VBucket &coveredData, VBucket &beCoveredData, const Field &assetField, bool setNormalStatus)
-{   
+{
     // Define a list to store the tagged result
     Assets assets = {};
     switch (assetField.type) {
@@ -760,13 +792,13 @@ int CloudSyncer::FillCloudAssets(
     const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets)
 {
     int ret = E_OK;
-    if (!normalAssets.empty() && normalAssets.size() > 1) {
+    if (normalAssets.size() > 1) {
         ret = storageProxy_->FillCloudAssetForDownload(tableName, normalAssets, true);
         if (ret != E_OK) {
             return ret;
         }
     }
-    if (!failedAssets.empty() && failedAssets.size() > 1) {
+    if (failedAssets.size() > 1) {
         ret = storageProxy_->FillCloudAssetForDownload(tableName, failedAssets, false);
         if (ret != E_OK) {
             return ret;
@@ -784,44 +816,13 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, const std::s
     failedAssets[CloudDbConstant::GID_FIELD] = gid;
     for (auto &assetKvPair : DownloadResult) {
         Assets &assets = assetKvPair.second;
-        Assets normalAssetsList = {};
-        Assets failedAssetsList = {};
-        for (Asset &asset : assets) {
-            // if success, write every attribute of asset into database
-            if (static_cast<AssetStatus>(asset.status) == AssetStatus::NORMAL || setAllNormal) {
-                normalAssetsList.push_back(asset);
-                continue;
-            }
-            // if fail, partially write cloud asset attribute into database
-            if (static_cast<AssetStatus>(asset.status) == AssetStatus::ABNORMAL) {
-                failedAssetsList.push_back(asset);
-            }
-            if (static_cast<AssetStatus>(asset.status) == AssetStatus::DOWNLOADING) {
-                LOGW("[CloudSyncer] Asset status should not be DOWNLOADING after download operation");
-            }
-        }
-        if (!normalAssetsList.empty()) {
-            normalAssets[assetKvPair.first] = normalAssetsList;
-        }
-        if (!failedAssetsList.empty()) {
-            failedAssets[assetKvPair.first] = failedAssetsList;
+        if (setAllNormal) {
+            normalAssets[assetKvPair.first] = std::move(assets);
+        } else {
+            failedAssets[assetKvPair.first] = std::move(assets);
         }
     }
     return FillCloudAssets(tableName, normalAssets, failedAssets);
-}
-
-static ChangeType OpTypeToChangeType(OpType strategy)
-{
-    switch (strategy) {
-        case OpType::INSERT:
-            return OP_INSERT;
-        case OpType::DELETE:
-            return OP_DELETE;
-        case OpType::UPDATE:
-            return OP_UPDATE;
-        default:
-            return OP_BUTT;
-    }
 }
 
 int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
@@ -935,49 +936,6 @@ std::map<std::string, Assets> CloudSyncer::GetAssetsFromVBucket(VBucket &data)
     return assets;
 }
 
-static bool IsCompositeKey(const std::vector<std::string> &pKColNames)
-{
-    return (pKColNames.size() > 1);
-}
-
-static bool IsNoPrimaryKey(const std::vector<std::string> &pKColNames)
-{
-    if (pKColNames.empty()) {
-        return true;
-    }
-    if (pKColNames.size() == 1 && pKColNames[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
-        return true;
-    }
-    return false;
-}
-
-static bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames)
-{
-    if (IsCompositeKey(pKColNames) || IsNoPrimaryKey(pKColNames)) {
-        return false;
-    }
-    return true;
-}
-
-static int GetSinglePk(VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal)
-{
-    std::vector<Type> pkVals;
-    int ret = E_OK;
-    if (IsSinglePrimaryKey(pkColNames)) {
-        ret = GetCloudPkVals(datum, pkColNames, dataKey, pkVals);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Cannot get single primary key for the datum %d", ret);
-            return ret;
-        }
-        pkVal = pkVals[0];
-        if (pkVal.index() == TYPE_INDEX<Nil>) {
-            LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
-            return -E_INTERNAL_ERROR;
-        }
-    }
-    return E_OK;
-}
-
 int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo)
 {
     OpType strategyOpResult = OpType::NOT_HANDLE;
@@ -987,8 +945,8 @@ int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo 
             LOGE("[CloudSyncer] strategy has not been set when tag status, %d.", -E_INTERNAL_ERROR);
             return -E_INTERNAL_ERROR;
         }
-        strategyOpResult =
-            currentContext_.strategy->TagSyncDataStatus(isExist, dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo);
+        strategyOpResult = currentContext_.strategy->TagSyncDataStatus(isExist, dataInfo.localInfo.logInfo,
+            dataInfo.cloudLogInfo, param.deletePrimaryKeySet);
     }
     param.downloadData.opType[idx] = strategyOpResult;
     if (!IsDataContainAssets()) {
@@ -1006,24 +964,24 @@ int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataI
     switch (strategy) {
         case OpType::INSERT:
         case OpType::UPDATE:
-            assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             ret = GetSinglePk(param.downloadData.data[idx], param.pkColNames,
                 dataInfo.localInfo.logInfo.dataKey, prefix);
             if (ret != E_OK) {
                 LOGE("Can not get single primary key while strategy is UPDATE/INSERT in TagDownloadAssets %d", ret);
                 return ret;
             }
+            assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             param.assetsDownloadList.downloadList.push_back(
                 std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
             break;
         case OpType::DELETE:
-            assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             ret = GetSinglePk(dataInfo.localInfo.primaryKeys, param.pkColNames,
                 dataInfo.localInfo.logInfo.dataKey, prefix);
             if (ret != E_OK) {
                 LOGE("Can not get single primary key while strategy is DELETE in TagDownloadAssets %d", ret);
                 return ret;
             }
+            assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             param.assetsDownloadList.completeDownloadList.push_back(
                 std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
             break;
@@ -1047,9 +1005,10 @@ int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataI
     return E_OK;
 }
 
-int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys)
+int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys,
+    std::vector<std::pair<Key, size_t>> &deletedList)
 {
-    int ret = CheckDownloadDatum(param.downloadData.data[idx]);
+    int ret = PreHandleData(param.downloadData.data[idx], param.pkColNames);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Invalid download data:%d", ret);
         return ret;
@@ -1074,7 +1033,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &In
         LOGE("[CloudSyncer] Cannot tag status: %d.", ret);
         return ret;
     }
-    ret = SaveChangedData(param, idx, dataInfo, InsertDataNoPrimaryKeys);
+    ret = SaveChangedData(param, idx, dataInfo, InsertDataNoPrimaryKeys, deletedList);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Cannot save changed data: %d.", ret);
     }
@@ -1094,8 +1053,10 @@ int CloudSyncer::SaveData(SyncParam &param)
     std::vector<size_t> InsertDataNoPrimaryKeys;
     AssetDownloadList assetsDownloadList;
     param.assetsDownloadList = assetsDownloadList;
+    param.deletePrimaryKeySet.clear();
+    std::vector<std::pair<Key, size_t>> deletedList;
     for (size_t i = 0; i < param.downloadData.data.size(); i++) {
-        ret = SaveDatum(param, i, InsertDataNoPrimaryKeys);
+        ret = SaveDatum(param, i, InsertDataNoPrimaryKeys, deletedList);
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Cannot save datum due to error code %d", ret);
             return ret;
@@ -1110,7 +1071,7 @@ int CloudSyncer::SaveData(SyncParam &param)
     ret = storageProxy_->PutCloudSyncData(param.tableName, param.downloadData);
     if (ret != E_OK) {
         param.info.downLoadInfo.failCount += param.downloadData.data.size();
-        LOGE("[CloudSyncer] Cannot save the data to databse with error code: %d.", ret);
+        LOGE("[CloudSyncer] Cannot save the data to database with error code: %d.", ret);
         return ret;
     }
     UpdateChangedData(param.downloadData, InsertDataNoPrimaryKeys, param.changedData);
@@ -1227,10 +1188,6 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     ret = SaveData(param);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] cannot save data: %d.", ret);
-        {
-            std::lock_guard<std::mutex> autoLock(contextLock_);
-            currentContext_.notifier->UpdateProcess(param.info);
-        }
         int rollBackErrorCode = storageProxy_->Rollback();
         if (rollBackErrorCode != E_OK) {
             LOGE("[CloudSyncer] cannot roll back transaction: %d.", rollBackErrorCode);
@@ -1317,7 +1274,6 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
     return DoDownloadInner(taskId, param);
 }
 
-
 int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
 {
     // Query data by batch until reaching end and not more data need to be download
@@ -1338,6 +1294,9 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
             queryEnd = true;
             param.isLastBatch = true;
         } else if (ret != E_OK) {
+            std::lock_guard<std::mutex> autoLock(contextLock_);
+            param.info.tableStatus = ProcessStatus::FINISHED;
+            currentContext_.notifier->UpdateProcess(param.info);
             return ret;
         }
         if (param.downloadData.data.empty()) {
@@ -1351,10 +1310,13 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
         }
         // Save data in transaction, update cloud water mark, notify process and changed data
         ret = SaveDataNotifyProcess(taskId, param);
-        (void)NotifyInDownload(taskId, param);
         if (ret != E_OK) {
+            std::lock_guard<std::mutex> autoLock(contextLock_);
+            param.info.tableStatus = ProcessStatus::FINISHED;
+            currentContext_.notifier->UpdateProcess(param.info);
             return ret;
         }
+        (void)NotifyInDownload(taskId, param);
     }
     return E_OK;
 }
@@ -1480,9 +1442,8 @@ int CloudSyncer::PutWaterMarkAfterBatchUpload(const std::string &tableName, Uplo
     errCode = storageProxy_->PutLocalWaterMark(tableName, uploadParam.localMark);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] Cannot set local water mark while Uploading, %d.", errCode);
-        return errCode;
     }
-    return E_OK;
+    return errCode;
 }
 
 int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
@@ -1698,7 +1659,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         getDataUnfinished = (ret == -E_UNFINISHED);
         ret = PreProcessBatchUpload(uploadParam.taskId, info, uploadData, uploadParam.localMark);
         if (ret != E_OK) {
-            goto RELEASE_EXIT;
+            break;
         }
         info.upLoadInfo.batchIndex = ++batchIndex;
 
@@ -1710,7 +1671,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
                 std::lock_guard<std::mutex> autoLock(contextLock_);
                 currentContext_.notifier->UpdateProcess(info);
             }
-            goto RELEASE_EXIT;
+            break;
         }
 
         uploadData = CloudSyncData(tableName);
@@ -1723,18 +1684,17 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         ret = storageProxy_->GetCloudDataNext(continueStmtToken, uploadData);
         if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
             LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
-            goto RELEASE_EXIT;
+            break;
         }
     }
 
-RELEASE_EXIT:
     if (getDataUnfinished) {
         storageProxy_->ReleaseContinueToken(continueStmtToken);
     }
     return ret;
 }
 
-int CloudSyncer::CheckDownloadDatum(VBucket &datum)
+int CloudSyncer::PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames)
 {
     // type index of field in fields
     std::vector<std::pair<std::string, int32_t>> filedAndIndex = {
@@ -1756,6 +1716,9 @@ int CloudSyncer::CheckDownloadDatum(VBucket &datum)
         }
     }
 
+    if (std::get<bool>(datum[CloudDbConstant::DELETE_FIELD])) {
+        RemoveDataExceptExtendInfo(datum, pkColNames);
+    }
     std::lock_guard<std::mutex> autoLock(contextLock_);
     if (IsDataContainDuplicateAsset(currentContext_.assetFields[currentContext_.tableName], datum)) {
         return -E_CLOUD_ERROR;
@@ -2032,6 +1995,9 @@ void CloudSyncer::SetTaskFailed(TaskId taskId, int errCode)
     if (cloudTaskInfos_.find(taskId) == cloudTaskInfos_.end()) {
         return;
     }
+    if (cloudTaskInfos_[taskId].errCode != E_OK) {
+        return;
+    }
     cloudTaskInfos_[taskId].errCode = errCode;
 }
 
@@ -2149,8 +2115,14 @@ void CloudSyncer::ClearCloudSyncData(CloudSyncData &uploadData)
     std::vector<VBucket>().swap(uploadData.delData.record);
     std::vector<VBucket>().swap(uploadData.delData.extend);
 }
+int32_t CloudSyncer::GetCloudSyncTaskCount()
+{
+    std::lock_guard<std::mutex> autoLock(queueLock_);
+    return taskQueue_.size();
+}
 
-int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList)
+int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+    const RelationalSchemaObject &localSchema)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);
     std::string emptyString;
@@ -2171,7 +2143,7 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     }
 
     std::vector<Asset> assets;
-    errCode = storageProxy_->CleanCloudData(mode, tableNameList, assets);
+    errCode = storageProxy_->CleanCloudData(mode, tableNameList, localSchema, assets);
     if (errCode != E_OK) {
         LOGE("[CloudSyncer] failed to clean cloud data, %d.", errCode);
         storageProxy_->Rollback();

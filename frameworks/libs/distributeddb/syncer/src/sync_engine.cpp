@@ -196,12 +196,14 @@ void SyncEngine::RemoveSyncOperation(int syncId)
     }
 }
 
+#ifndef OMIT_MULTI_VER
 void SyncEngine::BroadCastDataChanged() const
 {
     if (deviceManager_ != nullptr) {
         (void)deviceManager_->SendBroadCast(LOCAL_DATA_CHANGED);
     }
 }
+#endif // OMIT_MULTI_VER
 
 void SyncEngine::StartCommunicator()
 {

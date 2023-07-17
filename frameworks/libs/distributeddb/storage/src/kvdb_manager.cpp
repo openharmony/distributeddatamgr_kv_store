@@ -35,7 +35,9 @@ namespace {
     DefaultFactory g_defaultFactory;
 
     static const KvDBType g_dbTypeArr[] = {
+#ifndef OMIT_MULTI_VER
         LOCAL_KVDB,
+#endif // OMIT_MULTI_VER
         SINGER_VER_KVDB,
 #ifndef OMIT_MULTI_VER
         MULTI_VER_KVDB
@@ -51,10 +53,14 @@ namespace {
         int errCode = E_OK;
         int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
         if (databaseType == KvDBProperties::LOCAL_TYPE) {
+#ifndef OMIT_MULTI_VER
             kvDB = factory->CreateKvDb(LOCAL_KVDB, errCode);
             if (kvDB != nullptr) {
                 kvDB->EnableAutonomicUpgrade();
             }
+#else
+            return -E_NOT_SUPPORT;
+#endif // OMIT_MULTI_VER
         } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE) {
             kvDB = factory->CreateKvDb(SINGER_VER_KVDB, errCode);
         } else {

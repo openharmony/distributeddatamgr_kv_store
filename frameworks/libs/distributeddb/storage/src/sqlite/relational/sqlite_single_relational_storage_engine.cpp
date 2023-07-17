@@ -159,7 +159,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
             return -E_TYPE_MISMATCH;
         }
         isUpgraded = true;
-        int errCode = UpgradeDistributedTable(tableName, schemaChanged);
+        int errCode = UpgradeDistributedTable(tableName, schemaChanged, syncType);
         if (errCode != E_OK) {
             LOGE("Upgrade distributed table failed. %d", errCode);
             return errCode;
@@ -220,7 +220,8 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged)
+int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged,
+    TableSyncType syncType)
 {
     LOGD("Upgrade distributed table.");
     RelationalSchemaObject schema = schema_;
@@ -239,7 +240,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
 
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
-    errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema);
+    errCode = handle->UpgradeDistributedTable(tableName, mode, schemaChanged, schema, syncType);
     if (errCode != E_OK) {
         LOGE("Upgrade distributed table failed. %d", errCode);
         (void)handle->Rollback();

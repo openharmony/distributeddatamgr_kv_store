@@ -47,10 +47,10 @@ public:
 
     virtual IKvDB *CreateKvDb(KvDBType kvDbType, int &errCode) = 0;
 
+#ifndef OMIT_MULTI_VER
     // Create a key-value database for commit storage module.
     virtual IKvDB *CreateCommitStorageDB(int &errCode) = 0;
 
-#ifndef OMIT_MULTI_VER
     // Create the multi version storage for multi version natural store
     virtual IKvDBMultiVerDataStorage *CreateMultiVerStorage(int &errCode) = 0;
 

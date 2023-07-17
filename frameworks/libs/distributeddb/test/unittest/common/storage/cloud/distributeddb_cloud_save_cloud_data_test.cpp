@@ -85,7 +85,7 @@ namespace {
         bool isIdPk = pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY || pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY;
         Field field1 = { "id", TYPE_INDEX<int64_t>, isIdPk, !isIdPk };
         Field field2 = { "name", TYPE_INDEX<std::string>, pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
-        Field field3 = { "age", TYPE_INDEX<double>, pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
+        Field field3 = { "age", TYPE_INDEX<double>, false, true };
         Field field4 = { "sex", TYPE_INDEX<bool>, false, nullable };
         Field field5 = { "image", TYPE_INDEX<Bytes>, false, true };
         tableSchema = { g_tableName, { field1, field2, field3, field4, field5} };
@@ -110,7 +110,7 @@ namespace {
             sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB);";
         } else {
             sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB," \
-                " PRIMARY KEY(id, name, age))";
+                " PRIMARY KEY(id, name))";
         }
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
 
@@ -896,5 +896,85 @@ namespace {
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 2); // 2 is result count
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
+    void DeleteWithPkTest(PrimaryKeyType pkType)
+    {
+        /**
+         * @tc.steps:step1. create db, create table.
+         * @tc.expected: step1. return ok.
+         */
+        PrepareDataBase(g_tableName, pkType, false);
+
+        /**
+         * @tc.steps:step2. call PutCloudSyncData
+         * @tc.expected: step2. return ok.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+
+        DownloadData downloadData;
+        VBucket vBucket;
+        vBucket["id"] = 1L;
+        if (pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY) {
+            std::string name = "zhangsan1";
+            vBucket["name"] = name;
+        }
+
+        std::string gid = g_gid + "_not_exist"; // gid mismatch
+        vBucket[CloudDbConstant::GID_FIELD] = gid;
+        vBucket[CloudDbConstant::MODIFY_FIELD] = BASE_MODIFY_TIME;
+        downloadData.data.push_back(vBucket);
+        downloadData.opType = { OpType::DELETE };
+        EXPECT_EQ(storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+
+        /**
+         * @tc.steps:step3. verify data
+         * @tc.expected: step3. verify data ok.
+         */
+        std::string sql;
+        if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
+            sql = "select count(1) from " + g_tableName + " where id = 1";
+        } else {
+            sql = "select count(1) from " + g_tableName + " where id = 1 and name = 'zhangsan'";
+        }
+        int count = 0;
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 0), 0);
+            count++;
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(count, 1);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest016
+     * @tc.desc: Test delete data with pk in cloud data(normally there is no pk in cloud data when it is delete)
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest016, TestSize.Level1)
+    {
+        DeleteWithPkTest(PrimaryKeyType::SINGLE_PRIMARY_KEY);
+    }
+
+    /**
+     * @tc.name: PutCloudSyncDataTest017
+     * @tc.desc: Test delete data with pk in cloud data(normally there is no pk in cloud data when it is delete)
+     * primary key is COMPOSITE_PRIMARY_KEY
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest017, TestSize.Level1)
+    {
+        DeleteWithPkTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
     }
 }

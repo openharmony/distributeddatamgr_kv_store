@@ -51,6 +51,9 @@ public:
     std::string ToAttributeString() const;
 
     int CompareWithField(const FieldInfo &inField, bool isLite = false) const;
+
+    bool IsAssetType() const;
+    bool IsAssetsType() const;
 private:
     std::string fieldName_;
     std::string dataType_; // Type may be null

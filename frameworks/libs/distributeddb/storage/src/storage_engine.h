@@ -78,6 +78,8 @@ public:
 
     virtual bool IsMigrating() const;
 
+    void WaitWriteHandleIdle();
+
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
 
@@ -129,6 +131,9 @@ private:
     std::list<StorageExecutor *> readUsingList_;
     std::list<StorageExecutor *> readIdleList_;
     std::atomic<bool> isExistConnection_;
+
+    std::mutex idleMutex_;
+    std::condition_variable idleCondition_;
 };
 } // namespace DistributedDB
 #endif // STORAGE_ENGINE_H

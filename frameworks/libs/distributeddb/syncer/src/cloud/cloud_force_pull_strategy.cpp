@@ -13,23 +13,27 @@
  * limitations under the License.
  */
 #include "cloud_force_pull_strategy.h"
-#include "db_common.h"
-#include "db_errno.h"
 
 namespace DistributedDB {
 
-OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
+    std::set<Key> &deletePrimaryKeySet)
 {
-    bool gidEmpty = localInfo.cloudGid.empty();
     if (existInLocal) {
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
+            (void)deletePrimaryKeySet.insert(localInfo.hashKey);
             return OpType::DELETE;
         } else if (IsDelete(cloudInfo)) {
             return OpType::UPDATE_TIMESTAMP;
         } else {
-            return IsDelete(localInfo) ? OpType::INSERT : OpType::UPDATE;
+            if (IsDelete(localInfo) || deletePrimaryKeySet.find(localInfo.hashKey) != deletePrimaryKeySet.end()) {
+                return OpType::INSERT;
+            } else {
+                return OpType::UPDATE;
+            }
         }
     } else {
+        bool gidEmpty = localInfo.cloudGid.empty();
         if (IsDelete(cloudInfo)) {
             return gidEmpty ? OpType::NOT_HANDLE : OpType::DELETE;
         } else {

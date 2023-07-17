@@ -430,10 +430,10 @@ bool SyncAbleKvDB::NeedStartSyncer() const
 
 int SyncAbleKvDB::GetHashDeviceId(const std::string &clientId, std::string &hashDevId)
 {
-    int errCode = E_OK;
-    if (NeedStartSyncer()) {
-        errCode = StartSyncer();
+    if (!NeedStartSyncer()) {
+        return syncer_.GetHashDeviceId(clientId, hashDevId);
     }
+    int errCode = StartSyncer();
     if (errCode != E_OK && errCode != -E_NO_NEED_ACTIVE) {
         return errCode;
     }

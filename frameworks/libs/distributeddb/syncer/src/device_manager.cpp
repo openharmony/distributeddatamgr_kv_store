@@ -121,6 +121,7 @@ void DeviceManager::GetOnlineDevices(std::vector<std::string> &devices) const
     devices.assign(devices_.begin(), devices_.end());
 }
 
+#ifndef OMIT_MULTI_VER
 int DeviceManager::SendBroadCast(uint32_t msgId)
 {
     if (msgId == LOCAL_DATA_CHANGED) {
@@ -160,6 +161,7 @@ int DeviceManager::SendLocalDataChanged()
     }
     return E_OK;
 }
+#endif // OMIT_MULTI_VER
 
 bool DeviceManager::IsDeviceOnline(const std::string &deviceId) const
 {

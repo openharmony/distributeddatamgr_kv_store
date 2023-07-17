@@ -496,7 +496,13 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
     if (errCode != E_OK) {
         ReleaseMessageAndPacket(message, packet);
         LOGE("[RemoteExecutor][RequestStart] set external object failed errCode=%d", errCode);
+        return errCode;
     }
+    return SendRequestMessage(target, message, sessionId);
+}
+
+int RemoteExecutor::SendRequestMessage(const std::string &target, Message *message, uint32_t sessionId)
+{
     auto communicator = GetAndIncCommunicator();
     auto syncInterface = GetAndIncSyncInterface();
     if (communicator == nullptr || syncInterface == nullptr) {
@@ -510,12 +516,16 @@ int RemoteExecutor::RequestStart(uint32_t sessionId)
     SendConfig sendConfig;
     SetSendConfigParam(syncInterface->GetDbProperties(), target, false, REMOTE_EXECUTOR_SEND_TIME_OUT, sendConfig);
     RefObject::IncObjRef(this);
-    errCode = communicator->SendMessage(target, message, sendConfig, [this, sessionId](int errCode) {
+    int errCode = communicator->SendMessage(target, message, sendConfig, [this, sessionId](int errCode) {
         if (errCode != E_OK) {
             DoSendFailed(sessionId, errCode);
         }
         RefObject::DecObjRef(this);
     });
+    if (errCode != E_OK) {
+        ReleaseMessageAndPacket(message, nullptr);
+        RefObject::DecObjRef(this);
+    }
     RefObject::DecObjRef(communicator);
     syncInterface->DecRefCount();
     return errCode;

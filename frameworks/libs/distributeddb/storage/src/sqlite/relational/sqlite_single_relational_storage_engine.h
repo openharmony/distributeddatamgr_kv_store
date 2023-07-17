@@ -54,7 +54,7 @@ private:
     // For db.
     int RegisterFunction(sqlite3 *db) const;
 
-    int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged);
+    int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged, TableSyncType syncType);
     int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
         RelationalSchemaObject &schema, TableSyncType tableSyncType);
 

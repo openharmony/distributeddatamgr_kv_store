@@ -32,8 +32,10 @@ namespace DistributedDB {
 IKvDB *DefaultFactory::CreateKvDb(KvDBType kvDbType, int &errCode)
 {
     switch (kvDbType) {
+#ifndef OMIT_MULTI_VER
         case LOCAL_KVDB:
             return CreateLocalKvDB(errCode);
+#endif
         case SINGER_VER_KVDB:
             return CreateSingleVerNaturalStore(errCode);
 #ifndef OMIT_MULTI_VER
@@ -46,6 +48,7 @@ IKvDB *DefaultFactory::CreateKvDb(KvDBType kvDbType, int &errCode)
     }
 }
 
+#ifndef OMIT_MULTI_VER
 IKvDB *DefaultFactory::CreateLocalKvDB(int &errCode)
 {
     IKvDB *kvDb = new (std::nothrow) SQLiteLocalKvDB();
@@ -53,7 +56,6 @@ IKvDB *DefaultFactory::CreateLocalKvDB(int &errCode)
     return kvDb;
 }
 
-#ifndef OMIT_MULTI_VER
 // Create the multi-version natural store, it contains a commit version and commit storage kvdb.
 IKvDB *DefaultFactory::CreateMultiVerNaturalStore(int &errCode)
 {
@@ -71,11 +73,13 @@ IKvDB *DefaultFactory::CreateSingleVerNaturalStore(int &errCode)
     return kvDb;
 }
 
+#ifndef OMIT_MULTI_VER
 // Create a key-value database for commit storage module.
 IKvDB *DefaultFactory::CreateCommitStorageDB(int &errCode)
 {
     return CreateLocalKvDB(errCode);
 }
+#endif
 
 #ifndef OMIT_MULTI_VER
 IKvDBMultiVerDataStorage *DefaultFactory::CreateMultiVerStorage(int &errCode)

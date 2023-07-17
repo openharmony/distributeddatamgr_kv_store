@@ -83,6 +83,10 @@ public:
 
     std::set<std::string> GetOnlineDevices();
 
+    void DisableCommunicator();
+
+    void EnableCommunicator();
+
     ~VirtualCommunicatorAggregator() {};
     VirtualCommunicatorAggregator() {};
 

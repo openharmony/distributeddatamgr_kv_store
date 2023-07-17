@@ -172,7 +172,8 @@ SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
       autoLifeTime_(DBConstant::DEF_LIFE_CYCLE_TIME),
       createDBTime_(0),
       dataInterceptor_(nullptr),
-      maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT)
+      maxLogSize_(DBConstant::MAX_LOG_SIZE_DEFAULT),
+      abortPerm_(OperatePerm::NORMAL_PERM)
 {}
 
 SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
@@ -1166,6 +1167,14 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
             SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT));
         notificationConflictEventsRegistered_ = false;
     }
+
+    {
+        std::unique_lock<std::mutex> migrateLock(migrateMutex_);
+        migrateCv_.wait(migrateLock, [this] {
+            return migrateCount_ <= 0;
+        });
+    }
+
     {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
@@ -1391,6 +1400,7 @@ int SQLiteSingleVerNaturalStore::Rekey(const CipherPassword &passwd)
     if (errCode != E_OK) {
         return errCode;
     }
+
     LOGI("Stop the syncer for rekey");
     StopSyncer(true);
     std::this_thread::sleep_for(std::chrono::milliseconds(5));  // wait for 5 ms
@@ -1412,13 +1422,16 @@ int SQLiteSingleVerNaturalStore::Rekey(const CipherPassword &passwd)
 END:
     // Only maindb state have existed handle, if rekey fail other state will create error cache db
     // Abort can forbid get new handle, requesting handle will return BUSY and nullptr handle
+    AbortHandle();
     if (errCode != -E_FORBID_CACHEDB) {
         storageEngine_->Enable(OperatePerm::REKEY_MONOPOLIZE_PERM);
     } else {
         storageEngine_->Abort(OperatePerm::REKEY_MONOPOLIZE_PERM);
         errCode = E_OK;
     }
+    storageEngine_->WaitWriteHandleIdle();
     StartSyncer();
+    EnableHandle();
     return errCode;
 }
 
@@ -1433,13 +1446,7 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
 
     // Exclusively write resources
     std::string localDev;
-    int errCode = GetLocalIdentity(localDev);
-    if (errCode == -E_NOT_INIT) {
-        localDev.resize(DEVICE_ID_LEN);
-    } else if (errCode != E_OK) {
-        LOGE("Get local dev id err:%d", errCode);
-        localDev.resize(0);
-    }
+    int errCode = GetAndResizeLocalIdentity(localDev);
 
     // The write handle is applied to prevent writing data during the export process.
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
@@ -1526,8 +1533,11 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
 
 END:
     // restore the storage engine and the syncer.
+    AbortHandle();
     storageEngine_->Enable(OperatePerm::IMPORT_MONOPOLIZE_PERM);
+    storageEngine_->WaitWriteHandleIdle();
     StartSyncer();
+    EnableHandle();
     return errCode;
 }
 
@@ -1913,9 +1923,18 @@ void SQLiteSingleVerNaturalStore::SetConnectionFlag(bool isExisted) const
 int SQLiteSingleVerNaturalStore::TriggerToMigrateData() const
 {
     RefObject::IncObjRef(this);
+    {
+        std::unique_lock<std::mutex> lock(migrateMutex_);
+        migrateCount_++;
+    }
     int errCode = RuntimeContext::GetInstance()->ScheduleTask(
         std::bind(&SQLiteSingleVerNaturalStore::AsyncDataMigration, this));
     if (errCode != E_OK) {
+        {
+            std::unique_lock<std::mutex> lock(migrateMutex_);
+            migrateCount_--;
+        }
+        migrateCv_.notify_all();
         RefObject::DecObjRef(this);
         LOGE("[SingleVerNStore] Trigger to migrate data failed : %d.", errCode);
     }
@@ -1987,8 +2006,16 @@ void SQLiteSingleVerNaturalStore::AsyncDataMigration() const
     bool isLocked = RuntimeContext::GetInstance()->IsAccessControlled();
     if (!isLocked) {
         LOGI("Begin to migrate cache data to manDb asynchronously!");
+        // we can't use engineMutex_ here, because ExecuteMigration will call GetHandle, it will lead to crash at
+        // engineMutex_.lock_shared
         (void)StorageEngineManager::ExecuteMigration(storageEngine_);
     }
+
+    {
+        std::unique_lock<std::mutex> lock(migrateMutex_);
+        migrateCount_--;
+    }
+    migrateCv_.notify_all();
 
     RefObject::DecObjRef(this);
 }
@@ -2444,6 +2471,41 @@ int SQLiteSingleVerNaturalStore::RemoveDeviceDataInner(const std::string &hashDe
         LOGE("[SingleVerNStore] RemoveDeviceData failed:%d", errCode);
     }
 
+    return errCode;
+}
+
+void SQLiteSingleVerNaturalStore::AbortHandle()
+{
+    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    abortPerm_ = OperatePerm::RESTART_SYNC_PERM;
+}
+
+void SQLiteSingleVerNaturalStore::EnableHandle()
+{
+    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    abortPerm_ = OperatePerm::NORMAL_PERM;
+}
+
+int SQLiteSingleVerNaturalStore::TryHandle() const
+{
+    std::unique_lock<std::shared_mutex> lock(abortHandleMutex_);
+    if (abortPerm_ == OperatePerm::RESTART_SYNC_PERM) {
+        LOGW("[SingleVerNStore] Restarting sync, handle id[%s] is busy",
+            DBCommon::TransferStringToHex(storageEngine_->GetIdentifier()).c_str());
+        return -E_BUSY;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget)
+{
+    int errCode = GetLocalIdentity(outTarget);
+    if (errCode == -E_NOT_INIT) {
+        outTarget.resize(DEVICE_ID_LEN);
+    } else if (errCode != E_OK) {
+        LOGE("Get local dev id err:%d", errCode);
+        outTarget.resize(0);
+    }
     return errCode;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)

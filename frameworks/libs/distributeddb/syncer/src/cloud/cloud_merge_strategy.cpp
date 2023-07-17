@@ -16,7 +16,8 @@
 
 namespace DistributedDB {
 
-OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
+    std::set<Key> &deletePrimaryKeySet)
 {
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);
@@ -37,9 +38,18 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localIn
         return type;
     }
     if (isCloudDelete) {
-        type = isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
+        if (isLocalDelete) {
+            return OpType::UPDATE_TIMESTAMP;
+        } else {
+            (void)deletePrimaryKeySet.insert(localInfo.hashKey);
+            return OpType::DELETE;
+        }
     } else {
-        type = isLocalDelete ? OpType::INSERT : OpType::UPDATE;
+        if (isLocalDelete || deletePrimaryKeySet.find(localInfo.hashKey) != deletePrimaryKeySet.end()) {
+            type = OpType::INSERT;
+        } else {
+            type = OpType::UPDATE;
+        }
     }
     return type;
 }
