@@ -48,6 +48,8 @@ public:
 
     int Sync(const ISyncer::SyncParma &syncParam, uint64_t connectionId);
 
+    int32_t GetCloudSyncTaskCount();
+
     int CleanCloudData(ClearMode mode);
 
     void ReleaseDBConnection(RelationalStoreConnection *connection);

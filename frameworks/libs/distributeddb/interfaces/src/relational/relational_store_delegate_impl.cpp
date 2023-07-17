@@ -39,11 +39,11 @@ RelationalStoreDelegateImpl::~RelationalStoreDelegateImpl()
     }
 
     conn_ = nullptr;
-};
+}
 
 DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &device, ClearMode mode)
 {
-    if (mode >= BUTT) {
+    if (mode >= BUTT || mode < 0) {
         LOGE("Invalid mode for Remove device data, %d.", INVALID_ARGS);
         return INVALID_ARGS;
     }
@@ -61,6 +61,19 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         return OK;
     }
     return RemoveDeviceData(device, "");
+}
+
+int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
+{
+    if (conn_ == nullptr) {
+        LOGE("Invalid connection for operation!");
+        return -1;
+    }
+    int32_t count = conn_->GetCloudSyncTaskCount();
+    if (count == -1) {
+        LOGE("[RelationalStore Delegate] Failed to get cloud sync task count.");
+    }
+    return count;
 }
 
 DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
@@ -230,10 +243,7 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb>
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
 {
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
-    if (conn_->SetCloudDbSchema(schema) != E_OK) {
+    if (conn_ == nullptr || conn_->SetCloudDbSchema(schema) != E_OK) {
         return DB_ERROR;
     }
     return OK;
@@ -270,10 +280,7 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
 
 DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
-    if (conn_ == nullptr) {
-        return DB_ERROR;
-    }
-    if (conn_->SetIAssetLoader(loader) != E_OK) {
+    if (conn_ == nullptr || conn_->SetIAssetLoader(loader) != E_OK) {
         return DB_ERROR;
     }
     return OK;

@@ -16,6 +16,7 @@
 #ifndef SQLITE_LOCAL_KV_DB_H
 #define SQLITE_LOCAL_KV_DB_H
 
+#ifndef OMIT_MULTI_VER
 #include <mutex>
 #include <string>
 
@@ -89,5 +90,5 @@ private:
     SQLiteStorageEngine *storageEngine_;
 };
 } // namespace DistributedDB
-
+#endif // OMIT_MULTI_VER
 #endif  // SQLITE_LOCAL_KV_DB_H

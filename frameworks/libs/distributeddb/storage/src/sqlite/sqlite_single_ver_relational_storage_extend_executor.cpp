@@ -127,10 +127,12 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         return errCode;
     }
     std::vector<Field> assetsField;
-    errCode = CloudStorageUtils::CheckAssetFromSchema(tableSchema, vBucket, assetsField);
+    errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
     if (errCode != E_OK) {
+        LOGE("No assets need to be filled.");
         goto END;
     }
+    CloudStorageUtils::ChangeAssetsOnVBucketToAsset(vBucket, assetsField);
 
     int64_t rowId;
     errCode = GetQueryLogRowid(tableSchema.name, vBucket, rowId);
@@ -138,10 +140,10 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         goto END;
     }
     if (isFullReplace) {
-        CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetForDownload,
-            CloudStorageUtils::FillAssetsForDownload);
+        CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetAfterDownload,
+            CloudStorageUtils::FillAssetsAfterDownload);
     } else {
-        CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket);
+        CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetAfterDownloadFail);
     }
     errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
     if (errCode != E_OK) {
@@ -171,7 +173,7 @@ END:
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const std::string &tableName,
     const CloudSyncBatch &data)
 {
-    if (data.assets.empty() || data.rowid.empty() || data.timestamp.empty()) {
+    if (data.rowid.empty() || data.timestamp.empty()) {
         return -E_INVALID_ARGS;
     }
     if (data.assets.size() != data.rowid.size() || data.assets.size() != data.timestamp.size()) {
@@ -184,6 +186,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const std:
     }
     sqlite3_stmt *stmt = nullptr;
     for (size_t i = 0; i < data.assets.size(); ++i) {
+        if (data.assets.at(i).empty()) {
+            continue;
+        }
         errCode = InitFillUploadAssetStatement(tableName, data, i, stmt);
         if (errCode != E_OK) {
             break;

@@ -306,7 +306,7 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
     return pkMap;
 }
 
-int CloudStorageUtils::CheckAssetFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
     std::vector<Field> &fields)
 {
     for (const auto &field: tableSchema.fields) {
@@ -317,17 +317,9 @@ int CloudStorageUtils::CheckAssetFromSchema(const TableSchema &tableSchema, VBuc
         if (it->second.index() != TYPE_INDEX<Asset> && it->second.index() != TYPE_INDEX<Assets>) {
             continue;
         }
-        if (field.type == TYPE_INDEX<Asset>) {
-            auto assets = std::get_if<Assets>(&it->second);
-            if (assets != nullptr && assets->size() == 1) {
-                Asset asset = (*assets)[0];
-                vBucket[field.colName] = asset;
-            }
-        }
         fields.push_back(field);
     }
-    if (fields.size() == 0) {
-        LOGE("No assets need to be filled.");
+    if (fields.empty()) {
         return -E_CLOUD_ERROR;
     }
     return E_OK;
@@ -384,22 +376,84 @@ AssetStatus CloudStorageUtils::FlagToStatus(AssetOpType opType)
     }
 }
 
-int CloudStorageUtils::FillAssetForDownload(Asset &asset)
+void CloudStorageUtils::ChangeAssetsOnVBucketToAsset(VBucket &vBucket, std::vector<Field> &fields)
+{
+    for (const Field &field: fields) {
+        if (field.type == TYPE_INDEX<Asset>) {
+            Type asset = GetAssetFromAssets(vBucket[field.colName]);
+            vBucket[field.colName] = asset;
+        }
+    }
+}
+
+Type CloudStorageUtils::GetAssetFromAssets(Type &value)
+{
+    Asset assetVal;
+    int errCode = GetValueFromType(value, assetVal);
+    if (errCode == E_OK) {
+        return assetVal;
+    }
+
+    Assets assets;
+    errCode = GetValueFromType(value, assets);
+    if (errCode != E_OK) {
+        return Nil();
+    }
+
+    for (Asset &asset: assets) {
+        if (asset.flag != static_cast<uint32_t>(AssetOpType::DELETE)) {
+            return std::move(asset);
+        }
+    }
+    return Nil();
+}
+
+void CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     AssetStatus status = static_cast<AssetStatus>(asset.status);
     switch (flag) {
         case AssetOpType::INSERT: {
-            if (status == AssetStatus::DOWNLOADING || status == AssetStatus::ABNORMAL) {
+            if (status != AssetStatus::NORMAL) {
                 asset.hash = std::string("");
             }
             break;
         }
-        case AssetOpType::DELETE: {
-            if (status == AssetStatus::NORMAL) {
-                return -E_NOT_FOUND;
+        default:
+            break;
+    }
+}
+
+void CloudStorageUtils::FillAssetAfterDownloadFail(Asset &asset)
+{
+    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    switch (flag) {
+        case AssetOpType::INSERT:
+        case AssetOpType::DELETE:
+        case AssetOpType::UPDATE: {
+            if (status != AssetStatus::NORMAL) {
+                asset.hash = std::string("");
+                asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
             }
             break;
+        }
+        default:
+            break;
+    }
+}
+
+int CloudStorageUtils::FillAssetAfterDownload(Asset &asset)
+{
+    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    switch (flag) {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE: {
+            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+            break;
+        }
+        case AssetOpType::DELETE: {
+            return -E_NOT_FOUND;
         }
         default:
             break;
@@ -407,10 +461,10 @@ int CloudStorageUtils::FillAssetForDownload(Asset &asset)
     return E_OK;
 }
 
-void CloudStorageUtils::FillAssetsForDownload(Assets &assets)
+void CloudStorageUtils::FillAssetsAfterDownload(Assets &assets)
 {
     for (auto asset = assets.begin(); asset != assets.end();) {
-        if (FillAssetForDownload(*asset) == -E_NOT_FOUND) {
+        if (FillAssetAfterDownload(*asset) == -E_NOT_FOUND) {
             asset = assets.erase(asset);
         } else {
             asset++;
@@ -448,19 +502,19 @@ void CloudStorageUtils::FillAssetsForUpload(Assets &assets)
     }
 }
 
-void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket)
+void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset)
 {
     for (auto &item: vBucket) {
         if (IsAsset(item.second)) {
             Asset asset;
             GetValueFromType(item.second, asset);
-            FillAssetForDownload(asset);
+            fillAsset(asset);
             vBucket[item.first] = asset;
         } else if (IsAssets(item.second)) {
             Assets assets;
             GetValueFromType(item.second, assets);
             for (auto &asset: assets) {
-                FillAssetForDownload(asset);
+                fillAsset(asset);
             }
             vBucket[item.first] = assets;
         }
@@ -545,6 +599,7 @@ bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
     std::set<std::string> set;
     for (const auto &asset : assets) {
         if (set.find(asset.name) != set.end()) {
+            LOGE("assets contain duplicate Asset");
             return true;
         }
         set.insert(asset.name);
@@ -554,13 +609,18 @@ bool CloudStorageUtils::IsAssetsContainDuplicateAsset(Assets &assets)
 
 void CloudStorageUtils::EraseNoChangeAsset(std::map<std::string, Assets> &assetsMap)
 {
-    for (auto &items: assetsMap) {
-        for (auto item = items.second.begin(); item != items.second.end();) {
-            if (static_cast<AssetOpType>((*item).status) == AssetOpType::NO_CHANGE) {
-                item = items.second.erase(item);
+    for (auto items = assetsMap.begin(); items != assetsMap.end();) {
+        for (auto item = items->second.begin(); item != items->second.end();) {
+            if (static_cast<AssetOpType>((*item).flag) == AssetOpType::NO_CHANGE) {
+                item = items->second.erase(item);
             } else {
                 item++;
             }
+        }
+        if (items->second.empty()) {
+            items = assetsMap.erase(items);
+        } else {
+            items++;
         }
     }
 }
@@ -592,5 +652,64 @@ std::map<std::string, size_t> CloudStorageUtils::GenAssetsIndexMap(Assets &asset
         assetsIndexMap[assets[i].name] = i;
     }
     return assetsIndexMap;
+}
+
+bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std::set<std::string> &pkSet)
+{
+    if (pkSet.empty()) {
+        return false;
+    }
+    for (const auto &pk : pkSet) {
+        if (vBucket.find(pk) == vBucket.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool IsViolationOfConstraints(const std::string &name, const std::vector<FieldInfo> &fieldInfos)
+{
+    for (const auto &field : fieldInfos) {
+        if (name == field.GetFieldName()) {
+            if (field.GetStorageType() == StorageType::STORAGE_TYPE_REAL) {
+                LOGE("[ConstraintsCheckForCloud] Not support create distributed table with real primary key.");
+                return true;
+            } else if (field.IsAssetType() || field.IsAssetsType()) {
+                LOGE("[ConstraintsCheckForCloud] Not support create distributed table with asset primary key.");
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql)
+{
+    if (DBCommon::HasConstraint(trimmedSql, "UNIQUE", " ,", " ,)(")) {
+        LOGE("[ConstraintsCheckForCloud] Not support create distributed table with 'UNIQUE' constraint.");
+        return -E_NOT_SUPPORT;
+    }
+
+    const std::map<int, FieldName> &primaryKeys = table.GetPrimaryKey();
+    const std::vector<FieldInfo> &fieldInfos = table.GetFieldInfos();
+    for (const auto &item : primaryKeys) {
+        if (IsViolationOfConstraints(item.second, fieldInfos)) {
+            return -E_NOT_SUPPORT;
+        }
+    }
+    return E_OK;
+}
+
+bool CloudStorageUtils::CheckAssetStatus(const Assets &assets)
+{
+    for (const Asset &asset: assets) {
+        if (asset.status > static_cast<uint32_t>(AssetStatus::UPDATE)) {
+            LOGE("assets contain invalid status:[%u]", asset.status);
+            return false;
+        }
+    }
+    return true;
 }
 }

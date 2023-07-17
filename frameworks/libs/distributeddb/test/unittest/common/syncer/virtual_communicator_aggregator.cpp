@@ -322,4 +322,20 @@ std::set<std::string> VirtualCommunicatorAggregator::GetOnlineDevices()
     }
     return onlineDevices;
 }
+
+void VirtualCommunicatorAggregator::DisableCommunicator()
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    for (const auto &communicator: communicators_) {
+        communicator.second->Disable();
+    }
+}
+
+void VirtualCommunicatorAggregator::EnableCommunicator()
+{
+    std::lock_guard<std::mutex> lock(communicatorsLock_);
+    for (const auto &communicator: communicators_) {
+        communicator.second->Disable();
+    }
+}
 } // namespace DistributedDB

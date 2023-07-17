@@ -448,7 +448,14 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     }
     return errCode;
 }
-
+int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
+{
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when get cloud sync task count.");
+        return -1;
+    }
+    return cloudSyncer_->GetCloudSyncTaskCount();
+}
 int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 {
     auto tableMode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
@@ -457,11 +464,8 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
         LOGE("Not support remove device data in collaboration mode.");
         return -E_NOT_SUPPORT;
     }
-    if (cloudSyncer_ == nullptr) {
-        LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
-        return -E_INVALID_DB;
-    }
-    TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables();
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfoMap tables = localSchema.GetTables();
     std::vector<std::string> cloudTableNameList;
     for (auto tableInfo: tables) {
         if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION) {
@@ -472,7 +476,12 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
         LOGI("[RelationalStore] device doesn't has cloud table, clean cloud data finished.");
         return E_OK;
     }
-    int errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList);
+
+    if (cloudSyncer_ == nullptr) {
+        LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
+        return -E_INVALID_DB;
+    }
+    int errCode = cloudSyncer_->CleanCloudData(mode, cloudTableNameList, localSchema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] failed to clean cloud data, %d.", errCode);
     }

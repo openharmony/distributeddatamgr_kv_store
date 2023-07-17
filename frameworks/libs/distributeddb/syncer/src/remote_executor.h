@@ -109,6 +109,7 @@ private:
     void DoRollBack(uint32_t sessionId);
 
     int RequestStart(uint32_t sessionId);
+    int SendRequestMessage(const std::string &target, Message *message, uint32_t sessionId);
 
     int ResponseData(RelationalRowDataSet &&dataSet, const SendMessage &sendMessage, const std::string &device);
     int ResponseStart(RemoteExecutorAckPacket *packet, uint32_t sessionId, uint32_t sequenceId,

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 
 #include "sqlite_import.h"
@@ -453,7 +454,6 @@ HWTEST_F(DistributedDBStorageDataOperationTest, DeleteBatch001, TestSize.Level1)
     EXPECT_EQ(entriesRead.size(), 0UL);
 }
 
-#ifndef OMIT_MULTI_VER
 static void CheckSplitData(const Value &oriValue, const uint32_t numBlock,
     std::map<ValueSliceHash, Value> &valueDic, Value &savedValue)
 {
@@ -689,7 +689,6 @@ HWTEST_F(DistributedDBStorageDataOperationTest, CutValueIntoBlock002, TestSize.L
     CheckRecoverData(savedValue, valueDic, value2);
     EXPECT_EQ(valueDic.size(), 0ul);
 }
-#endif // OMIT_MULTI_VER
 
 /**
   * @tc.name: ShaAlgoEncryptTest001
@@ -972,3 +971,4 @@ HWTEST_F(DistributedDBStorageDataOperationTest, DeleteTableCallbackTest002, Test
     sqlite3_close_v2(db);
     db = nullptr;
 }
+#endif // OMIT_MULTI_VER

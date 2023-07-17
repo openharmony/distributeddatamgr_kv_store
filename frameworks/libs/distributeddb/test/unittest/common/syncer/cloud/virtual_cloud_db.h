@@ -27,12 +27,17 @@ public:
     DBStatus BatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend) override;
 
+    DBStatus BatchInsertWithGid(const std::string &tableName, std::vector<VBucket> &&record,
+        std::vector<VBucket> &extend);
+
     DBStatus BatchUpdate(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend) override;
 
     DBStatus BatchDelete(const std::string &tableName, std::vector<VBucket> &extend) override;
 
     DBStatus Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data) override;
+
+    DBStatus DeleteByGid(const std::string &tableName, VBucket &extend);
 
     std::pair<DBStatus, uint32_t> Lock() override;
 

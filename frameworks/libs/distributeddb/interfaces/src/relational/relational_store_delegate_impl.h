@@ -32,6 +32,8 @@ public:
     DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) override;
 
+    int32_t GetCloudSyncTaskCount() override;
+
     DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) override;
 
     DBStatus DoClean(ClearMode mode);

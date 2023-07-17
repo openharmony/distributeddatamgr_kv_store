@@ -35,10 +35,10 @@ public:
     // Close and release the connection.
     int Close() override;
     int SyncToDevice(SyncInfo &info) override;
+    int32_t GetCloudSyncTaskCount() override;
     std::string GetIdentifier() override;
     int CreateDistributedTable(const std::string &tableName, TableSyncType syncType) override;
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier) override;
-
     int DoClean(ClearMode mode) override;
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;

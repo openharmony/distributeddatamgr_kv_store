@@ -1365,7 +1365,7 @@ void SQLiteUtils::GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **
     uint64_t curTime = 0;
     int errCode = TimeHelper::GetSysCurrentRawTime(curTime);
     if (errCode != E_OK) {
-        sqlite3_result_error(ctx, "get raw sys time failed.", errCode);
+        sqlite3_result_error(ctx, "get raw sys time failed in sqlite utils.", errCode);
         return;
     }
     sqlite3_result_int64(ctx, (sqlite3_int64)(curTime));

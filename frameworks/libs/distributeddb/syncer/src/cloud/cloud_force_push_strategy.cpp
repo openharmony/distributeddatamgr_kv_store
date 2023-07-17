@@ -13,33 +13,33 @@
  * limitations under the License.
  */
 #include "cloud_force_push_strategy.h"
-#include "db_common.h"
-#include "db_errno.h"
 
 namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
-OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
+    std::set<Key> &deletePrimaryKeySet)
 {
+    (void)deletePrimaryKeySet;
     bool isCloudDelete = IsDelete(cloudInfo);
-    if (existInLocal) {
-        if (localInfo.cloudGid.empty()) {
-            // when cloud data is deleted, we think it is different data
-            return isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
-        } else {
-            if (isCloudDelete) {
-                return OpType::CLEAR_GID;
-            }
-            if (localInfo.device == cloud_device_name && localInfo.timestamp == cloudInfo.timestamp) {
-                return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE;
-            }
-            if (localInfo.device == cloud_device_name && localInfo.timestamp != cloudInfo.timestamp) {
-                return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO;
-            }
-            return OpType::NOT_HANDLE;
-        }
-    } else {
+    if (!existInLocal) {
         return OpType::NOT_HANDLE;
     }
+
+    if (localInfo.cloudGid.empty()) {
+        // when cloud data is deleted, we think it is different data
+        return isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
+    }
+
+    if (isCloudDelete) {
+        return OpType::CLEAR_GID;
+    }
+    if (localInfo.device == cloud_device_name && localInfo.timestamp == cloudInfo.timestamp) {
+        return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ONE;
+    }
+    if (localInfo.device == cloud_device_name && localInfo.timestamp != cloudInfo.timestamp) {
+        return OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO;
+    }
+    return OpType::NOT_HANDLE;
 }
 
 bool CloudForcePushStrategy::JudgeUpdateCursor()

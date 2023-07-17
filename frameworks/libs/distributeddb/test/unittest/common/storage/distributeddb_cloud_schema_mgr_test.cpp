@@ -191,6 +191,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest001, TestSize.Level0)
     table.AddField(field1);
     table.AddField(field2);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -215,6 +216,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest002, TestSize.Level0)
     table.AddField(field1);
     table.AddField(field2);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -244,6 +246,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest003, TestSize.Level0)
     table.AddField(field3);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
     table.SetPrimaryKey(FIELD_NAME_3, 2);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -270,6 +273,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest004, TestSize.Level0)
     table.AddField(field2);
     table.AddField(field3);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -297,6 +301,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest005, TestSize.Level0)
     table.AddField(field2);
     table.AddField(field3);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -324,6 +329,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest006, TestSize.Level0)
     table.AddField(field2);
     table.AddField(field3);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -350,6 +356,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest007, TestSize.Level0)
     table.AddField(field2);
     table.AddField(field3);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
 
@@ -373,12 +380,14 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest008, TestSize.Level0)
     table.AddField(field1);
     table.AddField(field2);
     table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
 
     TableInfo table2;
     table2.SetTableName(TABLE_NAME_1);
     table2.AddField(field1);
     table2.AddField(field2);
     table2.SetPrimaryKey(FIELD_NAME_1, 1);
+    table2.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
 
     RelationalSchemaObject localSchema;
     localSchema.AddRelationalTable(table);
@@ -411,6 +420,60 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest009, TestSize.Level0)
     RelationalSchemaObject localSchema;
     g_schemaMgr->SetCloudDbSchema(g_schema);
     EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_1, localSchema), -E_SCHEMA_MISMATCH);
+}
+
+/**
+  * @tc.name: SchemaMgrTest010
+  * @tc.desc: Test local schema with un-expected sync type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: wanyi
+  */
+HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest010, TestSize.Level0)
+{
+    FieldInfo field1 = SetField(FIELD_NAME_1, "int", true);
+    FieldInfo field2 = SetField(FIELD_NAME_2, "int", true);
+    FieldInfo field3 = SetField(FIELD_NAME_3, "int", true);
+
+    TableInfo table;
+    table.SetTableName(TABLE_NAME_2);
+    table.AddField(field1);
+    table.AddField(field2);
+    table.AddField(field3);
+    table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::DEVICE_COOPERATION);
+    RelationalSchemaObject localSchema;
+    localSchema.AddRelationalTable(table);
+
+    g_schemaMgr->SetCloudDbSchema(g_schema);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), -E_SCHEMA_MISMATCH);
+}
+
+/**
+  * @tc.name: SchemaMgrTest011
+  * @tc.desc: Test local schema with un-expected data type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: wanyi
+  */
+HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest011, TestSize.Level0)
+{
+    FieldInfo field1 = SetField(FIELD_NAME_1, "int", true);
+    FieldInfo field2 = SetField(FIELD_NAME_2, "text", true);
+    FieldInfo field3 = SetField(FIELD_NAME_3, "int", true);
+
+    TableInfo table;
+    table.SetTableName(TABLE_NAME_2);
+    table.AddField(field1);
+    table.AddField(field2);
+    table.AddField(field3);
+    table.SetPrimaryKey(FIELD_NAME_1, 1);
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+    RelationalSchemaObject localSchema;
+    localSchema.AddRelationalTable(table);
+
+    g_schemaMgr->SetCloudDbSchema(g_schema);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), -E_SCHEMA_MISMATCH);
 }
 
 }

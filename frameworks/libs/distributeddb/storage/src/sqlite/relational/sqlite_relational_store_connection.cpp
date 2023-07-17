@@ -171,6 +171,20 @@ int SQLiteRelationalStoreConnection::RemoveDeviceData()
     return errCode;
 }
 
+int32_t SQLiteRelationalStoreConnection::GetCloudSyncTaskCount()
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -1;
+    }
+    int32_t count = store->GetCloudSyncTaskCount();
+    if (count == -1) {
+        LOGE("[RelationalConnection] failed to get cloud sync task count");
+    }
+    return count;
+}
+
 int SQLiteRelationalStoreConnection::DoClean(ClearMode mode)
 {
     auto *store = GetDB<SQLiteRelationalStore>();

@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include "local_database_oper.h"
 
 #include "log_print.h"
@@ -212,3 +213,4 @@ int LocalDatabaseOper::ImportPostHandle() const
     return localKvDb_->InitDatabaseContext(localKvDb_->GetDbProperties());
 }
 } // namespace DistributedDB
+#endif

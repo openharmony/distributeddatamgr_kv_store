@@ -123,6 +123,7 @@ enum class OperatePerm {
     REKEY_MONOPOLIZE_PERM,
     IMPORT_MONOPOLIZE_PERM,
     DISABLE_PERM,
+    RESTART_SYNC_PERM,
 };
 
 enum SingleVerConflictResolvePolicy {

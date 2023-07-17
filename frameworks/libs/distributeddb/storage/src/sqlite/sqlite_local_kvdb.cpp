@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include "sqlite_local_kvdb.h"
 
 #include <algorithm>
@@ -394,3 +395,4 @@ int SQLiteLocalKvDB::CheckVersionAndUpgradeIfNeed(const OpenDbProperties &openPr
 
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteLocalKvDB)
 } // namespace DistributedDB
+#endif // OMIT_MULTI_VER

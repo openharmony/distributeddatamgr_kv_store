@@ -28,10 +28,10 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(DefaultFactory);
     IKvDB *CreateKvDb(KvDBType kvDbType, int &errCode) override;
 
+#ifndef OMIT_MULTI_VER
     // Create a key-value database for commit storage module.
     IKvDB *CreateCommitStorageDB(int &errCode) override;
 
-#ifndef OMIT_MULTI_VER
     // Create the multi version storage for multi version natural store
     IKvDBMultiVerDataStorage *CreateMultiVerStorage(int &errCode) override;
 

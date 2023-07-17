@@ -27,11 +27,13 @@ public:
     CloudSyncStrategy() = default;
     virtual ~CloudSyncStrategy() = default;
 
-    virtual OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+    virtual OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
+        std::set<Key> &deletePrimaryKeySet)
     {
         (void)existInLocal;
         (void)localInfo;
         (void)cloudInfo;
+        (void)deletePrimaryKeySet;
         return OpType::NOT_HANDLE;
     }
 

@@ -90,8 +90,7 @@ int VirtualRelationalVerSyncDBInterface::PutSyncDataWithQuery(const QueryObject 
     }
     OptTableDataWithLog optTableDataWithLog;
     optTableDataWithLog.tableName = query.GetTableName();
-    int errCode = DataTransformer::TransformDataItem(dataItems, localFieldInfo_,
-        localFieldInfo_, optTableDataWithLog);
+    int errCode = DataTransformer::TransformDataItem(dataItems, localFieldInfo_, optTableDataWithLog);
     if (errCode != E_OK) {
         return errCode;
     }

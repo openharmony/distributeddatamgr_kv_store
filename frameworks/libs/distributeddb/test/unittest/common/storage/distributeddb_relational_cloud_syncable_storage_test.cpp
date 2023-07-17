@@ -260,6 +260,23 @@ void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isFullReplac
     }
 }
 
+void UpdateLocalAsset(const std::string &tableName, Asset &asset, int64_t rowid)
+{
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    string sql = "UPDATE " + tableName + " SET assert = ? where rowid = '" + std::to_string(rowid) + "';";
+    std::vector<uint8_t> assetBlob;
+    int errCode;
+    RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    if (SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false) == E_OK) {
+        EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    sqlite3_close(db);
+}
+
 void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
     RelationalDBProperties &properties)
 {
@@ -980,6 +997,40 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestS
      * @tc.expected: return -E_INVALID_DB.
      */
     ASSERT_EQ(g_cloudStore->GetCloudDataNext(token, cloudSyncData), -E_INVALID_DB);
+}
+
+/**
+ * @tc.name: GetCloudData006
+ * @tc.desc: Test get cloud data which contains invalid status asset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Init data and set asset status to invalid num
+     * @tc.expected: step1. return ok.
+     */
+    CreateLogTable();
+    int64_t insCount = 1024;
+    int64_t photoSize = 1024;
+    InitLogData(insCount, insCount, insCount, insCount);
+    CreateAndInitUserTable(2 * insCount, photoSize); // 2 is insert,update type data
+    Asset asset = g_localAsset;
+    asset.status = static_cast<uint32_t>(AssetStatus::UPDATE) + 1;
+    UpdateLocalAsset(g_tableName, asset, 2L); // 2 is rowid
+    SetDbSchema(g_tableSchema);
+
+    /**
+     * @tc.steps:step2. Get cloud data
+     * @tc.expected: step2. return -E_CLOUD_ERROR.
+     */
+    ContinueToken token = nullptr;
+    CloudSyncData cloudSyncData;
+    EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_ERROR);
+    EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 }
 
 /**

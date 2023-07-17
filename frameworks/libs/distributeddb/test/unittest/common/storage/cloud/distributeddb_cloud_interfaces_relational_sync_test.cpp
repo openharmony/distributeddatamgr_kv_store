@@ -30,6 +30,7 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "mock_asset_loader.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -41,6 +42,7 @@ namespace {
     const string g_tableName1 = "worker1";
     const string g_tableName2 = "worker2";
     const string g_tableName3 = "worker3";
+    const string g_tableName4 = "worker4";
     const string DEVICE_CLOUD = "cloud_dev";
     const string DB_SUFFIX = ".db";
     const int64_t g_syncWaitTime = 10;
@@ -80,6 +82,14 @@ namespace {
     "married BOOLEAN ," \
     "photo BLOB NOT NULL," \
     "assert BLOB," \
+    "age INT);";
+    const std::string INTEGER_PRIMARY_KEY_TABLE_SQL_WRONG_SYNC_MODE =
+            "CREATE TABLE IF NOT EXISTS " + g_tableName4 + "(" \
+    "id INTEGER PRIMARY KEY," \
+    "name TEXT ," \
+    "height REAL ," \
+    "photo BLOB ," \
+    "asserts BLOB," \
     "age INT);";
     const std::vector<Field> g_cloudFiled1 = {
         {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
@@ -164,7 +174,7 @@ namespace {
             EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
-        LOGD("insert user record worker1[primary key]:[local%" PRId64 " - cloud%" PRId64
+        LOGD("insert user record worker1[primary key]:[Local%" PRId64 " - Local%" PRId64
             ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
     }
 
@@ -343,14 +353,11 @@ namespace {
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
-    void UpdateLocalAssetsToRepeat(sqlite3 *&db, int64_t rowid)
+    void UpdateLocalAssets(sqlite3 *&db, Assets &assets, int64_t rowid)
     {
         string sql = "UPDATE " + g_tables[1] + " SET asserts = ? where rowid = '" + std::to_string(rowid) + "';";
         std::vector<uint8_t> assetsBlob;
         int errCode;
-        Assets assets;
-        assets.push_back(g_localAsset);
-        assets.push_back(g_localAsset);
         RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob);
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
@@ -418,6 +425,23 @@ namespace {
         }
         int errCode;
         SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void CheckAssetForAssetTest006()
+    {
+        VBucket extend;
+        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+        std::vector<VBucket> data;
+        g_virtualCloudDb->Query(g_tables[1], extend, data);
+        for (size_t j = 0; j < data.size(); ++j) {
+            ASSERT_NE(data[j].find("asserts"), data[j].end());
+            ASSERT_TRUE((data[j]["asserts"]).index() == TYPE_INDEX<Assets>);
+            Assets &assets = std::get<Assets>(data[j]["asserts"]);
+            ASSERT_TRUE(assets.size() > 0);
+            Asset &asset = assets[0];
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::DELETE));
+        }
     }
 
     void CheckFillAssetForTest10(sqlite3 *&db)
@@ -501,11 +525,11 @@ namespace {
         return 0;
     }
 
-    void CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts)
+    void CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts, std::string keyStr = "Cloud")
     {
         for (size_t i = 0; i < g_tables.size(); ++i) {
             string queryDownload = "select count(*) from " + g_tables[i] + " where name "
-                                   + " like 'Cloud%'";
+                                   + " like '" + keyStr + "%'";
             EXPECT_EQ(sqlite3_exec(db, queryDownload.c_str(), QueryCountCallback,
                 reinterpret_cast<void *>(expectCounts[i]), nullptr), SQLITE_OK);
         }
@@ -523,16 +547,6 @@ namespace {
         }
     }
 
-    // void CheckLocalTotalNum(sqlite3 *&db, std::vector<std::string> tableList, std::vector<int> countList)
-    // {
-    //     int i = 0;
-    //     for (const auto &tableName: tableList) {
-    //         std::string sql = "select count(*) from " + tableName + ";";
-    //         EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
-    //             reinterpret_cast<void *>(countList[i]), nullptr), SQLITE_OK);
-    //         i++;
-    //     }
-    // }
     void CheckCleanLogNum(sqlite3 *&db, const std::vector<std::string> tableList, int count)
     {
         for (const auto &tableName: tableList) {
@@ -608,9 +622,14 @@ namespace {
             .name = g_tableName3,
             .fields = g_cloudFiledWithOutPrimaryKey3
         };
+        TableSchema tableSchema4 = {
+            .name = g_tableName4,
+            .fields = g_cloudFiled2
+        };
         dataBaseSchema.tables.push_back(tableSchema1);
         dataBaseSchema.tables.push_back(tableSchema2);
         dataBaseSchema.tables.push_back(tableSchemaWithOutPrimaryKey);
+        dataBaseSchema.tables.push_back(tableSchema4);
     }
 
 
@@ -774,7 +793,7 @@ namespace {
             FINISHED, {index, cloudCount, cloudCount, 0}, {index, localCount - cloudCount, localCount - cloudCount, 0}
         });
 
-        for (size_t i = 0; i <= infos.size() / g_arrayHalfSub; ++i) {
+        for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
             SyncProcess syncProcess;
             syncProcess.errCode = OK;
             syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
@@ -818,7 +837,7 @@ namespace {
             FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
 
-        for (size_t i = 0; i <= infos.size() / g_arrayHalfSub; ++i) {
+        for (size_t i = 0; i < infos.size() / g_arrayHalfSub; ++i) {
             SyncProcess syncProcess;
             syncProcess.errCode = OK;
             syncProcess.process = i == infos.size() ? FINISHED : PROCESSING;
@@ -990,6 +1009,74 @@ namespace {
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
+    void UpdateCloudAssetForDownloadAssetTest003()
+    {
+        VBucket data;
+        std::vector<uint8_t> photo(1, 'x');
+        data.insert_or_assign("name", "Cloud" + std::to_string(0));
+        data.insert_or_assign("photo", photo);
+        data.insert_or_assign("assert", g_cloudAsset);
+        Timestamp now = TimeHelper::GetSysCurrentTime();
+        VBucket log;
+        std::vector<VBucket> record;
+        std::vector<VBucket> extend;
+        log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+        log.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(0));
+        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        record.push_back(data);
+        extend.push_back(log);
+        ASSERT_EQ(g_virtualCloudDb->BatchUpdate(g_tableName1, std::move(record), extend), DBStatus::OK);
+    }
+
+    void CheckAssetForDownloadAssetTest003(sqlite3 *&db)
+    {
+        string queryDownload = "select assert from " + g_tables[0] + " where rowid = '11';";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, queryDownload, stmt), E_OK);
+        int index = 0;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            std::vector<uint8_t> blobValue;
+            ASSERT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue), E_OK);
+            Asset asset;
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset), E_OK);
+            EXPECT_EQ(asset.name, g_cloudAsset.name);
+            EXPECT_EQ(asset.hash, g_cloudAsset.hash);
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            index++;
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void CheckAssetAfterDownload2(sqlite3 *&db, int64_t localCount)
+    {
+        string queryDownload = "select assert from " + g_tables[0] + " where rowid in (";
+        for (int64_t i = localCount + 1; i < localCount + localCount; ++i) {
+            queryDownload +=  "'" + std::to_string(i) + "',";
+        }
+        queryDownload.pop_back();
+        queryDownload += ");";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, queryDownload, stmt), E_OK);
+        int index = 0;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            std::vector<uint8_t> blobValue;
+            ASSERT_EQ(SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue), E_OK);
+            Asset asset;
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset), E_OK);
+            EXPECT_EQ(asset.version, g_cloudAsset.version);
+            if (index % 6u == 0) { // 6 is AssetStatus type num, include invalid type
+                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+            } else {
+                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::ABNORMAL));
+            }
+            index++;
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     {
         std::unique_lock<std::mutex> lock(g_processMutex);
@@ -1008,6 +1095,25 @@ namespace {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;
         }
+    }
+
+    void InitMockAssetLoader(DBStatus &status, int &index)
+    {
+        std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+        ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+        EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+            .WillRepeatedly([&status, &index](const std::string &, const std::string &gid, const Type &,
+                std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s", gid.c_str());
+                for (auto &item: assets) {
+                    for (auto &asset: item.second) {
+                        EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+                        LOGD("asset [name]:%s, [status]:%u, [flag]:%u", asset.name.c_str(), asset.status, asset.flag);
+                        asset.status = (index++) % 6u; // 6 is AssetStatus type num, include invalid type
+                    }
+                }
+                return status;
+        });
     }
 
     class DistributedDBCloudInterfacesRelationalSyncTest : public testing::Test {
@@ -1724,9 +1830,106 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, MannualNotify001, TestS
     CloseDb();
 }
 
+/**
+ * @tc.name: CloudProcessNotify001
+ * @tc.desc: Test duplicate cloud records. SYNC_MODE_CLOUD_MERGE
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liufuchenxing
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. table work1 and work2 insert 1 record which name is local0, then sync().
+     * @tc.expected: step 1. table work1 and work2 download result is 0. table work1 and work2 upload 1 record.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    int64_t paddingSize = 10;
+    int64_t localCount = 1;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+    EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+    g_observer->ClearChangedData();
+    LOGD("expect download:worker1[primary key]:[], worker2[primary key]:[]");
+    CheckDownloadResult(db, {0L, 0L}); // 0 and 0 means the num of downloads from cloud db by worker1 and worker2
+    LOGD("expect upload:worker1[primary key]:[local0], worker2[primary key]:[0]");
+    CheckCloudTotalCount({1L, 1L}); // 1 and 1 means the total num of worker1 and worker2 from the cloud db
+
+    /**
+     * @tc.steps: step2. reset data
+     * @tc.expected: step2. return ok.
+     */
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    g_syncProcess = {};
+    ASSERT_EQ(g_delegate->SetCloudDB(g_virtualCloudDb), DBStatus::OK);
+
+    /**
+     * @tc.steps: step3. table work1 delete record which gid is 0 and name is local0 on cloud.
+     * @tc.expected: step3. return ok.
+     */
+    VBucket idMap;
+    idMap.insert_or_assign("#_gid", std::to_string(0));
+    ASSERT_EQ(g_virtualCloudDb->DeleteByGid(g_tableName1, idMap), DBStatus::OK);
+
+    /**
+     * @tc.steps: step4. table work1 insert record which gid is 0 and name is local0 on cloud.
+     * @tc.expected: step4. return ok.
+     */
+    std::vector<VBucket> record1;
+    std::vector<VBucket> extend1;
+    VBucket data;
+    std::vector<uint8_t> photo(10, 'v');
+    data.insert_or_assign("name", "Local" + std::to_string(0));
+    data.insert_or_assign("height", 166.0); // 166.0 is random double value
+    data.insert_or_assign("married", false);
+    data.insert_or_assign("age", 13L);
+    data.insert_or_assign("photo", photo);
+    data.insert_or_assign("assert", Nil());
+    record1.push_back(data);
+    VBucket log;
+    Timestamp now = TimeHelper::GetSysCurrentTime();
+    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+    log.insert_or_assign("#_gid", std::to_string(2));
+    extend1.push_back(log);
+    ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(g_tableName1, std::move(record1), extend1), DBStatus::OK);
+
+    /**
+     * @tc.steps: step5. sync() and check local data.
+     * @tc.expected: step5. return ok.
+     */
+    ChangedData changedDataForTable1;
+    changedDataForTable1.tableName = g_tableName1;
+    changedDataForTable1.field.push_back(std::string("name"));
+    changedDataForTable1.primaryData[ChangeType::OP_UPDATE].push_back({"Local" + std::to_string(0)});
+    g_observer->SetExpectedResult(changedDataForTable1);
+
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+    EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+    g_observer->ClearChangedData();
+    LOGD("expect download:worker1[primary key]:[Local0], worker2[primary key]:[0]");
+    // 1 and 1 means the num of downloads from cloud db by worker1 and worker2
+    CheckDownloadResult(db, {1L, 1L}, "Local");
+    LOGD("expect upload:worker1[primary key]:[local0], worker2[primary key]:[0]");
+    CheckCloudTotalCount({1L, 1L}); // 0 and 0 means the total num of worker1 and worker2 from the cloud db
+
+    /**
+     * @tc.steps: step6. CloseDb().
+     * @tc.expected: step6. return ok.
+     */
+    CloseDb();
+}
+
 /*
  * @tc.name: CleanCloudDataTest001
- * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData
+ * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData, and invalid mode else.
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: huangboxin
@@ -1750,6 +1953,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest001, 
     CheckCloudRecordNum(db, g_tables, {20, 20});
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_ONLY), DBStatus::OK);
     CheckCleanLogNum(db, g_tables, 0);
+
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, ClearMode(BUTT + 1)), DBStatus::INVALID_ARGS);
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, ClearMode(-1)), DBStatus::INVALID_ARGS);
+
     CloseDb();
 }
 
@@ -1840,6 +2047,110 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest003, 
     RuntimeContext::GetInstance()->StopTaskPool();
     CheckCleanLogNum(db, g_tables, 20);
     LOGD("================================== test clean cloud data 003 end ===================================");
+    CloseDb();
+}
+
+static void InitGetCloudSyncTaskCountTest001(sqlite3 *&db)
+{
+    int64_t localCount = 20;
+    int64_t cloudCount = 10;
+    int64_t paddingSize = 100;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+}
+/*
+ * @tc.name: GetCloudSyncTaskCountTest001
+ * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData concurrently with Sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, GetCloudSyncTaskCountTest001, TestSize.Level0)
+{
+    InitGetCloudSyncTaskCountTest001(db);
+    Query query = Query::Select().FromTable(g_tables);
+    std::mutex dataMutex1, dataMutex2;
+    std::condition_variable cv1, cv2;
+    bool finish1 = false, finish2 = false;
+    /**
+     * @tc.steps: step1. Call Sync once.
+     * @tc.expected: OK.
+     */
+    CloudSyncStatusCallback callback1 = [&dataMutex1, &cv1, &finish1](
+        const std::map<std::string, SyncProcess> &process) {
+        std::map<std::string, SyncProcess> syncProcess;
+        {
+            std::lock_guard<std::mutex> autoLock(dataMutex1);
+            syncProcess = process;
+            if (syncProcess[DEVICE_CLOUD].process == FINISHED) {
+                finish1 = true;
+            }
+        }
+        cv1.notify_one();
+    };
+    /**
+     * @tc.steps: step2. Call Sync twice.
+     * @tc.expected: OK.
+     */
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback1, g_syncWaitTime), DBStatus::OK);
+
+    CloudSyncStatusCallback callback2 = [&dataMutex2, &cv2, &finish2](
+        const std::map<std::string, SyncProcess> &process) {
+        std::map<std::string, SyncProcess> syncProcess;
+        {
+            std::lock_guard<std::mutex> autoLock(dataMutex2);
+            syncProcess = process;
+            if (syncProcess[DEVICE_CLOUD].process == FINISHED) {
+                finish2 = true;
+            }
+        }
+        cv2.notify_one();
+    };
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback2, g_syncWaitTime), DBStatus::OK);
+    /**
+     * @tc.steps: step3. Call Get Cloud Sync Task Count
+     * @tc.expected: OK.
+     */
+    EXPECT_EQ(g_delegate->GetCloudSyncTaskCount(), 2);  // 2 is task count
+    /**
+     * @tc.steps: step3. Wait For Sync Task Finished
+     * @tc.expected: OK.
+     */
+    {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex1);
+        cv1.wait(uniqueLock, [&finish1] {
+            return finish1;
+        });
+    }
+    {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex2);
+        cv2.wait(uniqueLock, [&finish2] {
+            return finish2;
+        });
+    }
+    RuntimeContext::GetInstance()->StopTaskPool();
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest004
+ * @tc.desc: Test  RemoveDeviceData when cloudSchema doesn't have local table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: huangboxin
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest004, TestSize.Level0)
+{
+    DataBaseSchema dataBaseSchema;
+    TableSchema tableSchema1 = {
+        .name = "table_not_existed",
+        .fields = g_cloudFiled1
+    };
+    dataBaseSchema.tables.push_back(tableSchema1);
+    GetCloudDbSchema(dataBaseSchema);
+    ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    std::string device = "";
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CloseDb();
 }
 
@@ -1978,7 +2289,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest003, 
     int cloudCount = 3;
     InsertCloudTableRecord(0, cloudCount, paddingSize, true);
     InsertUserTableRecord(db, 0, localCount, paddingSize, false);
-    UpdateLocalAssetsToRepeat(db, 1);
+    Assets assets;
+    assets.push_back(g_localAsset);
+    assets.push_back(g_localAsset);
+    UpdateLocalAssets(db, assets, 1);
     Query query = Query::Select().FromTable(g_tables);
     std::vector<SyncProcess> expectProcess;
     CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
@@ -2045,5 +2359,406 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest004, 
     CheckDiffTypeAsset(db);
     CloseDb();
 }
+
+/*
+ * @tc.name: CloudSyncAssetTest005
+ * @tc.desc: Test erase all no change Asset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Construct local data with asset names and hashes consistent with the cloud
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 10;
+    int localCount = 3;
+    int cloudCount = 3;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    Assets assets;
+    for (int64_t j = 0; j < cloudCount; j++) {
+        Asset asset = g_cloudAsset;
+        asset.name = g_cloudAsset.name + std::to_string(j);
+        assets.push_back(asset);
+    }
+    UpdateLocalAssets(db, assets, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(cloudCount));
+
+    /**
+     * @tc.steps:step2. Construct cloud data
+     * @tc.expected: step2. return ok.
+     */
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+
+    /**
+     * @tc.steps:step3. sync, expect EraseNoChangeAsset to erase all Nochange assets
+     * @tc.expected: step3. return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+        ASSERT_EQ(process.size(), 1u);
+        g_syncProcess = std::move(process.begin()->second);
+
+        if (g_syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        g_processCondition.wait(lock, []() {
+            return g_syncProcess.process == FINISHED;
+        });
+        ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
+    }
+    CloseDb();
+}
+
+/*
+ * @tc.name: CloudSyncAssetTest006
+ * @tc.desc: Test upload new data without assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Construct local data with NULL asset and the local count is greater than the cloud
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 10;
+    int localCount = 6;
+    int cloudCount = 3;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(cloudCount));
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+
+    /**
+     * @tc.steps:step2. sync, upload new data without assets,
+     * @tc.expected: step2. return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+    CloseDb();
+}
+
+/*
+ * @tc.name: CloudSyncAssetTest007
+ * @tc.desc: for expilictly set not-change assets. If an asset is deleted, and its hash is not set to empty, it will be
+ * regarded as NO-CHANGE, rather than delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wanyi
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local asset contain an asset which has a corresponding asset in cloud
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 10;
+    int localCount = 1;
+    int cloudCount = 1;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps:step2. local asset is set to delete, but hash is not set to empty
+     * @tc.expected: step2. return ok.
+     */
+    Assets assets;
+    for (int64_t j = 0; j < cloudCount; j++) {
+        Asset asset = g_cloudAsset;
+        asset.name = g_cloudAsset.name + std::to_string(j);
+        asset.status = static_cast<uint32_t>(AssetStatus::DELETE);
+        assets.push_back(asset);
+    }
+    UpdateLocalAssets(db, assets, 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(cloudCount));
+    /**
+     * @tc.steps:step3. Do sync
+     * @tc.expected: step3. return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+        ASSERT_EQ(process.size(), 1u);
+        g_syncProcess = std::move(process.begin()->second);
+
+        if (g_syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        g_processCondition.wait(lock, []() {
+            return g_syncProcess.process == FINISHED;
+        });
+        ASSERT_EQ(g_syncProcess.errCode, DBStatus::OK);
+    }
+    /**
+     * @tc.steps:step4. Check result. Cloud db should not contain asset.
+     * @tc.expected: step4. return ok.
+     */
+    CheckAssetForAssetTest006();
+    CloseDb();
+}
+
+
+/**
+ * @tc.name: DownloadAssetTest001
+ * @tc.desc: Test the sync of different Asset status out of parameters when the download is successful
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns OK
+     * @tc.expected: step1. return ok.
+     */
+    DBStatus expectStatus = DBStatus::OK;
+    int index = 0;
+    InitMockAssetLoader(expectStatus, index);
+
+    /**
+     * @tc.steps:step2. init download data
+     * @tc.expected: step2. return ok.
+     */
+    int64_t paddingSize = 1;
+    int localCount = 120;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, localCount / g_arrayHalfSub, paddingSize, false);
+
+    /**
+     * @tc.steps:step3. sync
+     * @tc.expected: step3. return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+
+    /**
+     * @tc.steps:step4. Expect all states to be normal
+     * @tc.expected: step4. return ok.
+     */
+    CheckAssetAfterDownload(db, localCount);
+    CloseDb();
+}
+
+/*
+ * @tc.name: CloudSyncAssetTest008
+ * @tc.desc: sync failed with download asset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare asset data
+     */
+    int64_t paddingSize = 10;
+    int localCount = 1;
+    int cloudCount = 1;
+    InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps:step2. set download asset status failed
+     */
+    g_virtualAssetLoader->SetDownloadStatus(CLOUD_ASSET_SPACE_INSUFFICIENT);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            g_syncProcess = item.second;
+        }
+        if (g_syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    /**
+     * @tc.steps:step3. sync and wait sync finished.
+     * @tc.expected: step3. sync return CLOUD_ASSET_SPACE_INSUFFICIENT.
+     */
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::OK);
+    {
+        std::unique_lock<std::mutex> lock(g_processMutex);
+        g_processCondition.wait(lock, []() {
+            return g_syncProcess.process == FINISHED;
+        });
+        ASSERT_EQ(g_syncProcess.errCode, DBStatus::CLOUD_ASSET_SPACE_INSUFFICIENT);
+    }
+    /**
+     * @tc.steps:step4. clear data.
+     */
+    g_virtualAssetLoader->SetDownloadStatus(OK);
+    CloseDb();
+}
+
+/**
+ * @tc.name: DownloadAssetTest002
+ * @tc.desc: Test the sync of different Asset status out of parameters when the download is failed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.expected: step1. return ok.
+     */
+    DBStatus expectStatus = DBStatus::CLOUD_ERROR;
+    int index = 0;
+    InitMockAssetLoader(expectStatus, index);
+    int64_t paddingSize = 1;
+    int localCount = 100;
+
+    /**
+     * @tc.steps:step2. init download data
+     * @tc.expected: step2. return ok.
+     */
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, localCount, paddingSize, false);
+
+    /**
+     * @tc.steps:step3. sync
+     * @tc.expected: step3. return ok.
+     */
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+
+    /**
+     * @tc.steps:step4. Those status that are not normal are all be abnormal after sync.
+     * @tc.expected: step4. return ok.
+     */
+    CheckAssetAfterDownload2(db, localCount);
+    CloseDb();
+}
+
+/**
+ * @tc.name: DownloadAssetTest003
+ * @tc.desc: Init different asset name between local and cloud, then sync to test download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 1;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertCloudTableRecord(0, localCount, paddingSize, false);
+    Query query = Query::Select().FromTable(g_tables);
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+
+    /**
+     * @tc.steps:step2. update cloud Asset where gid = 0
+     * @tc.expected: step2. return ok.
+     */
+    UpdateCloudAssetForDownloadAssetTest003();
+
+    /**
+     * @tc.steps:step3. sync again
+     * @tc.expected: step3. return ok.
+     */
+    g_syncProcess = {};
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+
+    /**
+     * @tc.steps:step4. check asset after download where gid = 0
+     * @tc.expected: step4. return ok.
+     */
+    CheckAssetForDownloadAssetTest003(db);
+    CloseDb();
+}
+
+/**
+ * @tc.name: SchemaTest001
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wanyi
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.expected: step1. return ok.
+     */
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, INTEGER_PRIMARY_KEY_TABLE_SQL_WRONG_SYNC_MODE), SQLITE_OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName4, CLOUD_COOPERATION), DBStatus::OK);
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.expected: step1. return ok.
+     */
+    Query query = Query::Select().FromTable({g_tableName4});
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+    CloseDb();
+}
+
+/**
+ * @tc.name: SchemaTest002
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wanyi
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.expected: step1. return ok.
+     */
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, INTEGER_PRIMARY_KEY_TABLE_SQL_WRONG_SYNC_MODE), SQLITE_OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName4, DEVICE_COOPERATION), DBStatus::OK);
+    /**
+     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.expected: step1. return ok.
+     */
+    Query query = Query::Select().FromTable({g_tableName4});
+    std::vector<SyncProcess> expectProcess;
+    CloudSyncStatusCallback callback;
+    GetCallback(g_syncProcess, callback, expectProcess);
+    ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::SCHEMA_MISMATCH);
+    CloseDb();
+}
+
 }
 #endif // RELATIONAL_STORE

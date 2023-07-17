@@ -187,16 +187,19 @@ int SingleVerRelationalSyncer::SyncConditionCheck(const SyncParma &param, const 
 
 int SingleVerRelationalSyncer::QuerySyncPreCheck(const SyncParma &param) const
 {
+    if (!param.syncQuery.GetRelationTableNames().empty()) {
+        LOGE("[SingleVerRelationalSyncer] sync with not support query");
+        return -E_NOT_SUPPORT;
+    }
     if (!param.isQuerySync) {
         return E_OK;
     }
     if (param.mode == SYNC_MODE_PUSH_PULL) {
+        LOGE("[SingleVerRelationalSyncer] sync with not support push_pull mode");
         return -E_NOT_SUPPORT;
     }
     if (param.syncQuery.GetRelationTableName().empty()) {
-        return -E_NOT_SUPPORT;
-    }
-    if (!param.syncQuery.GetRelationTableNames().empty()) {
+        LOGE("[SingleVerRelationalSyncer] sync with empty table");
         return -E_NOT_SUPPORT;
     }
     return E_OK;
