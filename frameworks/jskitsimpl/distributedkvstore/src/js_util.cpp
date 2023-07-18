@@ -1273,9 +1273,7 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, ContextParam &pa
     napi_value hapInfo = nullptr;
     GetNamedProperty(env, in, "currentHapModuleInfo", hapInfo);
     if (hapInfo != nullptr) {
-        ZLOGE("hello yq1!");
         statusMsg = GetNamedProperty(env, hapInfo, "name", param.hapName);
-        ZLOGE("hello yq2!");
         ASSERT(statusMsg.status == napi_ok, "get hap name failed", napi_invalid_arg);
     }
     napi_value appInfo = nullptr;
