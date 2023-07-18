@@ -999,7 +999,7 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser014, TestSize.Level0)
      */
     g_communicatorAggregator->DisableCommunicator();
     RemoteCondition condition;
-    condition.sql = "SELECT * FROM sqlite_master";
+    condition.sql = "SELECT * FROM RdbMultiUser014";
     std::shared_ptr<ResultSet> resultSet;
     DBStatus status = g_rdbDelegatePtr1->RemoteQuery("DEVICE", condition, DBConstant::MAX_TIMEOUT, resultSet);
     EXPECT_EQ(status, COMM_FAILURE);
