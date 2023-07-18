@@ -38,7 +38,9 @@ namespace {
     KvVirtualDevice *g_deviceB = nullptr;
     KvVirtualDevice *g_deviceC = nullptr;
     DeviceManager *g_deviceManager = nullptr;
+#ifndef OMIT_MULTI_VER
     const int WAIT_TIME = 1000;
+#endif
 
 class DistributedDBSyncerDeviceManagerTest : public testing::Test {
 public:
