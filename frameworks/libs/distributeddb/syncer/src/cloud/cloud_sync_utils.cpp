@@ -14,8 +14,8 @@
  */
 #include "db_errno.h"
 #include "log_print.h"
-#include "cloud_db_constant.h"
-#include "cloud_sync_utils.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_sync_utils.h"
 
 namespace DistributedDB {
 

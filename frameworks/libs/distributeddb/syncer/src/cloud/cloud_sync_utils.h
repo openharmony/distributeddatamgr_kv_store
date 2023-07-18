@@ -16,7 +16,7 @@
 #define CLOUD_SYNC_UTILS_H
 
 #include <cstdint>
-#include "cloud_store_types.h"
+#include "cloud/cloud_store_types.h"
 #include "icloud_sync_storage_interface.h"
 
 namespace DistributedDB {
