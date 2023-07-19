@@ -318,7 +318,7 @@ int SyncAbleKvDB::EnableManualSync(void)
     return syncer_.EnableManualSync();
 }
 
-int SyncAbleKvDB::GetLocalIdentity(std::string &outTarget)
+int SyncAbleKvDB::GetLocalIdentity(std::string &outTarget) const
 {
     return syncer_.GetLocalIdentity(outTarget);
 }

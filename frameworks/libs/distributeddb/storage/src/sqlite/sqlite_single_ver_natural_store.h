@@ -286,7 +286,7 @@ private:
 
     int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
 
-    int GetAndResizeLocalIdentity(std::string &outTarget);
+    int GetAndResizeLocalIdentity(std::string &outTarget) const;
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
