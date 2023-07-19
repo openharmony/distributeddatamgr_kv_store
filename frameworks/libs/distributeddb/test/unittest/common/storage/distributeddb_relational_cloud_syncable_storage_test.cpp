@@ -1242,5 +1242,114 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset004, Tes
     ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::INSERT, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
+
+/*
+ * @tc.name: CalPrimaryKeyHash001
+ * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is string
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. local insert one data, primary key is string
+     * @tc.expected: OK.
+     */
+    std::string tableName = "user2";
+    const std::string CREATE_LOCAL_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+        "name TEXT PRIMARY KEY, age INT);";
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_LOCAL_TABLE_SQL), SQLITE_OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DBStatus::OK);
+    std::string name = "Local0";
+    std::map<std::string, Type> primaryKey = {{"name", name}};
+    string sql = "INSERT OR REPLACE INTO user2(name, age) VALUES ('Local" + std::to_string(0) + "', '18');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    EXPECT_NE(result.size(), 0u);
+    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(tableName);
+    /**
+     * @tc.steps: step1. query timestamp use hashKey
+     * @tc.expected: OK.
+     */
+    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
+        LOGD("get timestamp = %" PRIu64, timestamp);
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    }
+    EXPECT_EQ(errCode, E_OK);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    sqlite3_close(db);
+}
+
+/*
+ * @tc.name: CalPrimaryKeyHash002
+ * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is int
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhuwentao
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. local insert one data, primary key is int
+     * @tc.expected: OK.
+     */
+    std::string tableName = "user3";
+    const std::string CREATE_LOCAL_TABLE_SQL =
+        "CREATE TABLE IF NOT EXISTS " + tableName + "(" \
+        "id INT PRIMARY KEY, name TEXT);";
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_LOCAL_TABLE_SQL), SQLITE_OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DBStatus::OK);
+    int64_t id = 1;
+    std::map<std::string, Type> primaryKey = {{"id", id}};
+    std::string sql = "INSERT OR REPLACE INTO " + tableName + " (id, name) VALUES ('" + '1' + "', 'Local" +
+        std::to_string(0) + "');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    EXPECT_NE(result.size(), 0u);
+    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(tableName);
+    /**
+     * @tc.steps: step1. query timestamp use hashKey
+     * @tc.expected: OK.
+     */
+    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
+    EXPECT_EQ(errCode, E_OK);
+    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
+    if (errCode != E_OK) {
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement, false);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
+        LOGD("get timestamp = %" PRIu64, timestamp);
+        errCode = E_OK;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    }
+    EXPECT_EQ(errCode, E_OK);
+    SQLiteUtils::ResetStatement(statement, true, errCode);
+    sqlite3_close(db);
+}
 }
 #endif // RELATIONAL_STORE

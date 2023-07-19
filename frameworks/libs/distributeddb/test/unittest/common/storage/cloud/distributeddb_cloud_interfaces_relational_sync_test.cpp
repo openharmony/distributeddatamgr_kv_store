@@ -1077,6 +1077,26 @@ namespace {
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
+    void InsertCloudForCloudProcessNotify001(std::vector<VBucket> &record, std::vector<VBucket> &extend)
+    {
+        VBucket data;
+        std::vector<uint8_t> photo(10, 'v');
+        data.insert_or_assign("name", "Local" + std::to_string(0));
+        data.insert_or_assign("height", 166.0); // 166.0 is random double value
+        data.insert_or_assign("married", false);
+        data.insert_or_assign("age", 13L);
+        data.insert_or_assign("photo", photo);
+        data.insert_or_assign("assert", Nil());
+        record.push_back(data);
+        VBucket log;
+        Timestamp now = TimeHelper::GetSysCurrentTime();
+        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+        log.insert_or_assign("#_gid", std::to_string(2));
+        extend.push_back(log);
+    }
+
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     {
         std::unique_lock<std::mutex> lock(g_processMutex);
@@ -1881,22 +1901,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, 
      */
     std::vector<VBucket> record1;
     std::vector<VBucket> extend1;
-    VBucket data;
-    std::vector<uint8_t> photo(10, 'v');
-    data.insert_or_assign("name", "Local" + std::to_string(0));
-    data.insert_or_assign("height", 166.0); // 166.0 is random double value
-    data.insert_or_assign("married", false);
-    data.insert_or_assign("age", 13L);
-    data.insert_or_assign("photo", photo);
-    data.insert_or_assign("assert", Nil());
-    record1.push_back(data);
-    VBucket log;
-    Timestamp now = TimeHelper::GetSysCurrentTime();
-    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-    log.insert_or_assign("#_gid", std::to_string(2));
-    extend1.push_back(log);
+    InsertCloudForCloudProcessNotify001(record1, extend1);
     ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(g_tableName1, std::move(record1), extend1), DBStatus::OK);
 
     /**
@@ -2151,103 +2156,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CleanCloudDataTest004, 
     ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
     std::string device = "";
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
-    CloseDb();
-}
-
-/*
- * @tc.name: CalPrimaryKeyHash001
- * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is string
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhuwentao
- */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CalPrimaryKeyHash001, TestSize.Level0)
-{
-   /**
-     * @tc.steps: step1. local insert one data, primary key is string
-     * @tc.expected: OK.
-     */
-    std::string photo(1u, 'v');
-    std::string name = "Local0";
-    std::map<std::string, Type> primaryKey = {{"name", name}};
-    string sql = "INSERT OR REPLACE INTO " + g_tableName1
-        + " (name, height, married, photo, age) VALUES ('Local" + std::to_string(0) +
-        "', '175.8', '0', '" + photo + "', '18');";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
-    EXPECT_NE(result.size(), 0u);
-    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(g_tableName1);
-   /**
-     * @tc.steps: step1. query timestamp use hashKey
-     * @tc.expected: OK.
-     */
-    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
-    EXPECT_EQ(errCode, E_OK);
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement, false);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
-        LOGD("get timestamp = %" PRIu64, timestamp);
-        errCode = E_OK;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_NOT_FOUND;
-    }
-    EXPECT_EQ(errCode, E_OK);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
-    CloseDb();
-}
-
-/*
- * @tc.name: CalPrimaryKeyHash002
- * @tc.desc: Test CalcPrimaryKeyHash interface when primary key is int
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhuwentao
- */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CalPrimaryKeyHash002, TestSize.Level0)
-{
-   /**
-     * @tc.steps: step1. local insert one data, primary key is int
-     * @tc.expected: OK.
-     */
-    int64_t id = 1;
-    std::map<std::string, Type> primaryKey = {{"id", id}};
-    std::string sql = "INSERT OR REPLACE INTO " + g_tableName2
-        + " (id, name, height) VALUES ('" + '1' + "', 'Local"
-        + std::to_string(0) + "', '155.10');";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
-    EXPECT_NE(result.size(), 0u);
-    std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(g_tableName2);
-   /**
-     * @tc.steps: step1. query timestamp use hashKey
-     * @tc.expected: OK.
-     */
-    std::string querysql = "select timestamp/10000 from " + logTableName + " where hash_key=?";
-    sqlite3_stmt *statement = nullptr;
-    int errCode = SQLiteUtils::GetStatement(db, querysql, statement);
-    EXPECT_EQ(errCode, E_OK);
-    errCode = SQLiteUtils::BindBlobToStatement(statement, 1, result); // 1 means hashkey index
-    if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(statement, true, errCode);
-        return;
-    }
-    errCode = SQLiteUtils::StepWithRetry(statement, false);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        Timestamp timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, 0));
-        LOGD("get timestamp = %" PRIu64, timestamp);
-        errCode = E_OK;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_NOT_FOUND;
-    }
-    EXPECT_EQ(errCode, E_OK);
-    SQLiteUtils::ResetStatement(statement, true, errCode);
     CloseDb();
 }
 

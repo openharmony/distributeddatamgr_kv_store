@@ -2497,7 +2497,7 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget)
+int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
 {
     int errCode = GetLocalIdentity(outTarget);
     if (errCode == -E_NOT_INIT) {
