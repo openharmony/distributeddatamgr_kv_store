@@ -928,6 +928,42 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest005_1, 
         DistributedDB::CLOUD_COOPERATION, OK);
 }
 
+void CheckTable(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, sqlite3 *db)
+{
+    /**
+     * @tc.steps:step4. Create distributed table with a table with "UNIQUE"
+     * @tc.expected: step4. return OK or NOT_SUPPORT.
+     */
+    std::string tableName4 = "t4";
+    std::string createSql = "create table " + tableName4 + "(id int UNIQUE);";
+    createSql += "create table t4_1(id int primary key, value text UNIQUE, name int);";
+    createSql += "create table t4_2(id int primary key, value text UNIQUE , name int);";
+    createSql += "create table t4_3(id int primary key, value text UNIQUE );";
+    createSql += "create table t4_4(id int primary key, value text UNIQUE , name int);";
+    createSql += "create table t4_5(id int unique);";
+    createSql += "create table t4_6(id int primary key, value text UniqUe, name int);";
+    createSql += "create table t4_7(id int primary key, uniquekey text , name int);";
+    createSql += "create table t4_8(id int , name text, UNIQUE(id, name));";
+    createSql += "create table t4_9(id int , name text,UNIQUE(id, name));";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    DBStatus expectCode;
+    if (tableSyncType == DEVICE_COOPERATION) {
+        expectCode = OK;
+    } else {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName4, tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_1", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_2", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_3", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_4", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_5", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_6", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_7", tableSyncType), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_8", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_9", tableSyncType), expectCode);
+}
+
 void TableConstraintsCheck(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, sqlite3 *db)
 {
     /**
@@ -953,6 +989,8 @@ void TableConstraintsCheck(TableSyncType tableSyncType, RelationalStoreDelegate 
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
     EXPECT_EQ(delegate->CreateDistributedTable(tableName2, tableSyncType), OK);
 
+    CheckTable(tableSyncType, delegate, db);
+
     /**
      * @tc.steps:step3. Create distributed table with a table with "WITHOUT ROWID"
      * @tc.expected: step3. return NOT_SUPPORT.
@@ -961,38 +999,6 @@ void TableConstraintsCheck(TableSyncType tableSyncType, RelationalStoreDelegate 
     createSql = "create table " + tableName3 + "(id int primary key) WITHOUT ROWID;";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
     EXPECT_EQ(delegate->CreateDistributedTable(tableName3, tableSyncType), NOT_SUPPORT);
-
-    /**
-     * @tc.steps:step4. Create distributed table with a table with "UNIQUE"
-     * @tc.expected: step4. return OK or NOT_SUPPORT.
-     */
-    std::string tableName4 = "t4";
-    createSql = "create table " + tableName4 + "(id int UNIQUE);";
-    createSql += "create table t4_1(id int primary key, value text UNIQUE, name int);";
-    createSql += "create table t4_2(id int primary key, value text UNIQUE , name int);";
-    createSql += "create table t4_3(id int primary key, value text UNIQUE );";
-    createSql += "create table t4_4(id int primary key, value text UNIQUE , name int);";
-    createSql += "create table t4_5(id int unique);";
-    createSql += "create table t4_6(id int primary key, value text UniqUe, name int);";
-    createSql += "create table t4_7(id int primary key, uniquekey text , name int);";
-    createSql += "create table t4_8(id int , name text, UNIQUE(id, name));";
-    createSql += "create table t4_9(id int , name text,UNIQUE(id, name));";
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
-    if (tableSyncType == DEVICE_COOPERATION) {
-        expectCode = OK;
-    } else {
-        expectCode = NOT_SUPPORT;
-    }
-    EXPECT_EQ(delegate->CreateDistributedTable(tableName4, tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_1", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_2", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_3", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_4", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_5", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_6", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_7", tableSyncType), OK);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_8", tableSyncType), expectCode);
-    EXPECT_EQ(delegate->CreateDistributedTable("t4_9", tableSyncType), expectCode);
 
     /**
      * @tc.steps:step5. Create distributed table with a table with primary key which is real
