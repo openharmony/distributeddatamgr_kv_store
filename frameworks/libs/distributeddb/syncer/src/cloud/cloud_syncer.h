@@ -46,7 +46,10 @@ public:
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
-    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList);
+    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+        const RelationalSchemaObject &localSchema);
+
+    int32_t GetCloudSyncTaskCount();
 
     void Close();
 protected:
@@ -73,9 +76,9 @@ protected:
     };
     struct AssetDownloadList {
         // assets in following list will fill STATUS and timestamp after calling downloading
-        DownloadList downloadList;
+        DownloadList downloadList = {};
         // assets in following list won't fill STATUS and timestamp after calling downloading
-        DownloadList completeDownloadList;
+        DownloadList completeDownloadList = {};
     };
     struct SyncParam {
         DownloadData downloadData;
@@ -84,6 +87,7 @@ protected:
         AssetDownloadList assetsDownloadList;
         CloudWaterMark cloudWaterMark;
         std::vector<std::string> pkColNames;
+        std::set<Key> deletePrimaryKeySet;
         std::string tableName;
         bool isLastBatch = false;
     };
@@ -112,7 +116,7 @@ protected:
         std::shared_ptr<ProcessNotifier> notifier;
         std::shared_ptr<CloudSyncStrategy> strategy;
         std::map<TableName, std::vector<Field>> assetFields;
-        // shoulb be cleared after each Download
+        // should be cleared after each Download
         AssetDownloadList assetDownloadList;
         // store GID and assets, using in upload procedure
         std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
@@ -148,7 +152,7 @@ protected:
     int PreCheck(TaskId &taskId, const TableName &tableName);
 
     int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
-    
+
     int CheckCloudSyncDataValid(CloudSyncData uploadData, const std::string &tableName, const int64_t &count,
         TaskId &taskId);
 
@@ -174,7 +178,7 @@ protected:
 
     int DoUploadInner(const std::string &tableName, UploadParam &uploadParam);
 
-    int CheckDownloadDatum(VBucket &datum);
+    int PreHandleData(VBucket &datum, const std::vector<std::string> &pkColNames);
 
     int QueryCloudData(const std::string &tableName, CloudWaterMark &cloudWaterMark, DownloadData &downloadData);
 
@@ -203,8 +207,9 @@ protected:
     void HeartBeatFailed(TaskId taskId, int errCode);
 
     void SetTaskFailed(TaskId taskId, int errCode);
-    
-    int SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys);
+
+    int SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &InsertDataNoPrimaryKeys,
+        std::vector<std::pair<Key, size_t>> &deletedList);
 
     int SaveData(SyncParam &param);
 
@@ -212,8 +217,11 @@ protected:
 
     int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
-    int SaveChangedData(SyncParam &param, int dataIndex, DataInfo &dataInfo,
-        std::vector<size_t> &InsertDataNoPrimaryKeys);
+    int FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
+    size_t &delIdx);
+
+    int SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
+        std::vector<size_t> &InsertDataNoPrimaryKeys, std::vector<std::pair<Key, size_t>> &deletedList);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
 

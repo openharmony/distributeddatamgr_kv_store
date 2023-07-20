@@ -566,6 +566,7 @@ void SQLiteSingleVerStorageEngine::EndMigrate(SQLiteSingleVerStorageExecutor *&h
     if (errCode != E_OK) {
         LOGE("Add subscribe trigger after migrate sync data failed: %d", errCode);
     }
+
     // Notify max timestamp offset for SyncEngine.
     // When time change offset equals 0, SyncEngine can adjust local time offset according to max timestamp.
     RuntimeContext::GetInstance()->NotifyTimestampChanged(0);

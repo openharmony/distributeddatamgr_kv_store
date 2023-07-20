@@ -158,7 +158,7 @@ public:
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData) override;
 
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
-        std::vector<Asset> &assets) override;
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) override;
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
 

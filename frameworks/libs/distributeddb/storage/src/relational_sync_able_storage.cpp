@@ -899,8 +899,7 @@ int RelationalSyncAbleStorage::StartTransaction(TransactType type)
     }
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(type == TransactType::IMMEDIATE ? true : false,
-        OperatePerm::NORMAL_PERM, errCode));
+        storageEngine_->FindExecutor(type == TransactType::IMMEDIATE, OperatePerm::NORMAL_PERM, errCode));
     if (handle == nullptr) {
         ReleaseHandle(handle);
         return errCode;
@@ -1099,25 +1098,14 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
-    std::vector<Asset> &assets)
+    const RelationalSchemaObject &localSchema, std::vector<Asset> &assets)
 {
     if (transactionHandle_ == nullptr) {
-        LOGE(" the transaction has not been started");
+        LOGE("the transaction has not been started");
         return -E_INVALID_DB;
     }
-    std::vector<TableSchema> tableSchemaList;
-    for (const auto &tableName: tableNameList) {
-        TableSchema tableSchema;
-        int errCode = GetCloudTableSchema(tableName, tableSchema);
-        if (errCode != E_OK) {
-            LOGE("Get cloud schema failed when clean cloud data, %d", errCode);
-            // if a table in local which cannot find schema and cloud, not handle.
-        } else {
-            tableSchemaList.push_back(tableSchema);
-        }
-    }
 
-    return transactionHandle_->DoCleanInner(mode, tableNameList, tableSchemaList, assets);
+    return transactionHandle_->DoCleanInner(mode, tableNameList, localSchema, assets);
 }
 
 int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema)

@@ -16,6 +16,7 @@
 #ifndef SQLITE_LOCAL_KV_DB_SNAP_SHOT_H
 #define SQLITE_LOCAL_KV_DB_SNAP_SHOT_H
 
+#ifndef OMIT_MULTI_VER
 #include <string>
 
 #include "macro_utils.h"
@@ -45,5 +46,5 @@ private:
     IKvDBConnection *connect_;
 };
 } // namespace DistributedDB
-
+#endif // OMIT_MULTI_VER
 #endif // SQLITE_LOCAL_KV_DB_SNAP_SHOT_H

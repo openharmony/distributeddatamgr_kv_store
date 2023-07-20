@@ -50,6 +50,8 @@ public:
     DB_API virtual DBStatus Sync(const std::vector<std::string> &devices, SyncMode mode,
         const Query &query, const SyncStatusCallback &onComplete, bool wait) = 0;
 
+    DB_API virtual int32_t GetCloudSyncTaskCount() = 0;
+
     DB_API DBStatus RemoveDeviceData(const std::string &device, ClearMode mode = DEFAULT)
     {
         return RemoveDeviceDataInner(device, mode);

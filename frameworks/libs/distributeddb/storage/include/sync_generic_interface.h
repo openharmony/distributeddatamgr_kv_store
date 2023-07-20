@@ -149,6 +149,11 @@ public:
     {
         return -E_NOT_SUPPORT;
     }
+
+    virtual int TryHandle() const
+    {
+        return E_OK;
+    }
 };
 }
 #endif // SYNC_GENERIC_INTERFACE_H

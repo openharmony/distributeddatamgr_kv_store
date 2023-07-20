@@ -1382,6 +1382,10 @@ SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStoreConnection::GetExecut
         LOGE("[SingleVerConnection] the store is null");
         return nullptr;
     }
+    errCode = naturalStore->TryHandle();
+    if (errCode != E_OK) {
+        return nullptr;
+    }
     return naturalStore->GetHandle(isWrite, errCode);
 }
 

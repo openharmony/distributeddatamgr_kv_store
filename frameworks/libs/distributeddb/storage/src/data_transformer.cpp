@@ -15,7 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "data_transformer.h"
 
-#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "parcel.h"
@@ -40,8 +39,7 @@ int DataTransformer::TransformTableData(const TableDataWithLog &tableDataWithLog
 }
 
 int DataTransformer::TransformDataItem(const std::vector<DataItem> &dataItems,
-    const std::vector<FieldInfo> &remoteFieldInfo, const std::vector<FieldInfo> &localFieldInfo,
-    OptTableDataWithLog &tableDataWithLog)
+    const std::vector<FieldInfo> &remoteFieldInfo, OptTableDataWithLog &tableDataWithLog)
 {
     if (dataItems.empty()) {
         return E_OK;

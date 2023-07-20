@@ -1034,6 +1034,11 @@ int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) cons
             LOGE("[Syncer] Syncer is closing, return!");
             return -E_BUSY;
         }
+        int errCode = static_cast<SyncGenericInterface *>(syncInterface_)->TryHandle();
+        if (errCode != E_OK) {
+            LOGE("[Syncer] syncer is restarting, return!");
+            return errCode;
+        }
         syncInterface_->IncRefCount();
         metadata = metadata_;
     }

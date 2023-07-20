@@ -16,6 +16,7 @@
 #ifndef LOCAL_DATABASE_OPER_H
 #define LOCAL_DATABASE_OPER_H
 
+#ifndef OMIT_MULTI_VER
 #include "database_oper.h"
 #include "sqlite_local_kvdb.h"
 
@@ -54,4 +55,5 @@ private:
     SQLiteStorageEngine *storageEngine_;
 };
 } // namespace DistributedDB
+#endif // OMIT_MULTI_VER
 #endif // LOCAL_DATABASE_OPER_H

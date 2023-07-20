@@ -974,3 +974,38 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser013, TestSize.Level1)
     EXPECT_EQ(callCount, 0u);
     CloseStore();
 }
+
+/**
+ * @tc.name: multi user 014
+ * @tc.desc: test remote query with multi user
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser014, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. set SyncActivationCheckCallback and only userId2 can active
+     */
+    RuntimeConfig::SetSyncActivationCheckCallback(g_syncActivationCheckCallback2);
+    /**
+     * @tc.steps: step2. openStore in dual tuple sync mode and call remote query
+     */
+    OpenStore1(true);
+    PrepareEnvironment(g_tableName, g_storePath1, g_rdbDelegatePtr1);
+    /**
+     * @tc.steps: step3. disable communicator and call remote query
+     * @tc.expected: step3. failed by communicator
+     */
+    g_communicatorAggregator->DisableCommunicator();
+    RemoteCondition condition;
+    condition.sql = "SELECT * FROM RdbMultiUser014";
+    std::shared_ptr<ResultSet> resultSet;
+    DBStatus status = g_rdbDelegatePtr1->RemoteQuery("DEVICE", condition, DBConstant::MAX_TIMEOUT, resultSet);
+    EXPECT_EQ(status, COMM_FAILURE);
+    EXPECT_EQ(resultSet, nullptr);
+    CloseStore();
+    g_communicatorAggregator->EnableCommunicator();
+    SyncActivationCheckCallbackV2 callbackV2 = nullptr;
+    RuntimeConfig::SetSyncActivationCheckCallback(callbackV2);
+}

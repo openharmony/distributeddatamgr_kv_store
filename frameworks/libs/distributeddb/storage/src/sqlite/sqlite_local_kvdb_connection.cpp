@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include "sqlite_local_kvdb_connection.h"
 
 #include <cstring>
@@ -496,3 +497,4 @@ int SQLiteLocalKvDBConnection::CheckDataStatus(const Key &key, const Value &valu
     return static_cast<SQLiteLocalKvDB *>(kvDB_)->CheckDataStatus(key, value, isDeleted);
 }
 } // namespace DistributedDB
+#endif // OMIT_MULTI_VER

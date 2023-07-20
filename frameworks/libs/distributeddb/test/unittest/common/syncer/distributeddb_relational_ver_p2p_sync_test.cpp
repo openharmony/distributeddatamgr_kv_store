@@ -2489,6 +2489,22 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, EncryptedAlgoUpgrade001, TestSiz
     CheckVirtualData(dataMap);
 }
 
+/**
+ * @tc.name: QueryParamCheck001
+ * @tc.desc: Test sync query param
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, QueryParamCheck001, TestSize.Level0)
+{
+    std::map<std::string, DataValue> dataMap;
+    PrepareEnvironment(dataMap, {g_deviceB});
+    Query query = Query::Select().FromTable({ g_tableName });
+    EXPECT_EQ(g_rdbDelegatePtr->Sync({DEVICE_B}, DistributedDB::SYNC_MODE_PUSH_ONLY, query, nullptr, false),
+        NOT_SUPPORT);
+}
+
 #ifndef OMIT_ENCRYPT
 /**
 * @tc.name: AutoLaunchSyncAfterRekey_001

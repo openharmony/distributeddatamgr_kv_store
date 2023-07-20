@@ -27,6 +27,18 @@ public:
         std::lock_guard<std::mutex> lock(timeDriverLock_);
         RuntimeContext::GetInstance()->ModifyTimer(driverTimerId_, milliSeconds);
     }
+
+    void CallResetTimer()
+    {
+        TimeSync::ResetTimer();
+    }
+
+    bool CallIsClosed() const
+    {
+        return TimeSync::IsClosed();
+    }
+
+    MOCK_METHOD2(SyncStart, int(const CommErrHandler &, uint32_t));
 };
 }
 #endif // MOCK_TIME_SYNC_H

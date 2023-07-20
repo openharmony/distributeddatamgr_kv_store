@@ -194,6 +194,17 @@ public:
 
     int IsSupportSubscribe() const override;
 
+    void AbortHandle();
+
+    void EnableHandle();
+
+    int TryHandle() const override;
+
+protected:
+    void AsyncDataMigration() const;
+
+    void ReleaseResources();
+
 private:
     struct TransPair {
         int index;
@@ -206,8 +217,6 @@ private:
         bool isNeedCommit, int eventType);
 
     int RegisterNotification();
-
-    void ReleaseResources();
 
     void InitCurrentMaxStamp();
 
@@ -240,8 +249,6 @@ private:
 
     int StopLifeCycleTimer() const;
     void InitConflictNotifiedFlag(SingleVerNaturalStoreCommitNotifyData *committedData);
-
-    void AsyncDataMigration() const;
 
     // Change value that should be amended, and neglect value that is incompatible
     void CheckAmendValueContentForSyncProcedure(std::vector<DataItem> &dataItems) const;
@@ -279,11 +286,16 @@ private:
 
     int RemoveDeviceDataInner(const std::string &hashDev, bool isNeedNotify);
 
+    int GetAndResizeLocalIdentity(std::string &outTarget) const;
+
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
     Timestamp currentMaxTimestamp_ = 0;
 
     mutable std::shared_mutex engineMutex_;
+    mutable std::mutex migrateMutex_;
+    mutable std::condition_variable migrateCv_;
+    mutable int migrateCount_ = 0;
     SQLiteSingleVerStorageEngine *storageEngine_;
 
     bool notificationEventsRegistered_;
@@ -302,6 +314,9 @@ private:
     mutable std::shared_mutex dataInterceptorMutex_;
     PushDataInterceptor dataInterceptor_;
     std::atomic<uint64_t> maxLogSize_;
+
+    mutable std::shared_mutex abortHandleMutex_;
+    OperatePerm abortPerm_;
 };
 } // namespace DistributedDB
 #endif // SQLITE_SINGLE_VER_NATURAL_STORE_H

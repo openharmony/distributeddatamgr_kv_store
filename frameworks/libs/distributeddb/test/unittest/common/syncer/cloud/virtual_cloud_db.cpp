@@ -17,12 +17,16 @@
 #include <thread>
 #include "cloud_db_types.h"
 #include "db_constant.h"
+#include "cloud_db_constant.h"
 #include "log_print.h"
+#include "time_helper.h"
+
 namespace DistributedDB {
 namespace {
-    const char *g_deleteField = "#_deleted";
-    const char *g_gidField = "#_gid";
-    const char *g_cursorField = "#_cursor";
+    const char *g_deleteField = CloudDbConstant::DELETE_FIELD;
+    const char *g_gidField = CloudDbConstant::GID_FIELD;
+    const char *g_cursorField = CloudDbConstant::CURSOR_FIELD;
+    const char *g_modifiedField = CloudDbConstant::MODIFY_FIELD;
 }
 
 DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
@@ -54,6 +58,37 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         cloudData_[tableName].push_back(cloudData);
         auto gid = std::get<std::string>(extend[i][g_gidField]);
     }
+    return OK;
+}
+
+DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::vector<VBucket> &&record,
+    std::vector<VBucket> &extend)
+{
+    if (cloudError_) {
+        return DB_ERROR;
+    }
+    if (blockTimeMs_ != 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(blockTimeMs_));
+    }
+    if (record.size() != extend.size()) {
+        LOGE("[VirtualCloudDb] not equal records");
+        return DB_ERROR;
+    }
+    std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
+    for (size_t i = 0; i < record.size(); ++i) {
+        if (extend[i].find(g_gidField) == extend[i].end()) {
+            extend[i][g_gidField] = std::to_string(currentGid_++);
+        }
+        extend[i][g_cursorField] = std::to_string(currentCursor_++);
+        extend[i][g_deleteField] = false;
+        CloudData cloudData = {
+            .record = std::move(record[i]),
+            .extend = extend[i]
+        };
+        cloudData_[tableName].push_back(cloudData);
+    }
+
+    LOGI("[VirtualCloudDb] BatchInsertWithGid records");
     return OK;
 }
 
@@ -105,6 +140,9 @@ DBStatus VirtualCloudDb::HeartBeat()
 
 std::pair<DBStatus, uint32_t> VirtualCloudDb::Lock()
 {
+    if (actionStatus_ != OK) {
+        return { actionStatus_, DBConstant::MIN_TIMEOUT };
+    }
     if (cloudError_) {
         return { DB_ERROR, DBConstant::MIN_TIMEOUT };
     }
@@ -131,6 +169,21 @@ DBStatus VirtualCloudDb::Close()
 {
     if (cloudError_) {
         return DB_ERROR;
+    }
+    return OK;
+}
+
+DBStatus VirtualCloudDb::DeleteByGid(const std::string &tableName, VBucket &extend)
+{
+    for (auto &tableData : cloudData_[tableName]) {
+        if (std::get<std::string>(tableData.extend[g_gidField]) == std::get<std::string>(extend[g_gidField])) {
+            tableData.extend[g_modifiedField] = (int64_t)TimeHelper::GetSysCurrentTime() /
+                CloudDbConstant::TEN_THOUSAND;
+            tableData.extend[g_deleteField] = true;
+            LOGD("[VirtualCloudDb] DeleteByGid, gid %s", std::get<std::string>(extend[g_gidField]).c_str());
+            tableData.record.clear();
+            break;
+        }
     }
     return OK;
 }

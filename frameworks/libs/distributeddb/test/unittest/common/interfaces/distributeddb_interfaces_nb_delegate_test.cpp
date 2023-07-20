@@ -26,6 +26,7 @@
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
 #include "sqlite_single_ver_natural_store.h"
+#include "storage_engine_manager.h"
 #include "system_timer.h"
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
@@ -202,7 +203,7 @@ namespace {
 
         return resultCheck;
     }
-}
+
 class DistributedDBInterfacesNBDelegateTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -2787,4 +2788,64 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BlockTimer001, TestSize.Level0)
     });
     EXPECT_EQ(g_mgr.DeleteKvStore("BlockTimer001"), OK);
     g_kvNbDelegatePtr = nullptr;
+}
+
+/**
+  * @tc.name: MigrateDeadLockTest0011
+  * @tc.desc: Test the will not be deadlock in migration.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize.Level2)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option = {true, false, false};
+    option.secOption = {S3, SECE};
+    std::string storeId = "distributed_nb_delegate_test";
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, storeId);
+    property.SetIntProp(KvDBProperties::SECURITY_LABEL, S3);
+    property.SetIntProp(KvDBProperties::SECURITY_FLAG, SECE);
+
+    std::string identifier = DBCommon::GenerateIdentifierId(storeId, APP_ID, USER_ID);
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, DBCommon::TransferHashString(identifier));
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+
+    int errCode;
+    SQLiteSingleVerStorageEngine *storageEngine =
+        static_cast<SQLiteSingleVerStorageEngine *>(StorageEngineManager::GetStorageEngine(property, errCode));
+    ASSERT_EQ(errCode, E_OK);
+    ASSERT_NE(storageEngine, nullptr);
+    storageEngine->SetEngineState(EngineState::CACHEDB);
+
+    /**
+     * @tc.steps:step2. create cache db
+     * @tc.expected: step2. operation ok
+     */
+    std::string cacheDir =  g_testDir + "/" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(identifier)) +
+        "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::CACHEDB_DIR;
+    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    EXPECT_EQ(OS::CreateFileByFileName(cacheDB), E_OK);
+
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_mgr.GetKvStore(storeId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    std::this_thread::sleep_for(std::chrono::seconds(3)); // 3 is sleep seconds
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
+        LOGE("rm test db files error!");
+    }
+}
 }

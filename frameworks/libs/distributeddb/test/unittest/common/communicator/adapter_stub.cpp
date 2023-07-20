@@ -81,7 +81,6 @@ int AdapterStub::SendBytes(const std::string &dstTarget, const uint8_t *bytes, u
     ApplySendBlock();
 
     (void)totalLength;
-
     {
         std::lock_guard<std::mutex> autoLock(sendBytesMutex_);
         if (onSendBytes_) {

@@ -1540,27 +1540,23 @@ HWTEST_F(DistributedDBSingleVerP2PComplexSyncTest, RebuildSync003, TestSize.Leve
      * @tc.steps: step4. device A rebuilt, device B push data to A and set clear remote data mark into context after 1s
      * * @tc.expected: step4. interface return ok
     */
-    std::thread thread1([]() {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000)); // wait 1s
-        g_deviceB->SetClearRemoteStaleData(true);
-        g_mgr.CloseKvStore(g_kvDelegatePtr);
-        g_kvDelegatePtr = nullptr;
-        ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
-        KvStoreNbDelegate::Option option;
-        g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
-        ASSERT_TRUE(g_kvDelegateStatus == OK);
-        ASSERT_TRUE(g_kvDelegatePtr != nullptr);
-        std::map<std::string, DBStatus> result;
-        std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
-        g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
-        ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result) == OK);
-    });
+    g_deviceB->SetClearRemoteStaleData(true);
+    g_mgr.CloseKvStore(g_kvDelegatePtr);
+    g_kvDelegatePtr = nullptr;
+    ASSERT_TRUE(g_mgr.DeleteKvStore(STORE_ID) == OK);
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore(STORE_ID, option, g_kvDelegateCallback);
+    ASSERT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvDelegatePtr != nullptr);
+    std::map<std::string, DBStatus> result;
+    std::vector<std::string> devices = {g_deviceB->GetDeviceId()};
+    g_communicatorAggregator->SetDropMessageTypeByDevice(DEVICE_B, DATA_SYNC_MESSAGE);
+    ASSERT_TRUE(g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PUSH_ONLY, result) == OK);
     /**
      * @tc.steps: step5. device B sync to A, make it clear history data and check data
      * * @tc.expected: step5. interface return ok
     */
     EXPECT_EQ(g_deviceB->Sync(DistributedDB::SYNC_MODE_PUSH_ONLY, true), E_OK);
-    thread1.join();
     EXPECT_EQ(g_deviceB->GetData(key3, item), -E_NOT_FOUND);
     EXPECT_EQ(g_kvDelegatePtr->Get(key1, actualValue), OK);
     EXPECT_EQ(actualValue, value);

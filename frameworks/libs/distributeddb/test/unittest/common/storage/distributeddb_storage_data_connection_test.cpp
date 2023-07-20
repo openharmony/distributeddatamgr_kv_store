@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include <gtest/gtest.h>
 
 #include "distributeddb_data_generate_unit_test.h"
@@ -443,3 +444,4 @@ HWTEST_F(DistributedDBStorageDataConnectionTest, ConnectionTest008, TestSize.Lev
     EXPECT_EQ(g_connection->Import(filePath, passwd), -E_BUSY);
     g_connection->UnRegisterObserver(handle);
 }
+#endif // OMIT_MULTI_VER
