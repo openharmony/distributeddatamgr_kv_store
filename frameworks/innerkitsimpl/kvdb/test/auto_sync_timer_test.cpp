@@ -328,8 +328,6 @@ HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
     ASSERT_GE(instance->endTime - instance->startTime, 200);
     ASSERT_LT(instance->endTime - instance->startTime, 250);
-    finished.store(true);
-    thread.join();
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(11)), 11);
     auto it = instance->values_.find("ut_test");
     ASSERT_EQ(it->second.count("ut_test_store0"), 1);
@@ -343,6 +341,8 @@ HWTEST_F(AutoSyncTimerTest, MultiWriteOvertenKVStores, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store8"), 1);
     ASSERT_EQ(it->second.count("ut_test_store9"), 1);
     ASSERT_EQ(it->second.count("ut_test_store10"), 1);
+    finished.store(true);
+    thread.join();
 }
 
 /**
