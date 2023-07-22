@@ -1247,6 +1247,9 @@ int AutoLaunch::RegisterKvObserver(AutoLaunchItem &autoLaunchItem, const std::st
 
 int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const std::string &identifier, bool isExt)
 {
+    if (autoLaunchItem.storeObserver == nullptr) {
+        return E_OK;
+    }
     RelationalStoreConnection *conn = static_cast<RelationalStoreConnection *>(autoLaunchItem.conn);
     conn->RegisterObserverAction([this, autoLaunchItem, identifier](const std::string &changedDevice,
         ChangedData &&changedData, bool isChangedData) {
