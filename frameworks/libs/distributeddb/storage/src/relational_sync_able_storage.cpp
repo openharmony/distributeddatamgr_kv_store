@@ -681,27 +681,24 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
     return E_OK;
 }
 
-void RelationalSyncAbleStorage::RegisterObserverAction(const RelationalObserverAction &action)
+void RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
 {
     std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-    dataChangeDeviceCallback_ = action;
+    dataChangeCallbackMap_[connectionId] = action;
 }
 
 void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
     ChangedData &&changedData, bool isChangedData)
 {
-    {
-        std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-        if (!dataChangeDeviceCallback_) {
-            return;
-        }
-    }
     IncObjRef(this);
     int taskErrCode =
         RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-        if (dataChangeDeviceCallback_) {
-            dataChangeDeviceCallback_(deviceName, std::move(changedData), isChangedData);
+        if (!dataChangeCallbackMap_.empty()) {
+            auto it = dataChangeCallbackMap_.rbegin(); // call the last valid observer
+            if (it->second != nullptr) {
+                it->second(deviceName, std::move(changedData), isChangedData);
+            }
         }
         DecObjRef(this);
     });
@@ -1195,6 +1192,15 @@ int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType &opType, const 
 void RelationalSyncAbleStorage::SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine)
 {
     syncAbleEngine_ = syncAbleEngine;
+}
+
+void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
+{
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        dataChangeCallbackMap_.erase(it);
+    }
 }
 }
 #endif

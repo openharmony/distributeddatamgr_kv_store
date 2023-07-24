@@ -1758,7 +1758,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer005, TestSize.Level0)
 
 
 /*
-* @tc.name: relation observer 001
+* @tc.name: relation observer 006
 * @tc.desc: Test observer is destructed when sync finish
 * @tc.type: FUNC
 * @tc.require:
@@ -1805,6 +1805,98 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer006, TestSize.Level3)
     delete g_observer;
     g_observer = nullptr;
     std::this_thread::sleep_for(std::chrono::seconds(10)); // sleep 10 second to wait sync finish
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
+
+/*
+* @tc.name: relation observer 007
+* @tc.desc: Test open store observer will not overwrite autolaunch observer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer007, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. device A create table and device B insert data and device C don't insert data
+     * @tc.expected: step1. create and insert ok
+     */
+    g_observer->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB, g_deviceC});
+
+    /**
+     * @tc.steps: step2. device A pull sync mode
+     * @tc.expected: step2. sync ok
+     */
+    RelationalStoreObserverUnitTest *observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer, nullptr);
+    const AutoLaunchRequestCallback callback = [observer](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_id != identifier) {
+            return false;
+        }
+        param.path    = g_dbDir;
+        param.appId   = APP_ID;
+        param.userId  = USER_ID;
+        param.storeId = STORE_ID_1;
+        param.option.storeObserver = observer;
+#ifndef OMIT_ENCRYPT
+        param.option.isEncryptedDb = true;
+        param.option.cipher = CipherType::DEFAULT;
+        param.option.passwd = g_correctPasswd;
+        param.option.iterateTimes = DEFAULT_ITER;
+#endif
+        return true;
+    };
+
+    /**
+     * @tc.steps: step2. SetAutoLaunchRequestCallback
+     * @tc.expected: step2. success.
+     */
+    g_mgr.SetAutoLaunchRequestCallback(callback);
+
+    /**
+     * @tc.steps: step3. RunCommunicatorLackCallback
+     * @tc.expected: step3. success.
+     */
+    LabelType labelType(g_id.begin(), g_id.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+
+    /**
+     * @tc.steps: step4. start sync
+     * @tc.expected: step4. success
+     */
+    Query query = Query::Select(g_tableName);
+    g_rdbDelegatePtr->Sync({DEVICE_B}, SyncMode::SYNC_MODE_PULL_ONLY, query, nullptr, false);
+
+    /**
+     * @tc.steps: step5. open store with observer1
+     * @tc.expected: step5. success.
+     */
+    auto observer1 = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer1, nullptr);
+    RelationalStoreDelegate::Option option;
+    option.observer = observer1;
+#ifndef OMIT_ENCRYPT
+    option.isEncryptedDb = true;
+    option.iterateTimes = DEFAULT_ITER;
+    option.passwd = g_isAfterRekey ? g_rekeyPasswd : g_correctPasswd;
+    option.cipher = CipherType::DEFAULT;
+#endif
+    RelationalStoreDelegate *rdb1 = nullptr;
+    g_mgr.OpenStore(g_dbDir, STORE_ID_1, option, rdb1);
+    ASSERT_TRUE(rdb1 != nullptr);
+
+    /**
+     * @tc.steps: step6. close store and delete observer1
+     * @tc.expected: step6. success.
+     */
+    ASSERT_EQ(g_mgr.CloseStore(rdb1), OK);
+    rdb1 = nullptr;
+    delete observer1;
+    observer1 = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5 second to wait sync finish
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
     RuntimeContext::GetInstance()->StopTaskPool();
 }
 

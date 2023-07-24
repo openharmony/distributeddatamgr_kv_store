@@ -52,7 +52,7 @@ public:
 
     int CleanCloudData(ClearMode mode);
 
-    void ReleaseDBConnection(RelationalStoreConnection *connection);
+    void ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection);
 
     void WakeUpSyncer() override;
 
@@ -67,7 +67,7 @@ public:
     int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
 
-    void RegisterObserverAction(const RelationalObserverAction &action);
+    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier);
 
     std::string GetStorePath() const override;
@@ -96,7 +96,7 @@ private:
     void ReleaseResources();
 
     // 1 store 1 connection
-    void DecreaseConnectionCounter();
+    void DecreaseConnectionCounter(uint64_t connectionId);
     int CheckDBMode();
     int GetSchemaFromMeta(RelationalSchemaObject &schema);
     int SaveSchemaToMeta();

@@ -1650,7 +1650,7 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
      * @tc.steps: step2. release store.
      * @tc.expected: Succeed.
      */
-    store->ReleaseDBConnection(connection);
+    store->ReleaseDBConnection(1, connection); // 1 is connection id
     RefObject::DecObjRef(store);
     store = nullptr;
     std::this_thread::sleep_for(std::chrono::seconds(1));
