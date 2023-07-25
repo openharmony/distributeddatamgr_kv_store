@@ -1078,28 +1078,6 @@ namespace {
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
-    void InsertCloudForCloudProcessNotify001(std::vector<VBucket> &record, std::vector<VBucket> &extend)
-    {
-        VBucket data;
-        std::vector<uint8_t> photo(1, 'v');
-        data.insert_or_assign("name", "Local" + std::to_string(0));
-        data.insert_or_assign("height", 166.0); // 166.0 is random double value
-        data.insert_or_assign("married", false);
-        data.insert_or_assign("age", 13L);
-        data.insert_or_assign("photo", photo);
-        Asset asset = g_cloudAsset;
-        asset.name = asset.name + std::to_string(0);
-        data.insert_or_assign("assert", asset);
-        record.push_back(data);
-        VBucket log;
-        Timestamp now = TimeHelper::GetSysCurrentTime();
-        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-        log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-        log.insert_or_assign("#_gid", std::to_string(2)); // 2 is gid
-        extend.push_back(log);
-    }
-
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     {
         std::unique_lock<std::mutex> lock(g_processMutex);
@@ -1862,7 +1840,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, 
      */
     std::vector<VBucket> record1;
     std::vector<VBucket> extend1;
-    InsertCloudForCloudProcessNotify001(record1, extend1);
+    RelationalTestUtils::GenerateAssetData(g_cloudAsset, record1, extend1);
     ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(g_tableName1, std::move(record1), extend1), DBStatus::OK);
 
     /**
