@@ -1895,8 +1895,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer007, TestSize.Level3)
     rdb1 = nullptr;
     delete observer1;
     observer1 = nullptr;
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5 second to wait sync finish
-    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 second to wait sync finish
     RuntimeContext::GetInstance()->StopTaskPool();
 }
 

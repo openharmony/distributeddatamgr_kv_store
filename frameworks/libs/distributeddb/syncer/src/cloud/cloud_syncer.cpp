@@ -47,6 +47,9 @@ CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
       failedHeartBeatCount_(0),
       syncCallbackCount_(0)
 {
+    if (storageProxy_ != nullptr) {
+        id_ = storageProxy_->GetIdentify();
+    }
 }
 
 int CloudSyncer::Sync(const std::vector<DeviceID> &devices, SyncMode mode,
@@ -208,8 +211,9 @@ void CloudSyncer::ProcessNotifier::NotifyProcess(const CloudTaskInfo &taskInfo, 
         return; // should not happen
     }
     RefObject::IncObjRef(syncer);
+    auto id = syncer->GetIdentify();
     syncer->IncSyncCallbackTaskCount();
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([callback, currentProcess, syncer]() {
+    int errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask(id, [callback, currentProcess, syncer]() {
         callback(currentProcess);
         syncer->DecSyncCallbackTaskCount();
         RefObject::DecObjRef(syncer);
@@ -327,9 +331,15 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
         }
     }
     if (errCode == E_OK) {
-        storageProxy_->Commit();
+        int commitErrorCode = storageProxy_->Commit();
+        if (commitErrorCode != E_OK) {
+            LOGE("[CloudSyncer] cannot commit transaction: %d.", commitErrorCode);
+        }
     } else {
-        storageProxy_->Rollback();
+        int rollBackErrorCode = storageProxy_->Rollback();
+        if (rollBackErrorCode != E_OK) {
+            LOGE("[CloudSyncer] cannot roll back transaction: %d.", rollBackErrorCode);
+        }
     }
     return errCode;
 }
@@ -481,6 +491,7 @@ int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, const DataInfo
             }
             param.changedData.primaryData[ChangeType::OP_DELETE].erase(
                 param.changedData.primaryData[ChangeType::OP_DELETE].begin() + delIdx);
+            (void)param.dupHashKeySet.insert(hashKey);
             opType = OpType::UPDATE;
         } else if (opType == OpType::DELETE) {
             std::pair<Key, size_t> pair{hashKey, static_cast<size_t>(
@@ -826,7 +837,7 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, const std::s
 }
 
 int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
-    ChangedData &changedAssets)
+    const std::set<Key> &dupHashKeySet, ChangedData &changedAssets)
 {
     int downloadStatus = E_OK;
     for (size_t i = 0; i < downloadList.size(); i++) {
@@ -835,6 +846,7 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
         OpType strategy = std::get<2>(downloadList[i]); // 2 means strategy is the third element in assetsInfo
         // 3 means assets info [colName, assets] is the forth element in downloadList[i]
         std::map<std::string, Assets> assets = std::get<3>(downloadList[i]);
+        Key hashKey = std::get<4>(downloadList[i]); // 4 means hash key
         std::map<std::string, Assets> downloadAssets(assets);
         CloudStorageUtils::EraseNoChangeAsset(downloadAssets);
         // Download data (include deleting)
@@ -847,7 +859,11 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
             info.downLoadInfo.successCount -= (downloadList.size() - i);
             return -E_NOT_SET;
         }
-        changedAssets.primaryData[OpTypeToChangeType(strategy)].push_back({primaryKey});
+        if (dupHashKeySet.find(hashKey) == dupHashKeySet.end()) {
+            changedAssets.primaryData[OpTypeToChangeType(strategy)].push_back({primaryKey});
+        } else if (strategy == OpType::INSERT) {
+            changedAssets.primaryData[ChangeType::OP_UPDATE].push_back({primaryKey});
+        }
         if (!willHandleResult) {
             continue;
         }
@@ -877,7 +893,7 @@ int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &dow
 }
 
 int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
-    ChangedData &changedAssets)
+    const std::set<Key> &dupHashKeySet, ChangedData &changedAssets)
 {
     if (!IsDataContainAssets()) {
         return E_OK;
@@ -899,13 +915,13 @@ int CloudSyncer::DownloadAssets(InnerProcessInfo &info, const std::vector<std::s
         completeDeletedList = currentContext_.assetDownloadList.completeDownloadList;
     }
     // Download data (include deleting) will handle return Code in this situation
-    int ret = CloudDbDownloadAssets(info, downloadList, true, changedAssets);
+    int ret = CloudDbDownloadAssets(info, downloadList, true, dupHashKeySet, changedAssets);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Can not download assets or can not handle download result %d", ret);
         return ret;
     }
     // Download data (include deleting), won't handle return Code in this situation
-    ret = CloudDbDownloadAssets(info, completeDeletedList, false, changedAssets);
+    ret = CloudDbDownloadAssets(info, completeDeletedList, false, dupHashKeySet, changedAssets);
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Can not download assets or can not handle download result for deleted record %d", ret);
         return ret;
@@ -952,10 +968,15 @@ int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo 
     if (!IsDataContainAssets()) {
         return E_OK;
     }
-    return TagDownloadAssets(idx, param, dataInfo, localAssetInfo);
+    Key hashKey;
+    if (isExist) {
+        hashKey = dataInfo.localInfo.logInfo.hashKey;
+    }
+    return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
 }
 
-int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataInfo, VBucket &localAssetInfo)
+int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo,
+    VBucket &localAssetInfo)
 {
     Type prefix;
     int ret = E_OK;
@@ -972,7 +993,7 @@ int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataI
             }
             assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             param.assetsDownloadList.downloadList.push_back(
-                std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
+                std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey));
             break;
         case OpType::DELETE:
             ret = GetSinglePk(dataInfo.localInfo.primaryKeys, param.pkColNames,
@@ -983,7 +1004,7 @@ int CloudSyncer::TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataI
             }
             assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo, false);
             param.assetsDownloadList.completeDownloadList.push_back(
-                std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap));
+                std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey));
             break;
         case OpType::NOT_HANDLE:
         case OpType::ONLY_UPDATE_GID:
@@ -1054,10 +1075,12 @@ int CloudSyncer::SaveData(SyncParam &param)
     AssetDownloadList assetsDownloadList;
     param.assetsDownloadList = assetsDownloadList;
     param.deletePrimaryKeySet.clear();
+    param.dupHashKeySet.clear();
     std::vector<std::pair<Key, size_t>> deletedList;
     for (size_t i = 0; i < param.downloadData.data.size(); i++) {
         ret = SaveDatum(param, i, InsertDataNoPrimaryKeys, deletedList);
         if (ret != E_OK) {
+            param.info.downLoadInfo.failCount += param.downloadData.data.size();
             LOGE("[CloudSyncer] Cannot save datum due to error code %d", ret);
             return ret;
         }
@@ -1109,7 +1132,7 @@ int CloudSyncer::PreCheck(CloudSyncer::TaskId &taskId, const TableName &tableNam
     return E_OK;
 }
 
-bool CloudSyncer::NeedNotifyChangedData(ChangedData &changedData)
+bool CloudSyncer::NeedNotifyChangedData(const ChangedData &changedData)
 {
     {
         std::lock_guard<std::mutex> autoLock(contextLock_);
@@ -1220,7 +1243,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
     }
     // Begin dowloading assets
     ChangedData changedAssets;
-    ret = DownloadAssets(param.info, param.pkColNames, changedAssets);
+    ret = DownloadAssets(param.info, param.pkColNames, param.dupHashKeySet, changedAssets);
     (void)NotifyChangedData(std::move(changedAssets));
     if (ret != E_OK) {
         LOGE("[CloudSyncer] Someting wrong happened during assets downloading due to error %d", ret);
@@ -1641,7 +1664,6 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
     ContinueToken continueStmtToken = nullptr;
     CloudSyncData uploadData(tableName);
     SetUploadDataFlag(uploadParam.taskId, uploadData);
-    bool getDataUnfinished = false;
 
     int ret = storageProxy_->GetCloudData(tableName, uploadParam.localMark, continueStmtToken, uploadData);
     if ((ret != E_OK) && (ret != -E_UNFINISHED)) {
@@ -1654,6 +1676,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
     info.tableStatus = ProcessStatus::PROCESSING;
     info.upLoadInfo.total = static_cast<uint32_t>(uploadParam.count);
     uint32_t batchIndex = 0;
+    bool getDataUnfinished = false;
 
     while (!CheckCloudSyncDataEmpty(uploadData)) {
         getDataUnfinished = (ret == -E_UNFINISHED);
@@ -1667,6 +1690,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         if (ret != E_OK) {
             LOGE("[CloudSyncer] Failed to do upload, %d", ret);
             info.upLoadInfo.failCount = info.upLoadInfo.total - info.upLoadInfo.successCount;
+            info.tableStatus = ProcessStatus::FINISHED;
             {
                 std::lock_guard<std::mutex> autoLock(contextLock_);
                 currentContext_.notifier->UpdateProcess(info);
@@ -2185,5 +2209,10 @@ void CloudSyncer::UpdateCloudWaterMark(const SyncParam &param)
         std::lock_guard<std::mutex> autoLock(contextLock_);
         currentContext_.cloudWaterMarks[param.info.tableName] = param.cloudWaterMark;
     }
+}
+
+std::string CloudSyncer::GetIdentify() const
+{
+    return id_;
 }
 } // namespace DistributedDB

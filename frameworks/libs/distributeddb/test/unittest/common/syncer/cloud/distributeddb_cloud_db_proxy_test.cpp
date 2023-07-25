@@ -660,4 +660,39 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue001, TestSize.Level2)
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 1);
 }
+
+/**
+ * @tc.name: CloudSyncerTest001
+ * @tc.desc: Verify syncer notify by queue schedule.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncerTest001, TestSize.Level2)
+{
+    /**
+     * @tc.steps: step1. set cloud db to proxy
+     * @tc.expected: step1. E_OK
+     */
+    auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
+    EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
+    EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
+    EXPECT_CALL(*iCloud, GetIdentify).WillRepeatedly(testing::Return("CloudSyncerTest001"));
+    auto cloudSyncer = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
+    std::atomic<int> callCount = 0;
+    cloudSyncer->SetCurrentTaskInfo([&callCount](const std::map<std::string, SyncProcess> &) {
+        callCount++;
+        int before = callCount;
+        LOGD("on callback %d", before);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        EXPECT_EQ(before, callCount);
+    }, 1u);
+    const int notifyCount = 2;
+    for (int i = 0; i < notifyCount; ++i) {
+        cloudSyncer->Notify();
+    }
+    cloudSyncer->SetCurrentTaskInfo(nullptr, 0); // 0 is invalid task id
+    cloudSyncer->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+}
 }

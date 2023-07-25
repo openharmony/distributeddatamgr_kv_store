@@ -1194,6 +1194,14 @@ void RelationalSyncAbleStorage::SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine
     syncAbleEngine_ = syncAbleEngine;
 }
 
+std::string RelationalSyncAbleStorage::GetIdentify() const
+{
+    if (storageEngine_ == nullptr) {
+        LOGW("[RelationalSyncAbleStorage] engine is nullptr return default");
+        return "";
+    }
+    return storageEngine_->GetIdentifier();
+}
 void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
 {
     std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);

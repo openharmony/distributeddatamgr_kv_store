@@ -124,13 +124,13 @@ private:
     int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys);
 
     int GetCloudAssets(const std::string &tableName, const std::vector<FieldInfo> &fieldInfos,
-        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+        const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
 
     int GetCloudAssetOnTable(const std::string &tableName, const std::string &fieldName,
-        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+        const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
 
     int GetCloudAssetsOnTable(const std::string &tableName, const std::string &fieldName,
-        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+        const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
 
     int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 

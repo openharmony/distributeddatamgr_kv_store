@@ -75,6 +75,7 @@ namespace {
     "photo BLOB ," \
     "asserts BLOB," \
     "age INT);";
+    const std::string DROP_INTEGER_PRIMARY_KEY_TABLE_SQL = "DROP TABLE " + g_tableName2 + ";";
     const std::string CREATE_LOCAL_TABLE_WITHOUT_PRIMARY_KEY_SQL =
             "CREATE TABLE IF NOT EXISTS " + g_tableName3 + "(" \
     "name TEXT," \
@@ -1086,7 +1087,9 @@ namespace {
         data.insert_or_assign("married", false);
         data.insert_or_assign("age", 13L);
         data.insert_or_assign("photo", photo);
-        data.insert_or_assign("assert", Nil());
+        Asset asset = g_cloudAsset;
+        asset.name = asset.name + std::to_string(0);
+        data.insert_or_assign("assert", asset);
         record.push_back(data);
         VBucket log;
         Timestamp now = TimeHelper::GetSysCurrentTime();
@@ -1675,7 +1678,6 @@ void TestSyncForStatus(RelationalStoreDelegate *delegate, DBStatus expectStatus)
         });
     }
     EXPECT_EQ(res, expectStatus);
-    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 /*
@@ -1829,7 +1831,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, 
      */
     int64_t paddingSize = 10;
     int64_t localCount = 1;
-    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
     callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     EXPECT_TRUE(g_observer->IsAllChangedDataEq());
     g_observer->ClearChangedData();
@@ -2534,8 +2536,61 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, T
 }
 
 /**
+ * @tc.name: DownloadAssetTest004
+ * @tc.desc: Test total count, fail count and success count when drop table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: liufuchenxing
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 1;
+    int count = 10;
+    InsertUserTableRecord(db, 0, count, paddingSize, false);
+    g_syncProcess = {};
+    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item : process) {
+            g_syncProcess = item.second;
+        }
+        if (g_syncProcess.process == FINISHED) {
+            g_processCondition.notify_one();
+        }
+    };
+    Query query = Query::Select().FromTable(g_tables);
+    EXPECT_EQ(g_delegate->Sync({ DEVICE_CLOUD }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+
+    /**
+     * @tc.steps:step2. drop table work2. sync failed, check total, success and fail count.
+     * @tc.expected: step2. total = 20, success=0, fail=20
+     */
+    g_syncProcess = {};
+    InsertCloudTableRecord(0, count, paddingSize, false);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, DROP_INTEGER_PRIMARY_KEY_TABLE_SQL), DBStatus::OK);
+    EXPECT_EQ(g_delegate->Sync({ DEVICE_CLOUD }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
+    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
+    EXPECT_EQ(g_syncProcess.errCode, DBStatus::DB_ERROR);
+    uint32_t expectTotalCnt = 20u;
+    EXPECT_NE(g_syncProcess.tableProcess.find(g_tableName2), g_syncProcess.tableProcess.end());
+    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.batchIndex, 1u);
+    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.total, expectTotalCnt);
+    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.successCount, 0u);
+    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.failCount, expectTotalCnt);
+
+    /**
+     * @tc.steps:step3. close db.
+     * @tc.expected: step3. close success.
+     */
+    CloseDb();
+}
+
+/**
  * @tc.name: SchemaTest001
- * @tc.desc:
+ * @tc.desc: Create table with Cloud cooperation mode and do sync
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wanyi
@@ -2543,13 +2598,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest003, T
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.steps:step1. Create table with Cloud cooperation mode
      * @tc.expected: step1. return ok.
      */
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, INTEGER_PRIMARY_KEY_TABLE_SQL_WRONG_SYNC_MODE), SQLITE_OK);
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName4, CLOUD_COOPERATION), DBStatus::OK);
     /**
-     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.steps:step1. do sync
      * @tc.expected: step1. return ok.
      */
     callSync({g_tableName4}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
@@ -2558,7 +2613,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize
 
 /**
  * @tc.name: SchemaTest002
- * @tc.desc:
+ * @tc.desc: Create table with DEVICE_COOPERATION mode and do sync
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: wanyi
@@ -2566,16 +2621,16 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest001, TestSize
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.steps:step1. Create table with DEVICE_COOPERATION mode
      * @tc.expected: step1. return ok.
      */
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, INTEGER_PRIMARY_KEY_TABLE_SQL_WRONG_SYNC_MODE), SQLITE_OK);
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName4, DEVICE_COOPERATION), DBStatus::OK);
     /**
-     * @tc.steps:step1. Set different status out of parameters, and the code returns CLOUD_ERROR
+     * @tc.steps:step1. do sync
      * @tc.expected: step1. return ok.
      */
-    callSync({g_tableName4}, SYNC_MODE_CLOUD_MERGE, DBStatus::SCHEMA_MISMATCH);
+    callSync({g_tableName4}, SYNC_MODE_CLOUD_MERGE, DBStatus::NOT_SUPPORT);
     CloseDb();
 }
 
