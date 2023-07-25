@@ -213,6 +213,13 @@ bool SyncOperation::IsAutoControlCmd() const
     return isAutoSubscribe_;
 }
 
+void SyncOperation::SetSyncContext(RefObject *context)
+{
+    RefObject::DecObjRef(context_);
+    context_ = context;
+    RefObject::IncObjRef(context);
+}
+
 bool SyncOperation::CheckIsAllFinished() const
 {
     AutoLock lockGuard(this);
@@ -302,13 +309,6 @@ std::string SyncOperation::GetQueryId() const
 {
     std::lock_guard<std::mutex> lock(queryMutex_);
     return query_.GetIdentify();
-}
-
-void SyncOperation::SetSyncContext(RefObject *context)
-{
-    RefObject::DecObjRef(context_);
-    context_ = context;
-    RefObject::IncObjRef(context);
 }
 
 DBStatus SyncOperation::DBStatusTrans(int operationStatus)

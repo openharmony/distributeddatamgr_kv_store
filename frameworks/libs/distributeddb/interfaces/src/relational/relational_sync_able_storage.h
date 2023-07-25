@@ -102,7 +102,7 @@ public:
         const std::string &targetID) const override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
-    void RegisterObserverAction(const RelationalObserverAction &action);
+    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int CreateDistributedDeviceTable(const std::string &device, const RelationalSyncStrategy &syncStrategy) override;
@@ -166,6 +166,8 @@ public:
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
 
+    void EraseDataChangeCallback(uint64_t connectionId);
+
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -188,7 +190,7 @@ private:
     std::function<void()> onSchemaChanged_;
     mutable std::mutex onSchemaChangedMutex_;
     std::mutex dataChangeDeviceMutex_;
-    RelationalObserverAction dataChangeDeviceCallback_;
+    std::map<uint64_t, RelationalObserverAction> dataChangeCallbackMap_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
 

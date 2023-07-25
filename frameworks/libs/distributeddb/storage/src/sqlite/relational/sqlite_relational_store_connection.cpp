@@ -55,7 +55,7 @@ int SQLiteRelationalStoreConnection::Close()
         }
     }
 
-    static_cast<SQLiteRelationalStore *>(store_)->ReleaseDBConnection(this);
+    static_cast<SQLiteRelationalStore *>(store_)->ReleaseDBConnection(GetConnectionId(), this);
     return E_OK;
 }
 
@@ -278,7 +278,7 @@ int SQLiteRelationalStoreConnection::RegisterLifeCycleCallback(const DatabaseLif
 
 void SQLiteRelationalStoreConnection::RegisterObserverAction(const RelationalObserverAction &action)
 {
-    static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(action);
+    static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(GetConnectionId(), action);
 }
 
 int SQLiteRelationalStoreConnection::RemoteQuery(const std::string &device, const RemoteCondition &condition,

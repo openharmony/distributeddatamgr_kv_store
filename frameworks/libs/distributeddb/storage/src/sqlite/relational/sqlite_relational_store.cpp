@@ -352,12 +352,15 @@ int SQLiteRelationalStore::Sync(const ISyncer::SyncParma &syncParam, uint64_t co
 }
 
 // Called when a connection released.
-void SQLiteRelationalStore::DecreaseConnectionCounter()
+void SQLiteRelationalStore::DecreaseConnectionCounter(uint64_t connectionId)
 {
     int count = connectionCount_.fetch_sub(1, std::memory_order_seq_cst);
     if (count <= 0) {
         LOGF("Decrease db connection counter failed, count <= 0.");
         return;
+    }
+    if (storageEngine_ != nullptr) {
+        storageEngine_->EraseDataChangeCallback(connectionId);
     }
     if (count != 1) {
         return;
@@ -366,7 +369,6 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     LockObj();
     auto notifiers = std::move(closeNotifiers_);
     UnlockObj();
-
     for (const auto &notifier : notifiers) {
         if (notifier) {
             notifier();
@@ -375,9 +377,6 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
 
     // Sync Close
     syncAbleEngine_->Close();
-    if (storageEngine_ != nullptr) {
-        storageEngine_->RegisterObserverAction(nullptr);
-    }
 
     if (cloudSyncer_ != nullptr) {
         cloudSyncer_->Close();
@@ -400,7 +399,7 @@ void SQLiteRelationalStore::DecreaseConnectionCounter()
     DecObjRef(storageEngine_);
 }
 
-void SQLiteRelationalStore::ReleaseDBConnection(RelationalStoreConnection *connection)
+void SQLiteRelationalStore::ReleaseDBConnection(uint64_t connectionId, RelationalStoreConnection *connection)
 {
     if (connectionCount_.load() == 1) {
         sqliteStorageEngine_->SetConnectionFlag(false);
@@ -409,7 +408,7 @@ void SQLiteRelationalStore::ReleaseDBConnection(RelationalStoreConnection *conne
     connectMutex_.lock();
     if (connection != nullptr) {
         KillAndDecObjRef(connection);
-        DecreaseConnectionCounter();
+        DecreaseConnectionCounter(connectionId);
         connectMutex_.unlock();
         KillAndDecObjRef(this);
     } else {
@@ -584,9 +583,9 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
 
-void SQLiteRelationalStore::RegisterObserverAction(const RelationalObserverAction &action)
+void SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
 {
-    storageEngine_->RegisterObserverAction(action);
+    storageEngine_->RegisterObserverAction(connectionId, action);
 }
 
 int SQLiteRelationalStore::StopLifeCycleTimer()
