@@ -50,16 +50,20 @@ public:
     // Get The online devices list.
     void GetOnlineDevices(std::vector<std::string> &devices) const;
 
+#ifndef OMIT_MULTI_VER
     // Send a BroadCast to all online device.
     int SendBroadCast(uint32_t msgId);
+#endif // OMIT_MULTI_VER
 
     // Determine if the device is online.
     bool IsDeviceOnline(const std::string &deviceId) const;
 
 private:
 
+#ifndef OMIT_MULTI_VER
     // Send a local data changed broadcast.
     int SendLocalDataChanged();
+#endif // OMIT_MULTI_VER
 
     std::set<std::string> devices_;
     std::function<void(std::string)> onlineCallback_;

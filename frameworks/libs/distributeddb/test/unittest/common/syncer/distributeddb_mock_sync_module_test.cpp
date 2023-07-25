@@ -371,6 +371,7 @@ void TimeSync001()
     for (int i = 0; i < loopCount; ++i) {
         MockTimeSync timeSync;
         EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A"), E_OK);
+        EXPECT_CALL(timeSync, SyncStart).WillRepeatedly(Return(E_OK));
         timeSync.ModifyTimer(timeDriverMs);
         std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
         timeSync.Close();
@@ -1780,13 +1781,12 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Leve
      */
     auto context = new (std::nothrow) SingleVerRelationalSyncTaskContext();
     ASSERT_NE(context, nullptr);
-    VirtualCommunicator communicator("device", nullptr);
+    auto communicator = new (std::nothrow) VirtualCommunicator("device", nullptr);
+    ASSERT_NE(communicator, nullptr);
     VirtualSingleVerSyncDBInterface dbSyncInterface;
-    SingleVerSyncStateMachine stateMachine;
     std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
     ASSERT_EQ(metadata->Initialize(&dbSyncInterface), E_OK);
-    (void)stateMachine.Initialize(context, &dbSyncInterface, metadata, &communicator);
-    (void)context->Initialize("device", &dbSyncInterface, metadata, &communicator);
+    (void)context->Initialize("device", &dbSyncInterface, metadata, communicator);
     /**
      * @tc.steps: step2. add sync target into context
      */
@@ -1803,6 +1803,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTaskContextCheck006, TestSize.Leve
     EXPECT_EQ(context->GetRetryTime(), 0);
     context->Clear();
     RefObject::KillAndDecObjRef(context);
+    RefObject::KillAndDecObjRef(communicator);
 }
 #ifdef RUN_AS_ROOT
 /**
@@ -2064,6 +2065,38 @@ HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: TimeSync002
+ * @tc.desc: Test syncer call set sync retry before init.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBMockSyncModuleTest, TimeSync002, TestSize.Level1)
+{
+    auto *storage = new(std::nothrow) VirtualSingleVerSyncDBInterface();
+    ASSERT_NE(storage, nullptr);
+    auto *communicator = new(std::nothrow) MockCommunicator();
+    ASSERT_NE(communicator, nullptr);
+    std::shared_ptr<Metadata> metadata = std::make_shared<Metadata>();
+
+    MockTimeSync timeSync;
+    EXPECT_CALL(timeSync, SyncStart).WillRepeatedly(Return(E_OK));
+    EXPECT_EQ(timeSync.Initialize(communicator, metadata, storage, "DEVICES_A"), E_OK);
+    const int loopCount = 100;
+    const int timeDriverMs = 10;
+    for (int i = 0; i < loopCount; ++i) {
+        timeSync.ModifyTimer(timeDriverMs);
+        std::this_thread::sleep_for(std::chrono::milliseconds(timeDriverMs));
+        timeSync.CallResetTimer();
+    }
+    timeSync.Close();
+    EXPECT_EQ(timeSync.CallIsClosed(), true);
+    metadata = nullptr;
+    delete storage;
+    RefObject::KillAndDecObjRef(communicator);
+}
+
+/**
  * @tc.name: SyncContextCheck001
  * @tc.desc: Test context time out logic.
  * @tc.type: FUNC
@@ -2124,5 +2157,6 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncTimerResetTest001, TestSize.Level1
 
     EXPECT_EQ(stateMachine.CallStartWatchDog(), E_OK);
     EXPECT_EQ(stateMachine.CallPrepareNextSyncTask(), E_OK);
+    stateMachine.CallStopWatchDog();
 }
 }

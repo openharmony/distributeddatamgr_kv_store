@@ -57,6 +57,17 @@ const std::string NORMAL_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS sync_dat
     "UNIQUE(device, ori_device));" \
     "CREATE INDEX key_index ON sync_data(key, flag);";
 
+const std::string NORMAL_CREATE_NO_UNIQUE = "CREATE TABLE IF NOT EXISTS sync_data(" \
+    "key         BLOB NOT NULL," \
+    "value       BLOB," \
+    "timestamp   INT  NOT NULL," \
+    "flag        INT  NOT NULL," \
+    "device      BLOB," \
+    "ori_device  BLOB," \
+    "hash_key    BLOB PRIMARY KEY NOT NULL," \
+    "w_timestamp INT);" \
+    "CREATE INDEX key_index ON sync_data(key, flag);";
+
 const std::string SIMPLE_CREATE_TABLE_SQL = "CREATE TABLE IF NOT EXISTS t1(a INT, b TEXT)";
 
 const std::string CREATE_TABLE_SQL_NO_PRIMARY_KEY = "CREATE TABLE IF NOT EXISTS sync_data(" \
@@ -69,6 +80,17 @@ const std::string CREATE_TABLE_SQL_NO_PRIMARY_KEY = "CREATE TABLE IF NOT EXISTS 
     "hash_key    BLOB NOT NULL," \
     "w_timestamp INT," \
     "UNIQUE(device, ori_device));" \
+    "CREATE INDEX key_index ON sync_data (key, flag);";
+
+const std::string CREATE_TABLE_SQL_NO_PRIMARY_KEY_NO_UNIQUE = "CREATE TABLE IF NOT EXISTS sync_data(" \
+    "key         BLOB NOT NULL," \
+    "value       BLOB," \
+    "timestamp   INT  NOT NULL," \
+    "flag        INT  NOT NULL," \
+    "device      BLOB," \
+    "ori_device  BLOB," \
+    "hash_key    BLOB NOT NULL," \
+    "w_timestamp INT);" \
     "CREATE INDEX key_index ON sync_data (key, flag);";
 
 const std::string UNSUPPORTED_FIELD_TABLE_SQL = "CREATE TABLE IF NOT EXISTS test('$.ID' INT, val BLOB);";
@@ -85,6 +107,7 @@ const std::string INSERT_SYNC_DATA_SQL = "INSERT OR REPLACE INTO sync_data (key,
     "VALUES('KEY', 123456789, 1, 'HASH_KEY');";
 
 const std::string INVALID_TABLE_FIELD_SQL = "create table if not exists t1 ('1 = 1; --' int primary key, b blob)";
+
 
 void PrepareVirtualDeviceEnv(const std::string &tableName, const std::string &dbPath,
     const std::vector<RelationalVirtualDevice *> &remoteDeviceVec)
@@ -164,7 +187,12 @@ void NoramlCreateDistributedTableTest(TableSyncType tableSyncType)
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    if (tableSyncType == DistributedDB::DEVICE_COOPERATION) {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    } else {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    }
+
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_A");
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
@@ -467,7 +495,11 @@ void CreateDistributedTableNonPrimaryKeyTest(TableSyncType tableSyncType)
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_TABLE_SQL_NO_PRIMARY_KEY), SQLITE_OK);
+    if (tableSyncType == DistributedDB::DEVICE_COOPERATION) {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_TABLE_SQL_NO_PRIMARY_KEY), SQLITE_OK);
+    } else {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_TABLE_SQL_NO_PRIMARY_KEY_NO_UNIQUE), SQLITE_OK);
+    }
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
     /**
@@ -661,7 +693,11 @@ void TableModifyTest(const std::string &modifySql, TableSyncType tableSyncType, 
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    if (tableSyncType == DistributedDB::DEVICE_COOPERATION) {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    } else {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    }
 
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_A");
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_B");
@@ -790,7 +826,12 @@ void UpgradeDistributedTableTest(TableSyncType tableSyncType)
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    if (tableSyncType == DistributedDB::DEVICE_COOPERATION) {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    } else {
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
+    }
+
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_A");
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_B");
     RelationalTestUtils::CreateDeviceTable(db, "sync_data", "DEVICE_C");
@@ -885,6 +926,177 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, RelationalTableModifyTest005_1, 
 {
     TableModifyTest("ALTER TABLE sync_data ADD COLUMN add_field STRING NOT NULL DEFAULT 'asdf';",
         DistributedDB::CLOUD_COOPERATION, OK);
+}
+
+void CheckTable(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, sqlite3 *db)
+{
+    /**
+     * @tc.steps:step4. Create distributed table with a table with "UNIQUE"
+     * @tc.expected: step4. return OK or NOT_SUPPORT.
+     */
+    std::string tableName4 = "t4";
+    std::string createSql = "create table " + tableName4 + "(id int UNIQUE);";
+    createSql += "create table t4_1(id int primary key, value text UNIQUE, name int);";
+    createSql += "create table t4_2(id int primary key, value text UNIQUE , name int);";
+    createSql += "create table t4_3(id int primary key, value text UNIQUE );";
+    createSql += "create table t4_4(id int primary key, value text UNIQUE , name int);";
+    createSql += "create table t4_5(id int unique);";
+    createSql += "create table t4_6(id int primary key, value text UniqUe, name int);";
+    createSql += "create table t4_7(id int primary key, uniquekey text , name int);";
+    createSql += "create table t4_8(id int , name text, UNIQUE(id, name));";
+    createSql += "create table t4_9(id int , name text,UNIQUE(id, name));";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    DBStatus expectCode;
+    if (tableSyncType == DEVICE_COOPERATION) {
+        expectCode = OK;
+    } else {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName4, tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_1", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_2", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_3", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_4", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_5", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_6", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_7", tableSyncType), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_8", tableSyncType), expectCode);
+    EXPECT_EQ(delegate->CreateDistributedTable("t4_9", tableSyncType), expectCode);
+}
+
+void TableConstraintsCheck(TableSyncType tableSyncType, RelationalStoreDelegate *delegate, sqlite3 *db)
+{
+    /**
+     * @tc.steps:step1. Create distributed table with a table with "CHECK" key word
+     * @tc.expected: step1. return NOT_SUPPORT or OK.
+     */
+    std::string tableName1 = "t1";
+    std::string createSql = "create table " + tableName1 + "(id int CHECK(id > 5));";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    int expectCode = OK;
+    if (tableSyncType == DistributedDB::CLOUD_COOPERATION) {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName1, tableSyncType), expectCode);
+
+    /**
+     * @tc.steps:step2. Create distributed table with a table with foreign key
+     * @tc.expected: step2. return OK.
+     */
+    std::string tableName2 = "t2";
+    createSql = "create table " + tableName2 + "(name text, t1_id int, FOREIGN KEY (t1_id) REFERENCES " + tableName1 +
+                " (id));";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName2, tableSyncType), OK);
+
+    CheckTable(tableSyncType, delegate, db);
+
+    /**
+     * @tc.steps:step3. Create distributed table with a table with "WITHOUT ROWID"
+     * @tc.expected: step3. return NOT_SUPPORT.
+     */
+    std::string tableName3 = "t3";
+    createSql = "create table " + tableName3 + "(id int primary key) WITHOUT ROWID;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName3, tableSyncType), NOT_SUPPORT);
+
+    /**
+     * @tc.steps:step5. Create distributed table with a table with primary key which is real
+     * @tc.expected: step5. return OK or NOT_SUPPORT.
+     */
+    std::string tableName5 = "t5";
+    createSql = "create table " + tableName5 + "(id REAL primary key);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    if (tableSyncType == DEVICE_COOPERATION) {
+        expectCode = OK;
+    } else {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName5, tableSyncType), expectCode);
+
+    /**
+     * @tc.steps:step6. Create distributed table with a table with primary key which is ASSET
+     * @tc.expected: step6. return OK or NOT_SUPPORT.
+     */
+    std::string tableName6 = "t6";
+    createSql = "create table " + tableName6 + "(id ASSET primary key);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    if (tableSyncType == DEVICE_COOPERATION) {
+        expectCode = OK;
+    } else {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName6, tableSyncType), expectCode);
+
+    /**
+     * @tc.steps:step7. Create distributed table with a table with primary key which is ASSETS
+     * @tc.expected: step7. return OK or NOT_SUPPORT.
+     */
+    std::string tableName7 = "t7";
+    createSql = "create table " + tableName7 + "(id assets primary key);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), SQLITE_OK);
+    if (tableSyncType == DEVICE_COOPERATION) {
+        expectCode = OK;
+    } else {
+        expectCode = NOT_SUPPORT;
+    }
+    EXPECT_EQ(delegate->CreateDistributedTable(tableName7, tableSyncType), expectCode);
+}
+
+void TableConstraintsTest(TableSyncType tableSyncType)
+{
+    /**
+     * @tc.steps:step1. Prepare db file
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+
+    /**
+     * @tc.steps:step2. Open store
+     * @tc.expected: step2. return OK
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+
+    /**
+     * @tc.steps:step3. check constraints
+     */
+    TableConstraintsCheck(tableSyncType, delegate, db);
+
+    /**
+     * @tc.steps:step4. Close store
+     * @tc.expected: step4 Return OK.
+     */
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+}
+
+/**
+  * @tc.name: TableConstraintsTest001
+  * @tc.desc: Test table constraints when create distributed table with DistributedDB::DEVICE_COOPERATION
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, TableConstraintsTest001, TestSize.Level1)
+{
+    TableConstraintsTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+  * @tc.name: TableConstraintsTest002
+  * @tc.desc: Test table constraints when create distributed table with DistributedDB::CLOUD_COOPERATION
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, TableConstraintsTest002, TestSize.Level1)
+{
+    TableConstraintsTest(DistributedDB::CLOUD_COOPERATION);
 }
 
 /**
@@ -1504,7 +1716,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest001, T
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
     /**
@@ -1545,7 +1757,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, T
     sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
     /**
@@ -1593,7 +1805,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest002, T
     db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
     ASSERT_NE(db, nullptr);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, NORMAL_CREATE_NO_UNIQUE), SQLITE_OK);
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
 
     EXPECT_EQ(delegate->CreateDistributedTable("sync_data", DistributedDB::CLOUD_COOPERATION), OK);

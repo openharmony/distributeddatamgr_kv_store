@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#ifndef OMIT_MULTI_VER
 #include "sqlite_local_kvdb_snapshot.h"
 #include "sqlite_local_kvdb_connection.h"
 
@@ -52,3 +53,4 @@ void SQLiteLocalKvDBSnapshot::Close()
     }
 }
 } // namespace DistributedDB
+#endif // OMIT_MULTI_VER

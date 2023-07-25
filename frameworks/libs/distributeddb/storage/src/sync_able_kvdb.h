@@ -114,7 +114,7 @@ protected:
     // Get the dataItem's append length, the append length = after-serialized-len - original-dataItem-len
     uint32_t GetAppendedLen() const;
 
-    int GetLocalIdentity(std::string &outTarget);
+    int GetLocalIdentity(std::string &outTarget) const;
 
     void TriggerSync(int notifyEvent);
 

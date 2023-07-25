@@ -66,7 +66,8 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, DownloadData &downloadData);
 
-    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList, std::vector<Asset> &assets);
+    int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
     
     int CheckSchema(const TableName &tableName) const;
 

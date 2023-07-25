@@ -247,6 +247,7 @@ ohos_source_set("src_file") {
     "../syncer/src/cloud/cloud_force_pull_strategy.cpp",
     "../syncer/src/cloud/cloud_force_push_strategy.cpp",
     "../syncer/src/cloud/cloud_merge_strategy.cpp",
+    "../syncer/src/cloud/cloud_sync_utils.cpp",
     "../syncer/src/cloud/cloud_syncer.cpp",
     "../syncer/src/cloud/strategy_factory.cpp",
     "../syncer/src/commit_history_sync.cpp",
@@ -962,6 +963,7 @@ group("distributeddatamgr_fuzztest") {
   testonly = true
   deps = []
   deps += [
+    "fuzztest/cloudsync_fuzzer:fuzztest",
     "fuzztest/delegate_fuzzer:fuzztest",
     "fuzztest/fileoper_fuzzer:fuzztest",
     "fuzztest/importfile_fuzzer:fuzztest",

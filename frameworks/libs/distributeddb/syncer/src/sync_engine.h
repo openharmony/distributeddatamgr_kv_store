@@ -49,8 +49,10 @@ public:
     // Clear the SyncTarget matched the syncId.
     void RemoveSyncOperation(int syncId) override;
 
+#ifndef OMIT_MULTI_VER
     // notify other devices data has changed
     void BroadCastDataChanged() const override;
+#endif
 
     // Get Online devices
     void GetOnlineDevices(std::vector<std::string> &devices) const override;

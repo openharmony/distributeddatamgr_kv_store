@@ -296,9 +296,7 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
             break;
         }
         case LOCK: {
-            std::pair<int, uint64_t> lockStatus = cloudDb->Lock();
-            status = (lockStatus.first != OK || lockStatus.second == 0) ? CLOUD_ERROR : OK;
-            context->MoveInLockStatus(lockStatus);
+            status = InnerActionLock(context, cloudDb);
             break;
         }
         case UNLOCK:
@@ -322,6 +320,23 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
         asyncTaskCount_--;
     }
     asyncTaskCv_.notify_all();
+}
+
+DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
+    const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    DBStatus status = OK;
+    std::pair<int, uint64_t> lockRet;
+    std::pair<DBStatus, uint64_t> lockStatus = cloudDb->Lock();
+    if (lockStatus.first != OK) {
+        status = lockStatus.first;
+    } else if (lockStatus.second == 0) {
+        status = CLOUD_ERROR;
+    }
+    lockRet.second = lockStatus.second;
+    lockRet.first = GetInnerErrorCode(status);
+    context->MoveInLockStatus(lockRet);
+    return status;
 }
 
 int CloudDBProxy::GetInnerErrorCode(DBStatus status)

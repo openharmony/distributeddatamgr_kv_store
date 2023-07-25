@@ -38,8 +38,9 @@ namespace {
     KvVirtualDevice *g_deviceB = nullptr;
     KvVirtualDevice *g_deviceC = nullptr;
     DeviceManager *g_deviceManager = nullptr;
+#ifndef OMIT_MULTI_VER
     const int WAIT_TIME = 1000;
-}
+#endif
 
 class DistributedDBSyncerDeviceManagerTest : public testing::Test {
 public:
@@ -208,6 +209,7 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, GetDevices001, TestSize.Level0)
     EXPECT_TRUE(deviceList[0] == g_deviceB->GetDeviceId());
 }
 
+#ifndef OMIT_MULTI_VER
 /**
  * @tc.name: Send BroadCast 001
  * @tc.desc: Test DeviceManager SendBroadCast function.
@@ -239,4 +241,6 @@ HWTEST_F(DistributedDBSyncerDeviceManagerTest, SendBroadCast001, TestSize.Level1
     ASSERT_TRUE(errCode == E_OK);
     EXPECT_TRUE(deviceBReviced);
     EXPECT_TRUE(deviceCReviced);
+}
+#endif // OMIT_MULTI_VER
 }

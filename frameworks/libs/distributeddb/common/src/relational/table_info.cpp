@@ -67,11 +67,6 @@ enum AffinityPattern : uint32_t {
 };
 }
 
-bool IsAssetType(const std::string &dataType)
-{
-    return (strcasecmp(dataType.c_str(), ASSET) == 0 || strcasecmp(dataType.c_str(), ASSETS) == 0);
-}
-
 static StorageType AffinityType(const std::string &dataType)
 {
     StorageType type = StorageType::STORAGE_TYPE_NULL;
@@ -104,7 +99,7 @@ void FieldInfo::SetDataType(const std::string &dataType)
 {
     dataType_ = dataType;
     std::transform(dataType_.begin(), dataType_.end(), dataType_.begin(), ::tolower);
-    if (IsAssetType(dataType_)) {
+    if (IsAssetType() || IsAssetsType()) {
         storageType_ = StorageType::STORAGE_TYPE_BLOB; // use for cloud sync
     } else {
         storageType_ = AffinityType(dataType_);
@@ -191,6 +186,16 @@ int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
         return (isLite && defaultValue_ == "NULL") || defaultValue_ == inField.GetDefaultValue();
     }
     return hasDefaultValue_ == inField.HasDefaultValue();
+}
+
+bool FieldInfo::IsAssetType() const
+{
+    return strcasecmp(dataType_.c_str(), ASSET) == 0;
+}
+
+bool FieldInfo::IsAssetsType() const
+{
+    return strcasecmp(dataType_.c_str(), ASSETS) == 0;
 }
 
 const std::string &TableInfo::GetTableName() const

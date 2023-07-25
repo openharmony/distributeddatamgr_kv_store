@@ -32,15 +32,19 @@ int SchemaMgr::ChkSchema(const TableName &tableName, RelationalSchemaObject &loc
         LOGE("Cloud schema has not been set");
         return -E_SCHEMA_MISMATCH;
     }
+    TableInfo tableInfo = localSchema.GetTable(tableName);
+    if (tableInfo.Empty()) {
+        LOGE("Local schema does not contain certain table:%d", -E_SCHEMA_MISMATCH);
+        return -E_SCHEMA_MISMATCH;
+    }
+    if (tableInfo.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION) {
+        LOGE("Sync type of local table is not CLOUD_COOPERATION:%d", -E_SCHEMA_MISMATCH);
+        return -E_SCHEMA_MISMATCH;
+    }
     TableSchema cloudTableSchema;
     int ret = GetCloudTableSchema(tableName, cloudTableSchema);
     if (ret != E_OK) {
         LOGE("Cloud schema does not contain certain table:%d", -E_SCHEMA_MISMATCH);
-        return -E_SCHEMA_MISMATCH;
-    }
-    TableInfo tableInfo = localSchema.GetTable(tableName);
-    if (tableInfo.Empty()) {
-        LOGE("Local schema does not contain certain table:%d", -E_SCHEMA_MISMATCH);
         return -E_SCHEMA_MISMATCH;
     }
     std::map<int, FieldName> primaryKeys = tableInfo.GetPrimaryKey();

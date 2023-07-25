@@ -68,7 +68,7 @@ public:
     static int TransformTableData(const TableDataWithLog &tableDataWithLog,
         const std::vector<FieldInfo> &fieldInfoList, std::vector<DataItem> &dataItems);
     static int TransformDataItem(const std::vector<DataItem> &dataItems, const std::vector<FieldInfo> &remoteFieldInfo,
-        const std::vector<FieldInfo> &localFieldInfo, OptTableDataWithLog &tableDataWithLog);
+        OptTableDataWithLog &tableDataWithLog);
 
     static int SerializeDataItem(const RowDataWithLog &data, const std::vector<FieldInfo> &fieldInfo,
         DataItem &dataItem);

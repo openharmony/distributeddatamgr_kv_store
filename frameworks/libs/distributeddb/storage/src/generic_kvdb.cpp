@@ -264,6 +264,7 @@ KvDBProperties &GenericKvDB::MyProp()
     return properties_;
 }
 
+#ifndef OMIT_MULTI_VER
 int GenericKvDB::GetWorkDir(const KvDBProperties &kvDBProp, std::string &workDir)
 {
     std::string origDataDir = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR, "");
@@ -275,25 +276,12 @@ int GenericKvDB::GetWorkDir(const KvDBProperties &kvDBProp, std::string &workDir
     workDir = origDataDir + "/" + identifierDir;
     return E_OK;
 }
+#endif
 
 void GenericKvDB::SetCorruptHandler(const DatabaseCorruptHandler &handler)
 {
     std::lock_guard<std::mutex> lock(corruptMutex_);
     corruptHandler_ = handler;
-}
-
-void GenericKvDB::OpenPerformanceAnalysis()
-{
-    if (performance_ != nullptr) {
-        performance_->OpenPerformanceAnalysis();
-    }
-}
-
-void GenericKvDB::ClosePerformanceAnalysis()
-{
-    if (performance_ != nullptr) {
-        performance_->ClosePerformanceAnalysis();
-    }
 }
 
 void GenericKvDB::CommitNotifyAsync(int notifyEvent, KvDBCommitNotifyFilterAbleData *data)

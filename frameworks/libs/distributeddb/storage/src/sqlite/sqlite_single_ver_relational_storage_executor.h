@@ -44,7 +44,7 @@ public:
         TableInfo &table, TableSyncType syncType);
 
     int UpgradeDistributedTable(const std::string &tableName, DistributedTableMode mode, bool &schemaChanged,
-        RelationalSchemaObject &schema);
+        RelationalSchemaObject &schema, TableSyncType syncType);
 
     int StartTransaction(TransactType type);
     int Commit();
@@ -107,7 +107,7 @@ public:
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isFullReplace);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
-        const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
     int FillCloudAssetForUpload(const std::string &tableName, const CloudSyncBatch &data);
 
@@ -115,7 +115,7 @@ private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
     int DoCleanLogAndData(const std::vector<std::string> &tableNameList,
-        const std::vector<TableSchema> &tableSchemaList, std::vector<Asset> &assets);
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 
     int CleanCloudDataOnLogTable(const std::string &logTableName);
 
@@ -123,14 +123,14 @@ private:
 
     int GetCleanCloudDataKeys(const std::string &logTableName, std::vector<int64_t> &dataKeys);
 
-    int GetCloudAssets(const std::string &tableName, const std::vector<AssetField> assetFields,
+    int GetCloudAssets(const std::string &tableName, const std::vector<FieldInfo> &fieldInfos,
         const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
 
-    int GetCloudAssetOnTable(const std::string &tableName,
-        const AssetField &assetField, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+    int GetCloudAssetOnTable(const std::string &tableName, const std::string &fieldName,
+        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
 
-    int GetCloudAssetsOnTable(const std::string &tableName,
-        const AssetField &assetField, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
+    int GetCloudAssetsOnTable(const std::string &tableName, const std::string &fieldName,
+        const std::vector<int64_t> &datakeys, std::vector<Asset> &assets);
 
     int GetDataItemForSync(sqlite3_stmt *statement, DataItem &dataItem, bool isGettingDeletedData) const;
 

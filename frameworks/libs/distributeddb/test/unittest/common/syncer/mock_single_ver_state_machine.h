@@ -67,6 +67,11 @@ public:
         return SingleVerSyncStateMachine::StartWatchDog();
     }
 
+    void CallStopWatchDog()
+    {
+        SingleVerSyncStateMachine::StopWatchDog();
+    }
+
     uint8_t GetCurrentState()
     {
         return currentState_;

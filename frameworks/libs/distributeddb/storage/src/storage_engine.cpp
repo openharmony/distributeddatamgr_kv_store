@@ -228,6 +228,7 @@ void StorageEngine::Recycle(StorageExecutor *&handle)
             handle->Reset();
             writeIdleList_.push_back(handle);
             writeCondition_.notify_one();
+            idleCondition_.notify_all();
         }
     } else {
         std::unique_lock<std::mutex> lock(readMutex_);
@@ -450,5 +451,18 @@ bool StorageEngine::CheckEngineAttr(const StorageEngineAttr &poolSize)
 bool StorageEngine::IsMigrating() const
 {
     return isMigrating_.load();
+}
+
+void StorageEngine::WaitWriteHandleIdle()
+{
+    std::unique_lock<std::mutex> autoLock(idleMutex_);
+    LOGD("Wait wHandle release id[%s]. write[%zu-%zu-%" PRIu32 "]", DBCommon::TransferStringToHex(identifier_).c_str(),
+        writeIdleList_.size(), writeUsingList_.size(), engineAttr_.maxWriteNum);
+    idleCondition_.wait(autoLock, [this]() {
+        return writeUsingList_.size() == 0;
+    });
+    LOGD("Wait wHandle release finish id[%s]. write[%zu-%zu-%" PRIu32 "]",
+        DBCommon::TransferStringToHex(identifier_).c_str(), writeIdleList_.size(), writeUsingList_.size(),
+        engineAttr_.maxWriteNum);
 }
 }

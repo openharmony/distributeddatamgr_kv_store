@@ -204,7 +204,7 @@ HWTEST_F(DistributedDBDataTransformerTest, DataTransformerCheck001, TestSize.Lev
     EXPECT_EQ(DataTransformer::TransformTableData(originData, fieldInfoList, dataItemList), E_OK);
 
     OptTableDataWithLog targetData;
-    EXPECT_EQ(DataTransformer::TransformDataItem(dataItemList, fieldInfoList, fieldInfoList, targetData), E_OK);
+    EXPECT_EQ(DataTransformer::TransformDataItem(dataItemList, fieldInfoList, targetData), E_OK);
 
     EXPECT_TRUE(Equal(originData, targetData));
 }

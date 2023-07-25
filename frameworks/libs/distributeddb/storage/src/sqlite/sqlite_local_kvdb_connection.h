@@ -16,6 +16,7 @@
 #ifndef SQLITE_LOCAL_KV_DB_CONNECTION_H
 #define SQLITE_LOCAL_KV_DB_CONNECTION_H
 
+#ifndef OMIT_MULTI_VER
 #include <set>
 #include <mutex>
 
@@ -107,5 +108,5 @@ private:
     std::mutex importMutex_;
 };
 };  // namespace DistributedDB
-
+#endif // OMIT_MULTI_VER
 #endif // SQLITE_LOCAL_KV_DB_CONNECTION_H

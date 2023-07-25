@@ -38,8 +38,8 @@ public:
     MOCK_METHOD4(GetInfoByPrimaryKeyOrGid, int(const std::string &, const VBucket &, DataInfoWithLog &, VBucket &));
     MOCK_METHOD2(PutCloudSyncData, int(const std::string &, DownloadData &));
     MOCK_METHOD3(TriggerObserverAction, void(const std::string &, ChangedData &&, bool));
-    MOCK_METHOD3(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
-        std::vector<Asset> &assets));
+    MOCK_METHOD4(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
+        const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));
     MOCK_METHOD3(FillCloudAssetForDownload, int(const std::string &, VBucket &, bool));
     MOCK_METHOD2(FillCloudGidAndAsset, int(const OpType &, const CloudSyncData &));
 };

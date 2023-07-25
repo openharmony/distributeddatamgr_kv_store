@@ -18,6 +18,7 @@
 #include "db_constant.h"
 #include "db_common.h"
 #include "distributeddb_storage_single_ver_natural_store_testcase.h"
+#include "mock_sqlite_single_ver_natural_store.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -33,7 +34,6 @@ namespace {
 
     DistributedDB::SQLiteSingleVerNaturalStore *g_store = nullptr;
     DistributedDB::SQLiteSingleVerNaturalStoreConnection *g_connection = nullptr;
-}
 
 class DistributedDBStorageSQLiteSingleVerNaturalStoreTest : public testing::Test {
 public:
@@ -1112,4 +1112,39 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, ExportBusy001, Tes
     CipherPassword password;
     EXPECT_EQ(g_store->Export(g_testDir, password), -E_BUSY);
     g_store->ReEnableConnection(OperatePerm::NORMAL_WRITE);
+}
+
+/**
+ * @tc.name: MigrationAndReleaseResourcesTest001
+ * @tc.desc: concurrent test of Migration and ReleaseResources
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, MigrationAndReleaseResourcesTest001, TestSize.Level1)
+{
+    KvDBProperties property;
+    property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
+    property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNBMigration");
+    property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+
+    int iterCount = 100;
+    for (int i = 0; i < iterCount; i++) {
+        DistributedDB::MockSqliteSingleVerNaturalStore *store = new(std::nothrow) MockSqliteSingleVerNaturalStore;
+        ASSERT_NE(store, nullptr);
+
+        std::thread dataMigrationThread([&store]() {
+            store->CallAsyncDataMigration();
+        });
+        std::thread releaseThread([&store]() {
+            store->IncRefCount();
+            store->CallReleaseResources();
+        });
+
+        dataMigrationThread.join();
+        releaseThread.join();
+        store->DecObjRef(store);
+    }
+}
 }

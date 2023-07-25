@@ -59,7 +59,7 @@ private:
 class TimeSync {
 public:
     TimeSync();
-    ~TimeSync();
+    virtual ~TimeSync();
 
     DISABLE_COPY_ASSIGN_MOVE(TimeSync);
 
@@ -74,7 +74,7 @@ public:
     int Initialize(ICommunicator *communicator, const std::shared_ptr<Metadata> &metadata,
         const ISyncInterface *storage, const DeviceID &deviceId);
 
-    int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0); // send timesync request
+    virtual int SyncStart(const CommErrHandler &handler = nullptr, uint32_t sessionId = 0); // send timesync request
 
     int AckRecv(const Message *message, uint32_t targetSessionId = 0);
 
