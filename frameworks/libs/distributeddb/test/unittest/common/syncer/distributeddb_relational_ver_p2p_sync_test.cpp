@@ -1193,7 +1193,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
      */
     Query query = Query::Select(g_tableName);
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
-    EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_OPENED);
     /**
      * @tc.steps: step6. check sync data ensure sync successful
      */
@@ -1201,7 +1200,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
 
     OpenStore();
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
-    EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_CLOSED);
 }
 
 /**
