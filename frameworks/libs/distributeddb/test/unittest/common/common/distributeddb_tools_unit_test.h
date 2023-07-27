@@ -325,8 +325,6 @@ public:
     static int CheckTableRecords(sqlite3 *db, const std::string &table);
     static int GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value);
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
-    static void GenerateAssetData(const DistributedDB::Asset &sourceAsset, std::vector<DistributedDB::VBucket> &record,
-        std::vector<DistributedDB::VBucket> &extend);
 };
 } // namespace DistributedDBUnitTest
 

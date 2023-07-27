@@ -34,10 +34,9 @@ public:
     int ChkSchema(const TableName &tableName, RelationalSchemaObject &localSchema);
 
 private:
-    bool IsAssetPrimaryField(const Field &cloudField);
     bool CompareType(const FieldInfo &localField, const Field &cloudField);
     bool CompareNullable(const FieldInfo &localField, const Field &cloudField);
-    bool ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField);
+    bool CompareIsPrimary(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField);
     int CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldInfoMap &localFields,
         std::vector<Field> &cloudFields);
     std::shared_ptr<DataBaseSchema> cloudSchema_ = nullptr;

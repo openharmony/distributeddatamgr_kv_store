@@ -1024,12 +1024,12 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
 
     /**
      * @tc.steps:step2. Get cloud data
-     * @tc.expected: step2. return -E_CLOUD_INVALID_ASSET.
+     * @tc.expected: step2. return -E_CLOUD_ERROR.
      */
     ContinueToken token = nullptr;
     CloudSyncData cloudSyncData;
     EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_INVALID_ASSET);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), -E_CLOUD_ERROR);
     EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
 }
 

@@ -74,18 +74,4 @@ size_t VirtualCloudSyncer::GetQueueCount()
     std::lock_guard<std::mutex> autoLock(queueLock_);
     return taskQueue_.size();
 }
-
-void VirtualCloudSyncer::SetCurrentTaskInfo(const SyncProcessCallback &callback,
-    CloudSyncer::TaskId taskId)
-{
-    {
-        std::lock_guard<std::mutex> autoContextLock(contextLock_);
-        currentContext_.currentTaskId = taskId;
-        currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-    }
-    std::lock_guard<std::mutex> autoLock(queueLock_);
-    CloudTaskInfo taskInfo;
-    taskInfo.callback = callback;
-    cloudTaskInfos_[taskId] = taskInfo;
-}
 }

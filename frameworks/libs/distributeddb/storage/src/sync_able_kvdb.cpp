@@ -387,15 +387,6 @@ void SyncAbleKvDB::NotifyRemotePushFinishedInner(const std::string &targetId) co
 
 int SyncAbleKvDB::SetSyncRetry(bool isRetry)
 {
-    IKvDBSyncInterface *syncInterface = GetSyncInterface();
-    if (syncInterface == nullptr) {
-        LOGF("KvDB got null sync interface.");
-        return -E_INVALID_DB;
-    }
-    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);
-    if (localOnly) {
-        return -E_NOT_SUPPORT;
-    }
     if (NeedStartSyncer()) {
         StartSyncer();
     }

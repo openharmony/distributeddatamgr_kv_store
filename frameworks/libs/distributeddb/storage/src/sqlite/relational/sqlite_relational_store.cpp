@@ -466,7 +466,7 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     TableInfoMap tables = localSchema.GetTables();
     std::vector<std::string> cloudTableNameList;
-    for (const auto &tableInfo : tables) {
+    for (auto tableInfo: tables) {
         if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION) {
             cloudTableNameList.push_back(tableInfo.first);
         }
@@ -549,8 +549,8 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     auto iter = tables.find(tableName);
     if (tables.empty() || (!tableName.empty() && iter == tables.end())) {
-        LOGI("Remove device data with table name which is not a distributed table or no distributed table found.");
-        return E_OK;
+        LOGE("Remove device data with table name which is not a distributed table or no distributed table found.");
+        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
     }
     // cloud mode is not permit
     if (iter->second.GetTableSyncType() == CLOUD_COOPERATION) {

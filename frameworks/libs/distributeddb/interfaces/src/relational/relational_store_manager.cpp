@@ -113,7 +113,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
         conn->Close();
         return DB_ERROR;
     }
-    return delegate->RegisterObserver(option.observer);
+    return option.observer != nullptr ? delegate->RegisterObserver(option.observer) : OK;
 }
 
 DBStatus RelationalStoreManager::CloseStore(RelationalStoreDelegate *store)
@@ -157,7 +157,7 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
     int errCode = E_OK;
     if (primaryKey.size() == 1) {
         auto iter = primaryKey.begin();
-        Field field = {iter->first, static_cast<int32_t>(iter->second.index()), true, false};
+        Field field = { iter->first, static_cast<int32_t>(iter->second.index()), true, false};
         errCode = CloudStorageUtils::CalculateHashKeyForOneField(field, primaryKey, false, result);
         if (errCode != E_OK) {
             // never happen
@@ -166,9 +166,9 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
         }
     } else {
         std::vector<uint8_t> tempRes;
-        for (const auto &item : primaryKey) {
+        for (const auto &item: primaryKey) {
             std::vector<uint8_t> temp;
-            Field field = {item.first, static_cast<int32_t>(item.second.index()), true, false};
+            Field field = { item.first, static_cast<int32_t>(item.second.index()), true, false};
             errCode = CloudStorageUtils::CalculateHashKeyForOneField(field, primaryKey, false, temp);
             if (errCode != E_OK) {
                 // never happen

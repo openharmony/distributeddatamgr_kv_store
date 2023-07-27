@@ -104,52 +104,6 @@ DataBaseSchema g_schema = {
                     .nullable = true,
                 }
             }
-        },
-        {
-            .name = TABLE_NAME_3,
-            .fields = {
-                {
-                    .colName = FIELD_NAME_1,
-                    .type = TYPE_INDEX<Asset>,
-                    .primary = true,
-                    .nullable = true,
-                },
-                {
-                    .colName = FIELD_NAME_2,
-                    .type = TYPE_INDEX<std::string>,
-                    .primary = false,
-                    .nullable = true,
-                },
-                {
-                    .colName = FIELD_NAME_3,
-                    .type = TYPE_INDEX<int64_t>,
-                    .primary = false,
-                    .nullable = true,
-                }
-            }
-        },
-        {
-            .name = TABLE_NAME_4,
-            .fields = {
-                {
-                    .colName = FIELD_NAME_1,
-                    .type = TYPE_INDEX<Assets>,
-                    .primary = false,
-                    .nullable = true,
-                },
-                {
-                    .colName = FIELD_NAME_2,
-                    .type = TYPE_INDEX<std::string>,
-                    .primary = false,
-                    .nullable = true,
-                },
-                {
-                    .colName = FIELD_NAME_3,
-                    .type = TYPE_INDEX<int64_t>,
-                    .primary = false,
-                    .nullable = true,
-                }
-            }
         }
     }
 };
@@ -492,7 +446,7 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest010, TestSize.Level0)
     localSchema.AddRelationalTable(table);
 
     g_schemaMgr->SetCloudDbSchema(g_schema);
-    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), -E_NOT_SUPPORT);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), -E_SCHEMA_MISMATCH);
 }
 
 /**
@@ -522,68 +476,4 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest011, TestSize.Level0)
     EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), -E_SCHEMA_MISMATCH);
 }
 
-/**
-  * @tc.name: SchemaMgrTest012
-  * @tc.desc: table 3 contain primary asset field
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: wanyi
-  */
-HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest012, TestSize.Level0)
-{
-    FieldInfo field1 = SetField(FIELD_NAME_1, "blob", true);
-    FieldInfo field2 = SetField(FIELD_NAME_2, "text", true);
-    FieldInfo field3 = SetField(FIELD_NAME_3, "int", true);
-
-    TableInfo table;
-    table.SetTableName(TABLE_NAME_3);
-    table.AddField(field1);
-    table.AddField(field2);
-    table.AddField(field3);
-    table.SetPrimaryKey(FIELD_NAME_1, 1);
-    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
-    RelationalSchemaObject localSchema;
-    localSchema.AddRelationalTable(table);
-
-    g_schemaMgr->SetCloudDbSchema(g_schema);
-    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_3, localSchema), -E_SCHEMA_MISMATCH);
-}
-
-/**
-  * @tc.name: SchemaMgrTest013
-  * @tc.desc: table 4 do not contain primary assets field
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: wanyi
-  */
-HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest013, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. local schema's asset field is not primary
-     * @tc.expected: step1. return ok.
-     */
-    FieldInfo field1 = SetField(FIELD_NAME_1, "blob", true);
-    FieldInfo field2 = SetField(FIELD_NAME_2, "text", true);
-    FieldInfo field3 = SetField(FIELD_NAME_3, "int", true);
-
-    TableInfo table;
-    table.SetTableName(TABLE_NAME_4);
-    table.AddField(field1);
-    table.AddField(field2);
-    table.AddField(field3);
-    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
-    RelationalSchemaObject localSchema;
-    localSchema.AddRelationalTable(table);
-
-    g_schemaMgr->SetCloudDbSchema(g_schema);
-    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_4, localSchema), E_OK);
-    /**
-     * @tc.steps:step2. local schema's asset field is primary
-     * @tc.expected: step2. return E_SCHEMA_MISMATCH.
-     */
-    table.SetPrimaryKey(FIELD_NAME_1, 1);
-    RelationalSchemaObject localSchemaWithAssetPrimary;
-    localSchemaWithAssetPrimary.AddRelationalTable(table);
-    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_4, localSchemaWithAssetPrimary), -E_SCHEMA_MISMATCH);
-}
 }

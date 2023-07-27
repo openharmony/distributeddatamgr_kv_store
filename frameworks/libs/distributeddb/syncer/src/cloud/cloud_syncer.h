@@ -32,7 +32,7 @@
 #include "store_observer.h"
 
 namespace DistributedDB {
-using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key>>;
+using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>>>;
 class CloudSyncer : public RefObject {
 public:
     explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy);
@@ -88,7 +88,6 @@ protected:
         CloudWaterMark cloudWaterMark;
         std::vector<std::string> pkColNames;
         std::set<Key> deletePrimaryKeySet;
-        std::set<Key> dupHashKeySet;
         std::string tableName;
         bool isLastBatch = false;
     };
@@ -228,7 +227,7 @@ protected:
 
     void NotifyInBatchUpload(const UploadParam &uploadParam, const InnerProcessInfo &innerProcessInfo, bool lastBatch);
 
-    bool NeedNotifyChangedData(const ChangedData &changedData);
+    bool NeedNotifyChangedData(ChangedData &changedData);
 
     int NotifyChangedData(ChangedData &&changedData);
 
@@ -242,7 +241,7 @@ protected:
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
 
-    int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo,
+    int TagDownloadAssets(size_t idx, SyncParam &param, DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
     void TagUploadAssets(CloudSyncData &uploadData);
@@ -253,10 +252,10 @@ protected:
         std::map<std::string, Assets> &DownloadResult, bool setAllNormal);
 
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
-        const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
+        ChangedData &changedAssets);
 
     int CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
-        const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
+        ChangedData &changedAssets);
 
     bool IsDataContainAssets();
 
@@ -275,8 +274,6 @@ protected:
     int SaveCloudWaterMark(const TableName &tableName);
 
     void UpdateCloudWaterMark(const SyncParam &param);
-
-    std::string GetIdentify() const;
 
     std::mutex queueLock_;
     TaskId currentTaskId_;
@@ -305,8 +302,6 @@ protected:
     std::mutex syncCallbackMutex_;
     std::condition_variable syncCallbackCv_;
     int32_t syncCallbackCount_;
-
-    std::string id_;
 };
 }
 #endif // CLOUD_SYNCER_H

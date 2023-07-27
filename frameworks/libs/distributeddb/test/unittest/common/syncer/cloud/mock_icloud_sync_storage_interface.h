@@ -42,7 +42,6 @@ public:
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));
     MOCK_METHOD3(FillCloudAssetForDownload, int(const std::string &, VBucket &, bool));
     MOCK_METHOD2(FillCloudGidAndAsset, int(const OpType &, const CloudSyncData &));
-    MOCK_CONST_METHOD0(GetIdentify, std::string());
 };
 
 }

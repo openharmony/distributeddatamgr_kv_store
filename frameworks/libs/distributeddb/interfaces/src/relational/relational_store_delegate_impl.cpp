@@ -49,7 +49,7 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
     }
     if (mode == FLAG_ONLY || mode == FLAG_AND_DATA) {
         if (conn_ == nullptr) {
-            LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+            LOGE("Invalid connection for operation!");
             return DB_ERROR;
         }
 
@@ -66,7 +66,7 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
 int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
 {
     if (conn_ == nullptr) {
-        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        LOGE("Invalid connection for operation!");
         return -1;
     }
     int32_t count = conn_->GetCloudSyncTaskCount();

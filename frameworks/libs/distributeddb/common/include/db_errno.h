@@ -135,7 +135,6 @@ constexpr int E_CLOUD_SYNC_UNSET = (E_BASE + 114); // not set sync option in clo
 constexpr int E_CLOUD_FULL_RECORDS = (E_BASE + 115); // cloud's record is full
 constexpr int E_CLOUD_LOCK_ERROR = (E_BASE + 116); // cloud failed to get sync lock
 constexpr int E_CLOUD_ASSET_SPACE_INSUFFICIENT = (E_BASE + 117); // cloud failed to download asset
-constexpr int E_CLOUD_INVALID_ASSET = (E_BASE + 118); // the asset is invalid
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

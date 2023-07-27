@@ -27,12 +27,10 @@
 #include <set>
 #include <sys/types.h>
 
-#include "cloud_db_constant.h"
 #include "cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
-#include "time_helper.h"
 #include "platform_specific.h"
 #include "runtime_config.h"
 #include "single_ver_data_packet.h"
@@ -1190,28 +1188,5 @@ int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key,
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return SQLiteUtils::MapSQLiteErrno(errCode);
-}
-
-void RelationalTestUtils::GenerateAssetData(const DistributedDB::Asset &sourceAsset,
-    std::vector<DistributedDB::VBucket> &record, std::vector<DistributedDB::VBucket> &extend)
-{
-    VBucket data;
-    std::vector<uint8_t> photo(1, 'v');
-    data.insert_or_assign("name", "Local" + std::to_string(0));
-    data.insert_or_assign("height", 166.0); // 166.0 is random double value
-    data.insert_or_assign("married", false);
-    data.insert_or_assign("age", 13L);
-    data.insert_or_assign("photo", photo);
-    Asset asset = sourceAsset;
-    asset.name = asset.name + std::to_string(0);
-    data.insert_or_assign("assert", asset);
-    record.push_back(data);
-    VBucket log;
-    Timestamp now = TimeHelper::GetSysCurrentTime();
-    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-    log.insert_or_assign("#_gid", std::to_string(2)); // 2 is gid
-    extend.push_back(log);
 }
 } // namespace DistributedDBUnitTest

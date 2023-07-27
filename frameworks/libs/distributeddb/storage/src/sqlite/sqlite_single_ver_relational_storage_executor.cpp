@@ -1619,7 +1619,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
             return errCode;
         }
         if (!CloudStorageUtils::CheckAssetStatus({asset})) {
-            return -E_CLOUD_INVALID_ASSET;
+            return -E_CLOUD_ERROR;
         }
         vBucket.insert_or_assign(field.colName, asset);
     } else if (field.type == TYPE_INDEX<Assets> && cloudValue.index() == TYPE_INDEX<Bytes>) {
@@ -1632,7 +1632,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
             return -E_CLOUD_ERROR;
         }
         if (!CloudStorageUtils::CheckAssetStatus(assets)) {
-            return -E_CLOUD_INVALID_ASSET;
+            return -E_CLOUD_ERROR;
         }
         vBucket.insert_or_assign(field.colName, assets);
     } else {
@@ -2036,10 +2036,10 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetOnTable(const std::string &tableName,
-    const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
+    const std::string &fieldName, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
-    for (const auto &rowId : dataKeys) {
+    for (const auto &rowId: datakeys) {
         std::string queryAssetSql = "SELECT " + fieldName + " FROM '" + tableName +
             "' WHERE " + ROWID + " = " + std::to_string(rowId) + ";";
         sqlite3_stmt *selectStmt = nullptr;
@@ -2071,12 +2071,12 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetOnTable(const std::st
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::string &tableName,
-    const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
+    const std::string &fieldName, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
     int ret = E_OK;
     sqlite3_stmt *selectStmt = nullptr;
-    for (const auto &rowId : dataKeys) {
+    for (const auto &rowId: datakeys) {
         std::string queryAssetsSql = "SELECT " + fieldName + " FROM " + tableName +
             " WHERE " + ROWID + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
@@ -2109,18 +2109,18 @@ END:
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &tableName,
-    const std::vector<FieldInfo> &fieldInfos, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
+    const std::vector<FieldInfo> &fieldInfos, const std::vector<int64_t> &datakeys, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
     for (const auto &fieldInfo: fieldInfos) {
         if (fieldInfo.IsAssetType()) {
-            errCode = GetCloudAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = GetCloudAssetOnTable(tableName, fieldInfo.GetFieldName(), datakeys, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud asset on table, %d.", errCode);
                 return errCode;
             }
         } else if (fieldInfo.IsAssetsType()) {
-            errCode = GetCloudAssetsOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = GetCloudAssetsOnTable(tableName, fieldInfo.GetFieldName(), datakeys, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud assets on table, %d.", errCode);
                 return errCode;
