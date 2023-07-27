@@ -145,6 +145,7 @@ public:
     // For relational
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;
+    static const std::string LOG_POSTFIX;
 
     static const std::string LOG_TABLE_VERSION_1;
     static const std::string LOG_TABLE_VERSION_2;

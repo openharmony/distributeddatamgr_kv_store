@@ -105,7 +105,7 @@ public:
 
     int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
 
-    int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isFullReplace);
+    int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
 

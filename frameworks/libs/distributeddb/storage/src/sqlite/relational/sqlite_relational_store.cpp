@@ -549,8 +549,8 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     auto iter = tables.find(tableName);
     if (tables.empty() || (!tableName.empty() && iter == tables.end())) {
-        LOGI("Remove device data with table name which is not a distributed table or no distributed table found.");
-        return E_OK;
+        LOGE("Remove device data with table name which is not a distributed table or no distributed table found.");
+        return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
     }
     // cloud mode is not permit
     if (iter->second.GetTableSyncType() == CLOUD_COOPERATION) {
@@ -906,7 +906,8 @@ int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
         LOGE("[RelationalStore][SetCloudDB] cloudSyncer was not initialized");
         return -E_INVALID_DB;
     }
-    return cloudSyncer_->SetCloudDB(cloudDb);
+    cloudSyncer_->SetCloudDB(cloudDb);
+    return E_OK;
 }
 
 int SQLiteRelationalStore::SetCloudDbSchema(const DataBaseSchema &schema)
@@ -924,7 +925,8 @@ int SQLiteRelationalStore::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &
         LOGE("[RelationalStore][SetIAssetLoader] cloudSyncer was not initialized");
         return -E_INVALID_DB;
     }
-    return cloudSyncer_->SetIAssetLoader(loader);
+    cloudSyncer_->SetIAssetLoader(loader);
+    return E_OK;
 }
 
 int SQLiteRelationalStore::ChkSchema(const TableName &tableName)

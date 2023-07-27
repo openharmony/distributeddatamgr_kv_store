@@ -264,6 +264,12 @@ namespace {
             } else {
                 EXPECT_EQ(dataInfoWithLog.primaryKeys.size(), 0u);
             }
+            Timestamp eraseTime = dataInfoWithLog.logInfo.timestamp / CloudDbConstant::TEN_THOUSAND *
+                CloudDbConstant::TEN_THOUSAND;
+            Timestamp eraseWTime = dataInfoWithLog.logInfo.wTimestamp / CloudDbConstant::TEN_THOUSAND *
+                CloudDbConstant::TEN_THOUSAND;
+            EXPECT_EQ(dataInfoWithLog.logInfo.timestamp, eraseTime);
+            EXPECT_EQ(dataInfoWithLog.logInfo.wTimestamp, eraseWTime);
         }
     }
 

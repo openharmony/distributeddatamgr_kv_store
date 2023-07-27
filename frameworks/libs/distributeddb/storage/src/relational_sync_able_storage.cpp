@@ -17,6 +17,7 @@
 
 #include <utility>
 
+#include "cloud/cloud_db_constant.h"
 #include "data_compression.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
@@ -26,7 +27,6 @@
 #include "relational_sync_data_inserter.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
-#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 namespace {
@@ -889,6 +889,7 @@ void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &t
 
 int RelationalSyncAbleStorage::StartTransaction(TransactType type)
 {
+    CHECK_STORAGE_ENGINE;
     std::unique_lock<std::shared_mutex> lock(transactionMutex_);
     if (transactionHandle_ != nullptr) {
         LOGD("Transaction started already.");
@@ -961,7 +962,7 @@ int RelationalSyncAbleStorage::FillCloudGid(const CloudSyncData &data)
     }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
         return errCode;
     }
@@ -1112,14 +1113,19 @@ int RelationalSyncAbleStorage::GetCloudTableSchema(const TableName &tableName, T
 }
 
 int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset,
-    bool isFullReplace)
+    bool isDownloadSuccess)
 {
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
-    int errCode = E_OK;
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
+        return errCode;
+    }
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
         return errCode;
     }
@@ -1128,13 +1134,7 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
         ReleaseHandle(writeHandle);
         return errCode;
     }
-    TableSchema tableSchema;
-    errCode = GetCloudTableSchema(tableName, tableSchema);
-    if (errCode != E_OK) {
-        LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
-        return errCode;
-    }
-    errCode = writeHandle->FillCloudAssetForDownload(tableSchema, asset, isFullReplace);
+    errCode = writeHandle->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
     if (errCode != E_OK) {
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);
@@ -1145,17 +1145,15 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
     return errCode;
 }
 
-int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data)
+int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType opType, const CloudSyncData &data)
 {
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
+    CHECK_STORAGE_ENGINE;
     if (opType == OpType::UPDATE && data.updData.assets.empty()) {
         return E_OK;
     }
     int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode, 0));
+        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
         return errCode;
     }
@@ -1202,6 +1200,7 @@ std::string RelationalSyncAbleStorage::GetIdentify() const
     }
     return storageEngine_->GetIdentifier();
 }
+
 void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
 {
     std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
@@ -1209,6 +1208,17 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
     if (it != dataChangeCallbackMap_.end()) {
         dataChangeCallbackMap_.erase(it);
     }
+}
+
+void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmtToken) const
+{
+    auto token = static_cast<SQLiteSingleVerRelationalContinueToken *>(continueStmtToken);
+    if (token == nullptr || !(token->CheckValid())) {
+        LOGW("[RelationalSyncAbleStorage][ReleaseContinueToken] Input is not a continue token.");
+        return;
+    }
+    delete token;
+    continueStmtToken = nullptr;
 }
 }
 #endif

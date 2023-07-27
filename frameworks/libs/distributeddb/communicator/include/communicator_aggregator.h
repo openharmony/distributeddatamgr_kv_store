@@ -141,7 +141,7 @@ private:
 
     void TriggerSendData();
 
-    void ResetFrameRecordIfNeed(uint32_t frameId, uint32_t mtu);
+    void ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 

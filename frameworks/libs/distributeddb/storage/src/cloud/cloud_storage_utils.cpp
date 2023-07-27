@@ -12,12 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#include "cloud/cloud_storage_utils.h"
 #include <set>
 
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "runtime_context.h"
-#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field &field,
@@ -551,18 +552,12 @@ void CloudStorageUtils::FillAssetFromVBucketFinish(VBucket &vBucket, std::functi
 
 bool CloudStorageUtils::IsAsset(const Type &type)
 {
-    if (type.index() == TYPE_INDEX<Asset>) {
-        return true;
-    }
-    return false;
+    return type.index() == TYPE_INDEX<Asset>;
 }
 
 bool CloudStorageUtils::IsAssets(const Type &type)
 {
-    if (type.index() == TYPE_INDEX<Assets>) {
-        return true;
-    }
-    return false;
+    return type.index() == TYPE_INDEX<Assets>;
 }
 
 int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,

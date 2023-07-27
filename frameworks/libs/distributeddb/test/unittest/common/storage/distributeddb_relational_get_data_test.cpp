@@ -278,7 +278,6 @@ void SetNextBeginTime001()
     EXPECT_EQ(token->IsGetAllDataFinished(), false);
     token->SetNextBeginTime(dataItem);
 }
-}
 
 class DistributedDBRelationalGetDataTest : public testing::Test {
 public:
@@ -1665,6 +1664,70 @@ HWTEST_F(DistributedDBRelationalGetDataTest, CloseStore001, TestSize.Level1)
 }
 
 /**
+ * @tc.name: ReleaseContinueTokenTest001
+ * @tc.desc: Test relaese continue token
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBRelationalGetDataTest, ReleaseContinueTokenTest001, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open store prepare data.
+     * @tc.expected: Succeed.
+     */
+    ASSERT_EQ(g_mgr.OpenStore(g_storePath, g_storeID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+    ASSERT_NE(g_delegate, nullptr);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName), DBStatus::OK);
+
+    for (int i = 1; i <= 5; ++i) { // 5 is loop count
+        EXPECT_EQ(PutBatchData(1, i * 1024 * 1024), E_OK);  // 1024*1024 equals 1M.
+    }
+
+    EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
+    g_delegate = nullptr;
+
+    /**
+     * @tc.steps: step2. call GetSyncData.
+     * @tc.expected: return -E_UNFINISHED.
+     */
+    auto store = new(std::nothrow) SQLiteRelationalStore();
+    ASSERT_NE(store, nullptr);
+    RelationalDBProperties properties;
+    InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
+    EXPECT_EQ(store->Open(properties), E_OK);
+    int errCode = E_OK;
+    auto connection = store->GetDBConnection(errCode);
+    EXPECT_EQ(errCode, E_OK);
+    ASSERT_NE(connection, nullptr);
+    errCode = store->RegisterLifeCycleCallback([](const std::string &, const std::string &) {
+    });
+    EXPECT_EQ(errCode, E_OK);
+    errCode = store->RegisterLifeCycleCallback(nullptr);
+    EXPECT_EQ(errCode, E_OK);
+    auto syncInterface = store->GetStorageEngine();
+    ASSERT_NE(syncInterface, nullptr);
+
+    ContinueToken token = nullptr;
+    QueryObject query(Query::Select(g_tableName));
+    std::vector<SingleVerKvEntry *> entries;
+
+    DataSizeSpecInfo sizeInfo;
+    sizeInfo.blockSize = 1 * 1024 * 1024;  // permit 1M.
+    EXPECT_EQ(syncInterface->GetSyncData(query, SyncTimeRange {}, sizeInfo, token, entries), -E_UNFINISHED);
+    EXPECT_NE(token, nullptr);
+    syncInterface->ReleaseContinueToken(token);
+    RefObject::IncObjRef(syncInterface);
+
+    SingleVerKvEntry::Release(entries);
+    store->ReleaseDBConnection(1, connection); // 1 is connection id
+    RefObject::DecObjRef(store);
+    store = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    RefObject::DecObjRef(syncInterface);
+}
+
+/**
  * @tc.name: StopSync001
  * @tc.desc: Test Relational Stop Sync Action.
  * @tc.type: FUNC
@@ -1717,5 +1780,6 @@ HWTEST_F(DistributedDBRelationalGetDataTest, EraseDeviceWaterMark001, TestSize.L
     auto syncAbleEngine = std::make_unique<SyncAbleEngine>(nullptr);
     ASSERT_NE(syncAbleEngine, nullptr);
     EXPECT_EQ(syncAbleEngine->EraseDeviceWaterMark("", true), -E_INVALID_ARGS);
+}
 }
 #endif

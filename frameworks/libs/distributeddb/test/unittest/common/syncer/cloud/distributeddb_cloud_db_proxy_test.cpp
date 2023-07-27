@@ -148,7 +148,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest001, TestSize.Level0)
      * @tc.expected: step1. E_OK
      */
     CloudDBProxy proxy;
-    EXPECT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    proxy.SetCloudDB(virtualCloudDb_);
     /**
      * @tc.steps: step2. proxy close cloud db with cloud error
      * @tc.expected: step2. -E_CLOUD_ERROR
@@ -178,7 +178,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
      * @tc.expected: step1. E_OK
      */
     CloudDBProxy proxy;
-    ASSERT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    proxy.SetCloudDB(virtualCloudDb_);
     /**
      * @tc.steps: step2. insert data to cloud db
      * @tc.expected: step2. OK
@@ -234,7 +234,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
      * @tc.expected: step1. E_OK
      */
     CloudDBProxy proxy;
-    ASSERT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    proxy.SetCloudDB(virtualCloudDb_);
     /**
      * @tc.steps: step2. insert data to cloud db
      * @tc.expected: step2. OK
@@ -292,7 +292,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level3)
     EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
-    ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
     cloudSyncer->SetDownloadFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
@@ -359,7 +359,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest005, TestSize.Level0)
     EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
-    ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(false, false);
     virtualCloudDb_->SetCloudError(true);
     /**
@@ -398,7 +398,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
-    ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
     cloudSyncer->SetDownloadFunc([cloudSyncer]() {
         std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
@@ -443,7 +443,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest007, TestSize.Level4)
     EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
-    ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(false, false);
     /**
      * @tc.steps: step2. call sync and wait sync finish
@@ -495,7 +495,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest008, TestSize.Level0)
      * @tc.expected: step1. E_OK
      */
     CloudDBProxy proxy;
-    EXPECT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    proxy.SetCloudDB(virtualCloudDb_);
     /**
      * @tc.steps: step2. proxy heartbeat with diff status
      */
@@ -551,7 +551,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest009, TestSize.Level3)
     EXPECT_CALL(*iCloud, Rollback).WillRepeatedly(testing::Return(E_OK));
     auto cloudSyncer = new(std::nothrow) VirtualCloudSyncer(StorageProxy::GetCloudDb(iCloud.get()));
     ASSERT_NE(cloudSyncer, nullptr);
-    EXPECT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
     cloudSyncer->SetDownloadFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
@@ -605,7 +605,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest010, TestSize.Level0)
      * @tc.expected: step1. E_OK
      */
     CloudDBProxy proxy;
-    EXPECT_EQ(proxy.SetCloudDB(virtualCloudDb_), E_OK);
+    proxy.SetCloudDB(virtualCloudDb_);
     /**
      * @tc.steps: step2. proxy lock with diff status
      */
@@ -645,7 +645,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue001, TestSize.Level2)
     EXPECT_CALL(*iCloud, Rollback).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     EXPECT_CALL(*iCloud, StartTransaction).WillRepeatedly(testing::Return(E_OK));
-    ASSERT_EQ(cloudSyncer->SetCloudDB(virtualCloudDb_), E_OK);
+    cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
     cloudSyncer->SetDownloadFunc([cloudSyncer]() {
         EXPECT_EQ(cloudSyncer->GetQueueCount(), 1u);

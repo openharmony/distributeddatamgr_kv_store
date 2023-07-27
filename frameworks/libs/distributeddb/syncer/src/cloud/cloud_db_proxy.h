@@ -28,7 +28,7 @@ public:
     CloudDBProxy();
     ~CloudDBProxy() = default;
 
-    int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
+    void SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB);
 
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 

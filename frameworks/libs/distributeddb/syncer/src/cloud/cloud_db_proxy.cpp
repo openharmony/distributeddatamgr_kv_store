@@ -24,13 +24,12 @@ CloudDBProxy::CloudDBProxy()
 {
 }
 
-int CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
+void CloudDBProxy::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
 {
     std::unique_lock<std::shared_mutex> writeLock(cloudMutex_);
     if (!iCloudDb_) {
         iCloudDb_ = cloudDB;
     }
-    return E_OK;
 }
 
 void CloudDBProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)

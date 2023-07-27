@@ -295,7 +295,7 @@ private:
     mutable std::shared_mutex engineMutex_;
     mutable std::mutex migrateMutex_;
     mutable std::condition_variable migrateCv_;
-    mutable int migrateCount_ = 0;
+    mutable int migrateCount_;
     SQLiteSingleVerStorageEngine *storageEngine_;
 
     bool notificationEventsRegistered_;

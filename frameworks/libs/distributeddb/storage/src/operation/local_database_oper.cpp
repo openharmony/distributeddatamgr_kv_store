@@ -213,4 +213,4 @@ int LocalDatabaseOper::ImportPostHandle() const
     return localKvDb_->InitDatabaseContext(localKvDb_->GetDbProperties());
 }
 } // namespace DistributedDB
-#endif
+#endif // OMIT_MULTI_VER

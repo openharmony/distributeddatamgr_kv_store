@@ -25,14 +25,14 @@ CloudMetaData::CloudMetaData(ICloudSyncStorageInterface *store)
 {
 }
 
-Key CloudMetaData::PrefixTableName(const TableName &tableName)
+Key CloudMetaData::GetPrefixTableName(const TableName &tableName)
 {
     TableName newName = CloudDbConstant::CLOUD_META_TABLE_PREFIX + tableName;
     Key prefixedTableName(newName.begin(), newName.end());
     return prefixedTableName;
 }
 
-int CloudMetaData::GetLocalWaterMark(TableName tableName, LocalWaterMark &localMark)
+int CloudMetaData::GetLocalWaterMark(TableName tableName, Timestamp &localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     if (cloudMetaVals_.count(tableName) == 0) {
@@ -45,7 +45,7 @@ int CloudMetaData::GetLocalWaterMark(TableName tableName, LocalWaterMark &localM
     return E_OK;
 }
 
-int CloudMetaData::GetCloudWaterMark(TableName tableName, CloudWaterMark &cloudMark)
+int CloudMetaData::GetCloudWaterMark(const TableName tableName, std::string &cloudMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     if (cloudMetaVals_.count(tableName) == 0) {
@@ -59,10 +59,10 @@ int CloudMetaData::GetCloudWaterMark(TableName tableName, CloudWaterMark &cloudM
     return E_OK;
 }
 
-int CloudMetaData::SetLocalWaterMark(TableName tableName, LocalWaterMark localMark)
+int CloudMetaData::SetLocalWaterMark(const TableName tableName, Timestamp localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
-    CloudWaterMark cloudMark = "";
+    std::string cloudMark = "";
     auto iter = cloudMetaVals_.find(tableName);
     if (iter != cloudMetaVals_.end()) {
         cloudMark = iter->second.cloudMark;
@@ -80,10 +80,10 @@ int CloudMetaData::SetLocalWaterMark(TableName tableName, LocalWaterMark localMa
     return E_OK;
 }
 
-int CloudMetaData::SetCloudWaterMark(TableName tableName, CloudWaterMark &cloudMark)
+int CloudMetaData::SetCloudWaterMark(const TableName tableName, std::string &cloudMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
-    LocalWaterMark localMark = 0;
+    Timestamp localMark = 0;
     auto iter = cloudMetaVals_.find(tableName);
     if (iter != cloudMetaVals_.end()) {
         localMark = iter->second.localMark;
@@ -108,7 +108,7 @@ int CloudMetaData::ReadMarkFromMeta(const TableName &tableName)
         return -E_INVALID_DB;
     }
     Value blobMetaVal;
-    int ret = store_->GetMetaData(PrefixTableName(tableName), blobMetaVal);
+    int ret = store_->GetMetaData(GetPrefixTableName(tableName), blobMetaVal);
     if (ret != -E_NOT_FOUND && ret != E_OK) {
         return ret;
     }
@@ -121,21 +121,20 @@ int CloudMetaData::ReadMarkFromMeta(const TableName &tableName)
     return E_OK;
 }
 
-int CloudMetaData::WriteMarkToMeta(TableName &tableName, LocalWaterMark localmark, CloudWaterMark &cloudMark)
+int CloudMetaData::WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark)
 {
     Value blobMetaVal;
-    int ret = SerializeMark(tableName, localmark, cloudMark, blobMetaVal);
+    int ret = SerializeMark(localmark, cloudMark, blobMetaVal);
     if (ret != E_OK) {
         return ret;
     }
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->PutMetaData(PrefixTableName(tableName), blobMetaVal);
+    return store_->PutMetaData(GetPrefixTableName(tableName), blobMetaVal);
 }
 
-int CloudMetaData::SerializeMark(
-    TableName tableName, LocalWaterMark localMark, CloudWaterMark &cloudMark, Value &blobMeta)
+int CloudMetaData::SerializeMark(Timestamp localMark, std::string &cloudMark, Value &blobMeta)
 {
     uint64_t length = Parcel::GetUInt64Len() + Parcel::GetStringLen(cloudMark);
     blobMeta.resize(length);

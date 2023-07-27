@@ -160,15 +160,17 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets) override;
 
-    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) override;
+    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
-    int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data) override;
+    int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) override;
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
 
     std::string GetIdentify() const override;
 
     void EraseDataChangeCallback(uint64_t connectionId);
+
+    void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,

@@ -162,6 +162,7 @@ namespace {
 
 SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
     : currentMaxTimestamp_(0),
+      migrateCount_(0),
       storageEngine_(nullptr),
       notificationEventsRegistered_(false),
       notificationConflictEventsRegistered_(false),

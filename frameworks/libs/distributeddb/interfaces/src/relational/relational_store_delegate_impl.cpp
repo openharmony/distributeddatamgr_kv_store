@@ -18,11 +18,12 @@
 #include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
+#include "cloud/cloud_db_constant.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
 #include "param_check_utils.h"
-#include "relational_store_instance.h"
 #include "relational_store_changed_data_impl.h"
+#include "relational_store_instance.h"
 #include "sync_operation.h"
 
 namespace DistributedDB {
@@ -79,12 +80,12 @@ int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
 DBStatus RelationalStoreDelegateImpl::CreateDistributedTableInner(const std::string &tableName, TableSyncType type)
 {
     if (!ParamCheckUtils::CheckRelationalTableName(tableName)) {
-        LOGE("invalid table name.");
+        LOGE("[RelationalStore Delegate] Invalid table name.");
         return INVALID_ARGS;
     }
 
     if (!(type == DEVICE_COOPERATION || type == CLOUD_COOPERATION)) {
-        LOGE("invalid table sync type.");
+        LOGE("[RelationalStore Delegate] Invalid table sync type.");
         return INVALID_ARGS;
     }
 

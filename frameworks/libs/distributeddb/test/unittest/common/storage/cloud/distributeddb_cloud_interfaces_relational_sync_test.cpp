@@ -1078,6 +1078,28 @@ namespace {
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
+    void InsertCloudForCloudProcessNotify001(std::vector<VBucket> &record, std::vector<VBucket> &extend)
+    {
+        VBucket data;
+        std::vector<uint8_t> photo(1, 'v');
+        data.insert_or_assign("name", "Local" + std::to_string(0));
+        data.insert_or_assign("height", 166.0); // 166.0 is random double value
+        data.insert_or_assign("married", false);
+        data.insert_or_assign("age", 13L);
+        data.insert_or_assign("photo", photo);
+        Asset asset = g_cloudAsset;
+        asset.name = asset.name + std::to_string(0);
+        data.insert_or_assign("assert", asset);
+        record.push_back(data);
+        VBucket log;
+        Timestamp now = TimeHelper::GetSysCurrentTime();
+        log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
+        log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+        log.insert_or_assign("#_gid", std::to_string(2)); // 2 is gid
+        extend.push_back(log);
+    }
+
     void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     {
         std::unique_lock<std::mutex> lock(g_processMutex);
@@ -1736,6 +1758,40 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest014, TestS
 }
 
 /*
+ * @tc.name: CloudSyncTest016
+ * @tc.desc: Test sync when push before merge
+ * @tc.type: FUNC
+ * @tc.require: 
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestSize.Level0)
+{
+    int64_t localCount = 10;
+    int64_t paddingSize = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    callSync(g_tables, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckCloudTotalCount({10L, 10L});
+    UpdateUserTableRecord(db, 0, localCount);
+    callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    VBucket extend;
+    extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+    std::vector<VBucket> data1;
+    g_virtualCloudDb->Query(g_tables[0], extend, data1);
+    for (int i = 0; i < 10; ++i) { // index[0, 10) in cloud db expected to be updated
+        EXPECT_EQ(std::get<int64_t>(data1[i]["age"]), 99); // 99 is the updated age field of cloud db
+    }
+
+    std::vector<VBucket> data2;
+    g_virtualCloudDb->Query(g_tables[1], extend, data2);
+    for (int i = 0; i < 10; ++i) { // index[0, 10) in cloud db expected to be updated
+        EXPECT_EQ(std::get<int64_t>(data2[i]["age"]), 99); // 99 is the updated age field of cloud db
+    }
+
+    CloseDb();
+}
+
+/*
  * @tc.name: DataNotifier001
  * @tc.desc: Notify data without primary key
  * @tc.type: FUNC
@@ -1840,7 +1896,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudProcessNotify001, 
      */
     std::vector<VBucket> record1;
     std::vector<VBucket> extend1;
-    RelationalTestUtils::GenerateAssetData(g_cloudAsset, record1, extend1);
+    InsertCloudForCloudProcessNotify001(record1, extend1);
     ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(g_tableName1, std::move(record1), extend1), DBStatus::OK);
 
     /**

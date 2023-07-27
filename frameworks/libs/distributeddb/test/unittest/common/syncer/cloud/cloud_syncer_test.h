@@ -234,7 +234,7 @@ public:
         return IsDataContainDuplicateAsset(assetFields, data);
     }
 
-    void SetCloudWaterMarks(const TableName &tableName, const CloudWaterMark &mark)
+    void SetCloudWaterMarks(const TableName &tableName, const std::string &mark)
     {
         currentContext_.tableName = tableName;
         currentContext_.cloudWaterMarks[tableName] = mark;

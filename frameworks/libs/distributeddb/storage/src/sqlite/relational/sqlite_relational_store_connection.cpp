@@ -300,11 +300,7 @@ int SQLiteRelationalStoreConnection::SetCloudDB(const std::shared_ptr<ICloudDb> 
         return -E_INVALID_CONNECTION;
     }
 
-    int ret = store->SetCloudDB(cloudDb);
-    if (ret != E_OK) {
-        LOGE("[RelationalConnection] SetCloudDB failed. %d", ret);
-    }
-    return ret;
+    return store->SetCloudDB(cloudDb);
 }
 
 int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &schema)
