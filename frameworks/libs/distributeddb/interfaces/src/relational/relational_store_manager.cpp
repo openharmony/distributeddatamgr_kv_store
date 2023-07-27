@@ -113,7 +113,7 @@ DB_API DBStatus RelationalStoreManager::OpenStore(const std::string &path, const
         conn->Close();
         return DB_ERROR;
     }
-    return delegate->RegisterObserver(option.observer);
+    return option.observer != nullptr ? delegate->RegisterObserver(option.observer) : OK;
 }
 
 DBStatus RelationalStoreManager::CloseStore(RelationalStoreDelegate *store)
