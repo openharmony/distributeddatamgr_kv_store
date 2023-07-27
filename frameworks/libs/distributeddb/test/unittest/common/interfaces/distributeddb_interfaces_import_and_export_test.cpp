@@ -1257,4 +1257,59 @@ HWTEST_F(DistributedDBInterfacesImportAndExportTest, ImportWithTimeChange001, Te
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore(STORE_ID_1), OK);
 }
+
+/**
+  * @tc.name: abortHandle001
+  * @tc.desc: Intercept obtaining new write handles during Import.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesImportAndExportTest, abortHandle001, TestSize.Level1)
+{
+    std::string singleStoreId = "ExportAbortHandle_001";
+    KvStoreNbDelegate::Option option = {true, false, false};
+    g_mgr.GetKvStore(singleStoreId, option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step1. Init data for export.
+     */
+    std::string str(1024, 'k');
+    Value value(str.begin(), str.end());
+    for (int i = 0; i < 1000; ++i) {
+        Key key;
+        DBCommon::StringToVector(std::to_string(i), key);
+        g_kvNbDelegatePtr->Put(key, value);
+    }
+
+    /**
+     * @tc.steps: step2. Execute the export action.
+     */
+    std::string singleExportFileName = g_exportFileDir + "/UnExportAbortHandle001.$$";
+    CipherPassword passwd;
+    EXPECT_EQ(g_kvNbDelegatePtr->Export(singleExportFileName, passwd), OK);
+
+    /**
+     * @tc.steps: step3. Multi threads to occupy write handles.
+     */
+    for (int i = 0; i < 10; ++i) { // 10 is run times
+        vector<thread> threads;
+        threads.emplace_back(thread([&]() {
+            g_kvNbDelegatePtr->CheckIntegrity();
+        }));
+        threads.emplace_back(&KvStoreNbDelegate::Import, g_kvNbDelegatePtr, singleExportFileName, passwd);
+        threads.emplace_back(thread([&i]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(i));
+            g_kvNbDelegatePtr->CheckIntegrity();
+        }));
+        for (auto &th: threads) {
+            th.join();
+        }
+    }
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore(singleStoreId), OK);
+    g_junkFilesList.push_back(singleExportFileName);
+}
 #endif // OMIT_ENCRYPT

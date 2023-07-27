@@ -332,4 +332,14 @@ int StorageProxy::FillCloudGidAndAsset(const OpType &opType, const CloudSyncData
     }
     return store_->FillCloudGidAndAsset(opType, data);
 }
+
+std::string StorageProxy::GetIdentify() const
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[StorageProxy] store is nullptr return default");
+        return "";
+    }
+    return store_->GetIdentify();
+}
 }

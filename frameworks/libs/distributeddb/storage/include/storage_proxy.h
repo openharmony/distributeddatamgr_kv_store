@@ -84,6 +84,8 @@ public:
 
     int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data);
 
+    std::string GetIdentify() const;
+
 protected:
     void Init();
 private:

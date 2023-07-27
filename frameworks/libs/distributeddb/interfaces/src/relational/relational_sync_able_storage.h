@@ -166,6 +166,8 @@ public:
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
 
+    std::string GetIdentify() const override;
+
     void EraseDataChangeCallback(uint64_t connectionId);
 
 private:

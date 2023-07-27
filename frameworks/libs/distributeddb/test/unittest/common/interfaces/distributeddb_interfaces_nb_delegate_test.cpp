@@ -2470,6 +2470,11 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, LocalStore001, TestSize.Level1)
     Value actualValue;
     EXPECT_EQ(openDelegate->Get(key, actualValue), OK);
     EXPECT_EQ(actualValue, expectValue);
+
+    int pragmaData = 1;
+    auto input = static_cast<PragmaData>(&pragmaData);
+    EXPECT_EQ(openDelegate->Pragma(SET_SYNC_RETRY, input), NOT_SUPPORT);
+
     EXPECT_EQ(mgr.CloseKvStore(openDelegate), OK);
 }
 

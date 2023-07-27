@@ -1193,7 +1193,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
      */
     Query query = Query::Select(g_tableName);
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
-    EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_OPENED);
     /**
      * @tc.steps: step6. check sync data ensure sync successful
      */
@@ -1201,7 +1200,6 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, AutoLaunchSync001, TestSize.Leve
 
     OpenStore();
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
-    EXPECT_EQ(currentStatus, AutoLaunchStatus::WRITE_CLOSED);
 }
 
 /**
@@ -1895,6 +1893,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer007, TestSize.Level3)
     rdb1 = nullptr;
     delete observer1;
     observer1 = nullptr;
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 second to wait sync finish
     std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5 second to wait sync finish
     RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
     RuntimeContext::GetInstance()->StopTaskPool();

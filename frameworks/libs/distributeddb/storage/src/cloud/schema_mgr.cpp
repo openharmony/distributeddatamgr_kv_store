@@ -34,17 +34,17 @@ int SchemaMgr::ChkSchema(const TableName &tableName, RelationalSchemaObject &loc
     }
     TableInfo tableInfo = localSchema.GetTable(tableName);
     if (tableInfo.Empty()) {
-        LOGE("Local schema does not contain certain table:%d", -E_SCHEMA_MISMATCH);
+        LOGE("Local schema does not contain certain table");
         return -E_SCHEMA_MISMATCH;
     }
     if (tableInfo.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION) {
-        LOGE("Sync type of local table is not CLOUD_COOPERATION:%d", -E_SCHEMA_MISMATCH);
-        return -E_SCHEMA_MISMATCH;
+        LOGE("Sync type of local table is not CLOUD_COOPERATION");
+        return -E_NOT_SUPPORT;
     }
     TableSchema cloudTableSchema;
     int ret = GetCloudTableSchema(tableName, cloudTableSchema);
     if (ret != E_OK) {
-        LOGE("Cloud schema does not contain certain table:%d", -E_SCHEMA_MISMATCH);
+        LOGE("Cloud schema does not contain certain table:%d", ret);
         return -E_SCHEMA_MISMATCH;
     }
     std::map<int, FieldName> primaryKeys = tableInfo.GetPrimaryKey();
@@ -58,20 +58,24 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
     std::unordered_set<std::string> cloudColNames;
     for (const Field &cloudField : cloudFields) {
         if (localFields.find(cloudField.colName) == localFields.end()) {
-            LOGE("Column name mismatch between local and cloud schema: %d", -E_SCHEMA_MISMATCH);
+            LOGE("Column name mismatch between local and cloud schema");
+            return -E_SCHEMA_MISMATCH;
+        }
+        if (IsAssetPrimaryField(cloudField)) {
+            LOGE("Asset type can not be primary field");
             return -E_SCHEMA_MISMATCH;
         }
         FieldInfo &localField = localFields[cloudField.colName];
         if (!CompareType(localField, cloudField)) {
-            LOGE("Type mismatch between local and cloud schema : %d", -E_SCHEMA_MISMATCH);
+            LOGE("Type mismatch between local and cloud schema");
             return -E_SCHEMA_MISMATCH;
         }
         if (!CompareNullable(localField, cloudField)) {
-            LOGE("The nullable property is mismatched between local and cloud schema : %d", -E_SCHEMA_MISMATCH);
+            LOGE("The nullable property is mismatched between local and cloud schema");
             return -E_SCHEMA_MISMATCH;
         }
-        if (!CompareIsPrimary(primaryKeys, cloudField)) {
-            LOGE("The primary key property is mismatched between local and cloud schema : %d", -E_SCHEMA_MISMATCH);
+        if (!ComparePrimaryField(primaryKeys, cloudField)) {
+            LOGE("The primary key property is mismatched between local and cloud schema");
             return -E_SCHEMA_MISMATCH;
         }
         cloudColNames.emplace(cloudField.colName);
@@ -84,12 +88,16 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
         if (!fieldInfo.HasDefaultValue() &&
             fieldInfo.IsNotNull() &&
             cloudColNames.find(fieldName) == cloudColNames.end()) {
-            LOGE("Column from local schema is not within cloud schema but doesn't have default value : %d",
-                -E_SCHEMA_MISMATCH);
+            LOGE("Column from local schema is not within cloud schema but doesn't have default value");
             return -E_SCHEMA_MISMATCH;
         }
     }
     return E_OK;
+}
+
+bool SchemaMgr::IsAssetPrimaryField(const Field &cloudField)
+{
+    return cloudField.primary && (cloudField.type == TYPE_INDEX<Assets> || cloudField.type == TYPE_INDEX<Asset>);
 }
 
 bool SchemaMgr::CompareType(const FieldInfo &localField, const Field &cloudField)
@@ -122,7 +130,7 @@ bool SchemaMgr::CompareNullable(const FieldInfo &localField, const Field &cloudF
     return localField.IsNotNull() == !cloudField.nullable;
 }
 
-bool SchemaMgr::CompareIsPrimary(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField)
+bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, const Field &cloudField)
 {
     // whether the corresponding field in local schema is primary key
     bool isLocalFieldPrimary = false;

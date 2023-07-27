@@ -208,7 +208,8 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
         res = process.begin()->second;
     }, 5000);
     EXPECT_EQ(errCode, -E_INVALID_ARGS);
-    devices.emplace_back("0", DBConstant::MAX_DEV_LENGTH + 1);
+    std::string invalidDevice = std::string(DBConstant::MAX_DEV_LENGTH + 1, '0');
+    devices.emplace_back(invalidDevice);
     EXPECT_EQ(cloudSyncer5.Sync(devices, SYNC_MODE_CLOUD_MERGE, tables, nullptr, 5000), -E_INVALID_ARGS); // 5000 ms
     std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->StopTaskPool();
