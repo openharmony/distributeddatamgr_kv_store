@@ -88,8 +88,6 @@ public:
 
 protected:
     void Init();
-
-    static Timestamp EraseNanoTime(Timestamp localTime);
 private:
     ICloudSyncStorageInterface *store_;
     mutable std::shared_mutex storeMutex_;

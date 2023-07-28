@@ -205,12 +205,7 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
         return -E_TRANSACT_STATE;
     }
 
-    int errCode = store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
-    if (errCode == E_OK) {
-        dataInfoWithLog.logInfo.timestamp = EraseNanoTime(dataInfoWithLog.logInfo.timestamp);
-        dataInfoWithLog.logInfo.wTimestamp = EraseNanoTime(dataInfoWithLog.logInfo.wTimestamp);
-    }
-    return errCode;
+    return store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
 }
 
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
@@ -346,10 +341,5 @@ std::string StorageProxy::GetIdentify() const
         return "";
     }
     return store_->GetIdentify();
-}
-
-Timestamp StorageProxy::EraseNanoTime(DistributedDB::Timestamp localTime)
-{
-    return localTime / CloudDbConstant::TEN_THOUSAND * CloudDbConstant::TEN_THOUSAND;
 }
 }
