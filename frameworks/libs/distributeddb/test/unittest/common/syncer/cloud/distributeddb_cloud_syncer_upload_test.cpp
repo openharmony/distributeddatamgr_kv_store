@@ -387,9 +387,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
     auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
     ContinueToken conStmtToken = static_cast<ContinueToken>(token);
     delete token;
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-        .WillOnce([&conStmtToken, &uploadData2](const TableSchema &, const Timestamp &,
-            ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillOnce([&conStmtToken, &uploadData2](
+        const TableSchema &, const Timestamp &, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
             continueStmtToken = conStmtToken;
             cloudDataResult = uploadData2;
             return -E_UNFINISHED;
@@ -1079,9 +1078,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
     auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
     auto conStmtToken = static_cast<ContinueToken>(token);
     delete token;
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-        .WillOnce([&conStmtToken, &uploadData2](const TableSchema &, const Timestamp &,
-            ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillOnce([&conStmtToken, &uploadData2](
+        const TableSchema &, const Timestamp &, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
             cloudDataResult = uploadData2;
             continueStmtToken = conStmtToken;
             return -E_UNFINISHED;
