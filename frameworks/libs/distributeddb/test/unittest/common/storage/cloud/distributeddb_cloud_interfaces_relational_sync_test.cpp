@@ -1761,7 +1761,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest014, TestS
  * @tc.name: CloudSyncTest016
  * @tc.desc: Test sync when push before merge
  * @tc.type: FUNC
- * @tc.require: 
+ * @tc.require:
  * @tc.author: chenchaohao
  */
 HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncTest016, TestSize.Level0)
