@@ -854,6 +854,10 @@ distributeddb_unittest("DistributedDBCloudSaveCloudDataTest") {
   sources = [ "unittest/common/storage/cloud/distributeddb_cloud_save_cloud_data_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_remove_device_data_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -865,6 +869,7 @@ group("unittest") {
     ":DistributedDBCloudAssetCompareTest",
     ":DistributedDBCloudDBProxyTest",
     ":DistributedDBCloudInterfacesRelationalExtTest",
+    ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
     ":DistributedDBCloudInterfacesRelationalSyncTest",
     ":DistributedDBCloudSaveCloudDataTest",
     ":DistributedDBCloudSchemaMgrTest",
