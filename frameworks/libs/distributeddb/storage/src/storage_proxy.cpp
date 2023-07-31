@@ -50,7 +50,7 @@ int StorageProxy::Close()
     return E_OK;
 }
 
-int StorageProxy::GetLocalWaterMark(const std::string &tableName, LocalWaterMark &localMark)
+int StorageProxy::GetLocalWaterMark(const std::string &tableName, Timestamp &localMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -63,7 +63,7 @@ int StorageProxy::GetLocalWaterMark(const std::string &tableName, LocalWaterMark
     return cloudMetaData_->GetLocalWaterMark(tableName, localMark);
 }
 
-int StorageProxy::PutLocalWaterMark(const std::string &tableName, LocalWaterMark &localMark)
+int StorageProxy::PutLocalWaterMark(const std::string &tableName, Timestamp &localMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -76,7 +76,7 @@ int StorageProxy::PutLocalWaterMark(const std::string &tableName, LocalWaterMark
     return cloudMetaData_->SetLocalWaterMark(tableName, localMark);
 }
 
-int StorageProxy::GetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark)
+int StorageProxy::GetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -85,7 +85,7 @@ int StorageProxy::GetCloudWaterMark(const std::string &tableName, CloudWaterMark
     return cloudMetaData_->GetCloudWaterMark(tableName, cloudMark);
 }
 
-int StorageProxy::SetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark)
+int StorageProxy::SetCloudWaterMark(const std::string &tableName, std::string &cloudMark)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (cloudMetaData_ == nullptr) {
@@ -134,7 +134,7 @@ int StorageProxy::Rollback()
     return errCode;
 }
 
-int StorageProxy::GetUploadCount(const std::string &tableName, const LocalWaterMark &localMark,
+int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &localMark,
     const bool isCloudForcePush, int64_t &count)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -311,16 +311,16 @@ int StorageProxy::NotifyChangedData(const std::string deviceName, ChangedData &&
     return E_OK;
 }
 
-int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace)
+int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->FillCloudAssetForDownload(tableName, asset, isFullReplace);
+    return store_->FillCloudAssetForDownload(tableName, asset, isDownloadSuccess);
 }
 
-int StorageProxy::FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data)
+int StorageProxy::FillCloudGidAndAsset(OpType opType, const CloudSyncData &data)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {

@@ -33,7 +33,7 @@ public:
 
     static inline std::string GetLogTableName(const std::string &tableName)
     {
-        return DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+        return DBConstant::RELATIONAL_PREFIX + tableName + DBConstant::LOG_POSTFIX;
     }
 
     static std::string VectorToHexString(const std::vector<uint8_t> &inVec, const std::string &separator = "");

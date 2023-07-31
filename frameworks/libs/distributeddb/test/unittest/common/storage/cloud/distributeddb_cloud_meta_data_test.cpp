@@ -88,17 +88,17 @@ namespace {
         return StorageProxy::GetCloudDb(store);
     }
 
-    void SetAndGetWaterMark(TableName tableName, LocalWaterMark mark)
+    void SetAndGetWaterMark(TableName tableName, Timestamp mark)
     {
-    LocalWaterMark retMark;
+    Timestamp retMark;
     EXPECT_EQ(g_storageProxy->PutLocalWaterMark(tableName, mark), E_OK);
     EXPECT_EQ(g_storageProxy->GetLocalWaterMark(tableName, retMark), E_OK);
     EXPECT_EQ(retMark, mark);
     }
 
-    void SetAndGetWaterMark(TableName tableName, CloudWaterMark mark)
+    void SetAndGetWaterMark(TableName tableName, std::string mark)
     {
-    CloudWaterMark retMark;
+    std::string retMark;
     EXPECT_EQ(g_storageProxy->SetCloudWaterMark(tableName, mark), E_OK);
     EXPECT_EQ(g_storageProxy->GetCloudWaterMark(tableName, retMark), E_OK);
     EXPECT_EQ(retMark, mark);
@@ -185,11 +185,11 @@ namespace {
      */
     HWTEST_F(DistributedDBCloudMetaDataTest, CloudMetaDataTest003, TestSize.Level0)
     {
-        CloudWaterMark retMark;
+        std::string retMark;
         EXPECT_EQ(g_storageProxy->GetCloudWaterMark(TABLE_NAME_2, retMark), E_OK);
         EXPECT_EQ(retMark, "");
 
-        LocalWaterMark retLocalMark;
+        Timestamp retLocalMark;
         EXPECT_EQ(g_storageProxy->GetLocalWaterMark(TABLE_NAME_2, retLocalMark), E_OK);
         EXPECT_EQ(retLocalMark, 0u);
     }

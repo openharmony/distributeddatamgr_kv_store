@@ -106,8 +106,8 @@ bool SchemaMgr::CompareType(const FieldInfo &localField, const Field &cloudField
     switch (cloudField.type) {
         case TYPE_INDEX<std::monostate>:
         case TYPE_INDEX<bool>:
-        // BOOL type should be stored as NUMERIC type,
-        // but we regard it as NULL type for historic reason
+            // BOOL type should be stored as NUMERIC type,
+            // but we regard it as NULL type for historic reason
             return localType == StorageType::STORAGE_TYPE_NULL;
         case TYPE_INDEX<int64_t>:
             return localType == StorageType::STORAGE_TYPE_INTEGER;

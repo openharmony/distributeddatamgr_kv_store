@@ -32,23 +32,23 @@ public:
     explicit CloudMetaData(ICloudSyncStorageInterface *store);
     ~CloudMetaData() = default;
 
-    int GetLocalWaterMark(TableName tableName, LocalWaterMark &localMark);
-    int GetCloudWaterMark(TableName tableName, CloudWaterMark &cloudMark);
+    int GetLocalWaterMark(const TableName &tableName, Timestamp &localMark);
+    int GetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
-    int SetLocalWaterMark(TableName tableName, LocalWaterMark localMark);
-    int SetCloudWaterMark(TableName tableName, CloudWaterMark &cloudMark);
+    int SetLocalWaterMark(const TableName &tableName, Timestamp localMark);
+    int SetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
 private:
     typedef struct CloudMetaValue {
-        LocalWaterMark localMark;
-        CloudWaterMark cloudMark;
+        Timestamp localMark;
+        std::string cloudMark;
     } CloudMetaValue;
 
     int ReadMarkFromMeta(const TableName &tableName);
-    int WriteMarkToMeta(TableName &tableName, LocalWaterMark localmark, CloudWaterMark &cloudMark);
-    int SerializeMark(TableName tableName, LocalWaterMark localMark, CloudWaterMark &cloudMark, Value &blobMeta);
+    int WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark);
+    int SerializeMark(Timestamp localMark, std::string &cloudMark, Value &blobMeta);
     int DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue);
-    Key PrefixTableName(const TableName &tableName);
+    Key GetPrefixTableName(const TableName &tableName);
 
     mutable std::mutex cloudMetaMutex_;
     std::unordered_map<TableName, CloudMetaValue> cloudMetaVals_;

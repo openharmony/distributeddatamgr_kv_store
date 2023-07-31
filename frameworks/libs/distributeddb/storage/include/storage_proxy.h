@@ -37,13 +37,13 @@ public:
 
     int Close();
 
-    int GetLocalWaterMark(const std::string &tableName, LocalWaterMark &localMark);
+    int GetLocalWaterMark(const std::string &tableName, Timestamp &localMark);
 
-    int PutLocalWaterMark(const std::string &tableName, LocalWaterMark &localMark);
+    int PutLocalWaterMark(const std::string &tableName, Timestamp &localMark);
 
-    int GetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark);
+    int GetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
 
-    int SetCloudWaterMark(const std::string &tableName, CloudWaterMark &cloudMark);
+    int SetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
     
     int StartTransaction(TransactType type = TransactType::DEFERRED);
 
@@ -51,7 +51,7 @@ public:
 
     int Rollback();
 
-    int GetUploadCount(const std::string &tableName, const LocalWaterMark &timestamp, const bool isCloudForcePush,
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
         int64_t &count);
 
     int FillCloudGid(const CloudSyncData &data);
@@ -80,9 +80,9 @@ public:
 
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 
-    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace);
+    int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
 
-    int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data);
+    int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data);
 
     std::string GetIdentify() const;
 

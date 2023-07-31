@@ -67,6 +67,7 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
     errCode = SQLiteUtils::RegisterGetSysTime(db);
     if (errCode != E_OK) {
         LOGE("[engine] register get sys time failed!");
+        return errCode;
     }
 
     errCode = SQLiteUtils::RegisterGetRawSysTime(db);
@@ -74,7 +75,7 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
         LOGE("[engine] register get raw sys time failed!");
     }
 
-    return E_OK;
+    return errCode;
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handle)

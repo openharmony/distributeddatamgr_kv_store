@@ -81,7 +81,7 @@ bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames)
     return true;
 }
 
-int GetSinglePk(VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal)
+int GetSinglePk(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal)
 {
     std::vector<Type> pkVals;
     int ret = E_OK;

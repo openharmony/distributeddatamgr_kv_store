@@ -25,21 +25,17 @@ OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &loc
             return OpType::DELETE;
         } else if (IsDelete(cloudInfo)) {
             return OpType::UPDATE_TIMESTAMP;
-        } else {
-            if (IsDelete(localInfo) || deletePrimaryKeySet.find(localInfo.hashKey) != deletePrimaryKeySet.end()) {
-                return OpType::INSERT;
-            } else {
-                return OpType::UPDATE;
-            }
         }
-    } else {
-        bool gidEmpty = localInfo.cloudGid.empty();
-        if (IsDelete(cloudInfo)) {
-            return gidEmpty ? OpType::NOT_HANDLE : OpType::DELETE;
-        } else {
-            return gidEmpty ? OpType::INSERT : OpType::UPDATE;
+        if (IsDelete(localInfo) || deletePrimaryKeySet.find(localInfo.hashKey) != deletePrimaryKeySet.end()) {
+            return OpType::INSERT;
         }
+        return OpType::UPDATE;
     }
+    bool gidEmpty = localInfo.cloudGid.empty();
+    if (IsDelete(cloudInfo)) {
+        return gidEmpty ? OpType::NOT_HANDLE : OpType::DELETE;
+    }
+    return gidEmpty ? OpType::INSERT : OpType::UPDATE;
 }
 
 bool CloudForcePullStrategy::JudgeUpdateCursor()

@@ -23,15 +23,15 @@
 #include "relational_store_instance.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
-#include "param_check_utils.h"
-#include "log_print.h"
 #include "db_errno.h"
 #include "kv_store_errno.h"
+#include "log_print.h"
+#include "param_check_utils.h"
+#include "platform_specific.h"
 #include "relational_store_changed_data_impl.h"
 #include "relational_store_delegate_impl.h"
 #include "runtime_config.h"
 #include "runtime_context.h"
-#include "platform_specific.h"
 
 namespace DistributedDB {
 namespace {
@@ -162,7 +162,6 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
         if (errCode != E_OK) {
             // never happen
             LOGE("calc hash fail when there is one primary key errCode = %d", errCode);
-            return result;
         }
     } else {
         std::vector<uint8_t> tempRes;
@@ -180,7 +179,6 @@ DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std
         errCode = DBCommon::CalcValueHash(tempRes, result);
         if (errCode != E_OK) {
             LOGE("calc hash fail when calc the composite primary key errCode = %d", errCode);
-            return result;
         }
     }
     return result;

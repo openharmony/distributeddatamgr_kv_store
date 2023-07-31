@@ -87,9 +87,9 @@ public:
     virtual void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData,
         bool isChangedData) = 0;
 
-    virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isFullReplace) = 0;
+    virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) = 0;
 
-    virtual int FillCloudGidAndAsset(const OpType &opType, const CloudSyncData &data) = 0;
+    virtual int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) = 0;
 
     virtual std::string GetIdentify() const = 0;
 };

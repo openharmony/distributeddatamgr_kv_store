@@ -118,7 +118,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const TableSchema &tableSchema,
-    VBucket &vBucket, bool isFullReplace)
+    VBucket &vBucket, bool isDownloadSuccess)
 {
     sqlite3_stmt *stmt = nullptr;
     int errCode = SetLogTriggerStatus(false);
@@ -139,7 +139,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     if (errCode != E_OK) {
         goto END;
     }
-    if (isFullReplace) {
+    if (isDownloadSuccess) {
         CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetAfterDownload,
             CloudStorageUtils::FillAssetsAfterDownload);
     } else {

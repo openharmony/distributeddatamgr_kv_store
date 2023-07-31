@@ -237,7 +237,7 @@ int QueryCountCallback(void *data, int count, char **colValue, char **colName)
     return 0;
 }
 
-void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isFullReplace)
+void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isDownloadSuccess)
 {
     VBucket vBucket;
     vBucket[CloudDbConstant::GID_FIELD] = std::to_string(1);
@@ -256,7 +256,7 @@ void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isFullReplac
         }
         vBucket["assert"] = asset;
         vBucket["asserts"] = assets;
-        ASSERT_EQ(g_storageProxy->FillCloudAssetForDownload(g_tableName, vBucket, isFullReplace), E_OK);
+        ASSERT_EQ(g_storageProxy->FillCloudAssetForDownload(g_tableName, vBucket, isDownloadSuccess), E_OK);
     }
 }
 
@@ -434,8 +434,8 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest001, Te
  */
 HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest002, TestSize.Level1)
 {
-    LocalWaterMark cloudTime = 666888;
-    LocalWaterMark localTime;
+    Timestamp cloudTime = 666888;
+    Timestamp localTime;
     EXPECT_EQ(g_storageProxy->GetLocalWaterMark(g_tableName, localTime), E_OK);
 
     /**

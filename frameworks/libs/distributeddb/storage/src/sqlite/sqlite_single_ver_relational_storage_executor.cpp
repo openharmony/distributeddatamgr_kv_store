@@ -535,25 +535,29 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         cloudSyncData.delData.record.push_back(data);
         cloudSyncData.delData.extend.push_back(log);
     } else if (log.find(CloudDbConstant::GID_FIELD) == log.end()) {
-        if (!data.empty()) {
-            cloudSyncData.insData.record.push_back(data);
-            cloudSyncData.insData.rowid.push_back(*rowid);
-            VBucket asset;
-            CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
-            cloudSyncData.insData.timestamp.push_back(*timeStamp);
-            cloudSyncData.insData.assets.push_back(asset);
+        if (data.empty()) {
+            LOGE("The cloud data to be inserted is empty.");
+            return -E_INVALID_DATA;
         }
+        cloudSyncData.insData.record.push_back(data);
+        cloudSyncData.insData.rowid.push_back(*rowid);
+        VBucket asset;
+        CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
+        cloudSyncData.insData.timestamp.push_back(*timeStamp);
+        cloudSyncData.insData.assets.push_back(asset);
         cloudSyncData.insData.extend.push_back(log);
     } else {
-        if (!data.empty()) {
-            cloudSyncData.updData.record.push_back(data);
-            VBucket asset;
-            CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
-            if (!asset.empty()) {
-                cloudSyncData.updData.rowid.push_back(*rowid);
-                cloudSyncData.updData.timestamp.push_back(*timeStamp);
-                cloudSyncData.updData.assets.push_back(asset);
-            }
+        if (data.empty()) {
+            LOGE("The cloud data to be updated is empty.");
+            return -E_INVALID_DATA;
+        }
+        cloudSyncData.updData.record.push_back(data);
+        VBucket asset;
+        CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
+        if (!asset.empty()) {
+            cloudSyncData.updData.rowid.push_back(*rowid);
+            cloudSyncData.updData.timestamp.push_back(*timeStamp);
+            cloudSyncData.updData.assets.push_back(asset);
         }
         cloudSyncData.updData.extend.push_back(log);
     }
@@ -1023,6 +1027,20 @@ int StepNext(bool isMemDB, sqlite3_stmt *stmt, Timestamp &timestamp)
         errCode = E_OK;
     } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         timestamp = static_cast<uint64_t>(sqlite3_column_int64(stmt, 3));  // 3 means timestamp index
+        errCode = E_OK;
+    }
+    return errCode;
+}
+
+int StepNext(bool isMemDB, sqlite3_stmt *stmt)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_FINISHED;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         errCode = E_OK;
     }
     return errCode;
@@ -1545,7 +1563,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     const uint32_t &maxSize, SQLiteSingleVerRelationalContinueToken &token)
 {
     token.GetCloudTableSchema(tableSchema_);
-    baseTblName_ = tableSchema_.name;
     sqlite3_stmt *queryStmt = nullptr;
     bool isStepNext = false;
     int errCode = token.GetCloudStatement(dbHandle_, cloudDataResult.isCloudForcePushStrategy, queryStmt, isStepNext);
@@ -1553,13 +1570,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         (void)token.ReleaseCloudStatement();
         return errCode;
     }
-    Timestamp queryTime = 0;
     uint32_t totalSize = 0;
     uint32_t stepNum = 0;
     do {
         if (isStepNext) {
-            errCode = StepNext(isMemDb_, queryStmt, queryTime);
-            if (errCode != E_OK || queryTime == INT64_MAX) {
+            errCode = StepNext(isMemDb_, queryStmt);
+            if (errCode != E_OK) {
+                errCode = (errCode == -E_FINISHED ? E_OK : errCode);
                 break;
             }
         }
@@ -2145,7 +2162,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
         return errCode;
     }
 
-    std::map<int, int> statisticMap;
+    std::map<int, int> statisticMap = {};
     errCode = ExecutePutCloudData(tableName, tableSchema, downloadData, statisticMap);
     int ret = SetLogTriggerStatus(true);
     if (ret != E_OK) {
@@ -2393,6 +2410,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateSqlForCloudSync(const Tab
     return E_OK;
 }
 
+static bool IsGidValid(const std::string &gidStr)
+{
+    if (!gidStr.empty()) {
+        return gidStr.find("'") == std::string::npos;
+    }
+    return true;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const VBucket &vBucket,
     const TableSchema &tableSchema, sqlite3_stmt *&updateStmt)
 {
@@ -2402,7 +2427,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataTableStatement(const 
         LOGE("Get gid from cloud data fail when construct update data sql, errCode = %d", errCode);
         return errCode;
     }
-    if (!gidStr.empty() && gidStr.find("'") != std::string::npos) {
+    if (!IsGidValid(gidStr)) {
         LOGE("invalid char in cloud gid");
         return -E_CLOUD_ERROR;
     }

@@ -959,7 +959,7 @@ void CommunicatorAggregator::TriggerSendData()
     }
 }
 
-void CommunicatorAggregator::ResetFrameRecordIfNeed(uint32_t frameId, uint32_t mtu)
+void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu)
 {
     std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
     if (sendRecord_[frameId].splitMtu == 0u || sendRecord_[frameId].splitMtu != mtu) {

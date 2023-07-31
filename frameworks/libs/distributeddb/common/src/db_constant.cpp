@@ -68,6 +68,7 @@ const std::string DBConstant::UPDATE_META_FUNC = "update_meta_within_trigger";
 const std::string DBConstant::SYSTEM_TABLE_PREFIX = "naturalbase_rdb_";
 const std::string DBConstant::RELATIONAL_PREFIX = "naturalbase_rdb_aux_";
 const std::string DBConstant::TIMESTAMP_ALIAS = "naturalbase_rdb_aux_timestamp";
+const std::string DBConstant::LOG_POSTFIX = "_log";
 
 const std::string DBConstant::LOG_TABLE_VERSION_1 = "1.0";
 const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
