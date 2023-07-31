@@ -32,11 +32,11 @@ public:
     explicit CloudMetaData(ICloudSyncStorageInterface *store);
     ~CloudMetaData() = default;
 
-    int GetLocalWaterMark(const TableName tableName, Timestamp &localMark);
-    int GetCloudWaterMark(const TableName tableName, std::string &cloudMark);
+    int GetLocalWaterMark(const TableName &tableName, Timestamp &localMark);
+    int GetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
-    int SetLocalWaterMark(const TableName tableName, Timestamp localMark);
-    int SetCloudWaterMark(const TableName tableName, std::string &cloudMark);
+    int SetLocalWaterMark(const TableName &tableName, Timestamp localMark);
+    int SetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
 private:
     typedef struct CloudMetaValue {

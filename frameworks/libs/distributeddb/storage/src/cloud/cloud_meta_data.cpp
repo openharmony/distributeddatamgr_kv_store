@@ -32,7 +32,7 @@ Key CloudMetaData::GetPrefixTableName(const TableName &tableName)
     return prefixedTableName;
 }
 
-int CloudMetaData::GetLocalWaterMark(TableName tableName, Timestamp &localMark)
+int CloudMetaData::GetLocalWaterMark(const TableName &tableName, Timestamp &localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     if (cloudMetaVals_.count(tableName) == 0) {
@@ -45,7 +45,7 @@ int CloudMetaData::GetLocalWaterMark(TableName tableName, Timestamp &localMark)
     return E_OK;
 }
 
-int CloudMetaData::GetCloudWaterMark(const TableName tableName, std::string &cloudMark)
+int CloudMetaData::GetCloudWaterMark(const TableName &tableName, std::string &cloudMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     if (cloudMetaVals_.count(tableName) == 0) {
@@ -59,7 +59,7 @@ int CloudMetaData::GetCloudWaterMark(const TableName tableName, std::string &clo
     return E_OK;
 }
 
-int CloudMetaData::SetLocalWaterMark(const TableName tableName, Timestamp localMark)
+int CloudMetaData::SetLocalWaterMark(const TableName &tableName, Timestamp localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     std::string cloudMark = "";
@@ -80,7 +80,7 @@ int CloudMetaData::SetLocalWaterMark(const TableName tableName, Timestamp localM
     return E_OK;
 }
 
-int CloudMetaData::SetCloudWaterMark(const TableName tableName, std::string &cloudMark)
+int CloudMetaData::SetCloudWaterMark(const TableName &tableName, std::string &cloudMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
     Timestamp localMark = 0;
