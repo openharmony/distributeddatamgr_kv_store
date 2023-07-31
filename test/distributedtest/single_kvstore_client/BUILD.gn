@@ -12,128 +12,66 @@
 # limitations under the License.
 
 import("//build/test.gni")
-import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
-module_output_path = "kv_store/distributeddatafwk"
+module_output_path = "kv_store/distributed_test"
 
 ###############################################################################
 config("module_private_config") {
-  visibility = [ ":*" ]
-
   include_dirs = [
-    "${datashare_innerapi_path}/common/include",
-    "${datashare_innerapi_path}/provider/include",
-    "//commonlibrary/c_utils/base/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/test/distributedtest/single_kvstore_client",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/app_distributeddata/include",
-    "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/app/include",
-    "//foundation/distributeddatamgr/distributedfile/interfaces/kits/js/src/mod_securitylabel",
-    "//test/testfwk/developer_test/aw/distributed",
-    "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include",
+    "${kv_store_base_path}/test/distributedtest/single_kvstore_client",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+    "${kv_store_base_path}/frameworks/common",
+    "${kv_store_base_path}/frameworks/distributeddatafwk/include",
+    "${kv_store_base_path}/frameworks/distributeddatafwk/src",
+    "${kv_store_base_path}/frameworks/kvdb/include",
   ]
-  lib_dirs = [ "//foundation/appexecfwk/libs" ]
 }
 
-old_source_config = [
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/data_query.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/distributed_kv_data_manager.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_client_death_observer.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_data_service.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_observer.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_sync_callback.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kv_utils.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_client_death_observer.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_datashare_bridge.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_observer_client.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_service_death_notifier.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_sync_callback_client.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/sync_observer.cpp",
-  "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include/types.h",
+common_deps = [
+  "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb",
+  "${kv_store_base_path}/interfaces/innerkits/distributeddata:distributeddata_inner",
+  "${third_party_path}/googletest:gtest",
 ]
 
-kvdb_source_config = [
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/auto_sync_timer.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/backup_manager.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/convertor.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/dev_manager.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/device_convertor.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/kv_types_util.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/kvdb_service_client.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/observer_bridge.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/security_manager.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/single_store_impl.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/store_factory.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/store_manager.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/store_result_set.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/system_api.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/task_executor.cpp",
-  "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/task_executor_adapter.cpp",
+common_external_deps = [
+  "access_token:libaccesstoken_sdk",
+  "access_token:libnativetoken",
+  "access_token:libtoken_setproc",
+  "c_utils:utils",
+  "device_manager:devicemanagersdk",
+  "hilog:libhilog",
+  "hisysevent:libhisysevent",
+  "hitrace:hitrace_meter",
+  "hitrace:libhitracechain",
+  "huks:libhukssdk",
+  "ipc:ipc_single",
+  "samgr:samgr_proxy",
 ]
 
+###############################################################################
 ohos_distributedtest("DistributedTest") {
   module_out_path = module_output_path
-  sources = old_source_config + kvdb_source_config
-  sources += [
-    "distributed_test_helper.cpp",
-    "distributed_test_helper.h",
-  ]
-  sources += [ "distributed_test.cpp" ]
+
+  sources = [ "distributed_test.cpp" ]
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [
-    "c_utils:utils",
-    "device_manager:devicemanagersdk",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "hitrace:libhitracechain",
-    "huks:libhukssdk",
-    "ipc:ipc_core",
-    "samgr:samgr_proxy",
-  ]
+  external_deps = common_external_deps
 
-  deps = [
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
-  ]
+  deps = common_deps
 }
 
 ohos_distributedtest("DistributedTestAgent") {
   module_out_path = module_output_path
 
-  sources = old_source_config + kvdb_source_config
-
-  sources += [ "distributed_test_agent.cpp" ]
+  sources = [ "distributed_test_agent.cpp" ]
 
   configs = [ ":module_private_config" ]
 
-  external_deps = [
-    "c_utils:utils",
-    "device_manager:devicemanagersdk",
-    "hilog:libhilog",
-    "hisysevent:libhisysevent",
-    "hitrace:hitrace_meter",
-    "hitrace:libhitracechain",
-    "huks:libhukssdk",
-    "ipc:ipc_core",
-    "samgr:samgr_proxy",
-  ]
+  external_deps = common_external_deps
 
-  deps = [
-    "//foundation/distributeddatamgr/datamgr_service/services/distributeddataservice/adapter:distributeddata_adapter",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/:distributeddb",
-    "//third_party/googletest:gtest",
-  ]
+  deps = common_deps
 }
 
 ###############################################################################

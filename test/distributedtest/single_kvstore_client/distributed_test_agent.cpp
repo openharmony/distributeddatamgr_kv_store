@@ -12,271 +12,218 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#define LOG_TAG "DistributedTestAgent"
 
-#include <string>
-#include <iostream>
-#include <unistd.h>
-#include <cstddef>
-#include <cstdint>
-#include <vector>
-#include "dev_manager.h"
+#include <gtest/gtest.h>
+
+#include <map>
+
+#include "accesstoken_kit.h"
 #include "distributed_kv_data_manager.h"
 #include "types.h"
 #include "distributed_agent.h"
-#include "refbase.h"
-#include "hilog/log.h"
 #include "directory_ex.h"
+#include "nativetoken_kit.h"
+#include "token_setproc.h"
+#include "log_print.h"
 
-using namespace testing;
+using namespace testing::ext;
 using namespace OHOS;
 using namespace OHOS::DistributeSystemTest;
 using namespace OHOS::DistributedKv;
-using namespace OHOS::HiviewDFX;
+using namespace OHOS::Security::AccessToken;
+namespace OHOS::Test{
+class DistributedTestAgent : public DistributedAgent {
+public:
+    bool SetUp() override;
+    bool TearDown() override;
 
-namespace {
-constexpr HiLogLabel LABEL = {LOG_CORE, 0, "DistributedTestAgent"};
-constexpr HiLogLabel LABEL_TEST = {LOG_CORE, 0, "KvStoreSyncCallbackTestImpl"};
+    int OnProcessMsg(const std::string &msg, int len, std::string &ret, int retLen) override;
+    int OnProcessCmd(const std::string &command, int len, const std::string &args,
+        int argsLen, const std::string &expectValue, int expectValueLen) override;
+
+    int Get(const std::string &msg, std::string &ret);
+
+    int Put(const std::string &args);
+    int Delete(const std::string &args);
+    int Sync(const std::string &args);
+
+private:
+    static DistributedKvDataManager manager_;
+    static std::shared_ptr<SingleKvStore> singleKvStore_;
+    static constexpr int FILE_PERMISSION = 0777;
+    static constexpr int WAIT_TIME = 5;
+
+    using MessageFunction = int (DistributedTestAgent::*)(const std::string &msg, std::string &ret);
+    std::map<std::string, MessageFunction> messageFunctionMap_;
+    using CommandFunction = int (DistributedTestAgent::*)(const std::string &args);
+    std::map<std::string, CommandFunction> commandFunctionMap_;
+};
+
+DistributedKvDataManager DistributedTestAgent::manager_;
+std::shared_ptr<SingleKvStore> DistributedTestAgent::singleKvStore_ = nullptr;
 
 class KvStoreSyncCallbackTestImpl : public KvStoreSyncCallback {
 public:
-    void SyncCompleted(const std::map<std::string, Status> &results);
-    std::condition_variable cv_;
-    bool compeleted_ = false;
-    std::mutex mtx_;
-};
+    static bool IsSyncComplete() {
+        bool flag = completed_;
+        completed_ = false;
+        return flag;
+    }
 
-class Util {
-public:
-    static std::string Anonymous(const std::string &name)
+    void SyncCompleted(const std::map<std::string, Status> &results) override
     {
-        if (name.length() <= HEAD_SIZE) {
-            return DEFAULT_ANONYMOUS;
+        ZLOGI("SyncCallback Called!");
+        for (const auto &result : results) {
+            if (result.second == SUCCESS) {
+                completed_ = true;
+            }
+            ZLOGI("device: %{public}s, status: 0x%{public}x", result.first.c_str(), result.second);
         }
-
-        if (name.length() < MIN_SIZE) {
-            return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN);
-        }
-
-        return (name.substr(0, HEAD_SIZE) + REPLACE_CHAIN + name.substr(name.length() - END_SIZE, END_SIZE));
     }
 
 private:
-    static constexpr int32_t HEAD_SIZE = 3;
-    static constexpr int32_t END_SIZE = 3;
-    static constexpr int32_t MIN_SIZE = HEAD_SIZE + END_SIZE + 3;
-    static constexpr const char *REPLACE_CHAIN = "***";
-    static constexpr const char *DEFAULT_ANONYMOUS = "******";
+    static bool completed_;
 };
 
-void KvStoreSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Status> &results)
-{
-    for (const auto &result : results) {
-        HiLog::Info(LABEL_TEST, "uuid = %{public}s, status = %{public}d",
-            Util::Anonymous(result.first).c_str(), result.second);
-    }
-    std::lock_guard<std::mutex> lck(mtx_);
-    compeleted_ = true;
-    cv_.notify_one();
-}
-
-class DistributedTestAgent : public DistributedAgent {
-public:
-    DistributedTestAgent();
-    ~DistributedTestAgent();
-    virtual bool SetUp();
-    virtual bool TearDown();
-    virtual int OnProcessMsg(const std::string &msg, int len, std::string &ret, int retLen);
-    virtual int OnProcessCmd(const std::string &command, int len, const std::string &args,
-        int argsLen, const std::string &expectValue, int expectValueLen);
-    int Get(const std::string &msg, std::string &ret) const;
-    int Put(const std::string &args) const;
-    int Delete(const std::string &args) const;
-    int Sync(const std::string &args) const;
-    int RemoveDeviceData(const std::string &args) const;
-    int ProcessMsg(const std::string &msg, std::string &ret);
-    int ProcessCmd(const std::string &command, const std::string &args);
-    static std::shared_ptr<SingleKvStore> singleKvStore_; // declare kvstore instance
-    static constexpr int WAIT_FOR_TIME = 3; // wait for synccallback time is 3s.
-    static constexpr int FILE_PERMISSION = 0777; // 0777 is to modify the permissions of the file.
-
-private:
-    DistributedKvDataManager manager_;
-    std::vector<DevManager::DetailInfo> detailInfos_;
-    using CmdFunc = int (DistributedTestAgent::*)(const std::string &) const;
-    std::map<std::string, CmdFunc> cmdFunMap_;
-    using MsgFunc = int (DistributedTestAgent::*)(const std::string &, std::string &) const;
-    std::map<std::string, MsgFunc> msgFunMap_;
-};
-
-std::shared_ptr<SingleKvStore> DistributedTestAgent::singleKvStore_ = nullptr;
-
-DistributedTestAgent::DistributedTestAgent()
-{}
-
-DistributedTestAgent::~DistributedTestAgent()
-{}
+bool KvStoreSyncCallbackTestImpl::completed_ = false;
 
 bool DistributedTestAgent::SetUp()
 {
-    msgFunMap_["get"] = &DistributedTestAgent::Get;
-    cmdFunMap_["put"] = &DistributedTestAgent::Put;
-    cmdFunMap_["delete"] = &DistributedTestAgent::Delete;
-    cmdFunMap_["sync"] = &DistributedTestAgent::Sync;
-    cmdFunMap_["removedevicedata"] = &DistributedTestAgent::RemoveDeviceData;
+    const char **perms = new const char *[1];
+    perms[0] = "ohos.permission.DISTRIBUTED_DATASYNC";
+    TokenInfoParams info = {
+        .dcapsNum = 0,
+        .permsNum = 1,
+        .aclsNum = 0,
+        .dcaps = nullptr,
+        .perms = perms,
+        .acls = nullptr,
+        .processName = "distributed_test",
+        .aplStr = "system_basic",
+    };
+    auto tokenId = GetAccessTokenId(&info);
+    SetSelfTokenID(tokenId);
+    AccessTokenKit::ReloadNativeTokenInfo();
+    delete[] perms;
 
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = false,
-                        .kvStoreType = KvStoreType::SINGLE_VERSION };
+        .kvStoreType = KvStoreType::SINGLE_VERSION };
     options.area = EL1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };
-    StoreId storeId = { "student_single" }; // define kvstore(database) name.
+    StoreId storeId = { "student" };
     mkdir(options.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
-    manager_.GetSingleKvStore(options, appId, storeId, singleKvStore_);
-    detailInfos_ = DevManager::GetInstance().GetRemoteDevices();
+    auto status = manager_.GetSingleKvStore(options, appId, storeId, singleKvStore_);
+    if (status != SUCCESS || singleKvStore_ == nullptr) {
+        return false;
+    }
     OHOS::ChangeModeDirectory(options.baseDir, FILE_PERMISSION);
+
+    std::shared_ptr<KvStoreSyncCallback> syncCallback = std::make_shared<KvStoreSyncCallbackTestImpl>();
+    status = singleKvStore_->RegisterSyncCallback(syncCallback);
+    if (status != SUCCESS) {
+        return false;
+    }
+
+    messageFunctionMap_["get"] = &DistributedTestAgent::Get;
+
+    commandFunctionMap_["put"] = &DistributedTestAgent::Put;
+    commandFunctionMap_["sync"] = &DistributedTestAgent::Sync;
     return true;
 }
 
 bool DistributedTestAgent::TearDown()
 {
+    (void)manager_.CloseAllKvStore({ "odmf" });
+    (void)manager_.DeleteKvStore({ "odmf" }, { "student" }, "/data/service/el1/public/database/odmf");
     (void)remove("/data/service/el1/public/database/odmf/key");
     (void)remove("/data/service/el1/public/database/odmf/kvdb");
     (void)remove("/data/service/el1/public/database/odmf");
     return true;
 }
 
+int DistributedTestAgent::OnProcessMsg(const std::string &msg, int len, std::string &ret, int retLen)
+{
+    if (msg == "SendMessage") {
+        ret = "Send Message OK!";
+        return ret.size();
+    }
+    auto index = msg.find(",");
+    std::string function = msg.substr(0, index);
+    auto iter = messageFunctionMap_.find(function);
+    if (iter != messageFunctionMap_.end()) {
+        return (this->*messageFunctionMap_[function])(msg.substr(index + 1), ret);
+    }
+    return DistributedAgent::OnProcessMsg(msg, len, ret, retLen);
+}
+
 int DistributedTestAgent::OnProcessCmd(const std::string &command, int len,
     const std::string &args, int argsLen, const std::string &expectValue, int expectValueLen)
 {
-    return DistributedTestAgent::ProcessCmd(command, args);
-}
-
-int DistributedTestAgent::OnProcessMsg(const std::string &msg, int len,
-    std::string &ret, int retLen)
-{
-    return DistributedTestAgent::ProcessMsg(msg, ret);
-}
-
-int DistributedTestAgent::Get(const std::string &msg, std::string &ret) const
-{
-    if (!singleKvStore_) {
-        HiLog::Error(LABEL, "agent ERROR.");
-        return Status::INVALID_ARGUMENT;
+    if (command == "CommandTest") {
+        return SUCCESS;
     }
-    auto index = msg.find(",");
-    std::string skey = msg.substr(index+1);
-    Key key(skey);
+    auto iter = commandFunctionMap_.find(command);
+    if (iter != commandFunctionMap_.end()) {
+        return (this->*commandFunctionMap_[command])(args);
+    }
+    return DistributedAgent::OnProcessCmd(command, len, args, argsLen, expectValue, expectValueLen);
+}
+
+int DistributedTestAgent::Get(const std::string &msg, std::string &ret)
+{
+    Key key(msg);
     Value value;
     auto status = singleKvStore_->Get(key, value);
-    HiLog::Info(LABEL, "value = %{public}s", value.ToString().c_str());
-    ret = value.ToString();
+    ret = std::to_string(status);
     ret += ",";
-    ret += std::to_string(status);
-    HiLog::Info(LABEL, "ret = %{public}s", ret.c_str());
+    if (status == SUCCESS) {
+        ret += value.ToString();
+    }
     return ret.size();
 }
 
-int DistributedTestAgent::Put(const std::string &args) const
+int DistributedTestAgent::Put(const std::string &args)
 {
-    if (!singleKvStore_) {
-        HiLog::Error(LABEL, "agent ERROR.");
-        return Status::INVALID_ARGUMENT;
-    }
     auto index = args.find(",");
-    std::string skey = args.substr(0, index);
-    std::string sval = args.substr(index + 1);
-    Key key(skey);
-    Value value(sval);
+    Key key(args.substr(0, index));
+    Value value(args.substr(index + 1));
     auto status = singleKvStore_->Put(key, value);
     return status;
 }
 
-int DistributedTestAgent::Delete(const std::string &args) const
+int DistributedTestAgent::Sync(const std::string &args)
 {
-    if (!singleKvStore_) {
-        HiLog::Error(LABEL, "agent ERROR.");
-        return Status::INVALID_ARGUMENT;
+    SyncMode syncMode = static_cast<SyncMode>(std::stoi(args));
+    std::vector<std::string> devices;
+    auto status = singleKvStore_->Sync(devices, syncMode);
+
+    sleep(WAIT_TIME);
+
+    auto flag = KvStoreSyncCallbackTestImpl::IsSyncComplete();
+    if (!flag) {
+        status = TIME_OUT;
     }
-    Key key(args);
-    Status status = singleKvStore_->Delete(key);
     return status;
 }
-
-int DistributedTestAgent::RemoveDeviceData(const std::string &args) const
-{
-    if (!singleKvStore_) {
-        HiLog::Error(LABEL, "agent ERROR.");
-        return Status::INVALID_ARGUMENT;
-    }
-    HiLog::Info(LABEL, "deviceId = %{public}s", Util::Anonymous(detailInfos_[0].networkId).c_str());
-    auto status = singleKvStore_->RemoveDeviceData(detailInfos_[0].networkId);
-    return status;
-}
-
-int DistributedTestAgent::Sync(const std::string &args) const
-{
-    if (!singleKvStore_) {
-        HiLog::Error(LABEL, "agent ERROR.");
-        return Status::INVALID_ARGUMENT;
-    }
-    auto syncCallback = std::make_shared<KvStoreSyncCallbackTestImpl>();
-    auto status = singleKvStore_->RegisterSyncCallback(syncCallback);
-    if (status != Status::SUCCESS) {
-        HiLog::Info(LABEL, "register sync callback failed.");
-        return Status::INVALID_ARGUMENT;
-    }
-    std::vector<std::string> deviceIds;
-    for (const auto &device : detailInfos_) {
-        deviceIds.push_back(device.networkId);
-    }
-    int32_t delay = std::stoi(args);
-    HiLog::Info(LABEL, "delay = %{public}d", delay);
-    std::unique_lock<std::mutex> lck(syncCallback->mtx_);
-    status = singleKvStore_->Sync(deviceIds, SyncMode::PULL, delay);
-    if (!syncCallback->cv_.wait_for(lck, std::chrono::seconds(WAIT_FOR_TIME),
-        [&syncCallback]() { return syncCallback->compeleted_; })) {
-        status = Status::TIME_OUT;
-    }
-    HiLog::Info(LABEL, "status = %{public}d", status);
-    return status;
-}
-
-int DistributedTestAgent::ProcessMsg(const std::string &msg, std::string &ret)
-{
-    auto index = msg.find(",");
-    std::string argsMsg = msg.substr(0, index);
-    std::map<std::string, MsgFunc>::iterator it = msgFunMap_.find(argsMsg);
-    if (it != msgFunMap_.end()) {
-        MsgFunc MsgFunc = msgFunMap_[argsMsg];
-        return (this->*MsgFunc)(msg, ret);
-    }
-    return Status::INVALID_ARGUMENT;
-}
-
-int DistributedTestAgent::ProcessCmd(const std::string &command, const std::string &args)
-{
-    std::map<std::string, CmdFunc>::iterator it = cmdFunMap_.find(command);
-    if (it != cmdFunMap_.end()) {
-        CmdFunc CmdFunc = cmdFunMap_[command];
-        return (this->*CmdFunc)(args);
-    }
-    return Status::INVALID_ARGUMENT;
-}
-}
+} // namespace OHOS::Test
 
 int main()
 {
-    DistributedTestAgent obj;
+    OHOS::Test::DistributedTestAgent obj;
     if (obj.SetUp()) {
+        ZLOGE("Init environment success.");
         obj.Start("agent.desc");
         obj.Join();
     } else {
-        HiLog::Error(LABEL, "Init environment failed.");
+        ZLOGE("Init environment fail.");
     }
     if (obj.TearDown()) {
+        ZLOGE("Clear environment success.");
         return 0;
     } else {
-        HiLog::Error(LABEL, "Clear environment failed.");
+        ZLOGE("Clear environment failed.");
         return -1;
     }
 }
