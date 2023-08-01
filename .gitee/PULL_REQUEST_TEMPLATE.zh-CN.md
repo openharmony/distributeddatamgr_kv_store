@@ -7,4 +7,4 @@
 * **FUZZ**:Pass/Fail/NA
 * **ACTS**:Pass/Fail/NA
 * **DCTS**:Pass/Fail/NA
-* **DTS**:Pass/Fail/NA
+* **DST**:Pass/Fail/NA
