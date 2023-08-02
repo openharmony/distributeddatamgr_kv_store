@@ -164,6 +164,8 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         std::lock_guard<std::mutex> lock(logMutex_);
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
+            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
+            LOGW("close look aside config");
             g_configLog = true;
         }
     }
