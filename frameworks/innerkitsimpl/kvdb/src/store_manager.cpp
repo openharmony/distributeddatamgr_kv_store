@@ -19,6 +19,7 @@
 #include "log_print.h"
 #include "security_manager.h"
 #include "store_factory.h"
+#include "store_util.h"
 namespace OHOS::DistributedKv {
 StoreManager &StoreManager::GetInstance()
 {
@@ -30,7 +31,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     const Options &options, Status &status)
 {
     ZLOGD("appId:%{public}s, storeId:%{public}s type:%{public}d area:%{public}d dir:%{public}s", appId.appId.c_str(),
-        storeId.storeId.c_str(), options.kvStoreType, options.area, options.baseDir.c_str());
+        StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area, options.baseDir.c_str());
     std::lock_guard<std::mutex> lock(mutex_);
     status = ILLEGAL_STATE;
     if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()) {
@@ -45,7 +46,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
 
     if (status == STORE_META_CHANGED) {
         ZLOGE("appId:%{public}s, storeId:%{public}s type:%{public}d encrypt:%{public}d", appId.appId.c_str(),
-            storeId.storeId.c_str(), options.kvStoreType, options.encrypt);
+            StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.encrypt);
         return nullptr;
     }
 
@@ -65,7 +66,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
 
 Status StoreManager::CloseKVStore(const AppId &appId, const StoreId &storeId)
 {
-    ZLOGD("appId:%{public}s, storeId:%{public}s", appId.appId.c_str(), storeId.storeId.c_str());
+    ZLOGD("appId:%{public}s, storeId:%{public}s", appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str());
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }
@@ -99,8 +100,8 @@ Status StoreManager::GetStoreIds(const AppId &appId, std::vector<StoreId> &store
 
 Status StoreManager::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)
 {
-    ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(), storeId.storeId.c_str(),
-        path.c_str());
+    ZLOGD("appId:%{public}s, storeId:%{public}s dir:%{public}s", appId.appId.c_str(),
+        StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
     if (!appId.IsValid() || !storeId.IsValid()) {
         return INVALID_ARGUMENT;
     }

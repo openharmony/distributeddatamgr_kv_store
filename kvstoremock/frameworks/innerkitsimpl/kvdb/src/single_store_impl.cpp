@@ -36,7 +36,7 @@ Status SingleStoreImpl::Put(const Key &key, const Value &value)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -60,7 +60,7 @@ Status SingleStoreImpl::PutBatch(const std::vector<Entry> &entries)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -88,7 +88,7 @@ Status SingleStoreImpl::Delete(const Key &key)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -110,7 +110,7 @@ Status SingleStoreImpl::DeleteBatch(const std::vector<Key> &keys)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -136,14 +136,14 @@ Status SingleStoreImpl::StartTransaction()
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
     auto dbStatus = dbStore_->StartTransaction();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
 }
@@ -152,7 +152,7 @@ Status SingleStoreImpl::Commit()
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -168,14 +168,14 @@ Status SingleStoreImpl::Rollback()
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
     auto dbStatus = dbStore_->Rollback();
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     return status;
 }
@@ -194,7 +194,7 @@ Status SingleStoreImpl::Get(const Key &key, Value &value)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -279,7 +279,7 @@ Status SingleStoreImpl::CloseResultSet(std::shared_ptr<ResultSet> &resultSet)
 
     auto status = resultSet->Close();
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x storeId:%{public}s", status, storeId_.c_str());
+        ZLOGE("status:0x%{public}x storeId:%{public}s", status, StoreUtil::Anonymous(storeId_).c_str());
     }
     resultSet = nullptr;
     return status;
@@ -289,7 +289,7 @@ Status SingleStoreImpl::GetCount(const DataQuery &query, int &result) const
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -306,7 +306,7 @@ Status SingleStoreImpl::GetSecurityLevel(SecurityLevel &secLevel) const
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -324,7 +324,7 @@ Status SingleStoreImpl::RemoveDeviceData(const std::string &device)
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -378,7 +378,7 @@ Status SingleStoreImpl::GetResultSet(const DBQuery &query, std::shared_ptr<Resul
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
@@ -395,7 +395,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 {
     std::shared_lock<decltype(rwMutex_)> lock(rwMutex_);
     if (dbStore_ == nullptr) {
-        ZLOGE("db:%{public}s already closed!", storeId_.c_str());
+        ZLOGE("db:%{public}s already closed!", StoreUtil::Anonymous(storeId_).c_str());
         return ALREADY_CLOSED;
     }
 
