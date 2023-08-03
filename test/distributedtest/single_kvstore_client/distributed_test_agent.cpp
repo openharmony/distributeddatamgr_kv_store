@@ -32,7 +32,7 @@ using namespace OHOS;
 using namespace OHOS::DistributeSystemTest;
 using namespace OHOS::DistributedKv;
 using namespace OHOS::Security::AccessToken;
-namespace OHOS::Test{
+namespace OHOS::Test {
 class DistributedTestAgent : public DistributedAgent {
 public:
     bool SetUp() override;
@@ -65,7 +65,8 @@ std::shared_ptr<SingleKvStore> DistributedTestAgent::singleKvStore_ = nullptr;
 
 class KvStoreSyncCallbackTestImpl : public KvStoreSyncCallback {
 public:
-    static bool IsSyncComplete() {
+    static bool IsSyncComplete()
+    {
         bool flag = completed_;
         completed_ = false;
         return flag;
