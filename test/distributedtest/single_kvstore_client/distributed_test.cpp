@@ -51,7 +51,8 @@ std::shared_ptr<SingleKvStore> DistributedTest::singleKvStore_ = nullptr;
 
 class KvStoreSyncCallbackTestImpl : public KvStoreSyncCallback {
 public:
-    static bool IsSyncComplete() {
+    static bool IsSyncComplete()
+    {
         bool flag = completed_;
         completed_ = false;
         return flag;
