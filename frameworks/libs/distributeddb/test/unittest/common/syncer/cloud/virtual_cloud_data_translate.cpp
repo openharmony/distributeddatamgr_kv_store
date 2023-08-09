@@ -97,9 +97,10 @@ Asset VirtualCloudDataTranslate::BlobToAsset(const std::vector<uint8_t> &blob)
     ReadAsset(parcel, asset);
     return asset;
 }
-Assets VirtualCloudDataTranslate::BlobToAssets(std::vector<uint8_t> &blob)
+Assets VirtualCloudDataTranslate::BlobToAssets(const std::vector<uint8_t> &blob)
 {
-    Parcel parcel(blob.data(), blob.size());
+    std::vector<uint8_t> inputData = blob;
+    Parcel parcel(inputData.data(), inputData.size());
     uint32_t count = 0;
     parcel.ReadUInt32(count);
     Assets assets;
