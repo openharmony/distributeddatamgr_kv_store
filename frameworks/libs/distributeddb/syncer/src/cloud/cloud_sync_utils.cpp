@@ -26,12 +26,13 @@ int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNa
         LOGE("[CloudSyncer] Output paramater should be empty");
         return -E_INVALID_ARGS;
     }
-    if (pkColNames.size() == 1 && pkColNames[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
-        // if data don't have primary key, then use rowID as value
-        cloudPkVals.push_back(dataKey);
-        return E_OK;
-    }
     for (const auto &pkColName : pkColNames) {
+        // if data is primary key or is a composite primary key, then use rowID as value
+        // The single primary key table, does not contain rowid.
+        if (pkColName == CloudDbConstant::ROW_ID_FIELD_NAME) {
+            cloudPkVals.push_back(dataKey);
+            continue;
+        }
         auto iter = datum.find(pkColName);
         if (iter == datum.end()) {
             LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
@@ -56,48 +57,9 @@ ChangeType OpTypeToChangeType(OpType strategy)
     }
 }
 
-
-bool IsCompositeKey(const std::vector<std::string> &pKColNames)
+bool IsSinglePrimaryKey(const std::vector<std::string> &pkColNames)
 {
-    return (pKColNames.size() > 1);
-}
-
-bool IsNoPrimaryKey(const std::vector<std::string> &pKColNames)
-{
-    if (pKColNames.empty()) {
-        return true;
-    }
-    if (pKColNames.size() == 1 && pKColNames[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
-        return true;
-    }
-    return false;
-}
-
-bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames)
-{
-    if (IsCompositeKey(pKColNames) || IsNoPrimaryKey(pKColNames)) {
-        return false;
-    }
-    return true;
-}
-
-int GetSinglePk(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal)
-{
-    std::vector<Type> pkVals;
-    int ret = E_OK;
-    if (IsSinglePrimaryKey(pkColNames)) {
-        ret = GetCloudPkVals(datum, pkColNames, dataKey, pkVals);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Cannot get single primary key for the datum %d", ret);
-            return ret;
-        }
-        pkVal = pkVals[0];
-        if (pkVal.index() == TYPE_INDEX<Nil>) {
-            LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
-            return -E_INTERNAL_ERROR;
-        }
-    }
-    return E_OK;
+    return pkColNames.size() == 1 && pkColNames[0] != CloudDbConstant::ROW_ID_FIELD_NAME;
 }
 
 void RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &pkColNames)
@@ -115,5 +77,72 @@ void RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &
                 item++;
             }
     }
+}
+
+AssetOpType StatusToFlag(AssetStatus status)
+{
+    switch (status) {
+        case AssetStatus::INSERT:
+            return AssetOpType::INSERT;
+        case AssetStatus::DELETE:
+            return AssetOpType::DELETE;
+        case AssetStatus::UPDATE:
+            return AssetOpType::UPDATE;
+        case AssetStatus::NORMAL:
+            return AssetOpType::NO_CHANGE;
+        default:
+            LOGW("[CloudSyncer] Unexpected Situation and won't be handled"
+                ", Caller should ensure that current situation won't occur");
+            return AssetOpType::NO_CHANGE;
+    }
+}
+
+void StatusToFlagForAsset(Asset &asset)
+{
+    asset.flag = static_cast<uint32_t>(StatusToFlag(static_cast<AssetStatus>(asset.status)));
+    asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+}
+
+void StatusToFlagForAssets(Assets &assets)
+{
+    for (Asset &asset : assets) {
+        StatusToFlagForAsset(asset);
+    }
+}
+
+void StatusToFlagForAssetsInRecord(const std::vector<Field> &fields, VBucket &record)
+{
+    for (const Field &field : fields) {
+        if (field.type == TYPE_INDEX<Assets> && record[field.colName].index() == TYPE_INDEX<Assets>) {
+            StatusToFlagForAssets(std::get<Assets>(record[field.colName]));
+        } else if (field.type == TYPE_INDEX<Asset> && record[field.colName].index() == TYPE_INDEX<Asset>) {
+            StatusToFlagForAsset(std::get<Asset>(record[field.colName]));
+        }
+    }
+}
+
+bool IsChngDataEmpty(const ChangedData &changedData)
+{
+    return changedData.primaryData[ChangeType::OP_INSERT].empty() ||
+           changedData.primaryData[ChangeType::OP_UPDATE].empty() ||
+           changedData.primaryData[ChangeType::OP_DELETE].empty();
+}
+
+bool EqualInMsLevel(const Timestamp cmp, const Timestamp beCmp)
+{
+    return cmp / CloudDbConstant::TEN_THOUSAND == beCmp / CloudDbConstant::TEN_THOUSAND;
+}
+
+bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo)
+{
+    // if timeStamp, write timestamp, cloudGid are all the same,
+    // we thought that the datum is mostly be the same between cloud and local
+    // However, there are still slightly possibility that it may be created from different device,
+    // So, during the strategy policy [i.e. TagSyncDataStatus], the datum was tagged as UPDATE
+    // But we won't notify the datum
+    bool isSame = localLogInfo.timestamp == cloudLogInfo.timestamp &&
+        EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
+        localLogInfo.cloudGid == cloudLogInfo.cloudGid;
+    return !isSame;
 }
 }

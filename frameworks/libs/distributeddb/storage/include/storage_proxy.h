@@ -82,12 +82,16 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess);
 
+    int SetLogTriggerStatus(bool status);
+
     int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data);
 
     std::string GetIdentify() const;
 
 protected:
     void Init();
+
+    static Timestamp EraseNanoTime(Timestamp localTime);
 private:
     ICloudSyncStorageInterface *store_;
     mutable std::shared_mutex storeMutex_;

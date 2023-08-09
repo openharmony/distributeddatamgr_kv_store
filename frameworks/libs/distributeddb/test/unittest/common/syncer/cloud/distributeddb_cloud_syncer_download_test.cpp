@@ -66,7 +66,6 @@ void DistributedDBCloudSyncerDownloadTest::TearDown(void)
 {
 }
 
-
 std::vector<VBucket> GetRetCloudData(uint64_t cnt)
 {
     std::vector<uint8_t> photo(g_photoCount, 'v');
@@ -98,6 +97,14 @@ struct InvalidCloudDataOpt {
     bool invalidCursor = true;
 };
 
+void GenerateTableSchema(TableSchema &tableSchema)
+{
+    tableSchema = {
+        "TestTable1",
+        {{"name", TYPE_INDEX<std::string>, true}}
+    };
+}
+
 std::vector<VBucket> GetInvalidTypeCloudData(uint64_t cnt, InvalidCloudDataOpt fieldOpt)
 {
     std::vector<uint8_t> photo(g_photoCount, 'v');
@@ -110,7 +117,7 @@ std::vector<VBucket> GetInvalidTypeCloudData(uint64_t cnt, InvalidCloudDataOpt f
         data.insert_or_assign("married", (bool)0);
         data.insert_or_assign("photo", photo);
         data.insert_or_assign("age", 13L);
-        
+
         if (fieldOpt.invalidGID) {
             data.insert_or_assign(CloudDbConstant::GID_FIELD, (int64_t)i);
         }
@@ -248,7 +255,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest001, TestSize.Lev
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(-E_SECUREC_ERROR));
     errCode = g_cloudSyncer->CallDoDownload(taskId);
     EXPECT_EQ(errCode, -E_SECUREC_ERROR);
-    
+
     taskId = 5u;
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillOnce(Return(-E_INVALID_ARGS));
@@ -355,7 +362,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
     EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    
+
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
@@ -569,7 +576,11 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest006, TestSize.Lev
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
-    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _))
+        .WillRepeatedly([](const TableName &, TableSchema &tableSchema) {
+            GenerateTableSchema(tableSchema);
+            return E_OK;
+        });
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
 
     EXPECT_CALL(*g_idb, Query(_, _, _))
@@ -683,7 +694,11 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
     EXPECT_CALL(*g_iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*g_iCloud, TriggerObserverAction(_, _, _)).WillRepeatedly(Return());
-    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*g_iCloud, GetCloudTableSchema(_, _))
+        .WillRepeatedly([](const TableName &, TableSchema &tableSchema) {
+            GenerateTableSchema(tableSchema);
+            return E_OK;
+        });
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     ExpectQueryCall();
     ExpectGetInfoByPrimaryKeyOrGidCall();

@@ -23,6 +23,8 @@
 #include "cloud_db_proxy.h"
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_sync_strategy.h"
+#include "cloud/icloud_syncer.h"
+#include "cloud/process_notifier.h"
 #include "data_transformer.h"
 #include "db_common.h"
 #include "cloud/icloud_db.h"
@@ -32,8 +34,10 @@
 #include "store_observer.h"
 
 namespace DistributedDB {
-using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key>>;
-class CloudSyncer : public RefObject {
+using DownloadList = std::vector<std::tuple<std::string, Type, OpType, std::map<std::string, Assets>, Key,
+    std::vector<Type>>>;
+using DownloadCommitList = std::vector<std::tuple<std::string, std::map<std::string, Assets>, bool>>;
+class CloudSyncer : public ICloudSyncer {
 public:
     explicit CloudSyncer(std::shared_ptr<StorageProxy> storageProxy);
     ~CloudSyncer() override = default;
@@ -52,33 +56,27 @@ public:
     int32_t GetCloudSyncTaskCount();
 
     void Close();
+
+    void IncSyncCallbackTaskCount() override;
+
+    void DecSyncCallbackTaskCount() override;
+
+    std::string GetIdentify() const override;
 protected:
-    using TaskId = uint64_t;
-    struct CloudTaskInfo {
-        SyncMode mode = SyncMode::SYNC_MODE_PUSH_ONLY;
-        ProcessStatus status = ProcessStatus::PREPARED;
-        int errCode = 0;
-        TaskId taskId = 0u;
-        std::vector<std::string> table;
-        SyncProcessCallback callback;
-        int64_t timeout = 0;
-        std::vector<std::string> devices;
-    };
     struct DataInfo {
         DataInfoWithLog localInfo;
         LogInfo cloudLogInfo;
-    };
-    struct InnerProcessInfo {
-        std::string tableName;
-        ProcessStatus tableStatus = ProcessStatus::PREPARED;
-        Info downLoadInfo;
-        Info upLoadInfo;
     };
     struct AssetDownloadList {
         // assets in following list will fill STATUS and timestamp after calling downloading
         DownloadList downloadList = {};
         // assets in following list won't fill STATUS and timestamp after calling downloading
         DownloadList completeDownloadList = {};
+    };
+    struct WithoutRowIdData {
+        std::vector<size_t> insertData = {};
+        std::vector<std::tuple<size_t, size_t>> updateData = {};
+        std::vector<std::tuple<size_t, size_t>> assetInsertData = {};
     };
     struct SyncParam {
         DownloadData downloadData;
@@ -90,26 +88,9 @@ protected:
         std::set<Key> deletePrimaryKeySet;
         std::set<Key> dupHashKeySet;
         std::string tableName;
+        bool isSinglePrimaryKey;
         bool isLastBatch = false;
-    };
-    class ProcessNotifier {
-    public:
-        explicit ProcessNotifier(CloudSyncer *syncer);
-        ~ProcessNotifier();
-
-        void Init(const std::vector<std::string> &tableName, const std::vector<std::string> &devices);
-
-        void UpdateProcess(const InnerProcessInfo &process);
-
-        void NotifyProcess(const CloudTaskInfo &taskInfo, const InnerProcessInfo &process,
-            bool notifyWhenError =  false);
-
-        std::vector<std::string> GetDevices() const;
-    protected:
-        std::mutex processMutex_;
-        SyncProcess syncProcess_;
-        std::vector<std::string> devices_;
-        CloudSyncer *syncer_;
+        WithoutRowIdData withoutRowIdData;
     };
     struct TaskContext {
         TaskId currentTaskId = 0u;
@@ -128,6 +109,14 @@ protected:
         TaskId taskId = 0u;
         Timestamp localMark = 0u;
         bool lastTable = false;
+    };
+    struct DownloadItem {
+        std::string gid;
+        Type prefix;
+        OpType strategy;
+        std::map<std::string, Assets> assets;
+        Key hashKey;
+        std::vector<Type> primaryKeyValList;
     };
 
     int TriggerSync();
@@ -211,8 +200,7 @@ protected:
 
     void SetTaskFailed(TaskId taskId, int errCode);
 
-    int SaveDatum(SyncParam &param, size_t idx, std::vector<size_t> &insertDataNoPrimaryKeys,
-        std::vector<std::pair<Key, size_t>> &deletedList);
+    int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList);
 
     int SaveData(SyncParam &param);
 
@@ -221,10 +209,10 @@ protected:
     int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
     int FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
-    size_t &delIdx);
+        size_t &delIdx);
 
     int SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
-        std::vector<size_t> &insertDataNoPrimaryKeys, std::vector<std::pair<Key, size_t>> &deletedList);
+        std::vector<std::pair<Key, size_t>> &deletedList);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -237,22 +225,20 @@ protected:
     std::map<std::string, Assets> GetAssetsFromVBucket(VBucket &data);
 
     std::map<std::string, Assets> TagAssetsInSingleRecord(VBucket &coveredData, VBucket &beCoveredData,
-        bool setNormalStatus);
-
-    Assets TagAssetsInSingleCol(VBucket &coveredData, VBucket &beCoveredData, const Field &assetField,
-        bool setNormalStatus);
+        bool setNormalStatus, int &errCode);
 
     int TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo &dataInfo, VBucket &localAssetInfo);
+
+    int HandleTagAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo, VBucket &localAssetInfo);
 
     int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
-    void TagUploadAssets(CloudSyncData &uploadData);
+    int TagUploadAssets(CloudSyncData &uploadData);
 
     int FillCloudAssets(const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets);
 
-    int HandleDownloadResult(const std::string &tableName, const std::string &gid,
-        std::map<std::string, Assets> &DownloadResult, bool setAllNormal);
+    int HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList, uint32_t &successCount);
 
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
@@ -260,25 +246,29 @@ protected:
     int CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
+    void GetDownloadItem(const DownloadList &downloadList, size_t i, DownloadItem &downloadItem);
+
     bool IsDataContainAssets();
-
-    bool IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data);
-
-    void IncSyncCallbackTaskCount();
-
-    void DecSyncCallbackTaskCount();
-
-    void WaitAllSyncCallbackTaskFinish();
-
-    static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
 
     void ModifyCloudDataTime(VBucket &data);
 
     int SaveCloudWaterMark(const TableName &tableName);
 
+    bool IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data);
+
+    int UpdateChangedData(SyncParam &param, AssetDownloadList &assetsDownloadList);
+
+    void WaitAllSyncCallbackTaskFinish();
+
     void UpdateCloudWaterMark(const SyncParam &param);
 
-    std::string GetIdentify() const;
+    int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
+
+    int CommitDownloadResult(InnerProcessInfo &info, DownloadCommitList &commitList);
+
+    static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
+
+    void ClearWithoutData(SyncParam &param);
 
     std::mutex queueLock_;
     TaskId currentTaskId_;
@@ -288,7 +278,6 @@ protected:
     std::mutex contextLock_;
     TaskContext currentContext_;
     std::condition_variable contextCv_;
-
     std::mutex syncMutex_;  // Clean Cloud Data and Sync are mutually exclusive
 
     CloudDBProxy cloudDB_;

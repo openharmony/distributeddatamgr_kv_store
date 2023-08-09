@@ -162,6 +162,8 @@ public:
 
     int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) override;
 
+    int SetLogTriggerStatus(bool status) override;
+
     int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) override;
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);

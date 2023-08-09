@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 #include "distributeddb_tools_unit_test.h"
 #include "strategy_factory.h"
+#include "virtual_cloud_syncer.h"
 
 using namespace std;
 using namespace testing::ext;
@@ -275,6 +276,7 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest003, TestSize.Level0)
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo, deletePrimaryKeySet), OpType::UPDATE);
     deletePrimaryKeySet.clear();
 }
+
 /**
  * @tc.name: TagOpTyeTest004
  * @tc.desc: Verify cloud cover local strategy tag operation type function.
@@ -301,5 +303,26 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest004, TestSize.Level0)
     cloudInfo.flag = 0x00;
     localInfo.flag = 0x01;
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo, deletePrimaryKeySet), OpType::INSERT);
+}
+
+/**
+ * @tc.name: TagOpTyeTest005
+ * @tc.desc: Verify same data conflict in local.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest005, TestSize.Level0)
+{
+    auto syncer = new(std::nothrow) VirtualCloudSyncer(nullptr);
+    ASSERT_NE(syncer, nullptr);
+    DataInfoWithLog localInfo;
+    LogInfo cloudInfo;
+    OpType result = OpType::INSERT;
+    EXPECT_EQ(syncer->CallTagStatusByStrategy(true, localInfo, cloudInfo, result), E_OK);
+    EXPECT_EQ(result, OpType::NOT_HANDLE);
+    localInfo.logInfo.device = "dev";
+    EXPECT_EQ(syncer->CallTagStatusByStrategy(true, localInfo, cloudInfo, result), -E_INTERNAL_ERROR);
+    RefObject::KillAndDecObjRef(syncer);
 }
 }

@@ -220,7 +220,6 @@ void StorageEngine::Recycle(StorageExecutor *&handle)
         if (iter != writeUsingList_.end()) {
             writeUsingList_.remove(handle);
             if (writeIdleList_.size() >= 1) {
-                LOGD("[Recycle] delete handle");
                 delete handle;
                 handle = nullptr;
                 return;
@@ -391,7 +390,6 @@ void StorageEngine::CloseExecutor()
         std::lock_guard<std::mutex> lock(writeMutex_);
         for (auto &item : writeIdleList_) {
             if (item != nullptr) {
-                LOGD("[CloseExecutor] delete item");
                 delete item;
                 item = nullptr;
             }
@@ -459,7 +457,7 @@ void StorageEngine::WaitWriteHandleIdle()
     LOGD("Wait wHandle release id[%s]. write[%zu-%zu-%" PRIu32 "]", DBCommon::TransferStringToHex(identifier_).c_str(),
         writeIdleList_.size(), writeUsingList_.size(), engineAttr_.maxWriteNum);
     idleCondition_.wait(autoLock, [this]() {
-        return writeUsingList_.size() == 0;
+        return writeUsingList_.empty();
     });
     LOGD("Wait wHandle release finish id[%s]. write[%zu-%zu-%" PRIu32 "]",
         DBCommon::TransferStringToHex(identifier_).c_str(), writeIdleList_.size(), writeUsingList_.size(),

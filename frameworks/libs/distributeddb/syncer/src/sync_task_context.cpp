@@ -32,8 +32,8 @@ std::mutex SyncTaskContext::synTaskContextSetLock_;
 std::set<ISyncTaskContext *> SyncTaskContext::synTaskContextSet_;
 
 namespace {
-    const int NEGOTIATION_LIMIT = 2;
-    const uint32_t SESSION_ID_MAX_VALUE = 0x8fffffffu;
+    constexpr int NEGOTIATION_LIMIT = 2;
+    constexpr uint32_t SESSION_ID_MAX_VALUE = 0x8fffffffu;
 }
 
 SyncTaskContext::SyncTaskContext()
@@ -808,10 +808,7 @@ SyncOperation *SyncTaskContext::GetAndIncSyncOperation() const
 
 uint32_t SyncTaskContext::GenerateRequestSessionId()
 {
-    uint32_t sessionId = 0u;
-    if (lastRequestSessionId_ != 0) {
-        sessionId = lastRequestSessionId_ + 1;
-    }
+    uint32_t sessionId = lastRequestSessionId_ != 0 ? lastRequestSessionId_ + 1 : 0;
     // make sure sessionId is between 0x01 and 0x8fffffff
     if (sessionId > SESSION_ID_MAX_VALUE || sessionId == 0) {
         sessionId = Hash::Hash32Func(deviceId_ + std::to_string(syncId_) +

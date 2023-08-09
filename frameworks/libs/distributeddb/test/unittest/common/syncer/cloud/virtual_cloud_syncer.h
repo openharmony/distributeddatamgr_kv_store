@@ -35,6 +35,9 @@ public:
     size_t GetQueueCount();
 
     void SetCurrentTaskInfo(const SyncProcessCallback &callback, CloudSyncer::TaskId taskId);
+
+    int CallTagStatusByStrategy(bool isExist, const DataInfoWithLog &localInfo, const LogInfo &cloudInfo,
+        OpType &strategyOpResult);
 private:
     std::function<int (void)> downloadFunc_;
     std::atomic<bool> doDownload_;

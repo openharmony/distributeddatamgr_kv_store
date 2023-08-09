@@ -111,6 +111,8 @@ public:
 
     int FillCloudAssetForUpload(const std::string &tableName, const CloudSyncBatch &data);
 
+    int SetLogTriggerStatus(bool status);
+
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -159,8 +161,6 @@ private:
         Timestamp &queryTime);
     int GetMissQueryDataAndStepNext(sqlite3_stmt *fullStmt, DataItem &item, Timestamp &missQueryTime);
 
-    int SetLogTriggerStatus(bool status);
-
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const TableInfo &table,
@@ -187,8 +187,6 @@ private:
 
     int GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
         std::vector<Field> &assetFields, std::string &querySql);
-
-    int GetQueryLogRowid(const std::string &tableName, const VBucket &vBucket, int64_t &rowId);
 
     int GetFillDownloadAssetStatement(const std::string &tableName, const VBucket &vBucket,
         const std::vector<Field> &fields, sqlite3_stmt *&statement);

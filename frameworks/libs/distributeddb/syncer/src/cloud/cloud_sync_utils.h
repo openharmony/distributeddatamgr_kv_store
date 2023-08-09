@@ -25,14 +25,22 @@ int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNa
 
 ChangeType OpTypeToChangeType(OpType strategy);
 
-bool IsCompositeKey(const std::vector<std::string> &pKColNames);
-
-bool IsNoPrimaryKey(const std::vector<std::string> &pKColNames);
-
 bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames);
 
-int GetSinglePk(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey, Type &pkVal);
-
 void RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &pkColNames);
+
+AssetOpType StatusToFlag(AssetStatus status);
+
+void StatusToFlagForAsset(Asset &asset);
+
+void StatusToFlagForAssets(Assets &assets);
+
+void StatusToFlagForAssetsInRecord(const std::vector<Field> &fields, VBucket &record);
+
+bool IsChngDataEmpty(const ChangedData &changedData);
+
+bool EqualInMsLevel(const Timestamp cmp, const Timestamp beCmp);
+
+bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo);
 }
 #endif // CLOUD_SYNC_UTILS_H

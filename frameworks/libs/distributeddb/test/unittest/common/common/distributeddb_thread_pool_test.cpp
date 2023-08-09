@@ -433,4 +433,47 @@ HWTEST_F(DistributedDBThreadPoolTest, SetTimer006, TestSize.Level1)
     }
     watcher->SafeExit();
 }
+
+/**
+ * @tc.name: TaskPool001
+ * @tc.desc: Test TaskPool schedule task
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
+{
+    RuntimeContext::GetInstance()->SetThreadPool(nullptr);
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([]() {
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s
+        LOGD("exec task ok");
+    });
+    EXPECT_EQ(errCode, E_OK);
+    int finishedTaskCount = 0;
+    constexpr int execTaskCount = 2;
+    for (int i = 0; i < execTaskCount; ++i) {
+        errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask("TaskPool",
+            [i, &finishedTaskCount, &dataMutex, &cv]() {
+            LOGD("exec task %d", i);
+            {
+                std::lock_guard<std::mutex> autoLock(dataMutex);
+                finishedTaskCount++;
+            }
+            cv.notify_one();
+        });
+        EXPECT_EQ(errCode, E_OK);
+        std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s
+    }
+    {
+        std::unique_lock<std::mutex> uniqueLock(dataMutex);
+        LOGD("begin wait all task finished");
+        cv.wait(uniqueLock, [&finishedTaskCount]() {
+            return finishedTaskCount == execTaskCount;
+        });
+        LOGD("end wait all task finished");
+    }
+    RuntimeContext::GetInstance()->StopTaskPool();
+}
 }

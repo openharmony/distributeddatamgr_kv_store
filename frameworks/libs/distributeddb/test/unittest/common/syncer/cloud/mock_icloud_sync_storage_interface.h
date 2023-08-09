@@ -41,6 +41,7 @@ public:
     MOCK_METHOD4(CleanCloudData, int(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));
     MOCK_METHOD3(FillCloudAssetForDownload, int(const std::string &, VBucket &, bool));
+    MOCK_METHOD1(SetLogTriggerStatus, int(bool));
     MOCK_METHOD2(FillCloudGidAndAsset, int(OpType, const CloudSyncData &));
     MOCK_CONST_METHOD0(GetIdentify, std::string());
 };

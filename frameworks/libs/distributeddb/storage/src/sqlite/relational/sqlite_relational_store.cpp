@@ -447,6 +447,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     }
     return errCode;
 }
+
 int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
 {
     if (cloudSyncer_ == nullptr) {
@@ -455,6 +456,7 @@ int32_t SQLiteRelationalStore::GetCloudSyncTaskCount()
     }
     return cloudSyncer_->GetCloudSyncTaskCount();
 }
+
 int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
 {
     auto tableMode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(

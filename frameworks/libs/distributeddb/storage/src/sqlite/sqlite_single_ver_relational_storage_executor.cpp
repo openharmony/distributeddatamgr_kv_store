@@ -43,6 +43,11 @@ static constexpr const char* SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit o
 static constexpr const int SET_FLAG_ZERO_MASK = 0x03; // clear 2th bit of flag
 static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag
 static constexpr const int SET_CLOUD_FLAG = 0x05; // set 1th bit of flag to 0
+static constexpr const int DATA_KEY_INDEX = 0;
+static constexpr const int TIMESTAMP_INDEX = 3;
+static constexpr const int W_TIMESTAMP_INDEX = 4;
+static constexpr const int FLAG_INDEX = 5;
+static constexpr const int CLOUD_GID_INDEX = 7;
 
 int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, const char *f)
 {
@@ -499,13 +504,13 @@ namespace {
 void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSize)
 {
     logInfo.insert_or_assign(CloudDbConstant::MODIFY_FIELD,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 3))); // 3 means timestamp index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
     logInfo.insert_or_assign(CloudDbConstant::CREATE_FIELD,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 4))); // 4 means w_timestamp index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, W_TIMESTAMP_INDEX)));
     totalSize += sizeof(int64_t) + sizeof(int64_t);
-    if (sqlite3_column_text(logStatement, 7) != nullptr) { // 7 means cloudGid index
+    if (sqlite3_column_text(logStatement, CLOUD_GID_INDEX) != nullptr) {
         std::string cloudGid = reinterpret_cast<const std::string::value_type *>(
-            sqlite3_column_text(logStatement, 7)); // 7 means cloudGid index
+            sqlite3_column_text(logStatement, CLOUD_GID_INDEX));
         if (!cloudGid.empty()) {
             logInfo.insert_or_assign(CloudDbConstant::GID_FIELD, cloudGid);
             totalSize += cloudGid.size();
@@ -516,11 +521,11 @@ void GetCloudLog(sqlite3_stmt *logStatement, VBucket &logInfo, uint32_t &totalSi
 void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
 {
     flags.insert_or_assign(ROWID,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 0))); // 0 means data_key index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, DATA_KEY_INDEX)));
     flags.insert_or_assign(TIMESTAMP,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 3))); // 3 means timestamp index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, TIMESTAMP_INDEX)));
     flags.insert_or_assign(FLAG,
-        static_cast<int64_t>(sqlite3_column_int64(logStatement, 5))); // 5 means flag index
+        static_cast<int64_t>(sqlite3_column_int64(logStatement, FLAG_INDEX)));
 }
 
 int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
@@ -1503,8 +1508,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUploadCount(const std::string &
         LOGE("Failed to get the count to be uploaded. %d", errCode);
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
-    LOGW("upload count is %d, isCloudForcePush is %d", count, isCloudForcePush);
-
+    LOGD("upload count is %d, isCloudForcePush is %d", count, isCloudForcePush);
     return errCode;
 }
 
@@ -1583,6 +1587,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         isStepNext = true;
         errCode = GetCloudDataForSync(queryStmt, cloudDataResult, stepNum++, totalSize, maxSize);
     } while (errCode == E_OK);
+    LOGD("Get cloud sync data, insData:%u, upData:%u, delLog:%u", cloudDataResult.insData.record.size(),
+        cloudDataResult.updData.record.size(), cloudDataResult.delData.extend.size());
     if (errCode != -E_UNFINISHED) {
         (void)token.ReleaseCloudStatement();
     }
@@ -2094,8 +2100,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::s
     int ret = E_OK;
     sqlite3_stmt *selectStmt = nullptr;
     for (const auto &rowId : dataKeys) {
-        std::string queryAssetsSql = "SELECT " + fieldName + " FROM " + tableName +
-            " WHERE " + ROWID + " = " + std::to_string(rowId) + ";";
+        std::string queryAssetsSql = "SELECT " + fieldName + " FROM '" + tableName +
+            "' WHERE " + ROWID + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetsSql, selectStmt);
         if (errCode != E_OK) {
             LOGE("Get select assets statement failed, %d", errCode);
@@ -2641,7 +2647,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
     deleteSql += GetWhereConditionForDataTable(gidStr, pkSet, tableSchema.name, queryByPk);
     errCode = SQLiteUtils::GetStatement(dbHandle_, deleteSql, deleteStmt);
     if (errCode != E_OK) {
-        LOGE("Get delete statement failed when delete data, %d, deleteSql = %s", errCode, deleteSql.c_str());
+        LOGE("Get delete statement failed when delete data, %d", errCode);
         return errCode;
     }
 

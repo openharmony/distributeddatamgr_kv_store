@@ -1118,30 +1118,34 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
     if (storageEngine_ == nullptr) {
         return -E_INVALID_DB;
     }
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started when fill asset for download.");
+        return -E_INVALID_DB;
+    }
     TableSchema tableSchema;
     int errCode = GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
         LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
         return errCode;
     }
-    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
-    if (writeHandle == nullptr) {
-        return errCode;
-    }
-    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
+    errCode = transactionHandle_->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
     if (errCode != E_OK) {
-        ReleaseHandle(writeHandle);
+        LOGE("fill cloud asset for download failed.%d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::SetLogTriggerStatus(bool status)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandleExpectTransaction(false, errCode);
+    if (handle == nullptr) {
         return errCode;
     }
-    errCode = writeHandle->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
-    if (errCode != E_OK) {
-        writeHandle->Rollback();
-        ReleaseHandle(writeHandle);
-        return errCode;
+    errCode = handle->SetLogTriggerStatus(status);
+    if (transactionHandle_ == nullptr) {
+        ReleaseHandle(handle);
     }
-    errCode = writeHandle->Commit();
-    ReleaseHandle(writeHandle);
     return errCode;
 }
 
