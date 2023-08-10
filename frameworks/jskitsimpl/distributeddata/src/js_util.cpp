@@ -1140,7 +1140,7 @@ napi_status JSUtil::GetValue(napi_env env, napi_value in, ContextParam &param)
     napi_value hapInfo = nullptr;
     GetNamedProperty(env, in, "currentHapModuleInfo", hapInfo);
     if (hapInfo != nullptr) {
-        status = GetNamedProperty(env, hapInfo, "moduleName", param.hapName);
+        status = GetNamedProperty(env, hapInfo, "name", param.hapName);
         CHECK_RETURN(status == napi_ok, "get hap name failed", napi_invalid_arg);
     }
     return napi_ok;
