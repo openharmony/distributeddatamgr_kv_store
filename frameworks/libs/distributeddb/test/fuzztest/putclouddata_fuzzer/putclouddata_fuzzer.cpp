@@ -139,49 +139,9 @@ void SetCloudSchema(PrimaryKeyType pkType, bool nullable)
     g_cloudStore->SetCloudDbSchema(dbSchema);
 }
 
-int PrepareDataBase(const std::string &tableName, PrimaryKeyType pkType, bool nullable = true)
+int InsertData(const std::string &tableName, sqlite3 *db, PrimaryKeyType pkType)
 {
-    /**
-     * @tc.steps:step1. create table.
-     * @tc.expected: step1. return ok.
-     */
-    sqlite3 *db = CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
-    if (db == nullptr) {
-        LOGE("create db failed");
-        return -1;
-    }
     std::string sql;
-    if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
-        sql = "create table " + tableName + "(id int primary key, name TEXT, age REAL, sex INTEGER, image BLOB);";
-    } else if (pkType == PrimaryKeyType::NO_PRIMARY_KEY) {
-        sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB);";
-    } else {
-        sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB," \
-            " PRIMARY KEY(id, name))";
-    }
-    if (ExecSql(db, sql) != E_OK) {
-        LOGE("create table failed");
-        return -1;
-    }
-
-    /**
-     * @tc.steps:step2. create distributed table with CLOUD_COOPERATION mode.
-     * @tc.expected: step2. return ok.
-     */
-    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, g_delegate);
-    if (status != OK) {
-        LOGE("OpenStore failed = %d", status);
-        return -1;
-    }
-    if (g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION) != OK) {
-        LOGE("create distributed table failed");
-        return -1;
-    }
-
-    /**
-     * @tc.steps:step3. insert some row.
-     * @tc.expected: step3. return ok.
-     */
     if (pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY) {
         sql = "insert into " + tableName + "(id, name, age)" \
             " values(1, 'zhangsan1', 10.1), (1, 'zhangsan2', 10.1), (2, 'zhangsan1', 10.0), (3, 'zhangsan3', 30),"
@@ -216,6 +176,59 @@ int PrepareDataBase(const std::string &tableName, PrimaryKeyType pkType, bool nu
             sql = "delete from " + tableName + " where id = 7;";
             ExecSql(db, sql);
         }
+    }
+    return 0;
+}
+
+int PrepareDataBase(const std::string &tableName, PrimaryKeyType pkType, bool nullable = true)
+{
+    /**
+     * @tc.steps:step1. create table.
+     * @tc.expected: step1. return ok.
+     */
+    sqlite3 *db = CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    if (db == nullptr) {
+        LOGE("create db failed");
+        return -1;
+    }
+    std::string sql;
+    if (pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY) {
+        sql = "create table " + tableName + "(id int primary key, name TEXT, age REAL, sex INTEGER, image BLOB);";
+    } else if (pkType == PrimaryKeyType::NO_PRIMARY_KEY) {
+        sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB);";
+    } else {
+        sql = "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB," \
+            " PRIMARY KEY(id, name))";
+    }
+    if (ExecSql(db, sql) != E_OK) {
+        LOGE("create table failed");
+        sqlite3_close_v2(db);
+        return -1;
+    }
+
+    /**
+     * @tc.steps:step2. create distributed table with CLOUD_COOPERATION mode.
+     * @tc.expected: step2. return ok.
+     */
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, g_delegate);
+    if (status != OK) {
+        LOGE("OpenStore failed = %d", status);
+        sqlite3_close_v2(db);
+        return -1;
+    }
+    if (g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION) != OK) {
+        LOGE("create distributed table failed");
+        sqlite3_close_v2(db);
+        return -1;
+    }
+
+    /**
+     * @tc.steps:step3. insert some row.
+     * @tc.expected: step3. return ok.
+     */
+    if (InsertData(tableName, db, pkType) != 0) {
+        sqlite3_close_v2(db);
+        return -1;
     }
 
     sqlite3_close_v2(db);
