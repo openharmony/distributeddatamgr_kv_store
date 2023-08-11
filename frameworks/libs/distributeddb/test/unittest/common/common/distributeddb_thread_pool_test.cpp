@@ -446,12 +446,17 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
     RuntimeContext::GetInstance()->SetThreadPool(nullptr);
     std::mutex dataMutex;
     std::condition_variable cv;
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([]() {
+    int finishedTaskCount = 0;
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([&finishedTaskCount, &dataMutex, &cv]() {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s
         LOGD("exec task ok");
+        {
+            std::lock_guard<std::mutex> autoLock(dataMutex);
+            finishedTaskCount++;
+        }
+        cv.notify_one();
     });
     EXPECT_EQ(errCode, E_OK);
-    int finishedTaskCount = 0;
     constexpr int execTaskCount = 2;
     for (int i = 0; i < execTaskCount; ++i) {
         errCode = RuntimeContext::GetInstance()->ScheduleQueuedTask("TaskPool",
@@ -470,7 +475,7 @@ HWTEST_F(DistributedDBThreadPoolTest, TaskPool001, TestSize.Level1)
         std::unique_lock<std::mutex> uniqueLock(dataMutex);
         LOGD("begin wait all task finished");
         cv.wait(uniqueLock, [&finishedTaskCount]() {
-            return finishedTaskCount == execTaskCount;
+            return finishedTaskCount == execTaskCount + 1;
         });
         LOGD("end wait all task finished");
     }

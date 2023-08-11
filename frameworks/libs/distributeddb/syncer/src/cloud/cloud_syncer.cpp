@@ -18,7 +18,7 @@
 #include <utility>
 #include <unordered_map>
 
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "cloud_sync_tag_assets.h"
 #include "cloud_sync_utils.h"
