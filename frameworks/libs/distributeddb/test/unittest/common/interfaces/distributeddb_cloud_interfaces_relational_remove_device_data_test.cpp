@@ -415,7 +415,7 @@ namespace {
         }
     }
 
-    class DistributedDBCloudInterfacesRelationalRemoveTest : public testing::Test {
+    class DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest : public testing::Test {
     public:
         static void SetUpTestCase(void);
         static void TearDownTestCase(void);
@@ -425,7 +425,7 @@ namespace {
         sqlite3 *db = nullptr;
     };
 
-    void DistributedDBCloudInterfacesRelationalRemoveTest::SetUpTestCase(void)
+    void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::SetUpTestCase(void)
     {
         DistributedDBToolsUnitTest::TestDirInit(g_testDir);
         g_storePath = g_testDir + "/" + g_storeID + DB_SUFFIX;
@@ -433,10 +433,10 @@ namespace {
         RuntimeConfig::SetCloudTranslate(std::make_shared<VirtualCloudDataTranslate>());
     }
 
-    void DistributedDBCloudInterfacesRelationalRemoveTest::TearDownTestCase(void)
+    void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::TearDownTestCase(void)
     {}
 
-    void DistributedDBCloudInterfacesRelationalRemoveTest::SetUp(void)
+    void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::SetUp(void)
     {
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
@@ -469,7 +469,7 @@ namespace {
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
     }
 
-    void DistributedDBCloudInterfacesRelationalRemoveTest::TearDown(void)
+    void DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest::TearDown(void)
     {
         EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
@@ -484,7 +484,7 @@ namespace {
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest001, TestSize.Level0)
 {
     int64_t paddingSize = 10;
     int localCount = 10;
@@ -517,7 +517,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest001
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest002, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest002, TestSize.Level0)
 {
     int64_t paddingSize = 10;
     int localCount = 10;
@@ -546,7 +546,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest002
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest003, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest003, TestSize.Level0)
 {
     /**
      * @tc.steps: step1. make data: 10 records on local and 20 records on cloud
@@ -614,7 +614,7 @@ static void InitGetCloudSyncTaskCountTest001(sqlite3 *&db)
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, GetCloudSyncTaskCountTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, GetCloudSyncTaskCountTest001, TestSize.Level0)
 {
     InitGetCloudSyncTaskCountTest001(db);
     Query query = Query::Select().FromTable(g_tables);
@@ -687,7 +687,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, GetCloudSyncTaskCount
  * @tc.require:
  * @tc.author: huangboxin
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveTest, CleanCloudDataTest004, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest004, TestSize.Level0)
 {
     DataBaseSchema dataBaseSchema;
     TableSchema tableSchema1 = {

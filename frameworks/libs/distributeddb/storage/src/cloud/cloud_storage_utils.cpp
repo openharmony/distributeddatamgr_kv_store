@@ -567,13 +567,13 @@ int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBu
         return E_OK; // if vBucket from cloud doesn't contain primary key and allowEmpty, no need to calculate hash
     }
     static std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVecFunc = {
-        {TYPE_INDEX<int64_t>, &CloudStorageUtils::Int64ToVector},
-        {TYPE_INDEX<bool>, &CloudStorageUtils::BoolToVector},
-        {TYPE_INDEX<double>, &CloudStorageUtils::DoubleToVector},
-        {TYPE_INDEX<std::string>, &CloudStorageUtils::TextToVector},
-        {TYPE_INDEX<Bytes>, &CloudStorageUtils::BlobToVector},
-        {TYPE_INDEX<Asset>, &CloudStorageUtils::BlobToVector},
-        {TYPE_INDEX<Assets>, &CloudStorageUtils::BlobToVector},
+        { TYPE_INDEX<int64_t>, &CloudStorageUtils::Int64ToVector },
+        { TYPE_INDEX<bool>, &CloudStorageUtils::BoolToVector },
+        { TYPE_INDEX<double>, &CloudStorageUtils::DoubleToVector },
+        { TYPE_INDEX<std::string>, &CloudStorageUtils::TextToVector },
+        { TYPE_INDEX<Bytes>, &CloudStorageUtils::BlobToVector },
+        { TYPE_INDEX<Asset>, &CloudStorageUtils::BlobToVector },
+        { TYPE_INDEX<Assets>, &CloudStorageUtils::BlobToVector },
     };
     auto it = toVecFunc.find(field.type);
     if (it == toVecFunc.end()) {

@@ -185,21 +185,27 @@ Task TaskPoolImpl::ReapTask(TaskQueue *&queue)
     return nullptr;
 }
 
-int TaskPoolImpl::GetTask(Task &task, TaskQueue *&queue)
+void TaskPoolImpl::GetTask(Task &task, TaskQueue *&queue)
 {
     std::unique_lock<std::mutex> lock(tasksMutex_);
 
     while (true) {
         task = ReapTask(queue);
         if (task != nullptr) {
-            return E_OK;
+            return;
         }
 
         if (IdleExit(lock)) {
             break;
         }
     }
-    return E_OK;
+    if (task == nullptr) {
+        // Idle thread exit.
+        if (IsGenericWorker()) {
+            genericThread_ = std::thread::id();
+        }
+        --curThreads_;
+    }
 }
 
 int TaskPoolImpl::SpawnThreads(bool isStart)
@@ -241,10 +247,6 @@ void TaskPoolImpl::BecomeGenericWorker()
 void TaskPoolImpl::ExitWorker()
 {
     std::lock_guard<std::mutex> guard(tasksMutex_);
-    if (IsGenericWorker()) {
-        genericThread_ = std::thread::id();
-    }
-    --curThreads_;
     allThreadsExited_.notify_all();
     LOGI("Task pool thread exit, cur:%d idle:%d, genericTaskCount:%d, queuedTaskCount:%d.",
         curThreads_, idleThreads_, genericTaskCount_, queuedTaskCount_);
@@ -258,11 +260,7 @@ void TaskPoolImpl::TaskWorker()
         TaskQueue *taskQueue = nullptr;
         Task task = nullptr;
 
-        int errCode = GetTask(task, taskQueue);
-        if (errCode != E_OK) {
-            LOGE("Thread worker gets task failed, err:'%d'.", errCode);
-            break;
-        }
+        GetTask(task, taskQueue);
         if (task == nullptr) {
             // Idle thread exit.
             break;

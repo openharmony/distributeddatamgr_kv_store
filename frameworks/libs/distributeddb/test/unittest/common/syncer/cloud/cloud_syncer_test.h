@@ -226,7 +226,8 @@ public:
     std::map<std::string, Assets> TestTagAssetsInSingleRecord(
         VBucket &coveredData, VBucket &beCoveredData, bool setNormalStatus = false)
     {
-        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus);
+        int ret = E_OK;
+        return TagAssetsInSingleRecord(coveredData, beCoveredData, setNormalStatus, ret);
     }
 
     bool TestIsDataContainDuplicateAsset(std::vector<Field> &assetFields, VBucket &data)

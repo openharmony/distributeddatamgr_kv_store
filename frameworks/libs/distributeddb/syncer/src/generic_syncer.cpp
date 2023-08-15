@@ -34,6 +34,9 @@
 #include "single_ver_serialize_manager.h"
 
 namespace DistributedDB {
+namespace {
+    constexpr uint32_t DEFAULT_MTU_SIZE = 1024u * 1024u; // 1M
+}
 const int GenericSyncer::MIN_VALID_SYNC_ID = 1;
 std::mutex GenericSyncer::moduleInitLock_;
 int GenericSyncer::currentSyncId_ = 0;
@@ -1043,7 +1046,7 @@ int GenericSyncer::GetSyncDataSize(const std::string &device, size_t &size) cons
         metadata = metadata_;
     }
     metadata->GetLocalWaterMark(device, localWaterMark);
-    uint32_t expectedMtuSize = 1024u * 1024u; // 1M
+    uint32_t expectedMtuSize = DEFAULT_MTU_SIZE;
     DataSizeSpecInfo syncDataSizeInfo = {expectedMtuSize, static_cast<size_t>(MAX_TIMESTAMP)};
     std::vector<SendDataItem> outData;
     ContinueToken token = nullptr;

@@ -20,6 +20,9 @@
 #include "db_common.h"
 
 namespace DistributedDB {
+static constexpr const int ROW_ID_INDEX = 1;
+static constexpr const int TIMESTAMP_INDEX = 2;
+
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
     std::set<std::string> &pkSet, std::vector<Field> &assetFields, std::string &querySql)
 {
@@ -55,42 +58,6 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     return E_OK;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogRowid(const std::string &tableName,
-    const VBucket &vBucket, int64_t &rowId)
-{
-    std::string cloudGid;
-    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
-    if (errCode != E_OK) {
-        LOGE("Miss gid when fill Asset");
-        return errCode;
-    }
-    std::string sql = "SELECT data_key FROM " + DBCommon::GetLogTableName(tableName) + " where cloud_gid = ?;";
-    sqlite3_stmt *stmt = nullptr;
-    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
-    if (errCode != E_OK) {
-        LOGE("Get select rowid statement failed, %d", errCode);
-        return errCode;
-    }
-
-    int index = 1;
-    errCode = SQLiteUtils::BindTextToStatement(stmt, index, cloudGid);
-    if (errCode != E_OK) {
-        LOGE("Bind cloud gid to query log rowid statement failed. %d", errCode);
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        LOGE("Not find rowid from log by cloud gid. %d", errCode);
-        errCode = -E_NOT_FOUND;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        rowId = static_cast<int64_t>(sqlite3_column_int64(stmt, 0));
-        errCode = E_OK;
-    }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
-}
-
 int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(const std::string &tableName,
     const VBucket &vBucket, const std::vector<Field> &fields, sqlite3_stmt *&statement)
 {
@@ -99,7 +66,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
         sql += field.colName + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE rowid = ?;";
+    sql += " WHERE rowid = (";
+    sql += "SELECT data_key FROM " + DBCommon::GetLogTableName(tableName) + " where cloud_gid = ?);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
     if (errCode != E_OK) {
@@ -120,25 +88,21 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const TableSchema &tableSchema,
     VBucket &vBucket, bool isDownloadSuccess)
 {
-    sqlite3_stmt *stmt = nullptr;
-    int errCode = SetLogTriggerStatus(false);
+    std::string cloudGid;
+    int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
     if (errCode != E_OK) {
-        LOGE("Fail to set log trigger off, %d", errCode);
+        LOGE("Miss gid when fill Asset");
         return errCode;
     }
+    sqlite3_stmt *stmt = nullptr;
     std::vector<Field> assetsField;
     errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
     if (errCode != E_OK) {
         LOGE("No assets need to be filled.");
-        goto END;
+        return errCode;
     }
     CloudStorageUtils::ChangeAssetsOnVBucketToAsset(vBucket, assetsField);
 
-    int64_t rowId;
-    errCode = GetQueryLogRowid(tableSchema.name, vBucket, rowId);
-    if (errCode != E_OK) {
-        goto END;
-    }
     if (isDownloadSuccess) {
         CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetAfterDownload,
             CloudStorageUtils::FillAssetsAfterDownload);
@@ -147,12 +111,14 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     }
     errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
     if (errCode != E_OK) {
-        goto END;
+        return errCode;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(stmt, assetsField.size() + 1, rowId);
+    errCode = SQLiteUtils::BindTextToStatement(stmt, assetsField.size() + 1, cloudGid);
     if (errCode != E_OK) {
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
-        goto END;
+        LOGE("Bind cloud gid to statement failed. %d", errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        return errCode;
     }
     errCode = SQLiteUtils::StepWithRetry(stmt);
     if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
@@ -160,14 +126,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     } else {
         LOGE("Fill cloud asset failed:%d", errCode);
     }
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-
-END:
-    errCode = SetLogTriggerStatus(true);
-    if (errCode != E_OK) {
-        LOGE("Fail to set log trigger off, %d", errCode);
-    }
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const std::string &tableName,
@@ -243,12 +204,12 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const
         }
     }
     int64_t rowid = data.rowid[index];
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 1, rowid);
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + ROW_ID_INDEX, rowid);
     if (errCode != E_OK) {
         return errCode;
     }
     int64_t timeStamp = data.timestamp[index];
-    return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + 2, timeStamp); // 2 is index;
+    return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + TIMESTAMP_INDEX, timeStamp);
 }
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize,

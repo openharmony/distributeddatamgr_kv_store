@@ -37,7 +37,7 @@ struct ChangedData {
     std::string tableName;
     ChangedDataType type;
     // CLOUD_COOPERATION mode, primaryData store primary keys
-    // primayData store row id if have no data
+    // primaryData store row id if have no data
     std::vector<std::vector<Type>> primaryData[OP_BUTT];
     std::vector<std::string> field;
 };

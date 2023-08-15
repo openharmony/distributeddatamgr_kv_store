@@ -30,6 +30,9 @@ namespace {
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int BUSY_TIMEOUT = 2000;  // 2s.
+const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+const std::string DEVICE_TYPE = "device";
+const std::string SYNC_TABLE_TYPE = "sync_table_type_";
 class ValueHashCalc {
 public:
     ValueHashCalc() {};
@@ -405,18 +408,101 @@ int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
     return E_OK;
 }
 
+int GetColumnBlobValue(sqlite3_stmt *stmt, int index, std::vector<uint8_t> &value)
+{
+    if (stmt == nullptr) {
+        return -E_ERROR;
+    }
+
+    int keySize = sqlite3_column_bytes(stmt, index);
+    if (keySize < 0) {
+        value.resize(0);
+        return E_OK;
+    }
+    auto keyRead = static_cast<const uint8_t *>(sqlite3_column_blob(stmt, index));
+    if (keySize == 0 || keyRead == nullptr) {
+        value.resize(0);
+    } else {
+        if (keySize > MAX_BLOB_READ_SIZE) {
+            keySize = MAX_BLOB_READ_SIZE + 1;
+        }
+        value.resize(keySize);
+        value.assign(keyRead, keyRead + keySize);
+    }
+    return E_OK;
+}
+
+int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tableType)
+{
+    const char *selectSql = "SELECT value FROM naturalbase_rdb_aux_metadata WHERE key=?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = sqlite3_prepare_v2(db, selectSql, -1, &statement, nullptr);
+    if (errCode != SQLITE_OK) {
+        (void)sqlite3_finalize(statement);
+        return -E_ERROR;
+    }
+
+    std::string keyStr = SYNC_TABLE_TYPE + tableName;
+    std::vector<uint8_t> key(keyStr.begin(), keyStr.end());
+    if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
+        SQLITE_TRANSIENT) != SQLITE_OK) {
+        return -E_ERROR;
+    }
+
+    if (sqlite3_step(statement) == SQLITE_ROW) {
+        std::vector<uint8_t> value;
+        if (GetColumnBlobValue(statement, 0, value) == E_OK) {
+            tableType.assign(value.begin(), value.end());
+            (void)sqlite3_finalize(statement);
+            return E_OK;
+        } else {
+            (void)sqlite3_finalize(statement);
+            return -E_ERROR;
+        }
+    } else if (sqlite3_step(statement) != SQLITE_DONE) {
+        (void)sqlite3_finalize(statement);
+        return -E_ERROR;
+    }
+    (void)sqlite3_finalize(statement);
+    tableType = DEVICE_TYPE;
+    return E_OK;
+}
+
+void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
+{
+    std::string logTblName = "naturalbase_rdb_aux_" + tableName + "_log";
+    std::string sql = "UPDATE " + logTblName + " SET data_key=-1, flag=0x03, timestamp=get_raw_sys_time();";
+    (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    std::string keyStr = SYNC_TABLE_TYPE + tableName;
+    std::vector<uint8_t> key(keyStr.begin(), keyStr.end());
+    sql = "delete from naturalbase_rdb_aux_metadata where key = ?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
+    if (errCode != SQLITE_OK) {
+        (void)sqlite3_finalize(statement);
+        return;
+    }
+
+    if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
+        SQLITE_TRANSIENT) != SQLITE_OK) {
+        return;
+    }
+    (void)sqlite3_step(statement);
+    (void)sqlite3_finalize(statement);
+}
+
 void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *schemaName)
 {
     if (db == nullptr || tableName == nullptr || schemaName == nullptr) {
         return;
     }
     sqlite3_stmt *stmt = nullptr;
-    std::string logTblName = "naturalbase_rdb_aux_" + std::string(tableName) + "_log";
+    std::string tableStr = std::string(tableName);
+    std::string logTblName = "naturalbase_rdb_aux_" + tableStr + "_log";
     Timestamp dropTimeStamp = TimeHelper::GetTime(0);
     std::string sql = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='" + logTblName + "';";
     if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         (void)sqlite3_finalize(stmt);
-        sqlite3_close(db);
         return;
     }
 
@@ -428,13 +514,20 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
     stmt = nullptr;
 
     if (isLogTblExists) {
-        RegisterGetSysTime(db);
-        RegisterGetLastTime(db);
-        sql = "UPDATE " + logTblName + " SET flag=0x03, timestamp=get_sys_time(0) "
+        std::string tableType = DEVICE_TYPE;
+        if (GetTableSyncType(db, tableStr, tableType) != E_OK) {
+            return;
+        }
+        if (tableType == DEVICE_TYPE) {
+            RegisterGetSysTime(db);
+            RegisterGetLastTime(db);
+            sql = "UPDATE " + logTblName + " SET flag=0x03, timestamp=get_sys_time(0) "
                 "WHERE flag&0x03=0x02 AND timestamp<" + std::to_string(dropTimeStamp);
-        (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+            (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+        } else {
+            HandleDropCloudSyncTable(db, tableStr);
+        }
     }
-    return;
 }
 
 void PostHandle(sqlite3 *db)

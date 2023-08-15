@@ -15,6 +15,8 @@
 
 #include "cloudsync_fuzzer.h"
 #include "cloud_db_types.h"
+#include "cloud_db_constant.h"
+#include "time_helper.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"
 #include "log_print.h"
@@ -37,11 +39,24 @@ static const char *g_table = "worker1";
 static const char *g_createLocalTableSql =
     "CREATE TABLE IF NOT EXISTS worker1(" \
     "name TEXT PRIMARY KEY," \
-    "height REAL ," \
-    "married BOOLEAN ," \
+    "height REAL DEFAULT 123.4," \
+    "married BOOLEAN DEFAULT false," \
     "photo BLOB NOT NULL," \
-    "assert BLOB," \
-    "age INT);";
+    "assert BLOB DEFAULT NULL," \
+    "asserts BLOB DEFAULT NULL," \
+    "age INT DEFAULT 1);";
+static const char *g_insertLocalDataSql =
+    "INSERT OR REPLACE INTO worker1(name, photo) VALUES(?, ?);";
+static const char *g_insertLocalAssetSql =
+    "INSERT OR REPLACE INTO worker1(name, photo, assert, asserts) VALUES(?, ?, ?, ?);";
+static const Asset g_localAsset = {
+    .version = 1, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/local/sync",
+    .modifyTime = "123456", .createTime = "", .size = "256", .hash = "ASE"
+};
+static const Asset g_cloudAsset = {
+    .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
+    .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
+};
 class CloudSyncContext {
 public:
     void FinishAndNotify()
@@ -92,7 +107,7 @@ public:
         const std::vector<Field> cloudFiled = {
             {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
             {"married", TYPE_INDEX<bool>}, {"photo", TYPE_INDEX<Bytes>, false, false},
-            {"assert", TYPE_INDEX<Asset>}, {"age", TYPE_INDEX<int64_t>}
+            {"assert", TYPE_INDEX<Asset>},  {"asserts", TYPE_INDEX<Assets>}, {"age", TYPE_INDEX<int64_t>}
         };
         TableSchema tableSchema = {
             .name = g_table,
@@ -101,6 +116,117 @@ public:
         dataBaseSchema.tables.push_back(tableSchema);
         delegate->SetCloudDbSchema(dataBaseSchema);
         delegate->CreateDistributedTable(g_table, CLOUD_COOPERATION);
+    }
+
+    static void InitDbData(sqlite3 *&db, const uint8_t *data, size_t size)
+    {
+        sqlite3_stmt *stmt = nullptr;
+        int errCode = SQLiteUtils::GetStatement(db, g_insertLocalDataSql, stmt);
+        if (errCode != E_OK) {
+            return;
+        }
+        FuzzerData fuzzerData(data, size);
+        uint32_t len = fuzzerData.GetUInt32();
+        for (size_t i = 0; i <= size; ++i) {
+            std::string idStr = fuzzerData.GetString(len);
+            errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
+            if (errCode != E_OK) {
+                break;
+            }
+            std::vector<uint8_t> photo = fuzzerData.GetSequence(fuzzerData.GetInt());
+            errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, photo); // 2 is index of photo
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = SQLiteUtils::StepWithRetry(stmt);
+            if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+                break;
+            }
+            SQLiteUtils::ResetStatement(stmt, false, errCode);
+        }
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    static Asset GenAsset(std::string name, std::string hash)
+    {
+        Asset asset;
+        asset.name = name;
+        asset.hash = hash;
+        return asset;
+    }
+
+    void InitDbAsset(const uint8_t* data, size_t size)
+    {
+        sqlite3_stmt *stmt = nullptr;
+        int errCode = SQLiteUtils::GetStatement(db_, g_insertLocalAssetSql, stmt);
+        if (errCode != E_OK) {
+            return;
+        }
+        FuzzerData fuzzerData(data, size);
+        uint32_t len = fuzzerData.GetUInt32();
+        for (size_t i = 0; i <= size; ++i) {
+            std::string idStr = fuzzerData.GetString(len);
+            errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
+            if (errCode != E_OK) {
+                break;
+            }
+            std::vector<uint8_t> photo = fuzzerData.GetSequence(fuzzerData.GetInt());
+            errCode = SQLiteUtils::BindBlobToStatement(stmt, 2, photo); // 2 is index of photo
+            if (errCode != E_OK) {
+                break;
+            }
+            std::vector<uint8_t> assetBlob;
+            RuntimeContext::GetInstance()->AssetToBlob(localAssets_[i % size], assetBlob);
+            errCode = SQLiteUtils::BindBlobToStatement(stmt, 3, assetBlob); // 3 is index of assert
+            if (errCode != E_OK) {
+                break;
+            }
+            std::vector<uint8_t> assetsBlob;
+            std::vector<Asset> assetVec(localAssets_.begin() + (i % size), localAssets_.end());
+            RuntimeContext::GetInstance()->AssetsToBlob(assetVec, assetBlob);
+            errCode = SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob); // 4 is index of asserts
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = SQLiteUtils::StepWithRetry(stmt);
+            if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+                break;
+            }
+            SQLiteUtils::ResetStatement(stmt, false, errCode);
+        }
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull)
+    {
+        std::vector<uint8_t> photo(photoSize, 'v');
+        std::vector<VBucket> record1;
+        std::vector<VBucket> extend1;
+        double randomHeight = 166.0; // 166.0 is random double value
+        int64_t randomAge = 13L; // 13 is random int64_t value
+        Timestamp now = TimeHelper::GetSysCurrentTime();
+        for (int64_t i = begin; i < begin + count; ++i) {
+            VBucket data;
+            data.insert_or_assign("name", "Cloud" + std::to_string(i));
+            data.insert_or_assign("height", randomHeight);
+            data.insert_or_assign("married", false);
+            data.insert_or_assign("photo", photo);
+            data.insert_or_assign("age", randomAge);
+            Asset asset = g_cloudAsset;
+            asset.name = asset.name + std::to_string(i);
+            assetIsNull ? data.insert_or_assign("assert", Nil()) : data.insert_or_assign("assert", asset);
+            record1.push_back(data);
+            VBucket log;
+            log.insert_or_assign(CloudDbConstant::CREATE_FIELD,
+                static_cast<int64_t>(now / CloudDbConstant::TEN_THOUSAND + i));
+            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD,
+                static_cast<int64_t>(now / CloudDbConstant::TEN_THOUSAND + i));
+            log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+            extend1.push_back(log);
+        }
+        virtualCloudDb_->BatchInsert(g_table, std::move(record1), extend1);
+        LOGD("insert cloud record worker1[primary key]:[cloud%" PRId64 " - cloud%" PRId64 ")", begin, count);
+        std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
     void SetUp()
@@ -177,6 +303,56 @@ public:
         LOGI("[RandomModeSync] select mode %d", static_cast<int>(mode));
         BlockSync(mode);
     }
+
+    void DataChangeSync(const uint8_t* data, size_t size)
+    {
+        SetCloudDbSchema(delegate_);
+        if (size == 0) {
+            return;
+        }
+        InitDbData(db_, data, size);
+        BlockSync();
+    }
+
+    void InitAssets(const uint8_t* data, size_t size)
+    {
+        FuzzerData fuzzerData(data, size);
+        uint32_t len = fuzzerData.GetUInt32();
+        for (size_t i = 0; i <= size; ++i) {
+            std::string nameStr = fuzzerData.GetString(len);
+            localAssets_.push_back(GenAsset(nameStr, std::to_string(data[0])));
+        }
+    }
+
+    void AssetChangeSync(const uint8_t* data, size_t size)
+    {
+        SetCloudDbSchema(delegate_);
+        if (size == 0) {
+            return;
+        }
+        InitAssets(data, size);
+        InitDbAsset(data, size);
+        BlockSync();
+    }
+
+    void RandomModeRemoveDeviceData(const uint8_t* data, size_t size)
+    {
+        if (size == 0) {
+            return;
+        }
+        SetCloudDbSchema(delegate_);
+        int64_t cloudCount = 10;
+        int64_t paddingSize = 10;
+        InsertCloudTableRecord(0, cloudCount, paddingSize, false);
+        BlockSync();
+        auto mode = static_cast<ClearMode>(data[0]);
+        LOGI("[RandomModeRemoveDeviceData] select mode %d", static_cast<int>(mode));
+        if (mode == DEFAULT) {
+            return;
+        }
+        std::string device = "";
+        delegate_->RemoveDeviceData(device, mode);
+    }
 private:
     std::string testDir_;
     std::string storePath_;
@@ -185,6 +361,7 @@ private:
     std::shared_ptr<VirtualCloudDb> virtualCloudDb_;
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_;
     std::shared_ptr<RelationalStoreManager> mgr_;
+    Assets localAssets_;
 };
 CloudSyncTest *g_cloudSyncTest = nullptr;
 
@@ -215,6 +392,9 @@ void CombineTest(const uint8_t* data, size_t size)
     }
     g_cloudSyncTest->NormalSync();
     g_cloudSyncTest->RandomModeSync(data, size);
+    g_cloudSyncTest->DataChangeSync(data, size);
+    g_cloudSyncTest->AssetChangeSync(data, size);
+    g_cloudSyncTest->RandomModeRemoveDeviceData(data, size);
 }
 }
 

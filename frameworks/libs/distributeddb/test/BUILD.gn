@@ -247,8 +247,10 @@ ohos_source_set("src_file") {
     "../syncer/src/cloud/cloud_force_pull_strategy.cpp",
     "../syncer/src/cloud/cloud_force_push_strategy.cpp",
     "../syncer/src/cloud/cloud_merge_strategy.cpp",
+    "../syncer/src/cloud/cloud_sync_tag_assets.cpp",
     "../syncer/src/cloud/cloud_sync_utils.cpp",
     "../syncer/src/cloud/cloud_syncer.cpp",
+    "../syncer/src/cloud/process_notifier.cpp",
     "../syncer/src/cloud/strategy_factory.cpp",
     "../syncer/src/commit_history_sync.cpp",
     "../syncer/src/communicator_proxy.cpp",
@@ -859,6 +861,12 @@ distributeddb_unittest(
   sources = [ "unittest/common/interfaces/distributeddb_cloud_interfaces_relational_remove_device_data_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudCheckSyncTest") {
+  sources = [
+    "unittest/common/storage/cloud/distributeddb_cloud_check_sync_test.cpp",
+  ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -868,6 +876,7 @@ group("unittest") {
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
     ":DistributedDBCloudAssetCompareTest",
+    ":DistributedDBCloudCheckSyncTest",
     ":DistributedDBCloudDBProxyTest",
     ":DistributedDBCloudInterfacesRelationalExtTest",
     ":DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest",
@@ -983,6 +992,7 @@ group("distributeddatamgr_fuzztest") {
     "fuzztest/relationalstoredelegate_fuzzer:fuzztest",
     "fuzztest/relationalstoremanager_fuzzer:fuzztest",
     "fuzztest/schemadelegate_fuzzer:fuzztest",
+    "fuzztest/storage_fuzzer:fuzztest",
     "fuzztest/sync_fuzzer:fuzztest",
   ]
 }

@@ -239,14 +239,15 @@ void CommunicatorLinker::SuspendByOnceTimer(const std::function<void(void)> &inA
         inAction();
         return -E_END_TIMER;
     }, nullptr, thisTimerId);
-    if (errCode != E_OK) {
-        std::thread timerThread([inAction, inCountDown]() {
-            // Note: inAction and inCountDown should be captured by value (must not by reference)
-            std::this_thread::sleep_for(std::chrono::milliseconds(inCountDown));
-            inAction();
-        });
-        timerThread.detach();
+    if (errCode == E_OK) {
+        return;
     }
+    std::thread timerThread([inAction, inCountDown]() {
+        // Note: inAction and inCountDown should be captured by value (must not by reference)
+        std::this_thread::sleep_for(std::chrono::milliseconds(inCountDown));
+        inAction();
+    });
+    timerThread.detach();
 }
 
 // This function should be called under protection of entireInfoMutex_

@@ -205,7 +205,12 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
         return -E_TRANSACT_STATE;
     }
 
-    return store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
+    int errCode = store_->GetInfoByPrimaryKeyOrGid(tableName, vBucket, dataInfoWithLog, assetInfo);
+    if (errCode == E_OK) {
+        dataInfoWithLog.logInfo.timestamp = EraseNanoTime(dataInfoWithLog.logInfo.timestamp);
+        dataInfoWithLog.logInfo.wTimestamp = EraseNanoTime(dataInfoWithLog.logInfo.wTimestamp);
+    }
+    return errCode;
 }
 
 int StorageProxy::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
@@ -295,8 +300,8 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
             assetFields.push_back(field);
         }
     }
-    if (colNames.empty()) {
-        colNames.push_back(CloudDbConstant::ROW_ID_FIELD_NAME);
+    if (colNames.empty() || colNames.size() > 1) {
+        (void)colNames.insert(colNames.begin(), CloudDbConstant::ROW_ID_FIELD_NAME);
     }
     return E_OK;
 }
@@ -317,7 +322,20 @@ int StorageProxy::FillCloudAssetForDownload(const std::string &tableName, VBucke
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
+    if (!transactionExeFlag_.load() || !isWrite_.load()) {
+        LOGE("the write transaction has not started before fill download assets");
+        return -E_TRANSACT_STATE;
+    }
     return store_->FillCloudAssetForDownload(tableName, asset, isDownloadSuccess);
+}
+
+int StorageProxy::SetLogTriggerStatus(bool status)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->SetLogTriggerStatus(status);
 }
 
 int StorageProxy::FillCloudGidAndAsset(OpType opType, const CloudSyncData &data)
@@ -341,5 +359,10 @@ std::string StorageProxy::GetIdentify() const
         return "";
     }
     return store_->GetIdentify();
+}
+
+Timestamp StorageProxy::EraseNanoTime(DistributedDB::Timestamp localTime)
+{
+    return localTime / CloudDbConstant::TEN_THOUSAND * CloudDbConstant::TEN_THOUSAND;
 }
 }

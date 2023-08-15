@@ -89,6 +89,8 @@ public:
 
     virtual int FillCloudAssetForDownload(const std::string &tableName, VBucket &asset, bool isDownloadSuccess) = 0;
 
+    virtual int SetLogTriggerStatus(bool status) = 0;
+
     virtual int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) = 0;
 
     virtual std::string GetIdentify() const = 0;

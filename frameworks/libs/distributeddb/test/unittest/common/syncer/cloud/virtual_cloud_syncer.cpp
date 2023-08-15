@@ -88,4 +88,14 @@ void VirtualCloudSyncer::SetCurrentTaskInfo(const SyncProcessCallback &callback,
     taskInfo.callback = callback;
     cloudTaskInfos_[taskId] = taskInfo;
 }
+
+int VirtualCloudSyncer::CallTagStatusByStrategy(bool isExist, const DataInfoWithLog &localInfo,
+    const LogInfo &cloudInfo, OpType &strategyOpResult)
+{
+    SyncParam param;
+    DataInfo dataInfo;
+    dataInfo.localInfo = localInfo;
+    dataInfo.cloudLogInfo = cloudInfo;
+    return CloudSyncer::TagStatusByStrategy(isExist, param, dataInfo, strategyOpResult);
+}
 }

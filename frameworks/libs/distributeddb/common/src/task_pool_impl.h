@@ -54,7 +54,7 @@ private:
     bool IdleExit(std::unique_lock<std::mutex> &lock);
     void SetThreadFree();
     Task ReapTask(TaskQueue *&queue);
-    int GetTask(Task &task, TaskQueue *&queue);
+    void GetTask(Task &task, TaskQueue *&queue);
     bool IsGenericWorker() const;
     void BecomeGenericWorker();
     void ExitWorker();

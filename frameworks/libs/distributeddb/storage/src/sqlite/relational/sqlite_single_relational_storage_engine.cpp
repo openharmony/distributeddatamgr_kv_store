@@ -134,6 +134,10 @@ RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetSchema() const
 }
 
 namespace {
+const std::string DEVICE_TYPE = "device";
+const std::string CLOUD_TYPE = "cloud";
+const std::string SYNC_TABLE_TYPE = "sync_table_type_";
+
 int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, const RelationalSchemaObject &schema)
 {
     const Key schemaKey(DBConstant::RELATIONAL_SCHEMA_KEY.begin(), DBConstant::RELATIONAL_SCHEMA_KEY.end());
@@ -142,6 +146,20 @@ int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, cons
     int errCode = handle->PutKvData(schemaKey, schemaVal); // save schema to meta_data
     if (errCode != E_OK) {
         LOGE("Save schema to meta table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SaveSyncTableTypeToMeta(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+    TableSyncType syncType)
+{
+    Key key;
+    DBCommon::StringToVector(SYNC_TABLE_TYPE + tableName, key);
+    Value value;
+    DBCommon::StringToVector(syncType == DEVICE_COOPERATION ? DEVICE_TYPE : CLOUD_TYPE, value);
+    int errCode = handle->PutKvData(key, value);
+    if (errCode != E_OK) {
+        LOGE("Save sync table type to meta table failed. %d", errCode);
     }
     return errCode;
 }
@@ -210,6 +228,12 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     errCode = SaveSchemaToMetaTable(handle, schema);
     if (errCode != E_OK) {
         LOGE("Save schema to meta table for create distributed table failed. %d", errCode);
+        (void)handle->Rollback();
+        return errCode;
+    }
+
+    errCode = SaveSyncTableTypeToMeta(handle, tableName, tableSyncType);
+    if (errCode != E_OK) {
         (void)handle->Rollback();
         return errCode;
     }

@@ -1,0 +1,113 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#####################hydra-fuzz###################
+import("//build/config/features.gni")
+import("//build/test.gni")
+import("../../../distributeddb.gni")
+
+##############################fuzztest##########################################
+ohos_fuzztest("StorageFuzzTest") {
+  module_out_path = "kv_store/distributeddb"
+
+  include_dirs = [
+    "../../../test/fuzztest/common",
+    "../../../test/unittest/common/common",
+    "../../../test/unittest/common/syncer",
+    "../../../test/unittest/common/syncer/cloud",
+    "../../../test/unittest/common/storage",
+    "../../../include",
+    "../../../interfaces/include",
+    "../../../interfaces/include/cloud",
+    "../../../interfaces/include/relational",
+    "../../../interfaces/src",
+    "../../../interfaces/src/relational",
+    "../../../storage/include",
+    "../../../storage/src",
+    "../../../storage/src/cloud",
+    "../../../storage/src/multiver",
+    "../../../storage/src/operation",
+    "../../../storage/src/sqlite",
+    "../../../storage/src/sqlite/relational",
+    "../../../storage/src/upgrader",
+    "../../../common/include",
+    "../../../common/include/cloud",
+    "../../../common/include/relational",
+    "../../../common/src",
+    "../../../communicator/include",
+    "../../../communicator/src",
+    "../../../syncer/include",
+    "../../../syncer/src",
+    "../../../syncer/src/cloud",
+  ]
+
+  cflags = [
+    "-g",
+    "-O0",
+    "-Wno-unused-variable",
+    "-fno-omit-frame-pointer",
+  ]
+
+  fuzz_config_file = "../storage_fuzzer"
+
+  sources = distributeddb_src
+  sources += [
+    "../../../test/fuzztest/common/distributeddb_tools_test.cpp",
+    "../../../test/fuzztest/common/fuzzer_data.cpp",
+    "../../../test/fuzztest/storage_fuzzer/storage_fuzzer.cpp",
+    "../../../test/unittest/common/common/distributeddb_data_generate_unit_test.cpp",
+  ]
+
+  defines = [
+    "SQLITE_ENABLE_SNAPSHOT",
+    "_LARGEFILE64_SOURCE",
+    "_FILE_OFFSET_BITS=64",
+    "SQLITE_HAS_CODEC",
+    "SQLITE_ENABLE_JSON1",
+    "USING_HILOG_LOGGER",
+    "USE_SQLITE_SYMBOLS",
+    "USING_DB_JSON_EXTRACT_AUTOMATICALLY",
+    "LOW_LEVEL_MEM_DEV",
+    "JSONCPP_USE_BUILDER",
+    "OMIT_FLATBUFFER",
+    "RELATIONAL_STORE",
+    "SQLITE_DISTRIBUTE_RELATIONAL",
+    "SQLITE_EXPORT_SYMBOLS",
+    "SQLITE_ENABLE_DROPTABLE_CALLBACK",
+    "OPENSSL_SUPPRESS_DEPRECATED",
+  ]
+
+  deps = [
+    "../../../../distributeddb:distributeddb",
+    "//third_party/jsoncpp:jsoncpp",
+    "//third_party/openssl:libcrypto_shared",
+    "//third_party/sqlite:sqlite",
+    "//third_party/zlib:shared_libz",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+  ]
+}
+
+###############################################################################
+
+group("fuzztest") {
+  testonly = true
+  deps = []
+  deps += [
+    # deps file
+    ":StorageFuzzTest",
+  ]
+}

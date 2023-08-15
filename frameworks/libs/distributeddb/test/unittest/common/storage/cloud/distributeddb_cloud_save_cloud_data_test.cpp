@@ -264,6 +264,12 @@ namespace {
             } else {
                 EXPECT_EQ(dataInfoWithLog.primaryKeys.size(), 0u);
             }
+            Timestamp eraseTime = dataInfoWithLog.logInfo.timestamp / CloudDbConstant::TEN_THOUSAND *
+                CloudDbConstant::TEN_THOUSAND;
+            Timestamp eraseWTime = dataInfoWithLog.logInfo.wTimestamp / CloudDbConstant::TEN_THOUSAND *
+                CloudDbConstant::TEN_THOUSAND;
+            EXPECT_EQ(dataInfoWithLog.logInfo.timestamp, eraseTime);
+            EXPECT_EQ(dataInfoWithLog.logInfo.wTimestamp, eraseWTime);
         }
     }
 
@@ -976,5 +982,66 @@ namespace {
     HWTEST_F(DistributedDBCloudSaveCloudDataTest, PutCloudSyncDataTest017, TestSize.Level1)
     {
         DeleteWithPkTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
+    }
+
+    /**
+     * @tc.name: DropTableTest001
+     * @tc.desc: Test drop table
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, DropTableTest001, TestSize.Level1)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. ok.
+         */
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+
+        std::string sql = "create table t_device(key int, value text);create table t_cloud(key int, value text);";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable("t_device", DistributedDB::DEVICE_COOPERATION), OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable("t_cloud", DistributedDB::CLOUD_COOPERATION), OK);
+
+        sql = "insert into t_device values(1, 'zhangsan');insert into t_cloud values(1, 'zhangsan');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        sql = "update " + DBCommon::GetLogTableName("t_cloud") + " set flag = 0";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        return;
+
+        /**
+         * @tc.steps:step2. drop table t_cloud, check log data
+         * @tc.expected: step2. success.
+         */
+        sql = "drop table t_cloud;";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        sql = "select flag from " + DBCommon::GetLogTableName("t_cloud") + " where data_key = -1;";
+        int count = 0;
+        int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
+            EXPECT_EQ(sqlite3_column_int(stmt, 0), 3); // 3 mean local delete
+            count++;
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(count, 1);
+
+        /**
+         * @tc.steps:step3. drop table t_device, check log data
+         * @tc.expected: step3. success.
+         */
+        sql = "drop table t_device;";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        sql = "select flag from " + DBCommon::GetLogTableName("t_device") + " where flag = 0x03;";
+        count = 0;
+        errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&count] (sqlite3_stmt *stmt) {
+            count++;
+            return OK;
+        });
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(count, 1);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 }

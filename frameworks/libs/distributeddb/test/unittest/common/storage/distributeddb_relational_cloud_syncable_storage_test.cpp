@@ -256,7 +256,9 @@ void fillCloudAssetTest(int64_t count, AssetStatus statusType, bool isDownloadSu
         }
         vBucket["assert"] = asset;
         vBucket["asserts"] = assets;
+        ASSERT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
         ASSERT_EQ(g_storageProxy->FillCloudAssetForDownload(g_tableName, vBucket, isDownloadSuccess), E_OK);
+        ASSERT_EQ(g_storageProxy->Commit(), E_OK);
     }
 }
 
