@@ -30,7 +30,7 @@ public:
     virtual std::vector<uint8_t> AssetToBlob(const Asset &asset) = 0;
     virtual std::vector<uint8_t> AssetsToBlob(const Assets &assets) = 0;
     virtual Asset BlobToAsset(const std::vector<uint8_t> &blob) = 0;
-    virtual Assets BlobToAssets(std::vector<uint8_t> &blob) = 0;
+    virtual Assets BlobToAssets(const std::vector<uint8_t> &blob) = 0;
 };
 } // namespace DistributedDB
 
