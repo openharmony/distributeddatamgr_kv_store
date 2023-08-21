@@ -147,7 +147,7 @@ public:
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 
-    static Asset GenAsset(std::string name, std::string hash)
+    static Asset GenAsset(const std::string &name, const std::string &hash)
     {
         Asset asset;
         asset.name = name;
