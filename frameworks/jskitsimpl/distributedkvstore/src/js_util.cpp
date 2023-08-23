@@ -1026,11 +1026,10 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DistributedKv::O
 
     int32_t level = 0;
     statusMsg = GetNamedProperty(env, in, "securityLevel", level);
-    if (statusMsg.status != napi_ok) {
-        return statusMsg;
-    }
-
-    return GetLevel(level, options.securityLevel);
+    ASSERT(statusMsg.status == napi_ok, "get securityLevel failed", statusMsg);
+    statusMsg = GetLevel(level, options.securityLevel);
+    ASSERT(statusMsg.status == napi_ok, "invalid securityLevel", statusMsg);
+    return napi_ok;
 }
 
 napi_status JSUtil::GetLevel(int32_t level, int32_t &out)

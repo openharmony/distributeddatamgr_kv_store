@@ -22,9 +22,6 @@ public:
     class From {
     public:
         From() {}
-
-    private:
-        int64_t id_ = 0;
     };
     class Convertible {
     public:
@@ -40,8 +37,6 @@ public:
         {
             return From();
         }
-    private:
-        int64_t id_ = 1;
     };
     static void SetUpTestCase(void){};
     static void TearDownTestCase(void){};
@@ -207,7 +202,6 @@ HWTEST_F(TraitsTest, get_if_convertible_type, TestSize.Level0)
     value = int64_t(1);
     auto *fVal = Traits::get_if<double>(&value);
     ASSERT_EQ(fVal, nullptr);
-    ASSERT_EQ(*fVal, 1);
 
     value = "test case";
     auto *strVal = Traits::get_if<std::string>(&value);

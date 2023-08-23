@@ -198,3 +198,69 @@ HWTEST_F(TypesUtilTest, Variant, TestSize.Level0)
     ASSERT_EQ(std::get<uint64_t>(valueUint64Out), 110);
 }
 
+/**
+* @tc.name: MarshalToBufferLimitTest001
+* @tc.desc: construct a invalid vector and check MarshalToBuffer function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: ht
+*/
+HWTEST_F(TypesUtilTest, MarshalToBufferLimitTest001, TestSize.Level1)
+{
+    MessageParcel parcel;
+    std::vector<Entry> exceedMaxCountInput(ITypesUtil::MAX_COUNT + 1);
+    ASSERT_FALSE(ITypesUtil::MarshalToBuffer(exceedMaxCountInput, sizeof(int) * exceedMaxCountInput.size(), parcel));
+}
+
+/**
+* @tc.name: MarshalToBufferLimitTest002
+* @tc.desc: construct a invalid vector and check MarshalToBuffer function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: ht
+*/
+HWTEST_F(TypesUtilTest, MarshalToBufferLimitTest002, TestSize.Level1)
+{
+    MessageParcel parcel;
+    std::vector<Entry> inputNormal(10);
+    ASSERT_FALSE(ITypesUtil::MarshalToBuffer(inputNormal, ITypesUtil::MAX_SIZE + 1, parcel));
+    ASSERT_FALSE(ITypesUtil::MarshalToBuffer(inputNormal, -1, parcel));
+}
+
+/**
+* @tc.name: UnmarshalFromBufferLimitTest001
+* @tc.desc: construct a invalid parcel and check UnmarshalFromBuffer function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: ht
+*/
+HWTEST_F(TypesUtilTest, UnmarshalFromBufferLimitTest001, TestSize.Level1)
+{
+    MessageParcel parcel;
+    int32_t normalSize = 100;
+    parcel.WriteInt32(normalSize);                //normal size
+    parcel.WriteInt32(ITypesUtil::MAX_COUNT + 1); //exceed MAX_COUNT
+    std::vector<Entry> input;
+    std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(normalSize);
+    parcel.WriteRawData(buffer.get(), normalSize);
+
+    std::vector<Entry> output;
+    ASSERT_FALSE(ITypesUtil::UnmarshalFromBuffer(parcel, output));
+    ASSERT_TRUE(output.empty());
+}
+
+/**
+* @tc.name: UnmarshalFromBufferLimitTest002
+* @tc.desc: construct a invalid parcel and check UnmarshalFromBuffer function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: ht
+*/
+HWTEST_F(TypesUtilTest, UnmarshalFromBufferLimitTest002, TestSize.Level1)
+{
+    MessageParcel parcel;
+    parcel.WriteInt32(ITypesUtil::MAX_SIZE + 1); //exceedMaxSize size
+    std::vector<Entry> output;
+    ASSERT_FALSE(ITypesUtil::UnmarshalFromBuffer(parcel, output));
+    ASSERT_TRUE(output.empty());
+}

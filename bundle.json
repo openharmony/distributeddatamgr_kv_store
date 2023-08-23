@@ -182,6 +182,7 @@
         "//foundation/distributeddatamgr/kv_store:fuzztest",
         "//foundation/distributeddatamgr/kv_store/test/unittest/distributeddata:unittest",
         "//foundation/distributeddatamgr/kv_store/test/unittest/distributedKVStore:unittest",
+        "//foundation/distributeddatamgr/kv_store/frameworks/common/test:unittest",
         "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/test:unittest"
       ]
     }

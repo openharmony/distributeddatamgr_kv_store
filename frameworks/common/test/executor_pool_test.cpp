@@ -89,7 +89,7 @@ HWTEST_F(ExecutorPoolTest, Schedule, TestSize.Level0)
         expiredTime);
     ASSERT_NE(taskId, ExecutorPool::INVALID_TASK_ID);
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 10));
-    ASSERT_EQ(testData, 10);
+    ASSERT_EQ(testData->data, 10);
     executorPool_->Remove(taskId);
 }
 
@@ -109,14 +109,13 @@ HWTEST_F(ExecutorPoolTest, MultiSchedule, TestSize.Level0)
     std::set<ExecutorPool::TaskId> ids;
     for (int i = 0; i < 10; ++i) {
         auto id = executorPool_->Schedule(task, std::chrono::seconds(0), std::chrono::seconds(LONG_INTERVAL), 10);
-        ASSERT_NE(*(ids.end()), id);
+        ASSERT_EQ(ids.count(id), 0);
         ids.insert(id);
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(LONG_INTERVAL * 10));
+    std::this_thread::sleep_for(std::chrono::seconds(LONG_INTERVAL * 10));
     ASSERT_EQ(data->data, 100);
-    while (it != ids.end()) {
-        executorPool_->Remove(*it);
-        it++;
+    for (auto id : ids) {
+        executorPool_->Remove(id);
     }
 }
 /**
@@ -158,7 +157,7 @@ HWTEST_F(ExecutorPoolTest, Reset, TestSize.Level0)
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL));
     ASSERT_EQ(data->data, 1);
     ASSERT_EQ(executorPool_->Reset(temp, std::chrono::milliseconds(expiredTime * 2)), temp);
-    std::this_thread::sleep_for(expiredTime * 4);
+    std::this_thread::sleep_for(std::chrono::milliseconds(expiredTime * 5));
     ASSERT_EQ(data->data, 3);
     executorPool_->Remove(temp);
 }
