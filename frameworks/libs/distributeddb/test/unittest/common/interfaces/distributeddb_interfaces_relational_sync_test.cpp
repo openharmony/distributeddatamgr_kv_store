@@ -1050,3 +1050,24 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, SyncZeroBlobTest002, TestSiz
     EXPECT_EQ(resCnt, 1);
     EXPECT_EQ(ret, E_OK);
 }
+
+/**
+  * @tc.name: RuntimeConfig001
+  * @tc.desc: Runtime config api
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBInterfacesRelationalSyncTest, RuntimeConfig001, TestSize.Level1)
+{
+    DBStatus status = RuntimeConfig::SetProcessLabel("", "");
+    EXPECT_EQ(status, INVALID_ARGS);
+    status = RuntimeConfig::SetProcessLabel("DistributedDBInterfacesRelationalSyncTest", "RuntimeConfig001");
+    EXPECT_EQ(status, OK);
+    status = RuntimeConfig::SetProcessCommunicator(nullptr);
+    if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
+        EXPECT_EQ(status, OK);
+    }
+    EXPECT_EQ(RuntimeConfig::IsProcessSystemApiAdapterValid(),
+        RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid());
+}
