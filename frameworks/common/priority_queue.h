@@ -21,6 +21,7 @@
 #include <queue>
 #include <set>
 #include <shared_mutex>
+#include <functional>
 namespace OHOS {
 template<typename _Tsk, typename _Tme, typename _Tid>
 class PriorityQueue {

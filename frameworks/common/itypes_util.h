@@ -36,8 +36,8 @@ template<class T>
 struct is_container<std::list<T>> : std::true_type {
 };
 namespace ITypesUtil {
-static constexpr size_t MAX_SIZE = 100000;
-static constexpr size_t MAX_COUNT = 1 * 1024 * 1024 * 1024; //1G
+inline constexpr size_t MAX_COUNT = 100000;
+inline constexpr size_t MAX_SIZE = 1 * 1024 * 1024 * 1024; //1G
 static inline bool Marshal(MessageParcel &data)
 {
     return true;
