@@ -181,7 +181,7 @@ public:
             if (errCode != E_OK) {
                 break;
             }
-            std::vector<uint8_t> assetsBlob;
+
             std::vector<Asset> assetVec(localAssets_.begin() + (i % size), localAssets_.end());
             RuntimeContext::GetInstance()->AssetsToBlob(assetVec, assetBlob);
             errCode = SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob); // 4 is index of asserts
