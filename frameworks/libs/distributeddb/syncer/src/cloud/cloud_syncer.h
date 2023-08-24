@@ -243,7 +243,7 @@ protected:
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
-    int CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
+    int CloudDbDownloadAssets(InnerProcessInfo &info, const DownloadList &downloadList, bool willHandleResult,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
     void GetDownloadItem(const DownloadList &downloadList, size_t i, DownloadItem &downloadItem);

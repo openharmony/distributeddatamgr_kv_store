@@ -358,10 +358,10 @@ int CloudSyncer::FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> 
     return -E_INTERNAL_ERROR;
 }
 
-int CloudSyncer::SaveChangedData(SyncParam &param, int downIndex, const DataInfo &dataInfo,
+int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
     std::vector<std::pair<Key, size_t>> &deletedList)
 {
-    OpType opType = param.downloadData.opType[downIndex];
+    OpType opType = param.downloadData.opType[dataIndex];
     Key hashKey = dataInfo.localInfo.logInfo.hashKey;
     if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
         if (opType == OpType::INSERT) {
@@ -377,7 +377,7 @@ int CloudSyncer::SaveChangedData(SyncParam &param, int downIndex, const DataInfo
             opType = OpType::UPDATE;
             // only composite primary key needs to be processed.
             if (!param.isSinglePrimaryKey) {
-                param.withoutRowIdData.updateData.push_back(std::make_tuple(downIndex,
+                param.withoutRowIdData.updateData.push_back(std::make_tuple(dataIndex,
                     param.changedData.primaryData[ChangeType::OP_UPDATE].size()));
             }
         } else if (opType == OpType::DELETE) {
@@ -390,22 +390,22 @@ int CloudSyncer::SaveChangedData(SyncParam &param, int downIndex, const DataInfo
     }
     // INSERT: for no primary key or composite primary key situation
     if (!param.isSinglePrimaryKey && opType == OpType::INSERT) {
-        param.withoutRowIdData.insertData.push_back(downIndex);
+        param.withoutRowIdData.insertData.push_back(dataIndex);
         return E_OK;
     }
     switch (opType) {
         // INSERT: only for single primary key situation
         case OpType::INSERT:
             return SaveChangedDataByType(
-                param.downloadData.data[downIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_INSERT);
+                param.downloadData.data[dataIndex], param.changedData, dataInfo.localInfo, ChangeType::OP_INSERT);
         case OpType::UPDATE:
             if (NeedSaveData(dataInfo.localInfo.logInfo, dataInfo.cloudLogInfo)) {
-                return SaveChangedDataByType(param.downloadData.data[downIndex], param.changedData,
+                return SaveChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
                     dataInfo.localInfo, ChangeType::OP_UPDATE);
             }
             break;
         case OpType::DELETE:
-            return SaveChangedDataByType(param.downloadData.data[downIndex], param.changedData,
+            return SaveChangedDataByType(param.downloadData.data[dataIndex], param.changedData,
                 dataInfo.localInfo, ChangeType::OP_DELETE);
         default:
             break;
@@ -491,7 +491,7 @@ bool CloudSyncer::IsDataContainAssets()
             -E_INTERNAL_ERROR);
             return false;
     }
-    if (hasTable && currentContext_.assetFields[currentContext_.tableName].empty()) {
+    if (currentContext_.assetFields[currentContext_.tableName].empty()) {
         LOGI("[CloudSyncer] Current table do not contain assets, thereby we needn't download assets");
         return false;
     }
@@ -617,7 +617,7 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadComm
     return errCode;
 }
 
-int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, DownloadList &downloadList, bool willHandleResult,
+int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, const DownloadList &downloadList, bool willHandleResult,
     const std::set<Key> &dupHashKeySet, ChangedData &changedAssets)
 {
     int downloadStatus = E_OK;
