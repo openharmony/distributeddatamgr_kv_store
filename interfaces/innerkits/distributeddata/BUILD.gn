@@ -27,6 +27,7 @@ config("distributeddatafwk_config") {
 
   include_dirs = [
     "include",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/include",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
     "../../../frameworks/common",

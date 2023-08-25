@@ -77,6 +77,7 @@
       "sub_component": [
         "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddatahelper:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
@@ -102,6 +103,15 @@
               "store_errno.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
+          }
+        },
+        {
+          "name": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddatahelper:distributeddata_helper",
+          "header": {
+            "header_files": [
+              "distributed_data_helper.h"
+            ],
+            "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddatahelper/include"
           }
         },
         {

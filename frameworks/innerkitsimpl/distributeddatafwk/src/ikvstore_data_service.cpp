@@ -15,7 +15,8 @@
 
 #define LOG_TAG "KvStoreDataServiceProxy"
 
-#include "ikvstore_data_service.h"
+#include "kvstore_data_service_proxy.h"
+#include "kvstore_data_service_stub.h"
 #include <ipc_skeleton.h>
 #include "itypes_util.h"
 #include "message_parcel.h"
@@ -92,6 +93,11 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
         return Status::IPC_ERROR;
     }
     return static_cast<Status>(reply.ReadInt32());
+}
+
+int32_t KvStoreDataServiceProxy::ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex)
+{
+    return SUCCESS;
 }
 
 int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
