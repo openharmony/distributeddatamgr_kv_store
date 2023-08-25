@@ -30,6 +30,7 @@ using namespace testing::ext;
 using namespace OHOS::DistributedKv;
 using namespace OHOS;
 using var_t = std::variant<std::monostate, uint32_t, std::string, int32_t, uint64_t>;
+namespace OHOS::Test {
 class TypesUtilTest : public testing::Test {
 public:
     class ITestRemoteObject : public IRemoteBroker {
@@ -240,7 +241,6 @@ HWTEST_F(TypesUtilTest, UnmarshalFromBufferLimitTest001, TestSize.Level1)
     int32_t normalSize = 100;
     parcel.WriteInt32(normalSize);                //normal size
     parcel.WriteInt32(ITypesUtil::MAX_COUNT + 1); //exceed MAX_COUNT
-    std::vector<Entry> input;
     std::unique_ptr<uint8_t[]> buffer = std::make_unique<uint8_t[]>(normalSize);
     parcel.WriteRawData(buffer.get(), normalSize);
 
@@ -263,4 +263,5 @@ HWTEST_F(TypesUtilTest, UnmarshalFromBufferLimitTest002, TestSize.Level1)
     std::vector<Entry> output;
     ASSERT_FALSE(ITypesUtil::UnmarshalFromBuffer(parcel, output));
     ASSERT_TRUE(output.empty());
+}
 }
