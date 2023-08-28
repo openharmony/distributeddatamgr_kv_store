@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
 
@@ -26,6 +27,7 @@ config("module_private_config") {
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/test/distributedtest/single_kvstore_client",

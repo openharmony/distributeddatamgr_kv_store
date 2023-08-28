@@ -19,6 +19,7 @@ config("module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
+    "../",
     "../include/",
     "../src/",
     "../../kvdb/include/",

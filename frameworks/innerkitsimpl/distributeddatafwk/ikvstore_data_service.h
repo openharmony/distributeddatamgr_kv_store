@@ -31,7 +31,7 @@ public:
 
     virtual Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) = 0;
 
-    virtual int32_t ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex) = 0;
+    virtual int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex) = 0;
 
 protected:
     static constexpr size_t MAX_IPC_CAPACITY = 800 * 1024;

@@ -95,7 +95,7 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     return static_cast<Status>(reply.ReadInt32());
 }
 
-int32_t KvStoreDataServiceProxy::ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex)
+int32_t KvStoreDataServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
 {
     return SUCCESS;
 }
@@ -143,6 +143,11 @@ int32_t KvStoreDataServiceStub::OnRemoteRequest(uint32_t code, MessageParcel &da
         MessageOption mo { MessageOption::TF_SYNC };
         return IPCObjectStub::OnRemoteRequest(code, data, reply, mo);
     }
+}
+
+int32_t KvStoreDataServiceStub::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
+{
+    return 0;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

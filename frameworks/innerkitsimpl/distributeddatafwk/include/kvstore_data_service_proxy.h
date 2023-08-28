@@ -24,7 +24,7 @@ public:
 
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
 
-    int32_t ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
+    int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
 
 private:
     static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;

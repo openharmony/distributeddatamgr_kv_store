@@ -12,30 +12,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "KvStoreDataServiceHelper"
-#include "kvstore_data_service_helper.h"
+#define LOG_TAG "KvStoreDataServiceMgr"
+#include "kvstore_data_service_mgr.h"
 #include "log_print.h"
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
 namespace OHOS::DistributedKv {
-sptr<DistributedKv::IKvStoreDataService> KvStoreDataServiceHelper::kvDataServiceProxy_;
-KvStoreDataServiceHelper &KvStoreDataServiceHelper::GetInstance()
+sptr<DistributedKv::IKvStoreDataService> KvStoreDataServiceMgr::kvDataServiceProxy_;
+KvStoreDataServiceMgr &KvStoreDataServiceMgr::GetInstance()
 {
-    static KvStoreDataServiceHelper instance;
+    static KvStoreDataServiceMgr instance;
     return instance;
 }
 
-sptr<IRemoteObject> KvStoreDataServiceHelper::GetFeatureInterface(const std::string &name)
+sptr<IRemoteObject> KvStoreDataServiceMgr::GetFeatureInterface(const std::string &name)
 {
     return nullptr;
 }
 
-Status KvStoreDataServiceHelper::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
+Status KvStoreDataServiceMgr::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
 {
     return SUCCESS;
 }
 
-int32_t KvStoreDataServiceHelper::ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex)
+int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
 {
     std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
 
@@ -43,10 +43,10 @@ int32_t KvStoreDataServiceHelper::ClearData(const std::string &bundleName, int32
     if (ability == nullptr) {
         return ERROR;
     }
-    return ability->ClearData(bundleName, userId, appIndex);
+    return ability->ClearAppStorage(bundleName, userId, appIndex);
 }
 
-sptr<IKvStoreDataService> KvStoreDataServiceHelper::GetDistributedKvDataService()
+sptr<IKvStoreDataService> KvStoreDataServiceMgr::GetDistributedKvDataService()
 {
     if (kvDataServiceProxy_ != nullptr) {
         return kvDataServiceProxy_;

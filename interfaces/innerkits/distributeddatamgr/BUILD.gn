@@ -12,10 +12,12 @@
 # limitations under the License.
 import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
 group("build_module") {
-  deps = [ ":distributeddata_helper" ]
+  deps = [ ":distributeddata_mgr" ]
 }
-config("data_helper_public_config") {
+
+config("data_mgr_public_config") {
   visibility = [ ":*" ]
 
   cflags = [ "-Wno-multichar" ]
@@ -31,10 +33,10 @@ config("data_helper_public_config") {
   ]
 }
 
-ohos_shared_library("distributeddata_helper") {
+ohos_shared_library("distributeddata_mgr") {
   sources = [
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_data_helper.cpp",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_data_service_helper.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_data_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_data_service_mgr.cpp",
   ]
 
   external_deps = [
@@ -43,7 +45,7 @@ ohos_shared_library("distributeddata_helper") {
     "ipc:ipc_core",
     "samgr:samgr_proxy",
   ]
-  public_configs = [ ":data_helper_public_config" ]
+  public_configs = [ ":data_mgr_public_config" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }

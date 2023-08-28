@@ -12,22 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef DISTRIBUTED_DATA_HELPER_H
-#define DISTRIBUTED_DATA_HELPER_H
-#include <cstdio>
-#include <string>
-#include "visibility.h"
+#define LOG_TAG "DistributedDataMgr"
+#include "distributed_data_mgr.h"
+#include "kvstore_data_service_mgr.h"
 namespace OHOS::DistributedKv {
-class API_EXPORT DistributedDataHelper {
-public:
-    /**
-     * @brief Clear the data of given bundleName, userID and appIndex in datamgr_service.
-     * @param bundleName The bundle name.
-     * @param userId The user ID.
-     * @param appIndex The app index in sandbox.
-    */
-    static API_EXPORT int32_t ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex);
-};
-}  // namespace OHOS
-#endif //DISTRIBUTED_DATA_HELPER_H
+DistributedDataMgr::DistributedDataMgr() = default;
+DistributedDataMgr::~DistributedDataMgr() = default;
+int32_t DistributedDataMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
+{
+    return KvStoreDataServiceMgr::GetInstance().ClearAppStorage(bundleName, userId, appIndex);
+}
+} // namespace OHOS::DistributedKv

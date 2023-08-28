@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef KVSTORE_DATA_SERVICE_HELPER_H
-#define KVSTORE_DATA_SERVICE_HELPER_H
+#ifndef KVSTORE_DATA_SERVICE_MGR_H
+#define KVSTORE_DATA_SERVICE_MGR_H
 #include <mutex>
 #include <string>
 
@@ -21,12 +21,12 @@
 #include "iremote_object.h"
 
 namespace OHOS::DistributedKv {
-class KvStoreDataServiceHelper : public IRemoteStub<IKvStoreDataService> {
+class KvStoreDataServiceMgr : public IRemoteStub<IKvStoreDataService> {
 public:
-    static KvStoreDataServiceHelper &GetInstance();
+    static KvStoreDataServiceMgr &GetInstance();
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
-    int32_t ClearData(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
+    int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
 
 private:
     static sptr<DistributedKv::IKvStoreDataService> kvDataServiceProxy_;
@@ -34,4 +34,4 @@ private:
     std::mutex mutex_;
 };
 }
-#endif //KVSTORE_DATA_SERVICE_HELPER_H
+#endif //KVSTORE_DATA_SERVICE_MGR_H
