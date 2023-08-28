@@ -1129,6 +1129,13 @@ HWTEST_F(DistributedDBInterfacesDataOperationTest, GetEntriesWithQuery002, TestS
     EXPECT_EQ(entries.size(), 3ul);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtrForQuery), OK);
     EXPECT_TRUE(g_mgr.DeleteKvStore("GetEntriesWithQuery002_002") == OK);
+
+    QueryExpression expression;
+    EXPECT_TRUE(expression.GetErrFlag());
+    expression.SetErrFlag(false);
+    EXPECT_FALSE(expression.GetErrFlag());
+    expression.Reset();
+    EXPECT_TRUE(expression.GetErrFlag());
 }
 
 /**
