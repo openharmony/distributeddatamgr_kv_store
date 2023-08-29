@@ -19,31 +19,13 @@
 #include "iservice_registry.h"
 namespace OHOS::DistributedKv {
 sptr<DistributedKv::IKvStoreDataService> KvStoreDataServiceMgr::kvDataServiceProxy_;
-KvStoreDataServiceMgr &KvStoreDataServiceMgr::GetInstance()
+int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId)
 {
-    static KvStoreDataServiceMgr instance;
-    return instance;
-}
-
-sptr<IRemoteObject> KvStoreDataServiceMgr::GetFeatureInterface(const std::string &name)
-{
-    return nullptr;
-}
-
-Status KvStoreDataServiceMgr::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
-{
-    return SUCCESS;
-}
-
-int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
-{
-    std::lock_guard<decltype(mutex_)> lockGuard(mutex_);
-
     sptr<IKvStoreDataService> ability = GetDistributedKvDataService();
     if (ability == nullptr) {
         return ERROR;
     }
-    return ability->ClearAppStorage(bundleName, userId, appIndex);
+    return ability->ClearAppStorage(bundleName, userId, appIndex, tokenId);
 }
 
 sptr<IKvStoreDataService> KvStoreDataServiceMgr::GetDistributedKvDataService()

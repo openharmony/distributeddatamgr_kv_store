@@ -36,6 +36,7 @@ config("data_mgr_public_config") {
 ohos_shared_library("distributeddata_mgr") {
   sources = [
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_data_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_data_service.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_data_service_mgr.cpp",
   ]
 

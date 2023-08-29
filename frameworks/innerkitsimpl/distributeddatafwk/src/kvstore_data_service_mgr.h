@@ -21,17 +21,13 @@
 #include "iremote_object.h"
 
 namespace OHOS::DistributedKv {
-class KvStoreDataServiceMgr : public IRemoteStub<IKvStoreDataService> {
+class KvStoreDataServiceMgr {
 public:
-    static KvStoreDataServiceMgr &GetInstance();
-    sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
-    Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
-    int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
+    static int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId);
 
 private:
     static sptr<DistributedKv::IKvStoreDataService> kvDataServiceProxy_;
     static sptr<IKvStoreDataService> GetDistributedKvDataService();
-    std::mutex mutex_;
 };
 }
 #endif //KVSTORE_DATA_SERVICE_MGR_H

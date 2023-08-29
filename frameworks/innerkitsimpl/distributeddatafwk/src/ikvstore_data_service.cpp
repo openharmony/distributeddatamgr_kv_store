@@ -95,9 +95,39 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     return static_cast<Status>(reply.ReadInt32());
 }
 
-int32_t KvStoreDataServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
+int32_t KvStoreDataServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
+    int32_t tokenId)
 {
-    return SUCCESS;
+    MessageParcel data;
+    MessageParcel reply;
+    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return Status::IPC_ERROR;
+    }
+    if (!data.WriteString(bundleName)) {
+        ZLOGW("failed to write bundleName.");
+        return Status::IPC_ERROR;
+    }
+    if (!data.WriteInt32(userId)) {
+        ZLOGW("failed to write userId.");
+        return Status::IPC_ERROR;
+    }
+    if (!data.WriteInt32(appIndex)) {
+        ZLOGW("failed to write app index.");
+        return Status::IPC_ERROR;
+    }    if (!data.WriteInt32(tokenId)) {
+        ZLOGW("failed to write tokenId.");
+        return Status::IPC_ERROR;
+    }
+
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(
+        static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::CLEAR_APP_STORAGE), data, reply, mo);
+    if (error != 0) {
+        ZLOGW("failed during IPC. errCode %d", error);
+        return Status::IPC_ERROR;
+    }
+    return static_cast<Status>(reply.ReadInt32());
 }
 
 int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
@@ -127,6 +157,31 @@ int32_t KvStoreDataServiceStub::GetFeatureInterfaceOnRemote(MessageParcel &data,
     return 0;
 }
 
+int32_t KvStoreDataServiceStub::ClearAppStorageOnRemote(MessageParcel &data, MessageParcel &reply)
+{
+    std::string bundleName;
+    if (!ITypesUtil::Unmarshal(data, bundleName)) {
+        return -1;
+    }
+    int32_t userId;
+    if (!ITypesUtil::Unmarshal(data, userId)) {
+        return -1;
+    }
+    int32_t appIndex;
+    if (!ITypesUtil::Unmarshal(data, appIndex)) {
+        return -1;
+    }
+    int32_t tokenId;
+    if (!ITypesUtil::Unmarshal(data, tokenId)) {
+        return -1;
+    }
+    auto remoteObject = ClearAppStorage(bundleName, userId, appIndex, tokenId);
+    if (!ITypesUtil::Marshal(reply, remoteObject)) {
+        return -1;
+    }
+    return 0;
+}
+
 int32_t KvStoreDataServiceStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
                                                 MessageParcel &reply, MessageOption &option)
 {
@@ -143,11 +198,6 @@ int32_t KvStoreDataServiceStub::OnRemoteRequest(uint32_t code, MessageParcel &da
         MessageOption mo { MessageOption::TF_SYNC };
         return IPCObjectStub::OnRemoteRequest(code, data, reply, mo);
     }
-}
-
-int32_t KvStoreDataServiceStub::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
-{
-    return 0;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

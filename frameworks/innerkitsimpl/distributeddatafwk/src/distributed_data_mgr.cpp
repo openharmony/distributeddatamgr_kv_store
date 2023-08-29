@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,8 +18,9 @@
 namespace OHOS::DistributedKv {
 DistributedDataMgr::DistributedDataMgr() = default;
 DistributedDataMgr::~DistributedDataMgr() = default;
-int32_t DistributedDataMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex)
+int32_t DistributedKv::DistributedDataMgr::ClearAppStorage(const std::string &bundleName, int32_t userId,
+    int32_t appIndex, int32_t tokenId)
 {
-    return KvStoreDataServiceMgr::GetInstance().ClearAppStorage(bundleName, userId, appIndex);
+    return KvStoreDataServiceMgr::ClearAppStorage(bundleName, userId, appIndex, tokenId);
 }
 } // namespace OHOS::DistributedKv

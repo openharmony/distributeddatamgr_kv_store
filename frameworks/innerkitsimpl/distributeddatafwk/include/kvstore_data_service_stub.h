@@ -19,19 +19,20 @@
 namespace OHOS::DistributedKv {
 class API_EXPORT KvStoreDataServiceStub : public IRemoteStub<IKvStoreDataService> {
 public:
-    int API_EXPORT OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply,
+    int OnRemoteRequest(uint32_t code, MessageParcel &data, MessageParcel &reply,
         MessageOption &option) override;
-    int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex) override;
 
 private:
     int32_t GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply);
     int32_t RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply);
+    int32_t ClearAppStorageOnRemote(MessageParcel &data, MessageParcel &reply);
 
     using RequestHandler = int32_t (KvStoreDataServiceStub::*)(MessageParcel &, MessageParcel &);
     using code = KvStoreDataServiceInterfaceCode;
     static constexpr RequestHandler HANDLERS[static_cast<uint32_t>(code::SERVICE_CMD_LAST)] = {
         &KvStoreDataServiceStub::GetFeatureInterfaceOnRemote,
         &KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote,
+        &KvStoreDataServiceStub::ClearAppStorageOnRemote,
     };
 };
 } // namespace OHOS::DistributedKv
