@@ -12,15 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#define LOG_TAG "DistributedDataMgr"
-#include "distributed_data_mgr.h"
-#include "kvstore_data_service_mgr.h"
+
+#ifndef DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H
+#define DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H
+
+#include <cstdint>
+
+/* SAID:1301 */
 namespace OHOS::DistributedKv {
-DistributedDataMgr::DistributedDataMgr() = default;
-DistributedDataMgr::~DistributedDataMgr() = default;
-int32_t DistributedKv::DistributedDataMgr::ClearAppStorage(const std::string &bundleName, int32_t userId,
-    int32_t appIndex, int32_t tokenId)
-{
-    return KvStoreDataServiceMgr::ClearAppStorage(bundleName, userId, appIndex, tokenId);
-}
+enum class KvStoreDataServiceInterfaceCode : uint32_t {
+    GET_FEATURE_INTERFACE = 0,
+    REGISTERCLIENTDEATHOBSERVER,
+    CLEAR_APP_STORAGE,
+    SERVICE_CMD_LAST
+};
 } // namespace OHOS::DistributedKv
+#endif // DISTRIBUTEDDATA_IPC_INTERFACE_CODE_H

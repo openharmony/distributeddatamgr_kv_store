@@ -22,22 +22,19 @@ config("data_mgr_public_config") {
 
   cflags = [ "-Wno-multichar" ]
 
-  cflags_cc = [ "-fvisibility=hidden" ]
-
   include_dirs = [
     "include",
     "../distributeddata/include",
     "../../../frameworks/common",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/include",
   ]
 }
 
 ohos_shared_library("distributeddata_mgr") {
   sources = [
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/distributed_data_mgr.cpp",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/ikvstore_data_service.cpp",
-    "../../../frameworks/innerkitsimpl/distributeddatafwk/src/kvstore_data_service_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/distributed_data_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_proxy.cpp",
   ]
 
   external_deps = [
@@ -47,6 +44,7 @@ ohos_shared_library("distributeddata_mgr") {
     "samgr:samgr_proxy",
   ]
   public_configs = [ ":data_mgr_public_config" ]
+  innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }

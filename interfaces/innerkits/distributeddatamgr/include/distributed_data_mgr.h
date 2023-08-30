@@ -36,7 +36,7 @@ public:
      * @param userId The user ID.
      * @param appIndex The app index in sandbox.
     */
-    API_EXPORT int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex);
+    API_EXPORT int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId);
 };
 }  // namespace OHOS
 #endif //DISTRIBUTED_DATA_MGR_H

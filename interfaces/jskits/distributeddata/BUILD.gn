@@ -41,7 +41,6 @@ ohos_shared_library("distributeddata") {
   include_dirs = [
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/include",
-    "${kv_store_base_path}/kv_store/frameworks/innerkitsimpl/distributeddatafwk",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "${datashare_innerapi_path}/common/include",

@@ -37,7 +37,6 @@ if (use_platform_win || use_platforn_mac) {
       "//third_party/node/src",
       "//foundation/distributeddatamgr/kv_store/frameworks/common",
       "//foundation/distributeddatamgr/kv_store/frameworks/jskitsimpl/distributeddata/include",
-      "${kv_store_base_path}/kv_store/frameworks/innerkitsimpl/distributeddatafwk",
       "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
       "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
       "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/mock/base",

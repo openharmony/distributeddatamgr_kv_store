@@ -29,7 +29,6 @@ config("distributeddatafwk_config") {
 
   include_dirs = [
     "include",
-    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatafwk",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
@@ -54,7 +53,6 @@ config("distributeddatafwk_public_config") {
     "include",
     ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
     ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
-    "${kv_store_base_path}/kv_store/frameworks/innerkitsimpl/distributeddatafwk",
     ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//commonlibrary/c_utils/base/include",
   ]
@@ -68,7 +66,6 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//foundation/distributeddatamgr/kv_store/kvstoremock/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kvstoremock/frameworks/innerkitsimpl/kvdb/include",
     "include",
-    "${kv_store_base_path}/kv_store/frameworks/innerkitsimpl/distributeddatafwk",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
