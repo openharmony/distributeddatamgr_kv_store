@@ -38,7 +38,6 @@ namespace {
     KvStoreNbDelegate *g_kvNbDelegatePtr = nullptr;
     auto g_kvNbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         std::placeholders::_1, std::placeholders::_2, std::ref(g_kvDelegateStatus), std::ref(g_kvNbDelegatePtr));
-}
 
 class DistributedDBCommonTest : public testing::Test {
 public:
@@ -548,4 +547,23 @@ HWTEST_F(DistributedDBCommonTest, StringCaseTest002, TestSize.Level0)
     EXPECT_TRUE(DBCommon::CaseInsensitiveCompare("OPQRSTUVWXYZ", "opqrstuvwxyz"));
     EXPECT_FALSE(DBCommon::CaseInsensitiveCompare("sqlite", "sqlite3"));
     EXPECT_FALSE(DBCommon::CaseInsensitiveCompare("gitee", "git"));
+}
+
+HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest001, TestSize.Level1)
+{
+    int threadCount = 1000;
+    for (int i = 0; i < threadCount; i++) {
+        std::thread t1([] {
+           PerformanceAnalysis::GetInstance(20); // 20 is stepNum
+        });
+
+        std::thread t2([] {
+            PerformanceAnalysis::GetInstance(20); // 20 is stepNum
+        });
+
+        t1.join();
+        t2.join();
+    }
+}
+
 }

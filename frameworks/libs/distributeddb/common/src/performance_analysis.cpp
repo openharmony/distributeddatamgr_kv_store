@@ -26,11 +26,12 @@ namespace DistributedDB {
 const std::string PerformanceAnalysis::STATISTICAL_DATA_FILE_NAME_HEADER = "/data/log/statistic";
 const std::string PerformanceAnalysis::CSV_FILE_EXTENSION = ".csv";
 const std::string PerformanceAnalysis::DEFAULT_FILE_NAME = "default00";
+std::once_flag PerformanceAnalysis::initFlag_;
 
 PerformanceAnalysis *PerformanceAnalysis::GetInstance(int stepNum)
 {
     static PerformanceAnalysis inst(stepNum);
-    inst.Initialization();
+    std::call_once(initFlag_, std::bind(&PerformanceAnalysis::Initialization, &inst));
     return &inst;
 }
 

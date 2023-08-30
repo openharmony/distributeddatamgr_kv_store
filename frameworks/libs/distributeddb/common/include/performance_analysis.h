@@ -17,6 +17,7 @@
 #define PERFORMANCE_ANALYSIS_H
 
 #include <fstream>
+#include <mutex>
 #include <vector>
 
 #include "db_types.h"
@@ -120,6 +121,7 @@ private:
     std::ofstream outFile;
     int fileNumber_;
     std::string fileName_;
+    static std::once_flag initFlag_;
 };
 }  // namespace DistributedDB
 #endif
