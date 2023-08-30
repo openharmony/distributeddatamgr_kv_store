@@ -164,4 +164,17 @@ int CloudMetaData::DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaVal
     }
     return E_OK;
 }
+
+int CloudMetaData::CleanWaterMark(const TableName &tableName)
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    std::string cloudWaterMark;
+    int ret = WriteMarkToMeta(tableName, 0, cloudWaterMark);
+    if (ret != E_OK) {
+        return ret;
+    }
+    cloudMetaVals_[tableName] = {};
+    LOGD("[Meta] clean cloud water mark");
+    return E_OK;
+}
 } // namespace DistributedDB

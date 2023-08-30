@@ -88,6 +88,8 @@ public:
 
     std::string GetIdentify() const;
 
+    int CleanWaterMark(const TableName &tableName);
+
 protected:
     void Init();
 

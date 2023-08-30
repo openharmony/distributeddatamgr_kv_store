@@ -365,4 +365,14 @@ Timestamp StorageProxy::EraseNanoTime(DistributedDB::Timestamp localTime)
 {
     return localTime / CloudDbConstant::TEN_THOUSAND * CloudDbConstant::TEN_THOUSAND;
 }
+
+int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGW("[StorageProxy] meta is nullptr return default");
+        return -E_INVALID_DB;
+    }
+    return cloudMetaData_->CleanWaterMark(tableName);
+}
 }
