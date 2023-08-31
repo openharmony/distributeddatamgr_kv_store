@@ -258,6 +258,25 @@ namespace {
         return 0;
     }
 
+    void CheckCloudTotalCount(std::vector<int64_t> expectCounts)
+    {
+        VBucket extend;
+        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+        for (size_t i = 0; i < g_tables.size(); ++i) {
+            int64_t realCount = 0;
+            std::vector<VBucket> data;
+            g_virtualCloudDb->Query(g_tables[i], extend, data);
+            for (size_t j = 0; j < data.size(); ++j) {
+                auto entry = data[j].find(CloudDbConstant::DELETE_FIELD);
+                if (entry != data[j].end() && std::get<bool>(entry->second)) {
+                    continue;
+                }
+                realCount++;
+            }
+            EXPECT_EQ(realCount, expectCounts[i]); // ExpectCount represents the total amount of cloud data.
+        }
+    }
+
     void CheckCloudRecordNum(sqlite3 *&db, std::vector<std::string> tableList, std::vector<int> countList)
     {
         int i = 0;

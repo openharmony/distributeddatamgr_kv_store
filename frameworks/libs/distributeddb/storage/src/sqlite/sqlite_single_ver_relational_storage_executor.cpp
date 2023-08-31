@@ -1975,9 +1975,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
     std::string cleanLogSql = "UPDATE '" + logTableName + "' SET " + FLAG + " = " + SET_FLAG_LOCAL + ", " +
-        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = NULL WHERE " + CLOUD_GID_FIELD + " is not NULL and " +
-        CLOUD_GID_FIELD + " != '' AND " + FLAG_IS_CLOUD + ";";
-
+        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE " + CLOUD_GID_FIELD + " is not NULL and " +
+        CLOUD_GID_FIELD + " != '';";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
@@ -1997,6 +1996,10 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on log table, %d.", errCode);
         return errCode;
+    }
+    errCode = CleanCloudDataOnLogTable(logTableName);
+    if (errCode != E_OK) {
+        LOGE("Failed to clean gid on log table, %d.", errCode);
     }
     return errCode;
 }
