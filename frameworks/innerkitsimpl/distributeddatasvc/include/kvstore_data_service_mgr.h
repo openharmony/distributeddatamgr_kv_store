@@ -26,7 +26,6 @@ public:
     static int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId);
 
 private:
-    static sptr<DistributedKv::IKvStoreDataService> kvDataServiceProxy_;
     static sptr<IKvStoreDataService> GetDistributedKvDataService();
 };
 }

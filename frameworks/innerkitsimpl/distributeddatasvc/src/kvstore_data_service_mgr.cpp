@@ -18,7 +18,6 @@
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
 namespace OHOS::DistributedKv {
-sptr<DistributedKv::IKvStoreDataService> KvStoreDataServiceMgr::kvDataServiceProxy_;
 int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId)
 {
     sptr<IKvStoreDataService> ability = GetDistributedKvDataService();
@@ -30,9 +29,6 @@ int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, in
 
 sptr<IKvStoreDataService> KvStoreDataServiceMgr::GetDistributedKvDataService()
 {
-    if (kvDataServiceProxy_ != nullptr) {
-        return kvDataServiceProxy_;
-    }
     ZLOGI("create remote proxy.");
     auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
     if (samgr == nullptr) {
@@ -41,11 +37,11 @@ sptr<IKvStoreDataService> KvStoreDataServiceMgr::GetDistributedKvDataService()
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    kvDataServiceProxy_ = iface_cast<IKvStoreDataService>(remote);
-    if (kvDataServiceProxy_ == nullptr) {
+    auto proxy = iface_cast<IKvStoreDataService>(remote);
+    if (proxy == nullptr) {
         ZLOGE("initialize proxy failed.");
         return nullptr;
     }
-    return kvDataServiceProxy_;
+    return proxy;
 }
 }
