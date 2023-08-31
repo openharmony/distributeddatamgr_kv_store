@@ -64,6 +64,10 @@ public:
     uint32_t GetQueryTimes(const std::string &tableName);
 
     void SetActionStatus(DBStatus status);
+
+    DBStatus GetDataStatus(const std::string &gid, bool &deleteStatus);
+
+    void ClearAllData();
 private:
     struct CloudData {
         VBucket record;
