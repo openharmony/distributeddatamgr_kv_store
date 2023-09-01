@@ -42,7 +42,7 @@ public:
 
 private:
     typedef struct CloudMetaValue {
-        Timestamp localMark;
+        Timestamp localMark = 0u;
         std::string cloudMark;
     } CloudMetaValue;
 
