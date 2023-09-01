@@ -18,7 +18,8 @@
 #include "system_ability_definition.h"
 #include "iservice_registry.h"
 namespace OHOS::DistributedKv {
-int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId)
+int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
+    int32_t tokenId)
 {
     auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
     if (samgr == nullptr) {
