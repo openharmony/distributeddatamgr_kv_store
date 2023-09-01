@@ -19,7 +19,7 @@
 #include <string>
 #include "visibility.h"
 namespace OHOS::DistributedKv {
-class API_EXPORT DistributedDataMgr {
+class DistributedDataMgr {
 public:
     /**
      * @brief Constructor.
@@ -35,8 +35,10 @@ public:
      * @param bundleName The bundle name.
      * @param userId The user ID.
      * @param appIndex The app index in sandbox.
+     * @param tokenId The token id to clear.
     */
-    API_EXPORT int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId);
+    API_EXPORT int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
+        int32_t tokenId);
 };
 }  // namespace OHOS
 #endif //DISTRIBUTED_DATA_MGR_H

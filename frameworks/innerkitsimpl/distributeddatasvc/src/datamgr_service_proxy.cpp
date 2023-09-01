@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "KvStoreDataServiceProxy"
+#define LOG_TAG "DataMgrServiceProxy"
 
-#include "kvstore_data_service_proxy.h"
+#include "datamgr_service_proxy.h"
 #include <ipc_skeleton.h>
 #include "itypes_util.h"
 #include "message_parcel.h"
@@ -24,23 +24,23 @@
 
 namespace OHOS {
 namespace DistributedKv {
-KvStoreDataServiceProxy::KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl)
+DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
     ZLOGI("init data service proxy.");
 }
 
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::string &name)
+sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &name)
 {
     ZLOGI("%s", name.c_str());
     MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
         return nullptr;
     }
 
     if (!ITypesUtil::Marshal(data, name)) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("write name failed, name is %{public}s", name.c_str());
         return nullptr;
     }
 
@@ -61,11 +61,11 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::stri
     return remoteObject;
 }
 
-Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
+Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
 {
     MessageParcel data;
     MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
@@ -92,28 +92,18 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     return static_cast<Status>(reply.ReadInt32());
 }
 
-int32_t KvStoreDataServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
+int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
     int32_t tokenId)
 {
     MessageParcel data;
     MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
-    if (!data.WriteString(bundleName)) {
-        ZLOGW("failed to write bundleName.");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(userId)) {
-        ZLOGW("failed to write userId.");
-        return Status::IPC_ERROR;
-    }
-    if (!data.WriteInt32(appIndex)) {
-        ZLOGW("failed to write app index.");
-        return Status::IPC_ERROR;
-    }    if (!data.WriteInt32(tokenId)) {
-        ZLOGW("failed to write tokenId.");
+    if (!ITypesUtil::Marshal(data, bundleName, userId, appIndex, tokenId)) {
+        ZLOGW("failed to write bundleName:%{public}s, user:%{public}d, appIndex:%{public}d, tokenID:%{public}d",
+            bundleName.c_str(), userId, appIndex, tokenId);
         return Status::IPC_ERROR;
     }
 

@@ -16,10 +16,10 @@
 #define KVSTORE_DATA_SERVICE_PROXY_H
 #include "ikvstore_data_service.h"
 namespace OHOS::DistributedKv {
-class KvStoreDataServiceProxy : public IRemoteProxy<IKvStoreDataService> {
+class DataMgrServiceProxy : public IRemoteProxy<IKvStoreDataService> {
 public:
-    explicit API_EXPORT KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl);
-    ~KvStoreDataServiceProxy() = default;
+    explicit API_EXPORT DataMgrServiceProxy(const sptr<IRemoteObject> &impl);
+    ~DataMgrServiceProxy() = default;
     sptr<IRemoteObject> GetFeatureInterface(const std::string &name) override;
 
     Status RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer) override;
@@ -27,7 +27,7 @@ public:
     int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId) override;
 
 private:
-    static inline BrokerDelegator<KvStoreDataServiceProxy> delegator_;
+    static inline BrokerDelegator<DataMgrServiceProxy> delegator_;
 };
 }
 #endif //KVSTORE_DATA_SERVICE_PROXY_H

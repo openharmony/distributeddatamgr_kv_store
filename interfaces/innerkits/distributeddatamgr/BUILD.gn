@@ -32,9 +32,9 @@ config("data_mgr_public_config") {
 
 ohos_shared_library("distributeddata_mgr") {
   sources = [
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatasvc/src/distributed_data_mgr.cpp",
     "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_mgr.cpp",
-    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_proxy.cpp",
   ]
 
   external_deps = [

@@ -20,28 +20,18 @@
 namespace OHOS::DistributedKv {
 int32_t KvStoreDataServiceMgr::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId)
 {
-    sptr<IKvStoreDataService> ability = GetDistributedKvDataService();
-    if (ability == nullptr) {
-        return ERROR;
-    }
-    return ability->ClearAppStorage(bundleName, userId, appIndex, tokenId);
-}
-
-sptr<IKvStoreDataService> KvStoreDataServiceMgr::GetDistributedKvDataService()
-{
-    ZLOGI("create remote proxy.");
     auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
     if (samgr == nullptr) {
-        ZLOGE("get samgr fail.");
-        return nullptr;
+        ZLOGE("KvStoreDataServiceMgr get samgr fail.");
+        return ERROR;
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    auto proxy = iface_cast<IKvStoreDataService>(remote);
-    if (proxy == nullptr) {
-        ZLOGE("initialize proxy failed.");
-        return nullptr;
+    sptr<IKvStoreDataService> ability = iface_cast<IKvStoreDataService>(remote);
+    if (ability == nullptr) {
+        ZLOGE("KvStoreDataServiceMgr initialize proxy failed.");
+        return ERROR;
     }
-    return proxy;
+    return ability->ClearAppStorage(bundleName, userId, appIndex, tokenId);
 }
 }

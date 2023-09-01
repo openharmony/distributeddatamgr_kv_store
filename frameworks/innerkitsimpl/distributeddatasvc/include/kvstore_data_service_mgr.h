@@ -24,9 +24,6 @@ namespace OHOS::DistributedKv {
 class KvStoreDataServiceMgr {
 public:
     static int32_t ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex, int32_t tokenId);
-
-private:
-    static sptr<IKvStoreDataService> GetDistributedKvDataService();
 };
 }
 #endif //KVSTORE_DATA_SERVICE_MGR_H
