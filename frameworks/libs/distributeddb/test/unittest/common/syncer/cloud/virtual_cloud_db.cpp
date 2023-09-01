@@ -353,12 +353,4 @@ void VirtualCloudDb::SetActionStatus(DBStatus status)
 {
     actionStatus_ = status;
 }
-
-void VirtualCloudDb::ClearAllData()
-{
-    std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
-    cloudData_.clear();
-    incrementCloudData_.clear();
-    queryTimes_.clear();
-}
 }
