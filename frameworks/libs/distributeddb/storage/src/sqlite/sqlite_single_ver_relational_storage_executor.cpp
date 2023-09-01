@@ -1996,6 +1996,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on log table, %d.", errCode);
+        return errCode;
     }
     return errCode;
 }
