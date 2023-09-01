@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 import("//foundation/distributeddatamgr/data_share/datashare.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
 
@@ -20,6 +21,8 @@ config("module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
+    "${kv_store_base_path}/frameworks/innerkitsimpl/distributeddatasvc/include",
+    "../../../../interfaces/innerkits/distributeddatamgr/include/",
     "//commonlibrary/c_utils/base/include",
     "${datashare_innerapi_path}/common/include",
     "${datashare_innerapi_path}/provider/include",
@@ -50,7 +53,6 @@ ohos_source_set("kvdb_src_file") {
     "../../distributeddatafwk/src/data_query.cpp",
     "../../distributeddatafwk/src/distributed_kv_data_manager.cpp",
     "../../distributeddatafwk/src/ikvstore_client_death_observer.cpp",
-    "../../distributeddatafwk/src/ikvstore_data_service.cpp",
     "../../distributeddatafwk/src/ikvstore_observer.cpp",
     "../../distributeddatafwk/src/ikvstore_sync_callback.cpp",
     "../../distributeddatafwk/src/kv_utils.cpp",
@@ -86,6 +88,7 @@ ohos_source_set("kvdb_src_file") {
   configs = [ ":module_private_config" ]
 
   deps = [
+    "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]

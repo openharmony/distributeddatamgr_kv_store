@@ -1,0 +1,50 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+import("//build/ohos.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
+
+group("build_module") {
+  deps = [ ":distributeddata_mgr" ]
+}
+
+config("data_mgr_public_config") {
+  visibility = [ ":*" ]
+
+  cflags = [ "-Wno-multichar" ]
+
+  include_dirs = [
+    "include",
+    "../distributeddata/include",
+    "../../../frameworks/common",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/include",
+  ]
+}
+
+ohos_shared_library("distributeddata_mgr") {
+  sources = [
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/datamgr_service_proxy.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/distributed_data_mgr.cpp",
+    "../../../frameworks/innerkitsimpl/distributeddatasvc/src/kvstore_data_service_mgr.cpp",
+  ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_core",
+    "samgr:samgr_proxy",
+  ]
+  public_configs = [ ":data_mgr_public_config" ]
+  innerapi_tags = [ "platformsdk" ]
+  subsystem_name = "distributeddatamgr"
+  part_name = "kv_store"
+}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "KvStoreDataServiceProxy"
+#define LOG_TAG "DataMgrServiceProxy"
 
-#include "ikvstore_data_service.h"
+#include "datamgr_service_proxy.h"
 #include <ipc_skeleton.h>
 #include "itypes_util.h"
 #include "message_parcel.h"
@@ -24,25 +24,23 @@
 
 namespace OHOS {
 namespace DistributedKv {
-constexpr KvStoreDataServiceStub::RequestHandler
-    KvStoreDataServiceStub::HANDLERS[static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::SERVICE_CMD_LAST)];
-KvStoreDataServiceProxy::KvStoreDataServiceProxy(const sptr<IRemoteObject> &impl)
+DataMgrServiceProxy::DataMgrServiceProxy(const sptr<IRemoteObject> &impl)
     : IRemoteProxy<IKvStoreDataService>(impl)
 {
     ZLOGI("init data service proxy.");
 }
 
-sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::string &name)
+sptr<IRemoteObject> DataMgrServiceProxy::GetFeatureInterface(const std::string &name)
 {
     ZLOGI("%s", name.c_str());
     MessageParcel data;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
         return nullptr;
     }
 
     if (!ITypesUtil::Marshal(data, name)) {
-        ZLOGE("write descriptor failed");
+        ZLOGE("write name failed, name is %{public}s", name.c_str());
         return nullptr;
     }
 
@@ -63,11 +61,11 @@ sptr<IRemoteObject> KvStoreDataServiceProxy::GetFeatureInterface(const std::stri
     return remoteObject;
 }
 
-Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
+Status DataMgrServiceProxy::RegisterClientDeathObserver(const AppId &appId, sptr<IRemoteObject> observer)
 {
     MessageParcel data;
     MessageParcel reply;
-    if (!data.WriteInterfaceToken(KvStoreDataServiceProxy::GetDescriptor())) {
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
         ZLOGE("write descriptor failed");
         return Status::IPC_ERROR;
     }
@@ -94,49 +92,29 @@ Status KvStoreDataServiceProxy::RegisterClientDeathObserver(const AppId &appId, 
     return static_cast<Status>(reply.ReadInt32());
 }
 
-int32_t KvStoreDataServiceStub::RegisterClientDeathObserverOnRemote(MessageParcel &data, MessageParcel &reply)
+int32_t DataMgrServiceProxy::ClearAppStorage(const std::string &bundleName, int32_t userId, int32_t appIndex,
+    int32_t tokenId)
 {
-    AppId appId = { data.ReadString() };
-    sptr<IRemoteObject> kvStoreClientDeathObserverProxy = data.ReadRemoteObject();
-    if (kvStoreClientDeathObserverProxy == nullptr) {
-        return -1;
+    MessageParcel data;
+    MessageParcel reply;
+    if (!data.WriteInterfaceToken(DataMgrServiceProxy::GetDescriptor())) {
+        ZLOGE("write descriptor failed");
+        return Status::IPC_ERROR;
     }
-    Status status = RegisterClientDeathObserver(appId, std::move(kvStoreClientDeathObserverProxy));
-    if (!reply.WriteInt32(static_cast<int>(status))) {
-        return -1;
+    if (!ITypesUtil::Marshal(data, bundleName, userId, appIndex, tokenId)) {
+        ZLOGW("failed to write bundleName:%{public}s, user:%{public}d, appIndex:%{public}d, tokenID:%{public}d",
+            bundleName.c_str(), userId, appIndex, tokenId);
+        return Status::IPC_ERROR;
     }
-    return 0;
-}
 
-int32_t KvStoreDataServiceStub::GetFeatureInterfaceOnRemote(MessageParcel &data, MessageParcel &reply)
-{
-    std::string name;
-    if (!ITypesUtil::Unmarshal(data, name)) {
-        return -1;
+    MessageOption mo { MessageOption::TF_SYNC };
+    int32_t error = Remote()->SendRequest(
+        static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::CLEAR_APP_STORAGE), data, reply, mo);
+    if (error != 0) {
+        ZLOGW("failed during IPC. errCode %d", error);
+        return Status::IPC_ERROR;
     }
-    auto remoteObject = GetFeatureInterface(name);
-    if (!ITypesUtil::Marshal(reply, remoteObject)) {
-        return -1;
-    }
-    return 0;
-}
-
-int32_t KvStoreDataServiceStub::OnRemoteRequest(uint32_t code, MessageParcel &data,
-                                                MessageParcel &reply, MessageOption &option)
-{
-    ZLOGD("code:%{public}u, callingPid:%{public}d", code, IPCSkeleton::GetCallingPid());
-    std::u16string descriptor = KvStoreDataServiceStub::GetDescriptor();
-    std::u16string remoteDescriptor = data.ReadInterfaceToken();
-    if (descriptor != remoteDescriptor) {
-        ZLOGE("local descriptor is not equal to remote");
-        return -1;
-    }
-    if (code >= 0 && code < static_cast<uint32_t>(KvStoreDataServiceInterfaceCode::SERVICE_CMD_LAST)) {
-        return (this->*HANDLERS[code])(data, reply);
-    } else {
-        MessageOption mo { MessageOption::TF_SYNC };
-        return IPCObjectStub::OnRemoteRequest(code, data, reply, mo);
-    }
+    return static_cast<Status>(reply.ReadInt32());
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

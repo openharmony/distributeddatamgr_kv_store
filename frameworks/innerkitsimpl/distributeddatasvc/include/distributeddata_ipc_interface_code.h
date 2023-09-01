@@ -23,6 +23,7 @@ namespace OHOS::DistributedKv {
 enum class KvStoreDataServiceInterfaceCode : uint32_t {
     GET_FEATURE_INTERFACE = 0,
     REGISTERCLIENTDEATHOBSERVER,
+    CLEAR_APP_STORAGE,
     SERVICE_CMD_LAST
 };
 } // namespace OHOS::DistributedKv

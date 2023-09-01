@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 module_output_path = "kv_store/distributeddatafwk"
 
@@ -21,10 +22,12 @@ config("module_private_config") {
   include_dirs = [
     "../include/",
     "../src/",
+    "../../distributeddatasvc/include/",
     "../../kvdb/include/",
     "../../kvdb/src/",
     "../../../common/",
     "../../../../interfaces/innerkits/distributeddata/include/",
+    "../../../../interfaces/innerkits/distributeddatamgr/include/",
 
     # for ipc_core interfaces.
     "//commonlibrary/c_utils/base/include",
@@ -47,7 +50,6 @@ ohos_source_set("distributeddatafwk_src_file") {
     "../src/data_query.cpp",
     "../src/distributed_kv_data_manager.cpp",
     "../src/ikvstore_client_death_observer.cpp",
-    "../src/ikvstore_data_service.cpp",
     "../src/ikvstore_observer.cpp",
     "../src/ikvstore_sync_callback.cpp",
     "../src/kv_utils.cpp",
@@ -83,6 +85,7 @@ ohos_source_set("distributeddatafwk_src_file") {
   configs = [ ":module_private_config" ]
 
   deps = [
+    "../../../../interfaces/innerkits/distributeddatamgr:distributeddata_mgr",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
     "//foundation/distributedhardware/device_manager/interfaces/inner_kits/native_cpp:devicemanagersdk",
   ]

@@ -20,6 +20,7 @@
 #include "ipc_skeleton.h"
 #include "iservice_registry.h"
 #include "kvstore_client_death_observer.h"
+#include "datamgr_service_proxy.h"
 #include "log_print.h"
 #include "refbase.h"
 #include "system_ability_definition.h"
@@ -86,7 +87,7 @@ sptr<IKvStoreDataService> KvStoreServiceDeathNotifier::GetDistributedKvDataServi
     }
 
     auto remote = samgr->CheckSystemAbility(DISTRIBUTED_KV_DATA_SERVICE_ABILITY_ID);
-    instance->kvDataServiceProxy_ = iface_cast<IKvStoreDataService>(remote);
+    instance->kvDataServiceProxy_ = iface_cast<DataMgrServiceProxy>(remote);
     if (instance->kvDataServiceProxy_ == nullptr) {
         ZLOGE("initialize proxy failed.");
         return nullptr;
