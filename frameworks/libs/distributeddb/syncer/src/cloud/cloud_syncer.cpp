@@ -1930,11 +1930,10 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     const RelationalSchemaObject &localSchema)
 {
     std::lock_guard<std::mutex> lock(syncMutex_);
-    std::string emptyString;
     int index = 1;
     for (const auto &tableName: tableNameList) {
         LOGD("[CloudSyncer] Start clean cloud water mark. table index: %d.", index);
-        int ret = storageProxy_->SetCloudWaterMark(tableName, emptyString);
+        int ret = storageProxy_->CleanWaterMark(tableName);
         if (ret != E_OK) {
         LOGE("[CloudSyncer] failed to put cloud water mark after clean cloud data, %d.", ret);
             return ret;

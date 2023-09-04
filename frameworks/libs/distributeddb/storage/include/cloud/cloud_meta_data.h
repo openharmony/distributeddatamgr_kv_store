@@ -38,9 +38,11 @@ public:
     int SetLocalWaterMark(const TableName &tableName, Timestamp localMark);
     int SetCloudWaterMark(const TableName &tableName, std::string &cloudMark);
 
+    int CleanWaterMark(const TableName &tableName);
+
 private:
     typedef struct CloudMetaValue {
-        Timestamp localMark;
+        Timestamp localMark = 0u;
         std::string cloudMark;
     } CloudMetaValue;
 
