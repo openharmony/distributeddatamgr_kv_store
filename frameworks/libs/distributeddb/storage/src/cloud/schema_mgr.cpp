@@ -135,7 +135,7 @@ bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, 
     // whether the corresponding field in local schema is primary key
     bool isLocalFieldPrimary = false;
     for (const auto &kvPair : localPrimaryKeys) {
-        if (kvPair.second == cloudField.colName) {
+        if (DBCommon::CaseInsensitiveCompare(kvPair.second, cloudField.colName)) {
             isLocalFieldPrimary = true;
             localPrimaryKeys.erase(kvPair.first);
             break;
@@ -146,7 +146,25 @@ bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, 
 
 void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
 {
-    cloudSchema_ = std::make_shared<DataBaseSchema>(schema);
+    DataBaseSchema cloudSchema;
+    for (const auto &table : schema.tables) {
+        TableSchema tableSchema;
+        std::string name(table.name.length(), ' ');
+        std::transform(table.name.begin(), table.name.end(), name.begin(), tolower);
+        tableSchema.name = name;
+        for (const auto &field : table.fields) {
+            Field tableField;
+            std::string colName(field.colName.length(), ' ');
+            std::transform(field.colName.begin(), field.colName.end(), colName.begin(), tolower);
+            tableField.colName = colName;
+            tableField.type = field.type;
+            tableField.primary = field.primary;
+            tableField.nullable = field.nullable;
+            tableSchema.fields.emplace_back(tableField);
+        }
+        cloudSchema.tables.emplace_back(tableSchema);
+    }
+    cloudSchema_ = std::make_shared<DataBaseSchema>(cloudSchema);
 }
 
 std::shared_ptr<DataBaseSchema> SchemaMgr::GetCloudDbSchema()
@@ -160,7 +178,7 @@ int SchemaMgr::GetCloudTableSchema(const TableName &tableName, TableSchema &retS
         return -E_SCHEMA_MISMATCH;
     }
     for (const TableSchema &tableSchema : cloudSchema_->tables) {
-        if (tableSchema.name == tableName) {
+        if (DBCommon::CaseInsensitiveCompare(tableSchema.name, tableName)) {
             retSchema = tableSchema;
             return E_OK;
         }

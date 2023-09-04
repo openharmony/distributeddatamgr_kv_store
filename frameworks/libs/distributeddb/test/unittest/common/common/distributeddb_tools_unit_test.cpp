@@ -27,12 +27,10 @@
 #include <set>
 #include <sys/types.h>
 
-#include "cloud_db_constant.h"
 #include "cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
-#include "time_helper.h"
 #include "platform_specific.h"
 #include "runtime_config.h"
 #include "single_ver_data_packet.h"
@@ -747,7 +745,12 @@ unsigned long RelationalStoreObserverUnitTest::GetCallCount() const
     return callCount_;
 }
 
-void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData& data)
+unsigned long RelationalStoreObserverUnitTest::GetCloudCallCount() const
+{
+    return cloudCallCount_;
+}
+
+void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData &data)
 {
     callCount_++;
     changeDevice_ = data.GetDataChangeDevice();
@@ -759,7 +762,9 @@ void RelationalStoreObserverUnitTest::OnChange(const StoreChangedData& data)
 void RelationalStoreObserverUnitTest::OnChange(
     DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data)
 {
+    cloudCallCount_++;
     savedChangedData_[data.tableName] = data;
+    LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
 }
 
 void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
@@ -805,6 +810,14 @@ static bool IsPrimaryDataEq(
     uint64_t type, DistributedDB::ChangedData &input, DistributedDB::ChangedData &expected)
 {
     for (size_t m = 0; m < input.primaryData[type].size(); m++) {
+        if (m >= expected.primaryData[type].size()) {
+            LOGE("Actual primary data's size is more than the expected!");
+            return false;
+        }
+        if (input.primaryData[type][m].size() != expected.primaryData[type][m].size()) {
+            LOGE("Primary data fields' size is not equal!");
+            return false;
+        }
         for (size_t k = 0; k < input.primaryData[type][m].size(); k++) {
             if (!IsPrimaryKeyEq(input.primaryData[type][m][k], expected.primaryData[type][m][k])) {
                 return false;
@@ -865,6 +878,12 @@ void RelationalStoreObserverUnitTest::ResetToZero()
     callCount_ = 0;
     changeDevice_.clear();
     storeProperty_ = {};
+}
+
+void RelationalStoreObserverUnitTest::ResetCloudSyncToZero()
+{
+    cloudCallCount_ = 0;
+    savedChangedData_.clear();
 }
 
 const std::string RelationalStoreObserverUnitTest::GetDataChangeDevice() const
@@ -1190,28 +1209,5 @@ int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key,
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return SQLiteUtils::MapSQLiteErrno(errCode);
-}
-
-void RelationalTestUtils::GenerateAssetData(const DistributedDB::Asset &sourceAsset,
-    std::vector<DistributedDB::VBucket> &record, std::vector<DistributedDB::VBucket> &extend)
-{
-    VBucket data;
-    std::vector<uint8_t> photo(1, 'v');
-    data.insert_or_assign("name", "Local" + std::to_string(0));
-    data.insert_or_assign("height", 166.0); // 166.0 is random double value
-    data.insert_or_assign("married", false);
-    data.insert_or_assign("age", 13L);
-    data.insert_or_assign("photo", photo);
-    Asset asset = sourceAsset;
-    asset.name = asset.name + std::to_string(0);
-    data.insert_or_assign("assert", asset);
-    record.push_back(data);
-    VBucket log;
-    Timestamp now = TimeHelper::GetSysCurrentTime();
-    log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND);
-    log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
-    log.insert_or_assign("#_gid", std::to_string(2)); // 2 is gid
-    extend.push_back(log);
 }
 } // namespace DistributedDBUnitTest

@@ -701,6 +701,5 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
     CloseDb();
 }
-
 }
 #endif // RELATIONAL_STORE

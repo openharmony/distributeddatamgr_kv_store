@@ -282,13 +282,16 @@ public:
 
     // reset the callCount_ to zero.
     void ResetToZero();
+    void ResetCloudSyncToZero();
 
     // get callback results.
     unsigned long GetCallCount() const;
+    unsigned long GetCloudCallCount() const;
     const std::string GetDataChangeDevice() const;
     DistributedDB::StoreProperty GetStoreProperty() const;
 private:
     unsigned long callCount_;
+    unsigned long cloudCallCount_ = 0;
     std::string changeDevice_;
     DistributedDB::StoreProperty storeProperty_;
     std::unordered_map<std::string, DistributedDB::ChangedData> expectedChangedData_;
@@ -325,8 +328,6 @@ public:
     static int CheckTableRecords(sqlite3 *db, const std::string &table);
     static int GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value);
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
-    static void GenerateAssetData(const DistributedDB::Asset &sourceAsset, std::vector<DistributedDB::VBucket> &record,
-        std::vector<DistributedDB::VBucket> &extend);
 };
 } // namespace DistributedDBUnitTest
 

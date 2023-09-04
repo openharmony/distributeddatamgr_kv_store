@@ -193,8 +193,10 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
     return errCode;
 }
 
-int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
+int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+    std::vector<uint8_t> &value)
 {
+    (void)collateType;
     int64_t val = 0;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
@@ -203,8 +205,10 @@ int CloudStorageUtils::Int64ToVector(const VBucket &vBucket, const Field &field,
     return E_OK;
 }
 
-int CloudStorageUtils::BoolToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
+int CloudStorageUtils::BoolToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+    std::vector<uint8_t> &value)
 {
+    (void)collateType;
     bool val = false;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
@@ -213,8 +217,10 @@ int CloudStorageUtils::BoolToVector(const VBucket &vBucket, const Field &field, 
     return E_OK;
 }
 
-int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
+int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+    std::vector<uint8_t> &value)
 {
+    (void)collateType;
     double val = 0.0;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
@@ -225,18 +231,29 @@ int CloudStorageUtils::DoubleToVector(const VBucket &vBucket, const Field &field
     return E_OK;
 }
 
-int CloudStorageUtils::TextToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
+int CloudStorageUtils::TextToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+    std::vector<uint8_t> &value)
 {
     std::string val;
     if (CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, val) != E_OK) {
         return -E_CLOUD_ERROR;
     }
+    if (collateType == CollateType::COLLATE_NOCASE) {
+        for (auto &c : val) {
+            c = static_cast<char>(std::toupper(c));
+        }
+    } else if (collateType == CollateType::COLLATE_RTRIM) {
+        DBCommon::RTrim(val);
+    }
+
     DBCommon::StringToVector(val, value);
     return E_OK;
 }
 
-int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value)
+int CloudStorageUtils::BlobToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+    std::vector<uint8_t> &value)
 {
+    (void)collateType;
     if (field.type == TYPE_INDEX<Bytes>) {
         return CloudStorageUtils::GetValueFromVBucket(field.colName, vBucket, value);
     } else if (field.type == TYPE_INDEX<Asset>) {
@@ -296,12 +313,17 @@ std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema 
     return pkVec;
 }
 
-std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema)
+std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
+    bool sortByUpper)
 {
     std::map<std::string, Field> pkMap;
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
-            pkMap[field.colName] = field;
+            if (sortByUpper) {
+                pkMap[DBCommon::ToUpperCase(field.colName)] = field;
+            } else {
+                pkMap[field.colName] = field;
+            }
         }
     }
     return pkMap;
@@ -561,12 +583,13 @@ bool CloudStorageUtils::IsAssets(const Type &type)
 }
 
 int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
-    std::vector<uint8_t> &hashValue)
+    CollateType collateType, std::vector<uint8_t> &hashValue)
 {
     if (allowEmpty && vBucket.find(field.colName) == vBucket.end()) {
         return E_OK; // if vBucket from cloud doesn't contain primary key and allowEmpty, no need to calculate hash
     }
-    static std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVecFunc = {
+    static std::map<int32_t, std::function<int(const VBucket &, const Field &, CollateType,
+        std::vector<uint8_t> &)>> toVecFunc = {
         { TYPE_INDEX<int64_t>, &CloudStorageUtils::Int64ToVector },
         { TYPE_INDEX<bool>, &CloudStorageUtils::BoolToVector },
         { TYPE_INDEX<double>, &CloudStorageUtils::DoubleToVector },
@@ -581,7 +604,7 @@ int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBu
         return -E_CLOUD_ERROR;
     }
     std::vector<uint8_t> value;
-    int errCode = it->second(vBucket, field, value);
+    int errCode = it->second(vBucket, field, collateType, value);
     if (errCode != E_OK) {
         LOGE("convert cloud field fail, %d", errCode);
         return errCode;

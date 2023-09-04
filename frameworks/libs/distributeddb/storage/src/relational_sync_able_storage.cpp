@@ -694,10 +694,11 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
     int taskErrCode =
         RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-        if (!dataChangeCallbackMap_.empty()) {
-            auto it = dataChangeCallbackMap_.rbegin(); // call the last valid observer
-            if (it->second != nullptr) {
-                it->second(deviceName, std::move(changedData), isChangedData);
+        LOGD("begin to trigger observer, size = %zu(include null observer)", dataChangeCallbackMap_.size());
+        for (const auto &item : dataChangeCallbackMap_) {
+            if (item.second != nullptr) {
+                ChangedData observerChangeData = changedData;
+                item.second(deviceName, std::move(observerChangeData), isChangedData);
             }
         }
         DecObjRef(this);
@@ -1076,6 +1077,8 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
         LOGE("Get cloud schema failed when query log for cloud sync, %d", errCode);
         return errCode;
     }
+    RelationalSchemaObject localSchema = GetSchemaInfo();
+    transactionHandle_->SetLocalSchema(localSchema);
     return transactionHandle_->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
 }
 
@@ -1092,6 +1095,8 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
         LOGE("Get cloud schema failed when save cloud data, %d", errCode);
         return errCode;
     }
+    RelationalSchemaObject localSchema = GetSchemaInfo();
+    transactionHandle_->SetLocalSchema(localSchema);
     return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
 }
 

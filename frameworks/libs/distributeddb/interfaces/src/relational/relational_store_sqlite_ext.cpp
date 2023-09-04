@@ -19,6 +19,8 @@
 #include <thread>
 #include <vector>
 
+#include "relational_store_client.h"
+
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
 #include "sqlite3.h"
@@ -193,6 +195,21 @@ struct TransactFunc {
     void(*xDestroy)(void*) = nullptr;
 };
 
+std::mutex g_clientObserverMutex;
+std::map<std::string, ClientObserver> g_clientObserverMap;
+
+void StringToVector(const std::string &src, std::vector<uint8_t> &dst)
+{
+    dst.resize(src.size());
+    dst.assign(src.begin(), src.end());
+}
+
+void VectorToString(const std::vector<uint8_t> &src, std::string &dst)
+{
+    dst.clear();
+    dst.assign(src.begin(), src.end());
+}
+
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -223,22 +240,58 @@ int CalcValueHash(const std::vector<uint8_t> &value, std::vector<uint8_t> &hashV
     return E_OK;
 }
 
+void StringToUpper(std::string &str)
+{
+    std::transform(str.cbegin(), str.cend(), str.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+}
+
+void RTrim(std::string &str)
+{
+    if (str.empty()) {
+        return;
+    }
+    str.erase(str.find_last_not_of(" ") + 1);
+}
+
 void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     // 1 means that the function only needs one parameter, namely key
-    if (ctx == nullptr || argc != 1 || argv == nullptr) {
+    if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is params count
         return;
     }
-    auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
-    if (keyBlob == nullptr) {
-        sqlite3_result_error(ctx, "Parameters is invalid.", -1);
-        return;
-    }
-    int blobLen = sqlite3_value_bytes(argv[0]);
-    std::vector<uint8_t> value(keyBlob, keyBlob + blobLen);
+
+    int errCode;
     std::vector<uint8_t> hashValue;
-    int errCode = CalcValueHash(value, hashValue);
-    if (errCode != E_OK) {
+    DistributedDB::CollateType collateType = static_cast<DistributedDB::CollateType>(sqlite3_value_int(argv[1]));
+    if (collateType == DistributedDB::CollateType::COLLATE_NOCASE) {
+        auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+        std::string colStr = std::string(colChar);
+        StringToUpper(colStr);
+        std::vector<uint8_t> value;
+        StringToVector(colStr, value);
+        errCode = CalcValueHash(value, hashValue);
+    } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
+        auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+        std::string colStr = std::string(colChar);
+        RTrim(colStr);
+        std::vector<uint8_t> value;
+        StringToVector(colStr, value);
+        errCode = CalcValueHash(value, hashValue);
+    } else {
+            auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
+            if (keyBlob == nullptr) {
+                sqlite3_result_error(ctx, "Parameters is invalid.", -1);
+                return;
+            }
+
+            int blobLen = sqlite3_value_bytes(argv[0]);
+            std::vector<uint8_t> value(keyBlob, keyBlob + blobLen);
+            errCode = CalcValueHash(value, hashValue);
+    }
+
+    if (errCode != DistributedDB::DBStatus::OK) {
         sqlite3_result_error(ctx, "Get hash value error.", -1);
         return;
     }
@@ -250,7 +303,7 @@ int RegisterCalcHash(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CalcHashKey;
-    return RegisterFunction(db, "calc_hash", 1, nullptr, func);
+    return RegisterFunction(db, "calc_hash", 2, nullptr, func); // 2 is params count
 }
 
 void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
@@ -270,7 +323,7 @@ void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
     uint64_t curTime = 0;
     int errCode = TimeHelper::GetSysCurrentRawTime(curTime);
-    if (errCode != E_OK) {
+    if (errCode != DistributedDB::DBStatus::OK) {
         sqlite3_result_error(ctx, "get raw sys time failed.", errCode);
         return;
     }
@@ -284,6 +337,66 @@ void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     }
 
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetTime(0));
+}
+
+int GetHashString(const std::string &str, std::string &dst)
+{
+    std::vector<uint8_t> strVec;
+    StringToVector(str, strVec);
+    std::vector<uint8_t> hashVec;
+    int errCode = CalcValueHash(strVec, hashVec);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    VectorToString(hashVec, dst);
+    return E_OK;
+}
+
+static bool GetDbFileName(sqlite3 *db, std::string &fileName)
+{
+    if (db == nullptr) {
+        return false;
+    }
+
+    auto dbFilePath = sqlite3_db_filename(db, nullptr);
+    if (dbFilePath == nullptr) {
+        return false;
+    }
+    fileName = std::string(dbFilePath);
+    return true;
+}
+
+void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+        return;
+    }
+    sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        return;
+    }
+    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+    auto it = g_clientObserverMap.find(hashFileName);
+    if (it != g_clientObserverMap.end()) {
+        auto tableNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+        if (tableNameChar == nullptr) {
+            return;
+        }
+
+        if (it->second != nullptr) {
+            std::string tableName = std::string(tableNameChar);
+            ClientChangedData clientChangedData { tableName };
+            it->second(clientChangedData);
+        }
+    }
+    sqlite3_result_int64(ctx, (sqlite3_int64)1);
 }
 
 int RegisterGetSysTime(sqlite3 *db)
@@ -305,6 +418,13 @@ int RegisterGetLastTime(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &GetLastTime;
     return RegisterFunction(db, "get_last_time", 0, nullptr, func);
+}
+
+int RegisterCloudDataChangeObserver(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &CloudDataChangedObserver;
+    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts const_cast<char *>(dbFilePath)
 }
 
 int ResetStatement(sqlite3_stmt *&stmt)
@@ -439,7 +559,7 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
     int errCode = sqlite3_prepare_v2(db, selectSql, -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
         (void)sqlite3_finalize(statement);
-        return -E_ERROR;
+        return DistributedDB::DBStatus::DB_ERROR;
     }
 
     std::string keyStr = SYNC_TABLE_TYPE + tableName;
@@ -451,7 +571,7 @@ int GetTableSyncType(sqlite3 *db, const std::string &tableName, std::string &tab
 
     if (sqlite3_step(statement) == SQLITE_ROW) {
         std::vector<uint8_t> value;
-        if (GetColumnBlobValue(statement, 0, value) == E_OK) {
+        if (GetColumnBlobValue(statement, 0, value) == DistributedDB::DBStatus::OK) {
             tableType.assign(value.begin(), value.end());
             (void)sqlite3_finalize(statement);
             return E_OK;
@@ -515,7 +635,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
 
     if (isLogTblExists) {
         std::string tableType = DEVICE_TYPE;
-        if (GetTableSyncType(db, tableStr, tableType) != E_OK) {
+        if (GetTableSyncType(db, tableStr, tableType) != DistributedDB::DBStatus::OK) {
             return;
         }
         if (tableType == DEVICE_TYPE) {
@@ -539,6 +659,7 @@ void PostHandle(sqlite3 *db)
     RegisterGetSysTime(db);
     RegisterGetLastTime(db);
     RegisterGetRawSysTime(db);
+    RegisterCloudDataChangeObserver(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);
     std::string recursiveTrigger = "PRAGMA recursive_triggers = ON;";
@@ -574,6 +695,43 @@ SQLITE_API int sqlite3_open_v2_relational(const char *filename, sqlite3 **ppDb, 
     }
     PostHandle(*ppDb);
     return err;
+}
+
+DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver)
+{
+    std::string fileName;
+    if (clientObserver == nullptr || !GetDbFileName(db, fileName)) {
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        return DistributedDB::DB_ERROR;
+    }
+    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+    g_clientObserverMap[hashFileName] = clientObserver;
+    return DistributedDB::OK;
+}
+
+DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return DistributedDB::INVALID_ARGS;
+    }
+
+    std::string hashFileName;
+    int errCode = GetHashString(fileName, hashFileName);
+    if (errCode != DistributedDB::DBStatus::OK) {
+        return DistributedDB::DB_ERROR;
+    }
+    std::lock_guard<std::mutex> lock(g_clientObserverMutex);
+    auto it = g_clientObserverMap.find(hashFileName);
+    if (it != g_clientObserverMap.end()) {
+        g_clientObserverMap.erase(it);
+    }
+    return DistributedDB::OK;
 }
 
 // hw export the symbols

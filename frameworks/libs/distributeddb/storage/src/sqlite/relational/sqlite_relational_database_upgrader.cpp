@@ -111,7 +111,11 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     DistributedTableMode mode = schemaObject.GetTableMode();
     for (const auto &[tableName, tableInfo] : schemaObject.GetTables()) {
         std::string dropTriggerSql = "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
-            "_ON_UPDATE";
+            "_ON_UPDATE;";
+        dropTriggerSql += "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
+            "_ON_INSERT;";
+        dropTriggerSql += "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
+            "_ON_DELETE;";
         errCode = SQLiteUtils::ExecuteRawSQL(db_, dropTriggerSql);
         if (errCode != E_OK) {
             LOGE("[Relational][Upgrade] drop trigger failed.", errCode);

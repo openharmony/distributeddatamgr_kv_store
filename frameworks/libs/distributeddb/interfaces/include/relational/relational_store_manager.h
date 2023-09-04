@@ -31,7 +31,8 @@ public:
 
     DB_API static std::string GetDistributedLogTableName(const std::string &tableName);
     // key:colName value:real value
-    DB_API static std::vector<uint8_t> CalcPrimaryKeyHash(const std::map<std::string, Type> primaryKey);
+    DB_API static std::vector<uint8_t> CalcPrimaryKeyHash(const std::map<std::string, Type> &primaryKey,
+        const std::map<std::string, CollateType> &collateTypeMap = {});
 
     DB_API RelationalStoreManager(const std::string &appId, const std::string &userId, int32_t instanceId = 0);
     DB_API ~RelationalStoreManager() = default;

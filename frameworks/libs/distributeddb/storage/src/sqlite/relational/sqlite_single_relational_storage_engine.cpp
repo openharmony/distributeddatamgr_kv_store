@@ -73,6 +73,12 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
     errCode = SQLiteUtils::RegisterGetRawSysTime(db);
     if (errCode != E_OK) {
         LOGE("[engine] register get raw sys time failed!");
+        return errCode;
+    }
+
+    errCode = SQLiteUtils::RegisterCloudDataChangeObserver(db);
+    if (errCode != E_OK) {
+        LOGE("[engine] register cloud observer failed!");
     }
 
     return errCode;

@@ -198,6 +198,16 @@ bool FieldInfo::IsAssetsType() const
     return strcasecmp(dataType_.c_str(), ASSETS) == 0;
 }
 
+CollateType FieldInfo::GetCollateType() const
+{
+    return collateType_;
+}
+
+void FieldInfo::SetCollateType(CollateType collateType)
+{
+    collateType_ = collateType;
+}
+
 const std::string &TableInfo::GetTableName() const
 {
     return tableName_;

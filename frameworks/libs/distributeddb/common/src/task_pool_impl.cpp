@@ -138,8 +138,7 @@ bool TaskPoolImpl::IdleExit(std::unique_lock<std::mutex> &lock)
     if (!isGenericWorker && (curThreads_ > minThreads_)) {
         std::cv_status status = hasTasks_.wait_for(lock,
             std::chrono::seconds(IDLE_WAIT_PERIOD));
-        if (status == std::cv_status::timeout &&
-            genericTaskCount_ <= 0) {
+        if (status == std::cv_status::timeout && IsNoTaskExecute()) {
             --idleThreads_;
             return true;
         }
@@ -291,5 +290,18 @@ void TaskPoolImpl::TryToSpawnThreads()
         return;
     }
     (void)(SpawnThreads(false));
+}
+
+bool TaskPoolImpl::IsNoTaskExecute() const
+{
+    if (genericTaskCount_ > 0) {
+        return false;
+    }
+    for (const auto &item: queuedTasks_) {
+        if (item.second.CanGetTask()) {
+            return false;
+        }
+    }
+    return true;
 }
 } // namespace DistributedDB

@@ -19,8 +19,7 @@
 namespace DistributedDB {
 class CloudForcePullStrategy : public CloudSyncStrategy {
 public:
-    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
-        std::set<Key> &deletePrimaryKeySet) override;
+    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
 

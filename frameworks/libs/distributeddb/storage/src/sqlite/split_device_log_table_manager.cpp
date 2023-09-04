@@ -22,15 +22,15 @@ std::string SplitDeviceLogTableManager::CalcPrimaryKeyHash(const std::string &re
     (void)identity;
     std::string sql;
     if (table.GetPrimaryKey().size() == 1) {
-        sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "')";
+        sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "', 0)";
     }  else {
         sql = "calc_hash(";
         for (const auto &it : table.GetPrimaryKey()) {
-            sql += "calc_hash(" + references + "'" + it.second + "')||";
+            sql += "calc_hash(" + references + "'" + it.second + "', 0)||";
         }
         sql.pop_back();
         sql.pop_back();
-        sql += ")";
+        sql += ", 0)";
     }
     return sql;
 }

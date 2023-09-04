@@ -19,6 +19,7 @@
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
+#include "relational_store_client.h"
 #include "relational_store_manager.h"
 
 using namespace testing::ext;
@@ -45,6 +46,22 @@ public:
     static void TearDownTestCase(void);
     void SetUp() override;
     void TearDown() override;
+    void ClientObserverFunc(ClientChangedData &clientChangedData)
+    {
+        LOGD("client observer fired, table: %s", clientChangedData.tableName.c_str());
+        triggerTableName_ = clientChangedData.tableName;
+        triggeredCount_++;
+    }
+
+    void ClientObserverFunc2(ClientChangedData &clientChangedData)
+    {
+        LOGD("client observer2 fired, table: %s", clientChangedData.tableName.c_str());
+        triggeredCount2_++;
+    }
+
+    std::string triggerTableName_;
+    int triggeredCount_ = 0;
+    int triggeredCount2_ = 0;
 };
 
 void DistributedDBCloudInterfacesRelationalExtTest::SetUpTestCase(void)
@@ -104,7 +121,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
-void PrepareData(const std::string &tableName, bool primaryKeyIsRowId)
+void PrepareData(const std::string &tableName, bool primaryKeyIsRowId, bool userDefineRowid = true)
 {
     /**
      * @tc.steps:step1. create db, create table.
@@ -117,7 +134,11 @@ void PrepareData(const std::string &tableName, bool primaryKeyIsRowId)
     if (primaryKeyIsRowId) {
         sql = "create table " + tableName + "(rowid INTEGER primary key, id int, name TEXT);";
     } else {
-        sql = "create table " + tableName + "(rowid int, id int, name TEXT, PRIMARY KEY(id, name));";
+        if (userDefineRowid) {
+            sql = "create table " + tableName + "(rowid int, id int, name TEXT, PRIMARY KEY(id, name));";
+        } else {
+            sql = "create table " + tableName + "(id int, name TEXT, PRIMARY KEY(id));";
+        }
     }
 
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
@@ -404,6 +425,206 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
     });
     EXPECT_EQ(errCode, SQLITE_OK);
     EXPECT_EQ(resultCount, 1);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: TriggerObserverTest001
+ * @tc.desc: Test invalid args for RegisterClientObserver and UnRegisterClientObserver
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. call RegisterClientObserver and UnRegisterClientObserver with db = nullptr.
+     * @tc.expected: step1. return INVALID_ARGS.
+     */
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(nullptr, clientObserver), INVALID_ARGS);
+    EXPECT_EQ(UnRegisterClientObserver(nullptr), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step2. call RegisterClientObserver with nullptr clientObserver.
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    EXPECT_EQ(RegisterClientObserver(db, nullptr), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. call RegisterClientObserver and UnRegisterClientObserver with closed db handle.
+     * @tc.expected: step3. return INVALID_ARGS.
+     */
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), INVALID_ARGS);
+    EXPECT_EQ(UnRegisterClientObserver(db), INVALID_ARGS);
+}
+
+/**
+ * @tc.name: TriggerObserverTest002
+ * @tc.desc: Test trigger client observer in sqlite
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData(tableName, false, false);
+
+    /**
+    * @tc.steps:step2. register client observer.
+    * @tc.expected: step2. return ok.
+    */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+
+    /**
+     * @tc.steps:step3. insert data into sync_data, check observer.
+     * @tc.expected: step3. check observer ok.
+     */
+    std::string sql = "insert into " + tableName + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggerTableName_, tableName);
+    EXPECT_EQ(triggeredCount_, 3); // 3 is observer triggered counts
+
+    /**
+     * @tc.steps:step4. update data, check observer.
+     * @tc.expected: step4. check observer ok.
+     */
+    sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggerTableName_, tableName);
+    EXPECT_EQ(triggeredCount_, 4); // 4 is observer triggered counts
+
+    /**
+     * @tc.steps:step4. delete data, check observer.
+     * @tc.expected: step4. check observer ok.
+     */
+    sql = "delete from " + tableName + " where id = 3;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggerTableName_, tableName);
+    EXPECT_EQ(triggeredCount_, 5); // 5 is observer triggered counts
+
+    /**
+     * @tc.steps:step5. register another observer, update data, check observer.
+     * @tc.expected: step5. check observer ok.
+     */
+    triggeredCount_ = 0;
+    ClientObserver clientObserver2 = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc2,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver2), OK);
+    sql = "update " + tableName + " set name = 'lisi2' where id = 2;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggeredCount_, 0);
+    EXPECT_EQ(triggeredCount2_, 1);
+
+    /**
+     * @tc.steps:step6. UnRegisterClientObserver, update data, check observer.
+     * @tc.expected: step6. check observer ok.
+     */
+    triggeredCount2_ = 0;
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    sql = "update " + tableName + " set name = 'lisi3' where id = 2;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggeredCount2_, 0); // observer2 will not be triggered
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: TriggerObserverTest003
+ * @tc.desc: Test RegisterClientObserver and UnRegisterClientObserver concurrently
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest003, TestSize.Level1)
+{
+    for (int i = 0; i < 1000; i++) { // 1000 is loop times
+        std::thread t1 ([this]() {
+            sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+            EXPECT_NE(db, nullptr);
+            ClientObserver clientObserver = std::bind(
+                &DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc, this, std::placeholders::_1);
+            EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+            EXPECT_EQ(UnRegisterClientObserver(db), OK);
+            EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+        });
+
+        std::thread t2 ([this]() {
+            sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+            EXPECT_NE(db, nullptr);
+            ClientObserver clientObserver = std::bind(
+                &DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc2, this, std::placeholders::_1);
+            EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+            EXPECT_EQ(UnRegisterClientObserver(db), OK);
+            EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+        });
+
+        t1.join();
+        t2.join();
+    }
+}
+
+/**
+ * @tc.name: TriggerObserverTest004
+ * @tc.desc: Test batch insert/update/delete data then trigger client observer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData(tableName, false, false);
+
+    /**
+    * @tc.steps:step2. register client observer.
+    * @tc.expected: step2. return ok.
+    */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+
+    /**
+     * @tc.steps:step3. insert data into sync_data, check observer.
+     * @tc.expected: step3. check observer ok.
+     */
+    std::string sql;
+    int dataCounts = 1000;
+    for (int i = 1; i <= dataCounts; i++) {
+        sql = "insert into " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" + std::to_string(i) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+
+    EXPECT_EQ(triggerTableName_, tableName);
+    EXPECT_EQ(triggeredCount_, dataCounts);
+
+    /**
+     * @tc.steps:step4. insert or replace, check observer.
+     * @tc.expected: step5. check observer ok.
+     */
+    triggeredCount_ = 0;
+    sql = "insert or replace into " + tableName + " VALUES(1000, 'lisi');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_EQ(triggeredCount_, 2); // 2 is trigger times, first delete then insert
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 }

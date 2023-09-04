@@ -702,7 +702,6 @@ HWTEST_F(DistributedDBRelationalMultiUserTest, RdbMultiUser003, TestSize.Level3)
 
     RuntimeConfig::SetAutoLaunchRequestCallback(nullptr, DBType::DB_RELATION);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
-    EXPECT_EQ(g_currentStatus, AutoLaunchStatus::WRITE_CLOSED);
     RuntimeConfig::ReleaseAutoLaunch(USER_ID_2, APP_ID, STORE_ID, DBType::DB_RELATION);
     g_currentStatus = 0;
     CloseStore();

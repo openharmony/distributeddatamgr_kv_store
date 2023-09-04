@@ -100,6 +100,8 @@ public:
     int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
         SQLiteSingleVerRelationalContinueToken &token);
 
+    void SetLocalSchema(const RelationalSchemaObject &localSchema);
+
     int GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
@@ -242,6 +244,7 @@ private:
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
     TableSchema tableSchema_; // for cloud table
+    RelationalSchemaObject localSchema_;
 
     DistributedTableMode mode_;
 

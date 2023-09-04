@@ -1664,6 +1664,11 @@ int SQLiteSingleVerRelationalStorageExecutor::PutVBucketByType(VBucket &vBucket,
     return E_OK;
 }
 
+void SQLiteSingleVerRelationalStorageExecutor::SetLocalSchema(const RelationalSchemaObject &localSchema)
+{
+    localSchema_ = localSchema;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema,
     const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
 {
@@ -1787,7 +1792,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
     const TableSchema &tableSchema, std::vector<uint8_t> &hashValue, bool allowEmpty)
 {
     int errCode = E_OK;
-    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema);
+    TableInfo localTable = localSchema_.GetTable(tableSchema.name);
+    // table name in cloud schema is in lower case
+    if (DBCommon::ToLowerCase(localTable.GetTableName()) != tableSchema.name) {
+        LOGE("localSchema doesn't contain table from cloud");
+        return -E_INTERNAL_ERROR;
+    }
+
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema, true);
     if (pkMap.size() == 0) {
         int64_t rowid = SQLiteUtils::GetLastRowId(dbHandle_);
         std::vector<uint8_t> value;
@@ -1795,12 +1807,26 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
         errCode = DBCommon::CalcValueHash(value, hashValue);
     } else if (pkMap.size() == 1) {
         std::vector<Field> pkVec = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
-        errCode = CloudStorageUtils::CalculateHashKeyForOneField(pkVec.at(0), vBucket, allowEmpty, hashValue);
+        FieldInfoMap fieldInfos = localTable.GetFields();
+        if (fieldInfos.find(pkMap.begin()->first) == fieldInfos.end()) {
+            LOGE("localSchema doesn't contain primary key.");
+            return -E_INTERNAL_ERROR;
+        }
+        CollateType collateType = fieldInfos.at(pkMap.begin()->first).GetCollateType();
+        errCode = CloudStorageUtils::CalculateHashKeyForOneField(
+            pkVec.at(0), vBucket, allowEmpty, collateType, hashValue);
     } else {
         std::vector<uint8_t> tempRes;
         for (const auto &item: pkMap) {
+            FieldInfoMap fieldInfos = localTable.GetFields();
+            if (fieldInfos.find(item.first) == fieldInfos.end()) {
+                LOGE("localSchema doesn't contain primary key in multi pks.");
+                return -E_INTERNAL_ERROR;
+            }
             std::vector<uint8_t> temp;
-            errCode = CloudStorageUtils::CalculateHashKeyForOneField(item.second, vBucket, allowEmpty, temp);
+            CollateType collateType = fieldInfos.at(item.first).GetCollateType();
+            errCode = CloudStorageUtils::CalculateHashKeyForOneField(
+                item.second, vBucket, allowEmpty, collateType, temp);
             if (errCode != E_OK) {
                 LOGE("calc hash fail when there is more than one primary key. errCode = %d", errCode);
                 return errCode;
@@ -1990,8 +2016,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
         LOGE("Failed to delete cloud data on usertable, %d.", errCode);
         return errCode;
     }
-    std::string cleanLogSql = "DELETE FROM '" + logTableName + "' WHERE " + CLOUD_GID_FIELD + " is not NULL and " +
-        CLOUD_GID_FIELD + " != '' AND " + FLAG_IS_CLOUD + ";";
+    std::string cleanLogSql = "DELETE FROM '" + logTableName + "' WHERE " + FLAG_IS_CLOUD + ";";
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on log table, %d.", errCode);

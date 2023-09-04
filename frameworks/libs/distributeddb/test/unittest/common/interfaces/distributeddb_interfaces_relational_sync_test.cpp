@@ -549,10 +549,10 @@ HWTEST_F(DistributedDBInterfacesRelationalSyncTest, UpgradeTriggerTest001, TestS
         "ON 'student_1'\n"
         "BEGIN\n"
         "\t UPDATE naturalbase_rdb_aux_student_1_log SET data_key=-1,timestamp=get_sys_time(0), device='',"
-        " flag=0x03 WHERE hash_key=calc_hash(OLD.'id') AND flag&0x02=0x02;\n"
+        " flag=0x03 WHERE hash_key=calc_hash(OLD.'id', 0) AND flag&0x02=0x02;\n"
         "\t INSERT OR REPLACE INTO naturalbase_rdb_aux_student_1_log VALUES (NEW.rowid, '', '', get_sys_time(0), "
-        "get_last_time(), CASE WHEN (calc_hash(NEW.'id') != calc_hash(NEW.'id')) " \
-        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id'), '');\n"
+        "get_last_time(), CASE WHEN (calc_hash(NEW.'id', 0) != calc_hash(NEW.'id', 0)) " \
+        "THEN 0x02 ELSE 0x22 END, calc_hash(NEW.'id', 0), '');\n"
         "END";
     EXPECT_TRUE(resultTrigger == expectTrigger);
 }

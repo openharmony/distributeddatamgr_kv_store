@@ -54,6 +54,10 @@ public:
 
     bool IsAssetType() const;
     bool IsAssetsType() const;
+
+    CollateType GetCollateType() const;
+    void SetCollateType(CollateType collateType);
+
 private:
     std::string fieldName_;
     std::string dataType_; // Type may be null
@@ -62,6 +66,7 @@ private:
     bool hasDefaultValue_ = false;
     std::string defaultValue_;
     int64_t cid_ = -1;
+    CollateType collateType_ = CollateType::COLLATE_NONE;
 };
 
 using FieldInfoMap = std::map<std::string, FieldInfo, CaseInsensitiveComparator>;

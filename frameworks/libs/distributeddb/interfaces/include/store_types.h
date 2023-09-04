@@ -140,6 +140,13 @@ enum ProcessStatus {
     FINISHED = 2,
 };
 
+enum class CollateType : uint32_t {
+    COLLATE_NONE = 0,
+    COLLATE_NOCASE,
+    COLLATE_RTRIM,
+    COLLATE_BUTT
+};
+
 struct Info {
     uint32_t batchIndex = 0;
     uint32_t total = 0;

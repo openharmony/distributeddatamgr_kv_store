@@ -271,6 +271,7 @@ namespace {
             EXPECT_EQ(dataInfoWithLog.logInfo.timestamp, eraseTime);
             EXPECT_EQ(dataInfoWithLog.logInfo.wTimestamp, eraseWTime);
         }
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 
     /**
@@ -432,6 +433,7 @@ namespace {
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
         EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), E_OK);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
     }
 
     /**

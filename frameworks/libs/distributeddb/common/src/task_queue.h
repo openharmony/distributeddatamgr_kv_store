@@ -29,7 +29,7 @@ public:
     Task GetTaskAutoLock();
     void ReleaseLock();
     bool IsEmptyAndUnlocked() const;
-
+    bool CanGetTask() const;
 private:
     bool lockable_;
     std::thread::id lockThread_;

@@ -381,6 +381,14 @@ std::string DBCommon::TrimSpace(const std::string &input)
     return res;
 }
 
+void DBCommon::RTrim(std::string &oriString)
+{
+    if (oriString.empty()) {
+        return;
+    }
+    oriString.erase(oriString.find_last_not_of(" ") + 1);
+}
+
 namespace {
 bool CharIn(char c, const std::string &pattern)
 {
@@ -422,6 +430,13 @@ std::string DBCommon::ToLowerCase(const std::string &str)
 {
     std::string res(str.length(), ' ');
     std::transform(str.begin(), str.end(), res.begin(), ::tolower);
+    return res;
+}
+
+std::string DBCommon::ToUpperCase(const std::string &str)
+{
+    std::string res(str.length(), ' ');
+    std::transform(str.begin(), str.end(), res.begin(), ::toupper);
     return res;
 }
 

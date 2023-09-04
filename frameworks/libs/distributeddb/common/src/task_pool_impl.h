@@ -61,6 +61,7 @@ private:
     void TaskWorker();
     void FinishExecuteTask(TaskQueue *taskQueue);
     void TryToSpawnThreads();
+    bool IsNoTaskExecute() const;
 
     // Member Variables.
     static constexpr int IDLE_WAIT_PERIOD = 1;  // wait 1 second before exiting.

@@ -38,11 +38,6 @@ struct CloudSyncData {
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
 };
 
-struct AssetField {
-    DistributedDB::Field field;
-    int64_t index = 0u;
-};
-
 template<typename Tp, typename... Types>
 struct index_of : std::integral_constant<size_t, 0> {};
 

@@ -72,4 +72,14 @@ bool TaskQueue::IsEmptyAndUnlocked() const
     }
     return tasks_.empty();
 }
+
+bool TaskQueue::CanGetTask() const
+{
+    if (lockable_) {
+        if (lockThread_ != std::thread::id()) {
+            return false;
+        }
+    }
+    return !tasks_.empty();
+}
 } // namespace DistributedDB

@@ -149,7 +149,8 @@ public:
 
     static const std::string LOG_TABLE_VERSION_1;
     static const std::string LOG_TABLE_VERSION_2;
-    const char *LOG_TABLE_VERSION_3 = "3.0";
+    static constexpr const char *LOG_TABLE_VERSION_3 = "3.0";
+    static constexpr const char *LOG_TABLE_VERSION_4 = "4.0";
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;

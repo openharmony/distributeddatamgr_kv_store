@@ -16,17 +16,15 @@
 
 namespace DistributedDB {
 
-OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
-    std::set<Key> &deletePrimaryKeySet)
+OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
 {
     if (existInLocal) {
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {
-            (void)deletePrimaryKeySet.insert(localInfo.hashKey);
             return OpType::DELETE;
         } else if (IsDelete(cloudInfo)) {
             return OpType::UPDATE_TIMESTAMP;
         }
-        if (IsDelete(localInfo) || deletePrimaryKeySet.find(localInfo.hashKey) != deletePrimaryKeySet.end()) {
+        if (IsDelete(localInfo)) {
             return OpType::INSERT;
         }
         return OpType::UPDATE;
