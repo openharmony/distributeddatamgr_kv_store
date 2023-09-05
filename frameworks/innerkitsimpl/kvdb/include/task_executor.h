@@ -31,13 +31,16 @@ public:
         uint64_t times = UNLIMITED_TIMES);
     bool Remove(TaskId taskId, bool wait = false);
     TaskId Reset(TaskId taskId, Duration interval);
+    void SetExecutors(std::shared_ptr<ExecutorPool> executors);
 
 private:
+    std::mutex mtx_;
     size_t MAX_THREADS = 6;
     size_t MIN_THREADS = 0;
-    TaskExecutor();
+    TaskExecutor() = default;
     ~TaskExecutor();
-    std::shared_ptr<ExecutorPool> pool_;
+    void GenerateExecutors();
+    std::shared_ptr<ExecutorPool> pool_ = nullptr;
 };
 } // namespace OHOS
 #endif // DISTRIBUTED_DATA_TASK_EXECUTOR_H

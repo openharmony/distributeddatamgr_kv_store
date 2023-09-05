@@ -24,6 +24,9 @@
 #include "types.h"
 
 namespace OHOS {
+class ExecutorPool;
+}
+namespace OHOS {
 namespace DistributedKv {
 class API_EXPORT DistributedKvDataManager final {
 public:
@@ -147,6 +150,12 @@ public:
      * @param deathRecipient The pointer of the observer.
     */
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
+
+    /**
+     * @brief Set executors to kv client.
+     * @param executors The executors.
+    */
+    API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
