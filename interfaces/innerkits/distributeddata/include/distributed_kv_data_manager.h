@@ -17,15 +17,13 @@
 #define DISTRIBUTED_KV_DATA_MANAGER_H
 
 #include <functional>
+#include "executor_pool.h"
 #include "kvstore.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
 #include "single_kvstore.h"
 #include "types.h"
 
-namespace OHOS {
-class ExecutorPool;
-}
 namespace OHOS {
 namespace DistributedKv {
 class API_EXPORT DistributedKvDataManager final {

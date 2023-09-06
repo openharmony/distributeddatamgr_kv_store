@@ -32,9 +32,6 @@ config("distributeddatafwk_config") {
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src",
     "//foundation/distributeddatamgr/kv_store/frameworks/common",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src",
     "//utils/system/safwk/native/include",
@@ -47,15 +44,25 @@ config("distributeddatafwk_config") {
 }
 
 config("distributeddatafwk_public_config") {
-  visibility = [ "//foundation/distributeddatamgr/kv_store:*" ]
+  visibility = [ ":*" ]
+
+  cflags = [ "-Wno-unused-value" ]
 
   include_dirs = [
     "include",
-    ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/rdb/include",
-    ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/object/include",
     ".//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/include",
-    "//commonlibrary/c_utils/base/include",
   ]
+  if (use_platform_win) {
+    defines = [ "IS_WINDOWS" ]
+    defines += [
+      "pthread_setname_np=",
+      "pthread_self=void",
+      "pthread_t=int",
+    ]
+  } else if (use_platforn_mac) {
+    defines = [ "IS_MAC" ]
+    cflags += [ "-includemac_glibc.h" ]
+  }
 }
 
 ohos_shared_library("distributeddata_inner_mock") {
@@ -90,6 +97,10 @@ ohos_shared_library("distributeddata_inner_mock") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include",
   ]
+
+  configs = [ ":distributeddatafwk_config" ]
+
+  public_configs = [ ":distributeddatafwk_public_config" ]
 
   cflags_cc = [ "-std=c++17" ]
   ldflags = [ "-v" ]
@@ -127,6 +138,8 @@ ohos_shared_library("distributeddata_inner_mock") {
     ]
   } else if (use_platforn_mac) {
     defines = [ "IS_MAC" ]
+    sources += [ "../../../interfaces/mock/mac_glibc.c" ]
+
     include_dirs += [
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/relational",

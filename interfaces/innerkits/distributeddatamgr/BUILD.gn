@@ -14,7 +14,10 @@ import("//build/ohos.gni")
 import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 group("build_module") {
-  deps = [ ":distributeddata_mgr" ]
+  deps = []
+  if (!use_platform_win && !use_platforn_mac) {
+    deps += [ ":distributeddata_mgr" ]
+  }
 }
 
 config("data_mgr_public_config") {

@@ -61,6 +61,7 @@ TaskExecutor::TaskId TaskExecutor::Reset(TaskExecutor::TaskId taskId, Duration i
 
 void TaskExecutor::SetExecutors(std::shared_ptr<ExecutorPool> executors)
 {
+    std::lock_guard<decltype(mtx_)> lock(mtx_);
     if (pool_ == nullptr) {
         pool_ = std::move(executors);
     }
@@ -69,6 +70,8 @@ void TaskExecutor::SetExecutors(std::shared_ptr<ExecutorPool> executors)
 void TaskExecutor::GenerateExecutors()
 {
     std::lock_guard<decltype(mtx_)> lock(mtx_);
-    pool_ = std::make_shared<ExecutorPool>(MAX_THREADS, MIN_THREADS);
+    if (pool_ == nullptr) {
+        pool_ = std::make_shared<ExecutorPool>(MAX_THREADS, MIN_THREADS);
+    }
 }
 } // namespace OHOS

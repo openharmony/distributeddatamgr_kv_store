@@ -21,8 +21,8 @@
 #include <thread>
 
 #include "priority_queue.h"
+extern int MAC_SetThreadName(const char *name);
 namespace OHOS {
-
 class Executor : public std::enable_shared_from_this<Executor> {
 public:
     using TaskId = uint64_t;
