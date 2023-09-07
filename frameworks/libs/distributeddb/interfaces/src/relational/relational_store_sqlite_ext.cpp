@@ -267,14 +267,20 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     DistributedDB::CollateType collateType = static_cast<DistributedDB::CollateType>(sqlite3_value_int(argv[1]));
     if (collateType == DistributedDB::CollateType::COLLATE_NOCASE) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
-        std::string colStr = std::string(colChar);
+        if (colChar == nullptr) {
+            return;
+        }
+        std::string colStr(colChar);
         StringToUpper(colStr);
         std::vector<uint8_t> value;
         StringToVector(colStr, value);
         errCode = CalcValueHash(value, hashValue);
     } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
-        std::string colStr = std::string(colChar);
+        if (colChar == nullptr) {
+            return;
+        }
+        std::string colStr(colChar);
         RTrim(colStr);
         std::vector<uint8_t> value;
         StringToVector(colStr, value);
