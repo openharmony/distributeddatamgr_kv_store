@@ -464,18 +464,24 @@ namespace {
         InsertValueToDB(dataMap);
     }
 
-    void PrepareVirtualEnvironment(std::map<std::string, DataValue> &dataMap, const std::string &tableName,
-        std::vector<FieldInfo> &fieldInfoList, const std::vector<RelationalVirtualDevice *> remoteDeviceVec,
-        bool createDistributedTable = true)
+    void InsertDataToDeviceB(std::map<std::string, DataValue> &dataMap, const std::string &tableName,
+        std::vector<FieldInfo> &fieldInfoList, Timestamp ts)
     {
-        PrepareBasicTable(tableName, fieldInfoList, remoteDeviceVec, createDistributedTable);
         GenerateValue(dataMap, fieldInfoList);
         VirtualRowData virtualRowData;
         for (const auto &item : dataMap) {
             virtualRowData.objectData.PutDataValue(item.first, item.second);
         }
-        virtualRowData.logInfo.timestamp = 1;
+        virtualRowData.logInfo.timestamp = ts;
         g_deviceB->PutData(tableName, {virtualRowData});
+    }
+
+    void PrepareVirtualEnvironment(std::map<std::string, DataValue> &dataMap, const std::string &tableName,
+        std::vector<FieldInfo> &fieldInfoList, const std::vector<RelationalVirtualDevice *> remoteDeviceVec,
+        bool createDistributedTable = true)
+    {
+        PrepareBasicTable(tableName, fieldInfoList, remoteDeviceVec, createDistributedTable);
+        InsertDataToDeviceB(dataMap, tableName, fieldInfoList, 1);
     }
 
     void PrepareVirtualEnvironment(std::map<std::string, DataValue> &dataMap,
@@ -771,6 +777,20 @@ namespace {
                 SyncWithSecurityCheck(localOption, remoteOption, remoteQuery, false);
             }
         }
+    }
+
+    static void ReleaseForObserver007(RelationalStoreDelegate *rdb1, RelationalStoreObserverUnitTest *observer1,
+        RelationalStoreObserverUnitTest *observer)
+    {
+        ASSERT_EQ(g_mgr.CloseStore(rdb1), OK);
+        rdb1 = nullptr;
+        delete observer1;
+        observer1 = nullptr;
+        std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 second to wait sync finish
+        RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
+        RuntimeContext::GetInstance()->StopTaskPool();
+        delete observer;
+        observer = nullptr;
     }
 
 class DistributedDBRelationalVerP2PSyncTest : public testing::Test {
@@ -1681,7 +1701,7 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer003, TestSize.Level0)
      * @tc.steps: step3. device A check observer
      * @tc.expected: step2. data change device is deviceB
      */
-    EXPECT_EQ(g_observer->GetCallCount(), 1u);
+    EXPECT_EQ(g_observer->GetCallCount(), 2u); // 2 is observer triggered times
     EXPECT_EQ(g_observer->GetDataChangeDevice(), DEVICE_B);
     CheckIdentify(g_observer);
     mgr = std::make_shared<RelationalStoreManager>(APP_ID, USER_ID);
@@ -1889,16 +1909,123 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer007, TestSize.Level3)
      * @tc.steps: step6. close store and delete observer1
      * @tc.expected: step6. success.
      */
-    ASSERT_EQ(g_mgr.CloseStore(rdb1), OK);
-    rdb1 = nullptr;
-    delete observer1;
-    observer1 = nullptr;
-    std::this_thread::sleep_for(std::chrono::seconds(2)); // sleep 2 second to wait sync finish
-    std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5 second to wait sync finish
-    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
-    RuntimeContext::GetInstance()->StopTaskPool();
+    ReleaseForObserver007(rdb1, observer1, observer);
 }
 
+void RegisterNewObserver(RelationalStoreDelegate *rdb1, RelationalStoreObserverUnitTest *observer1,
+    RelationalStoreObserverUnitTest *autoLaunchObserver)
+{
+    /**
+     * @tc.steps: step1. register another observer
+     */
+    auto observer2 = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer2, nullptr);
+    EXPECT_EQ(rdb1->RegisterObserver(observer2), OK);
+    observer1->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    InsertDataToDeviceB(dataMap, g_tableName, g_fieldInfoList, 2); // 2 is watermark
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    EXPECT_EQ(observer1->GetCallCount(), 0u);
+    EXPECT_EQ(autoLaunchObserver->GetCallCount(), 2u); // 2 is auto_launch observer triggered times
+    EXPECT_EQ(observer2->GetCallCount(), 1u);
+
+    EXPECT_EQ(rdb1->UnRegisterObserver(), OK);
+    observer2->ResetToZero();
+    InsertDataToDeviceB(dataMap, g_tableName, g_fieldInfoList, 3); // 3 is watermark
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+    EXPECT_EQ(observer1->GetCallCount(), 0u);
+    EXPECT_EQ(autoLaunchObserver->GetCallCount(), 3u); // 3 is auto_launch observer triggered times
+    EXPECT_EQ(observer2->GetCallCount(), 0u);
+
+    RuntimeConfig::ReleaseAutoLaunch(USER_ID, APP_ID, STORE_ID_1, DBType::DB_RELATION);
+    delete autoLaunchObserver;
+    delete observer1;
+    delete observer2;
+    ASSERT_EQ(g_mgr.CloseStore(rdb1), OK);
+    rdb1 = nullptr;
+}
+
+/**
+* @tc.name: relation observer 008
+* @tc.desc: Test multi rdb observer
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: zhangshijie
+*/
+HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer008, TestSize.Level3)
+{
+    /**
+     * @tc.steps: step1. open rdb store, create distribute table and insert data
+     */
+    g_observer->ResetToZero();
+    std::map<std::string, DataValue> dataMap;
+    PrepareVirtualEnvironment(dataMap, {g_deviceB});
+
+    /**
+     * @tc.steps: step2. set auto launch callBack
+     */
+    RelationalStoreObserverUnitTest *autoObserver = new (std::nothrow) RelationalStoreObserverUnitTest();
+    const AutoLaunchRequestCallback callback = [autoObserver](const std::string &identifier, AutoLaunchParam &param) {
+        if (g_id != identifier) {
+            return false;
+        }
+        param.path    = g_dbDir;
+        param.appId   = APP_ID;
+        param.userId  = USER_ID;
+        param.storeId = STORE_ID_1;
+        param.option.storeObserver = autoObserver;
+#ifndef OMIT_ENCRYPT
+        param.option.isEncryptedDb = true;
+        param.option.cipher = CipherType::DEFAULT;
+        param.option.passwd = g_correctPasswd;
+        param.option.iterateTimes = DEFAULT_ITER;
+#endif
+        return true;
+    };
+    g_mgr.SetAutoLaunchRequestCallback(callback);
+    /**
+     * @tc.steps: step3. close store ensure communicator has closed
+     */
+    g_mgr.CloseStore(g_rdbDelegatePtr);
+    g_rdbDelegatePtr = nullptr;
+
+    /**
+     * @tc.steps: step4. RunCommunicatorLackCallback to autolaunch store
+     * @tc.expected: step4. success.
+     */
+    LabelType labelType(g_id.begin(), g_id.end());
+    g_communicatorAggregator->RunCommunicatorLackCallback(labelType);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    auto observer1 = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer1, nullptr);
+    RelationalStoreDelegate::Option option;
+    option.observer = observer1;
+#ifndef OMIT_ENCRYPT
+    option.isEncryptedDb = true;
+    option.iterateTimes = DEFAULT_ITER;
+    option.passwd = g_isAfterRekey ? g_rekeyPasswd : g_correctPasswd;
+    option.cipher = CipherType::DEFAULT;
+#endif
+    RelationalStoreDelegate *rdb1 = nullptr;
+    g_mgr.OpenStore(g_dbDir, STORE_ID_1, option, rdb1);
+    ASSERT_TRUE(rdb1 != nullptr);
+    /**
+     * @tc.steps: step5. Call sync expect sync successful and device A check observer
+     */
+    Query query = Query::Select(g_tableName);
+    EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
+
+    /**
+     * @tc.steps: step6. Call sync expect sync successful and device A check observer
+     */
+    EXPECT_EQ(autoObserver->GetCallCount(), 1u);
+    EXPECT_EQ(observer1->GetCallCount(), 1u);
+    EXPECT_EQ(autoObserver->GetDataChangeDevice(), DEVICE_B);
+    CheckIdentify(autoObserver);
+    RegisterNewObserver(rdb1, observer1, autoObserver);
+}
 
 /**
 * @tc.name: remote query 001

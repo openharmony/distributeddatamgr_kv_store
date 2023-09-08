@@ -27,18 +27,18 @@ std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &
 {
     std::string sql;
     if (IsCollaborationWithoutKey(table)) {
-        sql = "calc_hash('" + identity + "'||calc_hash(" + references + "rowid))";
+        sql = "calc_hash('" + identity + "'||calc_hash(" + references + "rowid, 0), 0)";
     } else {
         if (table.GetIdentifyKey().size() == 1) {
-            sql = "calc_hash(" + references + "'" + table.GetIdentifyKey().at(0) + "')";
+            sql = "calc_hash(" + references + "'" + table.GetIdentifyKey().at(0) + "', 0)";
         } else {
             sql = "calc_hash(";
             for (const auto &it : table.GetIdentifyKey()) {
-                sql += "calc_hash(" + references + "'" + it + "')||";
+                sql += "calc_hash(" + references + "'" + it + "', 0)||";
             }
             sql.pop_back();
             sql.pop_back();
-            sql += ")";
+            sql += ", 0)";
         }
     }
     return sql;

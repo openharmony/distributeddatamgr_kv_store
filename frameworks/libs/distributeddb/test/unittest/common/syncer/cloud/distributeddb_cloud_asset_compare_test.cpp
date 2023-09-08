@@ -39,7 +39,8 @@ namespace {
     constexpr auto FIELD_CARS = "cars";
     const string STORE_ID = "Relational_Store_ID";
     const string TABLE_NAME = "cloudData";
-    string STORE_PATH = "./g_store.db";
+    string g_storePath;
+    string g_dbDir;
     string TEST_DIR;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
@@ -135,7 +136,7 @@ namespace {
     void CreateDB()
     {
         sqlite3 *db = nullptr;
-        int errCode = sqlite3_open(STORE_PATH.c_str(), &db);
+        int errCode = sqlite3_open(g_storePath.c_str(), &db);
         if (errCode != SQLITE_OK) {
             LOGE("open db failed:%d", errCode);
             sqlite3_close(db);
@@ -162,7 +163,7 @@ namespace {
     const RelationalSyncAbleStorage *GetRelationalStore()
     {
         RelationalDBProperties properties;
-        InitStoreProp(STORE_PATH, APP_ID, USER_ID, properties);
+        InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
         int errCode = E_OK;
         g_store = RelationalStoreInstance::GetDataBase(properties, errCode);
         if (g_store == nullptr) {
@@ -182,6 +183,11 @@ namespace {
 
     void DistributedDBCloudAssetCompareTest::SetUpTestCase(void)
     {
+        DistributedDBToolsUnitTest::TestDirInit(TEST_DIR);
+        LOGD("test dir is %s", TEST_DIR.c_str());
+        g_dbDir = TEST_DIR + "/";
+        g_storePath =  g_dbDir + STORE_ID + ".db";
+        DistributedDBToolsUnitTest::RemoveTestDbFiles(TEST_DIR);
     }
 
     void DistributedDBCloudAssetCompareTest::TearDownTestCase(void)
@@ -193,7 +199,7 @@ namespace {
         DistributedDBToolsUnitTest::PrintTestCaseInfo();
         LOGD("Test dir is %s", TEST_DIR.c_str());
         CreateDB();
-        ASSERT_EQ(g_mgr.OpenStore(STORE_PATH, STORE_ID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+        ASSERT_EQ(g_mgr.OpenStore(g_storePath, STORE_ID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
         ASSERT_NE(g_delegate, nullptr);
         g_storageProxy = std::make_shared<TestStorageProxy>((ICloudSyncStorageInterface *) GetRelationalStore());
         ASSERT_NE(g_storageProxy, nullptr);

@@ -67,12 +67,6 @@ protected:
         DataInfoWithLog localInfo;
         LogInfo cloudLogInfo;
     };
-    struct AssetDownloadList {
-        // assets in following list will fill STATUS and timestamp after calling downloading
-        DownloadList downloadList = {};
-        // assets in following list won't fill STATUS and timestamp after calling downloading
-        DownloadList completeDownloadList = {};
-    };
     struct WithoutRowIdData {
         std::vector<size_t> insertData = {};
         std::vector<std::tuple<size_t, size_t>> updateData = {};
@@ -82,7 +76,7 @@ protected:
         DownloadData downloadData;
         ChangedData changedData;
         InnerProcessInfo info;
-        AssetDownloadList assetsDownloadList;
+        DownloadList assetsDownloadList;
         std::string cloudWaterMark;
         std::vector<std::string> pkColNames;
         std::set<Key> deletePrimaryKeySet;
@@ -99,7 +93,7 @@ protected:
         std::shared_ptr<CloudSyncStrategy> strategy;
         std::map<TableName, std::vector<Field>> assetFields;
         // should be cleared after each Download
-        AssetDownloadList assetDownloadList;
+        DownloadList assetDownloadList;
         // store GID and assets, using in upload procedure
         std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
         std::map<TableName, std::string> cloudWaterMarks;
@@ -200,7 +194,8 @@ protected:
 
     void SetTaskFailed(TaskId taskId, int errCode);
 
-    int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList);
+    int SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
+        std::map<std::string, LogInfo> &localLogInfoCache);
 
     int SaveData(SyncParam &param);
 
@@ -243,7 +238,7 @@ protected:
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
-    int CloudDbDownloadAssets(InnerProcessInfo &info, const DownloadList &downloadList, bool willHandleResult,
+    int CloudDbDownloadAssets(InnerProcessInfo &info, const DownloadList &downloadList,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);
 
     void GetDownloadItem(const DownloadList &downloadList, size_t i, DownloadItem &downloadItem);
@@ -256,7 +251,7 @@ protected:
 
     bool IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data);
 
-    int UpdateChangedData(SyncParam &param, AssetDownloadList &assetsDownloadList);
+    int UpdateChangedData(SyncParam &param, DownloadList &assetsDownloadList);
 
     void WaitAllSyncCallbackTaskFinish();
 
@@ -269,6 +264,14 @@ protected:
     static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
 
     void ClearWithoutData(SyncParam &param);
+
+    void ModifyFieldNameToLower(VBucket &data);
+
+    int GetLocalInfo(const std::string &tableName, const VBucket &cloudData, DataInfoWithLog &logInfo,
+        std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
+
+    void UpdateLocalCache(OpType opType, const LogInfo &cloudInfo,
+        const LogInfo &localInfo, std::map<std::string, LogInfo> &localLogInfoCache);
 
     std::mutex queueLock_;
     TaskId currentTaskId_;

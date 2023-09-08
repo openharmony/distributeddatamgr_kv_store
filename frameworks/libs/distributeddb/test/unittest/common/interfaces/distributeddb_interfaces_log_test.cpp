@@ -80,5 +80,5 @@ HWTEST_F(DistributedDBInterfacesLogTest, DeviceLogTest001, TestSize.Level1)
     string key4 = "hashKey";
     SplitDeviceLogTableManager manager;
     string value = manager.CalcPrimaryKeyHash(key1, tableInfo, key4);
-    EXPECT_EQ(value, "calc_hash(calc_hash(NEW.'key2')||calc_hash(NEW.'key3'))");
+    EXPECT_EQ(value, "calc_hash(calc_hash(NEW.'key2', 0)||calc_hash(NEW.'key3', 0), 0)");
 }

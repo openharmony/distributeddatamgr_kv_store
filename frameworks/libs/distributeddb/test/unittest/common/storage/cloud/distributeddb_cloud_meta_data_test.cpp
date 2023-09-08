@@ -36,7 +36,8 @@ namespace {
     const string STORE_ID = "Relational_Store_ID";
     const string TABLE_NAME = "cloudData";
     string TEST_DIR;
-    string STORE_PATH = "./g_store.db";
+    string g_storePath;
+    string g_dbDir;
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
     IRelationalStore *g_store = nullptr;
@@ -45,7 +46,7 @@ namespace {
     void CreateDB()
     {
         sqlite3 *db = nullptr;
-        int errCode = sqlite3_open(STORE_PATH.c_str(), &db);
+        int errCode = sqlite3_open(g_storePath.c_str(), &db);
         if (errCode != SQLITE_OK) {
             LOGE("open db failed:%d", errCode);
             sqlite3_close(db);
@@ -73,7 +74,7 @@ namespace {
     const RelationalSyncAbleStorage *GetRelationalStore()
     {
         RelationalDBProperties properties;
-        InitStoreProp(STORE_PATH, APP_ID, USER_ID, properties);
+        InitStoreProp(g_storePath, APP_ID, USER_ID, properties);
         int errCode = E_OK;
         g_store = RelationalStoreInstance::GetDataBase(properties, errCode);
         if (g_store == nullptr) {
@@ -90,18 +91,18 @@ namespace {
 
     void SetAndGetWaterMark(TableName tableName, Timestamp mark)
     {
-    Timestamp retMark;
-    EXPECT_EQ(g_storageProxy->PutLocalWaterMark(tableName, mark), E_OK);
-    EXPECT_EQ(g_storageProxy->GetLocalWaterMark(tableName, retMark), E_OK);
-    EXPECT_EQ(retMark, mark);
+        Timestamp retMark;
+        EXPECT_EQ(g_storageProxy->PutLocalWaterMark(tableName, mark), E_OK);
+        EXPECT_EQ(g_storageProxy->GetLocalWaterMark(tableName, retMark), E_OK);
+        EXPECT_EQ(retMark, mark);
     }
 
     void SetAndGetWaterMark(TableName tableName, std::string mark)
     {
-    std::string retMark;
-    EXPECT_EQ(g_storageProxy->SetCloudWaterMark(tableName, mark), E_OK);
-    EXPECT_EQ(g_storageProxy->GetCloudWaterMark(tableName, retMark), E_OK);
-    EXPECT_EQ(retMark, mark);
+        std::string retMark;
+        EXPECT_EQ(g_storageProxy->SetCloudWaterMark(tableName, mark), E_OK);
+        EXPECT_EQ(g_storageProxy->GetCloudWaterMark(tableName, retMark), E_OK);
+        EXPECT_EQ(retMark, mark);
     }
 
     class DistributedDBCloudMetaDataTest : public testing::Test {
@@ -114,6 +115,11 @@ namespace {
 
     void DistributedDBCloudMetaDataTest::SetUpTestCase(void)
     {
+        DistributedDBToolsUnitTest::TestDirInit(TEST_DIR);
+        LOGD("test dir is %s", TEST_DIR.c_str());
+        g_dbDir = TEST_DIR + "/";
+        g_storePath =  g_dbDir + STORE_ID + ".db";
+        DistributedDBToolsUnitTest::RemoveTestDbFiles(TEST_DIR);
     }
 
     void DistributedDBCloudMetaDataTest::TearDownTestCase(void)
@@ -125,7 +131,7 @@ namespace {
         DistributedDBToolsUnitTest::PrintTestCaseInfo();
         LOGD("Test dir is %s", TEST_DIR.c_str());
         CreateDB();
-        ASSERT_EQ(g_mgr.OpenStore(STORE_PATH, STORE_ID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
+        ASSERT_EQ(g_mgr.OpenStore(g_storePath, STORE_ID, RelationalStoreDelegate::Option {}, g_delegate), DBStatus::OK);
         ASSERT_NE(g_delegate, nullptr);
         g_storageProxy = GetStorageProxy((ICloudSyncStorageInterface *) GetRelationalStore());
     }

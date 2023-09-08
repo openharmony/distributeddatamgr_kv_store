@@ -23,8 +23,7 @@ public:
     CloudMergeStrategy() = default;
     ~CloudMergeStrategy() override = default;
 
-    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo,
-        std::set<Key> &deletePrimaryKeySet) override;
+    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
 

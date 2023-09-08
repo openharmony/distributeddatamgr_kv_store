@@ -166,6 +166,8 @@ public:
 
     static int RegisterGetRawSysTime(sqlite3 *db);
 
+    static int RegisterCloudDataChangeObserver(sqlite3 *db);
+
     static int CreateRelationalLogTable(sqlite3 *db, const std::string &oriTableName);
 
     static int AddRelationalLogTableTrigger(sqlite3 *db, const std::string &identity, const TableInfo &table);
@@ -221,10 +223,12 @@ private:
     static void ExtractReturn(sqlite3_context *ctx, FieldType type, const FieldValue &value);
 
     static void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static int SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
         const std::vector<std::string> &sqls);

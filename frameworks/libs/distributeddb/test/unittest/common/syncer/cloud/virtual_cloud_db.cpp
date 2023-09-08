@@ -180,6 +180,7 @@ DBStatus VirtualCloudDb::DeleteByGid(const std::string &tableName, VBucket &exte
             tableData.extend[g_modifiedField] = (int64_t)TimeHelper::GetSysCurrentTime() /
                 CloudDbConstant::TEN_THOUSAND;
             tableData.extend[g_deleteField] = true;
+            tableData.extend[g_cursorField] = std::to_string(currentCursor_++);
             LOGD("[VirtualCloudDb] DeleteByGid, gid %s", std::get<std::string>(extend[g_gidField]).c_str());
             tableData.record.clear();
             break;
@@ -352,5 +353,20 @@ uint32_t VirtualCloudDb::GetQueryTimes(const std::string &tableName)
 void VirtualCloudDb::SetActionStatus(DBStatus status)
 {
     actionStatus_ = status;
+}
+
+DBStatus VirtualCloudDb::GetDataStatus(const std::string &gid, bool &deleteStatus)
+{
+    for (const auto &[tableName, tableDataList]: cloudData_) {
+        for (auto &tableData : tableDataList) {
+            if (std::get<std::string>(tableData.extend.at(g_gidField)) == gid) {
+                deleteStatus = std::get<bool>(tableData.extend.at(g_deleteField));
+                LOGI("tableName %s gid %s deleteStatus is %d", tableName.c_str(), gid.c_str(), deleteStatus);
+                return OK;
+            }
+        }
+    }
+    LOGE("not found gid %s ", gid.c_str());
+    return NOT_FOUND;
 }
 }

@@ -1134,11 +1134,11 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, MigrationAndReleas
         DistributedDB::MockSqliteSingleVerNaturalStore *store = new(std::nothrow) MockSqliteSingleVerNaturalStore;
         ASSERT_NE(store, nullptr);
 
+        store->IncRefCount();
         std::thread dataMigrationThread([&store]() {
             store->CallAsyncDataMigration();
         });
         std::thread releaseThread([&store]() {
-            store->IncRefCount();
             store->CallReleaseResources();
         });
 

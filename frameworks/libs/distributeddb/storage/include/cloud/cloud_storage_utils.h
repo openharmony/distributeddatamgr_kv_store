@@ -34,15 +34,21 @@ public:
         return (errCode == E_OK || (field.nullable && errCode == -E_NOT_FOUND));
     }
 
-    static int Int64ToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
-    static int BoolToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
-    static int DoubleToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
-    static int TextToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
-    static int BlobToVector(const VBucket &vBucket, const Field &field, std::vector<uint8_t> &value);
+    static int Int64ToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+        std::vector<uint8_t> &value);
+    static int BoolToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+        std::vector<uint8_t> &value);
+    static int DoubleToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+        std::vector<uint8_t> &value);
+    static int TextToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+        std::vector<uint8_t> &value);
+    static int BlobToVector(const VBucket &vBucket, const Field &field, CollateType collateType,
+        std::vector<uint8_t> &value);
 
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
-    static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema);
+    static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
+        bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
     static int GetAssetFieldsFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
@@ -108,7 +114,7 @@ public:
     }
 
     static int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
-        std::vector<uint8_t> &hashValue);
+        CollateType collateType, std::vector<uint8_t> &hashValue);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

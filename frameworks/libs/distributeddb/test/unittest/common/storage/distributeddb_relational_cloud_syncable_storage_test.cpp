@@ -1268,9 +1268,10 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash001, 
     ASSERT_EQ(g_delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DBStatus::OK);
     std::string name = "Local0";
     std::map<std::string, Type> primaryKey = {{"name", name}};
+    std::map<std::string, CollateType> collateType = {{"name", CollateType::COLLATE_NONE}};
     string sql = "INSERT OR REPLACE INTO user2(name, age) VALUES ('Local" + std::to_string(0) + "', '18');";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey, collateType);
     EXPECT_NE(result.size(), 0u);
     std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(tableName);
     /**
@@ -1322,10 +1323,11 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash002, 
     ASSERT_EQ(g_delegate->CreateDistributedTable(tableName, CLOUD_COOPERATION), DBStatus::OK);
     int64_t id = 1;
     std::map<std::string, Type> primaryKey = {{"id", id}};
+    std::map<std::string, CollateType> collateType = {{"id", CollateType::COLLATE_NONE}};
     std::string sql = "INSERT OR REPLACE INTO " + tableName + " (id, name) VALUES ('" + '1' + "', 'Local" +
         std::to_string(0) + "');";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey);
+    std::vector<uint8_t> result = RelationalStoreManager::CalcPrimaryKeyHash(primaryKey, collateType);
     EXPECT_NE(result.size(), 0u);
     std::string logTableName = RelationalStoreManager::GetDistributedLogTableName(tableName);
     /**

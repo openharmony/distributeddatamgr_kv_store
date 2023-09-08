@@ -20,6 +20,14 @@
 #include "icloud_sync_storage_interface.h"
 
 namespace DistributedDB {
+
+constexpr int GID_INDEX = 0;
+constexpr int PREFIX_INDEX = 1;
+constexpr int STRATEGY_INDEX = 2;
+constexpr int ASSETS_INDEX = 3;
+constexpr int HASH_KEY_INDEX = 4;
+constexpr int PRIMARY_KEY_INDEX = 5;
+
 int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
     std::vector<Type> &cloudPkVals);
 

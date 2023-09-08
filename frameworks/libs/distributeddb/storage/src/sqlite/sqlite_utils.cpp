@@ -796,6 +796,18 @@ int AnalysisSchemaIndex(sqlite3 *db, const std::string &tableName, TableInfo &ta
     return E_OK;
 }
 
+void SetPrimaryKeyCollateType(const std::string &sql, FieldInfo &field)
+{
+    std::string upperFieldName = DBCommon::ToUpperCase(field.GetFieldName());
+    if (DBCommon::HasConstraint(sql, "PRIMARY KEY COLLATE NOCASE", " ", " ,)") ||
+        DBCommon::HasConstraint(sql, upperFieldName + " TEXT COLLATE NOCASE", " (,", " ,")) {
+        field.SetCollateType(CollateType::COLLATE_NOCASE);
+    } else if (DBCommon::HasConstraint(sql, "PRIMARY KEY COLLATE RTRIM", " ", " ,)") ||
+        DBCommon::HasConstraint(sql, upperFieldName + " TEXT COLLATE RTRIM", " (,", " ,")) {
+        field.SetCollateType(CollateType::COLLATE_RTRIM);
+    }
+}
+
 int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 {
     FieldInfo field;
@@ -822,6 +834,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
     int keyIndex = sqlite3_column_int(statement, 5); // 5 means primary key index
     if (keyIndex != 0) {  // not 0 means is a primary key
         table.SetPrimaryKey(field.GetFieldName(), keyIndex);
+        SetPrimaryKeyCollateType(table.GetCreateTableSql(), field);
     }
     table.AddField(field);
     return E_OK;
@@ -1343,8 +1356,8 @@ void SchemaObjectDestructor(SchemaObject *inObject)
 int SQLiteUtils::RegisterCalcHash(sqlite3 *db)
 {
     TransactFunc func;
-    func.xFunc = &CalcHashKey;
-    return SQLiteUtils::RegisterFunction(db, "calc_hash", 1, nullptr, func);
+    func.xFunc = &CalcHash;
+    return SQLiteUtils::RegisterFunction(db, "calc_hash", 2, nullptr, func); // 2 is params count
 }
 
 void SQLiteUtils::GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
@@ -1383,6 +1396,14 @@ void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetSysCurrentTime());
 }
 
+void SQLiteUtils::CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+        return;
+    }
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
+}
+
 int SQLiteUtils::RegisterGetSysTime(sqlite3 *db)
 {
     TransactFunc func;
@@ -1402,6 +1423,13 @@ int SQLiteUtils::RegisterGetRawSysTime(sqlite3 *db)
     TransactFunc func;
     func.xFunc = &GetRawSysTime;
     return SQLiteUtils::RegisterFunction(db, "get_raw_sys_time", 0, nullptr, func);
+}
+
+int SQLiteUtils::RegisterCloudDataChangeObserver(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &CloudDataChangedObserver;
+    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
@@ -1936,13 +1964,8 @@ void SQLiteUtils::ExtractReturn(sqlite3_context *ctx, FieldType type, const Fiel
     return;
 }
 
-void SQLiteUtils::CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+static void CalcHashFunc(sqlite3_context *ctx, sqlite3_value **argv)
 {
-    // 1 means that the function only needs one parameter, namely key
-    if (ctx == nullptr || argc != 1 || argv == nullptr) {
-        LOGE("Parameter does not meet restrictions.");
-        return;
-    }
     auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
     if (keyBlob == nullptr) {
         sqlite3_result_error(ctx, "Parameters is invalid.", USING_STR_LEN);
@@ -1959,8 +1982,27 @@ void SQLiteUtils::CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **ar
         return;
     }
     sqlite3_result_blob(ctx, hashValue.data(), hashValue.size(), SQLITE_TRANSIENT);
-    return;
 }
+
+void SQLiteUtils::CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    // 1 means that the function only needs one parameter, namely key
+    if (ctx == nullptr || argc != 1 || argv == nullptr) {
+        LOGE("Parameter does not meet restrictions.");
+        return;
+    }
+    CalcHashFunc(ctx, argv);
+}
+
+void SQLiteUtils::CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is params count
+        LOGE("Parameter does not meet restrictions.");
+        return;
+    }
+    CalcHashFunc(ctx, argv);
+}
+
 
 int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size)
 {
