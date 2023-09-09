@@ -275,7 +275,7 @@ int SQLiteSingleVerNaturalStore::GetSecurityOption(SecurityOption &option) const
     if (isMemDb) {
         LOGI("[GetSecurityOption] MemDb, no need to get security option");
         option = SecurityOption();
-        return E_OK;
+        return -E_NOT_SUPPORT;
     }
 
     option.securityLabel = GetDbProperties().GetSecLabel();
