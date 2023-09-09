@@ -143,6 +143,8 @@ public:
     void ResetDataControl();
 
     void SetSaveDataCallback(const std::function<void()> &callback);
+
+    void ForkGetSecurityOption(std::function<int(SecurityOption &)> callBack);
 private:
     int GetSyncData(Timestamp begin, Timestamp end, const DataSizeSpecInfo &dataSizeInfo,
         std::vector<VirtualDataItem> &dataItems, ContinueToken &continueStmtToken) const;
@@ -181,6 +183,8 @@ private:
 
     std::mutex saveDataMutex_;
     std::function<void()> saveDataCallback_;
+
+    std::function<int(SecurityOption &)> getSecurityOptionCallBack_;
 };
 }  // namespace DistributedDB
 

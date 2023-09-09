@@ -362,6 +362,9 @@ const KvDBProperties &VirtualSingleVerSyncDBInterface::GetDbProperties() const
 
 int VirtualSingleVerSyncDBInterface::GetSecurityOption(SecurityOption &option) const
 {
+    if (getSecurityOptionCallBack_) {
+        return getSecurityOptionCallBack_(option);
+    }
     option = secOption_;
     return E_OK;
 }
@@ -589,5 +592,10 @@ void VirtualSingleVerSyncDBInterface::SetSaveDataCallback(const std::function<vo
 {
     std::lock_guard<std::mutex> autoLock(saveDataMutex_);
     saveDataCallback_ = callback;
+}
+
+void VirtualSingleVerSyncDBInterface::ForkGetSecurityOption(std::function<int(SecurityOption &)> callBack)
+{
+    getSecurityOptionCallBack_ = callBack;
 }
 }  // namespace DistributedDB
