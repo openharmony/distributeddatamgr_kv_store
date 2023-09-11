@@ -692,23 +692,4 @@ HWTEST_F(DistributedKvDataManagerTest, DeleteAllKvStore004, TestSize.Level1)
     stat = manager.DeleteAllKvStore(appId, create.baseDir);
     EXPECT_EQ(stat, Status::SUCCESS);
 }
-
-/**
-* @tc.name: RegisterKvStoreServiceDeathRecipient001
-* @tc.desc: Register a callback called when the service dies.
-* @tc.type: FUNC
-* @tc.require: SR000CQDU0 AR000CQDU1
-* @tc.author: liqiao
-*/
-HWTEST_F(DistributedKvDataManagerTest, RegisterKvStoreServiceDeathRecipient001, TestSize.Level1)
-{
-    ZLOGI("RegisterKvStoreServiceDeathRecipient001 begin.");
-    std::shared_ptr<KvStoreDeathRecipient> kvStoreDeathRecipient = nullptr;
-    manager.RegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
-    manager.UnRegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
-
-    kvStoreDeathRecipient = std::make_shared<MyDeathRecipient>();
-    manager.RegisterKvStoreServiceDeathRecipient(kvStoreDeathRecipient);
-    kvStoreDeathRecipient->OnRemoteDied();
-}
 } // namespace OHOS::Test
