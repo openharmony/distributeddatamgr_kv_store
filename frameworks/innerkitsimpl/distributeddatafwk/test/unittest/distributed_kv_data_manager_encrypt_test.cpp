@@ -68,7 +68,6 @@ void DistributedKvDataManagerEncryptTest::RemoveAllStore(DistributedKvDataManage
 }
 void DistributedKvDataManagerEncryptTest::SetUpTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     createEnc.createIfMissing = true;
     createEnc.encrypt = true;
     createEnc.autoSync = true;
@@ -86,7 +85,6 @@ void DistributedKvDataManagerEncryptTest::SetUpTestCase(void)
 
 void DistributedKvDataManagerEncryptTest::TearDownTestCase(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     RemoveAllStore(manager);
     (void)remove((createEnc.baseDir + "/kvdb").c_str());
     (void)remove(createEnc.baseDir.c_str());

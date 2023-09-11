@@ -77,14 +77,12 @@ void StoreFactoryTest::TearDownTestCase(void)
 
 void StoreFactoryTest::SetUp(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "0");
     std::string baseDir = "/data/service/el1/public/database/rekey";
     mkdir(baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
 }
 
 void StoreFactoryTest::TearDown(void)
 {
-    OHOS::SaveStringToFile("/sys/fs/selinux/enforce", "1");
     DeleteKVStore();
     (void)remove("/data/service/el1/public/database/rekey");
 }
