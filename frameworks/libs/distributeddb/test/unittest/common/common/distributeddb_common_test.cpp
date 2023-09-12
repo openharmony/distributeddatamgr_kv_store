@@ -552,18 +552,24 @@ HWTEST_F(DistributedDBCommonTest, StringCaseTest002, TestSize.Level0)
 HWTEST_F(DistributedDBCommonTest, PerformanceAnalysisTest001, TestSize.Level1)
 {
     int threadCount = 1000;
+    int count1 = 0;
+    int count2 = 0;
     for (int i = 0; i < threadCount; i++) {
-        std::thread t1([] {
-           PerformanceAnalysis::GetInstance(20); // 20 is stepNum
+        std::thread t1([&count1] {
+            PerformanceAnalysis::GetInstance(20); // 20 is stepNum
+            count1++;
         });
 
-        std::thread t2([] {
+        std::thread t2([&count2] {
             PerformanceAnalysis::GetInstance(20); // 20 is stepNum
+            count2++;
         });
 
         t1.join();
         t2.join();
     }
+    EXPECT_EQ(count1, count2);
+    EXPECT_EQ(count1, threadCount);
 }
 
 }
