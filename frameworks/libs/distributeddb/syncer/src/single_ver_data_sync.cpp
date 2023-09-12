@@ -1324,7 +1324,7 @@ int SingleVerDataSync::RunPermissionCheck(SingleVerSyncTaskContext *context, con
     uint32_t version = std::min(context->GetRemoteSoftwareVersion(), SOFTWARE_VERSION_CURRENT);
     if (version > SOFTWARE_VERSION_RELEASE_2_0 && (mode != SyncModeType::PULL) &&
         !context->GetReceivcPermitCheck()) {
-        bool permitReceive = SingleVerDataSyncUtils::CheckPermitReceiveData(context, communicateHandle_);
+        bool permitReceive = SingleVerDataSyncUtils::CheckPermitReceiveData(context, communicateHandle_, storage_);
         if (permitReceive) {
             context->SetReceivcPermitCheck(true);
         } else {
@@ -1856,7 +1856,7 @@ int SingleVerDataSync::ControlCmdStartCheck(SingleVerSyncTaskContext *context)
     if ((context->GetMode() != SyncModeType::SUBSCRIBE_QUERY) || context->GetReceivcPermitCheck()) {
         return E_OK;
     }
-    bool permitReceive = SingleVerDataSyncUtils::CheckPermitReceiveData(context, communicateHandle_);
+    bool permitReceive = SingleVerDataSyncUtils::CheckPermitReceiveData(context, communicateHandle_, storage_);
     if (permitReceive) {
         context->SetReceivcPermitCheck(true);
     } else {
