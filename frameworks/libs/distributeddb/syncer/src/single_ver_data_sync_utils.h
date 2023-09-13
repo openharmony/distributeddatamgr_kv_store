@@ -48,7 +48,8 @@ public:
     static int RunPermissionCheck(SingleVerSyncTaskContext *context, const SyncGenericInterface* storage,
         const std::string &label, int mode);
 
-    static bool CheckPermitReceiveData(const SingleVerSyncTaskContext *context, const ICommunicator *communicator);
+    static bool CheckPermitReceiveData(const SingleVerSyncTaskContext *context, const ICommunicator *communicator,
+        const SyncGenericInterface *storage);
 
     static void SetPacketId(DataRequestPacket *packet, SingleVerSyncTaskContext *context, uint32_t version);
 

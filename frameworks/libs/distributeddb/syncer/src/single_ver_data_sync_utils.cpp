@@ -203,8 +203,19 @@ int SingleVerDataSyncUtils::RunPermissionCheck(SingleVerSyncTaskContext *context
 }
 
 bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskContext *context,
-    const ICommunicator *communicator)
+    const ICommunicator *communicator, const SyncGenericInterface *storage)
 {
+    if (storage == nullptr) {
+        LOGE("[DataSync] storage is nullptr when check receive data");
+        return false;
+    }
+    // check memory db here because remote maybe low version
+    // it will send option with not set rather than not support when remote is memory db
+    bool memory = storage->GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
+    if (memory) {
+        LOGE("[DataSync] skip check receive data because local is memory db");
+        return true;
+    }
     SecurityOption remoteSecOption = context->GetRemoteSeccurityOption();
     std::string localDeviceId;
     if (communicator == nullptr || remoteSecOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
