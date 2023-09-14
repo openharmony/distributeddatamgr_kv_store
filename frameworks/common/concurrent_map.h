@@ -265,6 +265,18 @@ public:
         return true;
     }
 
+    void DoActionIfEmpty(const std::function<void(void)> &action)
+    {
+        if (action == nullptr) {
+            return;
+        }
+        std::lock_guard<decltype(mutex_)> lock(mutex_);
+        if (entries_.empty()) {
+            action();
+        }
+        return;
+    }
+
 private:
     std::map<_Key, _Tp> Steal() noexcept
     {

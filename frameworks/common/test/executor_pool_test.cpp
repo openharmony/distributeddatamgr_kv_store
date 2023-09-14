@@ -187,4 +187,28 @@ HWTEST_F(ExecutorPoolTest, MaxEqualsOne, TestSize.Level0)
     std::this_thread::sleep_for(std::chrono::milliseconds(SHORT_INTERVAL * 2));
     ASSERT_EQ(testNum, 4);
 }
+
+/**
+* @tc.name: RemoveInExcuteTask
+* @tc.desc: test remove task when the task is running.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: ht
+*/
+HWTEST_F(ExecutorPoolTest, RemoveWhenExcute, TestSize.Level0)
+{
+    auto executors = std::make_shared<ExecutorPool>(1, 1);
+    auto taskId = ExecutorPool::INVALID_TASK_ID;
+    std::atomic<int> flag = 0;
+    taskId = executors->Schedule(
+        [executors, &taskId, &flag]() {
+            flag++;
+            executors->Remove(taskId, false);
+            taskId = ExecutorPool::INVALID_TASK_ID;
+        },
+        std::chrono::seconds(0), std::chrono::milliseconds(SHORT_INTERVAL), 10);
+    std::this_thread::sleep_for(std::chrono::seconds(LONG_INTERVAL));
+    ASSERT_EQ(taskId, ExecutorPool::INVALID_TASK_ID);
+    ASSERT_EQ(flag, 1);
+}
 } // namespace OHOS::Test

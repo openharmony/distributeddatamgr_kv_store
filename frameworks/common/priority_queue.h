@@ -29,6 +29,7 @@ public:
     struct PQMatrix {
         _Tsk task_;
         _Tid id_;
+        bool removed = false;
         PQMatrix(_Tsk task, _Tid id) : task_(task), id_(id) {}
     };
     using TskIndex = typename std::map<_Tme, PQMatrix>::iterator;
@@ -116,6 +117,10 @@ public:
     bool Remove(_Tid id, bool wait)
     {
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
+        auto it = running_.find(id);
+        if (it != running_.end()) {
+            it->second.removed = true;
+        }
         removeCv_.wait(lock, [this, id, wait] {
             return !wait || running_.find(id) == running_.end();
         });
@@ -144,9 +149,11 @@ public:
         if (it == running_.end()) {
             return;
         }
-        auto [repeat, time] = updater_(it->second.task_);
-        if (repeat) {
-            indexes_.emplace(id, tasks_.emplace(time, std::move(it->second)));
+        if(!it->second.removed){
+            auto [repeat, time] = updater_(it->second.task_);
+            if (repeat) {
+                indexes_.emplace(id, tasks_.emplace(time, std::move(it->second)));
+            }
         }
         running_.erase(it);
         removeCv_.notify_all();
