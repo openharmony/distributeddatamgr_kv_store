@@ -532,8 +532,8 @@ bool IsAbnormalData(const VBucket &data)
 {
     for (const auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
-        if (asset != nullptr && asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL)) {
-            return true;
+        if (asset != nullptr) {
+            return (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL));
         }
         const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
         if (assets == nullptr) {
