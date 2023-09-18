@@ -528,6 +528,26 @@ void GetCloudExtraLog(sqlite3_stmt *logStatement, VBucket &flags)
         static_cast<int64_t>(sqlite3_column_int64(logStatement, FLAG_INDEX)));
 }
 
+bool IsAbnormalData(const VBucket &data)
+{
+    for (const auto &item : data) {
+        const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
+        if (asset != nullptr) {
+            return (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL));
+        }
+        const Assets *assets = std::get_if<TYPE_INDEX<Assets>>(&item.second);
+        if (assets == nullptr) {
+            continue;
+        }
+        for (const auto &oneAsset : *assets) {
+            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log, VBucket &flags)
 {
     int64_t *rowid = std::get_if<int64_t>(&flags[ROWID]);
@@ -543,6 +563,10 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         if (data.empty()) {
             LOGE("The cloud data to be inserted is empty.");
             return -E_INVALID_DATA;
+        }
+        if (IsAbnormalData(data)) {
+            LOGW("This data is abnormal, ignore it when upload");
+            return E_OK;
         }
         cloudSyncData.insData.record.push_back(data);
         cloudSyncData.insData.rowid.push_back(*rowid);
