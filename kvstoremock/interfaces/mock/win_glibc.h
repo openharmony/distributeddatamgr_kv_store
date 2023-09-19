@@ -12,8 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#undef pthread_setname_np
-__attribute__((visibility("default"))) int MAC_SetThreadName(const char *name)
-{
-    return pthread_setname_np(name);
-}
+#ifndef WIN_GLIBC_H
+#define WIN_GLIBC_H
+#include <stdint.h>
+__attribute__((visibility("default"))) int MAC_SetThreadName(const char *name);
+using pthread_t = uintptr_t;
+#ifndef pthread_setname_np
+#define pthread_setname_np(tid, name) 0
+#endif
+#ifndef pthread_self
+#define pthread_self() 0
+#endif
+#endif // WIN_GLIBC_H

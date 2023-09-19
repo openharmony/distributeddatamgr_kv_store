@@ -54,11 +54,7 @@ config("distributeddatafwk_public_config") {
   ]
   if (use_platform_win) {
     defines = [ "IS_WINDOWS" ]
-    defines += [
-      "pthread_setname_np=",
-      "pthread_self=void",
-      "pthread_t=int",
-    ]
+    cflags += [ "-includewin_glibc.h" ]
   } else if (use_platforn_mac) {
     defines = [ "IS_MAC" ]
     cflags += [ "-includemac_glibc.h" ]
