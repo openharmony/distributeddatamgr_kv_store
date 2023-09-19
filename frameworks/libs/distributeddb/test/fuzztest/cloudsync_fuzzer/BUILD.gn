@@ -18,7 +18,7 @@ import("../../../distributeddb.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("CloudsyncFuzzTest") {
-  module_out_path = "kv_store/distributeddb"
+  module_out_path = "kv_store/kv_store"
 
   include_dirs = [
     "../../../test/fuzztest/common",
