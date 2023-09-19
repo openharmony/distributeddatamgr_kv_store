@@ -149,7 +149,7 @@ public:
         if (it == running_.end()) {
             return;
         }
-        if(!it->second.removed){
+        if (!it->second.removed) {
             auto [repeat, time] = updater_(it->second.task_);
             if (repeat) {
                 indexes_.emplace(id, tasks_.emplace(time, std::move(it->second)));
