@@ -14,13 +14,9 @@
  */
 #ifndef WIN_GLIBC_H
 #define WIN_GLIBC_H
-#include <stdint.h>
-__attribute__((visibility("default"))) int MAC_SetThreadName(const char *name);
-using pthread_t = uintptr_t;
-#ifndef pthread_setname_np
-#define pthread_setname_np(tid, name) 0
-#endif
-#ifndef pthread_self
-#define pthread_self() 0
-#endif
+#include <thread>
+namespace OHOS {
+__attribute__((visibility("default"))) int pthread_setname_np(int tid, const char *name);
+__attribute__((visibility("default"))) int pthread_self();
+}
 #endif // WIN_GLIBC_H

@@ -12,8 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#undef pthread_setname_np
-__attribute__((visibility("default"))) int MAC_SetThreadName(const char *name)
+#include "win_glibc.h"
+namespace OHOS {
+__attribute__((visibility("default"))) int pthread_setname_np(int tid, const char *name)
 {
-    return pthread_setname_np(name);
+    return 0;
+}
+
+__attribute__((visibility("default"))) int pthread_self()
+{
+    return 0;
+}
 }

@@ -129,12 +129,13 @@ ohos_shared_library("distributeddata_inner_mock") {
 
   if (use_platform_win) {
     defines = [ "IS_WINDOWS" ]
+    sources += [ "../../../interfaces/mock/win_glibc.cpp" ]
     deps += [
       "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_windows",
     ]
   } else if (use_platforn_mac) {
     defines = [ "IS_MAC" ]
-    sources += [ "../../../interfaces/mock/mac_glibc.c" ]
+    sources += [ "../../../interfaces/mock/mac_glibc.cpp" ]
 
     include_dirs += [
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/include",

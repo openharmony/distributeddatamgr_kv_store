@@ -12,10 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef MAC_GLIBC_H
-#define MAC_GLIBC_H
-#include <thread>
+#include "mac_glibc.h"
 namespace OHOS {
-__attribute__((visibility("default"))) int pthread_setname_np(std::thread::native_handle_type tid, const char *name);
+__attribute__((visibility("default"))) int pthread_setname_np(std::thread::native_handle_type tid, const char *name)
+{
+    (void) tid;
+    return ::pthread_setname_np(name);
 }
-#endif // MAC_GLIBC_H
+}
