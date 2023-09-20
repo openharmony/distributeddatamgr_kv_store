@@ -100,7 +100,11 @@
               "types.h",
               "visibility.h",
               "data_query.h",
-              "store_errno.h"
+              "store_errno.h",
+              "executor.h",
+              "executor_pool.h",
+              "pool.h",
+              "priority_queue.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
           }

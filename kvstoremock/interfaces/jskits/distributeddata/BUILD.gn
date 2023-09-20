@@ -67,8 +67,8 @@ if (use_platform_win || use_platforn_mac) {
     ]
 
     deps = [
+      "${kv_store_base_path}/kvstoremock/interfaces/innerkits/distributeddata:distributeddata_inner_mock",
       "//foundation/arkui/napi:ace_napi",
-      "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/innerkits/distributeddata:distributeddata_inner_mock",
       "//third_party/libuv:uv",
     ]
 

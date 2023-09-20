@@ -17,6 +17,7 @@
 #define DISTRIBUTED_KV_DATA_MANAGER_H
 
 #include <functional>
+#include "executor_pool.h"
 #include "kvstore.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
@@ -147,6 +148,12 @@ public:
      * @param deathRecipient The pointer of the observer.
     */
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
+
+    /**
+     * @brief Set executors to kv client.
+     * @param executors The executors.
+    */
+    API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

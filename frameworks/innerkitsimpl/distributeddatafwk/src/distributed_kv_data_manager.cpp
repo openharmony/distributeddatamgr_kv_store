@@ -22,6 +22,7 @@
 #include "log_print.h"
 #include "refbase.h"
 #include "store_manager.h"
+#include "task_executor.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -163,6 +164,11 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
         return;
     }
     KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(kvStoreDeathRecipient);
+}
+
+void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> executors)
+{
+    TaskExecutor::GetInstance().SetExecutors(std::move(executors));
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

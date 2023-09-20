@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 
 module_output_path = "kv_store/common"
 
@@ -18,7 +19,10 @@ module_output_path = "kv_store/common"
 config("module_private_config") {
   visibility = [ ":*" ]
 
-  include_dirs = [ "../" ]
+  include_dirs = [
+    "../",
+    "${kv_store_base_path}/interfaces/innerkits/distributeddata/include",
+  ]
 }
 
 ###############################################################################
