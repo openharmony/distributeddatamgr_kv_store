@@ -30,7 +30,7 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localIn
     OpType type = OpType::NOT_HANDLE;
     if (localInfo.timestamp > cloudInfo.timestamp) {
         if (localInfo.cloudGid.empty()) {
-            type = isCloudDelete ? OpType::NOT_HANDLE : OpType::ONLY_UPDATE_GID;
+            type = isCloudDelete ? OpType::NOT_HANDLE : (isLocalDelete ? OpType::INSERT : OpType::ONLY_UPDATE_GID);
         } else {
             type = isCloudDelete ? OpType::CLEAR_GID : type;
         }
