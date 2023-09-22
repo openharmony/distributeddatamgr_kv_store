@@ -69,71 +69,71 @@ typedef enum KvScanMode {
 typedef struct GRD_ResultSet GRD_ResultSet;
 typedef struct GRD_DB GRD_DB;
 typedef struct GRD_KVBatch GRD_KVBatchT;
-typedef int32_t (*OpenPtr)(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db);
-typedef int32_t (*ClosePtr)(GRD_DB *db, uint32_t flags);
-typedef int32_t (*FlushPtr)(GRD_DB *db, uint32_t flags);
-typedef int32_t (*IndexPreloadPtr)(GRD_DB *db, const char *collectionName);
-typedef int32_t (*CreateCollectionPtr)(GRD_DB *db, const char *collectionName, const char *optionStr,
+typedef int32_t (*open_ptr)(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db);
+typedef int32_t (*close_ptr)(GRD_DB *db, uint32_t flags);
+typedef int32_t (*flush_ptr)(GRD_DB *db, uint32_t flags);
+typedef int32_t (*index_preload_ptr)(GRD_DB *db, const char *collectionName);
+typedef int32_t (*create_collection_ptr)(GRD_DB *db, const char *collectionName, const char *optionStr,
     uint32_t flags);
-typedef int32_t (*DropCollectionPtr)(GRD_DB *db, const char *collectionName, uint32_t flags);
-typedef int32_t (*InsertDocPtr)(GRD_DB *db, const char *collectionName, const char *document, uint32_t flags);
-typedef int32_t (*FindDocPtr)(GRD_DB *db, const char *collectionName, Query query, uint32_t flags,
+typedef int32_t (*drop_collection_ptr)(GRD_DB *db, const char *collectionName, uint32_t flags);
+typedef int32_t (*insert_doc_ptr)(GRD_DB *db, const char *collectionName, const char *document, uint32_t flags);
+typedef int32_t (*find_doc_ptr)(GRD_DB *db, const char *collectionName, Query query, uint32_t flags,
     GRD_ResultSet **resultSet);
-typedef int32_t (*UpdateDocPtr)(GRD_DB *db, const char *collectionName, const char *filter,
+typedef int32_t (*update_doc_ptr)(GRD_DB *db, const char *collectionName, const char *filter,
     const char *update, uint32_t flags);
-typedef int32_t (*UpsertDocPtr)(GRD_DB *db, const char *collectionName, const char *filter,
+typedef int32_t (*upsert_doc_ptr)(GRD_DB *db, const char *collectionName, const char *filter,
     const char *document, uint32_t flags);
-typedef int32_t (*DeleteDocPtr)(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags);
-typedef int32_t (*NextPtr)(GRD_ResultSet *resultSet);
-typedef int32_t (*PrevPtr)(GRD_ResultSet *resultSet);
-typedef int32_t (*GetValuePtr)(GRD_ResultSet *resultSet, char **value);
-typedef int32_t (*FetchPtr)(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value);
-typedef int32_t (*FreeValuePtr)(char *value);
-typedef int32_t (*FreeResultSetPtr)(GRD_ResultSet *resultSet);
-typedef int32_t (*KVBatchDestoryPtr)(GRD_KVBatchT *batch);
-typedef int32_t (*KVPutPtr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
+typedef int32_t (*delete_doc_ptr)(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags);
+typedef int32_t (*next_ptr)(GRD_ResultSet *resultSet);
+typedef int32_t (*prev_ptr)(GRD_ResultSet *resultSet);
+typedef int32_t (*get_value_ptr)(GRD_ResultSet *resultSet, char **value);
+typedef int32_t (*fetch_ptr)(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value);
+typedef int32_t (*free_value_ptr)(char *value);
+typedef int32_t (*free_resultSet_ptr)(GRD_ResultSet *resultSet);
+typedef int32_t (*kv_put_ptr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
     const GRD_KVItemT *value);
-typedef int32_t (*KVGetPtr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
+typedef int32_t (*kv_get_ptr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
     const GRD_KVItemT *value);
-typedef int32_t (*KVDelPtr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key);
-typedef int32_t (*KVScanPtr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
+typedef int32_t (*kv_del_ptr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key);
+typedef int32_t (*kv_scan_ptr)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key,
     KvScanModeE mode, GRD_ResultSet **resultSet);
-typedef int32_t (*KVFreeItemPtr)(GRD_KVItemT *item);
-typedef int32_t (*KVBatchPreparePtr)(uint16_t itemNum, GRD_KVBatchT **batch);
-typedef int32_t (*KVBatchPushbackPtr)(const void *key, uint32_t keyLen, const void *data,
+typedef int32_t (*kv_freeItem_ptr)(GRD_KVItemT *item);
+typedef int32_t (*kv_batchPrepare_ptr)(uint16_t itemNum, GRD_KVBatchT **batch);
+typedef int32_t (*kv_batchPushback_ptr)(const void *key, uint32_t keyLen, const void *data,
     uint32_t dataLen, GRD_KVBatchT *batch);
-typedef int32_t (*KVBatchDelPtr)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
-typedef int32_t (*CreateSeqPtr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
-typedef int32_t (*DropSeqPtr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
+typedef int32_t (*kv_batchDel_ptr)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
+typedef int32_t (*kv_batchDestory_ptr)(GRD_KVBatchT *batch);
+typedef int32_t (*create_seq_ptr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
+typedef int32_t (*drop_seq_ptr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
 struct GRD_APIStruct {
-    OpenPtr GRD_DBOpenApi = nullptr;
-    ClosePtr GRD_DBCloseApi = nullptr;
-    FlushPtr GRD_FlushApi = nullptr;
-    IndexPreloadPtr GRD_IndexPreloadApi = nullptr;
-    CreateCollectionPtr GRD_CreateCollectionApi = nullptr;
-    DropCollectionPtr GRD_DropCollectionApi = nullptr;
-    InsertDocPtr GRD_InsertDocApi = nullptr;
-    FindDocPtr GRD_FindDocApi = nullptr;
-    UpdateDocPtr GRD_UpdateDocApi = nullptr;
-    UpsertDocPtr GRD_UpsertDocApi = nullptr;
-    DeleteDocPtr GRD_DeleteDocApi = nullptr;
-    NextPtr GRD_NextApi = nullptr;
-    PrevPtr GRD_PrevApi = nullptr;
-    GetValuePtr GRD_GetValueApi = nullptr;
-    FetchPtr GRD_FetchApi = nullptr;
-    FreeValuePtr GRD_FreeValueApi = nullptr;
-    FreeResultSetPtr GRD_FreeResultSetApi = nullptr;
-    KVPutPtr GRD_KVPutApi = nullptr;
-    KVGetPtr GRD_KVGetApi = nullptr;
-    KVDelPtr GRD_KVDelApi = nullptr;
-    KVScanPtr GRD_KVScanApi = nullptr;
-    KVFreeItemPtr GRD_KVFreeItemApi = nullptr;
-    KVBatchPreparePtr GRD_KVBatchPrepareApi = nullptr;
-    KVBatchPushbackPtr GRD_KVBatchPushbackApi = nullptr;
-    KVBatchDelPtr GRD_KVBatchDelApi = nullptr;
-    KVBatchDestoryPtr GRD_KVBatchDestoryApi = nullptr;
-    CreateSeqPtr GRD_CreateSeqApi = nullptr;
-    DropSeqPtr GRD_DropSeqApi = nullptr;
+    open_ptr GRD_DBOpenApi = nullptr;
+    close_ptr GRD_DBCloseApi = nullptr;
+    flush_ptr GRD_FlushApi = nullptr;
+    index_preload_ptr GRD_IndexPreloadApi = nullptr;
+    create_collection_ptr GRD_CreateCollectionApi = nullptr;
+    drop_collection_ptr GRD_DropCollectionApi = nullptr;
+    insert_doc_ptr GRD_InsertDocApi = nullptr;
+    find_doc_ptr GRD_FindDocApi = nullptr;
+    update_doc_ptr GRD_UpdateDocApi = nullptr;
+    upsert_doc_ptr GRD_UpsertDocApi = nullptr;
+    delete_doc_ptr GRD_DeleteDocApi = nullptr;
+    next_ptr GRD_NextApi = nullptr;
+    prev_ptr GRD_PrevApi = nullptr;
+    get_value_ptr GRD_GetValueApi = nullptr;
+    fetch_ptr GRD_FetchApi = nullptr;
+    free_value_ptr GRD_FreeValueApi = nullptr;
+    free_resultSet_ptr GRD_FreeResultSetApi = nullptr;
+    kv_put_ptr GRD_KVPutApi = nullptr;
+    kv_get_ptr GRD_KVGetApi = nullptr;
+    kv_del_ptr GRD_KVDelApi = nullptr;
+    kv_scan_ptr GRD_KVScanApi = nullptr;
+    kv_freeItem_ptr GRD_KVFreeItemApi = nullptr;
+    kv_batchPrepare_ptr GRD_KVBatchPrepareApi = nullptr;
+    kv_batchPushback_ptr GRD_KVBatchPushbackApi = nullptr;
+    kv_batchDel_ptr GRD_KVBatchDelApi = nullptr;
+    kv_batchDestory_ptr GRD_KVBatchDestoryApi = nullptr;
+    create_seq_ptr GRD_CreateSeqApi = nullptr;
+    drop_seq_ptr GRD_DropSeqApi = nullptr;
 };
 
 /**

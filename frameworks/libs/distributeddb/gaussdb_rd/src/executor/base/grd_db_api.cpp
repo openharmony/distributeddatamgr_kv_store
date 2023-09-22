@@ -122,45 +122,43 @@ void GRD_DBApiInitCommon(GRD_APIStruct &GRD_ApiStruct)
 
 void GRD_DBApiInitEnhance(GRD_APIStruct &GRD_ApiStruct)
 {
-    GRD_ApiStruct.GRD_DBOpenApi = (OpenPtr)dlsym(library, "GRD_DBOpen");
-    GRD_ApiStruct.GRD_DBCloseApi = (ClosePtr)dlsym(library, "GRD_DBClose");
-    GRD_ApiStruct.GRD_FlushApi = (FlushPtr)dlsym(library, "GRD_Flush");
-    GRD_ApiStruct.GRD_IndexPreloadApi = (IndexPreloadPtr)dlsym(library, "GRD_IndexPreload");
-    GRD_ApiStruct.GRD_CreateCollectionApi = (CreateCollectionPtr)dlsym(library, "GRD_CreateCollection");
-    GRD_ApiStruct.GRD_DropCollectionApi = (DropCollectionPtr)dlsym(library, "GRD_DropCollection");
-    GRD_ApiStruct.GRD_InsertDocApi = (InsertDocPtr)dlsym(library, "GRD_InsertDoc");
-    GRD_ApiStruct.GRD_FindDocApi = (FindDocPtr)dlsym(library, "GRD_FindDoc");
-    GRD_ApiStruct.GRD_UpdateDocApi = (UpdateDocPtr)dlsym(library, "GRD_UpdateDoc");
-    GRD_ApiStruct.GRD_UpsertDocApi = (UpsertDocPtr)dlsym(library, "GRD_UpsertDoc");
-    GRD_ApiStruct.GRD_DeleteDocApi = (DeleteDocPtr)dlsym(library, "GRD_DeleteDoc");
-    GRD_ApiStruct.GRD_NextApi = (NextPtr)dlsym(library, "GRD_Next");
-    GRD_ApiStruct.GRD_PrevApi = (PrevPtr)dlsym(library, "GRD_Prev");
-    GRD_ApiStruct.GRD_GetValueApi = (GetValuePtr)dlsym(library, "GRD_GetValue");
-    GRD_ApiStruct.GRD_FetchApi = (FetchPtr)dlsym(library, "GRD_Fetch");
-    GRD_ApiStruct.GRD_FreeValueApi = (FreeValuePtr)dlsym(library, "GRD_FreeValue");
-    GRD_ApiStruct.GRD_FreeResultSetApi = (FreeResultSetPtr)dlsym(library, "GRD_FreeResultSet");
-    GRD_ApiStruct.GRD_KVPutApi = (KVPutPtr)dlsym(library, "GRD_KVPut");
-    GRD_ApiStruct.GRD_KVGetApi = (KVGetPtr)dlsym(library, "GRD_KVGet");
-    GRD_ApiStruct.GRD_KVDelApi = (KVDelPtr)dlsym(library, "GRD_KVDel");
-    GRD_ApiStruct.GRD_KVScanApi = (KVScanPtr)dlsym(library, "GRD_KVScan");
-    GRD_ApiStruct.GRD_KVFreeItemApi = (KVFreeItemPtr)dlsym(library, "GRD_KVFreeItem");
-    GRD_ApiStruct.GRD_KVBatchPrepareApi = (KVBatchPreparePtr)dlsym(library, "GRD_KVBatchPrepare");
-    GRD_ApiStruct.GRD_KVBatchPushbackApi = (KVBatchPushbackPtr)dlsym(library, "GRD_KVBatchPushback");
-    GRD_ApiStruct.GRD_KVBatchDelApi = (KVBatchDelPtr)dlsym(library, "GRD_KVBatchDel");
-    GRD_ApiStruct.GRD_KVBatchDestoryApi = (KVBatchDestoryPtr)dlsym(library, "GRD_KVBatchDestory");
-    GRD_ApiStruct.GRD_CreateSeqApi = (CreateSeqPtr)dlsym(library, "GRD_CreateSeq");
-    GRD_ApiStruct.GRD_DropSeqApi = (DropSeqPtr)dlsym(library, "GRD_DropSeq");
+    GRD_ApiStruct.GRD_DBOpenApi = (open_ptr)dlsym(library, "GRD_DBOpen");
+    GRD_ApiStruct.GRD_DBCloseApi = (close_ptr)dlsym(library, "GRD_DBClose");
+    GRD_ApiStruct.GRD_FlushApi = (flush_ptr)dlsym(library, "GRD_Flush");
+    GRD_ApiStruct.GRD_IndexPreloadApi = (index_preload_ptr)dlsym(library, "GRD_IndexPreload");
+    GRD_ApiStruct.GRD_CreateCollectionApi = (create_collection_ptr)dlsym(library, "GRD_CreateCollection");
+    GRD_ApiStruct.GRD_DropCollectionApi = (drop_collection_ptr)dlsym(library, "GRD_DropCollection");
+    GRD_ApiStruct.GRD_InsertDocApi = (insert_doc_ptr)dlsym(library, "GRD_InsertDoc");
+    GRD_ApiStruct.GRD_FindDocApi = (find_doc_ptr)dlsym(library, "GRD_FindDoc");
+    GRD_ApiStruct.GRD_UpdateDocApi = (update_doc_ptr)dlsym(library, "GRD_UpdateDoc");
+    GRD_ApiStruct.GRD_UpsertDocApi = (upsert_doc_ptr)dlsym(library, "GRD_UpsertDoc");
+    GRD_ApiStruct.GRD_DeleteDocApi = (delete_doc_ptr)dlsym(library, "GRD_DeleteDoc");
+    GRD_ApiStruct.GRD_NextApi = (next_ptr)dlsym(library, "GRD_Next");
+    GRD_ApiStruct.GRD_PrevApi = (prev_ptr)dlsym(library, "GRD_Prev");
+    GRD_ApiStruct.GRD_GetValueApi = (get_value_ptr)dlsym(library, "GRD_GetValue");
+    GRD_ApiStruct.GRD_FetchApi = (fetch_ptr)dlsym(library, "GRD_Fetch");
+    GRD_ApiStruct.GRD_FreeValueApi = (free_value_ptr)dlsym(library, "GRD_FreeValue");
+    GRD_ApiStruct.GRD_FreeResultSetApi = (free_resultSet_ptr)dlsym(library, "GRD_FreeResultSet");
+    GRD_ApiStruct.GRD_KVPutApi = (kv_put_ptr)dlsym(library, "GRD_KVPut");
+    GRD_ApiStruct.GRD_KVGetApi = (kv_get_ptr)dlsym(library, "GRD_KVGet");
+    GRD_ApiStruct.GRD_KVDelApi = (kv_del_ptr)dlsym(library, "GRD_KVDel");
+    GRD_ApiStruct.GRD_KVScanApi = (kv_scan_ptr)dlsym(library, "GRD_KVScan");
+    GRD_ApiStruct.GRD_KVFreeItemApi = (kv_freeItem_ptr)dlsym(library, "GRD_KVFreeItem");
+    GRD_ApiStruct.GRD_KVBatchPrepareApi = (kv_batchPrepare_ptr)dlsym(library, "GRD_KVBatchPrepare");
+    GRD_ApiStruct.GRD_KVBatchPushbackApi = (kv_batchPushback_ptr)dlsym(library, "GRD_KVBatchPushback");
+    GRD_ApiStruct.GRD_KVBatchDelApi = (kv_batchDel_ptr)dlsym(library, "GRD_KVBatchDel");
+    GRD_ApiStruct.GRD_KVBatchDestoryApi = (kv_batchDestory_ptr)dlsym(library, "GRD_KVBatchDestory");
+    GRD_ApiStruct.GRD_CreateSeqApi = (create_seq_ptr)dlsym(library, "GRD_CreateSeq");
+    GRD_ApiStruct.GRD_DropSeqApi = (drop_seq_ptr)dlsym(library, "GRD_DropSeq");
 }
 void GRD_DBApiInit(GRD_APIStruct &GRD_ApiStruct)
 {
     library = dlopen("libgaussdb_rd2.z.so", RTLD_LAZY);
     if (!library) {
         (void)GRD_DBApiInitCommon(GRD_ApiStruct); // When calling specific function, read whether init is successful.
-        GRD_DBApiStruct.count++;
         return;
     }
     (void)GRD_DBApiInitEnhance(GRD_ApiStruct);
-    GRD_DBApiStruct.count++;
 }
 
 GRD_APIStruct GetApiStructInstance()
