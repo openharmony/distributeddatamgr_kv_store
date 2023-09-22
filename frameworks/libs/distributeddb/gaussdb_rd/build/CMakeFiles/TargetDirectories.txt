@@ -1,0 +1,4 @@
+/home/mazhao/distributeddatamgr_datamgr_service_new/services/distributeddataservice/service/data_share/gaussdb_rd/build/CMakeFiles/document_ut.dir
+/home/mazhao/distributeddatamgr_datamgr_service_new/services/distributeddataservice/service/data_share/gaussdb_rd/build/CMakeFiles/test.dir
+/home/mazhao/distributeddatamgr_datamgr_service_new/services/distributeddataservice/service/data_share/gaussdb_rd/build/CMakeFiles/edit_cache.dir
+/home/mazhao/distributeddatamgr_datamgr_service_new/services/distributeddataservice/service/data_share/gaussdb_rd/build/CMakeFiles/rebuild_cache.dir
