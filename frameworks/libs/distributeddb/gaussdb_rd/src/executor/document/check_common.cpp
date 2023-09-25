@@ -23,7 +23,6 @@
 
 using namespace DocumentDB;
 namespace DocumentDB {
-static GRD_APIStruct GRD_CheckApiStruct = GetApiStructInstance();
 namespace {
 constexpr const char *KEY_ID = "_id";
 constexpr const char *COLLECTION_PREFIX_GRD = "GRD_";
