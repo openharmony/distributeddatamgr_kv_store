@@ -24,7 +24,7 @@
 
 using namespace DocumentDB;
 namespace DocumentDB {
-static GRD_APIStruct GRD_ResultSetApiStruct = GetApiStructInstance();
+static GRD_APIInfo GRD_ResultSetApiInfo = GetApiInfoInstance();
 int32_t GRD_NextInner(GRD_ResultSet *resultSet)
 {
     if (resultSet == nullptr) {
@@ -82,48 +82,48 @@ int32_t GRD_FetchInner(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *
 } // namespace DocumentDB
 GRD_API int32_t GRD_Next(GRD_ResultSet *resultSet)
 {
-    if (GRD_ResultSetApiStruct.GRD_NextApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_NextApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_NextApi(resultSet);
+    return GRD_ResultSetApiInfo.GRD_NextApi(resultSet);
 }
 
 GRD_API int32_t GRD_GetValue(GRD_ResultSet *resultSet, char **value)
 {
-    if (GRD_ResultSetApiStruct.GRD_GetValueApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_GetValueApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_GetValueApi(resultSet, value);
+    return GRD_ResultSetApiInfo.GRD_GetValueApi(resultSet, value);
 }
 
 GRD_API int32_t GRD_FreeValue(char *value)
 {
-    if (GRD_ResultSetApiStruct.GRD_FreeValueApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_FreeValueApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_FreeValueApi(value);
+    return GRD_ResultSetApiInfo.GRD_FreeValueApi(value);
 }
 
 GRD_API int32_t GRD_FreeResultSet(GRD_ResultSet *resultSet)
 {
-    if (GRD_ResultSetApiStruct.GRD_FreeResultSetApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_FreeResultSetApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_FreeResultSetApi(resultSet);
+    return GRD_ResultSetApiInfo.GRD_FreeResultSetApi(resultSet);
 }
 
 GRD_API int32_t GRD_Prev(GRD_ResultSet *resultSet)
 {
-    if (GRD_ResultSetApiStruct.GRD_PrevApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_PrevApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_PrevApi(resultSet);
+    return GRD_ResultSetApiInfo.GRD_PrevApi(resultSet);
 }
 
 GRD_API int32_t GRD_Fetch(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value)
 {
-    if (GRD_ResultSetApiStruct.GRD_FetchApi == nullptr) {
+    if (GRD_ResultSetApiInfo.GRD_FetchApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_ResultSetApiStruct.GRD_FetchApi(resultSet, key, value);
+    return GRD_ResultSetApiInfo.GRD_FetchApi(resultSet, key, value);
 }

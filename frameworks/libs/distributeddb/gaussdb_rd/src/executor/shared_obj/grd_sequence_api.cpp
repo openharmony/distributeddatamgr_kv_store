@@ -22,7 +22,7 @@
 #include "log_print.h"
 using namespace DocumentDB;
 namespace DocumentDB {
-static GRD_APIStruct GRD_SeqApiStruct = GetApiStructInstance();
+static GRD_APIInfo GRD_SeqApiInfo = GetApiInfoInstance();
 int32_t GRD_CreateSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
     return GRD_OK; // No support.
@@ -36,16 +36,16 @@ int32_t GRD_DropSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
 
 GRD_API int32_t GRD_CreateSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
-    if (GRD_SeqApiStruct.GRD_CreateSeqApi == nullptr) {
+    if (GRD_SeqApiInfo.GRD_CreateSeqApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_SeqApiStruct.GRD_CreateSeqApi(db, sequenceName, flags);
+    return GRD_SeqApiInfo.GRD_CreateSeqApi(db, sequenceName, flags);
 }
 
 GRD_API int32_t GRD_DropSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
-    if (GRD_SeqApiStruct.GRD_DropSeqApi == nullptr) {
+    if (GRD_SeqApiInfo.GRD_DropSeqApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_SeqApiStruct.GRD_DropSeqApi(db, sequenceName, flags);
+    return GRD_SeqApiInfo.GRD_DropSeqApi(db, sequenceName, flags);
 }

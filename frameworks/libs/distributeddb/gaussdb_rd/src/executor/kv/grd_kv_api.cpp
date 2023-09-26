@@ -23,7 +23,7 @@
 using namespace DocumentDB;
 
 namespace DocumentDB {
-static GRD_APIStruct GRD_KVApiStruct = GetApiStructInstance();
+static GRD_APIInfo GRD_KVApiInfo = GetApiInfoInstance();
 int32_t GRD_KVPutInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, const GRD_KVItemT *value)
 {
     return GRD_OK; // No support.
@@ -74,74 +74,74 @@ int32_t GRD_KVBatchDestoryInner(GRD_KVBatchT *batch)
 
 GRD_API int32_t GRD_KVPut(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, const GRD_KVItemT *value)
 {
-    if (GRD_KVApiStruct.GRD_KVPutApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVPutApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVPutApi(db, collectionName, key, value);
+    return GRD_KVApiInfo.GRD_KVPutApi(db, collectionName, key, value);
 }
 
 GRD_API int32_t GRD_KVGet(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, const GRD_KVItemT *value)
 {
-    if (GRD_KVApiStruct.GRD_KVGetApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVGetApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVGetApi(db, collectionName, key, value);
+    return GRD_KVApiInfo.GRD_KVGetApi(db, collectionName, key, value);
 }
 
 GRD_API int32_t GRD_KVDel(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key)
 {
-    if (GRD_KVApiStruct.GRD_KVDelApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVDelApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVDelApi(db, collectionName, key);
+    return GRD_KVApiInfo.GRD_KVDelApi(db, collectionName, key);
 }
 
 GRD_API int32_t GRD_KVScan(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, KvScanModeE mode,
     GRD_ResultSet **resultSet)
 {
-    if (GRD_KVApiStruct.GRD_KVScanApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVScanApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVScanApi(db, collectionName, key, mode, resultSet);
+    return GRD_KVApiInfo.GRD_KVScanApi(db, collectionName, key, mode, resultSet);
 }
 
 GRD_API int32_t GRD_KVFreeItem(GRD_KVItemT *item)
 {
-    if (GRD_KVApiStruct.GRD_KVFreeItemApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVFreeItemApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVFreeItemApi(item);
+    return GRD_KVApiInfo.GRD_KVFreeItemApi(item);
 }
 
 GRD_API int32_t GRD_KVBatchPrepare(uint16_t itemNum, GRD_KVBatchT **batch)
 {
-    if (GRD_KVApiStruct.GRD_KVBatchPrepareApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVBatchPrepareApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVBatchPrepareApi(itemNum, batch);
+    return GRD_KVApiInfo.GRD_KVBatchPrepareApi(itemNum, batch);
 }
 
 GRD_API int32_t GRD_KVBatchPushback(const void *key, uint32_t keyLen, const void *data, uint32_t dataLen,
     GRD_KVBatchT *batch)
 {
-    if (GRD_KVApiStruct.GRD_KVBatchPushbackApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVBatchPushbackApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVBatchPushbackApi(key, keyLen, data, dataLen, batch);
+    return GRD_KVApiInfo.GRD_KVBatchPushbackApi(key, keyLen, data, dataLen, batch);
 }
 
 GRD_API int32_t GRD_KVBatchDel(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch)
 {
-    if (GRD_KVApiStruct.GRD_KVBatchDelApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVBatchDelApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVBatchDelApi(db, collectionName, batch);
+    return GRD_KVApiInfo.GRD_KVBatchDelApi(db, collectionName, batch);
 }
 
 GRD_API int32_t GRD_KVBatchDestory(GRD_KVBatchT *batch)
 {
-    if (GRD_KVApiStruct.GRD_KVBatchDestoryApi == nullptr) {
+    if (GRD_KVApiInfo.GRD_KVBatchDestoryApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_KVApiStruct.GRD_KVBatchDestoryApi(batch);
+    return GRD_KVApiInfo.GRD_KVBatchDestoryApi(batch);
 }

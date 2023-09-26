@@ -23,7 +23,7 @@
 #include "log_print.h"
 using namespace DocumentDB;
 namespace DocumentDB {
-static GRD_APIStruct GRD_DocApiStruct = GetApiStructInstance();
+static GRD_APIInfo GRD_DocApiInfo = GetApiInfoInstance();
 int32_t GRD_CreateCollectionInner(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags)
 {
     if (db == nullptr || db->store_ == nullptr) {
@@ -123,59 +123,59 @@ int32_t GRD_FindDocInner(GRD_DB *db, const char *collectionName, Query query, ui
 
 GRD_API int32_t GRD_CreateCollection(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_CreateCollectionApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_CreateCollectionApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_CreateCollectionApi(db, collectionName, optionStr, flags);
+    return GRD_DocApiInfo.GRD_CreateCollectionApi(db, collectionName, optionStr, flags);
 }
 
 GRD_API int32_t GRD_DropCollection(GRD_DB *db, const char *collectionName, uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_DropCollectionApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_DropCollectionApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_DropCollectionApi(db, collectionName, flags);
+    return GRD_DocApiInfo.GRD_DropCollectionApi(db, collectionName, flags);
 }
 
 GRD_API int32_t GRD_UpdateDoc(GRD_DB *db, const char *collectionName, const char *filter, const char *update,
     uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_UpdateDocApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_UpdateDocApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_UpdateDocApi(db, collectionName, filter, update, flags);
+    return GRD_DocApiInfo.GRD_UpdateDocApi(db, collectionName, filter, update, flags);
 }
 
 GRD_API int32_t GRD_UpsertDoc(GRD_DB *db, const char *collectionName, const char *filter, const char *document,
     uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_UpsertDocApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_UpsertDocApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_UpsertDocApi(db, collectionName, filter, document, flags);
+    return GRD_DocApiInfo.GRD_UpsertDocApi(db, collectionName, filter, document, flags);
 }
 
 GRD_API int32_t GRD_InsertDoc(GRD_DB *db, const char *collectionName, const char *document, uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_InsertDocApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_InsertDocApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_InsertDocApi(db, collectionName, document, flags);
+    return GRD_DocApiInfo.GRD_InsertDocApi(db, collectionName, document, flags);
 }
 
 GRD_API int32_t GRD_DeleteDoc(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags)
 {
-    if (GRD_DocApiStruct.GRD_DeleteDocApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_DeleteDocApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_DeleteDocApi(db, collectionName, filter, flags);
+    return GRD_DocApiInfo.GRD_DeleteDocApi(db, collectionName, filter, flags);
 }
 
 GRD_API int32_t GRD_FindDoc(GRD_DB *db, const char *collectionName, Query query, uint32_t flags,
     GRD_ResultSet **resultSet)
 {
-    if (GRD_DocApiStruct.GRD_FindDocApi == nullptr) {
+    if (GRD_DocApiInfo.GRD_FindDocApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_DocApiStruct.GRD_FindDocApi(db, collectionName, query, flags, resultSet);
+    return GRD_DocApiInfo.GRD_FindDocApi(db, collectionName, query, flags, resultSet);
 }

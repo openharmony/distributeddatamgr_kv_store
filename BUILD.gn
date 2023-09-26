@@ -34,6 +34,7 @@ group("unittest") {
   testonly = true
   deps = []
   deps += [
+    "frameworks/libs/distributeddb/gaussdb_rd/test:unittest",
     "frameworks/common/test:unittest",
     "frameworks/innerkitsimpl/kvdb/test:unittest",
     "test/unittest/distributedKVStore:unittest",

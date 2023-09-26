@@ -105,7 +105,8 @@ typedef int32_t (*kv_batchDel_ptr)(GRD_DB *db, const char *collectionName, GRD_K
 typedef int32_t (*kv_batchDestory_ptr)(GRD_KVBatchT *batch);
 typedef int32_t (*create_seq_ptr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
 typedef int32_t (*drop_seq_ptr)(GRD_DB *db, const char *sequenceName, uint32_t flags);
-struct GRD_APIStruct {
+
+struct GRD_APIInfo {
     open_ptr GRD_DBOpenApi = nullptr;
     close_ptr GRD_DBCloseApi = nullptr;
     flush_ptr GRD_FlushApi = nullptr;

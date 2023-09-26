@@ -33,7 +33,7 @@ GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags);
 #ifdef __cplusplus
 }
 namespace DocumentDB {
-GRD_APIStruct GetApiStructInstance();
+GRD_APIInfo GetApiInfoInstance();
 } // namespace DocumentDB
 #endif // __cplusplus
 #endif // GRD_DB_API_H
