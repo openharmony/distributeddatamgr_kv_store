@@ -101,4 +101,10 @@ std::string SplitDeviceLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 {
     return "PRIMARY KEY(device, hash_key)";
 }
+
+std::vector<std::string> SplitDeviceLogTableManager::GetDropTriggers(const TableInfo &table)
+{
+    (void)table;
+    return {};
+}
 }

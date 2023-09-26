@@ -124,4 +124,10 @@ void CollaborationLogTableManager::GetIndexSql(const TableInfo &table, std::vect
         GetLogTableName(table) + "(data_key);";
     schema.emplace_back(dataKeyIndex);
 }
+
+std::vector<std::string> CollaborationLogTableManager::GetDropTriggers(const TableInfo &table)
+{
+    (void)table;
+    return {};
+}
 }

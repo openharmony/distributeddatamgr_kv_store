@@ -18,6 +18,8 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
+#include "simple_tracker_log_table_manager.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
 static constexpr const int ROW_ID_INDEX = 1;
@@ -228,6 +230,109 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t c
     }
 #endif
     return false;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const TrackerTable &trackerTable,
+    TableInfo &tableInfo)
+{
+    int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, trackerTable.GetTableName(), tableInfo);
+    if (errCode != E_OK) {
+        LOGE("analysis table schema failed. %d", errCode);
+        return errCode;
+    }
+    tableInfo.SetTrackerTable(trackerTable);
+    errCode = tableInfo.CheckTrackerTable();
+    if (errCode != E_OK) {
+        LOGE("check tracker table schema failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable)
+{
+    TableInfo table;
+    int errCode = AnalysisTrackerTable(trackerTable, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    auto tableManager = std::make_unique<SimpleTrackerLogTableManager>();
+    if (!trackerTable.GetTrackerColNames().empty()) {
+        // create log table
+        errCode = tableManager->CreateRelationalLogTable(dbHandle_, table);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
+        errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
+        if (errCode != E_OK) {
+            LOGE("general tracker log info for existed data failed. %d", errCode);
+            return errCode;
+        }
+    }
+    errCode = tableManager->AddRelationalLogTableTrigger(dbHandle_, table, "");
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema)
+{
+    if (!schema.ToSchemaString().empty()) {
+        return E_OK;
+    }
+    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
+        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+    Value schemaVal;
+    int errCode = GetKvData(schemaKey, schemaVal); // save schema to meta_data
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    std::string schemaStr;
+    DBCommon::VectorToString(schemaVal, schemaStr);
+    errCode = schema.ParseFromTrackerSchemaString(schemaStr);
+    if (errCode != E_OK) {
+        LOGE("Parse from tracker schema string err");
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, condition.sql, statement);
+    if (errCode != E_OK) {
+        LOGE("Execute sql failed when prepare stmt");
+        return errCode;
+    }
+    size_t bindCount = sqlite3_bind_parameter_count(statement);
+    if (bindCount > condition.bindArgs.size() || bindCount < condition.bindArgs.size()) {
+        LOGE("sql bind args mismatch");
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return -E_INVALID_ARGS;
+    }
+    for (size_t i = 0; i < condition.bindArgs.size(); i++) {
+        Type type = condition.bindArgs[i];
+        errCode = SQLiteRelationalUtils::BindStatementByType(statement, i + 1, type);
+        if (errCode != E_OK) {
+            int ret = E_OK;
+            SQLiteUtils::ResetStatement(statement, true, ret);
+            return errCode;
+        }
+    }
+    while ((errCode = SQLiteRelationalUtils::StepNext(isMemDb_, statement)) == E_OK) {
+        VBucket bucket;
+        errCode = SQLiteRelationalUtils::GetSelectVBucket(statement, bucket);
+        if (errCode != E_OK) {
+            int ret = E_OK;
+            SQLiteUtils::ResetStatement(statement, true, ret);
+            return errCode;
+        }
+        records.push_back(std::move(bucket));
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
 } // namespace DistributedDB
 #endif

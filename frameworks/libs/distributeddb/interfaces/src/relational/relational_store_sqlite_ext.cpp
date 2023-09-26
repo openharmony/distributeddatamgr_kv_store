@@ -601,7 +601,7 @@ static bool GetDbFileName(sqlite3 *db, std::string &fileName)
 
 void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
@@ -619,6 +619,8 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
         return;
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
+
+    bool isTrackerChange = (sqlite3_value_int(argv[3]) > 0); // 3 is param index
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -628,7 +630,13 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     {
         std::lock_guard<std::mutex> lock(g_clientChangedDataMutex);
         if (isExistObserver) {
-            g_clientChangedDataMap[hashFileName].tableNames.insert(tableName);
+            auto itTable = g_clientChangedDataMap[hashFileName].tableData.find(tableName);
+            if (itTable != g_clientChangedDataMap[hashFileName].tableData.end()) {
+                itTable->second.isTrackedDataChange |= isTrackerChange;
+            } else {
+                ChangeProperties properties = { .isTrackedDataChange = isTrackerChange };
+                g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
+            }
         }
     }
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
@@ -658,13 +666,13 @@ int CommitHookCallback(void *data)
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
     auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableNames.empty()) {
+    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
         (void)DistributedDB::RuntimeContext::GetInstance()->ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
         });
-        g_clientChangedDataMap[hashFileName].tableNames.clear();
+        g_clientChangedDataMap[hashFileName].tableData.clear();
     }
     return 0;
 }
@@ -683,8 +691,8 @@ void RollbackHookCallback(void* data)
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
     auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableNames.empty()) {
-        g_clientChangedDataMap[hashFileName].tableNames.clear();
+    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
+        g_clientChangedDataMap[hashFileName].tableData.clear();
     }
 }
 
@@ -713,7 +721,7 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
-    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
+    return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
 }
 
 void RegisterCommitAndRollbackHook(sqlite3 *db)

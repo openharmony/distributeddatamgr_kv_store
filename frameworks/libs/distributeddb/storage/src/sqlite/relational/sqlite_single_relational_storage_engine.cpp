@@ -156,6 +156,20 @@ int SaveSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle, cons
     return errCode;
 }
 
+int SaveTrackerSchemaToMetaTable(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const RelationalSchemaObject &schema)
+{
+    const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
+        DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+    Value schemaVal;
+    DBCommon::StringToVector(schema.ToSchemaString(), schemaVal);
+    int errCode = handle->PutKvData(schemaKey, schemaVal); // save schema to meta_data
+    if (errCode != E_OK) {
+        LOGE("Save schema to meta table failed. %d", errCode);
+    }
+    return errCode;
+}
+
 int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
     TableSyncType syncType)
 {
@@ -223,11 +237,18 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         return errCode;
     }
 
+     errCode = handle->GetOrInitTrackerSchemaFromMeta(trackerSchema_);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
     TableInfo table;
     table.SetTableName(tableName);
     table.SetTableSyncType(tableSyncType);
+    table.SetTrackerTable(trackerSchema_.GetTrackerTable(tableName));
     errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
@@ -356,6 +377,125 @@ int SQLiteSingleRelationalStorageEngine::CreateRelationalMetaTable(sqlite3 *db)
     if (errCode != E_OK) {
         LOGE("[SQLite] execute create table sql failed, err=%d", errCode);
     }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &schema)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    RelationalSchemaObject tracker = trackerSchema_;
+    errCode = handle->GetOrInitTrackerSchemaFromMeta(tracker);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    tracker.InsertTrackerSchema(schema);
+    errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName));
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    if (schema.trackerColNames.empty()) {
+        tracker.RemoveTrackerSchema(schema);
+    }
+    errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    errCode = handle->Commit();
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    trackerSchema_ = tracker;
+    ReleaseExecutor(handle);
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::InitTrackerDistributedTable(const TrackerSchema &schema)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    RelationalSchemaObject tracker = trackerSchema_;
+    errCode = handle->GetOrInitTrackerSchemaFromMeta(tracker);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    tracker.InsertTrackerSchema(schema);
+    TableInfo tableInfo;
+    errCode = handle->AnalysisTrackerTable(tracker.GetTrackerTable(schema.tableName), tableInfo);
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    if (schema.trackerColNames.empty()) {
+        tracker.RemoveTrackerSchema(schema);
+    }
+
+    errCode = handle->Commit();
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+
+    trackerSchema_ = tracker;
+    ReleaseExecutor(handle);
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    errCode = handle->ExecuteSql(condition, records);
+    if (errCode != E_OK) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        return errCode;
+    }
+    errCode = handle->Commit();
+    ReleaseExecutor(handle);
     return errCode;
 }
 }

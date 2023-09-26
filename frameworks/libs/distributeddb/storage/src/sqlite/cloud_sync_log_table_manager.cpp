@@ -95,15 +95,20 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
-    insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)";
+    insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid, ";
+    insertTrigger += " extend_field, cursor)";
     insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
     insertTrigger += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
     insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
-    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END);\n";
+    insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END, ";
+    insertTrigger += table.GetTrackerTable().GetAssignValSql();
+    insertTrigger += ", " + table.GetTrackerTable().GetSelectMaxCursorSql() + ");\n";
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
-    insertTrigger += ", 0);\n";
+    insertTrigger += ", 0, ";
+    insertTrigger += (table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1");
+    insertTrigger += ");\n";
     insertTrigger += "END;";
     return insertTrigger;
 }
@@ -122,8 +127,22 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    updateTrigger += "SELECT client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
-    updateTrigger += ", 1);\n";
+    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
+        updateTrigger += "\t UPDATE " + logTblName;
+        updateTrigger += " SET extend_field=";
+        updateTrigger += table.GetTrackerTable().GetAssignValSql();
+        updateTrigger += ", cursor=(SELECT MAX(cursor) from " + logTblName + ") + 1 where case when (";
+        updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
+        updateTrigger += ") then 1 else 0 end;";
+        updateTrigger += "select client_observer('" + tableName + "', OLD.";
+        updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
+        updateTrigger += ", 1, case when (";
+        updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
+        updateTrigger += ") then 1 else 0 end);";
+    } else {
+        updateTrigger += "SELECT client_observer('" + tableName + "', OLD.";
+        updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID) + ", 1, 0);\n";
+    }
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -142,8 +161,23 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
-    deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2);\n";
+    deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
+    deleteTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
+    deleteTrigger += ");\n";
     deleteTrigger += "END;";
     return deleteTrigger;
+}
+
+std::vector<std::string> CloudSyncLogTableManager::GetDropTriggers(const TableInfo &table)
+{
+    std::vector<std::string> dropTriggers;
+    std::string tableName = table.GetTableName();
+    std::string insertTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_INSERT; ";
+    std::string updateTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_UPDATE; ";
+    std::string deleteTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_DELETE; ";
+    dropTriggers.emplace_back(insertTrigger);
+    dropTriggers.emplace_back(updateTrigger);
+    dropTriggers.emplace_back(deleteTrigger);
+    return dropTriggers;
 }
 } // DistributedDB

@@ -24,6 +24,7 @@
 #include "schema_constant.h"
 #include "data_value.h"
 #include "ischema.h"
+#include "tracker_table.h"
 
 namespace DistributedDB {
 using CompositeFields = std::vector<FieldName>;
@@ -91,6 +92,9 @@ public:
     void SetPrimaryKey(const std::map<int, FieldName> &key);
     void SetPrimaryKey(const FieldName &fieldName, int keyIndex);
     std::string ToTableInfoString(const std::string &schemaVersion) const;
+    void SetTrackerTable(const TrackerTable &table);
+    int CheckTrackerTable();
+    const TrackerTable &GetTrackerTable() const;
 
     void SetUniqueDefine(const std::vector<CompositeFields> &uniqueDefine);
 
@@ -138,6 +142,7 @@ private:
 
     std::vector<CompositeFields> uniqueDefines_;
     int id_ = -1;
+    TrackerTable trackerTable_;
 };
 } // namespace DistributedDB
 #endif // TABLE_INFO_H

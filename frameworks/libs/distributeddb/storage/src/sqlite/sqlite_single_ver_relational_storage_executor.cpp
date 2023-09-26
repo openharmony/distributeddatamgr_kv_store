@@ -143,7 +143,7 @@ int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isM
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName,
-    const std::string &calPrimaryKeyHash)
+    const std::string &calPrimaryKeyHash, TableInfo &tableInfo)
 {
     int64_t timeOffset = 0;
     int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
@@ -152,10 +152,13 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     }
     std::string timeOffsetStr = std::to_string(timeOffset);
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    std::string sql = "INSERT INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
         timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x2, " +
-        calPrimaryKeyHash + ", ''" + " FROM '" + tableName + "' AS a WHERE 1=1;";
+        calPrimaryKeyHash + ", '', ";
+    sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+    sql += ", " + tableInfo.GetTrackerTable().GetBatchSelectMaxCursorSql();
+    sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
@@ -198,7 +201,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
 
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
-        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash);
+        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1086,20 +1089,6 @@ int StepNext(bool isMemDB, sqlite3_stmt *stmt, Timestamp &timestamp)
     return errCode;
 }
 
-int StepNext(bool isMemDB, sqlite3_stmt *stmt)
-{
-    if (stmt == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_FINISHED;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = E_OK;
-    }
-    return errCode;
-}
-
 int AppendData(const DataSizeSpecInfo &sizeInfo, size_t appendLength, size_t &overLongSize, size_t &dataTotalSize,
     std::vector<DataItem> &dataItems, DataItem &&item)
 {
@@ -1679,7 +1668,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     uint32_t stepNum = 0;
     do {
         if (isStepNext) {
-            errCode = StepNext(isMemDb_, queryStmt);
+            errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
             if (errCode != E_OK) {
                 errCode = (errCode == -E_FINISHED ? E_OK : errCode);
                 break;
@@ -1711,7 +1700,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
         return errCode;
     }
     do {
-        errCode = StepNext(isMemDb_, queryStmt);
+        errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
         if (errCode != E_OK) {
             errCode = (errCode == -E_FINISHED ? E_OK : errCode);
             break;
@@ -2392,7 +2381,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
     }
 
     std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, '', 0)";
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {

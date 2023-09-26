@@ -93,6 +93,9 @@ public:
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
+    int SetTrackerTable(const TrackerSchema &trackerSchema);
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+
 private:
     void ReleaseResources();
 

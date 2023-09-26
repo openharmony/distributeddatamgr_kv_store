@@ -39,6 +39,7 @@ const std::string DBConstant::SQLITE_MEMDB_IDENTIFY = "?mode=memory&cache=shared
 
 const std::string DBConstant::SCHEMA_KEY = "schemaKey";
 const std::string DBConstant::RELATIONAL_SCHEMA_KEY = "relational_schema";
+const std::string DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
 
 const std::string DBConstant::PATH_POSTFIX_UNPACKED = "_unpacked";
 const std::string DBConstant::PATH_POSTFIX_IMPORT_BACKUP = "_import_bak";

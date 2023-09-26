@@ -1096,5 +1096,27 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
 }
+
+int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
+{
+    TrackerSchema lowerSchema;
+    SchemaUtils::TransTrackerSchemaToLower(trackerSchema, lowerSchema);
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfo tableInfo = localSchema.GetTable(lowerSchema.tableName);
+    if (tableInfo.Empty()) {
+        return sqliteStorageEngine_->SetTrackerTable(lowerSchema);
+    }
+    // Adapt here after the distributed table supports tracking, and temporarily return to OK
+    return E_OK;
+}
+
+int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (condition.sql.empty()) {
+        LOGE("[RelationalStore] execute sql is empty.");
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->ExecuteSql(condition, records);
+}
 }
 #endif

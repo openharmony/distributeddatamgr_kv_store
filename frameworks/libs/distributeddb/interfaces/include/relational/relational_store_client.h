@@ -26,7 +26,6 @@
 typedef struct sqlite3 sqlite3;
 
 struct ClientChangedData {
-    std::set<std::string> tableNames; // disused,the tableNames will be removed in the next MR
     std::map<std::string, DistributedDB::ChangeProperties> tableData;
 };
 

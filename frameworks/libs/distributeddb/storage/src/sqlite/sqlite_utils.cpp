@@ -1399,7 +1399,7 @@ void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **ar
 
 void SQLiteUtils::CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
@@ -1430,7 +1430,7 @@ int SQLiteUtils::RegisterCloudDataChangeObserver(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
-    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
+    return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)

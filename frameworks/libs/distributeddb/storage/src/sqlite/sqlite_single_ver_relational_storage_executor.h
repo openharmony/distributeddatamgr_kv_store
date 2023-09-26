@@ -29,6 +29,7 @@
 #include "sqlite_single_ver_relational_continue_token.h"
 #include "sqlite_storage_executor.h"
 #include "sqlite_utils.h"
+#include "tracker_table.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerRelationalStorageExecutor : public SQLiteStorageExecutor {
@@ -120,6 +121,10 @@ public:
 
     int SetLogTriggerStatus(bool status);
 
+    int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
+    int CreateTrackerTable(const TrackerTable &trackerTable);
+    int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -170,7 +175,8 @@ private:
 
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
-    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash);
+    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
+        TableInfo &tableInfo);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
         uint32_t &totalSize, const uint32_t &maxSize);

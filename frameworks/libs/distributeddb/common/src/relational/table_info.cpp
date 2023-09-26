@@ -704,4 +704,28 @@ bool TableInfo::Empty() const
 {
     return tableName_.empty() || fields_.empty();
 }
+
+void TableInfo::SetTrackerTable(const TrackerTable &table)
+{
+    trackerTable_ = table;
+}
+
+int TableInfo::CheckTrackerTable()
+{
+    if (!trackerTable_.GetExtendName().empty() &&
+        GetFields().find(trackerTable_.GetExtendName()) == GetFields().end()) {
+        return -E_SCHEMA_MISMATCH;
+    }
+    for (const auto &colName: GetTrackerTable().GetTrackerColNames()) {
+        if (GetFields().find(colName) == GetFields().end()) {
+            return -E_SCHEMA_MISMATCH;
+        }
+    }
+    return E_OK;
+}
+
+const TrackerTable &TableInfo::GetTrackerTable() const
+{
+    return trackerTable_;
+}
 } // namespace DistributeDB
