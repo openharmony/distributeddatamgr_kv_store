@@ -48,6 +48,7 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
+        "cJSON",
         "jsoncpp",
         "libuv",
         "openssl",

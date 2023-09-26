@@ -91,5 +91,5 @@ ohos_static_library("gaussdb_rd") {
   ]
 
   subsystem_name = "distributeddatamgr"
-  part_name = "datamgr_service"
+  part_name = "kv_store"
 }

@@ -24,6 +24,7 @@ group("build_native_test") {
   testonly = true
   deps = [
     "frameworks/innerkitsimpl/distributeddatafwk/test:unittest",
+    "frameworks/libs/distributeddb/gaussdb_rd/test/unittest:unittest",
     "frameworks/libs/distributeddb/test:unittest",
     "frameworks/libs/distributeddb/test/moduletest:moduletest",
   ]
@@ -34,7 +35,6 @@ group("unittest") {
   testonly = true
   deps = []
   deps += [
-    "frameworks/libs/distributeddb/gaussdb_rd/test:unittest",
     "frameworks/common/test:unittest",
     "frameworks/innerkitsimpl/kvdb/test:unittest",
     "test/unittest/distributedKVStore:unittest",

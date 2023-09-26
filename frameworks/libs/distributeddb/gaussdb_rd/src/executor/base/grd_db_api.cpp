@@ -152,14 +152,14 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.GRD_DropSeqApi = (drop_seq_ptr)dlsym(library, "GRD_DropSeq");
 }
 
-GRD_APIInfo GetApiStructInstance()
+GRD_APIInfo GetApiInfoInstance()
 {
     GRD_APIInfo GRD_TempApiStruct;
-    library = dlopen("libgaussdb_rd2.z.so", RTLD_LAZY);
+    library = dlopen("/system/lib64/libgaussdb_rd.z.so", RTLD_LAZY);
     if (!library) {
-        (void)GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
+        GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
     } else {
-        (void)GRD_DBApiInitEnhance(GRD_TempApiStruct);
+        GRD_DBApiInitEnhance(GRD_TempApiStruct);
     }
     return GRD_TempApiStruct;
 }

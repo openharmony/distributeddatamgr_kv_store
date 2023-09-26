@@ -12,7 +12,7 @@
 # limitations under the License.
 import("//build/test.gni")
 
-module_output_path = "datamgr_service/gaussdb_rd"
+module_output_path = "kv_store/gaussdb_rd"
 
 ###############################################################################
 config("module_private_config") {
@@ -90,7 +90,7 @@ ohos_source_set("src_file") {
   ]
 
   subsystem_name = "distributeddatamgr"
-  part_name = "datamgr_service"
+  part_name = "kv_store"
 }
 
 template("gaussdb_rd_unittest") {
