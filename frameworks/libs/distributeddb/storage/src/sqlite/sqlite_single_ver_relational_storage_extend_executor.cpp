@@ -94,7 +94,6 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
         LOGE("Miss gid when fill Asset");
         return errCode;
     }
-    sqlite3_stmt *stmt = nullptr;
     std::vector<Field> assetsField;
     errCode = CloudStorageUtils::GetAssetFieldsFromSchema(tableSchema, vBucket, assetsField);
     if (errCode != E_OK) {
@@ -109,6 +108,7 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     } else {
         CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetAfterDownloadFail);
     }
+    sqlite3_stmt *stmt = nullptr;
     errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
     if (errCode != E_OK) {
         return errCode;

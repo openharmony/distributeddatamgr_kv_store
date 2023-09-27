@@ -29,7 +29,7 @@ std::string CollaborationLogTableManager::CalcPrimaryKeyHash(const std::string &
     if (IsCollaborationWithoutKey(table)) {
         sql = "calc_hash('" + identity + "'||calc_hash(" + references + "rowid, 0), 0)";
     } else {
-        if (table.GetIdentifyKey().size() == 1) {
+        if (table.GetIdentifyKey().size() == 1u) {
             sql = "calc_hash(" + references + "'" + table.GetIdentifyKey().at(0) + "', 0)";
         } else {
             sql = "calc_hash(";
@@ -73,7 +73,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "WHEN (SELECT count(*) from " + DBConstant::RELATIONAL_PREFIX + "metadata ";
     updateTrigger += "WHERE key = 'log_trigger_switch' AND value = 'true')\n";
     updateTrigger += "BEGIN\n";
-    if (table.GetIdentifyKey().size() == 1 && table.GetIdentifyKey().at(0) == "rowid") {
+    if (table.GetIdentifyKey().size() == 1u && table.GetIdentifyKey().at(0) == "rowid") {
         // primary key is rowid, it can't be changed
         updateTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
         updateTrigger += " SET timestamp=get_sys_time(0), device='', flag=0x22";

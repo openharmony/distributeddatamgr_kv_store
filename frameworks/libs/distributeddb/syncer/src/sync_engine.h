@@ -205,6 +205,8 @@ private:
 
     void WaitingExecTaskExist();
 
+    int HandleRemoteExecutorMsg(const std::string &targetDev, Message *inMsg);
+
     ICommunicator *communicator_;
     DeviceManager *deviceManager_;
     std::function<void(const std::string &)> onRemoteDataChanged_;

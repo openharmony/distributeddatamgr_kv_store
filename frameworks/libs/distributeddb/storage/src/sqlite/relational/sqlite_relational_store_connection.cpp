@@ -251,7 +251,9 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
     syncParam.isQuerySync = true;
     syncParam.relationOnComplete = info.onComplete;
     syncParam.syncQuery = QuerySyncObject(info.query);
-    syncParam.onFinalize =  [this]() { DecObjRef(this); };
+    syncParam.onFinalize =  [this]() {
+        DecObjRef(this);
+    };
     if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
         LOGE("not support order by timestamp");
         DecObjRef(this);
@@ -276,9 +278,15 @@ int SQLiteRelationalStoreConnection::RegisterLifeCycleCallback(const DatabaseLif
     return store->RegisterLifeCycleCallback(notifier);
 }
 
-void SQLiteRelationalStoreConnection::RegisterObserverAction(const RelationalObserverAction &action)
+int SQLiteRelationalStoreConnection::RegisterObserverAction(const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
-    static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(GetConnectionId(), action);
+    return static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(GetConnectionId(), observer, action);
+}
+
+int SQLiteRelationalStoreConnection::UnRegisterObserverAction(const StoreObserver *observer)
+{
+    return static_cast<SQLiteRelationalStore *>(store_)->UnRegisterObserverAction(GetConnectionId(), observer);
 }
 
 int SQLiteRelationalStoreConnection::RemoteQuery(const std::string &device, const RemoteCondition &condition,
@@ -330,7 +338,7 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     if (ret != E_OK) {
         LOGE("[RelationalConnection] Set asset loader failed. %d", ret);
     }
-    return E_OK;
+    return ret;
 }
 
 int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,

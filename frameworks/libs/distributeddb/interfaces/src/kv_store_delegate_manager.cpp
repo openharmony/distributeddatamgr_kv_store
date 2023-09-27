@@ -343,7 +343,6 @@ void KvStoreDelegateManager::GetKvStore(const std::string &storeId, const KvStor
     callback(OK, kvStore);
 }
 
-
 DBStatus KvStoreDelegateManager::CloseKvStore(KvStoreDelegate *kvStore)
 {
 #ifndef OMIT_MULTI_VER
@@ -540,7 +539,7 @@ DBStatus KvStoreDelegateManager::EnableKvStoreAutoLaunch(const std::string &user
     if (RuntimeContext::GetInstance() == nullptr) {
         return DB_ERROR;
     }
-    AutoLaunchParam param{ userId, appId, storeId, option, notifier, {}};
+    AutoLaunchParam param{ userId, appId, storeId, option, notifier, {} };
     std::shared_ptr<DBProperties> ptr;
     int errCode = AutoLaunch::GetAutoLaunchProperties(param, DBTypeInner::DB_KV, true, ptr);
     if (errCode != E_OK) {

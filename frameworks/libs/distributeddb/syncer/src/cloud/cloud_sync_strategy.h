@@ -27,7 +27,7 @@ public:
     CloudSyncStrategy() = default;
     virtual ~CloudSyncStrategy() = default;
 
-    virtual OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+    virtual OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
     {
         (void)existInLocal;
         (void)localInfo;

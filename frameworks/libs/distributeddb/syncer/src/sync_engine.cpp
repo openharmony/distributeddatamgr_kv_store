@@ -151,6 +151,7 @@ int SyncEngine::Close()
     if (executor != nullptr) {
         executor->Close();
         RefObject::DecObjRef(executor);
+        executor = nullptr;
     }
     ClearInnerResource();
     LOGI("[SyncEngine] SyncEngine closed!");
@@ -512,17 +513,10 @@ int SyncEngine::MessageReciveCallbackInner(const std::string &targetDev, Message
         LOGE("[SyncEngine] engine is closing, ignore msg");
         return -E_BUSY;
     }
-    RemoteExecutor *executor = GetAndIncRemoteExector();
-    if (inMsg->GetMessageId() == REMOTE_EXECUTE_MESSAGE && executor != nullptr) {
-        int errCode = executor->ReceiveMessage(targetDev, inMsg);
-        RefObject::DecObjRef(executor);
-        DecExecTaskCount();
-        return errCode;
-    } else if (inMsg->GetMessageId() == REMOTE_EXECUTE_MESSAGE) {
-        DecExecTaskCount();
-        return -E_BUSY;
+    if (inMsg->GetMessageId() == REMOTE_EXECUTE_MESSAGE) {
+        return HandleRemoteExecutorMsg(targetDev, inMsg);
     }
-    RefObject::DecObjRef(executor);
+
     int msgSize = 0;
     if (!IsSkipCalculateLen(inMsg)) {
         msgSize = GetMsgSize(inMsg);
@@ -824,6 +818,7 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
     if (executor != nullptr) {
         executor->NotifyDeviceOffline(deviceId);
         RefObject::DecObjRef(executor);
+        executor = nullptr;
     }
     // db closed or device is offline
     // clear remote subscribe and trigger
@@ -1198,5 +1193,19 @@ void SyncEngine::WaitingExecTaskExist()
     if (!isTimeout) {
         LOGD("SyncEngine Close with executing task!");
     }
+}
+
+int SyncEngine::HandleRemoteExecutorMsg(const std::string &targetDev, Message *inMsg)
+{
+    RemoteExecutor *executor = GetAndIncRemoteExector();
+    int errCode = E_OK;
+    if (executor != nullptr) {
+        errCode = executor->ReceiveMessage(targetDev, inMsg);
+    } else {
+        errCode = -E_BUSY;
+    }
+    DecExecTaskCount();
+    RefObject::DecObjRef(executor);
+    return errCode;
 }
 } // namespace DistributedDB

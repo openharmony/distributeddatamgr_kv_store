@@ -386,7 +386,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (observerMap_.find(observer) != observerMap_.end()) {
         LOGE("[KvStoreNbDelegate] Observer has been already registered!");
-        return DB_ERROR;
+        return ALREADY_SET;
     }
 
     if (conn_ == nullptr) {

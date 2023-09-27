@@ -53,6 +53,10 @@ int TimeHelper::GetSysCurrentRawTime(uint64_t &curTime)
     if (errCode != 0) {
         return errCode;
     }
+    if (curTime > (UINT64_MAX / TO_100_NS)) {
+        LOGD("curTime is too large %" PRIu64, curTime);
+        return -E_OUT_OF_DATE;
+    }
     curTime *= TO_100_NS;
     return E_OK;
 }

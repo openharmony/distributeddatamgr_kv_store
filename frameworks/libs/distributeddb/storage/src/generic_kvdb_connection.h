@@ -108,9 +108,6 @@ private:
     int RegisterObserverForOneType(int type, const Key &key, const KvDBObserverAction &action,
         NotificationChain::Listener *&listener);
 
-    // Soft limit of a connection observer count.
-    static constexpr int MAX_OBSERVER_COUNT = 8;
-
     bool isSafeDeleted_;
     std::mutex observerListLock_;
     std::list<KvDBObserverHandle *> observerList_;

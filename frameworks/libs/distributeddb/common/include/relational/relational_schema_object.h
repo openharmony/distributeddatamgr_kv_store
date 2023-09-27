@@ -39,7 +39,7 @@ public:
     // Should be called on an invalid SchemaObject, create new SchemaObject if need to reparse
     int ParseFromSchemaString(const std::string &inSchemaString) override;
 
-    void AddRelationalTable(const TableInfo& table);
+    void AddRelationalTable(const TableInfo &table);
 
     void RemoveRelationalTable(const std::string &tableName);
 

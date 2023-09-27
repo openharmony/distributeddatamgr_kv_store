@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef RELATIONAL_DB_CLOUD_INTERFACE_H
-#define RELATIONAL_DB_CLOUD_INTERFACE_H
+#ifndef ICLOUD_SYNC_STORAGE_INTERFACE_H
+#define ICLOUD_SYNC_STORAGE_INTERFACE_H
 
 #include "cloud/cloud_db_types.h"
 #include "data_transformer.h"
@@ -64,7 +64,7 @@ public:
 
     virtual int Rollback() = 0;
 
-    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) = 0;
 
     virtual int FillCloudGid(const CloudSyncData &data) = 0;
@@ -97,4 +97,4 @@ public:
 };
 }
 
-#endif //RELATIONAL_DB_CLOUD_INTERFACE_H
+#endif // ICLOUD_SYNC_STORAGE_INTERFACE_H

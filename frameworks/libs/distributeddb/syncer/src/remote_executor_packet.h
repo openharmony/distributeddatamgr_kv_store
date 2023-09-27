@@ -26,8 +26,8 @@
 namespace DistributedDB {
 class RemoteExecutorRequestPacket : public ISyncPacket {
 public:
-    RemoteExecutorRequestPacket();
-    ~RemoteExecutorRequestPacket() override;
+    RemoteExecutorRequestPacket() = default;
+    ~RemoteExecutorRequestPacket() override = default;
 
     uint32_t GetVersion() const;
 
@@ -81,9 +81,9 @@ private:
 
 class RemoteExecutorAckPacket : public ISyncPacket {
 public:
-    RemoteExecutorAckPacket();
+    RemoteExecutorAckPacket() = default;
 
-    ~RemoteExecutorAckPacket() override;
+    ~RemoteExecutorAckPacket() override = default;
 
     uint32_t GetVersion() const;
 

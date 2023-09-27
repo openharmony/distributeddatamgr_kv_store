@@ -44,7 +44,7 @@ struct QueryObjInfo {
     SortType sortType_ = SortType::NONE;
 };
 
-enum SymbolType : uint32_t {
+enum class SymbolType : uint32_t {
     INVALID_SYMBOL = 0x0000,
     COMPARE_SYMBOL = 0x0100, // relation symbol use to compare
     RELATIONAL_SYMBOL = 0x0200,

@@ -63,8 +63,11 @@ void CloudSyncLogTableManager::GetIndexSql(const TableInfo &table, std::vector<s
         "_cloud_time_flag_gid_index ON " + tableName + "(timestamp, flag, cloud_gid);";
     std::string indexGid = "CREATE INDEX IF NOT EXISTS " + tableName +
         "_cloud_gid_index ON " + tableName + "(cloud_gid);";
+    std::string indexDataKey = "CREATE INDEX IF NOT EXISTS " + tableName +
+        "_data_key_index ON " + tableName + "(data_key);";
     schema.emplace_back(indexTimestampFlagGid);
     schema.emplace_back(indexGid);
+    schema.emplace_back(indexDataKey);
 }
 
 std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)

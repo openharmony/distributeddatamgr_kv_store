@@ -62,7 +62,7 @@ int CloudMetaData::GetCloudWaterMark(const TableName &tableName, std::string &cl
 int CloudMetaData::SetLocalWaterMark(const TableName &tableName, Timestamp localMark)
 {
     std::lock_guard<std::mutex> lock(cloudMetaMutex_);
-    std::string cloudMark = "";
+    std::string cloudMark;
     auto iter = cloudMetaVals_.find(tableName);
     if (iter != cloudMetaVals_.end()) {
         cloudMark = iter->second.cloudMark;

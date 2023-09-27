@@ -194,9 +194,8 @@ uint32_t SingleVerSerializeManager::CalculateControlLen(const Message *inMsg)
 
 int SingleVerSerializeManager::RegisterTransformFunc()
 {
-    int errCode = RegisterCommunicatorTransformFunc();
     RegisterInnerTransformFunc();
-    return errCode;
+    return RegisterCommunicatorTransformFunc();
 }
 
 int SingleVerSerializeManager::DataPacketSyncerPartSerialization(Parcel &parcel, const DataRequestPacket *packet)

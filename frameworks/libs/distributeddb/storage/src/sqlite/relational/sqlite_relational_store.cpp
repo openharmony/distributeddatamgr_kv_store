@@ -506,9 +506,11 @@ int SQLiteRelationalStore::RemoveDeviceData()
     // erase watermark first
     int errCode = EraseAllDeviceWatermark(tableNameList);
     if (errCode != E_OK) {
+        LOGE("remove watermark failed %d", errCode);
         return errCode;
     }
-    auto *handle = GetHandleAndStartTransaction(errCode);
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    errCode = GetHandleAndStartTransaction(handle);
     if (handle == nullptr) {
         return errCode;
     }
@@ -585,9 +587,15 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
 
-void SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
+int SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
-    storageEngine_->RegisterObserverAction(connectionId, action);
+    return storageEngine_->RegisterObserverAction(connectionId, observer, action);
+}
+
+int SQLiteRelationalStore::UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer)
+{
+    return storageEngine_->UnRegisterObserverAction(connectionId, observer);
 }
 
 int SQLiteRelationalStore::StopLifeCycleTimer()
@@ -788,7 +796,7 @@ int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string
             }
         }
     }
-    return errCode;
+    return E_OK;
 }
 
 std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, const std::string &hashDev) const
@@ -805,19 +813,22 @@ std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, co
     return devTableName;
 }
 
-SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndStartTransaction(int &errCode) const
+int SQLiteRelationalStore::GetHandleAndStartTransaction(SQLiteSingleVerRelationalStorageExecutor *&handle) const
 {
-    auto *handle = GetHandle(true, errCode);
+    int errCode = E_OK;
+    handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        return nullptr;
+        LOGE("get handle failed %d", errCode);
+        return errCode;
     }
 
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
+        LOGE("start transaction failed %d", errCode);
         ReleaseHandle(handle);
-        return nullptr;
+        return errCode;
     }
-    return handle;
+    return errCode;
 }
 
 int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
@@ -840,9 +851,11 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
     // erase watermark first
     int errCode = syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
     if (errCode != E_OK) {
+        LOGE("erase watermark failed %d", errCode);
         return errCode;
     }
-    auto *handle = GetHandleAndStartTransaction(errCode);
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    errCode = GetHandleAndStartTransaction(handle);
     if (handle == nullptr) {
         return errCode;
     }
@@ -851,7 +864,7 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (errCode != E_OK) {
         LOGE("delete device data failed. %d", errCode);
-        goto END;
+        tables.clear();
     }
 
     for (const auto &it : tables) {
@@ -864,7 +877,6 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
         }
     }
 
-END:
     if (errCode != E_OK) {
         (void)handle->Rollback();
         ReleaseHandle(handle);

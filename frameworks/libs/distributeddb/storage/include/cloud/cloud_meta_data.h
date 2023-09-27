@@ -58,4 +58,4 @@ private:
 };
 
 } // namespace DistributedDB
-#endif // DISTRIBUTEDDB_TYPES_EXPORT_H
+#endif // CLOUD_META_DATA_H

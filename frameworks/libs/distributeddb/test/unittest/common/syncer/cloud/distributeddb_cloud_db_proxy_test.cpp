@@ -659,6 +659,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue001, TestSize.Level2)
     EXPECT_EQ(Sync(cloudSyncer, callCount), OK);
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 1);
+    RefObject::KillAndDecObjRef(cloudSyncer);
 }
 
 /**

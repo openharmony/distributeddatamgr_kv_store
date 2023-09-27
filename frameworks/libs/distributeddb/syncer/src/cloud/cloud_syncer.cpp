@@ -24,9 +24,7 @@
 #include "cloud_sync_utils.h"
 #include "db_errno.h"
 #include "cloud/icloud_db.h"
-#include "kv_store_errno.h"
 #include "log_print.h"
-#include "platform_specific.h"
 #include "runtime_context.h"
 #include "strategy_factory.h"
 #include "storage_proxy.h"
@@ -37,7 +35,7 @@ namespace {
     const TaskId INVALID_TASK_ID = 0u;
     const int MAX_HEARTBEAT_FAILED_LIMIT = 2;
     const int HEARTBEAT_PERIOD = 3;
-    const int MAX_DOWNLOAD_COMMIT_LIMIT = 5;
+    const int MAX_DOWNLOAD_COMMIT_LIMIT = 1;
 }
 
 CloudSyncer::CloudSyncer(std::shared_ptr<StorageProxy> storageProxy)
@@ -110,6 +108,7 @@ void CloudSyncer::Close()
         contextCv_.wait(uniqueLock, [this]() {
             return currentContext_.currentTaskId == INVALID_TASK_ID;
         });
+        currentContext_.notifier = nullptr;
         LOGD("[CloudSyncer] current task has been finished");
     }
 
@@ -357,7 +356,7 @@ int CloudSyncer::FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> 
     return -E_INTERNAL_ERROR;
 }
 
-int CloudSyncer::SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
+int CloudSyncer::SaveChangedData(SyncParam &param, size_t dataIndex, const DataInfo &dataInfo,
     std::vector<std::pair<Key, size_t>> &deletedList)
 {
     OpType opType = param.downloadData.opType[dataIndex];
@@ -566,19 +565,10 @@ int CloudSyncer::FillCloudAssets(
     return E_OK;
 }
 
-int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList,
+int CloudSyncer::FillDownloadResult(const std::string &tableName, DownloadCommitList &commitList,
     uint32_t &successCount)
 {
-    successCount = 0;
-    int errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] start transaction Failed before handle download.");
-        return errCode;
-    }
-    errCode = storageProxy_->SetLogTriggerStatus(false);
-    if (errCode != E_OK) {
-        return errCode;
-    }
+    int errCode = E_OK;
     for (size_t i = 0; i < commitList.size(); i++) {
         std::string gid = std::get<0>(commitList[i]); // 0 means gid is the first element in assetsInfo
         // 1 means assetsMap info [colName, assets] is the forth element in downloadList[i]
@@ -602,18 +592,45 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadComm
         }
         successCount++;
     }
+
+    return errCode;
+}
+
+int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList,
+    uint32_t &successCount)
+{
+    successCount = 0;
+    int errCode = storageProxy_->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] start transaction Failed before handle download.");
+        return errCode;
+    }
+    errCode = storageProxy_->SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        LOGE("Set log trigger true failed when handle download.");
+        return errCode;
+    }
+
+    int fillAssetsStatus = FillDownloadResult(tableName, commitList, successCount);
+
     errCode = storageProxy_->SetLogTriggerStatus(true);
     if (errCode != E_OK) {
-        LOGE("Set log trigger true failed when handle download.%d", errCode);
+        LOGE("Set log trigger true failed when handle download.");
         successCount = 0;
         storageProxy_->Rollback();
         return errCode;
     }
     errCode = storageProxy_->Commit();
     if (errCode != E_OK) {
+        LOGE("Commit assets failed when handle download.");
         successCount = 0;
+        return errCode;
     }
-    return errCode;
+    if(fillAssetsStatus != E_OK) {
+        LOGE("Fill assets failed when handle download.");
+        return fillAssetsStatus;
+    }
+    return E_OK;
 }
 
 int CloudSyncer::CloudDbDownloadAssets(InnerProcessInfo &info, const DownloadList &downloadList,
@@ -807,10 +824,10 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, size_t idx, SyncParam &para
     }
 
     if (!param.isSinglePrimaryKey && strategy == OpType::INSERT) {
-        param.withoutRowIdData.assetInsertData.push_back(std::make_tuple(idx, param.assetsDownloadList.size()));
+        param.withoutRowIdData.assetInsertData.emplace_back(idx, param.assetsDownloadList.size());
     }
-    param.assetsDownloadList.push_back(
-        std::make_tuple(dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey, pkVals));
+    param.assetsDownloadList.emplace_back(
+        dataInfo.cloudLogInfo.cloudGid, prefix, strategy, assetsMap, hashKey, pkVals);
     return ret;
 }
 
@@ -1376,7 +1393,7 @@ int CloudSyncer::TagUploadAssets(CloudSyncData &uploadData)
         }
         // update data must contain gid, however, we could only pull data after water mark
         // Therefore, we need to check whether we contain the data
-        std::string &gid = std::get<std::string>(gidIter->second);
+        auto &gid = std::get<std::string>(gidIter->second);
         if (cloudAssets.find(gid) == cloudAssets.end()) {
             // In this case, we directly upload data without compartion and tagging
             std::vector<Field> assetFields;
@@ -1414,7 +1431,7 @@ int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &in
     }
     ret = TagUploadAssets(uploadData);
     if (ret != E_OK) {
-        LOGE("TagUploadAssets report ERROR, cannot tag uploadAssets");
+        LOGE("[CloudSyncer] TagUploadAssets report ERROR, cannot tag uploadAssets");
         return ret;
     }
     // get local water mark to be updated in future.
@@ -1477,7 +1494,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
     info.tableName = tableName;
     info.tableStatus = ProcessStatus::PROCESSING;
     info.upLoadInfo.total = static_cast<uint32_t>(uploadParam.count);
-    uint32_t batchIndex = 0;
+    uint32_t batchIndex = 0u;
     bool getDataUnfinished = false;
 
     while (!CheckCloudSyncDataEmpty(uploadData)) {
@@ -1501,7 +1518,6 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
         }
 
         uploadData = CloudSyncData(tableName);
-
         if (continueStmtToken == nullptr) {
             break;
         }
@@ -2012,7 +2028,7 @@ int CloudSyncer::CommitDownloadResult(InnerProcessInfo &info, DownloadCommitList
     if (commitList.empty()) {
         return E_OK;
     }
-    uint32_t successCount = 0;
+    uint32_t successCount = 0u;
     int ret = HandleDownloadResult(info.tableName, commitList, successCount);
     info.downLoadInfo.failCount += (commitList.size() - successCount);
     info.downLoadInfo.successCount -= (commitList.size() - successCount);

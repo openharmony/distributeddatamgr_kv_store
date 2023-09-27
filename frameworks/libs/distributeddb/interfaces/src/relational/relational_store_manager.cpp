@@ -155,16 +155,17 @@ int static GetCollateTypeByName(const std::map<std::string, CollateType> &collat
         LOGW("collate map doesn't contain primary key we need");
         collateType = CollateType::COLLATE_NONE;
         return E_OK;
+    } else {
+        if (static_cast<uint32_t>(it->second) >= static_cast<uint32_t>(CollateType::COLLATE_BUTT)) {
+            LOGE("collate type is invalid");
+            return -E_INVALID_ARGS;
+        }
+        collateType = it->second;
+        return E_OK;
     }
-    if (static_cast<uint32_t>(it->second) >= static_cast<uint32_t>(CollateType::COLLATE_BUTT)) {
-        LOGE("collate type is invalid");
-        return -E_INVALID_ARGS;
-    }
-    collateType = it->second;
-    return E_OK;
 }
 
-DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std::map<std::string, Type> &primaryKey,
+DB_API std::vector<uint8_t> RelationalStoreManager::CalcPrimaryKeyHash(const std::map<std::string, Type> primaryKey,
     const std::map<std::string, CollateType> &collateTypeMap)
 {
     std::vector<uint8_t> result;

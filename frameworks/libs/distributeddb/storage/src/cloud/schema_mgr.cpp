@@ -80,7 +80,7 @@ int SchemaMgr::CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldIn
         }
         cloudColNames.emplace(cloudField.colName);
     }
-    if (primaryKeys.size() > 0 && !(primaryKeys.size() == 1 && primaryKeys[0] == CloudDbConstant::ROW_ID_FIELD_NAME)) {
+    if (!primaryKeys.empty() && !(primaryKeys.size() == 1 && primaryKeys[0] == CloudDbConstant::ROW_ID_FIELD_NAME)) {
         LOGE("Local schema contain extra primary key:%d", -E_SCHEMA_MISMATCH);
         return -E_SCHEMA_MISMATCH;
     }
@@ -122,7 +122,6 @@ bool SchemaMgr::CompareType(const FieldInfo &localField, const Field &cloudField
         default:
             return false;
     }
-    return false;
 }
 
 bool SchemaMgr::CompareNullable(const FieldInfo &localField, const Field &cloudField)

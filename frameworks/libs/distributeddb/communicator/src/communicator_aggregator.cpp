@@ -389,7 +389,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         }
     }
     if (errCode == -E_WAIT_RETRY) {
-        const int RETRY_INTERVAL = 1000;
+        const int RETRY_INTERVAL = 1000; // 1000ms
         TimerId timerId = 0u;
         const std::string target = inTask.dstTarget;
         RefObject::IncObjRef(this);

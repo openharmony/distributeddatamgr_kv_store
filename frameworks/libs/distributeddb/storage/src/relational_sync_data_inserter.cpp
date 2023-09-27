@@ -235,12 +235,12 @@ int RelationalSyncDataInserter::PrepareStatement(sqlite3 *db, SaveSyncDataStmt &
 {
     int errCode = GetSaveLogStatement(db, stmt.saveLogStmt, stmt.queryStmt);
     if (errCode != E_OK) {
-        LOGE("Get statement failed. err=%d", errCode);
+        LOGE("Get save log statement failed. err=%d", errCode);
         return errCode;
     }
     errCode = GetInsertStatement(db, stmt.saveDataStmt);
     if (errCode != E_OK) {
-        LOGE("Get statement failed. err=%d", errCode);
+        LOGE("Get insert statement failed. err=%d", errCode);
     }
     return errCode;
 }

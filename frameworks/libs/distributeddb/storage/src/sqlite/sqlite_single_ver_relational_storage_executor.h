@@ -165,8 +165,7 @@ private:
 
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
-    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const TableInfo &table,
-        const std::string &calPrimaryKeyHash);
+    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
         uint32_t &totalSize, const uint32_t &maxSize);
@@ -201,7 +200,7 @@ private:
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int InsertCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
+    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema);
 
     int InsertLogRecord(const TableSchema &tableSchema, VBucket &vBucket);
 
@@ -217,12 +216,12 @@ private:
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
         const std::string &tableName, bool queryByPk = true);
 
-    int GetUpdateSqlForCloudSync(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &gidStr,
+    int GetUpdateSqlForCloudSync(const TableSchema &tableSchema, const std::string &gidStr,
         const std::set<std::string> &pkSet, std::string &updateSql);
 
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
-    int UpdateCloudData(const std::string &tableName, VBucket &vBucket, const TableSchema &tableSchema);
+    int UpdateCloudData(VBucket &vBucket, const TableSchema &tableSchema);
 
     int GetUpdateLogRecordStatement(const TableSchema &tableSchema, const VBucket &vBucket, OpType opType,
         std::vector<std::string> &updateColName, sqlite3_stmt *&updateLogStmt);
@@ -240,6 +239,8 @@ private:
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
     bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
+
+    int DeleteMissTableTrigger(const std::string &missTable) const;
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

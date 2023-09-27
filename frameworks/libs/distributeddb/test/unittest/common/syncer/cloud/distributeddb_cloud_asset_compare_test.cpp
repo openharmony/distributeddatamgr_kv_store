@@ -211,6 +211,7 @@ namespace {
 
     void DistributedDBCloudAssetCompareTest::TearDown(void)
     {
+        RefObject::DecObjRef(g_store);
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;

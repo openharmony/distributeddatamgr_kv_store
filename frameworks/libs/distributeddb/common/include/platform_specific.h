@@ -69,11 +69,11 @@ int SetFilePermissions(const std::string &fileName, uint32_t permissions);
 
 int RenameFilePath(const std::string &oldFilePath, const std::string &newFilePath);
 
-int OpenFile(const std::string &fileName, FileHandle *&handle);
-int CloseFile(FileHandle *handle);
+int OpenFile(const std::string &fileName, FileHandle *&fileHandle);
+int CloseFile(FileHandle *fileHandle);
 
-int FileLock(const FileHandle *handle, bool isBlock); // be careful use block=true, may block process
-int FileUnlock(FileHandle *handle);
+int FileLock(const FileHandle *fileHandle, bool isBlock); // be careful use block=true, may block process
+int FileUnlock(FileHandle *fileHandle);
 } // namespace OS
 } // namespace DistributedDB
 

@@ -381,12 +381,12 @@ std::string DBCommon::TrimSpace(const std::string &input)
     return res;
 }
 
-void DBCommon::RTrim(std::string &oriString)
+void DBCommon::RTrim(std::string &str)
 {
-    if (oriString.empty()) {
+    if (str.empty()) {
         return;
     }
-    oriString.erase(oriString.find_last_not_of(" ") + 1);
+    str.erase(str.find_last_not_of(" ") + 1);
 }
 
 namespace {
@@ -447,7 +447,7 @@ bool DBCommon::CaseInsensitiveCompare(std::string first, std::string second)
     return first == second;
 }
 
-bool DBCommon::CheckIsAlnumAndUnderscore(const std::string &text)
+bool DBCommon::CheckIsAlnumOrUnderscore(const std::string &text)
 {
     auto iter = std::find_if_not(text.begin(), text.end(), [](char c) {
         return (std::isalnum(c) || c == '_');

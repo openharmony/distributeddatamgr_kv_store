@@ -206,7 +206,7 @@ protected:
     int FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
         size_t &delIdx);
 
-    int SaveChangedData(SyncParam &param, int dataIndex, const DataInfo &dataInfo,
+    int SaveChangedData(SyncParam &param, size_t dataIndex, const DataInfo &dataInfo,
         std::vector<std::pair<Key, size_t>> &deletedList);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
@@ -234,6 +234,8 @@ protected:
     int FillCloudAssets(const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets);
 
     int HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList, uint32_t &successCount);
+
+    int FillDownloadResult(const std::string &tableName, DownloadCommitList &commitList, uint32_t &successCount);
 
     int DownloadAssets(InnerProcessInfo &info, const std::vector<std::string> &pKColNames,
         const std::set<Key> &dupHashKeySet, ChangedData &changedAssets);

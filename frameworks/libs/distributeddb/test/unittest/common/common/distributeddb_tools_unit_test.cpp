@@ -882,7 +882,7 @@ void RelationalStoreObserverUnitTest::ResetToZero()
 
 void RelationalStoreObserverUnitTest::ResetCloudSyncToZero()
 {
-    cloudCallCount_ = 0;
+    cloudCallCount_ = 0u;
     savedChangedData_.clear();
 }
 

@@ -16,7 +16,7 @@
 
 namespace DistributedDB {
 
-OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
     bool isCloudDelete = IsDelete(cloudInfo);
     bool isLocalDelete = IsDelete(localInfo);

@@ -197,7 +197,7 @@ uint8_t ParamCheckUtils::GetValidCompressionRate(uint8_t compressionRate)
 
 bool ParamCheckUtils::CheckRelationalTableName(const std::string &tableName)
 {
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
         return false;
     }
     return tableName.compare(0, DBConstant::SYSTEM_TABLE_PREFIX.size(), DBConstant::SYSTEM_TABLE_PREFIX) != 0;
