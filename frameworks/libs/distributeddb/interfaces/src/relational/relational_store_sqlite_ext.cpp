@@ -43,6 +43,8 @@
 #include <unistd.h>
 #elif defined RUNNING_ON_WIN
 #include <io.h>
+#include <stdlib.h>
+#include <windows.h>
 #else
 #error "PLATFORM NOT SPECIFIED!"
 #endif
@@ -319,7 +321,14 @@ private:
     static int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
     {
         struct timespec rawTime;
-        int errCode = clock_gettime(CLOCK_BOOTTIME, &rawTime);
+        clockid_t clockId = CLOCK_REALTIME;
+#ifdef OS_TYPE_WINDOWS
+        clockId = CLOCK_BOOTTIME;
+#endif
+#ifdef OS_TYPE_MAC
+        clockId = CLOCK_UPTIME_RAW;
+#endif
+        int errCode = clock_gettime(clockId, &rawTime);
         if (errCode < 0) {
             return -E_ERROR;
         }
