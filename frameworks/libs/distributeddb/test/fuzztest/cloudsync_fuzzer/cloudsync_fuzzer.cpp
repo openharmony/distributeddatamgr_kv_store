@@ -57,7 +57,7 @@ static const Asset g_cloudAsset = {
     .version = 2, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/cloud/sync",
     .modifyTime = "123456", .createTime = "0", .size = "1024", .hash = "DEC"
 };
-static constexpr const int g_mod = 1000; // 1000 is mod
+static constexpr const int MOD = 1000; // 1000 is mod
 class CloudSyncContext {
 public:
     void FinishAndNotify()
@@ -127,7 +127,7 @@ public:
             return;
         }
         FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % g_mod;
+        uint32_t len = fuzzerData.GetUInt32() % MOD;
         for (size_t i = 0; i <= size; ++i) {
             std::string idStr = fuzzerData.GetString(len);
             errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
@@ -164,7 +164,7 @@ public:
             return;
         }
         FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % g_mod;
+        uint32_t len = fuzzerData.GetUInt32() % MOD;
         for (size_t i = 0; i <= size; ++i) {
             std::string idStr = fuzzerData.GetString(len);
             errCode = SQLiteUtils::BindTextToStatement(stmt, 1, idStr);
@@ -318,7 +318,7 @@ public:
     void InitAssets(const uint8_t* data, size_t size)
     {
         FuzzerData fuzzerData(data, size);
-        uint32_t len = fuzzerData.GetUInt32() % g_mod;
+        uint32_t len = fuzzerData.GetUInt32() % MOD;
         for (size_t i = 0; i <= size; ++i) {
             std::string nameStr = fuzzerData.GetString(len);
             localAssets_.push_back(GenAsset(nameStr, std::to_string(data[0])));
