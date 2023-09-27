@@ -12,22 +12,20 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-
-#ifndef GRD_SEQUENCE_API_H
-#define GRD_SEQUENCE_API_H
-
-#include <cstdint>
-
-#include "grd_base/grd_resultset_api.h"
-#include "grd_base/grd_type_export.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-GRD_API int32_t GRD_CreateSeq(GRD_DB *db, const char *sequenceName, uint32_t flags);
-
-GRD_API int32_t GRD_DropSeq(GRD_DB *db, const char *sequenceName, uint32_t flags);
-#ifdef __cplusplus
+#include "check_common.h"
+#include "grd_api_manager.h"
+#include "grd_base/grd_error.h"
+#include "grd_sequence_api_inner.h"
+#include "grd_type_inner.h"
+#include "log_print.h"
+namespace DocumentDB {
+int32_t GRD_CreateSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
+{
+    return GRD_NOT_SUPPORT; // No support.
 }
-#endif
-#endif // GRD_DOCUMENT_API_H
+
+int32_t GRD_DropSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
+{
+    return GRD_NOT_SUPPORT; // No support.
+}
+} // namespace DocumentDB

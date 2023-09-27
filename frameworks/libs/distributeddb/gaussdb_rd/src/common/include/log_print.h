@@ -35,7 +35,7 @@ public:
 };
 } // namespace DocumentDB
 
-#define NO_LOG(...) // No log in normal and release. Used for convenience when deep debugging
+#define NO_LOG(...) // No log in normal and release. Used for the convenience when deep debugging
 #define GLOGD(...) LogPrint::Log(LogPrint::Level::LEVEL_DEBUG, LOG_TAG_DOC, __VA_ARGS__)
 #define GLOGI(...) LogPrint::Log(LogPrint::Level::LEVEL_INFO, LOG_TAG_DOC, __VA_ARGS__)
 #define GLOGW(...) LogPrint::Log(LogPrint::Level::LEVEL_WARN, LOG_TAG_DOC, __VA_ARGS__)

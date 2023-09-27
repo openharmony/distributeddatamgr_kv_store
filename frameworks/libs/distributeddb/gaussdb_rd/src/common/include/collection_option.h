@@ -23,10 +23,11 @@ class CollectionOption final {
 public:
     static CollectionOption ReadOption(const std::string &optStr, int &errCode);
 
+private:
+    CollectionOption() = default;
+    CollectionOption(const CollectionOption &collectionOption) = default;
     bool operator==(const CollectionOption &targetOption) const;
     bool operator!=(const CollectionOption &targetOption) const;
-
-private:
     std::string option_ = "{}";
     uint32_t maxDoc_ = UINT32_MAX;
 };

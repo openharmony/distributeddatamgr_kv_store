@@ -13,8 +13,17 @@
 * limitations under the License.
 */
 
-#include "db_constant.h"
+#ifndef GRD_SEQUENCE_API_INNER_H
+#define GRD_SEQUENCE_API_INNER_H
+
+#include <cstdint>
+
+#include "grd_base/grd_resultset_api.h"
+#include "grd_base/grd_type_export.h"
 
 namespace DocumentDB {
-const std::string DBConstant::COLL_PREFIX = "GRD_COLL_";
+int32_t GRD_CreateSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags);
+
+int32_t GRD_DropSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags);
 } // namespace DocumentDB
+#endif // GRD_SEQUENCE_API_INNER_H

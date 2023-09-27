@@ -13,30 +13,25 @@
 * limitations under the License.
 */
 
-#ifndef GRD_RESULTSET_API_H
-#define GRD_RESULTSET_API_H
+#ifndef GRD_RESULTSET_API_INNER_H
+#define GRD_RESULTSET_API_INNER_H
 
 #include <cstdint>
 
 #include "grd_base/grd_type_export.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+namespace DocumentDB {
 typedef struct GRD_ResultSet GRD_ResultSet;
+int32_t GRD_NextInner(GRD_ResultSet *resultSet);
 
-GRD_API int32_t GRD_Next(GRD_ResultSet *resultSet);
+int32_t GRD_PrevInner(GRD_ResultSet *resultSet);
 
-GRD_API int32_t GRD_Prev(GRD_ResultSet *resultSet);
+int32_t GRD_GetValueInner(GRD_ResultSet *resultSet, char **value);
 
-GRD_API int32_t GRD_GetValue(GRD_ResultSet *resultSet, char **value);
+int32_t GRD_FetchInner(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value);
 
-GRD_API int32_t GRD_Fetch(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value);
+int32_t GRD_FreeValueInner(char *value);
 
-GRD_API int32_t GRD_FreeValue(char *value);
-
-GRD_API int32_t GRD_FreeResultSet(GRD_ResultSet *resultSet);
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-#endif // GRD_RESULTSET_API_H
+int32_t GRD_FreeResultSetInner(GRD_ResultSet *resultSet);
+} // namespace DocumentDB
+#endif // GRD_RESULTSET_API_INNER_H

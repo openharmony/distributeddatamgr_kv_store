@@ -13,30 +13,17 @@
 * limitations under the License.
 */
 
-#ifndef GRD_RESULTSET_API_H
-#define GRD_RESULTSET_API_H
-
+#ifndef GRD_DB_API_INNER_H
+#define GRD_DB_API_INNER_H
 #include <cstdint>
-
 #include "grd_base/grd_type_export.h"
+namespace DocumentDB {
+int32_t GRD_DBOpenInner(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db);
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
-typedef struct GRD_ResultSet GRD_ResultSet;
+int32_t GRD_DBCloseInner(GRD_DB *db, uint32_t flags);
 
-GRD_API int32_t GRD_Next(GRD_ResultSet *resultSet);
+int32_t GRD_IndexPreloadInner(GRD_DB *db, const char *collectionName);
 
-GRD_API int32_t GRD_Prev(GRD_ResultSet *resultSet);
-
-GRD_API int32_t GRD_GetValue(GRD_ResultSet *resultSet, char **value);
-
-GRD_API int32_t GRD_Fetch(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value);
-
-GRD_API int32_t GRD_FreeValue(char *value);
-
-GRD_API int32_t GRD_FreeResultSet(GRD_ResultSet *resultSet);
-#ifdef __cplusplus
-}
-#endif // __cplusplus
-#endif // GRD_RESULTSET_API_H
+int32_t GRD_FlushInner(GRD_DB *db, uint32_t flags);
+} // namespace DocumentDB
+#endif // GRD_DB_API_INNER_H

@@ -41,25 +41,6 @@ GRD_API int32_t GRD_UpsertDoc(GRD_DB *db, const char *collectionName, const char
     uint32_t flags);
 
 GRD_API int32_t GRD_DeleteDoc(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags);
-
-namespace DocumentDB {
-int32_t GRD_CreateCollectionInner(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags);
-
-int32_t GRD_DropCollectionInner(GRD_DB *db, const char *collectionName, uint32_t flags);
-
-int32_t GRD_InsertDocInner(GRD_DB *db, const char *collectionName, const char *document, uint32_t flags);
-
-int32_t GRD_FindDocInner(GRD_DB *db, const char *collectionName, Query query, uint32_t flags,
-    GRD_ResultSet **resultSet);
-
-int32_t GRD_UpdateDocInner(GRD_DB *db, const char *collectionName, const char *filter, const char *update,
-    uint32_t flags);
-
-int32_t GRD_UpsertDocInner(GRD_DB *db, const char *collectionName, const char *filter, const char *document,
-    uint32_t flags);
-
-int32_t GRD_DeleteDocInner(GRD_DB *db, const char *collectionName, const char *filter, uint32_t flags);
-} // namespace DocumentDB
 #ifdef __cplusplus
 }
 #endif

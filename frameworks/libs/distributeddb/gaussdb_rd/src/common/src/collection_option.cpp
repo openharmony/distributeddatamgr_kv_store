@@ -26,7 +26,7 @@ namespace DocumentDB {
 namespace {
 constexpr const char *OPT_MAX_DOC = "maxdoc";
 
-int CheckConfigValid(const JsonObject &config)
+int CFG_IsValid(const JsonObject &config)
 {
     JsonObject child = config.GetChild();
     while (!child.IsNull()) {
@@ -58,7 +58,7 @@ CollectionOption CollectionOption::ReadOption(const std::string &optStr, int &er
         return {};
     }
 
-    errCode = CheckConfigValid(collOpt);
+    errCode = CFG_IsValid(collOpt);
     if (errCode != E_OK) {
         GLOGE("Check collection option, not support config item. %d", errCode);
         return {};

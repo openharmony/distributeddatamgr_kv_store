@@ -14,38 +14,24 @@
 */
 #include "grd_shared_obj/grd_sequence_api.h"
 
-#include "check_common.h"
-#include "grd_base/grd_db_api.h"
+#include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
-#include "grd_resultset_inner.h"
 #include "grd_type_inner.h"
 #include "log_print.h"
 using namespace DocumentDB;
-namespace DocumentDB {
 static GRD_APIInfo GRD_SeqApiInfo = GetApiInfoInstance();
-int32_t GRD_CreateSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
-{
-    return GRD_OK; // No support.
-}
-
-int32_t GRD_DropSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
-{
-    return GRD_OK; // No support.
-}
-} // namespace DocumentDB
-
 GRD_API int32_t GRD_CreateSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
-    if (GRD_SeqApiInfo.GRD_CreateSeqApi == nullptr) {
+    if (GRD_SeqApiInfo.CreateSeqApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_SeqApiInfo.GRD_CreateSeqApi(db, sequenceName, flags);
+    return GRD_SeqApiInfo.CreateSeqApi(db, sequenceName, flags);
 }
 
 GRD_API int32_t GRD_DropSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
-    if (GRD_SeqApiInfo.GRD_DropSeqApi == nullptr) {
+    if (GRD_SeqApiInfo.DropSeqApi == nullptr) {
         return GRD_INNER_ERR;
     }
-    return GRD_SeqApiInfo.GRD_DropSeqApi(db, sequenceName, flags);
+    return GRD_SeqApiInfo.DropSeqApi(db, sequenceName, flags);
 }

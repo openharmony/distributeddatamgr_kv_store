@@ -245,7 +245,7 @@ std::vector<std::vector<std::string>> JsonCommon::ParsePath(const JsonObject &ro
 namespace {
 JsonFieldPath SplitePath(const JsonFieldPath &path, bool &isCollapse)
 {
-    if (path.size() > 1 || path.empty()) { // only first level has collapse field
+    if (path.size() != 1) { // only first level has collapse field
         return path;
     }
     JsonFieldPath splitPath;
@@ -266,6 +266,9 @@ JsonFieldPath SplitePath(const JsonFieldPath &path, bool &isCollapse)
 JsonFieldPath ExpendPathForField(const JsonFieldPath &path, bool &isCollapse)
 {
     JsonFieldPath splitPath;
+    if (path.empty()) {
+        return path;
+    }
     const std::string &str = path.back();
     size_t start = 0;
     size_t end = 0;
@@ -283,7 +286,7 @@ JsonFieldPath ExpendPathForField(const JsonFieldPath &path, bool &isCollapse)
     return splitPath;
 }
 
-void JsonObjectIterator(const JsonObject &obj, JsonFieldPath path,
+void JsonObjectIterator(const JsonObject &obj, const JsonFieldPath &path,
     std::function<bool(const JsonFieldPath &path, const JsonObject &father, const JsonObject &item)> AppendFoo)
 {
     JsonObject child = obj.GetChild();
@@ -298,14 +301,14 @@ void JsonObjectIterator(const JsonObject &obj, JsonFieldPath path,
 }
 
 void JsonObjectIterator(const JsonObject &obj, JsonFieldPath path,
-    std::function<bool(JsonFieldPath &path, const JsonObject &item)> MatchFoo)
+    std::function<bool(JsonFieldPath &path, const JsonObject &item)> matchFoo)
 {
     JsonObject child = obj.GetChild();
     while (!child.IsNull()) {
         JsonFieldPath childPath = path;
         childPath.push_back(child.GetItemField());
-        if (MatchFoo != nullptr && MatchFoo(childPath, child)) {
-            JsonObjectIterator(child, childPath, MatchFoo);
+        if (matchFoo != nullptr && matchFoo(childPath, child)) {
+            JsonObjectIterator(child, childPath, matchFoo);
         }
         child = child.GetNext();
     }

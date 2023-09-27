@@ -22,8 +22,6 @@ namespace DocumentDB {
 class DBConfig final {
 public:
     static DBConfig ReadConfig(const std::string &confStr, int &errCode);
-
-    DBConfig() = default;
     ~DBConfig() = default;
 
     std::string ToString() const;
@@ -37,7 +35,9 @@ public:
 
 private:
     static DBConfig GetDBConfigFromJsonStr(const std::string &confStr, int &errCode);
-
+    DBConfig() = default;
+    DBConfig(const DBConfig&) = default;
+    DBConfig(DBConfig&&) = default;
     std::string configStr_ = {};
     int32_t pageSize_ = 4;           // 4: default page size k
     uint32_t redoFlushByTrx_ = 0;

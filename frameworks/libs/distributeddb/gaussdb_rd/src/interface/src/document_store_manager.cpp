@@ -38,7 +38,7 @@ bool CheckDBCloseFlag(unsigned int flag)
 
 bool CheckDBCreate(uint32_t flags, const std::string &path)
 {
-    if ((flags & GRD_DB_OPEN_CREATE) == 0 && !OSAPI::CheckPathExistence(path)) {
+    if ((flags & GRD_DB_OPEN_CREATE) == 0 && !OSAPI::IsPathExist(path)) {
         return false;
     }
     return true;
@@ -145,7 +145,7 @@ int DocumentStoreManager::CheckDBPath(const std::string &path, std::string &cano
         return -E_FILE_OPERATION;
     }
 
-    if (!OSAPI::CheckPermission(canonicalPath)) {
+    if (!OSAPI::CheckPathPermission(canonicalPath)) {
         GLOGE("Check path permission failed.");
         return -E_FILE_OPERATION;
     }

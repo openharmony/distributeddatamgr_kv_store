@@ -29,11 +29,7 @@ GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags);
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName);
 
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags);
-
 #ifdef __cplusplus
 }
-namespace DocumentDB {
-GRD_APIInfo GetApiInfoInstance();
-} // namespace DocumentDB
 #endif // __cplusplus
 #endif // GRD_DB_API_H

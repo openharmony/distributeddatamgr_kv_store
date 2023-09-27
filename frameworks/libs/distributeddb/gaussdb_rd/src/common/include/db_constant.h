@@ -21,7 +21,7 @@
 namespace DocumentDB {
 class DBConstant final {
 public:
-    static const std::string COLL_PREFIX; // = "GRD_COLL_";
+    static constexpr const char *COLL_PREFIX = "GRD_COLL_";
 };
 } // namespace DocumentDB
 #endif // DB_CONSTANT_H
