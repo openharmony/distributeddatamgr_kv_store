@@ -39,19 +39,21 @@ public:
 MockICloudSyncStorageInterface *g_iCloud = nullptr;
 std::shared_ptr<TestStorageProxy> g_storageProxy = nullptr;
 MockICloudDB *g_idb = nullptr;
-std::unique_ptr<TestCloudSyncer> g_cloudSyncer = nullptr;
+TestCloudSyncer *g_cloudSyncer = nullptr;
 
 void DistributedDBCloudSyncerDownloadTest::SetUpTestCase(void)
 {
     g_iCloud = new MockICloudSyncStorageInterface();
     g_storageProxy = std::make_shared<TestStorageProxy>(g_iCloud);
-    g_cloudSyncer = std::make_unique<TestCloudSyncer>(g_storageProxy);
+    g_cloudSyncer = new(std::nothrow) TestCloudSyncer(g_storageProxy);
+    ASSERT_NE(g_cloudSyncer, nullptr);
     g_idb = new MockICloudDB();
     g_cloudSyncer->SetMockICloudDB(g_idb);
 }
 
 void DistributedDBCloudSyncerDownloadTest::TearDownTestCase(void)
 {
+    RefObject::KillAndDecObjRef(g_cloudSyncer);
     g_cloudSyncer = nullptr;
     g_storageProxy = nullptr;
     delete g_iCloud;
