@@ -90,7 +90,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
             std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '', get_sys_time(0), "
             "get_last_time(), CASE WHEN (" + CalcPrimaryKeyHash("NEW.", table, identity) + " != " +
             CalcPrimaryKeyHash("NEW.", table, identity) + ") THEN 0x02 ELSE 0x22 END, " +
-            CalcPrimaryKeyHash("NEW.", table, identity) + ", '');\n";
+            CalcPrimaryKeyHash("NEW.", table, identity) + ", '', '', '');\n";
     }
     updateTrigger += "END;";
     return updateTrigger;
