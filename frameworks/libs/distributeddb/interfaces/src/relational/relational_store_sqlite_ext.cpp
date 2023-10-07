@@ -128,7 +128,6 @@ public:
     static constexpr const Timestamp INVALID_TIMESTAMP = 0;
 
     static constexpr const uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
-    static constexpr const uint64_t MULTIPLES_BETWEEN_MICROSECONDS_AND_NANOSECONDS = 1000;
 
     static constexpr const int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
     static constexpr const uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
