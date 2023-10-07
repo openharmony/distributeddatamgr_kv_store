@@ -334,5 +334,31 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo)
+{
+    if (tableInfo.GetTrackerTable().IsEmpty()) {
+        return E_OK;
+    }
+    int64_t timeOffset = 0;
+    std::string timeOffsetStr = std::to_string(timeOffset);
+    std::string logTable = DBConstant::RELATIONAL_PREFIX + tableInfo.GetTableName() + "_log";
+    std::string sql = "UPDATE " + logTable + " SET extend_field = " +
+        tableInfo.GetTrackerTable().GetUpgradedExtendValSql();
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Upgrade log for extend field failed.");
+        return errCode;
+    }
+    sql = "UPDATE " + logTable + " SET cursor = (SELECT (SELECT MAX(cursor) from " + logTable + ") + " +
+        std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " FROM " + tableInfo.GetTableName() + " WHERE " + tableInfo.GetTableName() + "." +
+        std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + logTable + ".data_key);";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Upgrade log for cursor failed.");
+    }
+    return errCode;
+}
 } // namespace DistributedDB
 #endif

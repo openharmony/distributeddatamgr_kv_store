@@ -177,6 +177,7 @@ private:
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
         TableInfo &tableInfo);
+    int UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
         uint32_t &totalSize, const uint32_t &maxSize);

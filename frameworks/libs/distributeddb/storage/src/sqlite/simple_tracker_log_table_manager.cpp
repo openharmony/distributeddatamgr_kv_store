@@ -66,11 +66,14 @@ std::string SimpleTrackerLogTableManager::GetInsertTrigger(const TableInfo &tabl
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid";
     insertTrigger += ", extend_field, cursor)";
-    insertTrigger += " VALUES (new._rowid_, '', '',";
+    insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", '', ";
     insertTrigger += table.GetTrackerTable().GetAssignValSql();
-    insertTrigger += ", " + table.GetTrackerTable().GetSelectMaxCursorSql() + ");\n";
+    insertTrigger += ", case when (SELECT count(1)<>0 FROM " + logTblName + ") then ";
+    insertTrigger += " (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END";
+    insertTrigger += " FROM " +  logTblName + ")";
+    insertTrigger += " ELSE new." + std::string(DBConstant::SQLITE_INNER_ROWID) + " end);\n";
     insertTrigger += "SELECT client_observer('" + tableName + "', NEW._rowid_, 0, ";
     insertTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";
     insertTrigger += ");\n";
@@ -98,14 +101,13 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET extend_field=";
     updateTrigger += table.GetTrackerTable().GetAssignValSql();
-    updateTrigger += ", cursor=(SELECT ";
-    updateTrigger += table.GetTrackerTable().GetMaxCursorFieldSql();
-    updateTrigger += " from " + logTblName + ") where data_key = OLD.rowid and case when (";
+    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    updateTrigger += " from " + logTblName + ") where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += ";\n";
+    updateTrigger += "select client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += ", 1, ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
-    updateTrigger += ") then 1 else 0 end;\n";
-    updateTrigger += "select client_observer('" + tableName + "', OLD.rowid, 1, case when (";
-    updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
-    updateTrigger += ") then 1 else 0 end);";
+    updateTrigger += ";";
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -124,9 +126,9 @@ std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
-    deleteTrigger += ", cursor=(SELECT " + table.GetTrackerTable().GetMaxCursorFieldSql();
+    deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     deleteTrigger += " FROM " + GetLogTableName(table) + ")";
-    deleteTrigger += " WHERE data_key = OLD._rowid_;";
+    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
     deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2, ";
     deleteTrigger += table.GetTrackerTable().GetTrackerColNames().empty() ? "0" : "1";

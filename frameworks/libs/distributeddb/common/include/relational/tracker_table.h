@@ -33,14 +33,17 @@ public:
     const std::string GetAssignValSql() const;
     const std::string GetExtendAssignValSql() const;
     const std::string GetDiffTrackerValSql() const;
-    const std::string GetMaxCursorFieldSql() const;
-    const std::string GetSelectMaxCursorSql() const;
-    const std::string GetBatchSelectMaxCursorSql() const;
     const std::string GetExtendName() const;
     std::string ToString() const;
+    const std::string GetDropTempInsertTriggerSql() const;
+    const std::string GetDropTempUpdateTriggerSql() const;
+    const std::string GetTempInsertTriggerSql() const;
+    const std::string GetTempUpdateTriggerSql() const;
+    const std::string GetUpgradedExtendValSql() const;
     void SetTableName(const std::string &tableName);
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);
+    bool IsEmpty() const;
 
 private:
     std::string tableName_;

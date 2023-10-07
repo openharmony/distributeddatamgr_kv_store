@@ -156,8 +156,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
         ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
         timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x2, " +
         calPrimaryKeyHash + ", '', ";
-    sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
-    sql += ", " + tableInfo.GetTrackerTable().GetBatchSelectMaxCursorSql();
+    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        sql += "'', ''";
+    } else {
+        sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+        sql += ", case when (SELECT count(1)<>0 FROM " + logTable + ")" +
+            " then ((SELECT MAX(cursor) FROM " + logTable + ") + " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+            ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
+    }
     sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
@@ -202,9 +208,11 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
-        if (errCode != E_OK) {
-            return errCode;
-        }
+    } else {
+        errCode = UpgradedLogForExistedData(dbHandle_, table);
+    }
+    if (errCode != E_OK) {
+        return errCode;
     }
 
     // add trigger
