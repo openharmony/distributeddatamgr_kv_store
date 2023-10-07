@@ -381,12 +381,12 @@ std::string DBCommon::TrimSpace(const std::string &input)
     return res;
 }
 
-void DBCommon::RTrim(std::string &str)
+void DBCommon::RTrim(std::string &oriString)
 {
-    if (str.empty()) {
+    if (oriString.empty()) {
         return;
     }
-    str.erase(str.find_last_not_of(" ") + 1);
+    oriString.erase(oriString.find_last_not_of(" ") + 1);
 }
 
 namespace {

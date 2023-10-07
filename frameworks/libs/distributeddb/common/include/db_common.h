@@ -76,7 +76,7 @@ public:
 
     static std::string TrimSpace(const std::string &input);
 
-    static void RTrim(std::string &string);
+    static void RTrim(std::string &oriString);
 
     static bool HasConstraint(const std::string &sql, const std::string &keyWord, const std::string &prePattern,
         const std::string &nextPattern);
