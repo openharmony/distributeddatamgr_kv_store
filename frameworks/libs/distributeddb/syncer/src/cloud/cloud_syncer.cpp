@@ -626,7 +626,7 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadComm
         successCount = 0;
         return errCode;
     }
-    if(fillAssetsStatus != E_OK) {
+    if (fillAssetsStatus != E_OK) {
         LOGE("Fill assets failed when handle download.");
         return fillAssetsStatus;
     }

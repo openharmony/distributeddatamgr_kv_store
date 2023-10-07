@@ -49,6 +49,7 @@ public:
     static void TearDownTestCase(void);
     void SetUp() override;
     void TearDown() override;
+    void CheckTriggerObserverTest002(const std::string &tableName, std::atomic<int> &count);
     void ClientObserverFunc(ClientChangedData &clientChangedData)
     {
         for (const auto &tableName : clientChangedData.tableNames) {
@@ -93,6 +94,15 @@ void DistributedDBCloudInterfacesRelationalExtTest::SetUp()
 void DistributedDBCloudInterfacesRelationalExtTest::TearDown()
 {
     DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+}
+
+void DistributedDBCloudInterfacesRelationalExtTest::CheckTriggerObserverTest002(const std::string &tableName,
+    std::atomic<int> &count)
+{
+    count++;
+    ASSERT_EQ(triggerTableNames_.size(), 1u);
+    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
+    EXPECT_EQ(triggeredCount_, count);
 }
 
 static int GetCurrentSysTimeIn100Ns(uint64_t &outTime)
@@ -513,9 +523,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
-    EXPECT_EQ(triggeredCount_, 1); // 1 is observer triggered counts
+    std::atomic<int> count = 0; // 0 is observer triggered counts
+    CheckTriggerObserverTest002(tableName, count);
 
     /**
      * @tc.steps:step4. update data, check observer.
@@ -527,9 +536,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
-    EXPECT_EQ(triggeredCount_, 2); // 2 is observer triggered counts
+    CheckTriggerObserverTest002(tableName, count);
 
     /**
      * @tc.steps:step4. delete data, check observer.
@@ -541,9 +548,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
-    EXPECT_EQ(triggeredCount_, 3); // 3 is observer triggered counts
+    CheckTriggerObserverTest002(tableName, count);
 
     /**
      * @tc.steps:step5. register another observer, update data, check observer.
