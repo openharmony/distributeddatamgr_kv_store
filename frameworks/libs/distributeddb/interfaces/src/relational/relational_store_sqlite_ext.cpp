@@ -19,6 +19,8 @@
 #include <thread>
 #include <vector>
 
+#include "db_common.h"
+#include "platform_specific.h"
 #include "relational_store_client.h"
 #include "runtime_context.h"
 
@@ -43,8 +45,6 @@
 #include <unistd.h>
 #elif defined RUNNING_ON_WIN
 #include <io.h>
-#include <stdlib.h>
-#include <windows.h>
 #else
 #error "PLATFORM NOT SPECIFIED!"
 #endif
@@ -205,7 +205,7 @@ private:
             return;
         }
         (void)GetCurrentSysTimeInMicrosecond(lastSystemTime_);
-        (void)GetMonotonicRelativeTimeInMicrosecond(lastMonotonicTime_);
+        (void)OS::GetMonotonicRelativeTimeInMicrosecond(lastMonotonicTime_);
         LOGD("Initialize time helper skew: %" PRIu64 " %" PRIu64, lastSystemTime_, lastMonotonicTime_);
         isInitialized_ = true;
     }
@@ -227,7 +227,7 @@ private:
         Timestamp currentSystemTime;
         (void)GetCurrentSysTimeInMicrosecond(currentSystemTime);
         Timestamp currentMonotonicTime;
-        (void)GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
+        (void)OS::GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
         auto deltaTime = static_cast<int64_t>(currentMonotonicTime - lastMonotonicTime_);
         Timestamp currentSysTime = GetSysCurrentTime();
         Timestamp currentLocalTime = currentSysTime + timeOffset + localTimeOffset_;
@@ -251,7 +251,7 @@ private:
         Timestamp currentSystemTime;
         (void)GetCurrentSysTimeInMicrosecond(currentSystemTime);
         Timestamp currentMonotonicTime;
-        (void)GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
+        (void)OS::GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
 
         auto systemTimeOffset = static_cast<int64_t>(currentSystemTime - lastSystemTime_);
         auto monotonicTimeOffset = static_cast<int64_t>(currentMonotonicTime - lastMonotonicTime_);
@@ -315,25 +315,6 @@ private:
         }
         outTime = static_cast<uint64_t>(rawTime.tv_sec) * MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS +
             static_cast<uint64_t>(rawTime.tv_usec);
-        return E_OK;
-    }
-
-    static int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
-    {
-        struct timespec rawTime;
-        clockid_t clockId = CLOCK_REALTIME;
-#ifdef OS_TYPE_WINDOWS
-        clockId = CLOCK_BOOTTIME;
-#endif
-#ifdef OS_TYPE_MAC
-        clockId = CLOCK_UPTIME_RAW;
-#endif
-        int errCode = clock_gettime(clockId, &rawTime);
-        if (errCode < 0) {
-            return -E_ERROR;
-        }
-        outTime = static_cast<uint64_t>(rawTime.tv_sec) * MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS +
-            static_cast<uint64_t>(rawTime.tv_nsec) / MULTIPLES_BETWEEN_MICROSECONDS_AND_NANOSECONDS;
         return E_OK;
     }
 
