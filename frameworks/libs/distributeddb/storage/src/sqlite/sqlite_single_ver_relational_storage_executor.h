@@ -111,7 +111,8 @@ public:
     int GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
+    int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, DownloadData &downloadData);
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -125,6 +126,8 @@ public:
     int CreateTrackerTable(const TrackerTable &trackerTable);
     int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    int CreateTempSyncTrigger(const TrackerTable &trackerTable);
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -183,8 +186,8 @@ private:
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 
-    int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData,
-        std::map<int, int> &statisticMap);
+    int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, DownloadData &downloadData, std::map<int, int> &statisticMap);
 
     std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
 
@@ -211,18 +214,19 @@ private:
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema);
+    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema, const TrackerTable &trackerTable);
 
-    int InsertLogRecord(const TableSchema &tableSchema, VBucket &vBucket);
+    int InsertLogRecord(const TableSchema &tableSchema, const TrackerTable &trackerTable, VBucket &vBucket);
 
     int BindOneField(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *updateStmt);
 
     int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
 
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
-        sqlite3_stmt *insertLogStmt);
+        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
-    int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt);
+    int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
         const std::string &tableName, bool queryByPk = true);

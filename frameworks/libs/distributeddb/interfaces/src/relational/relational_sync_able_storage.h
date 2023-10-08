@@ -180,6 +180,9 @@ public:
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
     int CheckQueryValid(const QuerySyncObject &query) override;
+
+    int CreateTempSyncTrigger(const std::string &tableName) override;
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -196,6 +199,7 @@ private:
     // put
     int PutSyncData(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
+    void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
 
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;

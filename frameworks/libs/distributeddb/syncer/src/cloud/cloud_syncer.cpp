@@ -995,6 +995,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;
     }
+    (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param);
     if (errCode == -E_TASK_PAUSED) {
         std::lock_guard<std::mutex> autoLock(dataLock_);

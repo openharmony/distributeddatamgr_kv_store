@@ -251,6 +251,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
 int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable)
 {
     TableInfo table;
+    table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
     int errCode = AnalysisTrackerTable(trackerTable, table);
     if (errCode != E_OK) {
         return errCode;
@@ -333,6 +334,68 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
     int ret = E_OK;
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo)
+{
+    if (tableInfo.GetTrackerTable().IsEmpty()) {
+        return E_OK;
+    }
+    int64_t timeOffset = 0;
+    std::string timeOffsetStr = std::to_string(timeOffset);
+    std::string logTable = DBConstant::RELATIONAL_PREFIX + tableInfo.GetTableName() + "_log";
+    std::string sql = "UPDATE " + logTable + " SET extend_field = " +
+        tableInfo.GetTrackerTable().GetUpgradedExtendValSql();
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Upgrade log for extend field failed.");
+        return errCode;
+    }
+    sql = "UPDATE " + logTable + " SET cursor = (SELECT (SELECT MAX(cursor) from " + logTable + ") + " +
+        std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " FROM " + tableInfo.GetTableName() + " WHERE " + tableInfo.GetTableName() + "." +
+        std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + logTable + ".data_key);";
+    errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("Upgrade log for cursor failed.");
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable)
+{
+    int errCode = E_OK;
+    if (trackerTable.IsEmpty()) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetDropTempInsertTriggerSql());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetDropTempUpdateTriggerSql());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql());
+    if (errCode != E_OK) {
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAndResetServerObserverData(const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    std::string fileName;
+    if (!SQLiteRelationalUtils::GetDbFileName(dbHandle_, fileName)) {
+        LOGE("get db file name failed.");
+        return -E_INVALID_DB;
+    }
+    SQLiteUtils::GetAndResetServerObserverData(fileName, tableName, changeProperties);
+    return E_OK;
 }
 } // namespace DistributedDB
 #endif

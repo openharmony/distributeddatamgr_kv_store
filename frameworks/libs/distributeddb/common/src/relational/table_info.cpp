@@ -712,14 +712,20 @@ void TableInfo::SetTrackerTable(const TrackerTable &table)
 
 int TableInfo::CheckTrackerTable()
 {
-    if (!trackerTable_.GetExtendName().empty() &&
-        GetFields().find(trackerTable_.GetExtendName()) == GetFields().end()) {
-        return -E_SCHEMA_MISMATCH;
+    if (GetTrackerTable().GetTrackerColNames().empty()) {
+        return E_OK;
     }
     for (const auto &colName: GetTrackerTable().GetTrackerColNames()) {
+        if (colName.empty()) {
+            return -E_INVALID_ARGS;
+        }
         if (GetFields().find(colName) == GetFields().end()) {
             return -E_SCHEMA_MISMATCH;
         }
+    }
+    if (!trackerTable_.GetExtendName().empty() &&
+        GetFields().find(trackerTable_.GetExtendName()) == GetFields().end()) {
+        return -E_SCHEMA_MISMATCH;
     }
     return E_OK;
 }

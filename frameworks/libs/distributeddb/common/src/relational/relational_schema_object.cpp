@@ -206,6 +206,11 @@ int RelationalSchemaObject::ParseFromTrackerSchemaString(const std::string &inSc
     return E_OK;
 }
 
+const TableInfoMap &RelationalSchemaObject::GetTrackerTables() const
+{
+    return trackerTables_;
+}
+
 int RelationalSchemaObject::CompareAgainstSchemaObject(const std::string &inSchemaString,
     std::map<std::string, int> &cmpRst) const
 {

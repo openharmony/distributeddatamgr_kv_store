@@ -736,10 +736,11 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         int observerCnt = 0;
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
         for (const auto &item : dataChangeCallbackMap_) {
-            for (const auto &action : item.second) {
+            for (auto &action : item.second) {
                 if (action.second != nullptr) {
                     observerCnt++;
                     ChangedData observerChangeData = changedData;
+                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
                     action.second(deviceName, std::move(observerChangeData), isChangedData);
                 }
             }
@@ -1163,7 +1164,8 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     transactionHandle_->SetLocalSchema(localSchema);
-    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1319,6 +1321,55 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
         return -E_INVALID_ARGS;
     }
     return errCode;
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableName)
+{
+    int errCode = E_OK;
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        // This table is not a tracker table
+        return errCode;
+    }
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CreateTempSyncTrigger(trackerTable);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetAndResetServerObserverData(const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetAndResetServerObserverData(tableName, changeProperties);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get server observer data failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type)
+{
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::DEFAULT)) == 0) {
+        changedData.field = {};
+        for (size_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
+            changedData.primaryData[i].clear();
+        }
+    }
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::BRIEF)) == 0) {
+        changedData.properties = {};
+    }
 }
 }
 #endif

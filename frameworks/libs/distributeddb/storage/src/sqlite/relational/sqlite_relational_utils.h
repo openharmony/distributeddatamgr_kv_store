@@ -37,6 +37,8 @@ public:
     static int StepNext(bool isMemDB, sqlite3_stmt *stmt);
 
     static int GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket);
+
+    static bool GetDbFileName(sqlite3 *db, std::string &fileName);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

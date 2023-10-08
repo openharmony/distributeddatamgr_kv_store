@@ -58,6 +58,7 @@ public:
     void RemoveTrackerSchema(const TrackerSchema &schema);
     TrackerTable GetTrackerTable(const std::string &tableName) const;
     int ParseFromTrackerSchemaString(const std::string &inSchemaString);
+    const TableInfoMap &GetTrackerTables() const;
 private:
     int CompareAgainstSchemaObject(const std::string &inSchemaString, std::map<std::string, int> &cmpRst) const;
 

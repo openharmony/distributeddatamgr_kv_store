@@ -268,6 +268,20 @@ int SQLiteRelationalUtils::GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket)
     return E_OK;
 }
 
+bool SQLiteRelationalUtils::GetDbFileName(sqlite3 *db, std::string &fileName)
+{
+    if (db == nullptr) {
+        return false;
+    }
+
+    auto dbFilePath = sqlite3_db_filename(db, nullptr);
+    if (dbFilePath == nullptr) {
+        return false;
+    }
+    fileName = std::string(dbFilePath);
+    return true;
+}
+
 int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal)
 {
     if (stmt == nullptr || cid < 0 || cid >= sqlite3_column_count(stmt)) {

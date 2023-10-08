@@ -171,6 +171,11 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
         LOGE("Get relational schema from meta failed. errcode=%d", errCode);
         return errCode;
     }
+    int ret = InitTrackerSchemaFromMeta();
+    if (ret != E_OK) {
+        LOGE("Init tracker schema from meta failed. errcode=%d", ret);
+        return ret;
+    }
     properties.SetSchema(schema);
 
     // Empty schema means no distributed table has been used, we may set DB to any table mode
@@ -1106,8 +1111,15 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (tableInfo.Empty()) {
         return sqliteStorageEngine_->SetTrackerTable(lowerSchema);
     }
-    // Adapt here after the distributed table supports tracking, and temporarily return to OK
-    return E_OK;
+    int errCode = sqliteStorageEngine_->InitTrackerSchemaFromMeta(lowerSchema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CreateDistributedTable(lowerSchema.tableName, tableInfo.GetTableSyncType());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return sqliteStorageEngine_->SaveTrackerSchema();
 }
 
 int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
@@ -1117,6 +1129,12 @@ int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector
         return -E_INVALID_ARGS;
     }
     return sqliteStorageEngine_->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
+{
+    int errCode = sqliteStorageEngine_->GetOrInitTrackerSchemaFromMeta();
+    return errCode == -E_NOT_FOUND ? E_OK : errCode;
 }
 }
 #endif

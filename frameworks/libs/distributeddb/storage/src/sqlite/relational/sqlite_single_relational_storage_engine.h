@@ -44,9 +44,12 @@ public:
     void SetProperties(const RelationalDBProperties &properties);
 
     int SetTrackerTable(const TrackerSchema &schema);
-    int InitTrackerDistributedTable(const TrackerSchema &schema);
+    int InitTrackerSchemaFromMeta(const TrackerSchema &schema);
+    int GetOrInitTrackerSchemaFromMeta();
+    int SaveTrackerSchema();
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    RelationalSchemaObject GetTrackerSchema() const;
 
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;

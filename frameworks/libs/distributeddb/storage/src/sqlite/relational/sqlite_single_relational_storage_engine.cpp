@@ -81,6 +81,11 @@ int SQLiteSingleRelationalStorageEngine::RegisterFunction(sqlite3 *db) const
         LOGE("[engine] register cloud observer failed!");
     }
 
+    errCode = SQLiteUtils::RegisterCloudDataChangeServerObserver(db);
+    if (errCode != E_OK) {
+        LOGE("[engine] register cloud server observer failed!");
+    }
+
     return errCode;
 }
 
@@ -430,18 +435,12 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::InitTrackerDistributedTable(const TrackerSchema &schema)
+int SQLiteSingleRelationalStorageEngine::InitTrackerSchemaFromMeta(const TrackerSchema &schema)
 {
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
         errCode));
     if (handle == nullptr) {
-        return errCode;
-    }
-
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseExecutor(handle);
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
@@ -455,7 +454,6 @@ int SQLiteSingleRelationalStorageEngine::InitTrackerDistributedTable(const Track
     TableInfo tableInfo;
     errCode = handle->AnalysisTrackerTable(tracker.GetTrackerTable(schema.tableName), tableInfo);
     if (errCode != E_OK) {
-        (void)handle->Rollback();
         ReleaseExecutor(handle);
         return errCode;
     }
@@ -464,13 +462,48 @@ int SQLiteSingleRelationalStorageEngine::InitTrackerDistributedTable(const Track
         tracker.RemoveTrackerSchema(schema);
     }
 
-    errCode = handle->Commit();
+    trackerSchema_ = tracker;
+    ReleaseExecutor(handle);
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
+{
+    RelationalSchemaObject trackerSchema;
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetOrInitTrackerSchemaFromMeta(trackerSchema);
     if (errCode != E_OK) {
         ReleaseExecutor(handle);
         return errCode;
     }
+    for (const auto &iter: trackerSchema.GetTrackerTables()) {
+        TableInfo tableInfo;
+        errCode = handle->AnalysisTrackerTable(iter.second.GetTrackerTable(), tableInfo);
+        if (errCode != E_OK) {
+            ReleaseExecutor(handle);
+            return errCode;
+        }
+    }
+    trackerSchema_ = trackerSchema;
+    ReleaseExecutor(handle);
+    return errCode;
+}
 
-    trackerSchema_ = tracker;
+int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema()
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    RelationalSchemaObject tracker = trackerSchema_;
+    errCode = SaveTrackerSchemaToMetaTable(handle, tracker);
     ReleaseExecutor(handle);
     return errCode;
 }
@@ -497,6 +530,11 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
     errCode = handle->Commit();
     ReleaseExecutor(handle);
     return errCode;
+}
+
+RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetTrackerSchema() const
+{
+    return trackerSchema_;
 }
 }
 #endif

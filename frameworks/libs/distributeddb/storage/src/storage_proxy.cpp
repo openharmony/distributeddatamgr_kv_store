@@ -351,6 +351,9 @@ int StorageProxy::NotifyChangedData(const std::string &deviceName, ChangedData &
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
+    ChangeProperties changeProperties;
+    store_->GetAndResetServerObserverData(changedData.tableName, changeProperties);
+    changedData.properties = changeProperties;
     store_->TriggerObserverAction(deviceName, std::move(changedData), true);
     return E_OK;
 }
@@ -413,5 +416,14 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
         return -E_INVALID_DB;
     }
     return cloudMetaData_->CleanWaterMark(tableName);
+}
+
+int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->CreateTempSyncTrigger(tableName);
 }
 }

@@ -852,6 +852,9 @@ static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::Ch
     if (input.tableName != expected.tableName) {
         return false;
     }
+    if (input.properties.isTrackedDataChange != expected.properties.isTrackedDataChange) {
+        return false;
+    }
     if (input.field.size() != expected.field.size()) {
         return false;
     }

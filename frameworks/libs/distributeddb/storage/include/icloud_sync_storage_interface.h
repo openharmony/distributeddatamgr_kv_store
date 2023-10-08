@@ -100,6 +100,16 @@ public:
     virtual std::string GetIdentify() const = 0;
 
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
+
+    virtual int CreateTempSyncTrigger(const std::string &tableName)
+    {
+        return E_OK;
+    }
+
+    virtual int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties)
+    {
+        return E_OK;
+    }
 };
 }
 
