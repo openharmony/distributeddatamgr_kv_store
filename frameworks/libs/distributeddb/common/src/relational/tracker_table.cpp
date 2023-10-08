@@ -92,6 +92,87 @@ std::string TrackerTable::ToString() const
     return attrStr;
 }
 
+const std::vector<std::string> TrackerTable::GetDropTempTriggerSql() const
+{
+    if (IsEmpty()) {
+        return {};
+    }
+    std::vector<std::string> dropSql;
+    dropSql.push_back("DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_INSERT_TEMP;");
+    dropSql.push_back("DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_UPDATE_TEMP;");
+    dropSql.push_back("DROP TRIGGER IF EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_ON_DELETE_TEMP;");
+    return dropSql;
+}
+
+const std::string TrackerTable::GetTempInsertTriggerSql() const
+{
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
+    sql += "_ON_INSERT_TEMP AFTER INSERT ON " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" +
+        " WHEN (SELECT count(1) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
+    sql += "BEGIN\n";
+    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    sql += "cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
+    sql += " hash_key = NEW.hash_key;\n";
+    if (!IsEmpty()) {
+        sql += "SELECT server_observer('" + tableName_ + "', 1);";
+    }
+    sql += "\nEND;";
+    return sql;
+}
+
+const std::string TrackerTable::GetTempUpdateTriggerSql() const
+{
+    if (IsEmpty()) {
+        return "";
+    }
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
+    sql += "_ON_UPDATE_TEMP AFTER UPDATE ON " + tableName_ +
+        " WHEN (SELECT count(1) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
+    sql += "BEGIN\n";
+    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    if (!IsEmpty()) {
+        sql += "extend_field=" + GetAssignValSql() + ",";
+    }
+    sql += " cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
+    sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql();
+    sql += ";\nEND;";
+    return sql;
+}
+
+const std::string TrackerTable::GetTempDeleteTriggerSql() const
+{
+    std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
+    sql += "_ON_DELETE_TEMP AFTER DELETE ON " + tableName_ +
+        " WHEN (SELECT count(1) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
+    sql += "BEGIN\n";
+    sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
+    sql += "cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
+    sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    if (!IsEmpty()) {
+        sql += "SELECT server_observer('" + tableName_ + "', 1);";
+    }
+    sql += "\nEND;";
+    return sql;
+}
+
+const std::string TrackerTable::GetUpgradedExtendValSql() const
+{
+    if (IsEmpty() || extendColName_.empty()) {
+        return "''";
+    }
+    std::string sql = " (SELECT " + extendColName_ + " from " + tableName_ + " WHERE " + tableName_ + "." +
+        std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " = " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log.data_key) ";
+    return sql;
+}
+
 void TrackerTable::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;

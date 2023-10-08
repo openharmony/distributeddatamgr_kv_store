@@ -368,13 +368,12 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const Tracke
     if (trackerTable.IsEmpty()) {
         return errCode;
     }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetDropTempInsertTriggerSql());
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetDropTempUpdateTriggerSql());
-    if (errCode != E_OK) {
-        return errCode;
+    std::vector<std::string> dropSql = trackerTable.GetDropTempTriggerSql();
+    for (const auto &sql: dropSql) {
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempInsertTriggerSql());
     if (errCode != E_OK) {
@@ -382,8 +381,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const Tracke
     }
     errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempUpdateTriggerSql());
     if (errCode != E_OK) {
+        return errCode;
     }
-    return errCode;
+    return SQLiteUtils::ExecuteRawSQL(dbHandle_, trackerTable.GetTempDeleteTriggerSql());
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAndResetServerObserverData(const std::string &tableName,
