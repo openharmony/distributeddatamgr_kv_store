@@ -724,13 +724,6 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
     return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
 }
 
-int RegisterCloudDataChangeServerObserver(sqlite3 *db)
-{
-    TransactFunc func;
-    func.xFunc = &CloudDataChangedServerObserver;
-    return RegisterFunction(db, "server_observer", 2, db, func); // 2 is param counts
-}
-
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
     sqlite3_commit_hook(db, CommitHookCallback, db);
@@ -1052,7 +1045,6 @@ void PostHandle(bool isExists, sqlite3 *db)
     RegisterGetLastTime(db);
     RegisterGetRawSysTime(db);
     RegisterCloudDataChangeObserver(db);
-    RegisterCloudDataChangeServerObserver(db);
     RegisterCommitAndRollbackHook(db);
     (void)sqlite3_set_droptable_handle(db, &ClearTheLogAfterDropTable);
     (void)sqlite3_busy_timeout(db, BUSY_TIMEOUT);

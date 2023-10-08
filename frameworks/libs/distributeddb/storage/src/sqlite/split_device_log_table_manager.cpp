@@ -104,7 +104,14 @@ std::string SplitDeviceLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 
 std::vector<std::string> SplitDeviceLogTableManager::GetDropTriggers(const TableInfo &table)
 {
-    (void)table;
-    return {};
+    std::vector<std::string> dropTriggers;
+    std::string tableName = table.GetTableName();
+    std::string insertTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_INSERT; ";
+    std::string updateTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_UPDATE; ";
+    std::string deleteTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_DELETE; ";
+    dropTriggers.emplace_back(insertTrigger);
+    dropTriggers.emplace_back(updateTrigger);
+    dropTriggers.emplace_back(deleteTrigger);
+    return dropTriggers;
 }
 }

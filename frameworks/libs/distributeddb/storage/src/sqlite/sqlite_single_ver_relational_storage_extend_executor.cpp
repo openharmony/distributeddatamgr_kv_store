@@ -338,7 +338,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
 
 int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo)
 {
-    if (tableInfo.GetTrackerTable().IsEmpty()) {
+    if (tableInfo.GetTrackerTable().IsEmpty() || tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
         return E_OK;
     }
     int64_t timeOffset = 0;
