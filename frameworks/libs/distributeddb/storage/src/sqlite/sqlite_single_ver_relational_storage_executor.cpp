@@ -208,11 +208,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
-    } else {
-        errCode = UpgradedLogForExistedData(dbHandle_, table);
-    }
-    if (errCode != E_OK) {
-        return errCode;
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
 
     // add trigger
