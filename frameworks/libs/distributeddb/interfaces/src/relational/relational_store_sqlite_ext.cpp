@@ -54,7 +54,7 @@ using namespace DistributedDB;
 namespace {
 constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
-constexpr const int STR_TO_LL_BY_DEVALUE = 10;
+constexpr int STR_TO_LL_BY_DEVALUE = 10;
 constexpr int BUSY_TIMEOUT = 2000;  // 2s.
 const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
 const std::string DEVICE_TYPE = "device";
@@ -119,18 +119,18 @@ using TimeOffset = int64_t;
 class TimeHelper {
 public:
     // 10000 year 100ns
-    static constexpr const int64_t BASE_OFFSET = 10000LL * 365LL * 24LL * 3600LL * 1000LL * 1000LL * 10L;
+    static constexpr int64_t BASE_OFFSET = 10000LL * 365LL * 24LL * 3600LL * 1000LL * 1000LL * 10L;
 
-    static constexpr const int64_t MAX_VALID_TIME = BASE_OFFSET * 2; // 20000 year 100ns
+    static constexpr int64_t MAX_VALID_TIME = BASE_OFFSET * 2; // 20000 year 100ns
 
-    static constexpr const uint64_t TO_100_NS = 10; // 1us to 100ns
+    static constexpr uint64_t TO_100_NS = 10; // 1us to 100ns
 
-    static constexpr const Timestamp INVALID_TIMESTAMP = 0;
+    static constexpr Timestamp INVALID_TIMESTAMP = 0;
 
-    static constexpr const uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
+    static constexpr uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
 
-    static constexpr const int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
-    static constexpr const uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
+    static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
+    static constexpr uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
 
     static void Initialize(const std::string &storeId)
     {
@@ -429,14 +429,20 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     DistributedDB::CollateType collateType = static_cast<DistributedDB::CollateType>(sqlite3_value_int(argv[1]));
     if (collateType == DistributedDB::CollateType::COLLATE_NOCASE) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
-        std::string colStr = std::string(colChar);
+        if (colChar == nullptr) {
+            return;
+        }
+        std::string colStr(colChar);
         StringToUpper(colStr);
         std::vector<uint8_t> value;
         StringToVector(colStr, value);
         errCode = CalcValueHash(value, hashValue);
     } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
-        std::string colStr = std::string(colChar);
+        if (colChar == nullptr) {
+            return;
+        }
+        std::string colStr(colChar);
         RTrim(colStr);
         std::vector<uint8_t> value;
         StringToVector(colStr, value);
