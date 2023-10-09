@@ -132,58 +132,6 @@ public:
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
     static constexpr uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
 
-    static void AddStore(const std::string &storeId)
-    {
-        std::lock_guard<std::mutex> lock(metaDataLock_);
-        if (metaData_.find(storeId) != metaData_.end()) {
-            return;
-        }
-        TimeHelper timeHelper;
-        timeHelper.Initialize();
-        metaData_[storeId] = timeHelper;
-    }
-
-    static void Restore(const std::string &storeId)
-    {
-        std::lock_guard<std::mutex> lock(metaDataLock_);
-        if (metaData_.find(storeId) != metaData_.end()) {
-            LOGD("Restore time helper");
-            metaData_.erase(storeId);
-        }
-    }
-
-    static Timestamp GetLastTime(const std::string &storeId)
-    {
-        std::lock_guard<std::mutex> lock(metaDataLock_);
-        auto it = metaData_.find(storeId);
-        if (it == metaData_.end()) {
-            return INVALID_TIMESTAMP;
-        }
-        return it->second.GetLastTime();
-    }
-
-    static bool TimeSkew(const std::string &storeId, const std::function<Timestamp()> &getLocalTimeOffsetFromDB,
-        Timestamp timeOffset)
-    {
-        std::lock_guard<std::mutex> lock(metaDataLock_);
-        auto it = metaData_.find(storeId);
-        if (it == metaData_.end()) {
-            return false;
-        }
-        return it->second.TimeSkew(getLocalTimeOffsetFromDB, timeOffset);
-    }
-
-    static Timestamp GetTime(const std::string &storeId, TimeOffset timeOffset,
-        const std::function<Timestamp()> &getDbMaxTimestamp, const std::function<Timestamp()> &getDbLocalTimeOffset)
-    {
-        std::lock_guard<std::mutex> lock(metaDataLock_);
-        auto it = metaData_.find(storeId);
-        if (it == metaData_.end()) {
-            return INVALID_TIMESTAMP;
-        }
-        return it->second.GetTime(timeOffset, getDbMaxTimestamp, getDbLocalTimeOffset);
-    }
-
     static int GetSysCurrentRawTime(uint64_t &curTime)
     {
         int errCode = GetCurrentSysTimeInMicrosecond(curTime);
@@ -194,7 +142,6 @@ public:
         return E_OK;
     }
 
-private:
     // Init the TimeHelper for time skew
     void Initialize()
     {
@@ -328,17 +275,76 @@ private:
     Timestamp lastSystemTime_ = 0;
     Timestamp lastMonotonicTime_ = 0;
     bool isInitialized_ = false;
+};
 
-    static std::mutex metaDataLock_;
-    static std::map<std::string, TimeHelper> metaData_;
+class TimeHelperManager {
+public:
+    static TimeHelperManager *GetInstance()
+    {
+        static auto instance = new TimeHelperManager();
+        return instance;
+    }
+
+    void AddStore(const std::string &storeId)
+    {
+        std::lock_guard<std::mutex> lock(metaDataLock_);
+        if (metaData_.find(storeId) != metaData_.end()) {
+            return;
+        }
+        TimeHelper timeHelper;
+        timeHelper.Initialize();
+        metaData_[storeId] = timeHelper;
+    }
+
+    void Restore(const std::string &storeId)
+    {
+        std::lock_guard<std::mutex> lock(metaDataLock_);
+        if (metaData_.find(storeId) != metaData_.end()) {
+            LOGD("Restore time helper");
+            metaData_.erase(storeId);
+        }
+    }
+
+    Timestamp GetLastTime(const std::string &storeId)
+    {
+        std::lock_guard<std::mutex> lock(metaDataLock_);
+        auto it = metaData_.find(storeId);
+        if (it == metaData_.end()) {
+            return TimeHelper::INVALID_TIMESTAMP;
+        }
+        return it->second.GetLastTime();
+    }
+
+    bool TimeSkew(const std::string &storeId, const std::function<Timestamp()> &getLocalTimeOffsetFromDB,
+        Timestamp timeOffset)
+    {
+        std::lock_guard<std::mutex> lock(metaDataLock_);
+        auto it = metaData_.find(storeId);
+        if (it == metaData_.end()) {
+            return false;
+        }
+        return it->second.TimeSkew(getLocalTimeOffsetFromDB, timeOffset);
+    }
+
+    Timestamp GetTime(const std::string &storeId, TimeOffset timeOffset,
+        const std::function<Timestamp()> &getDbMaxTimestamp, const std::function<Timestamp()> &getDbLocalTimeOffset)
+    {
+        std::lock_guard<std::mutex> lock(metaDataLock_);
+        auto it = metaData_.find(storeId);
+        if (it == metaData_.end()) {
+            return TimeHelper::INVALID_TIMESTAMP;
+        }
+        return it->second.GetTime(timeOffset, getDbMaxTimestamp, getDbLocalTimeOffset);
+    }
+private:
+    TimeHelperManager() = default;
+    std::mutex metaDataLock_;
+    std::map<std::string, TimeHelper> metaData_;
 };
 
 std::mutex TimeHelper::systemTimeLock_;
 Timestamp TimeHelper::lastSystemTimeUs_ = 0;
 Timestamp TimeHelper::currentIncCount_ = 0;
-
-std::mutex TimeHelper::metaDataLock_;
-std::map<std::string, TimeHelper> TimeHelper::metaData_;
 
 int GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt *&stmt);
 int ResetStatement(sqlite3_stmt *&stmt);
@@ -547,8 +553,9 @@ void GetSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     std::string identity;
     GetDBIdentity(db, identity);
     auto timeOffset = static_cast<TimeOffset>(sqlite3_value_int64(argv[0]));
-    (void)TimeHelper::TimeSkew(identity, getDbLocalTimeOffset, timeOffset);
-    Timestamp currentTime = TimeHelper::GetTime(identity, timeOffset, getDbMaxTimestamp, getDbLocalTimeOffset);
+    (void)TimeHelperManager::GetInstance()->TimeSkew(identity, getDbLocalTimeOffset, timeOffset);
+    Timestamp currentTime = TimeHelperManager::GetInstance()->GetTime(identity, timeOffset, getDbMaxTimestamp,
+        getDbLocalTimeOffset);
     sqlite3_result_int64(ctx, (sqlite3_int64)currentTime);
 }
 
@@ -581,7 +588,7 @@ void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
     std::string identity;
     GetDBIdentity(db, identity);
 
-    sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelper::GetLastTime(identity));
+    sqlite3_result_int64(ctx, (sqlite3_int64)TimeHelperManager::GetInstance()->GetLastTime(identity));
 }
 
 int GetHashString(const std::string &str, std::string &dst)
@@ -965,7 +972,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
         return;
     }
     std::string fileName = std::string(filePath);
-    Timestamp dropTimeStamp = TimeHelper::GetTime(fileName, 0, nullptr, nullptr);
+    Timestamp dropTimeStamp = TimeHelperManager::GetInstance()->GetTime(fileName, 0, nullptr, nullptr);
     std::string tableStr = std::string(tableName);
     std::string logTblName = "naturalbase_rdb_aux_" + tableStr + "_log";
     if (CheckTableExists(db, logTblName)) {
@@ -1000,9 +1007,9 @@ void PostHandle(bool isExists, sqlite3 *db)
     std::string dbIdentity;
     (void)GetDBIdentity(db, dbIdentity);
     if (!isExists) { // first create db, clean old time helper
-        TimeHelper::Restore(dbIdentity);
+        TimeHelperManager::GetInstance()->Restore(dbIdentity);
     }
-    TimeHelper::AddStore(dbIdentity);
+    TimeHelperManager::GetInstance()->AddStore(dbIdentity);
     RegisterCalcHash(db);
     RegisterGetSysTime(db);
     RegisterGetLastTime(db);
