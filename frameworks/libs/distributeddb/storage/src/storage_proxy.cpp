@@ -426,4 +426,14 @@ int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
     }
     return store_->CreateTempSyncTrigger(tableName);
 }
+
+int StorageProxy::ClearAllTempSyncTrigger()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    // Clean up all temporary triggers
+    return store_->ClearAllTempSyncTrigger();
+}
 }

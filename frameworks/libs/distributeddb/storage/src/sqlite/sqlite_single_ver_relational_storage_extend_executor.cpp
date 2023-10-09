@@ -397,5 +397,34 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAndResetServerObserverData(cons
     SQLiteUtils::GetAndResetServerObserverData(fileName, tableName, changeProperties);
     return E_OK;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
+{
+    sqlite3_stmt *stmt = nullptr;
+    static const std::string sql = "SELECT name FROM sqlite_temp_master WHERE type = 'trigger';";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("get clear all temp trigger stmt failed. %d", errCode);
+        return errCode;
+    }
+    int ret = E_OK;
+    while ((errCode = SQLiteRelationalUtils::StepNext(isMemDb_, stmt)) == E_OK) {
+        std::string str;
+        (void)SQLiteUtils::GetColumnTextValue(stmt, 0, str);
+        if (errCode != E_OK) {
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return errCode;
+        }
+        std::string dropSql = "DROP TRIGGER IF EXISTS '" + str + "';";
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, dropSql);
+        if (errCode != E_OK) {
+            LOGE("drop temp trigger failed. %d", errCode);
+            SQLiteUtils::ResetStatement(stmt, true, ret);
+            return errCode;
+        }
+    }
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
+}
 } // namespace DistributedDB
 #endif

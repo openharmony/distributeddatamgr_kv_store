@@ -110,6 +110,11 @@ public:
     {
         return E_OK;
     }
+
+    virtual int ClearAllTempSyncTrigger()
+    {
+        return E_OK;
+    }
 };
 }
 

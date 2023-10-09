@@ -1372,5 +1372,20 @@ void RelationalSyncAbleStorage::FilterChangeDataByDetailsType(ChangedData &chang
         changedData.properties = {};
     }
 }
+
+int RelationalSyncAbleStorage::ClearAllTempSyncTrigger()
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->ClearAllTempSyncTrigger();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] clear all temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
 }
 #endif

@@ -208,6 +208,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         needUpload = currentContext_.strategy->JudgeUpload();
     }
     errCode = DoSyncInner(taskInfo, needUpload);
+    (void)storageProxy_->ClearAllTempSyncTrigger();
     UnlockIfNeed();
     return errCode;
 }

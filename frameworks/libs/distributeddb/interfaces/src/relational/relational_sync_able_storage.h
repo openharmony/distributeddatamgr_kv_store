@@ -183,6 +183,7 @@ public:
 
     int CreateTempSyncTrigger(const std::string &tableName) override;
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
+    int ClearAllTempSyncTrigger() override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;

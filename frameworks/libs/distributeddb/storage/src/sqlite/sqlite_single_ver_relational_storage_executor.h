@@ -128,6 +128,7 @@ public:
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     int CreateTempSyncTrigger(const TrackerTable &trackerTable);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
+    int ClearAllTempSyncTrigger();
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 

@@ -100,6 +100,7 @@ public:
     int CleanWaterMark(const TableName &tableName);
 
     int CreateTempSyncTrigger(const std::string &tableName);
+    int ClearAllTempSyncTrigger();
 protected:
     void Init();
 
