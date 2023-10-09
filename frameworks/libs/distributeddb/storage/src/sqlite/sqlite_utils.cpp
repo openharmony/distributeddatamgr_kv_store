@@ -1426,7 +1426,6 @@ void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc,
     std::string tableName = static_cast<std::string>(tableNameChar);
 
     bool isTrackerChange = (sqlite3_value_int(argv[1]) > 0); // 1 is param index
-    bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
         auto itTable = g_serverChangedDataMap[fileName].find(tableName);

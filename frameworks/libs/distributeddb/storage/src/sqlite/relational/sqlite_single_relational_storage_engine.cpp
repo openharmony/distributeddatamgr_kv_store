@@ -248,6 +248,11 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     table.SetTableName(tableName);
     table.SetTableSyncType(tableSyncType);
     table.SetTrackerTable(trackerSchema_.GetTrackerTable(tableName));
+    if (!table.GetTrackerTable().IsEmpty() && tableSyncType == TableSyncType::DEVICE_COOPERATION) {
+        LOGE("current is trackerTable, not support creating device distributed table. %d", errCode);
+        (void)handle->Rollback();
+        return -E_NOT_SUPPORT;
+    }
     errCode = handle->CreateDistributedTable(mode, isUpgraded, identity, table, tableSyncType);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
@@ -425,6 +430,9 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
 
 int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo)
 {
+    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        return -E_NOT_SUPPORT;
+    }
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
         OperatePerm::NORMAL_PERM, errCode));
