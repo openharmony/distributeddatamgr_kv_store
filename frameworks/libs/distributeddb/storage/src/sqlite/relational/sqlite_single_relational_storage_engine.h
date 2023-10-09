@@ -44,7 +44,7 @@ public:
     void SetProperties(const RelationalDBProperties &properties);
 
     int SetTrackerTable(const TrackerSchema &schema);
-    int InitTrackerSchemaFromMeta(const TrackerSchema &schema);
+    int CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo);
     int GetOrInitTrackerSchemaFromMeta();
     int SaveTrackerSchema();
 

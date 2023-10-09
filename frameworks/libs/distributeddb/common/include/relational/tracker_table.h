@@ -30,8 +30,8 @@ public:
     std::string GetTableName() const;
     const std::set<std::string> &GetTrackerColNames() const;
     void Init(const TrackerSchema &schema);
-    const std::string GetAssignValSql() const;
-    const std::string GetExtendAssignValSql() const;
+    const std::string GetAssignValSql(bool isDelete = false) const;
+    const std::string GetExtendAssignValSql(bool isDelete = false) const;
     const std::string GetDiffTrackerValSql() const;
     const std::string GetExtendName() const;
     std::string ToString() const;

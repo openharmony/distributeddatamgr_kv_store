@@ -1111,7 +1111,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (tableInfo.Empty()) {
         return sqliteStorageEngine_->SetTrackerTable(lowerSchema);
     }
-    int errCode = sqliteStorageEngine_->InitTrackerSchemaFromMeta(lowerSchema);
+    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(lowerSchema, tableInfo);
     if (errCode != E_OK) {
         return errCode;
     }

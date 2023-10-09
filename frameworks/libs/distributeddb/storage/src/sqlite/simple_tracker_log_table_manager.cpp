@@ -97,17 +97,13 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    updateTrigger += " WHERE data_key = OLD.rowid;\n";
-    updateTrigger += "\t UPDATE " + logTblName;
-    updateTrigger += " SET extend_field=";
-    updateTrigger += table.GetTrackerTable().GetAssignValSql();
     updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     updateTrigger += " from " + logTblName + ") where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ";\n";
     updateTrigger += "select client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ", 1, ";
     updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
-    updateTrigger += ";";
+    updateTrigger += ");";
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -126,6 +122,7 @@ std::string SimpleTrackerLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
+    deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
     deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     deleteTrigger += " FROM " + GetLogTableName(table) + ")";
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";

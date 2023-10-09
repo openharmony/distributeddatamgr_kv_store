@@ -242,12 +242,6 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         return errCode;
     }
 
-     errCode = handle->GetOrInitTrackerSchemaFromMeta(trackerSchema_);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
     TableInfo table;
@@ -400,12 +394,6 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    errCode = handle->GetOrInitTrackerSchemaFromMeta(tracker);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-
     tracker.InsertTrackerSchema(schema);
     errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName));
     if (errCode != E_OK) {
@@ -435,25 +423,20 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::InitTrackerSchemaFromMeta(const TrackerSchema &schema)
+int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo)
 {
     int errCode = E_OK;
-    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
-        errCode));
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
+        OperatePerm::NORMAL_PERM, errCode));
     if (handle == nullptr) {
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    errCode = handle->GetOrInitTrackerSchemaFromMeta(tracker);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-
     tracker.InsertTrackerSchema(schema);
-    TableInfo tableInfo;
-    errCode = handle->AnalysisTrackerTable(tracker.GetTrackerTable(schema.tableName), tableInfo);
+    tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
+    errCode = tableInfo.CheckTrackerTable();
     if (errCode != E_OK) {
+        LOGE("check tracker table schema failed. %d", errCode);
         ReleaseExecutor(handle);
         return errCode;
     }

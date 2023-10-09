@@ -132,23 +132,17 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
+    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
+        updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
+    }
     updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     updateTrigger += " from " + logTblName;
     updateTrigger += ") WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
-        updateTrigger += "\t UPDATE " + logTblName;
-        updateTrigger += " SET extend_field=";
-        updateTrigger += table.GetTrackerTable().GetAssignValSql();
-        updateTrigger += " where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
-        updateTrigger += "select client_observer('" + tableName + "', OLD.";
-        updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
-        updateTrigger += ", 1, ";
-        updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
-        updateTrigger += ";";
-    } else {
-        updateTrigger += "SELECT client_observer('" + tableName + "', OLD.";
-        updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID) + ", 1, 0);\n";
-    }
+    updateTrigger += "select client_observer('" + tableName + "', OLD.";
+    updateTrigger += std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += ", 1, ";
+    updateTrigger += table.GetTrackerTable().GetDiffTrackerValSql();
+    updateTrigger += ");";
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -166,6 +160,9 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
+    if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
+        deleteTrigger += table.GetTrackerTable().GetExtendAssignValSql(true);
+    }
     deleteTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     deleteTrigger += " FROM " +  logTblName + ")";
     deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";

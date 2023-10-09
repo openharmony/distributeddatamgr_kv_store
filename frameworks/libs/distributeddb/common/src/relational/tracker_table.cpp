@@ -34,23 +34,31 @@ const std::set<std::string> &TrackerTable::GetTrackerColNames() const
     return trackerColNames_;
 }
 
-const std::string TrackerTable::GetAssignValSql() const
+const std::string TrackerTable::GetAssignValSql(bool isDelete) const
 {
     if (extendColName_.empty()) {
         return "''";
     }
     std::string sql;
-    sql += "NEW." + extendColName_;
+    if (isDelete) {
+        sql += "OLD." + extendColName_;
+    } else {
+        sql += "NEW." + extendColName_;
+    }
     return sql;
 }
 
-const std::string TrackerTable::GetExtendAssignValSql() const
+const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
 {
     if (extendColName_.empty()) {
         return "";
     }
     std::string sql;
-    sql += ", extend_field = NEW." + extendColName_;
+    if (isDelete) {
+        sql += ", extend_field = OLD." + extendColName_;
+    } else {
+        sql += ", extend_field = NEW." + extendColName_;
+    }
     return sql;
 }
 
@@ -68,7 +76,7 @@ const std::string TrackerTable::GetDiffTrackerValSql() const
         }
         index++;
     }
-    sql += ") then 1 else 0 end)";
+    sql += ") then 1 else 0 end";
     return sql;
 }
 
@@ -106,6 +114,7 @@ const std::vector<std::string> TrackerTable::GetDropTempTriggerSql() const
 
 const std::string TrackerTable::GetTempInsertTriggerSql() const
 {
+    // This trigger is built on the log table
     std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
     sql += "_ON_INSERT_TEMP AFTER INSERT ON " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" +
         " WHEN (SELECT count(1) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
@@ -124,9 +133,6 @@ const std::string TrackerTable::GetTempInsertTriggerSql() const
 
 const std::string TrackerTable::GetTempUpdateTriggerSql() const
 {
-    if (IsEmpty()) {
-        return "";
-    }
     std::string sql = "CREATE TEMP TRIGGER IF NOT EXISTS " + DBConstant::RELATIONAL_PREFIX + tableName_;
     sql += "_ON_UPDATE_TEMP AFTER UPDATE ON " + tableName_ +
         " WHEN (SELECT count(1) FROM " + DBConstant::RELATIONAL_PREFIX + "metadata" +
@@ -140,7 +146,7 @@ const std::string TrackerTable::GetTempUpdateTriggerSql() const
     sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
     sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql();
-    sql += ";\nEND;";
+    sql += ");\nEND;";
     return sql;
 }
 
@@ -152,7 +158,10 @@ const std::string TrackerTable::GetTempDeleteTriggerSql() const
         " WHERE key = 'log_trigger_switch' AND value = 'false')\n";
     sql += "BEGIN\n";
     sql += "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + " SET ";
-    sql += "cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    if (!IsEmpty()) {
+        sql += "extend_field=" + GetAssignValSql(true) + ",";
+    }
+    sql += " cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
     sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     if (!IsEmpty()) {

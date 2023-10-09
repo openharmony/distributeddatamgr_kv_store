@@ -1326,13 +1326,14 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
 int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableName)
 {
     int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
     if (trackerTable.IsEmpty()) {
         // This table is not a tracker table
-        return errCode;
-    }
-    auto *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
+        ReleaseHandle(handle);
         return errCode;
     }
     errCode = handle->CreateTempSyncTrigger(trackerTable);
