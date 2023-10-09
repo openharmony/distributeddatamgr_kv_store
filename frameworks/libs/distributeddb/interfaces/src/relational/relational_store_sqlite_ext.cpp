@@ -132,7 +132,7 @@ public:
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
     static constexpr uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
 
-    static void Initialize(const std::string &storeId)
+    static void AddStore(const std::string &storeId)
     {
         std::lock_guard<std::mutex> lock(metaDataLock_);
         if (metaData_.find(storeId) != metaData_.end()) {
@@ -1002,7 +1002,7 @@ void PostHandle(bool isExists, sqlite3 *db)
     if (!isExists) { // first create db, clean old time helper
         TimeHelper::Restore(dbIdentity);
     }
-    TimeHelper::Initialize(dbIdentity);
+    TimeHelper::AddStore(dbIdentity);
     RegisterCalcHash(db);
     RegisterGetSysTime(db);
     RegisterGetLastTime(db);
