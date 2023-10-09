@@ -68,6 +68,7 @@ config("distrdb_public_config") {
     "interfaces/include",
     "interfaces/include/relational",
     "include",
+    "gaussdb_rd/include",
   ]
 }
 
@@ -87,9 +88,9 @@ ohos_shared_library("distributeddb") {
   ]
 
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
-  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [ "-fvisibility=hidden" ]
   deps += [
+    "gaussdb_rd:gaussdb_rd",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]
