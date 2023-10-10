@@ -737,12 +737,15 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
         for (const auto &item : dataChangeCallbackMap_) {
             for (auto &action : item.second) {
-                if (action.second != nullptr) {
-                    observerCnt++;
-                    ChangedData observerChangeData = changedData;
-                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
-                    action.second(deviceName, std::move(observerChangeData), isChangedData);
+                if (action.second == nullptr) {
+                    continue;
                 }
+                observerCnt++;
+                ChangedData observerChangeData = changedData;
+                if (action.first != nullptr) {
+                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
+                }
+                action.second(deviceName, std::move(observerChangeData), isChangedData);
             }
         }
         LOGD("relational observer size = %d", observerCnt);

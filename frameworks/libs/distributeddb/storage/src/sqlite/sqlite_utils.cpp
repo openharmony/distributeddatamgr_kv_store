@@ -1443,10 +1443,14 @@ void SQLiteUtils::GetAndResetServerObserverData(const std::string &dbName, const
     ChangeProperties &changeProperties)
 {
     std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
-    auto it = g_serverChangedDataMap.find(dbName);
-    if (it != g_serverChangedDataMap.end() && !it->second.empty()) {
-        changeProperties = g_serverChangedDataMap[dbName].at(tableName);
-        g_serverChangedDataMap[dbName].clear();
+    auto itDb = g_serverChangedDataMap.find(dbName);
+    if (itDb != g_serverChangedDataMap.end() && !itDb->second.empty()) {
+        auto itTable = itDb->second.find(tableName);
+        if (itTable == itDb->second.end()) {
+            return;
+        }
+        changeProperties = itTable->second;
+        g_serverChangedDataMap[dbName].erase(itTable);
     }
 }
 
