@@ -61,6 +61,8 @@ public:
 
     DBStatus UnRegisterObserver() override;
 
+    DBStatus UnRegisterObserver(StoreObserver *observer) override;
+
     DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,

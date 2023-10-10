@@ -426,8 +426,9 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
         }
     } while (true);
 
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal, uint32_t iterTimes)
@@ -815,7 +816,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 
     std::string tmpString;
     (void) SQLiteUtils::GetColumnTextValue(statement, 1, tmpString);  // 1 means column name index
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tmpString)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tmpString)) {
         LOGE("[AnalysisSchema] unsupported field name.");
         return -E_NOT_SUPPORT;
     }
@@ -881,7 +882,7 @@ int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, Table
         return -E_INVALID_DB;
     }
 
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
         LOGE("[AnalysisSchema] unsupported table name.");
         return -E_NOT_SUPPORT;
     }

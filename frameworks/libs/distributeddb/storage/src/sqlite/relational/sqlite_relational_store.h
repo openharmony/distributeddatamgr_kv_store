@@ -67,7 +67,9 @@ public:
     int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
 
-    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
+    int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+        const RelationalObserverAction &action);
+    int UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer);
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier);
 
     std::string GetStorePath() const override;
@@ -120,7 +122,7 @@ private:
 
     std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
 
-    SQLiteSingleVerRelationalStorageExecutor *GetHandleAndStartTransaction(int &errCode) const;
+    int GetHandleAndStartTransaction(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
     int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
         const std::string &tableName, bool isNeedHash);

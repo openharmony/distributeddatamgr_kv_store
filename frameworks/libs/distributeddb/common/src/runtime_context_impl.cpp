@@ -969,7 +969,7 @@ int RuntimeContextImpl::BlobToAsset(const std::vector<uint8_t> &blob, Asset &ass
     return E_OK;
 }
 
-int RuntimeContextImpl::BlobToAssets(std::vector<uint8_t> &blob, Assets &assets)
+int RuntimeContextImpl::BlobToAssets(const std::vector<uint8_t> &blob, Assets &assets)
 {
     std::shared_lock<std::shared_mutex> autoLock(dataTranslateLock_);
     if (dataTranslate_ == nullptr) {

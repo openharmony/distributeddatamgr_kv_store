@@ -76,7 +76,7 @@ public:
     int GetPrimaryColNamesWithAssetsFields(const TableName &tableName, std::vector<std::string> &colNames,
         std::vector<Field> &assetFields);
 
-    int NotifyChangedData(const std::string deviceName, ChangedData &&changedData);
+    int NotifyChangedData(const std::string &deviceName, ChangedData &&changedData);
 
     int ReleaseContinueToken(ContinueToken &continueStmtToken);
 

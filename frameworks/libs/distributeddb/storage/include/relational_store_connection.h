@@ -59,7 +59,8 @@ public:
     virtual int RemoveDeviceData(const std::string &device) = 0;
     virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
     virtual int DoClean(ClearMode mode) = 0;
-    virtual void RegisterObserverAction(const RelationalObserverAction &action) = 0;
+    virtual int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) = 0;
+    virtual int UnRegisterObserverAction(const StoreObserver *observer) = 0;
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
     virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;

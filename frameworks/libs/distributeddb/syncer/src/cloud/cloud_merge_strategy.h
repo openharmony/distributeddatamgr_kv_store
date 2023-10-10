@@ -23,7 +23,7 @@ public:
     CloudMergeStrategy() = default;
     ~CloudMergeStrategy() override = default;
 
-    OpType TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo) override;
+    OpType TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo) override;
 
     bool JudgeUpdateCursor() override;
 

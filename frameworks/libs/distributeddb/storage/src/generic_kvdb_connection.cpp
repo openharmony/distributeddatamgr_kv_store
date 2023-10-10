@@ -81,7 +81,7 @@ KvDBObserverHandle *GenericKvDBConnection::RegisterObserver(unsigned mode,
     }
 
     std::lock_guard<std::mutex> lockGuard(observerListLock_);
-    if (observerList_.size() >= MAX_OBSERVER_COUNT) {
+    if (observerList_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         errCode = -E_MAX_LIMITS;
         LOGE("The number of observers has been larger than 'MAX_OBSERVER_COUNT'!");
         return nullptr;

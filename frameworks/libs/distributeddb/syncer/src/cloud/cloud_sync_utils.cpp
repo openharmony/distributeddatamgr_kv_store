@@ -30,7 +30,7 @@ int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNa
         // if data is primary key or is a composite primary key, then use rowID as value
         // The single primary key table, does not contain rowid.
         if (pkColName == CloudDbConstant::ROW_ID_FIELD_NAME) {
-            cloudPkVals.push_back(dataKey);
+            cloudPkVals.emplace_back(dataKey);
             continue;
         }
         auto iter = datum.find(pkColName);

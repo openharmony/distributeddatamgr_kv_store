@@ -306,7 +306,7 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
     return E_OK;
 }
 
-int StorageProxy::NotifyChangedData(const std::string deviceName, ChangedData &&changedData)
+int StorageProxy::NotifyChangedData(const std::string &deviceName, ChangedData &&changedData)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {

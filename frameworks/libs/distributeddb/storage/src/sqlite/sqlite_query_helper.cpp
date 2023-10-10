@@ -159,11 +159,13 @@ bool SqliteQueryHelper::FilterSymbolToAddBracketLink(std::string &querySql, bool
     bool isNeedEndBracket = false;
     for (const auto &iter : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(iter.operFlag);
-        if (symbolType == COMPARE_SYMBOL || symbolType == RELATIONAL_SYMBOL || symbolType == RANGE_SYMBOL) {
+        if (symbolType == SymbolType::COMPARE_SYMBOL || symbolType == SymbolType::RELATIONAL_SYMBOL ||
+            symbolType == SymbolType::RANGE_SYMBOL) {
             querySql += isNeedLink ? " AND (" : " (";
             isNeedEndBracket = true;
             break;
-        } else if (symbolType == LOGIC_SYMBOL || symbolType == PREFIXKEY_SYMBOL || symbolType == IN_KEYS_SYMBOL) {
+        } else if (symbolType == SymbolType::LOGIC_SYMBOL || symbolType == SymbolType::PREFIXKEY_SYMBOL ||
+            symbolType == SymbolType::IN_KEYS_SYMBOL) {
             continue;
         } else {
             break;
@@ -187,7 +189,7 @@ int SqliteQueryHelper::ParseQueryObjNodeToSQL(bool isQueryForSync)
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             querySql_ += ") ";
             isNeedEndBracket = false;
         }
@@ -253,7 +255,7 @@ int SqliteQueryHelper::ToGetCountSql()
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             countSql_ += ") ";
             isNeedEndBracket = false;
         }
@@ -495,7 +497,7 @@ int SqliteQueryHelper::GetCountSqlStatement(sqlite3 *dbHandle, sqlite3_stmt *&co
     }
 
     for (const QueryObjNode &objNode : queryObjNodes_) {
-        if (GetSymbolType(objNode.operFlag) == SPECIAL_SYMBOL) {
+        if (GetSymbolType(objNode.operFlag) == SymbolType::SPECIAL_SYMBOL) {
             continue;
         }
         errCode = BindFieldValue(countStmt, objNode, index);
@@ -636,7 +638,7 @@ std::string SqliteQueryHelper::MapRelationalSymbolToSql(const QueryObjNode &quer
         return "";
     };
     std::string sql = RELATIONAL_SYMBOL_TO_SQL.at(queryNode.operFlag) + MapValueToSql(queryNode, placeholder);
-    if (GetSymbolType(queryNode.operFlag) == RANGE_SYMBOL) {
+    if (GetSymbolType(queryNode.operFlag) == SymbolType::RANGE_SYMBOL) {
         sql += ")";
     }
     return sql;
@@ -718,7 +720,8 @@ std::string SqliteQueryHelper::MapCastFuncSql(const QueryObjNode &queryNode, con
 int SqliteQueryHelper::BindFieldValue(sqlite3_stmt *statement, const QueryObjNode &queryNode, int &index) const
 {
     SymbolType symbolType = GetSymbolType(queryNode.operFlag);
-    if (symbolType != COMPARE_SYMBOL && symbolType != RELATIONAL_SYMBOL && symbolType != RANGE_SYMBOL) {
+    if (symbolType != SymbolType::COMPARE_SYMBOL && symbolType != SymbolType::RELATIONAL_SYMBOL &&
+        symbolType != SymbolType::RANGE_SYMBOL) {
         return E_OK;
     }
 
@@ -760,15 +763,16 @@ int SqliteQueryHelper::ParseQueryExpression(const QueryObjNode &queryNode, std::
     const std::string &accessStr, bool placeholder)
 {
     SymbolType symbolType = GetSymbolType(queryNode.operFlag);
-    if (symbolType == RANGE_SYMBOL && queryNode.fieldValue.size() > MAX_CONDITIONS_SIZE) {
+    if (symbolType == SymbolType::RANGE_SYMBOL && queryNode.fieldValue.size() > MAX_CONDITIONS_SIZE) {
         LOGE("[Query][Parse][Expression] conditions is too many!");
         return -E_MAX_LIMITS;
     }
 
-    if (symbolType == COMPARE_SYMBOL || symbolType == RELATIONAL_SYMBOL || symbolType == RANGE_SYMBOL) {
+    if (symbolType == SymbolType::COMPARE_SYMBOL || symbolType == SymbolType::RELATIONAL_SYMBOL ||
+        symbolType == SymbolType::RANGE_SYMBOL) {
         querySql += GetFieldShape(queryNode, accessStr);
         querySql += MapRelationalSymbolToSql(queryNode, placeholder);
-    } else if (symbolType == LOGIC_SYMBOL || symbolType == LINK_SYMBOL) {
+    } else if (symbolType == SymbolType::LOGIC_SYMBOL || symbolType == SymbolType::LINK_SYMBOL) {
         querySql += MapLogicSymbolToSql(queryNode);
     } else {
         querySql += MapKeywordSymbolToSql(queryNode);
@@ -857,7 +861,7 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             conditionStr += ") ";
             isNeedEndBracket = false;
         }

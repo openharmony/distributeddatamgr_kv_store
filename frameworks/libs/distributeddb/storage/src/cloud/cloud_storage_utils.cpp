@@ -688,16 +688,17 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
 static bool IsViolationOfConstraints(const std::string &name, const std::vector<FieldInfo> &fieldInfos)
 {
     for (const auto &field : fieldInfos) {
-        if (name == field.GetFieldName()) {
-            if (field.GetStorageType() == StorageType::STORAGE_TYPE_REAL) {
-                LOGE("[ConstraintsCheckForCloud] Not support create distributed table with real primary key.");
-                return true;
-            } else if (field.IsAssetType() || field.IsAssetsType()) {
-                LOGE("[ConstraintsCheckForCloud] Not support create distributed table with asset primary key.");
-                return true;
-            } else {
-                return false;
-            }
+        if (name != field.GetFieldName()) {
+            continue;
+        }
+        if (field.GetStorageType() == StorageType::STORAGE_TYPE_REAL) {
+            LOGE("[ConstraintsCheckForCloud] Not support create distributed table with real primary key.");
+            return true;
+        } else if (field.IsAssetType() || field.IsAssetsType()) {
+            LOGE("[ConstraintsCheckForCloud] Not support create distributed table with asset primary key.");
+            return true;
+        } else {
+            return false;
         }
     }
     return false;

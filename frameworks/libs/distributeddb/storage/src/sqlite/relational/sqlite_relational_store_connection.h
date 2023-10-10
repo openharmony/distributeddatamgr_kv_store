@@ -43,7 +43,8 @@ public:
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;
     int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
-    void RegisterObserverAction(const RelationalObserverAction &action) override;
+    int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) override;
+    int UnRegisterObserverAction(const StoreObserver *observer) override;
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;

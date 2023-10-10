@@ -252,6 +252,9 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &sch
 
 DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
 {
+    if (observer == nullptr) {
+        return INVALID_ARGS;
+    }
     if (conn_ == nullptr) {
         return DB_ERROR;
     }
@@ -262,8 +265,8 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
     if (errCode != E_OK) {
         return DB_ERROR;
     }
-    conn_->RegisterObserverAction([observer, userId, appId, storeId](const std::string &changedDevice,
-        ChangedData &&changedData, bool isChangedData) {
+    errCode = conn_->RegisterObserverAction(observer, [observer, userId, appId, storeId](
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData && observer != nullptr) {
             observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             LOGD("begin to observer on changed data");
@@ -276,7 +279,7 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
             observer->OnChange(data);
         }
     });
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -289,7 +292,22 @@ DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAss
 
 DBStatus RelationalStoreDelegateImpl::UnRegisterObserver()
 {
-    return RegisterObserver(nullptr);
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    // unregister all observer of this delegate
+    return TransferDBErrno(conn_->UnRegisterObserverAction(nullptr));
+}
+
+DBStatus RelationalStoreDelegateImpl::UnRegisterObserver(StoreObserver *observer)
+{
+    if (observer == nullptr) {
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->UnRegisterObserverAction(observer));
 }
 } // namespace DistributedDB
 #endif

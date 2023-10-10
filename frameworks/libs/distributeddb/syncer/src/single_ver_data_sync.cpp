@@ -261,6 +261,8 @@ int SingleVerDataSync::GetDataWithPerformanceRecord(SingleVerSyncTaskContext *co
     if (performance != nullptr) {
         performance->StepTimeRecordStart(PT_TEST_RECORDS::RECORD_READ_DATA);
     }
+    // start a watch dog before get data
+    // it will send ack util get data finished
     context->StartFeedDogForGetData(context->GetResponseSessionId());
     int errCode = GetData(context, packetSize, outData);
     context->StopFeedDogForGetData();

@@ -142,6 +142,9 @@ public:
     static constexpr int RELATIONAL_LOG_TABLE_FIELD_NUM = 7; // field num is relational distributed log table
 
     static constexpr uint64_t IGNORE_CONNECTION_ID = 0;
+    // Soft limit of a connection observer count.
+    static constexpr int MAX_OBSERVER_COUNT = 8;
+
     // For relational
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;

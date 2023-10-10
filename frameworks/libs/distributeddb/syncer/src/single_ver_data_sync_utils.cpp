@@ -213,7 +213,7 @@ bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskConte
     // it will send option with not set rather than not support when remote is memory db
     bool memory = storage->GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     if (memory) {
-        LOGE("[DataSync] skip check receive data because local is memory db");
+        LOGI("[DataSync] skip check receive data because local is memory db");
         return true;
     }
     SecurityOption remoteSecOption = context->GetRemoteSeccurityOption();

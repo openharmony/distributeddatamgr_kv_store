@@ -30,7 +30,7 @@ public:
     MOCK_METHOD1(StartTransaction, int(TransactType));
     MOCK_METHOD0(Commit, int(void));
     MOCK_METHOD0(Rollback, int(void));
-    MOCK_METHOD4(GetUploadCount, int(const std::string &, const Timestamp &, const bool, int64_t &));
+    MOCK_METHOD4(GetUploadCount, int(const std::string &, const Timestamp &, bool, int64_t &));
     MOCK_METHOD1(FillCloudGid, int(const CloudSyncData &));
     MOCK_METHOD4(GetCloudData, int(const TableSchema &, const Timestamp &, ContinueToken &, CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));

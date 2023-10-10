@@ -281,23 +281,15 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
         case DELETE:
             status = DMLActionTask(context, cloudDb, action);
             break;
-        case QUERY: {
-            VBucket queryExtend;
-            std::vector<VBucket> data;
-            context->MoveOutQueryExtendAndData(queryExtend, data);
-            status = cloudDb->Query(context->GetTableName(), queryExtend, data);
-            context->MoveInQueryExtendAndData(queryExtend, data);
-
+        case QUERY:
+            status = QueryAction(context, cloudDb);
             if (status == QUERY_END) {
                 setResAlready = true;
-                context->SetActionRes(-E_QUERY_END);
             }
             break;
-        }
-        case LOCK: {
+        case LOCK:
             status = InnerActionLock(context, cloudDb);
             break;
-        }
         case UNLOCK:
             status = cloudDb->UnLock();
             break;
@@ -356,6 +348,20 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
         default:
             return -E_CLOUD_ERROR;
     }
+}
+
+DBStatus CloudDBProxy::QueryAction(const std::shared_ptr<CloudActionContext> &context,
+    const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    VBucket queryExtend;
+    std::vector<VBucket> data;
+    context->MoveOutQueryExtendAndData(queryExtend, data);
+    DBStatus status = cloudDb->Query(context->GetTableName(), queryExtend, data);
+    context->MoveInQueryExtendAndData(queryExtend, data);
+    if (status == QUERY_END) {
+        context->SetActionRes(-E_QUERY_END);
+    }
+    return status;
 }
 
 CloudDBProxy::CloudActionContext::CloudActionContext()
@@ -460,8 +466,8 @@ Info CloudDBProxy::CloudActionContext::GetInfo()
     return info;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo(const uint32_t &totalCount,
-    const uint32_t &successCount, const uint32_t &failedCount)
+void CloudDBProxy::CloudActionContext::SetInfo(uint32_t totalCount,
+    uint32_t successCount, uint32_t failedCount)
 {
     totalCount_ = totalCount;
     successCount_ = successCount;

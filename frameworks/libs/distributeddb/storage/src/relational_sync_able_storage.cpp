@@ -681,10 +681,49 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
     return E_OK;
 }
 
-void RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
+int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
     std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-    dataChangeCallbackMap_[connectionId] = action;
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        if (it->second.find(observer) != it->second.end()) {
+            LOGE("obsever already registered");
+            return -E_ALREADY_SET;
+        }
+        if (it->second.size() >= DBConstant::MAX_OBSERVER_COUNT) {
+            LOGE("The number of relational observers has been over limit");
+            return -E_MAX_LIMITS;
+        }
+        it->second[observer] = action;
+    } else {
+        dataChangeCallbackMap_[connectionId][observer] = action;
+    }
+    LOGI("register relational observer ok");
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer)
+{
+    if (observer == nullptr) {
+        EraseDataChangeCallback(connectionId);
+        return E_OK;
+    }
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        auto action = it->second.find(observer);
+        if (action != it->second.end()) {
+            it->second.erase(action);
+            LOGI("unregister relational observer.");
+            if (it->second.empty()) {
+                dataChangeCallbackMap_.erase(it);
+                LOGI("observer for this delegate is zero now");
+            }
+            return E_OK;
+        }
+    }
+    return -E_NOT_FOUND;
 }
 
 void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
@@ -693,14 +732,19 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
     IncObjRef(this);
     int taskErrCode =
         RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
+        LOGD("begin to trigger relational observer.");
+        int observerCnt = 0;
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-        LOGD("begin to trigger observer, size = %zu(include null observer)", dataChangeCallbackMap_.size());
         for (const auto &item : dataChangeCallbackMap_) {
-            if (item.second != nullptr) {
-                ChangedData observerChangeData = changedData;
-                item.second(deviceName, std::move(observerChangeData), isChangedData);
+            for (const auto &action : item.second) {
+                if (action.second != nullptr) {
+                    observerCnt++;
+                    ChangedData observerChangeData = changedData;
+                    action.second(deviceName, std::move(observerChangeData), isChangedData);
+                }
             }
         }
+        LOGD("relational observer size = %d", observerCnt);
         DecObjRef(this);
     });
     if (taskErrCode != E_OK) {
@@ -942,7 +986,7 @@ int RelationalSyncAbleStorage::Rollback()
 }
 
 int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
-    const bool isCloudForcePush, int64_t &count)
+    bool isCloudForcePush, int64_t &count)
 {
     int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
@@ -1216,6 +1260,7 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
     auto it = dataChangeCallbackMap_.find(connectionId);
     if (it != dataChangeCallbackMap_.end()) {
         dataChangeCallbackMap_.erase(it);
+        LOGI("erase all observer for this delegate.");
     }
 }
 

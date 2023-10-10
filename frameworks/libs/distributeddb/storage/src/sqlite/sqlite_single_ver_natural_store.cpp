@@ -415,7 +415,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
     }
 
     if (storageEngine_->IsEngineCorrupted()) {
-        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid passwd, stop open!");
+        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid key, stop open!");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
 
@@ -1095,7 +1095,7 @@ SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStore::GetHandle(bool isWr
         CorruptNotify();
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         engineMutex_.unlock_shared(); // unlock when get handle failed.
-        LOGI("Handle is corrupted or invalid passwd, can not to get! errCode = [%d]", errCode);
+        LOGI("Handle is corrupted or invalid key, can not to get! errCode = [%d]", errCode);
         return nullptr;
     }
 
@@ -1447,9 +1447,10 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
 
     // Exclusively write resources
     std::string localDev;
-    int errCode = GetAndResizeLocalIdentity(localDev);
+    GetAndResizeLocalIdentity(localDev);
 
     // The write handle is applied to prevent writing data during the export process.
+    int errCode =  E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
@@ -2498,7 +2499,7 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
+void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
 {
     int errCode = GetLocalIdentity(outTarget);
     if (errCode == -E_NOT_INIT) {
@@ -2507,7 +2508,6 @@ int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarge
         LOGE("Get local dev id err:%d", errCode);
         outTarget.resize(0);
     }
-    return errCode;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

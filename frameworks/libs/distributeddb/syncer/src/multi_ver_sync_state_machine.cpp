@@ -312,6 +312,7 @@ void MultiVerSyncStateMachine::SendNotifyPacket(uint32_t sessionId, uint32_t seq
 
 void MultiVerSyncStateMachine::CommErrAbort(uint32_t sessionId)
 {
+    (void)sessionId;
     std::lock_guard<std::mutex> lock(stateMachineLock_);
     Abort();
     RefObject::DecObjRef(context_);

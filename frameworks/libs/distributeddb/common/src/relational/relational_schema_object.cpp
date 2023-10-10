@@ -358,7 +358,7 @@ int RelationalSchemaObject::ParseCheckTableName(const JsonObject &inJsonObject, 
     int errCode = GetMemberFromJsonObject(inJsonObject, "NAME", FieldType::LEAF_FIELD_STRING,
         true, fieldValue);
     if (errCode == E_OK) {
-        if (!DBCommon::CheckIsAlnumAndUnderscore(fieldValue.stringValue)) {
+        if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
             LOGE("[RelationalSchema][Parse] Invalid characters in table name, err=%d.", errCode);
             return -E_SCHEMA_PARSE_FAIL;
         }
@@ -390,7 +390,7 @@ int RelationalSchemaObject::ParseCheckTableDefine(const JsonObject &inJsonObject
             return errCode;
         }
 
-        if (!DBCommon::CheckIsAlnumAndUnderscore(field.first[1])) {
+        if (!DBCommon::CheckIsAlnumOrUnderscore(field.first[1])) {
             LOGE("[RelationalSchema][Parse] Invalid characters in field name, err=%d.", errCode);
             return -E_SCHEMA_PARSE_FAIL;
         }

@@ -447,7 +447,7 @@ bool DBCommon::CaseInsensitiveCompare(std::string first, std::string second)
     return first == second;
 }
 
-bool DBCommon::CheckIsAlnumAndUnderscore(const std::string &text)
+bool DBCommon::CheckIsAlnumOrUnderscore(const std::string &text)
 {
     auto iter = std::find_if_not(text.begin(), text.end(), [](char c) {
         return (std::isalnum(c) || c == '_');

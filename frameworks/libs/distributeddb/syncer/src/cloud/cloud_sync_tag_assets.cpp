@@ -183,7 +183,7 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
     if (covered.hash != beCovered.hash) {
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, covered, res, errCode);
     } else {
-        Assets tmpAssets;
+        Assets tmpAssets = {};
         TagAssetWithNormalStatus(true, AssetOpType::NO_CHANGE, covered, tmpAssets, errCode);
     }
     return res;

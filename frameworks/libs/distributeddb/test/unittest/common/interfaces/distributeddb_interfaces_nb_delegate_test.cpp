@@ -1210,6 +1210,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
      */
     Key key;
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_NATIVE, observer), OK);
+    // register same observer twice will return already_set
+    EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_NATIVE, observer), ALREADY_SET);
     /**
      * @tc.steps:step3. Put batch data.
      * @tc.expected: step3. Returns OK.

@@ -74,7 +74,7 @@ std::vector<DataValue> SQLiteRelationalUtils::GetSelectValues(sqlite3_stmt *stmt
     std::vector<DataValue> values;
     for (int cid = 0, colCount = sqlite3_column_count(stmt); cid < colCount; ++cid) {
         DataValue value;
-        (void)GetDataValueByType(stmt,  cid, value);
+        (void)GetDataValueByType(stmt, cid, value);
         values.emplace_back(std::move(value));
     }
     return values;

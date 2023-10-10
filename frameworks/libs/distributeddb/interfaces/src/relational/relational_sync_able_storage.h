@@ -102,7 +102,9 @@ public:
         const std::string &targetID) const override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
-    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
+    int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+        const RelationalObserverAction &action);
+    int UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer);
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int CreateDistributedDeviceTable(const std::string &device, const RelationalSyncStrategy &syncStrategy) override;
@@ -132,7 +134,7 @@ public:
 
     int Rollback() override;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) override;
 
     int FillCloudGid(const CloudSyncData &data) override;
@@ -196,7 +198,7 @@ private:
     std::function<void()> onSchemaChanged_;
     mutable std::mutex onSchemaChangedMutex_;
     std::mutex dataChangeDeviceMutex_;
-    std::map<uint64_t, RelationalObserverAction> dataChangeCallbackMap_;
+    std::map<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> dataChangeCallbackMap_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
 

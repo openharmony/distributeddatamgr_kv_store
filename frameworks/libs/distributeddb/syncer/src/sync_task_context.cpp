@@ -486,7 +486,6 @@ void SyncTaskContext::CommErrHandlerFunc(int errCode, ISyncTaskContext *context,
             LOGI("[SyncTaskContext][CommErrHandle] context has been killed");
             return;
         }
-
         // IncObjRef to maker sure context not been killed. after the lock_guard
         RefObject::IncObjRef(context);
     }

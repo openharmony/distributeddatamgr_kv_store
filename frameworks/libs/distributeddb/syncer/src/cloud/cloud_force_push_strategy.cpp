@@ -16,7 +16,7 @@
 
 namespace DistributedDB {
 const std::string cloud_device_name = "cloud";
-OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudForcePushStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
     bool isCloudDelete = IsDelete(cloudInfo);
     if (!existInLocal) {

@@ -19,13 +19,14 @@
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <set>
 
 #include "sqlite3.h"
 
 #include "store_types.h"
 
 struct ClientChangedData {
-    std::string tableName;
+    std::set<std::string> tableNames;
 };
 
 using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>;

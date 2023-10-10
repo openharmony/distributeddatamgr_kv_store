@@ -1251,8 +1251,8 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
         return E_OK;
     }
     RelationalStoreConnection *conn = static_cast<RelationalStoreConnection *>(autoLaunchItem.conn);
-    conn->RegisterObserverAction([this, autoLaunchItem, identifier](const std::string &changedDevice,
-        ChangedData &&changedData, bool isChangedData) {
+    (void)conn->RegisterObserverAction(autoLaunchItem.storeObserver, [this, autoLaunchItem, identifier](
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData && autoLaunchItem.storeObserver) {
             LOGD("begin to observer on changed data");
             autoLaunchItem.storeObserver->OnChange(
