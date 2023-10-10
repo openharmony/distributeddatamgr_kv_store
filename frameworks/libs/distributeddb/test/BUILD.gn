@@ -829,7 +829,8 @@ distributeddb_unittest("DistributedDBSqliteUtilsTest") {
 }
 
 distributeddb_unittest("DistributedDBCloudStrategyTest") {
-  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
+  sources =
+      [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBCloudSyncerDownloadAssetsTest") {
@@ -874,13 +875,11 @@ distributeddb_unittest("DistributedDBCloudCheckSyncTest") {
   ]
 }
 
-distributeddb_unittest(
-    "DistributedDBCloudTableCompoundPrimaryKeySyncTest") {
+distributeddb_unittest("DistributedDBCloudTableCompoundPrimaryKeySyncTest") {
   sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_table_compound_primary_key_sync_test.cpp" ]
 }
 
-distributeddb_unittest(
-    "DistributedDBCloudTableWithoutPrimaryKeySyncTest") {
+distributeddb_unittest("DistributedDBCloudTableWithoutPrimaryKeySyncTest") {
   sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_table_without_primary_key_sync_test.cpp" ]
 }
 
