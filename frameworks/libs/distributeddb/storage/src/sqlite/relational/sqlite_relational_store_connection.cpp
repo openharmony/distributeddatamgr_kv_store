@@ -399,5 +399,15 @@ int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, s
     }
     return store->ExecuteSql(condition, records);
 }
+
+int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->CleanTrackerData(tableName, cursor);
+}
 }
 #endif

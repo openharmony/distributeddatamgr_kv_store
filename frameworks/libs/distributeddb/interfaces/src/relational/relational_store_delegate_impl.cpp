@@ -366,5 +366,19 @@ DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, 
     }
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->CleanTrackerData(tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] clean tracker data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
 } // namespace DistributedDB
 #endif

@@ -527,5 +527,18 @@ RelationalSchemaObject SQLiteSingleRelationalStorageEngine::GetTrackerSchema() c
 {
     return trackerSchema_;
 }
+
+int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
+        errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CleanTrackerData(tableName, cursor);
+    ReleaseExecutor(handle);
+    return errCode;
+}
 }
 #endif

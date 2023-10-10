@@ -1136,5 +1136,13 @@ int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
     int errCode = sqliteStorageEngine_->GetOrInitTrackerSchemaFromMeta();
     return errCode == -E_NOT_FOUND ? E_OK : errCode;
 }
+
+int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (tableName.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
+}
 }
 #endif

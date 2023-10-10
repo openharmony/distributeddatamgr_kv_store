@@ -95,6 +95,7 @@ public:
 
     int SetTrackerTable(const TrackerSchema &trackerSchema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
 private:
     void ReleaseResources();

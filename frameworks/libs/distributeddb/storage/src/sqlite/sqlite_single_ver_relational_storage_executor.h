@@ -129,6 +129,7 @@ public:
     int CreateTempSyncTrigger(const TrackerTable &trackerTable);
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 

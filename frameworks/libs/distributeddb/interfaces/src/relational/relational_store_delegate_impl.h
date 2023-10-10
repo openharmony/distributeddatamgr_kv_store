@@ -70,6 +70,8 @@ public:
     DBStatus SetTrackerTable(const TrackerSchema &schema) override;
 
     DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+
+    DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

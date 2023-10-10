@@ -57,6 +57,7 @@ public:
 
     int SetTrackerTable(const TrackerSchema &schema) override;
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+    int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
 protected:
 

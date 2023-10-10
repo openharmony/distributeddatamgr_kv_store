@@ -426,5 +426,32 @@ int SQLiteSingleVerRelationalStorageExecutor::ClearAllTempSyncTrigger()
     SQLiteUtils::ResetStatement(stmt, true, ret);
     return errCode == -E_FINISHED ? (ret == E_OK ? E_OK : ret) : errCode;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    std::string sql = "UPDATE " + DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    sql += " SET extend_field = NULL where data_key = -1 and cursor <= ?;";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("get clean tracker data stmt failed. %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, cursor);
+    int ret = E_OK;
+    if (errCode != E_OK) {
+        LOGE("bind clean tracker data stmt failed. %d", errCode);
+        SQLiteUtils::ResetStatement(statement, true, ret);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(statement);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("clean tracker step failed:%d", errCode);
+    }
+    SQLiteUtils::ResetStatement(statement, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
 } // namespace DistributedDB
 #endif

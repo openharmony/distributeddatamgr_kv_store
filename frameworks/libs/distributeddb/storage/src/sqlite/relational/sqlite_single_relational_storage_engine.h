@@ -50,6 +50,7 @@ public:
 
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     RelationalSchemaObject GetTrackerSchema() const;
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
