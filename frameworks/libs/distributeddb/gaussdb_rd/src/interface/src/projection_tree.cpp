@@ -17,6 +17,35 @@
 namespace DocumentDB {
 constexpr int JSON_DEEP_MAX = 4;
 
+static int ParseSinglePathToTree(ProjectionNode *node, std::vector<std::string> &singlePath)
+{
+    for (size_t j = 0; j < singlePath.size(); j++) {
+        if (node->sonNode[singlePath[j]] != nullptr) {
+            node = node->sonNode[singlePath[j]];
+            if (j < singlePath.size() - 1 && node->isDeepest) {
+                return -E_INVALID_ARGS;
+            }
+            if (j == singlePath.size() - 1 && !node->isDeepest) {
+                return -E_INVALID_ARGS;
+            }
+        } else {
+            auto tempNode = new (std::nothrow) ProjectionNode;
+            if (tempNode == nullptr) {
+                GLOGE("Memory allocation failed!");
+                return -E_FAILED_MEMORY_ALLOCATE;
+            }
+            tempNode->Deep = node->Deep + 1;
+            if (tempNode->Deep > JSON_DEEP_MAX) {
+                delete tempNode;
+                return -E_INVALID_ARGS;
+            }
+            node->isDeepest = false;
+            node->sonNode[singlePath[j]] = tempNode;
+            node = node->sonNode[singlePath[j]];
+        }
+    }
+    return E_OK;
+}
 int ProjectionTree::ParseTree(std::vector<std::vector<std::string>> &path)
 {
     ProjectionNode *node = &node_;
@@ -25,30 +54,9 @@ int ProjectionTree::ParseTree(std::vector<std::vector<std::string>> &path)
     }
     for (auto singlePath : path) {
         node = &node_;
-        for (size_t j = 0; j < singlePath.size(); j++) {
-            if (node->sonNode[singlePath[j]] != nullptr) {
-                node = node->sonNode[singlePath[j]];
-                if (j < singlePath.size() - 1 && node->isDeepest) {
-                    return -E_INVALID_ARGS;
-                }
-                if (j == singlePath.size() - 1 && !node->isDeepest) {
-                    return -E_INVALID_ARGS;
-                }
-            } else {
-                auto tempNode = new (std::nothrow) ProjectionNode;
-                if (tempNode == nullptr) {
-                    GLOGE("Memory allocation failed!");
-                    return -E_FAILED_MEMORY_ALLOCATE;
-                }
-                tempNode->Deep = node->Deep + 1;
-                if (tempNode->Deep > JSON_DEEP_MAX) {
-                    delete tempNode;
-                    return -E_INVALID_ARGS;
-                }
-                node->isDeepest = false;
-                node->sonNode[singlePath[j]] = tempNode;
-                node = node->sonNode[singlePath[j]];
-            }
+        int errCode = ParseSinglePathToTree(node, singlePath);
+        if (errCode != E_OK) {
+            return errCode;
         }
     }
     return E_OK;
