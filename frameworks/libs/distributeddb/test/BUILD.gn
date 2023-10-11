@@ -298,6 +298,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
     "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
+    "unittest/common/syncer/cloud/cloud_db_sync_utils_test.cpp",
     "unittest/common/syncer/cloud/virtual_asset_loader.cpp",
     "unittest/common/syncer/cloud/virtual_cloud_data_translate.cpp",
     "unittest/common/syncer/cloud/virtual_cloud_db.cpp",
@@ -455,6 +456,10 @@ distributeddb_unittest("DistributedDBInterfacesDataOperationSyncDBTest") {
 
 distributeddb_unittest("DistributedDBInterfacesRegisterSyncDBTest") {
   sources = [ "unittest/common/interfaces/distributeddb_interfaces_register_syncdb_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesRelationalObserverTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_observer_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBInterfacesTransactionSyncDBTest") {
@@ -828,6 +833,10 @@ distributeddb_unittest("DistributedDBCloudStrategyTest") {
       [ "unittest/common/syncer/cloud/distributeddb_cloud_strategy_test.cpp" ]
 }
 
+distributeddb_unittest("DistributedDBCloudSyncerDownloadAssetsTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_syncer_download_assets_test.cpp" ]
+}
+
 distributeddb_unittest("DistributedDBCloudSyncerUploadTest") {
   sources = [
     "unittest/common/syncer/cloud/distributeddb_cloud_syncer_upload_test.cpp",
@@ -866,6 +875,14 @@ distributeddb_unittest("DistributedDBCloudCheckSyncTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBCloudTableCompoundPrimaryKeySyncTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_table_compound_primary_key_sync_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBCloudTableWithoutPrimaryKeySyncTest") {
+  sources = [ "unittest/common/syncer/cloud/distributeddb_cloud_table_without_primary_key_sync_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -886,6 +903,8 @@ group("unittest") {
     ":DistributedDBCloudSyncerDownloadTest",
     ":DistributedDBCloudSyncerProgressManagerTest",
     ":DistributedDBCloudSyncerUploadTest",
+    ":DistributedDBCloudTableCompoundPrimaryKeySyncTest",
+    ":DistributedDBCloudTableWithoutPrimaryKeySyncTest",
     ":DistributedDBCommonTest",
     ":DistributedDBCommunicatorDeepTest",
     ":DistributedDBCommunicatorProxyTest",
@@ -913,6 +932,7 @@ group("unittest") {
     ":DistributedDBInterfacesNBUnpublishTest",
     ":DistributedDBInterfacesQueryDBTest",
     ":DistributedDBInterfacesRegisterSyncDBTest",
+    ":DistributedDBInterfacesRelationalObserverTest",
     ":DistributedDBInterfacesRelationalRoutinesTest",
     ":DistributedDBInterfacesRelationalSyncTest",
     ":DistributedDBInterfacesSchemaDatabaseUpgradeTest",

@@ -460,6 +460,294 @@ namespace {
         VbucketWithoutPrimaryDataTest(PrimaryKeyType::COMPOSITE_PRIMARY_KEY);
     }
 
+    void SetCloudSchemaForCollate(bool ageIsPrimaryKey)
+    {
+        TableSchema tableSchema;
+        Field field1 = { "name", TYPE_INDEX<std::string>, true, false };
+        Field field2 = { "age", TYPE_INDEX<std::string>, ageIsPrimaryKey, false };
+        tableSchema = { g_tableName, { field1, field2 } };
+
+        DataBaseSchema dbSchema;
+        dbSchema.tables = { tableSchema };
+        g_cloudStore->SetCloudDbSchema(dbSchema);
+    }
+
+    void PrimaryKeyCollateTest(const std::string &createSql, const std::string &insertSql,
+        const std::vector<std::string> &pkStr, bool ageIsPrimaryKey, int expectCode = E_OK)
+    {
+        /**
+         * @tc.steps:step1. create table.
+         * @tc.expected: step1. return ok.
+         */
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, createSql), E_OK);
+        SetCloudSchemaForCollate(ageIsPrimaryKey);
+
+        /**
+         * @tc.steps:step2. create distributed table with CLOUD_COOPERATION mode.
+         * @tc.expected: step2. return ok.
+         */
+        EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName, DistributedDB::CLOUD_COOPERATION), OK);
+
+        /**
+         * @tc.steps:step3. insert data in lower case.
+         * @tc.expected: step3. return ok.
+         */
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, insertSql), E_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+
+        /**
+         * @tc.steps:step4. construct cloud data in upper case, call GetInfoByPrimaryKeyOrGid
+         * @tc.expected: step4. return expectCode.
+         */
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        EXPECT_EQ(storageProxy->StartTransaction(), E_OK);
+        VBucket vBucket;
+        std::string gid = g_gid + std::to_string(0);
+        vBucket["name"] = pkStr[0];
+        if (ageIsPrimaryKey) {
+            vBucket["age"] = pkStr[1];
+        }
+        vBucket[CloudDbConstant::GID_FIELD] = gid;
+        DataInfoWithLog dataInfoWithLog;
+        VBucket assetInfo;
+        EXPECT_EQ(storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfoWithLog, assetInfo), expectCode);
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest014
+     * @tc.desc: Test collate nocase for primary key(NOCASE followed by ','), case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest014, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE NOCASE, age text);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', '10');";
+        std::vector<std::string> pkStr = { "aBcD" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest015
+     * @tc.desc: Test collate nocase for primary key, case match
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest015, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE NOCASE, age text);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', '10');";
+        std::vector<std::string> pkStr = { "abcd" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest016
+     * @tc.desc: Test collate nocase for primary key(NOCASE followed by ')'), case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest016, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE NOCASE);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd');";
+        std::vector<std::string> pkStr = { "aBcD" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest017
+     * @tc.desc: Test collate nocase for primary key(NOCASE followed by ' '), case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest017, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE NOCASE , age int);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', 10);";
+        std::vector<std::string> pkStr = { "aBcD" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest018
+     * @tc.desc: Test collate nocase NOT for primary key, case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest018, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key, age TEXT COLLATE NOCASE);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', '10');";
+        std::vector<std::string> pkStr = { "aBcD" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false, -E_NOT_FOUND);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest019
+     * @tc.desc: Test collate nocase for one primary key, one pk case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest019, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', 'ab');";
+        std::vector<std::string> pkStr = { "aBcD", "ab" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest020
+     * @tc.desc: Test collate nocase for one primary key, two pk case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest020, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', 'aB');";
+        std::vector<std::string> pkStr = { "aBcD", "AB" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true, -E_NOT_FOUND);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest021
+     * @tc.desc: Test collate nocase for two primary key, two pk case mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest021, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate NOCASE, age text collate nocase," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd', 'aB');";
+        std::vector<std::string> pkStr = { "aBcD", "ab" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true);
+    }
+
+    /**
+    * @tc.name: GetInfoByPrimaryKeyOrGidTest022
+    * @tc.desc: Test collate rtrim for primary key(NOCASE followed by ','), trim mismatch
+    * @tc.type: FUNC
+    * @tc.require:
+    * @tc.author: zhangshijie
+    */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest022, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE RTRIM, age text);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ', '10');";
+        std::vector<std::string> pkStr = { "abcd" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest023
+     * @tc.desc: Test collate nocase for primary key, trim match
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest023, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE RTRIM, age text);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd_', '10');";
+        std::vector<std::string> pkStr = { "abcd_" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest024
+     * @tc.desc: Test collate rtrim for primary key(NOCASE followed by ')'), rtrim mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest024, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key COLLATE rtrim);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ');";
+        std::vector<std::string> pkStr = { "abcd" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest025
+     * @tc.desc: Test collate rtrim NOT for primary key, rtrim mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest025, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(name text primary key, age TEXT COLLATE rtrim);";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ', '10');";
+        std::vector<std::string> pkStr = { "abcd" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, false, -E_NOT_FOUND);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest026
+     * @tc.desc: Test collate rtrim for one primary key, one pk rtrim mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest026, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate RTRIM, age text," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ', 'ab');";
+        std::vector<std::string> pkStr = { "abcd", "ab" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest026
+     * @tc.desc: Test collate rtrim for one primary key, two pk rttim mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest027, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate rtrim, age text," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ', 'aB ');";
+        std::vector<std::string> pkStr = { "abcd", "aB" };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true, -E_NOT_FOUND);
+    }
+
+    /**
+     * @tc.name: GetInfoByPrimaryKeyOrGidTest027
+     * @tc.desc: Test collate rtrim for two primary key, two pk rtrim mismatch
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshijie
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetInfoByPrimaryKeyOrGidTest028, TestSize.Level0)
+    {
+        std::string createSql = "create table " + g_tableName + "(NAME text collate rtrim, age text collate rtrim," +
+            "primary key(name, age));";
+        std::string insertSql = "insert into " + g_tableName + " values('abcd ', 'ab');";
+        std::vector<std::string> pkStr = { "abcd ", "ab " };
+        PrimaryKeyCollateTest(createSql, insertSql, pkStr, true);
+    }
+
     void ConstructDownloadData(DownloadData &downloadData, GidType gidType, bool nullable, bool vBucketContains)
     {
         for (int i = 0; i < 7; i++) { // 7 is record counts
@@ -1012,7 +1300,6 @@ namespace {
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
         sql = "update " + DBCommon::GetLogTableName("t_cloud") + " set flag = 0";
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-        return;
 
         /**
          * @tc.steps:step2. drop table t_cloud, check log data

@@ -674,4 +674,157 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
+
+/**
+ * @tc.name: TriggerObserverTest005
+ * @tc.desc: Test commit and rollback for one table then trigger client observer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, false);
+
+    /**
+    * @tc.steps:step2. register client observer.
+    * @tc.expected: step2. return ok.
+    */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+
+    /**
+     * @tc.steps:step3. begin transaction and commit.
+     * @tc.expected: step3. check observer ok.
+     */
+    std::string sql = "begin;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    int dataCounts = 1000; // 1000 is count of insert options.
+    for (int i = 1; i <= dataCounts; i++) {
+        sql = "insert into " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" + std::to_string(i) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    sql = "commit;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    std::unique_lock<std::mutex> lock(g_mutex);
+    g_cv.wait(lock, []() {
+        return g_alreadyNotify;
+    });
+    g_alreadyNotify = false;
+    ASSERT_EQ(triggerTableNames_.size(), 1u);
+    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
+    EXPECT_EQ(triggeredCount_, 1);
+
+    /**
+     * @tc.steps:step4. begin transaction and rollback.
+     * @tc.expected: step3. check observer ok.
+     */
+    triggerTableNames_.clear();
+    triggeredCount_ = 0;
+    sql = "begin;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    for (int i = dataCounts + 1; i <= 2 * dataCounts; i++) { // 2 is double dataCounts
+        sql = "insert into " + tableName + " VALUES(" + std::to_string(i) + ", 'zhangsan" + std::to_string(i) + "');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    sql = "rollback;";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_TRUE(triggerTableNames_.empty());
+    EXPECT_EQ(triggeredCount_, 0);
+
+    /**
+     * @tc.steps:step5. insert or replace, check observer.
+     * @tc.expected: step5. check observer ok.
+     */
+    triggeredCount_ = 0;
+    sql = "insert or replace into " + tableName + " VALUES(1000, 'lisi');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    g_cv.wait(lock, []() {
+        return g_alreadyNotify;
+    });
+    g_alreadyNotify = false;
+    EXPECT_EQ(triggeredCount_, 1); // 1 is trigger times, first delete then insert
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: TriggerObserverTest006
+ * @tc.desc: Test commit and rollback for multi-table then trigger client observer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName1 = "sync_data1";
+    const std::string tableName2 = "sync_data2";
+    PrepareData({tableName1, tableName2}, false, false);
+
+    /**
+    * @tc.steps:step2. register client observer.
+    * @tc.expected: step2. return ok.
+    */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+
+    /**
+     * @tc.steps:step3. begin transaction and commit.
+     * @tc.expected: step3. check observer ok.
+     */
+    std::string sql = "insert into " + tableName1 + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    std::unique_lock<std::mutex> lock(g_mutex);
+    g_cv.wait(lock, []() {
+        return g_alreadyNotify;
+    });
+    g_alreadyNotify = false;
+    ASSERT_EQ(triggerTableNames_.size(), 1u); // 1 is table size
+    EXPECT_EQ(*triggerTableNames_.begin(), tableName1);
+    EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
+
+    /**
+     * @tc.steps:step4. UnRegisterClientObserver and insert table2.
+     * @tc.expected: step3. check observer ok.
+     */
+    triggerTableNames_.clear();
+    triggeredCount_ = 0;
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    sql = "insert into " + tableName2 + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    EXPECT_TRUE(triggerTableNames_.empty());
+    EXPECT_EQ(triggeredCount_, 0);
+
+    /**
+     * @tc.steps:step5. RegisterClientObserver again and insert table1, check observer.
+     * @tc.expected: step5. check observer ok.
+     */
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+    sql = "insert into " + tableName1 + " VALUES(7, 'zhangjiu');";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    g_cv.wait(lock, []() {
+        return g_alreadyNotify;
+    });
+    g_alreadyNotify = false;
+    ASSERT_EQ(triggerTableNames_.size(), 1u); // 1 is table size
+    EXPECT_EQ(*triggerTableNames_.begin(), tableName1);
+    EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
 }

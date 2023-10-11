@@ -369,4 +369,12 @@ DBStatus VirtualCloudDb::GetDataStatus(const std::string &gid, bool &deleteStatu
     LOGE("not found gid %s ", gid.c_str());
     return NOT_FOUND;
 }
+
+void VirtualCloudDb::ClearAllData()
+{
+    std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
+    cloudData_.clear();
+    incrementCloudData_.clear();
+    queryTimes_.clear();
+}
 }

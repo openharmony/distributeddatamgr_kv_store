@@ -31,6 +31,7 @@
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
 #include "mock_asset_loader.h"
+#include "cloud_db_sync_utils_test.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -224,6 +225,17 @@ namespace {
         std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
+    void DeleteCloudTableRecordByGid(int64_t begin, int64_t count)
+    {
+        for (int64_t i = begin; i < begin + count; ++i) {
+            VBucket data;
+            data.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(i));
+            ASSERT_EQ(g_virtualCloudDb->DeleteByGid(g_tableName1, data), DBStatus::OK);
+        }
+        LOGD("delete cloud record worker[primary key]:[cloud%" PRId64 " - cloud%" PRId64")", begin, count);
+        std::this_thread::sleep_for(std::chrono::milliseconds(count));
+    }
+
     void GetCloudDbSchema(DataBaseSchema &dataBaseSchema)
     {
         TableSchema tableSchema1 = {
@@ -256,6 +268,25 @@ namespace {
         auto expectCount = reinterpret_cast<int64_t>(data);
         EXPECT_EQ(strtol(colValue[0], nullptr, 10), expectCount); // 10: decimal
         return 0;
+    }
+
+    void CheckCloudTotalCount(std::vector<int64_t> expectCounts)
+    {
+        VBucket extend;
+        extend[CloudDbConstant::CURSOR_FIELD] = std::to_string(0);
+        for (size_t i = 0; i < g_tables.size(); ++i) {
+            int64_t realCount = 0;
+            std::vector<VBucket> data;
+            g_virtualCloudDb->Query(g_tables[i], extend, data);
+            for (size_t j = 0; j < data.size(); ++j) {
+                auto entry = data[j].find(CloudDbConstant::DELETE_FIELD);
+                if (entry != data[j].end() && std::get<bool>(entry->second)) {
+                    continue;
+                }
+                realCount++;
+            }
+            EXPECT_EQ(realCount, expectCounts[i]); // ExpectCount represents the total amount of cloud data.
+        }
     }
 
     void CheckCloudRecordNum(sqlite3 *&db, std::vector<std::string> tableList, std::vector<int> countList)
@@ -699,6 +730,79 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
     std::string device = "";
     ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest005
+ * @tc.desc: Test RemoveDeviceData when cloud data is deleted
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. cloud and device data is same
+     * @tc.expected: OK.
+     */
+    int64_t paddingSize = 10; // 10 is padding size
+    int64_t cloudCount = 10; // 10 is cloud count
+    InsertCloudTableRecord(0, cloudCount, paddingSize, true);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+
+    /**
+     * @tc.steps: step2. cloud delete data and merge
+     * @tc.expected: OK.
+     */
+    DeleteCloudTableRecordByGid(0, cloudCount);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CheckCloudRecordNum(db, g_tables, {0, 10}); // 10 is cloud record num in table2 log
+    CheckCloudTotalCount({0, 10}); // // 10 is cloud data num in table2
+
+    /**
+     * @tc.steps: step3. removedevicedata FLAG_AND_DATA and check log
+     * @tc.expected: OK.
+     */
+    std::string device = "";
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, FLAG_AND_DATA), DBStatus::OK);
+    CheckCleanDataAndLogNum(db, g_tables, 0, {0, 0});
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest006
+ * @tc.desc: Test FLAG_ONLY mode of RemoveDeviceData before Sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest006, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 10 records on local
+     */
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 20 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    LOGW("check 10-10");
+    CheckCloudTotalCount({10, 10}); // // 10 is cloud data num in table2
+    g_virtualCloudDb->ClearAllData();
+    LOGW("check 0-0");
+    CheckCloudTotalCount({0, 0}); // // 0 is cloud data num in table2
+    /**
+     * @tc.steps: step3. removedevicedata FLAG_AND_DATA and sync again
+     * @tc.expected: OK.
+     */
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    LOGW("check 10-10");
+    CheckCloudTotalCount({10, 10}); // // 10 is cloud data num in table2
     CloseDb();
 }
 }
