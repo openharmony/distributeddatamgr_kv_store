@@ -18,18 +18,19 @@
 #include <thread>
 
 #include "auto_launch.h"
-#include "cloud/cloud_db_constant.h"
-#include "cloud/cloud_storage_utils.h"
-#include "relational_store_instance.h"
 #include "db_common.h"
 #include "db_dfx_adapter.h"
 #include "db_errno.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "kv_store_errno.h"
 #include "log_print.h"
 #include "param_check_utils.h"
 #include "platform_specific.h"
+#include "query_sync_object.h"
 #include "relational_store_changed_data_impl.h"
 #include "relational_store_delegate_impl.h"
+#include "relational_store_instance.h"
 #include "runtime_config.h"
 #include "runtime_context.h"
 
@@ -147,7 +148,7 @@ DB_API std::string RelationalStoreManager::GetDistributedLogTableName(const std:
     return DBCommon::GetLogTableName(tableName);
 }
 
-int static GetCollateTypeByName(const std::map<std::string, CollateType> &collateTypeMap,
+static int GetCollateTypeByName(const std::map<std::string, CollateType> &collateTypeMap,
     const std::string &name, CollateType &collateType)
 {
     auto it = collateTypeMap.find(name);
@@ -223,6 +224,14 @@ std::string RelationalStoreManager::GetRelationalStoreIdentifier(const std::stri
     const std::string &storeId, bool syncDualTupleMode)
 {
     return RuntimeConfig::GetStoreIdentifier(userId, appId, storeId, syncDualTupleMode);
+}
+
+std::vector<QueryNode> RelationalStoreManager::ParserQueryNodes(const Bytes &queryBytes,
+    DBStatus &status)
+{
+    std::vector<QueryNode> res;
+    status = TransferDBErrno(QuerySyncObject::ParserQueryNodes(queryBytes, res));
+    return res;
 }
 } // namespace DistributedDB
 #endif

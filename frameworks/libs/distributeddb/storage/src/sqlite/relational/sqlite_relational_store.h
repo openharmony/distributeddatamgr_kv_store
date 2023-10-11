@@ -91,8 +91,7 @@ public:
 
     int ChkSchema(const TableName &tableName);
 
-    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime);
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
 private:
     void ReleaseResources();
@@ -130,6 +129,17 @@ private:
     int GetExistDevices(std::set<std::string> &hashDevices) const;
 
     std::vector<std::string> GetAllDistributedTableName();
+
+    int CheckBeforeSync(const CloudSyncOption &option);
+
+    int CheckQueryValid(bool priorityTask, const Query &query);
+
+    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object);
+
+    int CheckTableName(const std::vector<std::string> &tableNames);
+
+    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        CloudSyncer::CloudTaskInfo &info);
 
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

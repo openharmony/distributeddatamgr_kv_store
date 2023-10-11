@@ -16,39 +16,75 @@
 #define CLOUD_SYNC_UTILS_H
 
 #include <cstdint>
+#include <string>
 #include "cloud/cloud_store_types.h"
+#include "icloud_syncer.h"
 #include "icloud_sync_storage_interface.h"
 
 namespace DistributedDB {
+class CloudSyncUtils {
+public:
+    static constexpr const int GID_INDEX = 0;
+    static constexpr const int PREFIX_INDEX = 1;
+    static constexpr const int STRATEGY_INDEX = 2;
+    static constexpr const int ASSETS_INDEX = 3;
+    static constexpr const int HASH_KEY_INDEX = 4;
+    static constexpr const int PRIMARY_KEY_INDEX = 5;
 
-constexpr int GID_INDEX = 0;
-constexpr int PREFIX_INDEX = 1;
-constexpr int STRATEGY_INDEX = 2;
-constexpr int ASSETS_INDEX = 3;
-constexpr int HASH_KEY_INDEX = 4;
-constexpr int PRIMARY_KEY_INDEX = 5;
+    static int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
+        std::vector<Type> &cloudPkVals);
 
-int GetCloudPkVals(const VBucket &datum, const std::vector<std::string> &pkColNames, int64_t dataKey,
-    std::vector<Type> &cloudPkVals);
+    static ChangeType OpTypeToChangeType(OpType strategy);
 
-ChangeType OpTypeToChangeType(OpType strategy);
+    static bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames);
 
-bool IsSinglePrimaryKey(const std::vector<std::string> &pKColNames);
+    static void RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &pkColNames);
 
-void RemoveDataExceptExtendInfo(VBucket &datum, const std::vector<std::string> &pkColNames);
+    static AssetOpType StatusToFlag(AssetStatus status);
 
-AssetOpType StatusToFlag(AssetStatus status);
+    static void StatusToFlagForAsset(Asset &asset);
 
-void StatusToFlagForAsset(Asset &asset);
+    static void StatusToFlagForAssets(Assets &assets);
 
-void StatusToFlagForAssets(Assets &assets);
+    static void StatusToFlagForAssetsInRecord(const std::vector<Field> &fields, VBucket &record);
 
-void StatusToFlagForAssetsInRecord(const std::vector<Field> &fields, VBucket &record);
+    static bool IsChangeDataEmpty(const ChangedData &changedData);
 
-bool IsChngDataEmpty(const ChangedData &changedData);
+    static bool EqualInMsLevel(const Timestamp cmp, const Timestamp beCmp);
 
-bool EqualInMsLevel(const Timestamp cmp, const Timestamp beCmp);
+    static bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo);
 
-bool NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cloudLogInfo);
+    static int CheckParamValid(const std::vector<DeviceID> &devices, SyncMode mode);
+
+    static LogInfo GetCloudLogInfo(VBucket &datum);
+
+    static int SaveChangedDataByType(const VBucket &datum, ChangedData &changedData, const DataInfoWithLog &localInfo,
+        ChangeType type);
+
+    static int FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
+        size_t &delIdx);
+
+    static int CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
+        const int64_t &count, uint64_t &taskId);
+
+    static void ClearCloudSyncData(CloudSyncData &uploadData);
+
+    static int GetWaterMarkAndUpdateTime(std::vector<VBucket>& extend, Timestamp &waterMark);
+
+    static bool CheckCloudSyncDataEmpty(const CloudSyncData &uploadData);
+
+    static void ModifyCloudDataTime(VBucket &data);
+
+    static int UpdateExtendTime(CloudSyncData &uploadData, const int64_t &count, uint64_t taskId,
+        Timestamp &waterMark);
+
+    static void UpdateLocalCache(OpType opType, const LogInfo &cloudInfo,
+        const LogInfo &localInfo, std::map<std::string, LogInfo> &localLogInfoCache);
+
+    static int SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataIndex, const ICloudSyncer::DataInfo &dataInfo,
+        std::vector<std::pair<Key, size_t>> &deletedList);
+
+    static void ClearWithoutData(ICloudSyncer::SyncParam &param);
+};
 }
 #endif // CLOUD_SYNC_UTILS_H

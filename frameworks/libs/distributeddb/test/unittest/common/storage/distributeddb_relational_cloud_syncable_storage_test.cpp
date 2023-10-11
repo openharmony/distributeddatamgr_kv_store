@@ -15,16 +15,18 @@
 #ifdef RELATIONAL_STORE
 #include <gtest/gtest.h>
 
-#include "distributeddb_tools_unit_test.h"
-#include "relational_store_manager.h"
-#include "distributeddb_data_generate_unit_test.h"
-#include "relational_sync_able_storage.h"
-#include "relational_store_instance.h"
-#include "sqlite_relational_store.h"
-#include "log_table_manager_factory.h"
 #include "cloud_db_constant.h"
+#include "distributeddb_data_generate_unit_test.h"
+#include "distributeddb_tools_unit_test.h"
+#include "log_table_manager_factory.h"
+#include "query_sync_object.h"
+#include "relational_store_instance.h"
+#include "relational_store_manager.h"
+#include "relational_sync_able_storage.h"
 #include "runtime_config.h"
+#include "sqlite_relational_store.h"
 #include "virtual_cloud_data_translate.h"
+
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -550,12 +552,15 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
      * @tc.expected: return -SQLITE_ERROR.
      */
     int64_t resCount = 0;
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime, false, resCount), -SQLITE_ERROR);
+    QuerySyncObject query;
+    query.SetTableName(g_tableName);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), -E_INVALID_QUERY_FORMAT);
 
     CreateLogTable();
     int64_t insCount = 100;
+    CreateAndInitUserTable(insCount, insCount);
     InitLogData(insCount, insCount, insCount, insCount);
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), E_OK);
     EXPECT_EQ(resCount, insCount + insCount + insCount);
 
     /**
@@ -563,7 +568,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
      * @tc.expected: count is 0 and return E_OK.
      */
     Timestamp invalidTime = g_startTime + g_startTime;
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, invalidTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, invalidTime, false, resCount), E_OK);
     EXPECT_EQ(resCount, 0);
 }
 
@@ -579,6 +584,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
     CreateLogTable();
     int64_t insCount = 100;
     InitLogData(insCount, insCount, 0, insCount);
+    CreateAndInitUserTable(insCount, insCount);
     int64_t resCount = 0;
 
     /**
@@ -614,6 +620,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
 {
     CreateLogTable();
     int64_t insCount = 100;
+    CreateAndInitUserTable(insCount, insCount);
     InitLogData(0, 0, insCount, insCount);
     int64_t resCount = 0;
 
@@ -828,7 +835,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
      * @tc.expected: return -E_INVALID_DB.
      */
     int timeOffset = 10;
-    EXPECT_EQ(g_cloudStore->GetCloudData(g_tableSchema, g_startTime + timeOffset, token, cloudSyncData), -E_INVALID_DB);
+    QuerySyncObject object;
+    EXPECT_EQ(g_cloudStore->GetCloudData(g_tableSchema, object, g_startTime + timeOffset, token, cloudSyncData),
+        -E_INVALID_DB);
 
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData), E_OK);

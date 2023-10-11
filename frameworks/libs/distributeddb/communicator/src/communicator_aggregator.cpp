@@ -371,7 +371,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
     for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()); ++index) {
         auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
-            ", totalLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
+            ", packetLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
         ProtocolProto::DisplayPacketInformation(entry.first + entry.second.first, entry.second.second);
         errCode = adapterHandle_->SendBytes(inTask.dstTarget, entry.first, entry.second.second, totalLength);
         {

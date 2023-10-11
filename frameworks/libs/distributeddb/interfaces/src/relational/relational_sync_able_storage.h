@@ -134,15 +134,18 @@ public:
 
     int Rollback() override;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, bool isCloudForcePush,
+    int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) override;
 
     int FillCloudGid(const CloudSyncData &data) override;
 
-    int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
+
+    int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
+        std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
@@ -176,6 +179,9 @@ public:
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
+    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid) override;
+
+    int CheckQueryValid(const QuerySyncObject &query) override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;

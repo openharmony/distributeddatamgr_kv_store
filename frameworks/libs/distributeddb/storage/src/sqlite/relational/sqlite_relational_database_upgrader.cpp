@@ -131,14 +131,14 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     return E_OK;
 }
 
-static bool inline NoNeedUpdateLogTable(const std::string &logTableVersion)
+static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
 {
-    return logTableVersion > DBConstant::LOG_TABLE_VERSION_2;
+    return logTableVersion < DBConstant::LOG_TABLE_VERSION_3;
 }
 
 int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTableVersion)
 {
-    if (NoNeedUpdateLogTable(logTableVersion)) {
+    if (!NeedUpdateLogTable(logTableVersion)) {
         LOGD("[Relational][Upgrade] No need upgrade log table.");
         return E_OK;
     }

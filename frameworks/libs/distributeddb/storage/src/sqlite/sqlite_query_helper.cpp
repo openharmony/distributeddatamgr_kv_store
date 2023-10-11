@@ -102,7 +102,7 @@ std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std
         sql.pop_back();
     }
     sql += " FROM '" + tableName + "' AS a INNER JOIN " + DBConstant::RELATIONAL_PREFIX + tableName + "_log AS b "
-        "ON a.rowid=b.data_key ";
+        "ON a." + std::string(DBConstant::SQLITE_INNER_ROWID) + "=b.data_key ";
     return sql;
 }
 
@@ -1036,7 +1036,7 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<
     sql = GetRelationalSyncDataQueryHeader(fieldNames);
     sql += " FROM '" + tableName_ + "' AS a INNER JOIN ";
     sql += DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
-    sql += " AS b ON (a.rowid = b.data_key)";
+    sql += " AS b ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
     sql += " WHERE (b.flag&0x03=0x02)";
 
     querySql_.clear(); // clear local query sql format
@@ -1145,15 +1145,50 @@ int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint6
     const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
+    AppendCloudQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(true, dbHandle, beginTime, sql, statement);
+}
+
+int SqliteQueryHelper::GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+    bool isCloudForcePush, sqlite3_stmt *&statement)
+{
+    std::string sql = "SELECT COUNT(*) ";
+    AppendCloudQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+}
+
+int SqliteQueryHelper::GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+    const std::vector<Field> &fields, bool isCloudForcePush, sqlite3_stmt *&statement)
+{
+    std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
+    AppendCloudGidQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+}
+
+void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql)
+{
     sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
-    sql += tableName_ + "' AS a ON (a.rowid = b.data_key)";
+    sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
     sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)":
         " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+}
 
+void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &sql)
+{
+    sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
+    sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
+    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
+        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.
+}
+
+int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime,
+    std::string &sql, sqlite3_stmt *&statement)
+{
     querySql_.clear(); // clear local query sql format
-    int errCode = ToQuerySyncSql(false, true);
+    int errCode = ToQuerySyncSql(false, useTimestampAlias);
     if (errCode != E_OK) {
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;
@@ -1164,9 +1199,24 @@ int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint6
         LOGE("[Query] Get statement fail!");
         return -E_INVALID_QUERY_FORMAT;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, beginTime);
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, static_cast<int64_t>(beginTime));
     if (errCode != E_OK) {
+        int resetRet = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, resetRet);
+        if (resetRet != E_OK) {
+            LOGW("[Query] reset statement failed %d", resetRet);
+        }
+        return errCode;
+    }
+    int index = 2;
+    errCode = BindObjNodes(statement, index);
+    if (errCode != E_OK) {
+        LOGE("BindObjNodes failed %d", errCode);
+        int resetRet = E_OK;
         SQLiteUtils::ResetStatement(statement, true, errCode);
+        if (resetRet != E_OK) {
+            LOGW("[Query] reset statement failed %d", resetRet);
+        }
     }
     return errCode;
 }

@@ -144,12 +144,18 @@ public:
     std::vector<std::string> GetTables();
     void SetTables(const std::vector<std::string> &tableNames);
 
-    void SetIsDeviceSyncQuery(bool isDeviceSync = true);
-    bool GetIsDeviceSyncQuery() const;
-
+    void From(const std::string &tableName);
+    int GetExpressionStatus() const;
+    std::vector<QueryExpression> GetQueryExpressions() const;
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
+
+    void SetNotSupportIfFromTables();
+
+    void SetNotSupportIfCondition();
+
+    void SetNotSupportIfNeed(QueryObjType type);
 
     std::list<QueryObjNode> queryInfo_;
     bool errFlag_ = true;
@@ -160,7 +166,12 @@ private:
     std::set<Key> keys_;
     int sortType_ = 0;
     std::vector<std::string> tables_;
-    bool isWithDeviceSyncQuery_ = false;
+
+    bool useFromTable_ = false;
+    std::string fromTable_;
+    std::list<std::string> tableSequence_;
+    std::map<std::string, QueryExpression> expressions_;
+    int validStatus_ = 0;
 };
 
 // specialize for double

@@ -50,6 +50,7 @@ public:
     void SetUp() override;
     void TearDown() override;
     void CheckTriggerObserverTest002(const std::string &tableName, std::atomic<int> &count);
+
     void ClientObserverFunc(ClientChangedData &clientChangedData)
     {
         for (const auto &tableName : clientChangedData.tableNames) {
@@ -141,7 +142,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 
-void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRowId, bool userDefineRowid = true)
+void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRowId,
+    DistributedDB::TableSyncType tableSyncType, bool userDefineRowid = true)
 {
     /**
      * @tc.steps:step1. create db, create table.
@@ -156,7 +158,7 @@ void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRo
             sql = "create table " + tableName + "(rowid INTEGER primary key, id int, name TEXT);";
         } else {
             if (userDefineRowid) {
-                sql = "create table " + tableName + "(rowid int, id int, name TEXT, PRIMARY KEY(id, name));";
+                sql = "create table " + tableName + "(rowid int, id int, name TEXT, PRIMARY KEY(id));";
             } else {
                 sql = "create table " + tableName + "(id int, name TEXT, PRIMARY KEY(id));";
             }
@@ -174,27 +176,20 @@ void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRo
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
     for (const auto &tableName : tableNames) {
-        EXPECT_EQ(delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION), OK);
+        EXPECT_EQ(delegate->CreateDistributedTable(tableName, tableSyncType), OK);
     }
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
 }
 
-/**
- * @tc.name: InsertTriggerTest001
- * @tc.desc: Test insert trigger in sqlite
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: zhangshijie
- */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, TestSize.Level0)
+void InsertTriggerTest(DistributedDB::TableSyncType tableSyncType)
 {
     /**
      * @tc.steps:step1. prepare data.
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, false);
+    PrepareData({tableName}, false, tableSyncType);
 
     /**
      * @tc.steps:step2. insert data into sync_data.
@@ -216,7 +211,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
 
     int resultCount = 0;
     errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
-        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // 1 is row id
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
@@ -239,20 +234,44 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, Te
 }
 
 /**
+ * @tc.name: InsertTriggerTest001
+ * @tc.desc: Test insert trigger in sqlite in CLOUD_COOPERATION mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest001, TestSize.Level0)
+{
+    InsertTriggerTest(DistributedDB::CLOUD_COOPERATION);
+}
+
+/**
  * @tc.name: InsertTriggerTest002
+ * @tc.desc: Test insert trigger in sqlite in DEVICE_COOPERATION mode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest002, TestSize.Level0)
+{
+    InsertTriggerTest(DistributedDB::DEVICE_COOPERATION);
+}
+
+/**
+ * @tc.name: InsertTriggerTest003
  * @tc.desc: Test insert trigger in sqlite when use "insert or replace"
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhangshijie
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest002, TestSize.Level1)
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest003, TestSize.Level1)
 {
     /**
     * @tc.steps:step1. prepare data.
     * @tc.expected: step1. return ok.
     */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, false);
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION);
 
     /**
      * @tc.steps:step2. insert data into sync_data.
@@ -278,7 +297,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, InsertTriggerTest002, Te
     sql = "select data_key, device, ori_device, flag, cloud_gid from " + DBCommon::GetLogTableName(tableName);
     int resultCount = 0;
     int errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [&resultCount, gid] (sqlite3_stmt *stmt) {
-        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 3); // 3 is row id
+        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
         std::string device = "";
         EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 1, device), E_OK);
         EXPECT_EQ(device, "");
@@ -305,7 +324,7 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, primaryKeyIsRowId);
+    PrepareData({tableName}, primaryKeyIsRowId, DistributedDB::CLOUD_COOPERATION);
 
     /**
      * @tc.steps:step2. insert data into sync_data_tmp.
@@ -334,8 +353,14 @@ void UpdateTriggerTest(bool primaryKeyIsRowId)
     EXPECT_EQ(errCode, E_OK);
 
     int resultCount = 0;
-    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount] (sqlite3_stmt *stmt) {
-        EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
+    errCode = RelationalTestUtils::ExecSql(db, sql, nullptr, [curTime, &resultCount, primaryKeyIsRowId] (
+        sqlite3_stmt *stmt) {
+        if (primaryKeyIsRowId) {
+            EXPECT_EQ(sqlite3_column_int64(stmt, 0), 2); // 2 is row id
+        } else {
+            EXPECT_EQ(sqlite3_column_int64(stmt, 0), 1); // 1 is row id
+        }
+
         EXPECT_EQ(sqlite3_column_int(stmt, 5), 2); // 5 is column index, flag == 2
 
         std::string device = "";
@@ -397,7 +422,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DeleteTriggerTest001, Te
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, true);
+    PrepareData({tableName}, true, DistributedDB::CLOUD_COOPERATION);
 
     /**
      * @tc.steps:step2. insert data into sync_data.
@@ -500,7 +525,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest002, 
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, false, false);
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
 
     /**
     * @tc.steps:step2. register client observer.
@@ -628,7 +653,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, false, false);
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
 
     /**
     * @tc.steps:step2. register client observer.
@@ -689,7 +714,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, 
      * @tc.expected: step1. return ok.
      */
     const std::string tableName = "sync_data";
-    PrepareData({tableName}, false, false);
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
 
     /**
     * @tc.steps:step2. register client observer.
@@ -771,7 +796,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
      */
     const std::string tableName1 = "sync_data1";
     const std::string tableName2 = "sync_data2";
-    PrepareData({tableName1, tableName2}, false, false);
+    PrepareData({tableName1, tableName2}, false, DistributedDB::CLOUD_COOPERATION, false);
 
     /**
     * @tc.steps:step2. register client observer.

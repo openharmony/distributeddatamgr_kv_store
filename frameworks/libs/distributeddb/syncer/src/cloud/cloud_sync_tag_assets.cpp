@@ -122,7 +122,7 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         coveredAssetsIndexMap.erase(it);
         if (errCode != E_OK) {
             LOGE("Tag assets UPDATE or NO_CHANGE fail!");
-            break;
+            return {};
         }
     }
     for (const auto &noHandledAssetKvPair : coveredAssetsIndexMap) {
@@ -130,7 +130,7 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
             covered[noHandledAssetKvPair.second], res, errCode);
         if (errCode != E_OK) {
             LOGE("Tag assets INSERT fail!");
-            break;
+            return {};
         }
     }
     return res;

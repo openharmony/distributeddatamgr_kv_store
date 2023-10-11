@@ -20,6 +20,7 @@
 
 #include "db_errno.h"
 #include "platform_specific.h"
+#include "query_sync_object.h"
 #include "hash.h"
 #include "runtime_context.h"
 #include "value_hash_calc.h"
@@ -453,5 +454,19 @@ bool DBCommon::CheckIsAlnumOrUnderscore(const std::string &text)
         return (std::isalnum(c) || c == '_');
     });
     return iter == text.end();
+}
+
+bool DBCommon::CheckQueryWithoutMultiTable(const Query &query)
+{
+    QuerySyncObject syncObject(query);
+    if (!syncObject.GetRelationTableNames().empty()) {
+        LOGE("check query from tables failed!");
+        return false;
+    }
+    if (!QuerySyncObject::GetQuerySyncObject(query).empty()) {
+        LOGE("check query from table failed!");
+        return false;
+    }
+    return true;
 }
 } // namespace DistributedDB

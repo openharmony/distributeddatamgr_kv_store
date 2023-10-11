@@ -82,6 +82,8 @@ public:
     DB_API virtual DBStatus UnRegisterObserver(StoreObserver *observer) = 0;
 
     DB_API virtual DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
+
+    DB_API virtual DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

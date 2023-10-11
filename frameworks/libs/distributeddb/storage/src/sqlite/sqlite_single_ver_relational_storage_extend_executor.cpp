@@ -49,7 +49,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
         sql += ", b." + pk;
     }
     sql += " from '" + DBCommon::GetLogTableName(tableName) + "' AS a LEFT JOIN '" + tableName + "' AS b ";
-    sql += " ON (a.data_key = b.rowid) WHERE ";
+    sql += " ON (a.data_key = b." + std::string(DBConstant::SQLITE_INNER_ROWID) + ") WHERE ";
     if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
     }
@@ -66,7 +66,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetFillDownloadAssetStatement(cons
         sql += field.colName + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE rowid = (";
+    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = (";
     sql += "SELECT data_key FROM " + DBCommon::GetLogTableName(tableName) + " where cloud_gid = ?);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
@@ -187,8 +187,8 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const
         sql += item.first + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE rowid = ? and (select 1 from " + DBCommon::GetLogTableName(tableName) +
-        " WHERE timestamp = ?);";
+    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = ? and (select 1 from " +
+        DBCommon::GetLogTableName(tableName) + " WHERE timestamp = ?);";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
         return errCode;

@@ -14,6 +14,7 @@
  */
 
 #include "cloud_sync_log_table_manager.h"
+#include "cloud_db_constant.h"
 #include "db_common.h"
 
 namespace DistributedDB {
@@ -27,13 +28,16 @@ std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &refe
         std::string pkName = table.GetPrimaryKey().at(0);
         if (pkName == "rowid") {
             std::string collateStr = std::to_string(static_cast<uint32_t>(CollateType::COLLATE_NONE));
-            sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "', " + collateStr + ")";
+            // we use _rowid_ to reference sqlite inner rowid to avoid rowid is a user defined column,
+            // user can't create distributed table with column named "_rowid_"
+            sql = "calc_hash(" + references + "'" + std::string(DBConstant::SQLITE_INNER_ROWID) + "', " +
+                collateStr + ")";
         } else {
             if (fieldInfos.find(pkName) == fieldInfos.end()) {
                 return sql;
             }
             std::string collateStr = std::to_string(static_cast<uint32_t>(fieldInfos.at(pkName).GetCollateType()));
-            sql = "calc_hash(" + references + "'" + table.GetPrimaryKey().at(0)  + "', " + collateStr + ")";
+            sql = "calc_hash(" + references + "'" + pkName  + "', " + collateStr + ")";
         }
     }  else {
         std::set<std::string> primaryKeySet; // we need sort primary key by upper name
@@ -72,6 +76,10 @@ void CloudSyncLogTableManager::GetIndexSql(const TableInfo &table, std::vector<s
 
 std::string CloudSyncLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 {
+    auto primaryKey = table.GetPrimaryKey();
+    if (primaryKey[0] == CloudDbConstant::ROW_ID_FIELD_NAME) {
+        return "PRIMARY KEY(hash_key, cloud_gid)";
+    }
     return "PRIMARY KEY(hash_key)";
 }
 
@@ -88,13 +96,14 @@ std::string CloudSyncLogTableManager::GetInsertTrigger(const TableInfo &table, c
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key, cloud_gid)";
-    insertTrigger += " VALUES (new.rowid, '', '',";
+    insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_raw_sys_time(), get_raw_sys_time(), 0x02, ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ", CASE WHEN (SELECT count(*)<>0 FROM ";
-    insertTrigger += logTblName + " where hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
-    insertTrigger += ") THEN (select cloud_gid from " + logTblName + " where hash_key = ";
+    insertTrigger += logTblName + " WHERE hash_key = " + CalcPrimaryKeyHash("NEW.", table, identity);
+    insertTrigger += ") THEN (SELECT cloud_gid FROM " + logTblName + " WHERE hash_key = ";
     insertTrigger += CalcPrimaryKeyHash("NEW.", table, identity) + ") ELSE '' END);\n";
-    insertTrigger += "select client_observer('" + tableName + "', NEW.rowid, 0);\n";
+    insertTrigger += "SELECT client_observer('" + tableName + "', NEW." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    insertTrigger += ", 0);\n";
     insertTrigger += "END;";
     return insertTrigger;
 }
@@ -112,8 +121,9 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     updateTrigger += "BEGIN\n"; // if user change the primary key, we can still use gid to identify which one is updated
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
-    updateTrigger += " WHERE data_key = OLD.rowid;\n";
-    updateTrigger += "select client_observer('" + tableName + "', OLD.rowid, 1);\n";
+    updateTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
+    updateTrigger += "SELECT client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
+    updateTrigger += ", 1);\n";
     updateTrigger += "END;";
     return updateTrigger;
 }
@@ -130,9 +140,9 @@ std::string CloudSyncLogTableManager::GetDeleteTrigger(const TableInfo &table, c
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + GetLogTableName(table);
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_raw_sys_time()";
-    deleteTrigger += " WHERE data_key = OLD.rowid;";
+    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     // -1 is rowid when data is deleted, 2 means change type is delete(ClientChangeType)
-    deleteTrigger += "select client_observer('" + tableName + "', -1, 2);\n";
+    deleteTrigger += "SELECT client_observer('" + tableName + "', -1, 2);\n";
     deleteTrigger += "END;";
     return deleteTrigger;
 }

@@ -137,6 +137,8 @@ protected:
     static DBStatus QueryAction(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
 
+    void DecAsyncTaskCount();
+
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;
     std::shared_ptr<ICloudDb> iCloudDb_;

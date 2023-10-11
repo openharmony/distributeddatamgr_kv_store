@@ -2294,15 +2294,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DownloadAssetTest004, T
     g_syncProcess = {};
     InsertCloudTableRecord(0, count, paddingSize, false);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, DROP_INTEGER_PRIMARY_KEY_TABLE_SQL), DBStatus::OK);
-    EXPECT_EQ(g_delegate->Sync({ DEVICE_CLOUD }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime), DBStatus::OK);
-    WaitForSyncFinish(g_syncProcess, g_syncWaitTime);
-    EXPECT_EQ(g_syncProcess.errCode, DBStatus::DB_ERROR);
-    uint32_t expectTotalCnt = 20u;
-    EXPECT_NE(g_syncProcess.tableProcess.find(g_tableName2), g_syncProcess.tableProcess.end());
-    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.batchIndex, 1u);
-    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.total, expectTotalCnt);
-    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.successCount, 0u);
-    EXPECT_EQ(g_syncProcess.tableProcess[g_tableName2].downLoadInfo.failCount, expectTotalCnt);
+    EXPECT_EQ(g_delegate->Sync({ DEVICE_CLOUD }, SYNC_MODE_CLOUD_MERGE, query, callback, g_syncWaitTime),
+        DBStatus::NOT_FOUND);
 
     /**
      * @tc.steps:step3. close db.

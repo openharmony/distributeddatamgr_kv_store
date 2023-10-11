@@ -25,6 +25,7 @@
 #include "cloud/schema_mgr.h"
 #include "data_transformer.h"
 #include "icloud_sync_storage_interface.h"
+#include "query_sync_object.h"
 
 
 namespace DistributedDB {
@@ -54,12 +55,20 @@ public:
     int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
         int64_t &count);
 
+    int GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark, bool isCloudForcePush,
+        int64_t &count);
+
     int FillCloudGid(const CloudSyncData &data);
 
     int GetCloudData(const std::string &tableName, const Timestamp &timeRange,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult);
 
+    int GetCloudData(const QuerySyncObject &querySyncObject, const Timestamp &timeRange,
+        ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult);
+
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) const;
+
+    int GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush, std::vector<std::string> &cloudGid);
 
     int GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
@@ -90,6 +99,7 @@ public:
 
     int CleanWaterMark(const TableName &tableName);
 
+    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
 protected:
     void Init();
 

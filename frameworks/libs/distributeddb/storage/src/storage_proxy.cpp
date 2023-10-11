@@ -145,7 +145,23 @@ int StorageProxy::GetUploadCount(const std::string &tableName, const Timestamp &
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-    return store_->GetUploadCount(tableName, localMark, isCloudForcePush, count);
+    QuerySyncObject query;
+    query.SetTableName(tableName);
+    return store_->GetUploadCount(query, localMark, isCloudForcePush, count);
+}
+
+int StorageProxy::GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark,
+    bool isCloudForcePush, int64_t &count)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    if (!transactionExeFlag_.load()) {
+        LOGE("the transaction has not been started");
+        return -E_TRANSACT_STATE;
+    }
+    return store_->GetUploadCount(query, localMark, isCloudForcePush, count);
 }
 
 int StorageProxy::FillCloudGid(const CloudSyncData &data)
@@ -164,6 +180,14 @@ int StorageProxy::FillCloudGid(const CloudSyncData &data)
 int StorageProxy::GetCloudData(const std::string &tableName, const Timestamp &timeRange,
     ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
+    QuerySyncObject querySyncObject;
+    querySyncObject.SetTableName(tableName);
+    return GetCloudData(querySyncObject, timeRange, continueStmtToken, cloudDataResult);
+}
+
+int StorageProxy::GetCloudData(const QuerySyncObject &querySyncObject, const Timestamp &timeRange,
+    ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
+{
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
         return -E_INVALID_DB;
@@ -173,11 +197,11 @@ int StorageProxy::GetCloudData(const std::string &tableName, const Timestamp &ti
         return -E_TRANSACT_STATE;
     }
     TableSchema tableSchema;
-    int errCode = store_->GetCloudTableSchema(tableName, tableSchema);
+    int errCode = store_->GetCloudTableSchema(querySyncObject.GetRelationTableName(), tableSchema);
     if (errCode != E_OK) {
         return errCode;
     }
-    return store_->GetCloudData(tableSchema, timeRange, continueStmtToken, cloudDataResult);
+    return store_->GetCloudData(tableSchema, querySyncObject, timeRange, continueStmtToken, cloudDataResult);
 }
 
 int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) const
@@ -191,6 +215,21 @@ int StorageProxy::GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncDa
         return -E_TRANSACT_STATE;
     }
     return store_->GetCloudDataNext(continueStmtToken, cloudDataResult);
+}
+
+int StorageProxy::GetCloudGid(const QuerySyncObject &querySyncObject, bool isCloudForcePush,
+    std::vector<std::string> &cloudGid)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    TableSchema tableSchema;
+    int errCode = store_->GetCloudTableSchema(querySyncObject.GetRelationTableName(), tableSchema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return store_->GetCloudGid(tableSchema, querySyncObject, isCloudForcePush, cloudGid);
 }
 
 int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const VBucket &vBucket,
@@ -374,5 +413,14 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
         return -E_INVALID_DB;
     }
     return cloudMetaData_->CleanWaterMark(tableName);
+}
+
+int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->GetCloudDataGid(query, beginTime, gid);
 }
 }

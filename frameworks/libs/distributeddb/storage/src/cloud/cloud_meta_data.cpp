@@ -134,7 +134,7 @@ int CloudMetaData::WriteMarkToMeta(const TableName &tableName, Timestamp localma
     return store_->PutMetaData(GetPrefixTableName(tableName), blobMetaVal);
 }
 
-int CloudMetaData::SerializeMark(Timestamp localMark, std::string &cloudMark, Value &blobMeta)
+int CloudMetaData::SerializeMark(const Timestamp localMark, const std::string &cloudMark, Value &blobMeta)
 {
     uint64_t length = Parcel::GetUInt64Len() + Parcel::GetStringLen(cloudMark);
     blobMeta.resize(length);
