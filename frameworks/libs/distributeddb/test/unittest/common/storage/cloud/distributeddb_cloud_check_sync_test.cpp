@@ -133,9 +133,9 @@ void DistributedDBCloudCheckSyncTest::TearDown()
 {
     CloseDb();
     EXPECT_EQ(sqlite3_close_v2(db_), SQLITE_OK);
-   /* if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != 0) {
+    if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != 0) {
         LOGE("rm test db files error.");
-    }*/
+    }
 }
 
 void DistributedDBCloudCheckSyncTest::InitTestDir()
