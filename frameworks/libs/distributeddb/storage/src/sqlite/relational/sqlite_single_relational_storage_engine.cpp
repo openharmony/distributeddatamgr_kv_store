@@ -507,18 +507,11 @@ int SQLiteSingleRelationalStorageEngine::ExecuteSql(const SqlCondition &conditio
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseExecutor(handle);
-        return errCode;
-    }
     errCode = handle->ExecuteSql(condition, records);
     if (errCode != E_OK) {
-        (void)handle->Rollback();
         ReleaseExecutor(handle);
         return errCode;
     }
-    errCode = handle->Commit();
     ReleaseExecutor(handle);
     return errCode;
 }
