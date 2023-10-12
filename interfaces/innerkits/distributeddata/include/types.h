@@ -21,6 +21,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <map>
 #include "blob.h"
 #include "store_errno.h"
 #include "visibility.h"
@@ -406,6 +407,10 @@ struct Options {
     {
         return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION;
     }
+    /**
+     * Whether the sync happend in client.
+    */
+    bool isClientSyncMode = false;
 };
 
 /**
@@ -422,6 +427,48 @@ struct UserInfo {
     */
     int32_t userType;
 };
+
+struct PermissionCheckParam {
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    std::string deviceId;
+    int32_t instanceId = 0;
+    std::map<std::string, std::string> extraConditions;
+};
+
+struct PipeInfo {
+    std::string pipeId;
+    std::string userId;
+};
+
+struct CommDeviceInfo {
+    std::string uuid;
+    std::string udid;
+    std::string networkId;
+    std::string deviceName;
+    uint32_t deviceType;
+};
+
+enum class DeviceChangeType {
+    DEVICE_OFFLINE = 0,
+    DEVICE_ONLINE = 1,
+    DEVICE_ONREADY = 2,
+};
+
+struct DeviceInfos {
+    std::string identifier;
+};
+
+struct SecurityOption {
+    int securityLabel = 0;
+    int securityFlag = 0;
+    bool operator==(const SecurityOption &rhs) const
+    {
+        return securityLabel == rhs.securityLabel && securityFlag == rhs.securityFlag;
+    }
+};
+
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

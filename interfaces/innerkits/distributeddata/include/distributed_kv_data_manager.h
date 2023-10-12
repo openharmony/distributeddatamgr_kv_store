@@ -23,6 +23,7 @@
 #include "kvstore_observer.h"
 #include "single_kvstore.h"
 #include "types.h"
+#include "entry_point.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -154,6 +155,14 @@ public:
      * @param executors The executors.
     */
     API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
+
+    /**
+     * @brief 
+     * @param 
+     */
+    API_EXPORT Status SetProcessCommunicator(std::shared_ptr<EntryPoint> entryPoint);
+private:
+    static bool isAlreadySet_;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

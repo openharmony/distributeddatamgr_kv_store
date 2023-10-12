@@ -34,6 +34,7 @@ SingleStoreImpl::SingleStoreImpl(
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
+    isClientSyncMode_ = options.isClientSyncMode;
     syncObserver_ = std::make_shared<SyncObserver>();
     if (options.backup) {
         BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
@@ -245,14 +246,19 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
-    if (((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) && status == SUCCESS) {
+    if (isClientSyncMode_ && ((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) && status == SUCCESS) {
+        auto dbStatus = dbStore_->RegisterObserver({}, DistributedDB::OBSERVER_CHANGES_FOREIGN, bridge.get());
+        status = StoreUtil::ConvertStatus(dbStatus);
+    }
+
+    if (!isClientSyncMode_ && ((realType & SUBSCRIBE_TYPE_REMOTE) == SUBSCRIBE_TYPE_REMOTE) && status == SUCCESS) {
         realType &= ~SUBSCRIBE_TYPE_LOCAL;
         status = bridge->RegisterRemoteObserver();
     }
 
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x type:%{public}d->%{public}d observer:0x%{public}x", status, type, realType,
-            StoreUtil::Anonymous(bridge.get()));
+        ZLOGE("status:0x%{public}x type:%{public}d->%{public}d observer:0x%{public}x isClientSync:%{public}d", status, type, realType,
+            StoreUtil::Anonymous(bridge.get()), isClientSyncMode_);
         TakeOut(realType, observer);
     }
     return status;
@@ -775,6 +781,26 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     syncAgent->AddSyncCallback(observer, syncInfo.seqId);
+
+    if (isClientSyncMode_) {
+        DBQuery dbQuery = DBQuery::Select();
+        auto complete = [syncInfo, syncAgent](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
+              
+            std::map<std::string, Status> result;
+            for (auto &[key, dbStatus] : devicesMap) {
+                result[key] = StoreUtil::ConvertStatus(dbStatus);
+            }
+            syncAgent->SyncCompleted(result, syncInfo.seqId);
+        };
+        auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete, dbQuery, false);
+        auto status = StoreUtil::ConvertStatus(dbStatus);
+        if (status != Status::SUCCESS) {
+            syncAgent->DeleteSyncCallback(syncInfo.seqId);
+        }
+        ZLOGD("sync in client status is: %d", status);
+        return status;
+    }
+
     auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
@@ -784,7 +810,7 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
 
 void SingleStoreImpl::DoAutoSync()
 {
-    if (!autoSync_) {
+    if (!autoSync_ || isClientSyncMode_) {
         return;
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());

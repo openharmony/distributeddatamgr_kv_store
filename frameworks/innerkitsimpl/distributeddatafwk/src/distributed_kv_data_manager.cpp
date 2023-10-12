@@ -23,10 +23,16 @@
 #include "refbase.h"
 #include "store_manager.h"
 #include "task_executor.h"
+#include "store_util.h"
+#include "runtime_config.h"
+#include "kv_store_delegate_manager.h"
+#include "process_communication_impl.h"
+#include "process_system_api_adapter_impl.h"
 
 namespace OHOS {
 namespace DistributedKv {
 using namespace OHOS::DistributedDataDfx;
+bool DistributedKvDataManager::isAlreadySet_ = false;
 DistributedKvDataManager::DistributedKvDataManager()
 {}
 
@@ -169,6 +175,53 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
 void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> executors)
 {
     TaskExecutor::GetInstance().SetExecutors(std::move(executors));
+}
+
+Status DistributedKvDataManager::SetProcessCommunicator(std::shared_ptr<EntryPoint> entryPoint)
+{
+    if (isAlreadySet_) {
+        ZLOGI("Communicator already set");
+        return SUCCESS;
+    }
+    
+    auto status = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
+    if (!status) {
+        ZLOGE("SetProcessLabel failed: %d", status);
+        return StoreUtil::ConvertStatus(status);
+    }
+
+    auto communicator = std::make_shared<ProcessCommunicationImpl>(entryPoint);
+    status = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
+    if (!status) {
+        ZLOGE("%d", status);
+        return StoreUtil::ConvertStatus(status);
+    }
+
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(entryPoint);
+    status = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
+    if (!status) {
+        ZLOGE("%d", status);
+        return StoreUtil::ConvertStatus(status);
+    }
+
+    auto permissionCb = [entryPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
+        PermissionCheckParam params = {
+            std::move(param.userId),
+            std::move(param.appId),
+            std::move(param.storeId),
+            std::move(param.deviceId),
+            std::move(param.instanceId),
+            std::move(param.extraConditions)
+        };
+        return entryPoint->SyncPermissionCheck(params, flag);
+    };
+    
+    status = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCb);
+    if (!status) {
+        ZLOGE("%d", status);
+    }
+    isAlreadySet_ = true;
+    return StoreUtil::ConvertStatus(status);
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

@@ -104,6 +104,7 @@ private:
     void Register();
 
     bool autoSync_ = false;
+    bool isClientSyncMode_ = false;
     int32_t ref_ = 1;
     mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;
