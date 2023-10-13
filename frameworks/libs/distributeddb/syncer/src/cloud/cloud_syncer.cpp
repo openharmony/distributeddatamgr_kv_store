@@ -208,7 +208,6 @@ int CloudSyncer::DoSync(TaskId taskId)
         needUpload = currentContext_.strategy->JudgeUpload();
     }
     errCode = DoSyncInner(taskInfo, needUpload);
-    (void)storageProxy_->ClearAllTempSyncTrigger();
     UnlockIfNeed();
     return errCode;
 }
@@ -291,7 +290,6 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
             return errCode;
         }
     }
-
     return DoUploadInNeed(taskInfo, needUpload);
 }
 
@@ -998,6 +996,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
     }
     (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param);
+    (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         resumeTaskInfos_[taskId].syncParam = std::move(param);
