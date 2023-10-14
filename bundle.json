@@ -48,6 +48,7 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
+        "bounds_checking_function",
         "cJSON",
         "jsoncpp",
         "libuv",

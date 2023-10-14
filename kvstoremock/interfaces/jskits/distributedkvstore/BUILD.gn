@@ -74,6 +74,7 @@ if (use_platform_win || use_platforn_mac) {
     deps = [
       "${kv_store_base_path}/kvstoremock/interfaces/innerkits/distributeddata:distributeddata_inner_mock",
       "//foundation/arkui/napi:ace_napi",
+      "//third_party/bounds_checking_function:libsec_static",
       "//third_party/libuv:uv",
     ]
 
@@ -84,10 +85,7 @@ if (use_platform_win || use_platforn_mac) {
       ]
     } else if (use_platforn_mac) {
       defines = [ "_MACOS" ]
-      deps += [
-        "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac",
-        "//third_party/bounds_checking_function:libsec_static"
-      ]
+      deps += [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
     }
     subsystem_name = "distributeddatamgr"
     relative_install_dir = "module/data"

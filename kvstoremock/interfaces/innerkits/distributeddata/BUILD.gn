@@ -122,6 +122,7 @@ ohos_shared_library("distributeddata_inner_mock") {
   deps = [
     "//foundation/arkui/napi:ace_napi",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/distributeddb:distributeddb_mock",
+    "//third_party/bounds_checking_function:libsec_static",
     "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/libuv:uv",
     "//third_party/sqlite:sqlite_sdk",
@@ -143,10 +144,7 @@ ohos_shared_library("distributeddata_inner_mock") {
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     ]
-    deps += [
-      "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac",
-      "//third_party/bounds_checking_function:libsec_static"
-    ]
+    deps += [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
