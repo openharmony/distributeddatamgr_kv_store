@@ -49,6 +49,17 @@ namespace {
     std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
     RelationalStoreObserverUnitTest *g_observer = nullptr;
     RelationalStoreDelegate *g_delegate = nullptr;
+    TrackerSchema g_trackerSchema = {
+        .tableName = g_tableName, .extendColName = "name", .trackerColNames = {"age"}
+    };
+    TrackerSchema g_trackerSchema2 = {
+        .tableName = g_tableName, .extendColName = "age", .trackerColNames = {"height"}
+    };
+    TrackerSchema g_trackerSchema3 = {
+        .tableName = g_tableName, .extendColName = "", .trackerColNames = {}
+    };
+    ChangeProperties g_onChangeProperties = { .isTrackedDataChange = true };
+    ChangeProperties g_unChangeProperties = { .isTrackedDataChange = false };
     const std::vector<std::string> g_tables = {g_tableName};
     const std::string CREATE_LOCAL_TABLE_WITHOUT_PRIMARY_KEY_SQL =
         "CREATE TABLE IF NOT EXISTS " + g_tableName + "(" \
@@ -74,6 +85,67 @@ namespace {
             changedDataForTable.primaryData[changeType].push_back({i});
         }
         g_observer->SetExpectedResult(changedDataForTable);
+    }
+
+    void InitExpectChangedDataByDetailsType(ChangedDataType dataType, int64_t count, ChangeType changeType,
+        ChangeProperties properties, uint32_t detailsType)
+    {
+        ChangedData changedDataForTable;
+        changedDataForTable.tableName = g_tableName;
+        if (detailsType & static_cast<uint32_t>(CallbackDetailsType::DEFAULT)) {
+            changedDataForTable.type = dataType;
+            changedDataForTable.field.push_back(std::string("rowid"));
+            for (int64_t i = 1; i <= count; ++i) {
+                changedDataForTable.primaryData[changeType].push_back({i});
+            }
+        }
+        if (detailsType & static_cast<uint32_t>(CallbackDetailsType::BRIEF)) {
+            changedDataForTable.properties = properties;
+        }
+        g_observer->SetExpectedResult(changedDataForTable);
+    }
+
+    void TestChangedDataInTrackerTable(const TrackerSchema &trackerSchema, uint32_t detailsType,
+        std::vector<ChangeProperties> &expectProperties)
+    {
+        EXPECT_EQ(expectProperties.size(), 3u); // 3 is the num to check change properties
+        /**
+         * @tc.steps:step1. set tracker table
+         * @tc.expected: step1. check the changeddata and return ok
+         */
+        EXPECT_EQ(g_delegate->SetTrackerTable(trackerSchema), OK);
+        g_observer->SetCallbackDetailsType(detailsType);
+        int64_t cloudCount = 10; // 10 is random cloud count
+        int64_t paddingSize = 10; // 10 is padding size
+        int index = 0;
+        InitExpectChangedDataByDetailsType(ChangedDataType::DATA, cloudCount, ChangeType::OP_INSERT,
+            expectProperties[index++], detailsType);
+        CloudDBSyncUtilsTest::InsertCloudTableRecord(0, cloudCount, paddingSize, true, g_virtualCloudDb);
+        CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+        EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+        g_observer->ClearChangedData();
+
+        /**
+         * @tc.steps:step2. update cloud data
+         * @tc.expected: step2. check the changeddata and return ok
+         */
+        InitExpectChangedDataByDetailsType(ChangedDataType::DATA, cloudCount, ChangeType::OP_UPDATE,
+            expectProperties[index++], detailsType);
+        CloudDBSyncUtilsTest::UpdateCloudTableRecord(0, cloudCount, paddingSize, true, g_virtualCloudDb);
+        CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+        EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+        g_observer->ClearChangedData();
+
+        /**
+         * @tc.steps:step3. delete cloud data
+         * @tc.expected: step3. check the changeddata and return ok
+         */
+        InitExpectChangedDataByDetailsType(ChangedDataType::DATA, cloudCount, ChangeType::OP_DELETE,
+            expectProperties[index++], detailsType);
+        CloudDBSyncUtilsTest::DeleteCloudTableRecordByGid(0, cloudCount, g_virtualCloudDb);
+        CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+        EXPECT_TRUE(g_observer->IsAllChangedDataEq());
+        g_observer->ClearChangedData();
     }
 
     class DistributedDBCloudTableWithoutPrimaryKeySyncTest : public testing::Test {
@@ -301,5 +373,118 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest006, Tes
     CloudDBSyncUtilsTest::CheckLocalRecordNum(db, g_tableName, 0);
 }
 
+/*
+ * @tc.name: CloudSyncTest007
+ * @tc.desc: test sync when device delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert cloud asset and merge
+     * @tc.expected: step1. check the changeddata and return ok
+     */
+    int64_t cloudCount = 30; // 30 is random cloud count
+    int64_t paddingSize = 10; // 10 is padding size
+    CloudDBSyncUtilsTest::InsertCloudTableRecord(0, cloudCount, paddingSize, false, g_virtualCloudDb);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CloudDBSyncUtilsTest::CheckDownloadResult(db, {cloudCount}, CLOUD);
+    CloudDBSyncUtilsTest::CheckCloudTotalCount({cloudCount}, g_virtualCloudDb);
+
+    /**
+     * @tc.steps:step2. delete user data and update cloud data
+     * @tc.expected: step2. check sync reseult and return ok
+     */
+    int64_t deviceBegin = 20; // 20 is device begin
+    int64_t deviceCount = 10; // 10 is device delete
+    CloudDBSyncUtilsTest::DeleteUserTableRecord(db, 0, deviceCount);
+    CloudDBSyncUtilsTest::DeleteUserTableRecord(db, deviceBegin, deviceCount);
+    CloudDBSyncUtilsTest::UpdateCloudTableRecord(0, deviceCount, paddingSize, false, g_virtualCloudDb);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CloudDBSyncUtilsTest::CheckLocalRecordNum(db, g_tableName, deviceBegin);
+    CloudDBSyncUtilsTest::CheckCloudTotalCount({deviceBegin}, g_virtualCloudDb);
+}
+
+/*
+ * @tc.name: ChangeTrackerDataTest001
+ * @tc.desc: test changed data on BRIEF type of sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest001, TestSize.Level0)
+{
+    std::vector<ChangeProperties> expectProperties = {
+        g_onChangeProperties, g_unChangeProperties, g_onChangeProperties
+    };
+    TestChangedDataInTrackerTable(g_trackerSchema, static_cast<uint32_t>(CallbackDetailsType::BRIEF),
+        expectProperties);
+}
+
+/*
+ * @tc.name: ChangeTrackerDataTest002
+ * @tc.desc: test changed data on DETAILED type of sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest002, TestSize.Level0)
+{
+    std::vector<ChangeProperties> expectProperties = {
+        g_onChangeProperties, g_unChangeProperties, g_onChangeProperties
+    };
+    TestChangedDataInTrackerTable(g_trackerSchema, static_cast<uint32_t>(CallbackDetailsType::DETAILED),
+        expectProperties);
+}
+
+/*
+ * @tc.name: ChangeTrackerDataTest003
+ * @tc.desc: test changed data on DEFAULT type of sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest003, TestSize.Level0)
+{
+    std::vector<ChangeProperties> expectProperties = {
+        g_unChangeProperties, g_unChangeProperties, g_unChangeProperties
+    };
+    TestChangedDataInTrackerTable(g_trackerSchema, static_cast<uint32_t>(CallbackDetailsType::DEFAULT),
+        expectProperties);
+}
+
+/*
+ * @tc.name: ChangeTrackerDataTest004
+ * @tc.desc: test changed data on DETAILED type of sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest004, TestSize.Level0)
+{
+    std::vector<ChangeProperties> expectProperties = {
+        g_onChangeProperties, g_onChangeProperties, g_onChangeProperties
+    };
+    TestChangedDataInTrackerTable(g_trackerSchema2, static_cast<uint32_t>(CallbackDetailsType::DETAILED),
+        expectProperties);
+}
+
+/*
+ * @tc.name: ChangeTrackerDataTest005
+ * @tc.desc: test changed data on unTracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, ChangeTrackerDataTest005, TestSize.Level0)
+{
+    std::vector<ChangeProperties> expectProperties = {
+        g_unChangeProperties, g_unChangeProperties, g_unChangeProperties
+    };
+    TestChangedDataInTrackerTable(g_trackerSchema3, static_cast<uint32_t>(CallbackDetailsType::DETAILED),
+        expectProperties);
+}
 }
 #endif // RELATIONAL_STORE

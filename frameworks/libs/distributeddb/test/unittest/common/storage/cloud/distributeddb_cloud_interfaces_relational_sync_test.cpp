@@ -2350,5 +2350,40 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize
     CloseDb();
 }
 
+/**
+ * @tc.name: CloudCursorTest001
+ * @tc.desc: Init different asset name between local and cloud, then sync to test download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DISABLED_CloudCursorTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init data and sync
+     * @tc.expected: step1. return ok.
+     */
+    int64_t paddingSize = 1;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, true);
+    InsertCloudTableRecord(0, localCount, paddingSize, true);
+    callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. the cursor does not increase during upload, the cursor will increase during download
+     * although it is unTrackerTable
+     * @tc.expected: step2. return ok.
+     */
+    string sql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName1 + "_log";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int64_t index = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        EXPECT_EQ(static_cast<int64_t>(sqlite3_column_int64(stmt, 0)), ++index);
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    CloseDb();
+}
 }
 #endif // RELATIONAL_STORE
