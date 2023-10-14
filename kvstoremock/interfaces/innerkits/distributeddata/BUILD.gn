@@ -144,7 +144,8 @@ ohos_shared_library("distributeddata_inner_mock") {
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src",
       "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     ]
-    deps += [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
+    deps +=
+        [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
