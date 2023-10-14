@@ -365,9 +365,6 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(sqlite3 
 int SQLiteSingleVerRelationalStorageExecutor::CreateTempSyncTrigger(const TrackerTable &trackerTable)
 {
     int errCode = E_OK;
-    if (trackerTable.IsEmpty()) {
-        return errCode;
-    }
     std::vector<std::string> dropSql = trackerTable.GetDropTempTriggerSql();
     for (const auto &sql: dropSql) {
         errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);

@@ -25,11 +25,11 @@ int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const Table
         sqls.emplace_back(insertTrigger);
     }
     std::string updateTrigger = GetUpdateTrigger(table, identity);
-    if (!insertTrigger.empty()) {
+    if (!updateTrigger.empty()) {
         sqls.emplace_back(updateTrigger);
     }
     std::string deleteTrigger = GetDeleteTrigger(table, identity);
-    if (!insertTrigger.empty()) {
+    if (!deleteTrigger.empty()) {
         sqls.emplace_back(deleteTrigger);
     }
     // add insert,update,delete trigger

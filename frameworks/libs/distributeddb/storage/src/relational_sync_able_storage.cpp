@@ -1335,9 +1335,7 @@ int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableNam
     }
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
     if (trackerTable.IsEmpty()) {
-        // This table is not a tracker table
-        ReleaseHandle(handle);
-        return errCode;
+        trackerTable.SetTableName(tableName);
     }
     errCode = handle->CreateTempSyncTrigger(trackerTable);
     ReleaseHandle(handle);

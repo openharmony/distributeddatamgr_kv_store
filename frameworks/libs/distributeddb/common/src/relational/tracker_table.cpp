@@ -145,8 +145,10 @@ const std::string TrackerTable::GetTempUpdateTriggerSql() const
     sql += " cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
     sql += "FROM " + DBConstant::RELATIONAL_PREFIX + tableName_ + "_log" + ") WHERE ";
     sql += " data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
-    sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql();
-    sql += ");\nEND;";
+    if (!IsEmpty()) {
+        sql += "SELECT server_observer('" + tableName_ + "', " + GetDiffTrackerValSql() + ");";
+    }
+    sql += "\nEND;";
     return sql;
 }
 
