@@ -1259,14 +1259,14 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure007, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, DB_ERROR);
+            EXPECT_EQ(status, ALREADY_SET);
         }
         status = g_nbObserverDelegate->RegisterObserver(KEY_1,
             OBSERVER_CHANGES_NATIVE | OBSERVER_CHANGES_FOREIGN, &observerSync);
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, DB_ERROR);
+            EXPECT_EQ(status, ALREADY_SET);
         }
     }
 
@@ -1346,7 +1346,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure008, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, DB_ERROR);
+            EXPECT_EQ(status, ALREADY_SET);
         }
     }
 
@@ -1435,7 +1435,7 @@ HWTEST_F(DistributeddbNbObserverTest, Pressure009, TestSize.Level1)
         if (opCnt == NB_OPERATION_CNT_START) {
             EXPECT_EQ(status, OK);
         } else {
-            EXPECT_EQ(status, DB_ERROR);
+            EXPECT_EQ(status, ALREADY_SET);
         }
     }
 
