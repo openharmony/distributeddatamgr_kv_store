@@ -14,7 +14,7 @@
  */
 
 #include "cloud_sync_log_table_manager.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 
 namespace DistributedDB {
