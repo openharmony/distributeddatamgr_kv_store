@@ -99,9 +99,6 @@ public:
 
     virtual std::string GetIdentify() const = 0;
 
-    virtual int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
-        std::vector<std::string> &gid) = 0;
-
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
 };
 }

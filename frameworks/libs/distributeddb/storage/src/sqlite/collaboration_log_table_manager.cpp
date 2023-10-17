@@ -107,7 +107,7 @@ std::string CollaborationLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_sys_time(0)";
-    deleteTrigger += " WHERE data_key = OLD." +  std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
+    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     deleteTrigger += "END;";
     return deleteTrigger;
 }

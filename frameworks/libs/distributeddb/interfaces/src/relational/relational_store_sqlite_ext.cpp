@@ -954,6 +954,7 @@ int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
     int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("[SaveDeleteFlagToDB] prepare statement failed, %d", errCode);
+        (void)ResetStatement(statement);
         return -E_ERROR;
     }
 

@@ -1291,7 +1291,8 @@ int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::stri
     if (execCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) { // The table in schema was dropped
         onceDropped = true;
         return E_OK;
-    } else if (execCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+    }
+    if (execCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
         std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
         Key key;
         DBCommon::StringToVector(keyStr, key);
@@ -1309,9 +1310,8 @@ int SQLiteSingleVerRelationalStorageExecutor::IsTableOnceDropped(const std::stri
             LOGE("[IsTableOnceDropped] query is table dropped failed, %d", errCode);
             return errCode;
         }
-    } else {
-        return execCode;
     }
+    return execCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanResourceForDroppedTable(const std::string &tableName)

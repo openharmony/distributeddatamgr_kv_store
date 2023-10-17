@@ -472,6 +472,7 @@ int QuerySyncObject::TransformValueToType(const QueryObjNode &objNode, std::vect
                 types.emplace_back(value.doubleValue);
                 break;
             case QueryValueType::VALUE_TYPE_INVALID:
+            default:
                 return -E_INVALID_ARGS;
         }
     }

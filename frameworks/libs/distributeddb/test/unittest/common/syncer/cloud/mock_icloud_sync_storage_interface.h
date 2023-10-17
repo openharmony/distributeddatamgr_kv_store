@@ -46,7 +46,6 @@ public:
     MOCK_METHOD1(SetLogTriggerStatus, int(bool));
     MOCK_METHOD2(FillCloudGidAndAsset, int(OpType, const CloudSyncData &));
     MOCK_CONST_METHOD0(GetIdentify, std::string());
-    MOCK_METHOD3(GetCloudDataGid, int(const QuerySyncObject &, Timestamp, std::vector<std::string> &));
     MOCK_METHOD1(CheckQueryValid, int(const QuerySyncObject &));
 };
 

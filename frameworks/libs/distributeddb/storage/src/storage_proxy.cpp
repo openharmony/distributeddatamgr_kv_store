@@ -414,13 +414,4 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
     }
     return cloudMetaData_->CleanWaterMark(tableName);
 }
-
-int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
-{
-    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    return store_->GetCloudDataGid(query, beginTime, gid);
-}
 }

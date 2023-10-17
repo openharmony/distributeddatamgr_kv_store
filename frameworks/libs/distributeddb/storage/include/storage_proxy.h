@@ -98,8 +98,6 @@ public:
     std::string GetIdentify() const;
 
     int CleanWaterMark(const TableName &tableName);
-
-    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
 protected:
     void Init();
 
