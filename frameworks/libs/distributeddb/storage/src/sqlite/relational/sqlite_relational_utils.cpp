@@ -290,6 +290,16 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
     int errCode = E_OK;
     switch (sqlite3_column_type(stmt, cid)) {
         case SQLITE_INTEGER: {
+            const char *declType = sqlite3_column_decltype(stmt, cid);
+            if (declType == nullptr) {
+                typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
+                break;
+            }
+            if (strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOL.c_str()) == 0 ||
+                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN.c_str()) == 0) {
+                typeVal = static_cast<bool>(sqlite3_column_int(stmt, cid));
+                break;
+            }
             typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
             break;
         }

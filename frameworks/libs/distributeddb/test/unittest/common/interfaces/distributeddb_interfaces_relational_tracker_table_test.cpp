@@ -1409,6 +1409,46 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql007, TestS
 }
 
 /**
+  * @tc.name: ExecuteSql008
+  * @tc.desc: Test the ExecSql interface for bool type results
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init db data
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    uint64_t num = 10;
+    for (size_t i = 0; i < num; i++) {
+        string sql = "INSERT OR REPLACE INTO " + g_tableName1 +
+            " (name, height, married, photo, assert, age) VALUES ('Tom" + std::to_string(i) +
+            "', '175.8', '0', '', '' , '18');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    }
+
+    /**
+     * @tc.steps:step2. check if the result is of bool type
+     * @tc.expected: step2. Return OK.
+     */
+    SqlCondition condition;
+    condition.sql = "select * from " + g_tableName1;
+    std::vector<VBucket> records;
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    EXPECT_EQ(records.size(), num);
+    EXPECT_NE(records[0].find("married"), records[0].end());
+    if (records[0].find("married") != records[0].end()) {
+        Type married = records[0].find("married")->second;
+        EXPECT_TRUE(married.index() == TYPE_INDEX<bool>);
+    }
+    CloseStore();
+}
+
+/**
   * @tc.name: ExecuteSql010
   * @tc.desc: Test ExecuteSql with temp table
   * @tc.type: FUNC
