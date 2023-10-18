@@ -399,8 +399,9 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
+    bool isUpgrade = !tracker.GetTrackerTable(schema.tableName).IsEmpty();
     tracker.InsertTrackerSchema(schema);
-    errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName));
+    errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
     if (errCode != E_OK) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);

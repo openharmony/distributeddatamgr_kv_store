@@ -1056,6 +1056,46 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
 }
 
 /**
+  * @tc.name: TrackerTableTest020
+  * @tc.desc: Test drop and rebuild table in same delegate
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable and init data
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    uint64_t num = 10;
+    BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
+
+    /**
+     * @tc.steps:step2. drop and rebuild table, then SetTrackerTable
+     * @tc.expected: step2. Return OK.
+     */
+    std::string sql = "drop table if exists " + g_tableName2;
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+
+    /**
+     * @tc.steps:step3. check the extend_field and cursor is null
+     * @tc.expected: step3. Return OK.
+     */
+    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log where extend_field is NULL " +
+        " AND cursor is NULL";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(num + num), nullptr), SQLITE_OK);
+    CloseStore();
+}
+
+/**
   * @tc.name: TrackerTableTest021
   * @tc.desc: Test non distributed table delete table and reopen db
   * @tc.type: FUNC
@@ -1077,6 +1117,55 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest021,
 HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest022, TestSize.Level0)
 {
     CheckDropTableAndReopenDb(true);
+}
+
+/**
+  * @tc.name: TrackerTableTest020
+  * @tc.desc: Test drop and rebuild table,then insert data and set tracker table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable and init data
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    uint64_t num = 10;
+    BatchInsertTableName2Data(num);
+    BatchDeleteTableName2Data(num);
+
+    /**
+     * @tc.steps:step2. drop and rebuild table,then insert data and set tracker table
+     * @tc.expected: step2. Return OK.
+     */
+    std::string sql = "drop table if exists " + g_tableName2;
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
+    BatchInsertTableName2Data(num);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+
+    /**
+     * @tc.steps:step3. query cursor
+     * @tc.expected: step3. Return OK.
+     */
+    string querySql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log";
+    sqlite3_stmt *stmt = nullptr;
+    int index = 0;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string cursorVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, cursorVal), E_OK);
+        EXPECT_EQ(cursorVal, std::to_string(++index));
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    CloseStore();
 }
 
 /**

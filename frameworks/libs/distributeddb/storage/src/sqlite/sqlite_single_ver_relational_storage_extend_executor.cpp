@@ -248,7 +248,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable)
+int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade)
 {
     TableInfo table;
     table.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
@@ -264,6 +264,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateTrackerTable(const TrackerTa
             return errCode;
         }
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, "");
+        if (isUpgrade) {
+            errCode = CleanExtendAndCursorForDeleteData(dbHandle_, table.GetTableName());
+            if (errCode != E_OK) {
+                LOGE("clean tracker log info for deleted data failed. %d", errCode);
+                return errCode;
+            }
+        }
         errCode = GeneLogInfoForExistedData(dbHandle_, trackerTable.GetTableName(), calPrimaryKeyHash, table);
         if (errCode != E_OK) {
             LOGE("general tracker log info for existed data failed. %d", errCode);
@@ -351,8 +358,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradedLogForExistedData(sqlite3 
         LOGE("Upgrade log for extend field failed.");
         return errCode;
     }
-    sql = "UPDATE " + logTable + " SET cursor = (SELECT (SELECT MAX(cursor) from " + logTable + ") + " +
-        std::string(DBConstant::SQLITE_INNER_ROWID) +
+    sql = "UPDATE " + logTable + " SET cursor = (SELECT (SELECT CASE WHEN MAX(cursor) IS NULL THEN 0 ELSE"
+        " MAX(cursor) END from " + logTable + ") + " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         " FROM " + tableInfo.GetTableName() + " WHERE " + tableInfo.GetTableName() + "." +
         std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + logTable + ".data_key);";
     errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
@@ -450,5 +457,18 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
     SQLiteUtils::ResetStatement(statement, true, ret);
     return errCode == E_OK ? ret : errCode;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(sqlite3 *db,
+    const std::string &tableName)
+{
+    std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
+    std::string sql = "UPDATE " + logTable + " SET extend_field = NULL, cursor = NULL where flag&0x01=0x01;";
+    int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
+    if (errCode != E_OK) {
+        LOGE("update extend field and cursor failed. %d", errCode);
+    }
+    return errCode;
+}
+
 } // namespace DistributedDB
 #endif
