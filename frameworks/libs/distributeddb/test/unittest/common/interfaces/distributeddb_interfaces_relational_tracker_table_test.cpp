@@ -180,6 +180,60 @@ namespace {
         }
     }
 
+    void CheckDropTableAndReopenDb(bool isDistributed)
+    {
+        /**
+         * @tc.steps:step1. SetTrackerTable, init data and drop table
+         * @tc.expected: step1. Return OK.
+         */
+        CreateMultiTable();
+        OpenStore();
+        if (isDistributed) {
+            EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+        }
+        TrackerSchema schema = g_normalSchema1;
+        EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+        uint64_t num = 10;
+        BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
+        std::string sql = "drop table if exists " + g_tableName2;
+        EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
+        CloseStore();
+
+        /**
+         * @tc.steps:step2. reopen db, check log table
+         * @tc.expected: step2. Return OK.
+         */
+        OpenStore();
+        sql = "select count(*) from sqlite_master where name = '" + DBConstant::RELATIONAL_PREFIX + g_tableName2 +
+            "_log'";
+        EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+            reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+
+        /**
+         * @tc.steps:step3. check tracker schema
+         * @tc.expected: step3. Return OK.
+         */
+        const Key schemaKey(DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.begin(),
+            DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY.end());
+        sql = "SELECT value FROM " + DBConstant::RELATIONAL_PREFIX + "metadata WHERE key=?;";
+        sqlite3_stmt *stmt = nullptr;
+        EXPECT_EQ(SQLiteUtils::GetStatement(g_db, sql, stmt), E_OK);
+        EXPECT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, schemaKey, false), E_OK);
+        Value schemaVal;
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            SQLiteUtils::GetColumnBlobValue(stmt, 0, schemaVal);
+        }
+        EXPECT_TRUE(schemaVal.size() != 0);
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        std::string schemaStr;
+        DBCommon::VectorToString(schemaVal, schemaStr);
+        RelationalSchemaObject schemaObject;
+        EXPECT_EQ(schemaObject.ParseFromTrackerSchemaString(schemaStr), E_OK);
+        EXPECT_EQ(schemaObject.GetTrackerTable(g_tableName2).IsEmpty(), true);
+        CloseStore();
+    }
+
     class DistributedDBInterfacesRelationalTrackerTableTest : public testing::Test {
     public:
         static void SetUpTestCase(void);
@@ -999,6 +1053,30 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num / g_half), nullptr), SQLITE_OK);
     CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest021
+  * @tc.desc: Test non distributed table delete table and reopen db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest021, TestSize.Level0)
+{
+    CheckDropTableAndReopenDb(false);
+}
+
+/**
+  * @tc.name: TrackerTableTest022
+  * @tc.desc: Test distributed table delete table and reopen db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest022, TestSize.Level0)
+{
+    CheckDropTableAndReopenDb(true);
 }
 
 /**

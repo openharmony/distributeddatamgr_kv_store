@@ -472,17 +472,27 @@ int SQLiteSingleRelationalStorageEngine::GetOrInitTrackerSchemaFromMeta()
         ReleaseExecutor(handle);
         return errCode;
     }
-    for (const auto &iter: trackerSchema.GetTrackerTables()) {
+    const TableInfoMap tableInfoMap = trackerSchema.GetTrackerTables();
+    for (const auto &iter: tableInfoMap) {
         TableInfo tableInfo;
         errCode = handle->AnalysisTrackerTable(iter.second.GetTrackerTable(), tableInfo);
-        if (errCode != E_OK) {
+        if (errCode == -E_NOT_FOUND) {
+            const std::string trackerTableName = iter.second.GetTrackerTable().GetTableName();
+            errCode = CleanTrackerDeviceTable({ trackerTableName }, trackerSchema, handle);
+            if (errCode != E_OK) {
+                LOGE("cancel tracker table failed during db opening. %d", errCode);
+                ReleaseExecutor(handle);
+                return errCode;
+            }
+        } else if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+            LOGE("the tracker schema does not match the tracker schema. %d", errCode);
             ReleaseExecutor(handle);
             return errCode;
         }
     }
     trackerSchema_ = trackerSchema;
     ReleaseExecutor(handle);
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteSingleRelationalStorageEngine::SaveTrackerSchema()
@@ -531,6 +541,30 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
     }
     errCode = handle->CleanTrackerData(tableName, cursor);
     ReleaseExecutor(handle);
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vector<std::string> &tableNames,
+    RelationalSchemaObject &trackerSchemaObj, SQLiteSingleVerRelationalStorageExecutor *&handle)
+{
+    std::vector<std::string> missingTrackerTables;
+    int errCode = handle->CheckAndCleanDistributedTable(tableNames, missingTrackerTables);
+    if (errCode != E_OK) {
+        LOGE("Check tracker table failed. %d", errCode);
+        return errCode;
+    }
+    if (missingTrackerTables.empty()) {
+        return E_OK;
+    }
+    for (const auto &tableName : missingTrackerTables) {
+        TrackerSchema schema;
+        schema.tableName = tableName;
+        trackerSchemaObj.RemoveTrackerSchema(schema);
+    }
+    errCode = SaveTrackerSchemaToMetaTable(handle, trackerSchemaObj); // save schema to meta_data
+    if (errCode != E_OK) {
+        LOGE("Save tracker schema to metaTable failed. %d", errCode);
+    }
     return errCode;
 }
 }

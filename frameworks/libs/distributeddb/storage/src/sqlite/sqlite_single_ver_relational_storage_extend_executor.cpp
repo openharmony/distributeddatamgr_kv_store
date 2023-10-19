@@ -237,7 +237,7 @@ int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const Tracker
 {
     int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, trackerTable.GetTableName(), tableInfo);
     if (errCode != E_OK) {
-        LOGE("analysis table schema failed. %d", errCode);
+        LOGW("analysis table schema failed. %d", errCode);
         return errCode;
     }
     tableInfo.SetTrackerTable(trackerTable);

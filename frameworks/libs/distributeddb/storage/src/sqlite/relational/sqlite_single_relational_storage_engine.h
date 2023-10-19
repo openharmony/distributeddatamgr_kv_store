@@ -70,6 +70,9 @@ private:
 
     int CreateRelationalMetaTable(sqlite3 *db);
 
+    int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
+        SQLiteSingleVerRelationalStorageExecutor *&handle);
+
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;
     mutable std::mutex schemaMutex_;
