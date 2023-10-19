@@ -327,7 +327,7 @@ int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type 
 {
     const char *declType = sqlite3_column_decltype(stmt, cid);
     int errCode = E_OK;
-    if (strcasecmp(declType, CloudDbConstant::ASSET) == 0) {
+    if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSET) == 0) {
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
         if (errCode != E_OK) {
@@ -339,7 +339,7 @@ int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type 
             return errCode;
         }
         typeVal = asset;
-    } else if (strcasecmp(declType, CloudDbConstant::ASSETS) == 0) {
+    } else if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSETS) == 0) {
         std::vector<uint8_t> blobValue;
         errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
         if (errCode != E_OK) {

@@ -1407,3 +1407,43 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql007, TestS
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     CloseStore();
 }
+
+/**
+  * @tc.name: ExecuteSql010
+  * @tc.desc: Test ExecuteSql with temp table
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init db data
+     * @tc.expected: step1. Return OK.
+     */
+    uint64_t num = 10;
+    CreateMultiTable();
+    OpenStore();
+    SqlCondition condition;
+    Bytes photo = { 1, 2, 3, 4 };
+    std::vector<VBucket> records;
+    for (size_t i = 0; i < num; i++) {
+        condition.sql = "INSERT INTO " + g_tableName2
+            + " (name, height, photo, asserts, age) VALUES ('Local" + std::to_string(i) +
+            "', '175.8', ?, 'x', '18');";
+        condition.bindArgs = {photo};
+        EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    }
+
+    /**
+     * @tc.steps:step2. ExecuteSql with transaction
+     * @tc.expected: step2. Return OK.
+     */
+    condition.sql = "create temp table AA as select * from " + g_tableName2;
+    condition.bindArgs = {};
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    condition.sql = "select * from AA";
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    EXPECT_EQ(records.size(), num);
+    CloseStore();
+}
