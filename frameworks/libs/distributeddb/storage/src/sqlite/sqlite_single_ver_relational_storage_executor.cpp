@@ -1721,7 +1721,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     int resetStatementErrCode = E_OK;
     SQLiteUtils::ResetStatement(queryStmt, true, resetStatementErrCode);
     queryStmt = nullptr;
-    return (errCode == E_OK ? resetStatementErrCode : errCode);;
+    return (errCode == E_OK ? resetStatementErrCode : errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
