@@ -45,6 +45,7 @@ public:
     std::string GetIdentify() const;
 
     int SerializeData(Parcel &parcel, uint32_t softWareVersion);
+    void SetCloudGid(const std::vector<std::string> &cloudGid);
     // should call Parcel.IsError() to Get result.
     static int DeSerializeData(Parcel &parcel, QuerySyncObject &queryObj);
     uint32_t CalculateParcelLen(uint32_t softWareVersion) const;
@@ -53,13 +54,27 @@ public:
 
     std::vector<std::string> GetRelationTableNames() const;
 
-    bool GetIsDeviceSyncQuery() const;
+    int GetValidStatus() const;
 
+    bool IsContainQueryNodes() const;
+
+    bool IsInValueOutOfLimit() const;
+
+    static std::vector<QuerySyncObject> GetQuerySyncObject(const Query &query);
+
+    static int ParserQueryNodes(const Bytes &bytes, std::vector<QueryNode> &queryNodes);
 private:
+    explicit QuerySyncObject(const QueryExpression &expression);
     uint32_t CalculateLen() const;
     uint32_t CalculateIdentifyLen() const;
     int GetObjContext(ObjContext &objContext) const;
     uint32_t GetVersion() const;
+
+    static int TransformToQueryNode(const QueryObjNode &objNode, QueryNode &node);
+
+    static int TransformValueToType(const QueryObjNode &objNode, std::vector<Type> &types);
+
+    static int TransformNodeType(const QueryObjNode &objNode, QueryNode &node);
 
     mutable std::string identify_;
 };

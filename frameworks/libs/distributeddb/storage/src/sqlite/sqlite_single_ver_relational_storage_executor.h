@@ -81,6 +81,8 @@ public:
 
     int CheckQueryObjectLegal(const TableInfo &table, QueryObject &query, const std::string &schemaVersion);
 
+    int CheckQueryObjectLegal(const QuerySyncObject &query);
+
     int GetMaxTimestamp(const std::vector<std::string> &tablesName, Timestamp &maxTimestamp) const;
 
     int ExecuteQueryBySqlStmt(const std::string &sql, const std::vector<std::string> &bindArgs, int packetSize,
@@ -92,13 +94,16 @@ public:
 
     int GetExistsDeviceList(std::set<std::string> &devices) const;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
-        int64_t &count);
+    int GetUploadCount(const Timestamp &timestamp, bool isCloudForcePush,
+        QuerySyncObject &query, int64_t &count);
 
     int UpdateCloudLogGid(const CloudSyncData &cloudDataResult);
 
     int GetSyncCloudData(CloudSyncData &cloudDataResult, const uint32_t &maxSize,
         SQLiteSingleVerRelationalContinueToken &token);
+
+    int GetSyncCloudGid(QuerySyncObject &query, const SyncTimeRange &syncTimeRange, bool isCloudForcePushStrategy,
+        std::vector<std::string> &cloudGid);
 
     void SetLocalSchema(const RelationalSchemaObject &localSchema);
 
@@ -241,6 +246,10 @@ private:
     bool IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize, uint32_t maxSize);
 
     int DeleteMissTableTrigger(const std::string &missTable) const;
+
+    int CleanResourceForDroppedTable(const std::string &tableName);
+
+    int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

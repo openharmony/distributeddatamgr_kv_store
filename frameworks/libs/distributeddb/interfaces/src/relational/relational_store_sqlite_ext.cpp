@@ -366,18 +366,6 @@ std::map<std::string, ClientObserver> g_clientObserverMap;
 std::mutex g_clientChangedDataMutex;
 std::map<std::string, ClientChangedData> g_clientChangedDataMap;
 
-void StringToVector(const std::string &src, std::vector<uint8_t> &dst)
-{
-    dst.resize(src.size());
-    dst.assign(src.begin(), src.end());
-}
-
-void VectorToString(const std::vector<uint8_t> &src, std::string &dst)
-{
-    dst.clear();
-    dst.assign(src.begin(), src.end());
-}
-
 int RegisterFunction(sqlite3 *db, const std::string &funcName, int nArg, void *uData, TransactFunc &func)
 {
     if (db == nullptr) {
@@ -415,14 +403,6 @@ void StringToUpper(std::string &str)
     });
 }
 
-void RTrim(std::string &str)
-{
-    if (str.empty()) {
-        return;
-    }
-    str.erase(str.find_last_not_of(" ") + 1);
-}
-
 void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
     // 1 means that the function only needs one parameter, namely key
@@ -441,7 +421,7 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
         std::string colStr(colChar);
         StringToUpper(colStr);
         std::vector<uint8_t> value;
-        StringToVector(colStr, value);
+        value.assign(colStr.begin(), colStr.end());
         errCode = CalcValueHash(value, hashValue);
     } else if (collateType == DistributedDB::CollateType::COLLATE_RTRIM) {
         auto colChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
@@ -449,9 +429,9 @@ void CalcHashKey(sqlite3_context *ctx, int argc, sqlite3_value **argv)
             return;
         }
         std::string colStr(colChar);
-        RTrim(colStr);
+        DBCommon::RTrim(colStr);
         std::vector<uint8_t> value;
-        StringToVector(colStr, value);
+        value.assign(colStr.begin(), colStr.end());
         errCode = CalcValueHash(value, hashValue);
     } else {
             auto keyBlob = static_cast<const uint8_t *>(sqlite3_value_blob(argv[0]));
@@ -594,14 +574,14 @@ void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 int GetHashString(const std::string &str, std::string &dst)
 {
     std::vector<uint8_t> strVec;
-    StringToVector(str, strVec);
+    strVec.assign(str.begin(), str.end());
     std::vector<uint8_t> hashVec;
     int errCode = CalcValueHash(strVec, hashVec);
     if (errCode != E_OK) {
         LOGE("calc hash value fail, %d", errCode);
         return errCode;
     }
-    VectorToString(hashVec, dst);
+    dst.assign(hashVec.begin(), hashVec.end());
     return E_OK;
 }
 
@@ -945,7 +925,7 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
     std::string keyStr = SYNC_TABLE_TYPE + tableName;
     std::vector<uint8_t> key(keyStr.begin(), keyStr.end());
-    sql = "delete from naturalbase_rdb_aux_metadata where key = ?;";
+    sql = "DELETE FROM naturalbase_rdb_aux_metadata WHERE key = ?;";
     sqlite3_stmt *statement = nullptr;
     int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
@@ -962,6 +942,44 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     (void)sqlite3_finalize(statement);
 }
 
+int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
+{
+    std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
+    Key key;
+    DBCommon::StringToVector(keyStr, key);
+    Value value;
+    DBCommon::StringToVector("1", value); // 1 means delete
+    std::string sql = "insert or replace into naturalbase_rdb_aux_metadata values(?, ?);";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("[SaveDeleteFlagToDB] prepare statement failed, %d", errCode);
+        (void)ResetStatement(statement);
+        return -E_ERROR;
+    }
+
+    if (sqlite3_bind_blob(statement, 1, static_cast<const void *>(key.data()), key.size(),
+        SQLITE_TRANSIENT) != SQLITE_OK) {
+        (void)sqlite3_finalize(statement);
+        LOGE("[SaveDeleteFlagToDB] bind key failed, %d", errCode);
+        return -E_ERROR;
+    }
+    if (sqlite3_bind_blob(statement, 2, static_cast<const void *>(value.data()), value.size(), // 2 is column index
+        SQLITE_TRANSIENT) != SQLITE_OK) {
+        (void)sqlite3_finalize(statement);
+        LOGE("[SaveDeleteFlagToDB] bind value failed, %d", errCode);
+        return -E_ERROR;
+    }
+    errCode = sqlite3_step(statement);
+    if (errCode != SQLITE_DONE) {
+        LOGE("[SaveDeleteFlagToDB] step failed, %d", errCode);
+        (void)sqlite3_finalize(statement);
+        return -E_ERROR;
+    }
+    (void)sqlite3_finalize(statement);
+    return E_OK;
+}
+
 void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *schemaName)
 {
     if (db == nullptr || tableName == nullptr || schemaName == nullptr) {
@@ -974,8 +992,12 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
     std::string fileName = std::string(filePath);
     Timestamp dropTimeStamp = TimeHelperManager::GetInstance()->GetTime(fileName, 0, nullptr, nullptr);
     std::string tableStr = std::string(tableName);
-    std::string logTblName = "naturalbase_rdb_aux_" + tableStr + "_log";
+    std::string logTblName = DBCommon::GetLogTableName(tableStr);
     if (CheckTableExists(db, logTblName)) {
+        if (SaveDeleteFlagToDB(db, tableStr) != E_OK) {
+            // the failure of this step does not affect the following step, so we just write log
+            LOGW("[ClearTheLogAfterDropTable] save delete flag failed.");
+        }
         std::string tableType = DEVICE_TYPE;
         if (GetTableSyncType(db, tableStr, tableType) != DistributedDB::DBStatus::OK) {
             return;

@@ -15,6 +15,7 @@
 
 #include "query_sync_object.h"
 
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -94,6 +95,10 @@ QuerySyncObject::QuerySyncObject(const std::list<QueryObjNode> &queryObjNodes, c
 
 QuerySyncObject::QuerySyncObject(const Query &query)
     : QueryObject(query)
+{}
+
+QuerySyncObject::QuerySyncObject(const DistributedDB::QueryExpression &expression)
+    : QueryObject(expression)
 {}
 
 QuerySyncObject::~QuerySyncObject()
@@ -238,6 +243,23 @@ int QuerySyncObject::SerializeData(Parcel &parcel, uint32_t softWareVersion)
     return E_OK;
 }
 
+void QuerySyncObject::SetCloudGid(const std::vector<std::string> &cloudGid)
+{
+    QueryObjNode objNode;
+    objNode.operFlag = QueryObjType::OR;
+    objNode.type = QueryValueType::VALUE_TYPE_NULL;
+    queryObjNodes_.push_back(objNode);
+    objNode.operFlag = QueryObjType::IN;
+    objNode.fieldName = CloudDbConstant::GID_FIELD;
+    objNode.type = QueryValueType::VALUE_TYPE_STRING;
+    for (const auto &gid : cloudGid) {
+        FieldValue fieldValue;
+        fieldValue.stringValue = gid;
+        objNode.fieldValue.emplace_back(fieldValue);
+    }
+    queryObjNodes_.emplace_back(objNode);
+}
+
 namespace {
 int DeSerializeVersion1Data(uint32_t version, Parcel &parcel, std::string &tableName, std::set<Key> &keys)
 {
@@ -367,8 +389,123 @@ std::vector<std::string> QuerySyncObject::GetRelationTableNames() const
     return tables_;
 }
 
-bool QuerySyncObject::GetIsDeviceSyncQuery() const
+int QuerySyncObject::GetValidStatus() const
 {
-    return isWithDeviceSyncQuery_;
+    return validStatus;
+}
+
+bool QuerySyncObject::IsContainQueryNodes() const
+{
+    return !queryObjNodes_.empty();
+}
+
+bool QuerySyncObject::IsInValueOutOfLimit() const
+{
+    for (const auto &queryObjNode : queryObjNodes_) {
+        if ((queryObjNode.operFlag == QueryObjType::IN) &&
+            (queryObjNode.fieldValue.size() > DBConstant::MAX_IN_COUNT)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::vector<QuerySyncObject> QuerySyncObject::GetQuerySyncObject(const DistributedDB::Query &query)
+{
+    std::vector<QuerySyncObject> res;
+    const auto &expressions = QueryObject::GetQueryExpressions(query);
+    for (const auto &item : expressions) {
+        res.push_back(QuerySyncObject(item));
+    }
+    return res;
+}
+
+int QuerySyncObject::ParserQueryNodes(const Bytes &bytes, std::vector<QueryNode> &queryNodes)
+{
+    QuerySyncObject tmp;
+    Bytes parcelBytes = bytes;
+    Parcel parcel(parcelBytes.data(), parcelBytes.size());
+    int errCode = DeSerializeData(parcel, tmp);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (const auto &objNode: tmp.queryObjNodes_) {
+        QueryNode node;
+        errCode = TransformToQueryNode(objNode, node);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        queryNodes.push_back(std::move(node));
+    }
+    return E_OK;
+}
+
+int QuerySyncObject::TransformToQueryNode(const QueryObjNode &objNode, QueryNode &node)
+{
+    int errCode = TransformValueToType(objNode, node.fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[Query] transform value to type failed %d", errCode);
+        return errCode;
+    }
+    node.fieldName = objNode.fieldName;
+    return TransformNodeType(objNode, node);
+}
+
+int QuerySyncObject::TransformValueToType(const QueryObjNode &objNode, std::vector<Type> &types)
+{
+    for (const auto &value: objNode.fieldValue) {
+        switch (objNode.type) {
+            case QueryValueType::VALUE_TYPE_STRING:
+                types.emplace_back(value.stringValue);
+                break;
+            case QueryValueType::VALUE_TYPE_BOOL:
+                types.emplace_back(value.boolValue);
+                break;
+            case QueryValueType::VALUE_TYPE_NULL:
+                types.emplace_back(Nil());
+                break;
+            case QueryValueType::VALUE_TYPE_INTEGER:
+            case QueryValueType::VALUE_TYPE_LONG:
+                types.emplace_back(static_cast<int64_t>(value.integerValue));
+                break;
+            case QueryValueType::VALUE_TYPE_DOUBLE:
+                types.emplace_back(value.doubleValue);
+                break;
+            case QueryValueType::VALUE_TYPE_INVALID:
+            default:
+                return -E_INVALID_ARGS;
+        }
+    }
+    return E_OK;
+}
+
+int QuerySyncObject::TransformNodeType(const QueryObjNode &objNode, QueryNode &node)
+{
+    int errCode = E_OK;
+    switch (objNode.operFlag) {
+        case QueryObjType::IN:
+            node.type = QueryNodeType::IN;
+            break;
+        case QueryObjType::OR:
+            node.type = QueryNodeType::OR;
+            break;
+        case QueryObjType::AND:
+            node.type = QueryNodeType::AND;
+            break;
+        case QueryObjType::EQUALTO:
+            node.type = QueryNodeType::EQUAL_TO;
+            break;
+        case QueryObjType::BEGIN_GROUP:
+            node.type = QueryNodeType::BEGIN_GROUP;
+            break;
+        case QueryObjType::END_GROUP:
+            node.type = QueryNodeType::END_GROUP;
+            break;
+        default:
+            LOGE("[Query] not support type %d", static_cast<int>(objNode.operFlag));
+            errCode = -E_NOT_SUPPORT;
+            node.type = QueryNodeType::ILLEGAL;
+    }
+    return errCode;
 }
 } // namespace DistributedDB

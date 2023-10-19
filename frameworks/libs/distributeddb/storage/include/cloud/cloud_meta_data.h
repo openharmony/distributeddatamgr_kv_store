@@ -48,7 +48,7 @@ private:
 
     int ReadMarkFromMeta(const TableName &tableName);
     int WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark);
-    int SerializeMark(Timestamp localMark, std::string &cloudMark, Value &blobMeta);
+    int SerializeMark(const Timestamp localMark, const std::string &cloudMark, Value &blobMeta);
     int DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue);
     Key GetPrefixTableName(const TableName &tableName);
 

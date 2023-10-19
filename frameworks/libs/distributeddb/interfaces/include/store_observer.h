@@ -35,7 +35,7 @@ enum ChangedDataType : uint32_t {
 
 struct ChangedData {
     std::string tableName;
-    ChangedDataType type;
+    ChangedDataType type = DATA;
     // CLOUD_COOPERATION mode, primaryData store primary keys
     // primaryData store row id if have no data
     std::vector<std::vector<Type>> primaryData[OP_BUTT];

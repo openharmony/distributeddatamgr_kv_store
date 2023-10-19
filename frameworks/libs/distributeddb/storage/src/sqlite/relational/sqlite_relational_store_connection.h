@@ -51,8 +51,7 @@ public:
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
-    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) override;
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 

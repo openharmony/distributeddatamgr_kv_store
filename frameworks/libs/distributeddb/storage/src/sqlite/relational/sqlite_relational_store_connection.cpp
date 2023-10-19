@@ -341,8 +341,7 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     return ret;
 }
 
-int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-    const SyncProcessCallback &onProcess, int64_t waitTime)
+int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -358,7 +357,7 @@ int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &device
         }
         IncObjRef(this);
     }
-    int errCode = store->Sync(devices, mode, query, onProcess, waitTime);
+    int errCode = store->Sync(option, onProcess);
     DecObjRef(this);
     return errCode;
 }

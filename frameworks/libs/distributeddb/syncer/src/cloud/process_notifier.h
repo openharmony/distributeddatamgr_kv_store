@@ -30,8 +30,12 @@ public:
         bool notifyWhenError = false);
 
     std::vector<std::string> GetDevices() const;
+
+    uint32_t GetUploadBatchIndex(const std::string &tableName) const;
+
+    uint32_t GetLastUploadSuccessCount(const std::string &tableName) const;
 protected:
-    std::mutex processMutex_;
+    mutable std::mutex processMutex_;
     SyncProcess syncProcess_;
     std::vector<std::string> devices_;
     ICloudSyncer *syncer_;

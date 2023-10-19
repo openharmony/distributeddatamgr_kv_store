@@ -18,6 +18,7 @@
 
 #include "cloud/cloud_db_types.h"
 #include "data_transformer.h"
+#include "query_sync_object.h"
 #include "sqlite_utils.h"
 #include "store_observer.h"
 
@@ -64,15 +65,18 @@ public:
 
     virtual int Rollback() = 0;
 
-    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, bool isCloudForcePush,
+    virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) = 0;
 
     virtual int FillCloudGid(const CloudSyncData &data) = 0;
 
-    virtual int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
 
     virtual int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
+
+    virtual int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+        bool isCloudForcePush, std::vector<std::string> &cloudGid) = 0;
 
     virtual int ReleaseCloudDataToken(ContinueToken &continueStmtToken) = 0;
 
@@ -94,6 +98,8 @@ public:
     virtual int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) = 0;
 
     virtual std::string GetIdentify() const = 0;
+
+    virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
 };
 }
 

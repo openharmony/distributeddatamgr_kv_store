@@ -55,35 +55,23 @@ void VirtualCloudSyncer::SetDownloadFunc(const std::function<int()> &function)
 
 void VirtualCloudSyncer::Notify(bool notifyIfError)
 {
-    TaskId currentTaskId;
-    {
-        std::lock_guard<std::mutex> autoLock(contextLock_);
-        currentTaskId = currentContext_.currentTaskId;
-    }
-    CloudTaskInfo taskInfo;
-    {
-        std::lock_guard<std::mutex> autoLock(queueLock_);
-        taskInfo = cloudTaskInfos_[currentTaskId];
-    }
-    std::lock_guard<std::mutex> autoLock(contextLock_);
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    CloudTaskInfo taskInfo = cloudTaskInfos_[currentContext_.currentTaskId];
     currentContext_.notifier->NotifyProcess(taskInfo, {}, notifyIfError);
 }
 
 size_t VirtualCloudSyncer::GetQueueCount()
 {
-    std::lock_guard<std::mutex> autoLock(queueLock_);
+    std::lock_guard<std::mutex> autoLock(dataLock_);
     return taskQueue_.size();
 }
 
 void VirtualCloudSyncer::SetCurrentTaskInfo(const SyncProcessCallback &callback,
     CloudSyncer::TaskId taskId)
 {
-    {
-        std::lock_guard<std::mutex> autoContextLock(contextLock_);
-        currentContext_.currentTaskId = taskId;
-        currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
-    }
-    std::lock_guard<std::mutex> autoLock(queueLock_);
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    currentContext_.currentTaskId = taskId;
+    currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
     CloudTaskInfo taskInfo;
     taskInfo.callback = callback;
     cloudTaskInfos_[taskId] = taskInfo;

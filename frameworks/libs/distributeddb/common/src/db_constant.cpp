@@ -72,7 +72,6 @@ const std::string DBConstant::LOG_POSTFIX = "_log";
 
 const std::string DBConstant::LOG_TABLE_VERSION_1 = "1.0";
 const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
-const char *LOG_TABLE_VERSION_3 = "3.0";
 const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = "4.0";
 
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";

@@ -245,6 +245,7 @@ ohos_source_set("src_file") {
     "../syncer/src/cloud/cloud_db_proxy.cpp",
     "../syncer/src/cloud/cloud_force_pull_strategy.cpp",
     "../syncer/src/cloud/cloud_force_push_strategy.cpp",
+    "../syncer/src/cloud/cloud_locker.cpp",
     "../syncer/src/cloud/cloud_merge_strategy.cpp",
     "../syncer/src/cloud/cloud_sync_tag_assets.cpp",
     "../syncer/src/cloud/cloud_sync_utils.cpp",

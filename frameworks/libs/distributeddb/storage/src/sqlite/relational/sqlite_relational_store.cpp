@@ -952,47 +952,149 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
     return storageEngine_->ChkSchema(tableName);
 }
 
-int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMode mode,
-    const Query &query, const SyncProcessCallback &onProcess, int64_t waitTime)
+int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    int errCode = CheckBeforeSync(option);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    CloudSyncer::CloudTaskInfo info;
+    FillSyncInfo(option, onProcess, info);
+    return cloudSyncer_->Sync(info);
+}
+
+int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
 {
     if (cloudSyncer_ == nullptr) {
         LOGE("[RelationalStore] cloudSyncer was not initialized when sync");
         return -E_INVALID_DB;
     }
-    QuerySyncObject querySyncObject(query);
-    if (querySyncObject.GetIsDeviceSyncQuery()) {
-        LOGE("[RelationalStore] cloudSyncer was not support other query");
+    if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = CheckQueryValid(option.priorityTask, option.query);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    SecurityOption securityOption;
+    errCode = storageEngine_->GetSecurityOption(securityOption);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (errCode == E_OK && securityOption.securityLabel == S4) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CheckQueryValid(bool priorityTask, const Query &query)
+{
+    QuerySyncObject syncObject(query);
+    int errCode = syncObject.GetValidStatus();
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] query is invalid or not support %d", errCode);
+        return errCode;
+    }
+    std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(query);
+    if (!priorityTask && !object.empty()) {
+        LOGE("[RelationalStore] not support normal sync with query");
         return -E_NOT_SUPPORT;
     }
-    const auto tableNames = querySyncObject.GetRelationTableNames();
+    const auto tableNames = syncObject.GetRelationTableNames();
+    if (priorityTask && !tableNames.empty()) {
+        LOGE("[RelationalStore] not support priority sync with from tables");
+        return -E_NOT_SUPPORT;
+    }
+    for (const auto &tableName : tableNames) {
+        QuerySyncObject querySyncObject;
+        querySyncObject.SetTableName(tableName);
+        object.push_back(querySyncObject);
+    }
+    std::vector<std::string> syncTableNames;
+    for (const auto &item : object) {
+        std::string tableName = item.GetRelationTableName();
+        syncTableNames.emplace_back(tableName);
+    }
+    errCode = CheckTableName(syncTableNames);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CheckObjectValid(priorityTask, object);
+    return errCode;
+}
+
+int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object)
+{
+    int errCode = E_OK;
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    for (const auto &item : object) {
+        if (priorityTask && !item.IsContainQueryNodes()) {
+            LOGE("[RelationalStore] not support priority sync with full table");
+            return -E_INVALID_ARGS;
+        }
+        errCode = storageEngine_->CheckQueryValid(item);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!priorityTask) {
+            continue;
+        }
+        if (!item.IsInValueOutOfLimit()) {
+            LOGE("[RelationalStore] not support priority sync in count out of limit");
+            return -E_MAX_LIMITS;
+        }
+        std::string tableName = item.GetRelationTableName();
+        TableInfo tableInfo = localSchema.GetTable(tableName);
+        if (!tableInfo.Empty()) {
+            const std::map<int, FieldName>& primaryKeyMap = tableInfo.GetPrimaryKey();
+            errCode = item.CheckPrimaryKey(primaryKeyMap);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStore::CheckTableName(const std::vector<std::string> &tableNames)
+{
     if (tableNames.empty()) {
         LOGE("[RelationalStore] sync with empty table");
         return -E_INVALID_ARGS;
     }
-    SecurityOption option;
-    int errCode = storageEngine_->GetSecurityOption(option);
-    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
-        return -E_SECURITY_OPTION_CHECK_ERROR;
-    }
-    if (errCode == E_OK && option.securityLabel == S4) {
-        return -E_SECURITY_OPTION_CHECK_ERROR;
-    }
     for (const auto &table: tableNames) {
-        errCode = ChkSchema(table);
+        int errCode = ChkSchema(table);
         if (errCode != E_OK) {
             LOGE("[RelationalStore] schema check failed when sync");
             return errCode;
         }
     }
-    std::vector<std::string> syncTable;
-    std::set<std::string> addTable;
-    for (const auto &table: tableNames) {
-        if (addTable.find(table) == addTable.end()) {
-            addTable.insert(table);
-            syncTable.push_back(table);
+    return E_OK;
+}
+
+void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    CloudSyncer::CloudTaskInfo &info)
+{
+    auto syncObject = QuerySyncObject::GetQuerySyncObject(option.query);
+    if (syncObject.empty()) {
+        QuerySyncObject querySyncObject(option.query);
+        info.table = querySyncObject.GetRelationTableNames();
+        for (const auto &item: info.table) {
+            QuerySyncObject object(Query::Select());
+            object.SetTableName(item);
+            info.queryList.push_back(object);
+        }
+    } else {
+        for (auto &item: syncObject) {
+            info.table.push_back(item.GetRelationTableName());
+            info.queryList.push_back(std::move(item));
         }
     }
-    return cloudSyncer_->Sync(devices, mode, syncTable, onProcess, waitTime);
+    info.devices = option.devices;
+    info.mode = option.mode;
+    info.callback = onProcess;
+    info.timeout = option.waitTime;
+    info.priorityTask = option.priorityTask;
 }
 }
 #endif

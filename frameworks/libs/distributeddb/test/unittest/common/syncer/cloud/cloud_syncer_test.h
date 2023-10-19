@@ -18,6 +18,7 @@
 #include "cloud_merge_strategy.h"
 #include "cloud_syncer.h"
 #include "cloud_syncer_test.h"
+#include "cloud_sync_utils.h"
 #include "mock_iclouddb.h"
 
 namespace DistributedDB {
@@ -94,13 +95,13 @@ public:
     void InitCloudSyncerForSync()
     {
         this->closed_ = false;
-        this->cloudTaskInfos_[this->currentTaskId_].callback = [this](
+        this->cloudTaskInfos_[this->lastTaskId_].callback = [this](
             const std::map<std::string, SyncProcess> &process) {
             if (process.size() == 1u) {
-                process_[this->currentTaskId_] = process.begin()->second;
+                process_[this->lastTaskId_] = process.begin()->second;
             } else {
                 SyncProcess tmpProcess;
-                process_[this->currentTaskId_] = tmpProcess;
+                process_[this->lastTaskId_] = tmpProcess;
             }
         };
     }
@@ -145,7 +146,7 @@ public:
 
     void CallClearCloudSyncData(CloudSyncData& uploadData)
     {
-        this->ClearCloudSyncData(uploadData);
+        CloudSyncUtils::ClearCloudSyncData(uploadData);
     }
 
     int32_t GetUploadSuccessCount(TaskId taskId)
@@ -166,11 +167,6 @@ public:
     void SetMockICloudDB(std::shared_ptr<MockICloudDB> &icloudDB)
     {
         this->cloudDB_.SetCloudDB(icloudDB);
-    }
-
-    void CallDoFinished(TaskId taskId, int errCode, const InnerProcessInfo &processInfo)
-    {
-        DoFinished(taskId,  errCode,  processInfo);
     }
     
     CloudTaskInfo SetAndGetCloudTaskInfo(SyncMode mode, std::vector<std::string> table,

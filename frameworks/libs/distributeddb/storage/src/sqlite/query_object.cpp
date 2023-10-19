@@ -60,6 +60,11 @@ void QueryObject::SetAttrWithQueryObjNodes()
 }
 
 QueryObject::QueryObject(const Query &query)
+    : QueryObject(GetQueryInfo::GetQueryExpression(query))
+{
+}
+
+QueryObject::QueryObject(const QueryExpression &queryExpression)
     : initialized_(false),
       limit_(INVALID_LIMIT),
       offset_(0),
@@ -69,7 +74,7 @@ QueryObject::QueryObject(const Query &query)
       hasInKeys_(false),
       orderByCounts_(0)
 {
-    QueryExpression queryExpressions = GetQueryInfo::GetQueryExpression(query);
+    QueryExpression queryExpressions = queryExpression;
     queryObjNodes_ = queryExpressions.GetQueryExpression();
     SetAttrWithQueryObjNodes();
     isValid_ = queryExpressions.GetErrFlag();
@@ -80,7 +85,7 @@ QueryObject::QueryObject(const Query &query)
     keys_ = queryExpressions.GetKeys();
     sortType_ = static_cast<SortType>(queryExpressions.GetSortType());
     tables_ = queryExpressions.GetTables();
-    isWithDeviceSyncQuery_ = queryExpressions.GetIsDeviceSyncQuery();
+    validStatus = queryExpressions.GetExpressionStatus();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -502,6 +507,46 @@ void QueryObject::SetSortType(SortType sortType)
 SortType QueryObject::GetSortType() const
 {
     return sortType_;
+}
+
+int QueryObject::CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const
+{
+    if (primaryKeyMap.size() == 1 && primaryKeyMap.begin()->second == "rowid") {
+        return -E_NOT_SUPPORT;
+    }
+    std::set<std::string> pkSet;
+    for (const auto &item : primaryKeyMap) {
+        std::string pk = item.second;
+        std::transform(pk.begin(), pk.end(), pk.begin(), ::tolower);
+        pkSet.insert(pk);
+    }
+    std::set<std::string> queryPkSet;
+    for (const auto &queryObjNode : queryObjNodes_) {
+        if (queryObjNode.operFlag != QueryObjType::IN && queryObjNode.operFlag != QueryObjType::EQUALTO) {
+            continue;
+        }
+        std::string field = queryObjNode.fieldName;
+        std::transform(field.begin(), field.end(), field.begin(), ::tolower);
+        if (pkSet.find(field) == pkSet.end()) {
+            LOGE("[Query] query without pk!");
+            return -E_NOT_SUPPORT;
+        }
+        if (queryObjNode.type == QueryValueType::VALUE_TYPE_DOUBLE) {
+            LOGE("[Query] query with pk double!");
+            return -E_NOT_SUPPORT;
+        }
+        queryPkSet.insert(field);
+    }
+    if (queryPkSet.size() != pkSet.size()) {
+        LOGE("[Query] pk count is different! query %zu schema %zu", queryPkSet.size(), pkSet.size());
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
+}
+
+std::vector<QueryExpression> QueryObject::GetQueryExpressions(const Query &query)
+{
+    return GetQueryInfo::GetQueryExpression(query).GetQueryExpressions();
 }
 }
 

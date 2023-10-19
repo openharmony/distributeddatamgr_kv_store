@@ -31,6 +31,7 @@ public:
 
     static constexpr size_t MAX_INKEYS_SIZE = 128;
     static constexpr size_t MAX_SQL_ARGS_COUNT = 100;
+    static constexpr size_t MAX_IN_COUNT = 100;
 
     static constexpr int DB_TYPE_LOCAL = 1;
     static constexpr int DB_TYPE_MULTI_VER = 2;
@@ -125,6 +126,8 @@ public:
 
     static constexpr uint32_t MIN_TIMEOUT = 5000; // 5s
     static constexpr uint32_t MAX_TIMEOUT = 60000; // 60s
+    static constexpr uint32_t MAX_SYNC_TIMEOUT = 300000; // 300s
+    static constexpr int INFINITE_WAIT = -1; // -1 is infinite waiting
 
     static constexpr uint8_t DEFAULT_COMPTRESS_RATE = 100;
 
@@ -167,6 +170,10 @@ public:
     static constexpr uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
 
     static constexpr int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
+
+    static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
+
+    static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H
