@@ -1180,7 +1180,7 @@ void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &
     sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
     sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
     sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
-        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+        " WHERE b.timestamp > ?";
     sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.
 }
 
