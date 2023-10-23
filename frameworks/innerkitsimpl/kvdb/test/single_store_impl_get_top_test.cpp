@@ -56,6 +56,7 @@ void SingleStoreImplGetTopTest::SetUpTestCase(void)
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = true,
         .kvStoreType = KvStoreType::SINGLE_VERSION };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };
     StoreId storeId = { "test_single" }; // define kvstore(database) name.

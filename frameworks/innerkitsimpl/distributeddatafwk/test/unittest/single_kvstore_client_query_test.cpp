@@ -753,6 +753,7 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualTo, TestSize.Le
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId1" };
@@ -817,6 +818,7 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, T
     Options options = { .createIfMissing = true, .encrypt = true, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema = VALID_SCHEMA_STRICT_DEFINE };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = "/data/service/el1/public/database/SingleKvStoreClientQueryTest";
     AppId appId = { "SingleKvStoreClientQueryTest" };
     StoreId storeId = { "SingleKvStoreClientQueryTestStoreId2" };

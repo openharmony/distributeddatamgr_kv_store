@@ -83,6 +83,7 @@ void DistributedKvDataManagerTest::SetUpTestCase(void)
     appId.appId = "ohos.kvdatamanager.test";
     create.createIfMissing = true;
     create.encrypt = false;
+    create.securityLevel = S1;
     create.autoSync = true;
     create.kvStoreType = SINGLE_VERSION;
     create.area = EL1;
@@ -91,6 +92,7 @@ void DistributedKvDataManagerTest::SetUpTestCase(void)
 
     noCreate.createIfMissing = false;
     noCreate.encrypt = false;
+    noCreate.securityLevel = S1;
     noCreate.autoSync = true;
     noCreate.kvStoreType = SINGLE_VERSION;
     noCreate.area = EL1;
@@ -242,6 +244,25 @@ HWTEST_F(DistributedKvDataManagerTest, GetKvStore007, TestSize.Level1)
     ZLOGI("GetKvStore007 begin.");
     std::shared_ptr<SingleKvStore> notExistKvStore;
     Status status = manager.GetSingleKvStore(noCreate, appId, storeId65, notExistKvStore);
+    ASSERT_EQ(status, Status::INVALID_ARGUMENT);
+    EXPECT_EQ(notExistKvStore, nullptr);
+}
+
+/**
+* @tc.name: GetKvStoreInvalidSecurityLevel
+* @tc.desc: Get a SingleKvStore with a 64
+ * -byte storeId, the callback function should receive INVALID_ARGUMENT
+* @tc.type: FUNC
+* @tc.require: SR000IIM2J AR000IIMLL
+* @tc.author: wangkai
+*/
+HWTEST_F(DistributedKvDataManagerTest, GetKvStoreInvalidSecurityLevel, TestSize.Level1)
+{
+    ZLOGI("GetKvStoreInvalidSecurityLevel begin.");
+    std::shared_ptr<SingleKvStore> notExistKvStore;
+    Options invalidOption = create;
+    invalidOption.securityLevel = INVALID_LABEL;
+    Status status = manager.GetSingleKvStore(invalidOption, appId, storeId64, notExistKvStore);
     ASSERT_EQ(status, Status::INVALID_ARGUMENT);
     EXPECT_EQ(notExistKvStore, nullptr);
 }

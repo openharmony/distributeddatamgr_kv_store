@@ -58,6 +58,7 @@ void SingleKvStoreClientTest::SetUpTestCase(void)
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = true,
                         .kvStoreType = KvStoreType::SINGLE_VERSION };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };
     StoreId storeId = { "student_single" }; // define kvstore(database) name.
@@ -405,6 +406,7 @@ HWTEST_F(SingleKvStoreClientTest, TestSchemaStoreC001, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.kvStoreType = KvStoreType::SINGLE_VERSION;
     options.baseDir = "/data/service/el1/public/database/odmf";
@@ -1066,6 +1068,7 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync001, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.kvStoreType = KvStoreType::SINGLE_VERSION;
     options.baseDir = "/data/service/el1/public/database/odmf";
@@ -1094,6 +1097,7 @@ HWTEST_F(SingleKvStoreClientTest, DeviceSync002, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.kvStoreType = KvStoreType::SINGLE_VERSION;
     options.baseDir = "/data/service/el1/public/database/odmf";
@@ -1125,6 +1129,7 @@ HWTEST_F(SingleKvStoreClientTest, DisableCapability, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.kvStoreType = KvStoreType::SINGLE_VERSION;
     options.baseDir = "/data/service/el1/public/database/odmf";

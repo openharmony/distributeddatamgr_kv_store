@@ -40,6 +40,11 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     singleKvStore = nullptr;
+    if (options.securityLevel == INVALID_LABEL) {
+        ZLOGE("invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
+            appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
+        return Status::INVALID_ARGUMENT;
+    }
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;

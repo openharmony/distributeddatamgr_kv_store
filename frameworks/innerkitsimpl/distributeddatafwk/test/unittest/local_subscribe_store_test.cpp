@@ -64,6 +64,7 @@ void LocalSubscribeStoreTest::SetUp(void)
     Options options;
     options.createIfMissing = true;
     options.encrypt = false;  // not supported yet.
+    options.securityLevel = S1;
     options.autoSync = true;  // not supported yet.
     options.kvStoreType = KvStoreType::SINGLE_VERSION;
     options.area = EL1;
