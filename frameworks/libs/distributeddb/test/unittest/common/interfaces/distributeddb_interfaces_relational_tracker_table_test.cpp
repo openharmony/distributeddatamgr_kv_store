@@ -1120,7 +1120,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest022,
 }
 
 /**
-  * @tc.name: TrackerTableTest020
+  * @tc.name: TrackerTableTest023
   * @tc.desc: Test drop and rebuild table,then insert data and set tracker table
   * @tc.type: FUNC
   * @tc.require:
@@ -1165,6 +1165,25 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest024
+  * @tc.desc: Test set tracker table and set extend col as the asset type
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest024, TestSize.Level0)
+{
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema;
+    schema.tableName = g_tableName3;
+    schema.extendColName = EXTEND_COL_NAME3;
+    schema.trackerColNames = { EXTEND_COL_NAME3 };
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), INVALID_ARGS);
     CloseStore();
 }
 
