@@ -21,12 +21,13 @@
 #include <string>
 #include <set>
 
-#include "sqlite3.h"
-
 #include "store_types.h"
 
+typedef struct sqlite3 sqlite3;
+
 struct ClientChangedData {
-    std::set<std::string> tableNames;
+    std::set<std::string> tableNames; // disused,the tableNames will be removed in the next MR
+    std::map<std::string, DistributedDB::ChangeProperties> tableData;
 };
 
 using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>;

@@ -375,5 +375,25 @@ int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::stri
     storeId = properties.GetStringProp(RelationalDBProperties::STORE_ID, "");
     return E_OK;
 }
+
+int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return E_OK;
+}
 }
 #endif

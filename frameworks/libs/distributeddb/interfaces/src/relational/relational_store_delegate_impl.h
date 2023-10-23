@@ -66,6 +66,10 @@ public:
     DBStatus SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     DBStatus Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
+
+    DBStatus SetTrackerTable(const TrackerSchema &schema) override;
+
+    DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

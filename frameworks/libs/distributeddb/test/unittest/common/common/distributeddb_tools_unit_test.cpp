@@ -767,6 +767,16 @@ void RelationalStoreObserverUnitTest::OnChange(
     LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
 }
 
+uint32_t RelationalStoreObserverUnitTest::GetCallbackDetailsType() const
+{
+    return detailsType_;
+}
+
+void RelationalStoreObserverUnitTest::SetCallbackDetailsType(uint32_t type)
+{
+    detailsType_ = type;
+}
+
 void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
 {
     expectedChangedData_[changedData.tableName] = changedData;

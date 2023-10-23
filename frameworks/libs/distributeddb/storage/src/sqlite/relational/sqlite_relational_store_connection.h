@@ -55,6 +55,9 @@ public:
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
+    int SetTrackerTable(const TrackerSchema &schema) override;
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+
 protected:
 
     int Pragma(int cmd, void *parameter) override;
