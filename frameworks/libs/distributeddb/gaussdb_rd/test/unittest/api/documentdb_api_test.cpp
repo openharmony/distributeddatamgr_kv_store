@@ -60,19 +60,14 @@ HWTEST_F(DocumentDBApiTest, OpenDBTest001, TestSize.Level0)
     std::string path = "./document.db";
     GRD_DB *db = nullptr;
     int status = GRD_DBOpen(path.c_str(), nullptr, GRD_DB_OPEN_CREATE, &db);
-    printf("mazhao work here aaa");
     EXPECT_EQ(status, GRD_OK);
     EXPECT_NE(db, nullptr);
     GLOGD("Open DB test 001: status: %d", status);
 
     EXPECT_EQ(GRD_CreateCollection(db, "student", "", 0), GRD_OK);
-    printf("mazhao work here bbb");
     EXPECT_EQ(GRD_UpsertDoc(db, "student", R""({"_id":"10001"})"", R""({"name":"Tom", "age":23})"", 0), 1);
-    printf("mazhao work here ccc");
     EXPECT_EQ(GRD_DropCollection(db, "student", 0), GRD_OK);
-    printf("mazhao work here ddd");
     status = GRD_DBClose(db, GRD_DB_CLOSE);
-    printf("mazhao work here eee");
     EXPECT_EQ(status, GRD_OK);
     db = nullptr;
 
