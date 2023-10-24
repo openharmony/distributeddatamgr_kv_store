@@ -313,7 +313,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecuteSql(const SqlCondition &con
         LOGE("Execute sql failed when prepare stmt");
         return errCode;
     }
-    size_t bindCount = sqlite3_bind_parameter_count(statement);
+    size_t bindCount = static_cast<size_t>(sqlite3_bind_parameter_count(statement));
     if (bindCount > condition.bindArgs.size() || bindCount < condition.bindArgs.size()) {
         LOGE("sql bind args mismatch");
         SQLiteUtils::ResetStatement(statement, true, errCode);

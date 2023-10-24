@@ -1425,14 +1425,15 @@ void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc,
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
 
-    bool isTrackerChange = (sqlite3_value_int(argv[1]) > 0); // 1 is param index
+    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[1])); // 1 is param index
     {
         std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
         auto itTable = g_serverChangedDataMap[fileName].find(tableName);
         if (itTable != g_serverChangedDataMap[fileName].end()) {
-            itTable->second.isTrackedDataChange |= isTrackerChange;
+            itTable->second.isTrackedDataChange =
+                (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
         } else {
-            DistributedDB::ChangeProperties properties = { .isTrackedDataChange = isTrackerChange };
+            DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
             g_serverChangedDataMap[fileName].insert_or_assign(tableName, properties);
         }
     }

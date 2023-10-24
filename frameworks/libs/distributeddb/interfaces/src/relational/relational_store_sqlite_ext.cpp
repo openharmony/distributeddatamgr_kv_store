@@ -620,7 +620,7 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
 
-    bool isTrackerChange = (sqlite3_value_int(argv[3]) > 0); // 3 is param index
+    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[3])); // 3 is param index
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -632,9 +632,10 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
         if (isExistObserver) {
             auto itTable = g_clientChangedDataMap[hashFileName].tableData.find(tableName);
             if (itTable != g_clientChangedDataMap[hashFileName].tableData.end()) {
-                itTable->second.isTrackedDataChange |= isTrackerChange;
+                itTable->second.isTrackedDataChange =
+                    (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
             } else {
-                DistributedDB::ChangeProperties properties = { .isTrackedDataChange = isTrackerChange };
+                DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
                 g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
             }
         }
