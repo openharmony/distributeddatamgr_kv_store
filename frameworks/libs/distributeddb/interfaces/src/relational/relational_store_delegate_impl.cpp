@@ -380,5 +380,10 @@ DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableN
     }
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    return OK;
+}
 } // namespace DistributedDB
 #endif

@@ -1126,6 +1126,11 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
     return DistributedDB::OK;
 }
 
+DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    return DistributedDB::OK;
+}
+
 // hw export the symbols
 #ifdef SQLITE_DISTRIBUTE_RELATIONAL
 #if defined(__GNUC__)

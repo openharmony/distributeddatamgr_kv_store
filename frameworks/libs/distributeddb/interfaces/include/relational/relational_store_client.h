@@ -35,4 +35,6 @@ DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientO
 
 DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db);
 
+DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
+
 #endif // RELATIONAL_STORE_CLIENT_H
