@@ -198,6 +198,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskInfo = cloudTaskInfos_[taskId];
     }
+    storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
     int errCode = LockCloudIfNeed(taskId);
     if (errCode != E_OK) {
         return errCode;

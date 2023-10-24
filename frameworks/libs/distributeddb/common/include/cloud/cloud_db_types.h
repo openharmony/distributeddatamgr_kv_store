@@ -39,6 +39,10 @@ struct CloudSyncData {
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
 };
 
+struct CloudTaskConfig {
+    bool allowLogicDelete = false;
+};
+
 template<typename Tp, typename... Types>
 struct index_of : std::integral_constant<size_t, 0> {};
 

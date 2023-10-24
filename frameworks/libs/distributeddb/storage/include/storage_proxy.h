@@ -101,6 +101,8 @@ public:
 
     int CreateTempSyncTrigger(const std::string &tableName);
     int ClearAllTempSyncTrigger();
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config);
 protected:
     void Init();
 

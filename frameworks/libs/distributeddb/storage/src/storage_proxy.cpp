@@ -436,4 +436,14 @@ int StorageProxy::ClearAllTempSyncTrigger()
     // Clean up all temporary triggers
     return store_->ClearAllTempSyncTrigger();
 }
+
+void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[StorageProxy] fill gid failed with store invalid");
+        return;
+    }
+    store_->SetCloudTaskConfig(config);
+}
 }

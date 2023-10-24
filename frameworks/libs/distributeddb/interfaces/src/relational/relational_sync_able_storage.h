@@ -186,6 +186,8 @@ public:
     int ClearAllTempSyncTrigger() override;
 
     void SetLogicDelete(bool logicDelete);
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -204,6 +206,7 @@ private:
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
 
+    bool IsCurrentLogicDelete() const;
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -228,6 +231,7 @@ private:
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
 
     std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> allowLogicDelete_ = false;
 };
 }  // namespace DistributedDB
 #endif

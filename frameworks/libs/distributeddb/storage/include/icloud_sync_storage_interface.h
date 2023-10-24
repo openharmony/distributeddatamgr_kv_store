@@ -115,6 +115,8 @@ public:
     {
         return E_OK;
     }
+
+    virtual void SetCloudTaskConfig(const CloudTaskConfig &config) = 0;
 };
 }
 

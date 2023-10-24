@@ -1394,5 +1394,16 @@ void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
     logicDelete_ = logicDelete;
     LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
 }
+
+void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    allowLogicDelete_ = config.allowLogicDelete;
+    LOGD("[RelationalSyncAbleStorage] allow logic delete %d", static_cast<int>(config.allowLogicDelete));
+}
+
+bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
+{
+    return allowLogicDelete_ && logicDelete_;
+}
 }
 #endif
