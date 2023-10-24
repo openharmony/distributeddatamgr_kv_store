@@ -383,6 +383,18 @@ DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableN
 
 DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
 {
+    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA) {
+        return NOT_SUPPORT;
+    }
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->Pragma(cmd, pragmaData);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Pragma failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
     return OK;
 }
 } // namespace DistributedDB

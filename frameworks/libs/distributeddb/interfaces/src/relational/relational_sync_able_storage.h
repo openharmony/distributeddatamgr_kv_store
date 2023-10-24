@@ -184,6 +184,8 @@ public:
     int CreateTempSyncTrigger(const std::string &tableName) override;
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
     int ClearAllTempSyncTrigger() override;
+
+    void SetLogicDelete(bool logicDelete);
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -224,6 +226,8 @@ private:
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
+
+    std::atomic<bool> logicDelete_ = false;
 };
 }  // namespace DistributedDB
 #endif

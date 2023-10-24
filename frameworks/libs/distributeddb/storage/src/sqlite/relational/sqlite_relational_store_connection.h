@@ -59,6 +59,7 @@ public:
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
     int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

@@ -97,6 +97,7 @@ public:
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 private:
     void ReleaseResources();
 

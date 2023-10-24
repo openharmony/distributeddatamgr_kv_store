@@ -1144,5 +1144,22 @@ int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_
     }
     return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
 }
+
+int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    if (cmd != LOGIC_DELETE_SYNC_DATA) {
+        return -E_NOT_SUPPORT;
+    }
+    if (pragmaData == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    auto logicDelete = static_cast<bool *>(pragmaData);
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    storageEngine_->SetLogTriggerStatus(logicDelete);
+    return E_OK;
+}
 }
 #endif

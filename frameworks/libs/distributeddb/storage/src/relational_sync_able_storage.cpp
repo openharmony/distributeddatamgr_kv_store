@@ -1388,5 +1388,11 @@ int RelationalSyncAbleStorage::ClearAllTempSyncTrigger()
     }
     return errCode;
 }
+
+void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
+{
+    logicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
+}
 }
 #endif

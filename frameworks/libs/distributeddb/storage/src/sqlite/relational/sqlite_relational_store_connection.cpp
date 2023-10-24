@@ -409,5 +409,15 @@ int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableNa
     }
     return store->CleanTrackerData(tableName, cursor);
 }
+
+int SQLiteRelationalStoreConnection::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->Pragma(cmd, pragmaData);
+}
 }
 #endif
