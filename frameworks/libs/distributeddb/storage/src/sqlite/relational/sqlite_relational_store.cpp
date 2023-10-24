@@ -1158,7 +1158,7 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
         LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    storageEngine_->SetLogTriggerStatus(logicDelete);
+    storageEngine_->SetLogicDelete(logicDelete);
     return E_OK;
 }
 }
