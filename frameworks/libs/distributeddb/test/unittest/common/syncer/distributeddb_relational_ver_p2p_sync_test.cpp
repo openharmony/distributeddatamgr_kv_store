@@ -687,7 +687,7 @@ namespace {
         }
         if (localOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET) ||
             remoteOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET)) {
-            return OK;
+            return SECURITY_OPTION_CHECK_ERROR;
         }
         if (localOption.securityLabel != remoteOption.securityLabel) {
             return SECURITY_OPTION_CHECK_ERROR;

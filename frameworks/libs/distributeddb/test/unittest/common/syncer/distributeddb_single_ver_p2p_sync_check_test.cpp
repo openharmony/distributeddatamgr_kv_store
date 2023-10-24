@@ -127,12 +127,17 @@ void DistributedDBSingleVerP2PSyncCheckTest::SetUp(void)
     g_syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(g_syncInterfaceB != nullptr);
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, g_syncInterfaceB), E_OK);
+    SecurityOption virtualOption;
+    virtualOption.securityLabel = option.secOption.securityLabel;
+    virtualOption.securityFlag = option.secOption.securityFlag;
+    g_syncInterfaceB->SetSecurityOption(virtualOption);
 
     g_deviceC = new (std::nothrow) KvVirtualDevice(DEVICE_C);
     ASSERT_TRUE(g_deviceC != nullptr);
     g_syncInterfaceC = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(g_syncInterfaceC != nullptr);
     ASSERT_EQ(g_deviceC->Initialize(g_communicatorAggregator, g_syncInterfaceC), E_OK);
+    g_syncInterfaceC->SetSecurityOption(virtualOption);
 }
 
 void DistributedDBSingleVerP2PSyncCheckTest::TearDown(void)

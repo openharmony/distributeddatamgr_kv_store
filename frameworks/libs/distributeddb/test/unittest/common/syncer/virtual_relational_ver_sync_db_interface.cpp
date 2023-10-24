@@ -367,7 +367,9 @@ int ObjectData::GetDataValue(const std::string &fieldName, DataValue &value) con
 
 int VirtualRelationalVerSyncDBInterface::GetSecurityOption(SecurityOption &option) const
 {
-    return RuntimeContext::GetInstance()->GetSecurityOption("", option);
+    int errCode = RuntimeContext::GetInstance()->GetSecurityOption("", option);
+    LOGW("virtual get option errCode is %d", errCode);
+    return errCode;
 }
 
 void VirtualRelationalVerSyncDBInterface::ReleaseRemoteQueryContinueToken(ContinueToken &token) const

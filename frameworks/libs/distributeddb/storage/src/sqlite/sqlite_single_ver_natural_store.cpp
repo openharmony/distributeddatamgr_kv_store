@@ -277,7 +277,10 @@ int SQLiteSingleVerNaturalStore::GetSecurityOption(SecurityOption &option) const
         option = SecurityOption();
         return -E_NOT_SUPPORT;
     }
-
+    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
+        LOGI("[GetSecurityOption] Not set api adapter");
+        return -E_NOT_SUPPORT;
+    }
     option.securityLabel = GetDbProperties().GetSecLabel();
     option.securityFlag = GetDbProperties().GetSecFlag();
 
