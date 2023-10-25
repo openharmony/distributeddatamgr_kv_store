@@ -116,7 +116,9 @@ public:
         return E_OK;
     }
 
-    virtual void SetCloudTaskConfig(const CloudTaskConfig &config) = 0;
+    virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
+    {
+    }
 };
 }
 
