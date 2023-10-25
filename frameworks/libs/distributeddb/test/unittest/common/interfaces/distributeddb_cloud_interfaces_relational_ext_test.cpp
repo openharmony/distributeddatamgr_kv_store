@@ -954,4 +954,91 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, 
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
+
+void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t num)
+{
+    for (size_t i = 0; i < num; ++i) {
+        std::string sql = "insert or replace into " + tableName + " VALUES('" + std::to_string(i) + "', 'zhangsan');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    std::string sql = "update " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" + " SET flag = flag | 0x08";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+}
+
+void CheckLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t expectNum)
+{
+    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log"
+        " where flag&0x08=0x08 and flag&0x01=0";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        uint64_t count = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        EXPECT_EQ(count, expectNum);
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    stmt = nullptr;
+    sql = "select count(*) from " + tableName;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        uint64_t count = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        EXPECT_EQ(count, expectNum);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: DropDeleteData001
+ * @tc.desc: Test trigger client observer in tracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    uint64_t num = 10;
+    InitLogicDeleteData(db, tableName, num);
+
+    /**
+     * @tc.steps:step2. db handle is nullptr
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(nullptr, tableName, 0u), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. tableName is empty
+     * @tc.expected: step3. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, "", 0u), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step4. tableName is no exist
+     * @tc.expected: step4. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, tableName + "_", 0u), DB_ERROR);
+
+    /**
+     * @tc.steps:step5. cursor is 0
+     * @tc.expected: step5. return OK.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, tableName, 0u), OK);
+    CheckLogicDeleteData(db, tableName, 0u);
+
+    /**
+     * @tc.steps:step6. init data again, and cursor is 15
+     * @tc.expected: step6. return OK.
+     */
+    uint64_t cursor = 15;
+    InitLogicDeleteData(db, tableName, num);
+    EXPECT_EQ(DropLogicDeletedData(db, tableName, cursor), OK);
+    CheckLogicDeleteData(db, tableName, cursor - num);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
 }

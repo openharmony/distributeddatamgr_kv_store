@@ -20,9 +20,11 @@
 #include <vector>
 
 #include "db_common.h"
+#include "kv_store_errno.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
 #include "runtime_context.h"
+#include "sqlite_utils.h"
 
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
@@ -951,6 +953,39 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     (void)sqlite3_finalize(statement);
 }
 
+int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    std::string logTblName = DBCommon::GetLogTableName(tableName);
+    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " VALUES ('log_trigger_switch', 'false')";
+    int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("close log_trigger_switch failed. %d", errCode);
+        return errCode;
+    }
+    sql = "DELETE FROM " + tableName + " WHERE _rowid_ IN (SELECT data_key FROM " + logTblName + " WHERE "
+        " flag&0x08=0x08" + (cursor == 0 ? ");" : " AND cursor <= '" + std::to_string(cursor) + "');");
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("delete logic deletedData failed. %d", errCode);
+        return errCode;
+    }
+    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01 WHERE flag&0x08=0x08" +
+        (cursor == 0 ? ";" : " AND cursor <= '" + std::to_string(cursor) + "';");
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("update logic deletedData failed. %d", errCode);
+        return errCode;
+    }
+    sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " VALUES ('log_trigger_switch', 'true')";
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("open log_trigger_switch failed. %d", errCode);
+    }
+    return errCode;
+}
+
 int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
 {
     std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
@@ -1128,7 +1163,31 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
 
 DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
 {
-    return DistributedDB::OK;
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    if (tableName.empty()) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::BeginTransaction(db, TransactType::IMMEDIATE);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("begin transaction failed before drop logic deleted data. %d", errCode);
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    errCode = HandleDropLogicDeleteData(db, tableName, cursor);
+    if (errCode != SQLITE_OK) {
+        int ret = SQLiteUtils::RollbackTransaction(db);
+        if (ret != DistributedDB::E_OK) {
+            LOGE("rollback failed when drop logic deleted data. %d", ret);
+        }
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    int ret = SQLiteUtils::CommitTransaction(db);
+    if (ret != DistributedDB::E_OK) {
+        LOGE("commit failed when drop logic deleted data. %d", ret);
+    }
+    return ret == DistributedDB::E_OK ? DistributedDB::OK : DistributedDB::TransferDBErrno(ret);
 }
 
 // hw export the symbols
