@@ -62,6 +62,7 @@ void LocalSubscribeDeviceStoreTest::TearDownTestCase(void)
 void LocalSubscribeDeviceStoreTest::SetUp(void)
 {
     Options options;
+    options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/dev_local_sub");
     appId_.appId = "dev_local_sub"; // define app name.
     storeId_.storeId = "student";   // define kvstore(database) name

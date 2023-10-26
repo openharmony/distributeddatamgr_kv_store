@@ -70,6 +70,7 @@ void DistributedKvDataManagerEncryptTest::SetUpTestCase(void)
 {
     createEnc.createIfMissing = true;
     createEnc.encrypt = true;
+    createEnc.securityLevel = S1;
     createEnc.autoSync = true;
     createEnc.kvStoreType = SINGLE_VERSION;
 

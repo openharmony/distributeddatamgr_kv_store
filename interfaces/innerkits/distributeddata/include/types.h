@@ -251,6 +251,7 @@ enum KvStoreType : int32_t {
  * @brief Enumeration of database security level.
 */
 enum SecurityLevel : int32_t {
+    INVALID_LABEL = -1,
     NO_LABEL,
     S0,
     S1,
@@ -372,7 +373,7 @@ struct Options {
     /**
      * Set database security level.
     */
-    int32_t securityLevel = NO_LABEL;
+    int32_t securityLevel = INVALID_LABEL;
     /**
      * Set database directory area.
     */

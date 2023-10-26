@@ -111,6 +111,7 @@ bool DistributedTestAgent::SetUp()
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = false,
         .kvStoreType = KvStoreType::SINGLE_VERSION };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };
     StoreId storeId = { "student" };
