@@ -130,6 +130,8 @@ public:
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
+    void SetLogicDelete(bool isLogicDelete);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -265,6 +267,8 @@ private:
 
     int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
+    std::string GetCloudDeleteSql();
+
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
     TableSchema tableSchema_; // for cloud table
@@ -274,6 +278,8 @@ private:
 
     std::map<int32_t, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
     std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
+
+    std::atomic<bool> isLogicDelete_;
 };
 } // namespace DistributedDB
 #endif

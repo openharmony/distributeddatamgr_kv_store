@@ -40,9 +40,9 @@ static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 static constexpr const char *SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
-static constexpr const int SET_FLAG_ZERO_MASK = 0x03; // clear 2th bit of flag
-static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag
-static constexpr const int SET_CLOUD_FLAG = 0x05; // set 1th bit of flag to 0
+static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
+static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag 0100 use with |
+static constexpr const int SET_CLOUD_FLAG = 0x0D; // set 1th bit of flag to 0 1101 use with &
 static constexpr const int DATA_KEY_INDEX = 0;
 static constexpr const int TIMESTAMP_INDEX = 3;
 static constexpr const int W_TIMESTAMP_INDEX = 4;
@@ -59,7 +59,7 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
 }
 SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable,
     DistributedTableMode mode)
-    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode)
+    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false)
 {
     bindCloudFieldFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::BindInt64;
     bindCloudFieldFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BindBool;
@@ -2675,7 +2675,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "cloud_gid = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
-            updateLogSql += "data_key = -1, flag = 1, cloud_gid = '', ";
+            updateLogSql += GetCloudDeleteSql();
         } else {
             updateLogSql += "flag = 0, cloud_gid = ?, ";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
@@ -2827,13 +2827,16 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
 int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string &tableName, const VBucket &vBucket,
     const TableSchema &tableSchema)
 {
+    if (isLogicDelete_) {
+        LOGD("[RDBExecutor] logic delete skip delete data");
+        return UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
+    }
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;
     int errCode = GetDeleteStatementForCloudSync(tableSchema, pkSet, vBucket, deleteStmt);
     if (errCode != E_OK) {
         return errCode;
     }
-
     errCode = SQLiteUtils::StepWithRetry(deleteStmt, false);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(deleteStmt, true, ret);
@@ -2877,6 +2880,11 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMissTableTrigger(const std::
         }
     }
     return E_OK;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetLogicDelete(bool isLogicDelete)
+{
+    isLogicDelete_ = isLogicDelete;
 }
 } // namespace DistributedDB
 #endif

@@ -1168,7 +1168,10 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     RelationalSchemaObject localSchema = GetSchemaInfo();
     transactionHandle_->SetLocalSchema(localSchema);
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
-    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,

@@ -470,5 +470,16 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(
     return errCode;
 }
 
+std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql()
+{
+    std::string sql;
+    if (isLogicDelete_) {
+        sql += "flag = 9"; // 1001 which is logicDelete|cloudForcePush|local|delete
+    } else {
+        sql += "data_key = -1,  flag = 1";
+    }
+    sql += ", cloud_gid = '', version = '', ";
+    return sql;
+}
 } // namespace DistributedDB
 #endif

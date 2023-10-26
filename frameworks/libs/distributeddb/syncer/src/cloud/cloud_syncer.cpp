@@ -268,10 +268,20 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
     int errCode = E_OK;
     for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
         LOGD("[CloudSyncer] try download table, index: %zu", i);
+        std::string table;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             currentContext_.tableName = taskInfo.table[i];
+            table = currentContext_.tableName;
         }
+        bool isShared = false;
+        errCode = storageProxy_->IsSharedTable(table, isShared);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] check shared table failed %d", errCode);
+            return errCode;
+        }
+        // shared table not allow logic delete
+        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
         errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
             LOGW("[CloudSyncer] task is invalid, abort sync");
