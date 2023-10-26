@@ -2682,7 +2682,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "cloud_gid = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
-            updateLogSql += GetCloudDeleteSql();
+            updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
         } else {
             updateLogSql += "flag = 0, cloud_gid = ?, ";
             updateColName.push_back(CloudDbConstant::GID_FIELD);

@@ -470,11 +470,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(
     return errCode;
 }
 
-std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql()
+std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const std::string &logTable)
 {
     std::string sql;
     if (isLogicDelete_) {
-        sql += "flag = 9"; // 1001 which is logicDelete|cloudForcePush|local|delete
+        // 1001 which is logicDelete|cloudForcePush|local|delete
+        sql += "flag = 9, cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END " \
+            "FROM " + logTable + ")";
     } else {
         sql += "data_key = -1,  flag = 1";
     }

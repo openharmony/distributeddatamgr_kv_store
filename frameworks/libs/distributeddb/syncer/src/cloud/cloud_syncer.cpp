@@ -274,14 +274,8 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
         }
-        bool isShared = false;
-        errCode = storageProxy_->IsSharedTable(table, isShared);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] check shared table failed %d", errCode);
-            return errCode;
-        }
         // shared table not allow logic delete
-        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
+        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
         errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
             LOGW("[CloudSyncer] task is invalid, abort sync");

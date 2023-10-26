@@ -268,7 +268,7 @@ private:
 
     int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
-    std::string GetCloudDeleteSql();
+    std::string GetCloudDeleteSql(const std::string &logTable);
 
     int RemoveDataAndLog(const std::string &tableName, int64_t dataKey);
 
