@@ -220,7 +220,8 @@ private:
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema, const TrackerTable &trackerTable);
+    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema, const TrackerTable &trackerTable,
+        int64_t dataKey);
 
     int InsertLogRecord(const TableSchema &tableSchema, const TrackerTable &trackerTable, VBucket &vBucket);
 
@@ -268,6 +269,10 @@ private:
     int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
     std::string GetCloudDeleteSql();
+
+    int RemoveDataAndLog(const std::string &tableName, int64_t dataKey);
+
+    int64_t GetLocalDataKey(size_t index, const DownloadData &downloadData);
 
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.

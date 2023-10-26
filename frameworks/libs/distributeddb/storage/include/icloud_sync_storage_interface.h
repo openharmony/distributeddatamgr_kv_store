@@ -40,6 +40,7 @@ enum class OpType : uint8_t {
 typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
+    std::vector<int64_t> existDataKey;
 } DownloadData;
 
 class ICloudSyncStorageInterface {

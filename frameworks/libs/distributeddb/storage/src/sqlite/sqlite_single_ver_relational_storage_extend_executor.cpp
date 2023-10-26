@@ -481,5 +481,34 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql()
     sql += ", cloud_gid = '', version = '', ";
     return sql;
 }
+
+int SQLiteSingleVerRelationalStorageExecutor::RemoveDataAndLog(const std::string &tableName, int64_t dataKey)
+{
+    int errCode = E_OK;
+    std::string removeDataSql = "DELETE FROM " + tableName + " WHERE " + DBConstant::SQLITE_INNER_ROWID + " = " +
+        std::to_string(dataKey);
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, removeDataSql);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] remove data failed %d", errCode);
+        return errCode;
+    }
+    std::string removeLogSql = "DELETE FROM " + DBCommon::GetLogTableName(tableName) + " WHERE data_key = " +
+        std::to_string(dataKey);
+    errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, removeLogSql);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] remove log failed %d", errCode);
+    }
+    return errCode;
+}
+
+int64_t SQLiteSingleVerRelationalStorageExecutor::GetLocalDataKey(size_t index,
+    const DownloadData &downloadData)
+{
+    if (index >= downloadData.existDataKey.size()) {
+        LOGW("[RDBExecutor] index out of range when get local data key"); // should not happen
+        return -1; // -1 means not exist
+    }
+    return downloadData.existDataKey[index];
+}
 } // namespace DistributedDB
 #endif

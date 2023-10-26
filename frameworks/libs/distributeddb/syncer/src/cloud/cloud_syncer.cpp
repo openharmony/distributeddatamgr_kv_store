@@ -743,8 +743,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
     DataInfo dataInfo;
     VBucket localAssetInfo;
     bool isExist = true;
-    ret = GetLocalInfo(param.tableName, param.downloadData.data[idx], dataInfo.localInfo, localLogInfoCache,
-        localAssetInfo);
+    ret = GetLocalInfo(idx, param, dataInfo.localInfo, localLogInfoCache, localAssetInfo);
     if (ret == -E_NOT_FOUND) {
         isExist = false;
     } else if (ret != E_OK) {
@@ -949,6 +948,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
     if (!skipSave) {
         param.changedData = changedData;
         param.downloadData.opType.resize(param.downloadData.data.size());
+        param.downloadData.existDataKey.resize(param.downloadData.data.size());
         ret = SaveDataInTransaction(taskId, param);
         if (ret != E_OK) {
             return ret;
@@ -1767,13 +1767,15 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
-int CloudSyncer::GetLocalInfo(const std::string &tableName, const VBucket &cloudData, DataInfoWithLog &logInfo,
+int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
-    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(tableName, cloudData, logInfo, localAssetInfo);
+    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index],
+        logInfo, localAssetInfo);
     if (errCode != E_OK) {
         return errCode;
     }
+    param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
         LOGD("[CloudSyncer] exist same record in one batch, override from cache record!");

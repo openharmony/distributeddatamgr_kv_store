@@ -2049,7 +2049,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
         VBucket &vBucket = downloadData.data[index];
         switch (op) {
             case OpType::INSERT:
-                errCode = InsertCloudData(vBucket, tableSchema, trackerTable);
+                errCode = InsertCloudData(vBucket, tableSchema, trackerTable, GetLocalDataKey(index, downloadData));
                 break;
             case OpType::UPDATE:
                 errCode = UpdateCloudData(vBucket, tableSchema);
@@ -2344,11 +2344,18 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema,
-    const TrackerTable &trackerTable)
+    const TrackerTable &trackerTable, int64_t dataKey)
 {
+    int errCode = E_OK;
+    if (dataKey > 0) {
+        errCode = RemoveDataAndLog(tableSchema.name, dataKey);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
     std::string sql = GetInsertSqlForCloudSync(tableSchema);
     sqlite3_stmt *insertStmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertStmt);
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertStmt);
     if (errCode != E_OK) {
         LOGE("Get insert statement failed when save cloud data, %d", errCode);
         return errCode;

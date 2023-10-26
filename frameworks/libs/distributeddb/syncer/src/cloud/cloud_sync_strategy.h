@@ -47,7 +47,8 @@ public:
 
     static bool IsDelete(const LogInfo &info)
     {
-        return (info.flag & 0x1) == 1;
+        return (info.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) ==
+            static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE);
     }
 };
 }
