@@ -40,6 +40,7 @@ static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 static constexpr const char *SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
+static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
 static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
 static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag 0100 use with |
 static constexpr const int SET_CLOUD_FLAG = 0x0D; // set 1th bit of flag to 0 1101 use with &
@@ -2140,8 +2141,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     const std::string &logTableName)
 {
     std::string sql = "DELETE FROM '" + tableName + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) +
-        " IN (SELECT " + DATAKEY + " FROM '" + logTableName + "' WHERE CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " +
-        FLAG_IS_CLOUD + ");";
+        " IN (SELECT " + DATAKEY + " FROM '" + logTableName + "' WHERE (" + FLAG_IS_LOGIC_DELETE +
+        ") OR CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD + ");";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on usertable, %d.", errCode);

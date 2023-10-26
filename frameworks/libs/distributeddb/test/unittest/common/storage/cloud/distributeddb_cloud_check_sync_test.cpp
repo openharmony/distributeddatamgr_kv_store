@@ -373,5 +373,46 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
     observer2 = nullptr;
     EXPECT_EQ(mgr_->CloseStore(delegate2), DBStatus::OK);
 }
+
+/**
+ * @tc.name: CloudSyncTest001
+ * @tc.desc: sync with device sync query
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level0)
+{
+    bool logicDelete = true;
+    PragmaData data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    // prepare data
+    const int actualCount = 10;
+    InsertUserTableRecord(tableName_, actualCount);
+    // sync
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    // delete cloud data
+    for (int i = 0; i < actualCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    // sync again
+    BlockSync(query, delegate_);
+    // check local data
+    int dataCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM " + tableName_;
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, actualCount);
+    std::string device = "";
+    ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, 0);
+}
 }
 #endif
