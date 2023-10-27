@@ -86,6 +86,8 @@ protected:
     void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull);
     void DeleteUserTableRecord(int64_t id);
     void DeleteCloudTableRecord(int64_t gid);
+    void InitLogicDeleteDataEnv(int64_t dataCount);
+    void CheckLocalCount(int64_t expectCount);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -239,6 +241,33 @@ void DistributedDBCloudCheckSyncTest::DeleteCloudTableRecord(int64_t gid)
     ASSERT_EQ(virtualCloudDb_->DeleteByGid(tableName_, idMap), DBStatus::OK);
 }
 
+void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount)
+{
+    // prepare data
+    InsertUserTableRecord(tableName_, dataCount);
+    // sync
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    // delete cloud data
+    for (int i = 0; i < dataCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    // sync again
+    BlockSync(query, delegate_);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckLocalCount(int64_t expectCount)
+{
+    // check local data
+    int dataCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM " + tableName_;
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, expectCount);
+}
+
 /**
  * @tc.name: CloudSyncTest001
  * @tc.desc: sync with device sync query
@@ -375,8 +404,8 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
 }
 
 /**
- * @tc.name: CloudSyncTest001
- * @tc.desc: sync with device sync query
+ * @tc.name: LogicDeleteSyncTest001
+ * @tc.desc: sync with logic delete
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhangqiquan
@@ -384,35 +413,31 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
 HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level0)
 {
     bool logicDelete = true;
-    PragmaData data = static_cast<PragmaData>(&logicDelete);
+    auto data = static_cast<PragmaData>(&logicDelete);
     delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
-    // prepare data
-    const int actualCount = 10;
-    InsertUserTableRecord(tableName_, actualCount);
-    // sync
-    Query query = Query::Select().FromTable({ tableName_ });
-    BlockSync(query, delegate_);
-    // delete cloud data
-    for (int i = 0; i < actualCount; ++i) {
-        DeleteCloudTableRecord(i);
-    }
-    // sync again
-    BlockSync(query, delegate_);
-    // check local data
-    int dataCnt = -1;
-    std::string checkLogSql = "SELECT count(*) FROM " + tableName_;
-    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
-        dataCnt = sqlite3_column_int(stmt, 0);
-        return E_OK;
-    });
-    EXPECT_EQ(dataCnt, actualCount);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(actualCount);
     std::string device = "";
     ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
-    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
-        dataCnt = sqlite3_column_int(stmt, 0);
-        return E_OK;
-    });
-    EXPECT_EQ(dataCnt, 0);
+    CheckLocalCount(0);
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest002
+ * @tc.desc: sync without logic delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level0)
+{
+    bool logicDelete = false;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(0);
 }
 }
 #endif

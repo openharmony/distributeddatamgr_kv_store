@@ -1153,7 +1153,7 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
     if (pragmaData == nullptr) {
         return -E_INVALID_ARGS;
     }
-    auto logicDelete = static_cast<bool *>(pragmaData);
+    auto logicDelete = *(static_cast<bool *>(pragmaData));
     if (storageEngine_ == nullptr) {
         LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
