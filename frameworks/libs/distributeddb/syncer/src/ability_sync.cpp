@@ -499,9 +499,12 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
         return true;
     }
     uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
-    if (remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_7_0 && (remoteSecLabel == SecurityLabel::NOT_SET ||
-        option.securityLabel == SecurityLabel::NOT_SET)) {
-        LOGE("[AbilitySync][RequestRecv] security label not set!");
+    if (errCode != -E_NOT_SUPPORT && option.securityLabel == SecurityLabel::NOT_SET) {
+        LOGE("[AbilitySync][RequestRecv] local security label not set!");
+        return false;
+    }
+    if (remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_7_0 && remoteSecLabel == SecurityLabel::NOT_SET) {
+        LOGE("[AbilitySync][RequestRecv] remote security label not set!");
         return false;
     }
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION || remoteSecLabel == SecurityLabel::NOT_SET) {
@@ -516,11 +519,10 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
     }
     if (remoteSecLabel == option.securityLabel) {
         return true;
-    } else {
-        LOGE("[AbilitySync][RequestRecv] check error remote:%d , %d local:%d , %d",
-            remoteSecLabel, remoteSecFlag, option.securityLabel, option.securityFlag);
-        return false;
     }
+    LOGE("[AbilitySync][RequestRecv] check error remote:%d , %d local:%d , %d",
+         remoteSecLabel, remoteSecFlag, option.securityLabel, option.securityFlag);
+    return false;
 }
 
 void AbilitySync::HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context)

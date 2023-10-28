@@ -1005,9 +1005,12 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }
-    if (remoteVersion >= RemoteExecutorRequestPacket::REQUEST_PACKET_VERSION_V4 &&
-        (localOption.securityLabel == NOT_SET || remoteSecLabel == NOT_SET)) {
-        LOGE("[RemoteExecutor] security label not set!");
+    if (errCode != -E_NOT_SUPPORT && localOption.securityLabel == SecurityLabel::NOT_SET) {
+        LOGE("[RemoteExecutor] local security label not set!");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (remoteVersion >= RemoteExecutorRequestPacket::REQUEST_PACKET_VERSION_V4 && remoteSecLabel == NOT_SET) {
+        LOGE("[RemoteExecutor] remote security label not set!");
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
     if (errCode == -E_NOT_SUPPORT) {

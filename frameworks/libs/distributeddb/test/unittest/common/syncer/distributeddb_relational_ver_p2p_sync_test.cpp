@@ -726,6 +726,9 @@ namespace {
             condition.sql = "SELECT * FROM " + g_tableName;
             std::shared_ptr<ResultSet> result = nullptr;
             ASSERT_NE(g_rdbDelegatePtr, nullptr);
+            LOGW("local:label %d, flag %d, remote:label %d, flag %d, expect %d", localOption.securityLabel,
+                localOption.securityFlag, remoteOption.securityLabel, remoteOption.securityFlag,
+                static_cast<int>(resStatus));
             EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), resStatus);
         } else {
             BlockSync(SYNC_MODE_PUSH_ONLY, resStatus, {DEVICE_B});
