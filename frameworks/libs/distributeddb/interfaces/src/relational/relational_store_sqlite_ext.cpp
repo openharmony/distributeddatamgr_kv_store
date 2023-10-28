@@ -170,9 +170,9 @@ public:
                  localTimeOffset_);
             isLoaded_ = true;
         }
-        Timestamp currentSystemTime;
+        Timestamp currentSystemTime = 0u;
         (void)GetCurrentSysTimeInMicrosecond(currentSystemTime);
-        Timestamp currentMonotonicTime;
+        Timestamp currentMonotonicTime = 0u;
         (void)OS::GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
         auto deltaTime = static_cast<int64_t>(currentMonotonicTime - lastMonotonicTime_);
         Timestamp currentSysTime = GetSysCurrentTime();
@@ -194,9 +194,9 @@ public:
 
     bool TimeSkew(const std::function<Timestamp()> &getLocalTimeOffsetFromDB, Timestamp timeOffset)
     {
-        Timestamp currentSystemTime;
+        Timestamp currentSystemTime = 0u;
         (void)GetCurrentSysTimeInMicrosecond(currentSystemTime);
-        Timestamp currentMonotonicTime;
+        Timestamp currentMonotonicTime = 0u;
         (void)OS::GetMonotonicRelativeTimeInMicrosecond(currentMonotonicTime);
 
         auto systemTimeOffset = static_cast<int64_t>(currentSystemTime - lastSystemTime_);
@@ -660,7 +660,7 @@ int CommitHookCallback(void *data)
     auto it = g_clientChangedDataMap.find(hashFileName);
     if (it != g_clientChangedDataMap.end() && !it->second.tableNames.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
-        errCode = DistributedDB::RuntimeContext::GetInstance()->ScheduleTask([clientObserver, clientChangedData] {
+        (void)DistributedDB::RuntimeContext::GetInstance()->ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
         });
