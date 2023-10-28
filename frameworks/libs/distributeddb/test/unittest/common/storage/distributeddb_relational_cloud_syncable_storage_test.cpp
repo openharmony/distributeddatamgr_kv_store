@@ -176,7 +176,19 @@ void InitLogGid(int64_t count)
     sqlite3_close(db);
 }
 
-void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData)
+void InitLogicDelete(int64_t count)
+{
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    for (int i = 1; i <= count; i++) {
+        string sql = "update " + g_logTblName + " set flag = flag | 0x09"
+                     " where data_key = " + std::to_string(i);
+        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    }
+    sqlite3_close(db);
+}
+
+void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData, std::vector<OpType> &opTypes)
 {
     for (int i = 1; i <= 5; i++) { // 5 is random num
         Asset asset = g_localAsset;
@@ -1081,7 +1093,35 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrG
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level1)
+/**
+ * @tc.name: GetInfoByPrimaryKeyOrGid002
+ * @tc.desc: Test the query of the GetInfoByPrimaryKeyOrGid interface to obtain assets.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid002, TestSize.Level0)
+{
+    int64_t insCount = 5;
+    int64_t photoSize = 1;
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
+    InitLogicDelete(insCount);
+
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    for (int i = 1; i <= insCount; i++) {
+        VBucket vBucket;
+        vBucket[CloudDbConstant::GID_FIELD] = std::to_string(i);
+        VBucket assetInfo;
+        DataInfoWithLog dataInfo;
+        ASSERT_EQ(g_storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfo, assetInfo), E_OK);
+        ASSERT_EQ(dataInfo.logInfo.cloudGid, std::to_string(i));
+        EXPECT_EQ(assetInfo.size(), 0u);
+    }
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+}
+
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level0)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
