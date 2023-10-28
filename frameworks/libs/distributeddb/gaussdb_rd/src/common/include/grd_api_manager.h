@@ -46,8 +46,8 @@ typedef int32_t (*KVScan)(GRD_DB *db, const char *collectionName, const GRD_KVIt
     GRD_ResultSet **resultSet);
 typedef int32_t (*KVFreeItem)(GRD_KVItemT *item);
 typedef int32_t (*KVBatchPrepare)(uint16_t itemNum, GRD_KVBatchT **batch);
-typedef int32_t (
-    *KVBatchPushback)(const void *key, uint32_t keyLen, const void *data, uint32_t dataLen, GRD_KVBatchT *batch);
+typedef int32_t (*KVBatchPushback)(const void *key, uint32_t keyLen, const void *data,
+    uint32_t dataLen, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDel)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDestory)(GRD_KVBatchT *batch);
 typedef int32_t (*CreateSeq)(GRD_DB *db, const char *sequenceName, uint32_t flags);
