@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
 
 #include "types_export.h"
@@ -179,5 +180,15 @@ struct RemoteCondition {
     std::vector<std::string> bindArgs;  // The bind args.
 };
 using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
+
+struct TrackerSchema {
+    std::string tableName;
+    std::string extendColName;
+    std::set<std::string> trackerColNames;
+};
+
+struct ChangeProperties {
+    bool isTrackedDataChange = false;
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

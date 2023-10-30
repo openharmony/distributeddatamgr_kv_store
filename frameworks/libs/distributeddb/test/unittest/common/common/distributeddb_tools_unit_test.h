@@ -274,6 +274,9 @@ public:
 
     void OnChange(DistributedDB::Origin origin, const std::string &originalId, DistributedDB::ChangedData &&data);
 
+    uint32_t GetCallbackDetailsType() const;
+    void SetCallbackDetailsType(uint32_t type);
+
     void SetExpectedResult(const DistributedDB::ChangedData &changedData);
 
     bool IsAllChangedDataEq();
@@ -296,6 +299,7 @@ private:
     DistributedDB::StoreProperty storeProperty_;
     std::unordered_map<std::string, DistributedDB::ChangedData> expectedChangedData_;
     std::unordered_map<std::string, DistributedDB::ChangedData> savedChangedData_;
+    uint32_t detailsType_ = static_cast<uint32_t>(DistributedDB::CallbackDetailsType::DEFAULT);
 };
 
 class KvStoreCorruptInfo {

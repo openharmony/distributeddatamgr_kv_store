@@ -40,6 +40,7 @@ struct ChangedData {
     // primaryData store row id if have no data
     std::vector<std::vector<Type>> primaryData[OP_BUTT];
     std::vector<std::string> field;
+    ChangeProperties properties;
 };
 
 enum Origin : int32_t {
@@ -49,6 +50,12 @@ enum Origin : int32_t {
     ORIGIN_ALL,
     ORIGIN_BUTT
 };
+
+enum class CallbackDetailsType : uint32_t {
+    DEFAULT = 0x01,
+    BRIEF = 0x02,
+    DETAILED = DEFAULT | BRIEF
+};
 class StoreObserver {
 public:
     virtual ~StoreObserver() {}
@@ -57,6 +64,11 @@ public:
     virtual void OnChange(const StoreChangedData &data) {};
 
     virtual void OnChange(Origin origin, const std::string &originalId, ChangedData &&data) {};
+
+    virtual uint32_t GetCallbackDetailsType() const
+    {
+        return static_cast<uint32_t>(CallbackDetailsType::DEFAULT);
+    }
 };
 } // namespace DistributedDB
 

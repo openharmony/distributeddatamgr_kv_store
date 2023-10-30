@@ -71,6 +71,9 @@ public:
 
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
+    virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
+    virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
+
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

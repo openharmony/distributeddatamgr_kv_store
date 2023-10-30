@@ -118,5 +118,10 @@ struct QueryNode {
     std::string fieldName;
     std::vector<Type> fieldValue;
 };
+
+struct SqlCondition {
+    std::string sql;  // The sql statement;
+    std::vector<Type> bindArgs;  // The bind args.
+};
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

@@ -330,5 +330,41 @@ DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const 
     }
     return OK;
 }
+
+DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    if (schema.tableName.empty()) {
+        LOGE("[RelationalStore Delegate] tracker table is empty.");
+        return INVALID_ARGS;
+    }
+    if (!ParamCheckUtils::CheckRelationalTableName(schema.tableName)) {
+        LOGE("[RelationalStore Delegate] Invalid tracker table name.");
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Set Subscribe table failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->ExecuteSql(condition, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] execute sql failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
 } // namespace DistributedDB
 #endif
