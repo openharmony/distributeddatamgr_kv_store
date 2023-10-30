@@ -256,7 +256,8 @@ private:
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
 
-    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable);
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 

@@ -2056,7 +2056,7 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
                 errCode = UpdateCloudData(vBucket, tableSchema);
                 break;
             case OpType::DELETE:
-                errCode = DeleteCloudData(tableName, vBucket, tableSchema);
+                errCode = DeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
                 break;
             case OpType::ONLY_UPDATE_GID:
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO:
@@ -2833,15 +2833,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string &tableName, const VBucket &vBucket,
-    const TableSchema &tableSchema)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable)
 {
     if (isLogicDelete_) {
         LOGD("[RDBExecutor] logic delete skip delete data");
         int errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
-        if (errCode != E_OK) {
-            return errCode;
+        if (errCode == E_OK && !trackerTable.IsEmpty()) {
+            return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
         }
-        return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
+        return errCode;
     }
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;

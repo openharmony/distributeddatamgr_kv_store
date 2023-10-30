@@ -470,8 +470,17 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
     observer->SetExpectedResult(expectData);
 
     /**
-     * @tc.steps:step2. set logic delete and sync
+     * @tc.steps:step2. set tracker table
      * @tc.expected: step2. ok.
+     */
+    TrackerSchema trackerSchema;
+    trackerSchema.tableName = tableName_;
+    trackerSchema.trackerColNames = { "id" };
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
+
+    /**
+     * @tc.steps:step3. set logic delete and sync
+     * @tc.expected: step3. ok.
      */
     bool logicDelete = true;
     auto data = static_cast<PragmaData>(&logicDelete);
@@ -479,6 +488,23 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
     int actualCount = 10;
     InitLogicDeleteDataEnv(actualCount);
     CheckLocalCount(actualCount);
+    EXPECT_EQ(observer->IsAllChangedDataEq(), true);
+    observer->ClearChangedData();
+
+    /**
+     * @tc.steps:step4. unSetTrackerTable and sync
+     * @tc.expected: step4. ok.
+     */
+    expectData.properties = { .isTrackedDataChange = false };
+    observer->SetExpectedResult(expectData);
+    trackerSchema.trackerColNames = {};
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
+    InsertUserTableRecord(tableName_, actualCount);
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
+    for (int i = 0; i < actualCount + actualCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
     EXPECT_EQ(observer->IsAllChangedDataEq(), true);
 
     EXPECT_EQ(delegate_->UnRegisterObserver(observer), OK);
