@@ -371,4 +371,31 @@ int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type 
     }
     return errCode;
 }
+
+int SQLiteRelationalUtils::SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged)
+{
+    if (db == nullptr || tableName.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    std::string sql;
+    if (isChanged) {
+        sql = "SELECT server_observer('" + tableName + "', 1);";
+    } else {
+        sql = "SELECT server_observer('" + tableName + "', 0);";
+    }
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("get select server observer stmt failed. %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("select server observer failed. %d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    return ret == E_OK ? E_OK : ret;
+}
 } // namespace DistributedDB

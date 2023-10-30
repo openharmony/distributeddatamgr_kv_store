@@ -439,5 +439,51 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level
     InitLogicDeleteDataEnv(actualCount);
     CheckLocalCount(0);
 }
+
+/**
+ * @tc.name: LogicDeleteSyncTest003
+ * @tc.desc: sync with logic delete and check observer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. register observer.
+     * @tc.expected: step1. ok.
+     */
+    RelationalStoreDelegate::Option option;
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer, nullptr);
+    observer->SetCallbackDetailsType(static_cast<uint32_t>(CallbackDetailsType::DETAILED));
+    EXPECT_EQ(delegate_->RegisterObserver(observer), OK);
+    ChangedData expectData;
+    expectData.tableName = tableName_;
+    expectData.type = ChangedDataType::DATA;
+    expectData.field.push_back(std::string("id"));
+    const int count = 10;
+    for (int64_t i = 0; i < count; ++i) {
+        expectData.primaryData[ChangeType::OP_DELETE].push_back({std::to_string(i)});
+    }
+    expectData.properties = { .isTrackedDataChange = true };
+    observer->SetExpectedResult(expectData);
+
+    /**
+     * @tc.steps:step2. set logic delete and sync
+     * @tc.expected: step2. ok.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(actualCount);
+    EXPECT_EQ(observer->IsAllChangedDataEq(), true);
+
+    EXPECT_EQ(delegate_->UnRegisterObserver(observer), OK);
+    delete observer;
+    observer = nullptr;
+}
 }
 #endif

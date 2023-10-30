@@ -39,6 +39,8 @@ public:
     static int GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket);
 
     static bool GetDbFileName(sqlite3 *db, std::string &fileName);
+
+    static int SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

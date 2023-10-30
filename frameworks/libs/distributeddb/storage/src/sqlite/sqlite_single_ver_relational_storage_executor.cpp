@@ -2837,7 +2837,11 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string 
 {
     if (isLogicDelete_) {
         LOGD("[RDBExecutor] logic delete skip delete data");
-        return UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
+        int errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
     }
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;
