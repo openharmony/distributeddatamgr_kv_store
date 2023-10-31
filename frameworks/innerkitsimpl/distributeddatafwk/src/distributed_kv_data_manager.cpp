@@ -186,7 +186,7 @@ Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entry
 
     if (isAlreadySet_) {
         ZLOGI("EntryPoint already set");
-        return SUCCESS;
+        return ERROR;
     }
     
     auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
