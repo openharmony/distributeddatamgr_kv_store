@@ -491,12 +491,25 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
 {
     int32_t remoteSecLabel = packet->GetSecLabel();
     int32_t remoteSecFlag = packet->GetSecFlag();
+    SecurityOption option;
+    int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
+    LOGI("[AbilitySync][RequestRecv] remote label:%d local l:%d, f:%d, errCode:%d", remoteSecLabel,
+        option.securityLabel, option.securityFlag, errCode);
+    if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
+        return true;
+    }
+    uint32_t remoteSoftwareVersion = packet->GetSoftwareVersion();
+    if (errCode != -E_NOT_SUPPORT && option.securityLabel == SecurityLabel::NOT_SET) {
+        LOGE("[AbilitySync][RequestRecv] local security label not set!");
+        return false;
+    }
+    if (remoteSoftwareVersion >= SOFTWARE_VERSION_RELEASE_7_0 && remoteSecLabel == SecurityLabel::NOT_SET) {
+        LOGE("[AbilitySync][RequestRecv] remote security label not set!");
+        return false;
+    }
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION || remoteSecLabel == SecurityLabel::NOT_SET) {
         return true;
     }
-    SecurityOption option;
-    int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
-    LOGI("[AbilitySync][RequestRecv] local l:%d, f:%d, errCode:%d", option.securityLabel, option.securityFlag, errCode);
     if (errCode == -E_NOT_SUPPORT || (errCode == E_OK && option.securityLabel == SecurityLabel::NOT_SET)) {
         return true;
     }
@@ -506,11 +519,10 @@ bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
     }
     if (remoteSecLabel == option.securityLabel) {
         return true;
-    } else {
-        LOGE("[AbilitySync][RequestRecv] check error remote:%d , %d local:%d , %d",
-            remoteSecLabel, remoteSecFlag, option.securityLabel, option.securityFlag);
-        return false;
     }
+    LOGE("[AbilitySync][RequestRecv] check error remote:%d , %d local:%d , %d",
+         remoteSecLabel, remoteSecFlag, option.securityLabel, option.securityFlag);
+    return false;
 }
 
 void AbilitySync::HandleVersionV3RequestParam(const AbilitySyncRequestPacket *packet, ISyncTaskContext *context)

@@ -38,12 +38,10 @@ constexpr uint32_t SOFTWARE_VERSION_RELEASE_3_0 = SOFTWARE_VERSION_BASE + 3; // 
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_4_0 = SOFTWARE_VERSION_BASE + 4; // 4 for fourth released version
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_5_0 = SOFTWARE_VERSION_BASE + 5; // 5 for fifth released version
 constexpr uint32_t SOFTWARE_VERSION_RELEASE_6_0 = SOFTWARE_VERSION_BASE + 6; // 6 for sixth released version
+// check both device has security label at 107
+constexpr uint32_t SOFTWARE_VERSION_RELEASE_7_0 = SOFTWARE_VERSION_BASE + 7; // 7 for sixth released version
 constexpr uint32_t SOFTWARE_VERSION_EARLIEST = SOFTWARE_VERSION_RELEASE_1_0;
-#ifdef RELATIONAL_STORE
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_6_0;
-#else
-constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_5_0;
-#endif
+constexpr uint32_t SOFTWARE_VERSION_CURRENT = SOFTWARE_VERSION_RELEASE_7_0;
 constexpr int VERSION_INVALID = INT32_MAX;
 
 // Storage Related Version

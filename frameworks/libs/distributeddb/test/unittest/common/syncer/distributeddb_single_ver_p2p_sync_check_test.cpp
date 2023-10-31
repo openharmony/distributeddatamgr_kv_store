@@ -127,12 +127,17 @@ void DistributedDBSingleVerP2PSyncCheckTest::SetUp(void)
     g_syncInterfaceB = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(g_syncInterfaceB != nullptr);
     ASSERT_EQ(g_deviceB->Initialize(g_communicatorAggregator, g_syncInterfaceB), E_OK);
+    SecurityOption virtualOption;
+    virtualOption.securityLabel = option.secOption.securityLabel;
+    virtualOption.securityFlag = option.secOption.securityFlag;
+    g_syncInterfaceB->SetSecurityOption(virtualOption);
 
     g_deviceC = new (std::nothrow) KvVirtualDevice(DEVICE_C);
     ASSERT_TRUE(g_deviceC != nullptr);
     g_syncInterfaceC = new (std::nothrow) VirtualSingleVerSyncDBInterface();
     ASSERT_TRUE(g_syncInterfaceC != nullptr);
     ASSERT_EQ(g_deviceC->Initialize(g_communicatorAggregator, g_syncInterfaceC), E_OK);
+    g_syncInterfaceC->SetSecurityOption(virtualOption);
 }
 
 void DistributedDBSingleVerP2PSyncCheckTest::TearDown(void)
@@ -341,6 +346,41 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck004, TestSize.Lev
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
         EXPECT_TRUE(pair.second == OK);
+    }
+
+    adapter->ForkCheckDeviceSecurityAbility(nullptr);
+    adapter->ForkGetSecurityOption(nullptr);
+    g_syncInterfaceB->ForkGetSecurityOption(nullptr);
+}
+
+/**
+ * @tc.name: sec option check Sync 005
+ * @tc.desc: if sec option equal, check not pass, forbid sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck005, TestSize.Level1)
+{
+    auto adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(adapter);
+    g_syncInterfaceB->ForkGetSecurityOption([](SecurityOption &option) {
+        option.securityLabel = NOT_SET;
+        return E_OK;
+    });
+    adapter->ForkGetSecurityOption([](const std::string &, SecurityOption &securityOption) {
+        securityOption.securityLabel = NOT_SET;
+        return OK;
+    });
+
+    std::vector<std::string> devices;
+    devices.push_back(g_deviceB->GetDeviceId());
+    std::map<std::string, DBStatus> result;
+    DBStatus status = g_tool.SyncTest(g_kvDelegatePtr, devices, SYNC_MODE_PULL_ONLY, result);
+    EXPECT_EQ(status, OK);
+    for (const auto &pair : result) {
+        LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+        EXPECT_TRUE(pair.second == SECURITY_OPTION_CHECK_ERROR);
     }
 
     adapter->ForkCheckDeviceSecurityAbility(nullptr);
