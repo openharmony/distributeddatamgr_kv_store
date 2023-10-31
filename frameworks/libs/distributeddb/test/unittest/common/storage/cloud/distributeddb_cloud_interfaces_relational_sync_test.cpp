@@ -2357,7 +2357,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, DISABLED_CloudCursorTest001, TestSize.Level0)
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudCursorTest001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Init data and sync

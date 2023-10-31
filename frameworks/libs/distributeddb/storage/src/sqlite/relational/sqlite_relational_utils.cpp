@@ -19,7 +19,7 @@
 #include "sqlite_utils.h"
 #include "cloud/cloud_storage_utils.h"
 #include "runtime_context.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value)
@@ -308,13 +308,13 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
             break;
         }
         case SQLITE_BLOB: {
-            int errCode = GetBlobByStatement(stmt, cid, typeVal);
+            errCode = GetBlobByStatement(stmt, cid, typeVal);
             if (errCode != E_OK) {
                 break;
             }
         }
         case SQLITE3_TEXT: {
-            int errCode = GetBlobByStatement(stmt, cid, typeVal);
+            errCode = GetBlobByStatement(stmt, cid, typeVal);
             if (errCode != E_OK) {
                 break;
             }

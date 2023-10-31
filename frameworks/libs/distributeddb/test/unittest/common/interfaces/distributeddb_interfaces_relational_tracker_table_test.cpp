@@ -41,16 +41,16 @@ namespace {
     constexpr const char *STORE_ID2 = "Relational_Store_tracker2";
     std::string g_testDir;
     std::string g_dbDir;
-    const string g_tableName1 = "worker1";
-    const string g_tableName2 = "worker2";
-    const string g_tableName3 = "worker3";
+    const string TABLE_NAME1 = "worker1";
+    const string TABLE_NAME2 = "worker2";
+    const string TABLE_NAME3 = "worker3";
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
     sqlite3 *g_db = nullptr;
-    const int g_half = 2;
+    const int HALF = 2;
 
     const std::string CREATE_LOCAL_TABLE_SQL =
-    "CREATE TABLE IF NOT EXISTS " + g_tableName1 + "(" \
+    "CREATE TABLE IF NOT EXISTS " + TABLE_NAME1 + "(" \
     "name TEXT PRIMARY KEY," \
     "height REAL ," \
     "married BOOLEAN ," \
@@ -59,7 +59,7 @@ namespace {
     "age INT);";
 
     const std::string CREATE_LOCAL_PK_TABLE_SQL =
-    "CREATE TABLE IF NOT EXISTS " + g_tableName2 + "(" \
+    "CREATE TABLE IF NOT EXISTS " + TABLE_NAME2 + "(" \
     "id INTEGER PRIMARY KEY AUTOINCREMENT," \
     "name TEXT ," \
     "height REAL ," \
@@ -68,7 +68,7 @@ namespace {
     "age INT);";
 
     const std::string CREATE_LOCAL_PK_TABLE_SQL2 =
-    "CREATE TABLE IF NOT EXISTS " + g_tableName3 + "(" \
+    "CREATE TABLE IF NOT EXISTS " + TABLE_NAME3 + "(" \
     "id INTEGER PRIMARY KEY," \
     "name asseT ," \
     "age ASSETs);";
@@ -82,13 +82,13 @@ namespace {
     const std::set<std::string> LOCAL_TABLE_TRACKER_NAME_SET4 = { "height", "name" };
     const std::set<std::string> LOCAL_TABLE_TRACKER_NAME_SET5 = { "name", "" };
     TrackerSchema g_normalSchema1 = {
-        .tableName = g_tableName2, .extendColName = EXTEND_COL_NAME2, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
+        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME2, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
     };
     TrackerSchema g_normalSchema2 = {
-        .tableName = g_tableName2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
+        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET2
     };
     TrackerSchema g_normalSchema3 = {
-        .tableName = g_tableName2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET4
+        .tableName = TABLE_NAME2, .extendColName = EXTEND_COL_NAME3, .trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET4
     };
 
     void CreateMultiTable()
@@ -104,7 +104,7 @@ namespace {
     void BatchInsertTableName2Data(uint64_t num)
     {
         for (size_t i = 0; i < num; i++) {
-            string sql = "INSERT INTO " + g_tableName2
+            string sql = "INSERT INTO " + TABLE_NAME2
                 + " (name, height, photo, asserts, age) VALUES ('Local" + std::to_string(i) +
                 "', '175.8', 175.88888888888, 'x', '18');";
             EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
@@ -113,7 +113,7 @@ namespace {
 
     void BatchUpdateTableName2Data(uint64_t num, std::set<std::string> colNames)
     {
-        std::string sql = "UPDATE " + g_tableName2 + " SET ";
+        std::string sql = "UPDATE " + TABLE_NAME2 + " SET ";
         for (const auto &col: colNames) {
             sql += col + " = '1',";
         }
@@ -126,7 +126,7 @@ namespace {
 
     void BatchDeleteTableName2Data(uint64_t num)
     {
-        std::string sql = "DELETE FROM " + g_tableName2 + " WHERE id <= " + std::to_string(num);
+        std::string sql = "DELETE FROM " + TABLE_NAME2 + " WHERE id <= " + std::to_string(num);
         EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     }
 
@@ -141,7 +141,7 @@ namespace {
     void CheckExtendAndCursor(uint64_t num, int start)
     {
         int index = 0;
-        string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log" +
+        string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
             " where data_key <= " + std::to_string(num);
         sqlite3_stmt *stmt = nullptr;
         EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -189,13 +189,13 @@ namespace {
         CreateMultiTable();
         OpenStore();
         if (isDistributed) {
-            EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+            EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
         }
         TrackerSchema schema = g_normalSchema1;
         EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
         uint64_t num = 10;
         BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
-        std::string sql = "drop table if exists " + g_tableName2;
+        std::string sql = "drop table if exists " + TABLE_NAME2;
         EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
         CloseStore();
 
@@ -204,7 +204,7 @@ namespace {
          * @tc.expected: step2. Return OK.
          */
         OpenStore();
-        sql = "select count(*) from sqlite_master where name = '" + DBConstant::RELATIONAL_PREFIX + g_tableName2 +
+        sql = "select count(*) from sqlite_master where name = '" + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 +
             "_log'";
         EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
             reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
@@ -230,7 +230,7 @@ namespace {
         DBCommon::VectorToString(schemaVal, schemaStr);
         RelationalSchemaObject schemaObject;
         EXPECT_EQ(schemaObject.ParseFromTrackerSchemaString(schemaStr), E_OK);
-        EXPECT_EQ(schemaObject.GetTrackerTable(g_tableName2).IsEmpty(), true);
+        EXPECT_EQ(schemaObject.GetTrackerTable(TABLE_NAME2).IsEmpty(), true);
         CloseStore();
     }
 
@@ -245,17 +245,20 @@ namespace {
         void TearDown();
     };
 
-    void DistributedDBInterfacesRelationalTrackerTableTest::SetUpTestCase(void) {
+    void DistributedDBInterfacesRelationalTrackerTableTest::SetUpTestCase(void)
+    {
         DistributedDBToolsUnitTest::TestDirInit(g_testDir);
         LOGD("Test dir is %s", g_testDir.c_str());
         g_dbDir = g_testDir + "/";
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
     }
 
-    void DistributedDBInterfacesRelationalTrackerTableTest::TearDownTestCase(void) {
+    void DistributedDBInterfacesRelationalTrackerTableTest::TearDownTestCase(void)
+    {
     }
 
-    void DistributedDBInterfacesRelationalTrackerTableTest::SetUp(void) {
+    void DistributedDBInterfacesRelationalTrackerTableTest::SetUp(void)
+    {
         if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
             LOGE("rm test db files error.");
         }
@@ -264,7 +267,8 @@ namespace {
         ASSERT_TRUE(syncInterfaceB != nullptr);
     }
 
-    void DistributedDBInterfacesRelationalTrackerTableTest::TearDown(void) {
+    void DistributedDBInterfacesRelationalTrackerTableTest::TearDown(void)
+    {
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
     }
 }
@@ -325,7 +329,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest002,
      * @tc.expected: step1. Return OK.
      */
     TrackerSchema schema;
-    schema.tableName = g_tableName1;
+    schema.tableName = TABLE_NAME1;
     SetTrackerTableTest(schema, OK);
 
     /**
@@ -358,7 +362,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest003,
      * @tc.expected: step1. Return SCHEMA_MISMATCH.
      */
     TrackerSchema schema;
-    schema.tableName = g_tableName1;
+    schema.tableName = TABLE_NAME1;
     schema.trackerColNames = LOCAL_TABLE_TRACKER_NAME_SET1;
     SetTrackerTableTest(schema, SCHEMA_MISMATCH);
 
@@ -413,7 +417,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005,
      * @tc.steps:step3. SetTrackerTable again with different table
      * @tc.expected: step3. Return OK.
      */
-    schema.tableName = g_tableName1;
+    schema.tableName = TABLE_NAME1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
 
@@ -421,7 +425,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest005,
      * @tc.steps:step4. unSetTrackerTable
      * @tc.expected: step4. Return OK.
      */
-    schema.tableName = g_tableName2;
+    schema.tableName = TABLE_NAME2;
     schema.trackerColNames = {};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
@@ -465,7 +469,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest006,
      * @tc.expected: step3. Return OK.
      */
     OpenStore();
-    schema.tableName = g_tableName1;
+    schema.tableName = TABLE_NAME1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     CloseStore();
 
@@ -541,7 +545,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest008,
     uint64_t updateNum = 2;
     BatchUpdateTableName2Data(updateNum, LOCAL_TABLE_TRACKER_NAME_SET3);
     int index = 0;
-    string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log" +
+    string querySql = "select extend_field, cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
         " where data_key <= " + std::to_string(updateNum);
     sqlite3_stmt *stmt = nullptr;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -667,7 +671,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011,
      * @tc.steps:step2. CreateDistributedTable on table2 and insert data
      * @tc.expected: step2. Return OK.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
     uint64_t num = 10;
     BatchInsertTableName2Data(num);
 
@@ -675,7 +679,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011,
      * @tc.steps:step3. CreateDistributedTable on table2 again
      * @tc.expected: step3. Return OK.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step4. operator data on table2
@@ -721,13 +725,13 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest012,
      * @tc.steps:step2. CreateDistributedTable on table2 without data
      * @tc.expected: step2. Return OK.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step3. CreateDistributedTable on table1
      * @tc.expected: step3. Return OK.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName1, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME1, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step4. operator data on table2
@@ -775,15 +779,15 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest013,
      * @tc.steps:step2. CreateDistributedTable on table2
      * @tc.expected: step2. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::NOT_SUPPORT);
 
     /**
      * @tc.steps:step3. delete all data but keep the log , then CreateDistributedTable
      * @tc.expected: step3. Return OK.
      */
     BatchDeleteTableName2Data(num);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), OK);
     BatchInsertTableName2Data(num);
     CloseStore();
 }
@@ -803,7 +807,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest014,
      */
     CreateMultiTable();
     OpenStore();
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step2. SetTrackerTable on table2
@@ -846,7 +850,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
      */
     CreateMultiTable();
     OpenStore();
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step2. operator data
@@ -894,7 +898,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest016,
      */
     CloseStore();
     OpenStore();
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step3. operator data
@@ -927,7 +931,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017,
      * @tc.steps:step2. Create DEVICE_COOPERATION DistributedTable
      * @tc.expected: step2. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
 
     /**
      * @tc.steps:step3. operator data on table2
@@ -947,14 +951,14 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest017,
      * @tc.steps:step5. There is still data in the table
      * @tc.expected: step5. Return NOT_SUPPORT.
      */
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::NOT_SUPPORT);
 
     /**
      * @tc.steps:step6. clear all data and create DEVICE_COOPERATION table
      * @tc.expected: step6. Return OK.
      */
     BatchDeleteTableName2Data(num + num);
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, DEVICE_COOPERATION), OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), OK);
 
     /**
      * @tc.steps:step7. operator data on table2
@@ -979,7 +983,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest018,
      */
     CreateMultiTable();
     OpenStore();
-    EXPECT_EQ(g_delegate->CreateDistributedTable(g_tableName2, DEVICE_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, DEVICE_COOPERATION), DBStatus::OK);
 
     /**
      * @tc.steps:step2. SetTrackerTable on table2
@@ -1034,7 +1038,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
      */
     uint64_t num = 10;
     BatchInsertTableName2Data(num);
-    BatchDeleteTableName2Data(num / g_half);
+    BatchDeleteTableName2Data(num / HALF);
     EXPECT_EQ(g_delegate->CleanTrackerData("xx", num), DB_ERROR);
 
     /**
@@ -1047,11 +1051,11 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest019,
      * @tc.steps:step4. CleanTrackerData
      * @tc.expected: step4. Return OK.
      */
-    EXPECT_EQ(g_delegate->CleanTrackerData(g_tableName2, num + (num / g_half)), OK);
-    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log" +
+    EXPECT_EQ(g_delegate->CleanTrackerData(TABLE_NAME2, num + (num / HALF)), OK);
+    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
         " where extend_field is NULL;";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
-        reinterpret_cast<void *>(num / g_half), nullptr), SQLITE_OK);
+        reinterpret_cast<void *>(num / HALF), nullptr), SQLITE_OK);
     CloseStore();
 }
 
@@ -1079,7 +1083,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.steps:step2. drop and rebuild table, then SetTrackerTable
      * @tc.expected: step2. Return OK.
      */
-    std::string sql = "drop table if exists " + g_tableName2;
+    std::string sql = "drop table if exists " + TABLE_NAME2;
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
@@ -1088,7 +1092,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
      * @tc.steps:step3. check the extend_field and cursor is null
      * @tc.expected: step3. Return OK.
      */
-    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log where extend_field is NULL " +
+    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
         " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num + num), nullptr), SQLITE_OK);
@@ -1144,7 +1148,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
      * @tc.steps:step2. drop and rebuild table,then insert data and set tracker table
      * @tc.expected: step2. Return OK.
      */
-    std::string sql = "drop table if exists " + g_tableName2;
+    std::string sql = "drop table if exists " + TABLE_NAME2;
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
     BatchInsertTableName2Data(num);
@@ -1154,7 +1158,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
      * @tc.steps:step3. query cursor
      * @tc.expected: step3. Return OK.
      */
-    string querySql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log";
+    string querySql = "select cursor from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log";
     sqlite3_stmt *stmt = nullptr;
     int index = 0;
     EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
@@ -1180,7 +1184,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest024,
     CreateMultiTable();
     OpenStore();
     TrackerSchema schema;
-    schema.tableName = g_tableName3;
+    schema.tableName = TABLE_NAME3;
     schema.extendColName = EXTEND_COL_NAME3;
     schema.trackerColNames = { EXTEND_COL_NAME3 };
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), INVALID_ARGS);
@@ -1217,7 +1221,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql001, TestS
      * @tc.steps:step3. SQL does not have placeholders but there are bind args present
      * @tc.expected: step3. Return INVALID_ARGS.
      */
-    std::string querySql = "select * from " + g_tableName2 + " where id = 1;";
+    std::string querySql = "select * from " + TABLE_NAME2 + " where id = 1;";
     condition.sql = querySql;
     condition.bindArgs = {"1"};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), INVALID_ARGS);
@@ -1226,7 +1230,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql001, TestS
      * @tc.steps:step4. More SQL binding parameters than SQL placeholders
      * @tc.expected: step4. Return INVALID_ARGS.
      */
-    querySql = "select * from " + g_tableName2 + " where id > ?;";
+    querySql = "select * from " + TABLE_NAME2 + " where id > ?;";
     condition.sql = querySql;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), INVALID_ARGS);
@@ -1266,7 +1270,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql002, TestS
     int64_t beginId = 1;
     SqlCondition condition;
     std::vector<VBucket> records;
-    std::string querySql = "select * from " + g_tableName2 + " where id > ?;";
+    std::string querySql = "select * from " + TABLE_NAME2 + " where id > ?;";
     condition.sql = querySql;
     condition.bindArgs = {beginId};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
@@ -1326,20 +1330,20 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql003, TestS
     int64_t beginId = 1;
     SqlCondition condition;
     std::vector<VBucket> records;
-    std::string updateSql = "update " + g_tableName2 + " set age = 3 where id = ?;";
+    std::string updateSql = "update " + TABLE_NAME2 + " set age = 3 where id = ?;";
     condition.sql = updateSql;
     condition.bindArgs = {beginId};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), 0u);
 
-    std::string delSql = "delete from " + g_tableName2 + " where id = ?;";
+    std::string delSql = "delete from " + TABLE_NAME2 + " where id = ?;";
     condition.sql = delSql;
     condition.bindArgs = {beginId + 1};
     std::vector<VBucket> records2;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records2), OK);
     EXPECT_EQ(records2.size(), 0u);
 
-    string insSql = "INSERT INTO " + g_tableName2 +
+    string insSql = "INSERT INTO " + TABLE_NAME2 +
         " (name, height, photo, asserts, age) VALUES ('Local" + std::to_string(num + 1) +
         "', '175.8', '0', 'x', ?);";
     condition.sql = insSql;
@@ -1382,8 +1386,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql004, TestS
     int64_t begin = 0;
     SqlCondition condition;
     std::vector<VBucket> records;
-    std::string querySql = "select " + g_tableName2 + ".* from " + g_tableName2 + " join ";
-    querySql += DBConstant::RELATIONAL_PREFIX + g_tableName2 + "_log" + " as a on " + g_tableName2 + "._rowid_ = ";
+    std::string querySql = "select " + TABLE_NAME2 + ".* from " + TABLE_NAME2 + " join ";
+    querySql += DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" + " as a on " + TABLE_NAME2 + "._rowid_ = ";
     querySql += "a.data_key where a.cursor > ?;";
     condition.sql = querySql;
     condition.bindArgs = {begin};
@@ -1394,7 +1398,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql004, TestS
      * @tc.steps:step4. update
      * @tc.expected: step4. Return OK.
      */
-    std::string updateSql = "update " + g_tableName2 + " set name = '3' where _rowid_ <= 5;";
+    std::string updateSql = "update " + TABLE_NAME2 + " set name = '3' where _rowid_ <= 5;";
     condition.sql = updateSql;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
@@ -1437,8 +1441,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql005, TestS
     int64_t beginId = 1;
     SqlCondition condition;
     std::vector<VBucket> records;
-    std::string querySql = "select * from " + g_tableName2 + " where id > 1;";
-    querySql += "select _rowid_ from " + g_tableName2 + " where id = 1;";
+    std::string querySql = "select * from " + TABLE_NAME2 + " where id > 1;";
+    querySql += "select _rowid_ from " + TABLE_NAME2 + " where id = 1;";
     condition.sql = querySql;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
@@ -1449,8 +1453,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql005, TestS
      * @tc.expected: step3. Return INVALID_ARGS.
      */
     records = {};
-    std::string querySql2 = "select * from " + g_tableName2 + " where id > ?;";
-    querySql2 += "select _rowid_ from " + g_tableName2 + " where id = ?;";
+    std::string querySql2 = "select * from " + TABLE_NAME2 + " where id > ?;";
+    querySql2 += "select _rowid_ from " + TABLE_NAME2 + " where id = ?;";
     condition.sql = querySql2;
     condition.bindArgs = {beginId, beginId};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), INVALID_ARGS);
@@ -1491,8 +1495,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql006, TestS
      */
     SqlCondition condition;
     std::vector<VBucket> records;
-    std::string updateSql = "update " + g_tableName2 + " SET age = 100; ";
-    updateSql += "update " + g_tableName2 + " SET age = 50;";
+    std::string updateSql = "update " + TABLE_NAME2 + " SET age = 100; ";
+    updateSql += "update " + TABLE_NAME2 + " SET age = 50;";
     condition.sql = updateSql;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
@@ -1502,7 +1506,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql006, TestS
      * @tc.expected: step3. Return OK.
      */
     records = {};
-    std::string querySql = "select * from " + g_tableName2 + " where age = 100;";
+    std::string querySql = "select * from " + TABLE_NAME2 + " where age = 100;";
     condition.sql = querySql;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
@@ -1511,8 +1515,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql006, TestS
      * @tc.steps:step4. execute update sql and query sql
      * @tc.expected: step4. Return OK.
      */
-    updateSql = "update " + g_tableName2 + " SET age = 88; ";
-    updateSql += "select * from " + g_tableName2;
+    updateSql = "update " + TABLE_NAME2 + " SET age = 88; ";
+    updateSql += "select * from " + TABLE_NAME2;
     condition.sql = updateSql;
     condition.bindArgs = {};
     records = {};
@@ -1524,8 +1528,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql006, TestS
      * @tc.expected: step5. Return OK.
      */
     records = {};
-    std::string delSql = "DELETE FROM " + g_tableName2 + " WHERE age = 100; ";
-    delSql += "DELETE FROM " + g_tableName2 + " WHERE age = 88;";
+    std::string delSql = "DELETE FROM " + TABLE_NAME2 + " WHERE age = 100; ";
+    delSql += "DELETE FROM " + TABLE_NAME2 + " WHERE age = 88;";
     condition.sql = delSql;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
 
@@ -1534,7 +1538,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql006, TestS
      * @tc.expected: step6. Return OK.
      */
     records = {};
-    condition.sql = "select * from " + g_tableName2 + " where age = 88;";
+    condition.sql = "select * from " + TABLE_NAME2 + " where age = 88;";
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
     CloseStore();
@@ -1611,7 +1615,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql008, TestS
     OpenStore();
     uint64_t num = 10;
     for (size_t i = 0; i < num; i++) {
-        string sql = "INSERT OR REPLACE INTO " + g_tableName1 +
+        string sql = "INSERT OR REPLACE INTO " + TABLE_NAME1 +
             " (name, height, married, photo, assert, age) VALUES ('Tom" + std::to_string(i) +
             "', '175.8', '0', '', '' , '18');";
         EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
@@ -1622,7 +1626,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql008, TestS
      * @tc.expected: step2. Return OK.
      */
     SqlCondition condition;
-    condition.sql = "select * from " + g_tableName1;
+    condition.sql = "select * from " + TABLE_NAME1;
     std::vector<VBucket> records;
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
@@ -1654,7 +1658,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
     Bytes photo = { 1, 2, 3, 4 };
     std::vector<VBucket> records;
     for (size_t i = 0; i < num; i++) {
-        condition.sql = "INSERT INTO " + g_tableName2
+        condition.sql = "INSERT INTO " + TABLE_NAME2
             + " (name, height, photo, asserts, age) VALUES ('Local" + std::to_string(i) +
             "', '175.8', ?, 'x', '18');";
         condition.bindArgs = {photo};
@@ -1665,7 +1669,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
      * @tc.steps:step2. ExecuteSql with transaction
      * @tc.expected: step2. Return OK.
      */
-    condition.sql = "create temp table AA as select * from " + g_tableName2;
+    condition.sql = "create temp table AA as select * from " + TABLE_NAME2;
     condition.bindArgs = {};
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     condition.sql = "select * from AA";

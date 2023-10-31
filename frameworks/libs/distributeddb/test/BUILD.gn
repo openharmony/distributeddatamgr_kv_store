@@ -759,9 +759,7 @@ distributeddb_unittest("DistributedInterfacesRelationalTest") {
 }
 
 distributeddb_unittest("DistributedInterfacesRelationalTrackerTableTest") {
-  sources = [
-    "unittest/common/interfaces/distributeddb_interfaces_relational_tracker_table_test.cpp",
-  ]
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_relational_tracker_table_test.cpp" ]
 }
 
 distributeddb_unittest("DistributedDBRelationalSchemaObjectTest") {
