@@ -18,7 +18,7 @@ group("build_module") {
   deps = []
   if (!use_platform_win && !use_platforn_mac) {
     deps += [ ":distributeddata_inner",
-              ":distributeddata_proxy" ]
+              ":distributeddata_client_sync" ]
   }
 }
 
@@ -93,7 +93,7 @@ kvdb_source_config = [
 deps_config = [
   "../../../frameworks/libs/distributeddb:distributeddb",
   "../distributeddatamgr:distributeddata_mgr",
-  "../distributeddata:distributeddata_proxy"
+  "../distributeddata:distributeddata_client_sync"
 ]
 
 external_deps_config = [
@@ -121,14 +121,13 @@ ohos_shared_library("distributeddata_inner") {
   part_name = "kv_store"
 }
 
-ohos_shared_library("distributeddata_proxy") {
+ohos_shared_library("distributeddata_client_sync") {
   sources = [
     "../../../frameworks/innerkitsimpl/kvdb/src/process_communication_impl.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
   ]
 
   configs = [ ":distributeddatafwk_config" ]
-  #public_configs = [ ":distributeddatafwk_public_config" ]
 
   deps = [
     "../../../frameworks/libs/distributeddb:distributeddb",
@@ -137,7 +136,6 @@ ohos_shared_library("distributeddata_proxy") {
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
-    "huks:libhukssdk",
   ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"

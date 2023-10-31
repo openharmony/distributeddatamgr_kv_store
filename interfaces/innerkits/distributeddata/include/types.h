@@ -410,7 +410,7 @@ struct Options {
     /**
      * Whether the sync happend in client.
     */
-    bool isClientSyncMode = false;
+    bool isClientSync = false;
 };
 
 /**
@@ -440,20 +440,6 @@ struct PermissionCheckParam {
 struct PipeInfo {
     std::string pipeId;
     std::string userId;
-};
-
-struct CommDeviceInfo {
-    std::string uuid;
-    std::string udid;
-    std::string networkId;
-    std::string deviceName;
-    uint32_t deviceType;
-};
-
-enum class DeviceChangeType {
-    DEVICE_OFFLINE = 0,
-    DEVICE_ONLINE = 1,
-    DEVICE_ONREADY = 2,
 };
 
 struct DeviceInfos {

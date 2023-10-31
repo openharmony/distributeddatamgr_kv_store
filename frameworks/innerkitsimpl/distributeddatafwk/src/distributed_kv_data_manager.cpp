@@ -177,34 +177,42 @@ void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> execut
     TaskExecutor::GetInstance().SetExecutors(std::move(executors));
 }
 
-Status DistributedKvDataManager::SetProcessCommunicator(std::shared_ptr<EntryPoint> entryPoint)
+Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entryPoint)
 {
+    if (entryPoint == nullptr) {
+        ZLOGE("entryPoint is nullptr.");
+        return ERROR;
+    }
+
     if (isAlreadySet_) {
-        ZLOGI("Communicator already set");
+        ZLOGI("EntryPoint already set");
         return SUCCESS;
     }
     
-    auto status = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
-    if (!status) {
+    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
         ZLOGE("SetProcessLabel failed: %d", status);
-        return StoreUtil::ConvertStatus(status);
+        return status;
     }
 
     auto communicator = std::make_shared<ProcessCommunicationImpl>(entryPoint);
-    status = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
-    if (!status) {
-        ZLOGE("%d", status);
-        return StoreUtil::ConvertStatus(status);
+    dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetProcessCommunicator failed: %d", status);
+        return status;
     }
 
     auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(entryPoint);
-    status = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
-    if (!status) {
-        ZLOGE("%d", status);
-        return StoreUtil::ConvertStatus(status);
+    dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetProcessSystemAPIAdapter failed: %d", status);
+        return status;
     }
 
-    auto permissionCb = [entryPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
+    auto permissionCallback = [entryPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
         PermissionCheckParam params = {
             std::move(param.userId),
             std::move(param.appId),
@@ -216,12 +224,14 @@ Status DistributedKvDataManager::SetProcessCommunicator(std::shared_ptr<EntryPoi
         return entryPoint->SyncPermissionCheck(params, flag);
     };
     
-    status = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCb);
-    if (!status) {
-        ZLOGE("%d", status);
+    dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetPermissionCheckCallback failed: %d", status);
+        return status;
     }
     isAlreadySet_ = true;
-    return StoreUtil::ConvertStatus(status);
+    return status;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

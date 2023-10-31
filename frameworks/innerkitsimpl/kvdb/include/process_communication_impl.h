@@ -22,15 +22,9 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class AppDeviceChangeListener {
-public:
-    API_EXPORT virtual ~AppDeviceChangeListener() {};
-    API_EXPORT virtual void OnDeviceChanged(const CommDeviceInfo &info, const DeviceChangeType &type) const = 0;
-};
 
-class API_EXPORT ProcessCommunicationImpl : public DistributedDB::IProcessCommunicator, public AppDeviceChangeListener {
+class API_EXPORT ProcessCommunicationImpl : public DistributedDB::IProcessCommunicator {
 public:
-    using DeviceInfo = DistributedKv::CommDeviceInfo;
     using DBStatus = DistributedDB::DBStatus;
     using OnDeviceChange = DistributedDB::OnDeviceChange;
     using OnDataReceive = DistributedDB::OnDataReceive;
@@ -46,15 +40,16 @@ public:
 
     DBStatus SendData(const DistributedDB::DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length) override;
     uint32_t GetMtuSize() override;
+    uint32_t GetMtuSize(const DistributedDB::DeviceInfos &devInfo) override;
     uint32_t GetTimeout(const DistributedDB::DeviceInfos &devInfo) override;
     DistributedDB::DeviceInfos GetLocalDeviceInfos() override;
     std::vector<DistributedDB::DeviceInfos> GetRemoteOnlineDeviceInfosList() override;
     bool IsSameProcessLabelStartedOnPeerDevice(const DistributedDB::DeviceInfos &peerDevInfo) override;
-    void OnDeviceChanged(const DeviceInfo &info, const DeviceChangeType &type) const override;
 private:
     
-    static constexpr uint32_t MTU_SIZE = 4194304; // the max transmission unit size(4M - 80B)
+    static constexpr uint32_t DEFAULT_MTU_SIZE = 4096u;
     std::shared_ptr<EntryPoint> entryPoint_;
+    bool isCreateSessionServer = false;
 };
 }  // namespace AppDistributedKv
 }  // namespace OHOS
