@@ -24,6 +24,7 @@ using namespace DistributedDB;
 ProcessCommunicationImpl::ProcessCommunicationImpl(std::shared_ptr<EntryPoint> entryPoint)
     : entryPoint_(entryPoint)
 {
+    ZLOGI("constructor.");
 }
 
 ProcessCommunicationImpl::~ProcessCommunicationImpl()
@@ -34,12 +35,12 @@ ProcessCommunicationImpl::~ProcessCommunicationImpl()
 DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 {
     ZLOGI("init ProcessCommunication");
-    Status errCode = entryPoint_->Start("com.huawei.profile+-1000");
+    Status errCode = entryPoint_->Start(processLabel);
     if (errCode != Status::SUCCESS) {
         ZLOGE("entryPoint Start Fail.");
         return DBStatus::DB_ERROR;
     }
-    isCreateSessionServer = true;
+    isCreateSessionServer_ = true;
     return DBStatus::OK;
 }
 
@@ -50,7 +51,7 @@ DBStatus ProcessCommunicationImpl::Stop()
         ZLOGE("entryPoint Stop Fail.");
         return DBStatus::DB_ERROR;
     }
-    isCreateSessionServer = false;
+    isCreateSessionServer_ = false;
     return DBStatus::OK;
 }
 
@@ -117,14 +118,6 @@ uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &
     return entryPoint_->GetMtuSize(infos);
 }
 
-uint32_t ProcessCommunicationImpl::GetTimeout(const DistributedDB::DeviceInfos &devInfo)
-{
-    DeviceInfos infos = {
-        devInfo.identifier
-    };
-    return entryPoint_->GetTimeout(infos);
-}
-
 DistributedDB::DeviceInfos ProcessCommunicationImpl::GetLocalDeviceInfos()
 {
     auto devInfo = entryPoint_->GetLocalDeviceInfos();
@@ -150,7 +143,7 @@ std::vector<DistributedDB::DeviceInfos> ProcessCommunicationImpl::GetRemoteOnlin
 
 bool ProcessCommunicationImpl::IsSameProcessLabelStartedOnPeerDevice(__attribute__((unused)) const DistributedDB::DeviceInfos &peerDevInfo)
 {
-    return isCreateSessionServer;
+    return isCreateSessionServer_;
 }
 } // namespace AppDistributedKv
 } // namespace OHOS

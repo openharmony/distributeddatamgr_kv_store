@@ -185,11 +185,11 @@ Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entry
     }
 
     if (isAlreadySet_) {
-        ZLOGI("EntryPoint already set");
+        ZLOGW("EntryPoint already set");
         return ERROR;
     }
     
-    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
+    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("com.huawei.profile+-1000", "default");
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
         ZLOGE("SetProcessLabel failed: %d", status);

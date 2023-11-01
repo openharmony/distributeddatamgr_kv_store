@@ -295,8 +295,7 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
         if (isClientSync_) {
             auto dbStatus = dbStore_->UnRegisterObserver(bridge.get());
             status = StoreUtil::ConvertStatus(dbStatus);
-        }
-        if (!isClientSync_) {
+        } else {
             realType &= ~SUBSCRIBE_TYPE_LOCAL;
             status = bridge->UnregisterRemoteObserver();
         }
@@ -518,6 +517,7 @@ Status SingleStoreImpl::SetSyncParam(const KvSyncParam &syncParam)
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__), TraceSwitch::BYTRACE_ON);
     if (isClientSync_) {
+        ZLOGE("NOT_SUPPORT.");
         return NOT_SUPPORT;
     }
     auto service = KVDBServiceClient::GetInstance();
@@ -693,11 +693,11 @@ std::function<void(ObserverBridge *)> SingleStoreImpl::BridgeReleaser()
                 status = StoreUtil::ConvertStatus(dbStatus);
             }
         }
-        if (isClientSync_ && status != SUCCESS) {
-            ZLOGE("sync in client status:0x%{public}x observer:0x%{public}x", status,
-                StoreUtil::Anonymous(obj));
-        }
         if (isClientSync_) {
+            if (status != SUCCESS) {
+                ZLOGE("sync in client status:0x%{public}x observer:0x%{public}x", status,
+                    StoreUtil::Anonymous(obj));
+            }
             delete obj;
             return;
         }

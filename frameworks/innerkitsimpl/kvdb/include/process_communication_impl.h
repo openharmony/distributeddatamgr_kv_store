@@ -41,7 +41,6 @@ public:
     DBStatus SendData(const DistributedDB::DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length) override;
     uint32_t GetMtuSize() override;
     uint32_t GetMtuSize(const DistributedDB::DeviceInfos &devInfo) override;
-    uint32_t GetTimeout(const DistributedDB::DeviceInfos &devInfo) override;
     DistributedDB::DeviceInfos GetLocalDeviceInfos() override;
     std::vector<DistributedDB::DeviceInfos> GetRemoteOnlineDeviceInfosList() override;
     bool IsSameProcessLabelStartedOnPeerDevice(const DistributedDB::DeviceInfos &peerDevInfo) override;
@@ -49,7 +48,7 @@ private:
     
     static constexpr uint32_t DEFAULT_MTU_SIZE = 4096u;
     std::shared_ptr<EntryPoint> entryPoint_;
-    bool isCreateSessionServer = false;
+    bool isCreateSessionServer_ = false;
 };
 }  // namespace AppDistributedKv
 }  // namespace OHOS

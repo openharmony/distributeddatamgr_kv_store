@@ -81,13 +81,6 @@ public:
      * @return Data size.
      */
     API_EXPORT virtual uint32_t GetMtuSize(const DeviceInfos &devInfo) = 0;
-
-    /**
-     * @brief Obtains Timeout interval of sync task.
-     * @param devInfo Remote device ID.
-     * @return Timeout interval.
-     */
-    API_EXPORT virtual uint32_t GetTimeout(const DeviceInfos &devInfo) = 0;
     
     /**
      * @brief Obtains the ID of the loacl device info.
