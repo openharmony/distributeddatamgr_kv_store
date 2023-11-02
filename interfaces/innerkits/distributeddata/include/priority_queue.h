@@ -94,9 +94,6 @@ public:
         auto index = indexes_.find(id);
         if (index != indexes_.end()) {
             auto [repeat, time] = updater(index->second->second.task_);
-            if (!repeat) {
-                return repeat;
-            }
             auto matrix = std::move(index->second->second);
             tasks_.erase(index->second);
             index->second = tasks_.emplace(time, std::move(matrix));
