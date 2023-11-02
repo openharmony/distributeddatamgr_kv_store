@@ -188,7 +188,7 @@ void InitLogicDelete(int64_t count)
     sqlite3_close(db);
 }
 
-void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData, std::vector<OpType> &opTypes)
+void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData)
 {
     for (int i = 1; i <= 5; i++) { // 5 is random num
         Asset asset = g_localAsset;

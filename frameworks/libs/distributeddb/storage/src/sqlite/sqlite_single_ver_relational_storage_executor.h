@@ -16,6 +16,7 @@
 #define SQLITE_SINGLE_VER_RELATIONAL_STORAGE_EXECUTOR_H
 #ifdef RELATIONAL_STORE
 
+#include <atomic>
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_store_types.h"
 #include "data_transformer.h"

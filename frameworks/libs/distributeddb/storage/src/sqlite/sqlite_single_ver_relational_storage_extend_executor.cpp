@@ -480,7 +480,7 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetCloudDeleteSql(const st
     } else {
         sql += "data_key = -1,  flag = 1";
     }
-    sql += ", cloud_gid = '', version = '', ";
+    sql += ", cloud_gid = '', ";
     return sql;
 }
 

@@ -263,8 +263,6 @@ namespace {
             LOGE("rm test db files error.");
         }
         DistributedDBToolsUnitTest::PrintTestCaseInfo();
-        auto *syncInterfaceB = new(std::nothrow) VirtualRelationalVerSyncDBInterface();
-        ASSERT_TRUE(syncInterfaceB != nullptr);
     }
 
     void DistributedDBInterfacesRelationalTrackerTableTest::TearDown(void)
@@ -1595,6 +1593,8 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql007, TestS
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     condition.sql = "DETACH DATABASE TEST";
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    db = nullptr;
     CloseStore();
 }
 

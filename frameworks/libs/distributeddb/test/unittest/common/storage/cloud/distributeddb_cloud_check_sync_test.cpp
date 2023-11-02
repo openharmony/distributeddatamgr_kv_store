@@ -244,7 +244,7 @@ void DistributedDBCloudCheckSyncTest::DeleteCloudTableRecord(int64_t gid)
 void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount)
 {
     // prepare data
-    InsertUserTableRecord(tableName_, dataCount);
+    InsertUserTableRecord(dataCount);
     // sync
     Query query = Query::Select().FromTable({ tableName_ });
     BlockSync(query, delegate_);
@@ -499,7 +499,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
     observer->SetExpectedResult(expectData);
     trackerSchema.trackerColNames = {};
     EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
-    InsertUserTableRecord(tableName_, actualCount);
+    InsertUserTableRecord(actualCount);
     BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
     for (int i = 0; i < actualCount + actualCount; ++i) {
         DeleteCloudTableRecord(i);
