@@ -747,6 +747,10 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
+    if (errCode == E_OK && localOption.securityLabel == NOT_SET) {
+        LOGE("[AbilitySync] Local not set security option");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     Task task;
     {
         std::lock_guard<std::mutex> autoLock(taskLock_);
