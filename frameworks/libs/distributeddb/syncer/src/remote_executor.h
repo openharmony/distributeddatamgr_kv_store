@@ -144,8 +144,7 @@ private:
 
     ICommunicator *GetAndIncCommunicator() const;
     ISyncInterface *GetAndIncSyncInterface() const;
-    static int CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage, int32_t remoteSecLabel,
-        uint32_t remoteVersion);
+    static int CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage, int32_t remoteSecLabel);
 
     std::mutex taskLock_;
     std::map<std::string, std::deque<uint32_t>> searchTaskQueue_; // key is device, value is sessionId queue

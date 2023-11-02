@@ -224,6 +224,9 @@ void DistributedDBInterfacesNBDelegateTest::SetUpTestCase(void)
     g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
     ASSERT_TRUE(g_communicatorAggregator != nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
+
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
 }
 
 void DistributedDBInterfacesNBDelegateTest::TearDownTestCase(void)
@@ -2803,8 +2806,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BlockTimer001, TestSize.Level0)
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize.Level2)
 {
-    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
-    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
     /**
      * @tc.steps:step1. Get the nb delegate.
      * @tc.expected: step1. Get results OK and non-null delegate.

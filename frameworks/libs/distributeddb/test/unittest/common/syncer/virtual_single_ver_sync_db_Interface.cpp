@@ -365,9 +365,6 @@ int VirtualSingleVerSyncDBInterface::GetSecurityOption(SecurityOption &option) c
     if (getSecurityOptionCallBack_) {
         return getSecurityOptionCallBack_(option);
     }
-    if (secOption_.securityLabel == NOT_SET) {
-        return -E_NOT_SUPPORT;
-    }
     option = secOption_;
     return E_OK;
 }
