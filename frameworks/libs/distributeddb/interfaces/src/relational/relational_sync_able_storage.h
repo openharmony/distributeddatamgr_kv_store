@@ -180,6 +180,14 @@ public:
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
     int CheckQueryValid(const QuerySyncObject &query) override;
+
+    int CreateTempSyncTrigger(const std::string &tableName) override;
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
+    int ClearAllTempSyncTrigger() override;
+
+    void SetLogicDelete(bool logicDelete);
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -196,7 +204,9 @@ private:
     // put
     int PutSyncData(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
+    void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
 
+    bool IsCurrentLogicDelete() const;
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -219,6 +229,9 @@ private:
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
+
+    std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> allowLogicDelete_ = false;
 };
 }  // namespace DistributedDB
 #endif

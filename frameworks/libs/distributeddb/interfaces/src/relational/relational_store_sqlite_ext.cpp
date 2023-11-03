@@ -20,9 +20,11 @@
 #include <vector>
 
 #include "db_common.h"
+#include "kv_store_errno.h"
 #include "platform_specific.h"
 #include "relational_store_client.h"
 #include "runtime_context.h"
+#include "sqlite_utils.h"
 
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
@@ -601,7 +603,7 @@ static bool GetDbFileName(sqlite3 *db, std::string &fileName)
 
 void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
@@ -619,6 +621,8 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
         return;
     }
     std::string tableName = static_cast<std::string>(tableNameChar);
+
+    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[3])); // 3 is param index
     bool isExistObserver = false;
     {
         std::lock_guard<std::mutex> lock(g_clientObserverMutex);
@@ -628,7 +632,14 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     {
         std::lock_guard<std::mutex> lock(g_clientChangedDataMutex);
         if (isExistObserver) {
-            g_clientChangedDataMap[hashFileName].tableNames.insert(tableName);
+            auto itTable = g_clientChangedDataMap[hashFileName].tableData.find(tableName);
+            if (itTable != g_clientChangedDataMap[hashFileName].tableData.end()) {
+                itTable->second.isTrackedDataChange =
+                    (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
+            } else {
+                DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
+                g_clientChangedDataMap[hashFileName].tableData.insert_or_assign(tableName, properties);
+            }
         }
     }
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
@@ -658,13 +669,13 @@ int CommitHookCallback(void *data)
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
     auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableNames.empty()) {
+    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
         (void)DistributedDB::RuntimeContext::GetInstance()->ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
         });
-        g_clientChangedDataMap[hashFileName].tableNames.clear();
+        g_clientChangedDataMap[hashFileName].tableData.clear();
     }
     return 0;
 }
@@ -683,8 +694,8 @@ void RollbackHookCallback(void* data)
     }
     std::lock_guard<std::mutex> clientChangedDataLock(g_clientChangedDataMutex);
     auto it = g_clientChangedDataMap.find(hashFileName);
-    if (it != g_clientChangedDataMap.end() && !it->second.tableNames.empty()) {
-        g_clientChangedDataMap[hashFileName].tableNames.clear();
+    if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
+        g_clientChangedDataMap[hashFileName].tableData.clear();
     }
 }
 
@@ -713,7 +724,7 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
-    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
+    return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
 }
 
 void RegisterCommitAndRollbackHook(sqlite3 *db)
@@ -942,6 +953,39 @@ void HandleDropCloudSyncTable(sqlite3 *db, const std::string &tableName)
     (void)sqlite3_finalize(statement);
 }
 
+int HandleDropLogicDeleteData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    std::string logTblName = DBCommon::GetLogTableName(tableName);
+    std::string sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " VALUES ('log_trigger_switch', 'false')";
+    int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("close log_trigger_switch failed. %d", errCode);
+        return errCode;
+    }
+    sql = "DELETE FROM " + tableName + " WHERE _rowid_ IN (SELECT data_key FROM " + logTblName + " WHERE "
+        " flag&0x08=0x08" + (cursor == 0 ? ");" : " AND cursor <= '" + std::to_string(cursor) + "');");
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("delete logic deletedData failed. %d", errCode);
+        return errCode;
+    }
+    sql = "UPDATE " + logTblName + " SET data_key = -1, flag = (flag & ~0x08) | 0x01 WHERE flag&0x08=0x08" +
+        (cursor == 0 ? ";" : " AND cursor <= '" + std::to_string(cursor) + "';");
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("update logic deletedData failed. %d", errCode);
+        return errCode;
+    }
+    sql = "INSERT OR REPLACE INTO " + DBConstant::RELATIONAL_PREFIX + "metadata" +
+        " VALUES ('log_trigger_switch', 'true')";
+    errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+    if (errCode != SQLITE_OK) {
+        LOGE("open log_trigger_switch failed. %d", errCode);
+    }
+    return errCode;
+}
+
 int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
 {
     std::string keyStr = DBConstant::TABLE_IS_DROPPED + tableName;
@@ -1115,6 +1159,35 @@ DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db)
         g_clientObserverMap.erase(it);
     }
     return DistributedDB::OK;
+}
+
+DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor)
+{
+    std::string fileName;
+    if (!GetDbFileName(db, fileName)) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    if (tableName.empty()) {
+        return DistributedDB::INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::BeginTransaction(db, TransactType::IMMEDIATE);
+    if (errCode != DistributedDB::E_OK) {
+        LOGE("begin transaction failed before drop logic deleted data. %d", errCode);
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    errCode = HandleDropLogicDeleteData(db, tableName, cursor);
+    if (errCode != SQLITE_OK) {
+        int ret = SQLiteUtils::RollbackTransaction(db);
+        if (ret != DistributedDB::E_OK) {
+            LOGE("rollback failed when drop logic deleted data. %d", ret);
+        }
+        return DistributedDB::TransferDBErrno(errCode);
+    }
+    int ret = SQLiteUtils::CommitTransaction(db);
+    if (ret != DistributedDB::E_OK) {
+        LOGE("commit failed when drop logic deleted data. %d", ret);
+    }
+    return ret == DistributedDB::E_OK ? DistributedDB::OK : DistributedDB::TransferDBErrno(ret);
 }
 
 // hw export the symbols

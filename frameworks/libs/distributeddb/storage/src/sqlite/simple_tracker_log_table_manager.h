@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,20 +13,23 @@
  * limitations under the License.
  */
 
-#ifndef SPLICT_DEVICE_LOG_TABLE_MANAGER_H
-#define SPLICT_DEVICE_LOG_TABLE_MANAGER_H
+#ifndef SIMPLE_TRACKER_LOG_TABLE_MANAGER_H
+#define SIMPLE_TRACKER_LOG_TABLE_MANAGER_H
+
 #include "sqlite_log_table_manager.h"
 
 namespace DistributedDB {
-class SplitDeviceLogTableManager : public SqliteLogTableManager {
+class SimpleTrackerLogTableManager : public SqliteLogTableManager {
 public:
-    SplitDeviceLogTableManager() = default;
-    ~SplitDeviceLogTableManager() override = default;
+    SimpleTrackerLogTableManager() = default;
+    ~SimpleTrackerLogTableManager() override = default;
 
     // The parameter "references" is "", "NEW." or "OLD.". "identity" is a hash string that identifies a device.
     std::string CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,
         const std::string &identity) override;
+
 private:
+    void GetIndexSql(const TableInfo &table, std::vector<std::string> &schema) override;
     std::string GetPrimaryKeySql(const TableInfo &table) override;
 
     // The parameter "identity" is a hash string that identifies a device. The same for the next two functions.
@@ -35,5 +38,7 @@ private:
     std::string GetDeleteTrigger(const TableInfo &table, const std::string &identity) override;
     std::vector<std::string> GetDropTriggers(const TableInfo &table) override;
 };
-} // namespace DistributedDB
-#endif // SPLICT_DEVICE_LOG_TABLE_MANAGER_H
+
+} // DistributedDB
+
+#endif // SIMPLE_TRACKER_LOG_TABLE_MANAGER_H

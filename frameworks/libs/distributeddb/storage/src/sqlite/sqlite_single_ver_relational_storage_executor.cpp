@@ -40,9 +40,10 @@ static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
 static constexpr const char *SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
-static constexpr const int SET_FLAG_ZERO_MASK = 0x03; // clear 2th bit of flag
-static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag
-static constexpr const int SET_CLOUD_FLAG = 0x05; // set 1th bit of flag to 0
+static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
+static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
+static constexpr const int SET_FLAG_ONE_MASK = 0x04; // set 2th bit of flag 0100 use with |
+static constexpr const int SET_CLOUD_FLAG = 0x0D; // set 1th bit of flag to 0 1101 use with &
 static constexpr const int DATA_KEY_INDEX = 0;
 static constexpr const int TIMESTAMP_INDEX = 3;
 static constexpr const int W_TIMESTAMP_INDEX = 4;
@@ -59,7 +60,7 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
 }
 SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable,
     DistributedTableMode mode)
-    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode)
+    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false)
 {
     bindCloudFieldFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::BindInt64;
     bindCloudFieldFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BindBool;
@@ -143,7 +144,7 @@ int GetExistedDataTimeOffset(sqlite3 *db, const std::string &tableName, bool isM
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName,
-    const std::string &calPrimaryKeyHash)
+    const std::string &calPrimaryKeyHash, TableInfo &tableInfo)
 {
     int64_t timeOffset = 0;
     int errCode = GetExistedDataTimeOffset(db, tableName, isMemDb_, timeOffset);
@@ -152,10 +153,20 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
     }
     std::string timeOffsetStr = std::to_string(timeOffset);
     std::string logTable = DBConstant::RELATIONAL_PREFIX + tableName + "_log";
-    std::string sql = "INSERT INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+    std::string sql = "INSERT OR REPLACE INTO " + logTable + " SELECT " + std::string(DBConstant::SQLITE_INNER_ROWID) +
         ", '', '', " + timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", " +
         timeOffsetStr + " + " + std::string(DBConstant::SQLITE_INNER_ROWID) + ", 0x2, " +
-        calPrimaryKeyHash + ", ''" + " FROM '" + tableName + "' AS a WHERE 1=1;";
+        calPrimaryKeyHash + ", '', ";
+    if (tableInfo.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
+        sql += "'', ''";
+    } else {
+        sql += tableInfo.GetTrackerTable().GetExtendName().empty() ? "''" : tableInfo.GetTrackerTable().GetExtendName();
+        sql += ", case when (SELECT count(1)<>0 FROM " + logTable + ")" +
+            " then ((SELECT CASE WHEN MAX(cursor) IS NULL THEN 0 ELSE MAX(cursor) END FROM " + logTable + ") + " +
+            std::string(DBConstant::SQLITE_INNER_ROWID) +
+            ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
+    }
+    sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
 
@@ -198,10 +209,13 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
 
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
-        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash);
-        if (errCode != E_OK) {
-            return errCode;
-        }
+        errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
+    } else {
+        // Used for upgrading the stock data of the trackerTable
+        errCode = UpgradedLogForExistedData(dbHandle_, table);
+    }
+    if (errCode != E_OK) {
+        return errCode;
     }
 
     // add trigger
@@ -1086,20 +1100,6 @@ int StepNext(bool isMemDB, sqlite3_stmt *stmt, Timestamp &timestamp)
     return errCode;
 }
 
-int StepNext(bool isMemDB, sqlite3_stmt *stmt)
-{
-    if (stmt == nullptr) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = -E_FINISHED;
-    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-        errCode = E_OK;
-    }
-    return errCode;
-}
-
 int AppendData(const DataSizeSpecInfo &sizeInfo, size_t appendLength, size_t &overLongSize, size_t &dataTotalSize,
     std::vector<DataItem> &dataItems, DataItem &&item)
 {
@@ -1679,7 +1679,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
     uint32_t stepNum = 0;
     do {
         if (isStepNext) {
-            errCode = StepNext(isMemDb_, queryStmt);
+            errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
             if (errCode != E_OK) {
                 errCode = (errCode == -E_FINISHED ? E_OK : errCode);
                 break;
@@ -1711,7 +1711,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
         return errCode;
     }
     do {
-        errCode = StepNext(isMemDb_, queryStmt);
+        errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
         if (errCode != E_OK) {
             errCode = (errCode == -E_FINISHED ? E_OK : errCode);
             break;
@@ -2041,7 +2041,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogSql(const std::string &
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::string &tableName,
-    const TableSchema &tableSchema, DownloadData &downloadData, std::map<int, int> &statisticMap)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable, DownloadData &downloadData,
+    std::map<int, int> &statisticMap)
 {
     int index = 0;
     int errCode = E_OK;
@@ -2049,13 +2050,13 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
         VBucket &vBucket = downloadData.data[index];
         switch (op) {
             case OpType::INSERT:
-                errCode = InsertCloudData(vBucket, tableSchema);
+                errCode = InsertCloudData(vBucket, tableSchema, trackerTable, GetLocalDataKey(index, downloadData));
                 break;
             case OpType::UPDATE:
                 errCode = UpdateCloudData(vBucket, tableSchema);
                 break;
             case OpType::DELETE:
-                errCode = DeleteCloudData(tableName, vBucket, tableSchema);
+                errCode = DeleteCloudData(tableName, vBucket, tableSchema, trackerTable);
                 break;
             case OpType::ONLY_UPDATE_GID:
             case OpType::SET_CLOUD_FORCE_PUSH_FLAG_ZERO:
@@ -2140,8 +2141,8 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataAndLogOnUserTable(co
     const std::string &logTableName)
 {
     std::string sql = "DELETE FROM '" + tableName + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) +
-        " IN (SELECT " + DATAKEY + " FROM '" + logTableName + "' WHERE CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " +
-        FLAG_IS_CLOUD + ");";
+        " IN (SELECT " + DATAKEY + " FROM '" + logTableName + "' WHERE (" + FLAG_IS_LOGIC_DELETE +
+        ") OR CLOUD_GID IS NOT NULL AND CLOUD_GID != '' AND " + FLAG_IS_CLOUD + ");";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
     if (errCode != E_OK) {
         LOGE("Failed to delete cloud data on usertable, %d.", errCode);
@@ -2311,7 +2312,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string &tableName,
-    const TableSchema &tableSchema, DownloadData &downloadData)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable, DownloadData &downloadData)
 {
     if (downloadData.data.size() != downloadData.opType.size()) {
         LOGE("put cloud data, data size = %zu, flag size = %zu.", downloadData.data.size(),
@@ -2326,7 +2327,7 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
     }
 
     std::map<int, int> statisticMap = {};
-    errCode = ExecutePutCloudData(tableName, tableSchema, downloadData, statisticMap);
+    errCode = ExecutePutCloudData(tableName, tableSchema, trackerTable, downloadData, statisticMap);
     int ret = SetLogTriggerStatus(true);
     if (ret != E_OK) {
         LOGE("Fail to set log trigger on, %d", ret);
@@ -2343,11 +2344,19 @@ int SQLiteSingleVerRelationalStorageExecutor::PutCloudSyncData(const std::string
     return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema)
+int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema,
+    const TrackerTable &trackerTable, int64_t dataKey)
 {
+    int errCode = E_OK;
+    if (dataKey > 0) {
+        errCode = RemoveDataAndLog(tableSchema.name, dataKey);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
     std::string sql = GetInsertSqlForCloudSync(tableSchema);
     sqlite3_stmt *insertStmt = nullptr;
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertStmt);
+    errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertStmt);
     if (errCode != E_OK) {
         LOGE("Get insert statement failed when save cloud data, %d", errCode);
         return errCode;
@@ -2368,10 +2377,11 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertCloudData(VBucket &vBucket, 
     }
 
     // insert log
-    return InsertLogRecord(tableSchema, vBucket);
+    return InsertLogRecord(tableSchema, trackerTable, vBucket);
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema &tableSchema, VBucket &vBucket)
+int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema &tableSchema,
+    const TrackerTable &trackerTable, VBucket &vBucket)
 {
     if (!CloudStorageUtils::IsContainsPrimaryKey(tableSchema)) {
         // when one data is deleted, "insert or replace" will insert another log record if there is no primary key,
@@ -2392,7 +2402,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
     }
 
     std::string sql = "INSERT OR REPLACE INTO " + DBCommon::GetLogTableName(tableSchema.name) +
-        " VALUES(?, ?, ?, ?, ?, ?, ?, ?)";
+        " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
     sqlite3_stmt *insertLogStmt = nullptr;
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, insertLogStmt);
     if (errCode != E_OK) {
@@ -2400,7 +2410,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InsertLogRecord(const TableSchema 
         return errCode;
     }
 
-    errCode = BindValueToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
+    errCode = BindValueToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt);
     if (errCode != E_OK) {
         SQLiteUtils::ResetStatement(insertLogStmt, true, errCode);
         return errCode;
@@ -2444,7 +2454,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToUpsertStatement(const V
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket,
-    const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt)
 {
     std::vector<uint8_t> hashKey;
     int errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, hashKey);
@@ -2468,11 +2478,21 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     if (errCode != E_OK) {
         LOGE("Bind cloud_gid to insert log statement failed, %d", errCode);
     }
+
+    if (trackerTable.GetExtendName().empty() || vBucket.find(trackerTable.GetExtendName()) == vBucket.end()) {
+        errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 9, ""); // 9 is extend_field
+    } else {
+        Type extendValue = vBucket.at(trackerTable.GetExtendName());
+        errCode = SQLiteRelationalUtils::BindStatementByType(insertLogStmt, 9, extendValue); // 9 is extend_field
+    }
+    if (errCode != E_OK) {
+        LOGE("Bind cloud_gid to insert log statement failed, %d", errCode);
+    }
     return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBucket &vBucket,
-    const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt)
 {
     int64_t rowid = SQLiteUtils::GetLastRowId(dbHandle_);
     int errCode = SQLiteUtils::BindInt64ToStatement(insertLogStmt, 1, rowid);
@@ -2525,7 +2545,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
     }
 
     vBucket[CloudDbConstant::ROW_ID_FIELD_NAME] = rowid; // fill rowid to cloud data to notify user
-    return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, insertLogStmt);
+    return BindHashKeyAndGidToInsertLogStatement(vBucket, tableSchema, trackerTable, insertLogStmt);
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetWhereConditionForDataTable(const std::string &gidStr,
@@ -2663,7 +2683,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "cloud_gid = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
-            updateLogSql += "data_key = -1, flag = 1, cloud_gid = '', ";
+            updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
         } else {
             updateLogSql += "flag = 0, cloud_gid = ?, ";
             updateColName.push_back(CloudDbConstant::GID_FIELD);
@@ -2813,15 +2833,22 @@ int SQLiteSingleVerRelationalStorageExecutor::GetDeleteStatementForCloudSync(con
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteCloudData(const std::string &tableName, const VBucket &vBucket,
-    const TableSchema &tableSchema)
+    const TableSchema &tableSchema, const TrackerTable &trackerTable)
 {
+    if (isLogicDelete_) {
+        LOGD("[RDBExecutor] logic delete skip delete data");
+        int errCode = UpdateLogRecord(vBucket, tableSchema, OpType::DELETE);
+        if (errCode == E_OK && !trackerTable.IsEmpty()) {
+            return SQLiteRelationalUtils::SelectServerObserver(dbHandle_, tableName, true);
+        }
+        return errCode;
+    }
     std::set<std::string> pkSet = CloudStorageUtils::GetCloudPrimaryKey(tableSchema);
     sqlite3_stmt *deleteStmt = nullptr;
     int errCode = GetDeleteStatementForCloudSync(tableSchema, pkSet, vBucket, deleteStmt);
     if (errCode != E_OK) {
         return errCode;
     }
-
     errCode = SQLiteUtils::StepWithRetry(deleteStmt, false);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(deleteStmt, true, ret);
@@ -2865,6 +2892,11 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteMissTableTrigger(const std::
         }
     }
     return E_OK;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetLogicDelete(bool isLogicDelete)
+{
+    isLogicDelete_ = isLogicDelete;
 }
 } // namespace DistributedDB
 #endif

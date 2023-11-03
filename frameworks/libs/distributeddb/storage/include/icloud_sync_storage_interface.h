@@ -40,6 +40,7 @@ enum class OpType : uint8_t {
 typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
+    std::vector<int64_t> existDataKey;
 } DownloadData;
 
 class ICloudSyncStorageInterface {
@@ -100,6 +101,25 @@ public:
     virtual std::string GetIdentify() const = 0;
 
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
+
+    virtual int CreateTempSyncTrigger(const std::string &tableName)
+    {
+        return E_OK;
+    }
+
+    virtual int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties)
+    {
+        return E_OK;
+    }
+
+    virtual int ClearAllTempSyncTrigger()
+    {
+        return E_OK;
+    }
+
+    virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
+    {
+    }
 };
 }
 

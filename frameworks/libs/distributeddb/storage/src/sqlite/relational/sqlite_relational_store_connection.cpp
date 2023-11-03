@@ -383,7 +383,11 @@ int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema
         LOGE("[RelationalConnection] store is null, get DB failed!");
         return -E_INVALID_CONNECTION;
     }
-    return E_OK;
+    int errCode = store->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] set tracker table failed. %d", errCode);
+    }
+    return errCode;
 }
 
 int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
@@ -393,7 +397,27 @@ int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, s
         LOGE("[RelationalConnection] store is null, get executor failed!");
         return -E_INVALID_CONNECTION;
     }
-    return E_OK;
+    return store->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->CleanTrackerData(tableName, cursor);
+}
+
+int SQLiteRelationalStoreConnection::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->Pragma(cmd, pragmaData);
 }
 }
 #endif

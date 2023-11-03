@@ -53,9 +53,9 @@ public:
 
     void ClientObserverFunc(ClientChangedData &clientChangedData)
     {
-        for (const auto &tableName : clientChangedData.tableNames) {
-            LOGD("client observer fired, table: %s", tableName.c_str());
-            triggerTableNames_.insert(tableName);
+        for (const auto &tableEntry : clientChangedData.tableData) {
+            LOGD("client observer fired, table: %s", tableEntry.first.c_str());
+            triggerTableData_.insert_or_assign(tableEntry.first, tableEntry.second);
         }
         triggeredCount_++;
         std::unique_lock<std::mutex> lock(g_mutex);
@@ -72,6 +72,7 @@ public:
     }
 
     std::set<std::string> triggerTableNames_;
+    std::map<std::string, ChangeProperties> triggerTableData_;
     int triggeredCount_ = 0;
     int triggeredCount2_ = 0;
 };
@@ -101,8 +102,9 @@ void DistributedDBCloudInterfacesRelationalExtTest::CheckTriggerObserverTest002(
     std::atomic<int> &count)
 {
     count++;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, false);
     EXPECT_EQ(triggeredCount_, count);
 }
 
@@ -117,6 +119,29 @@ static int GetCurrentSysTimeIn100Ns(uint64_t &outTime)
         static_cast<uint64_t>(rawTime.tv_usec);
     outTime *= TO_100_NS;
     return E_OK;
+}
+
+static void SetTracerSchemaTest001(const std::string &tableName)
+{
+    TrackerSchema schema;
+    schema.tableName = tableName;
+    schema.extendColName = "id";
+    schema.trackerColNames = {"name"};
+    RelationalStoreDelegate *delegate = nullptr;
+    DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
+    EXPECT_EQ(status, OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+}
+
+static void ExecSqlAndWaitForObserver(sqlite3 *db, const std::string &sql, std::unique_lock<std::mutex> &lock)
+{
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    g_cv.wait(lock, []() {
+        return g_alreadyNotify;
+    });
+    g_alreadyNotify = false;
 }
 
 /**
@@ -143,7 +168,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, GetRawSysTimeTest001, Te
 }
 
 void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRowId,
-    DistributedDB::TableSyncType tableSyncType, bool userDefineRowid = true)
+    DistributedDB::TableSyncType tableSyncType, bool userDefineRowid = true, bool createDistributeTable = true)
 {
     /**
      * @tc.steps:step1. create db, create table.
@@ -175,8 +200,10 @@ void PrepareData(const std::vector<std::string> &tableNames, bool primaryKeyIsRo
     DBStatus status = g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate);
     EXPECT_EQ(status, OK);
     ASSERT_NE(delegate, nullptr);
-    for (const auto &tableName : tableNames) {
-        EXPECT_EQ(delegate->CreateDistributedTable(tableName, tableSyncType), OK);
+    if (createDistributeTable) {
+        for (const auto &tableName : tableNames) {
+            EXPECT_EQ(delegate->CreateDistributedTable(tableName, tableSyncType), OK);
+        }
     }
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;
@@ -680,8 +707,8 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
     EXPECT_EQ(triggeredCount_, dataCounts);
 
     /**
@@ -744,15 +771,15 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u);
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
     EXPECT_EQ(triggeredCount_, 1);
 
     /**
      * @tc.steps:step4. begin transaction and rollback.
      * @tc.expected: step3. check observer ok.
      */
-    triggerTableNames_.clear();
+    triggerTableData_.clear();
     triggeredCount_ = 0;
     sql = "begin;";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
@@ -762,7 +789,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest005, 
     }
     sql = "rollback;";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-    EXPECT_TRUE(triggerTableNames_.empty());
+    EXPECT_TRUE(triggerTableData_.empty());
     EXPECT_EQ(triggeredCount_, 0);
 
     /**
@@ -819,20 +846,20 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u); // 1 is table size
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName1);
+    ASSERT_EQ(triggerTableData_.size(), 1u); // 1 is table size
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName1);
     EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
 
     /**
      * @tc.steps:step4. UnRegisterClientObserver and insert table2.
      * @tc.expected: step3. check observer ok.
      */
-    triggerTableNames_.clear();
+    triggerTableData_.clear();
     triggeredCount_ = 0;
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
     sql = "insert into " + tableName2 + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-    EXPECT_TRUE(triggerTableNames_.empty());
+    EXPECT_TRUE(triggerTableData_.empty());
     EXPECT_EQ(triggeredCount_, 0);
 
     /**
@@ -846,10 +873,172 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest006, 
         return g_alreadyNotify;
     });
     g_alreadyNotify = false;
-    ASSERT_EQ(triggerTableNames_.size(), 1u); // 1 is table size
-    EXPECT_EQ(*triggerTableNames_.begin(), tableName1);
+    ASSERT_EQ(triggerTableData_.size(), 1u); // 1 is table size
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName1);
     EXPECT_EQ(triggeredCount_, 1); // 1 is trigger count
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: TriggerObserverTest007
+ * @tc.desc: Test trigger client observer in tracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangshijie
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare data and set trackerTable
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false, false);
+    SetTracerSchemaTest001(tableName);
+
+    /**
+    * @tc.steps:step2. register client observer.
+    * @tc.expected: step2. return ok.
+    */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    ClientObserver clientObserver = std::bind(&DistributedDBCloudInterfacesRelationalExtTest::ClientObserverFunc,
+        this, std::placeholders::_1);
+    EXPECT_EQ(RegisterClientObserver(db, clientObserver), OK);
+
+    /**
+     * @tc.steps:step3. insert data into sync_data, check observer.
+     * @tc.expected: step3. check observer ok.
+     */
+    std::string sql = "insert into " + tableName + " VALUES(1, 'zhangsan'), (2, 'lisi'), (3, 'wangwu');";
+    std::unique_lock<std::mutex> lock(g_mutex);
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
+    EXPECT_EQ(triggeredCount_, 1); // 1 is observer triggered counts
+
+    /**
+     * @tc.steps:step4. update data, check observer.
+     * @tc.expected: step4. check observer ok.
+     */
+    sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
+    EXPECT_EQ(triggeredCount_, 2); // 2 is observer triggered counts
+
+    /**
+     * @tc.steps:step5. update to the same data again, check observer.
+     * @tc.expected: step5. check observer ok.
+     */
+    sql = "update " + tableName + " set name = 'lisi1' where id = 2;";
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, false);
+    EXPECT_EQ(triggeredCount_, 3); // 3 is observer triggered counts
+
+    /**
+     * @tc.steps:step6. delete data, check observer.
+     * @tc.expected: step6. check observer ok.
+     */
+    sql = "delete from " + tableName + " where id = 2;";
+    ExecSqlAndWaitForObserver(db, sql, lock);
+    ASSERT_EQ(triggerTableData_.size(), 1u);
+    EXPECT_EQ(triggerTableData_.begin()->first, tableName);
+    EXPECT_EQ(triggerTableData_.begin()->second.isTrackedDataChange, true);
+    EXPECT_EQ(triggeredCount_, 4); // 4 is observer triggered counts
+    EXPECT_EQ(UnRegisterClientObserver(db), OK);
+    EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+void InitLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t num)
+{
+    for (size_t i = 0; i < num; ++i) {
+        std::string sql = "insert or replace into " + tableName + " VALUES('" + std::to_string(i) + "', 'zhangsan');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+    }
+    std::string sql = "update " + DBConstant::RELATIONAL_PREFIX + tableName + "_log" + " SET flag = flag | 0x08";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+}
+
+void CheckLogicDeleteData(sqlite3 *&db, const std::string &tableName, uint64_t expectNum)
+{
+    std::string sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + tableName + "_log"
+        " where flag&0x08=0x08 and flag&0x01=0";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        uint64_t count = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        EXPECT_EQ(count, expectNum);
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    stmt = nullptr;
+    sql = "select count(*) from " + tableName;
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        uint64_t count = static_cast<uint64_t>(sqlite3_column_int64(stmt, 0));
+        EXPECT_EQ(count, expectNum);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: DropDeleteData001
+ * @tc.desc: Test trigger client observer in tracker table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. prepare data.
+     * @tc.expected: step1. return ok.
+     */
+    const std::string tableName = "sync_data";
+    PrepareData({tableName}, false, DistributedDB::CLOUD_COOPERATION, false);
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    EXPECT_NE(db, nullptr);
+    uint64_t num = 10;
+    InitLogicDeleteData(db, tableName, num);
+
+    /**
+     * @tc.steps:step2. db handle is nullptr
+     * @tc.expected: step2. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(nullptr, tableName, 0u), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step3. tableName is empty
+     * @tc.expected: step3. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, "", 0u), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step4. tableName is no exist
+     * @tc.expected: step4. return INVALID_ARGS.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, tableName + "_", 0u), DB_ERROR);
+
+    /**
+     * @tc.steps:step5. cursor is 0
+     * @tc.expected: step5. return OK.
+     */
+    EXPECT_EQ(DropLogicDeletedData(db, tableName, 0u), OK);
+    CheckLogicDeleteData(db, tableName, 0u);
+
+    /**
+     * @tc.steps:step6. init data again, and cursor is 15
+     * @tc.expected: step6. return OK.
+     */
+    uint64_t cursor = 15;
+    InitLogicDeleteData(db, tableName, num);
+    EXPECT_EQ(DropLogicDeletedData(db, tableName, cursor), OK);
+    CheckLogicDeleteData(db, tableName, cursor - num);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 }
 }

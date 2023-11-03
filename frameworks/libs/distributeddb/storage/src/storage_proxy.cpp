@@ -249,6 +249,9 @@ int StorageProxy::GetInfoByPrimaryKeyOrGid(const std::string &tableName, const V
         dataInfoWithLog.logInfo.timestamp = EraseNanoTime(dataInfoWithLog.logInfo.timestamp);
         dataInfoWithLog.logInfo.wTimestamp = EraseNanoTime(dataInfoWithLog.logInfo.wTimestamp);
     }
+    if ((dataInfoWithLog.logInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_LOGIC_DELETE)) != 0) {
+        assetInfo.clear();
+    }
     return errCode;
 }
 
@@ -351,6 +354,9 @@ int StorageProxy::NotifyChangedData(const std::string &deviceName, ChangedData &
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
+    ChangeProperties changeProperties;
+    store_->GetAndResetServerObserverData(changedData.tableName, changeProperties);
+    changedData.properties = changeProperties;
     store_->TriggerObserverAction(deviceName, std::move(changedData), true);
     return E_OK;
 }
@@ -413,5 +419,34 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
         return -E_INVALID_DB;
     }
     return cloudMetaData_->CleanWaterMark(tableName);
+}
+
+int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->CreateTempSyncTrigger(tableName);
+}
+
+int StorageProxy::ClearAllTempSyncTrigger()
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    // Clean up all temporary triggers
+    return store_->ClearAllTempSyncTrigger();
+}
+
+void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[StorageProxy] fill gid failed with store invalid");
+        return;
+    }
+    store_->SetCloudTaskConfig(config);
 }
 }

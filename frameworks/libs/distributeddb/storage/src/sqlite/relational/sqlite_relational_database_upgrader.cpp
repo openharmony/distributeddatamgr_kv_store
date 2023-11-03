@@ -133,7 +133,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
 
 static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
 {
-    return logTableVersion < DBConstant::LOG_TABLE_VERSION_3;
+    return logTableVersion < DBConstant::LOG_TABLE_VERSION_4;
 }
 
 int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTableVersion)
@@ -159,8 +159,15 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
     }
 
     for (const auto &item : schemaObject.GetTables()) {
-        std::string addColumnSql = "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-            "_log add cloud_gid text after hash_key;";
+        std::string addColumnSql;
+        if (logTableVersion < DBConstant::LOG_TABLE_VERSION_3) {
+            addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+                "_log add cloud_gid text after hash_key;";
+        }
+        addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+            "_log add extend_field blob after cloud_gid;";
+        addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+            "_log add cursor int after extend_field;";
         errCode = SQLiteUtils::ExecuteRawSQL(db_, addColumnSql);
         if (errCode != E_OK) {
             LOGE("[Relational][UpgradeLogTable] add column failed.", errCode);

@@ -26,7 +26,6 @@
 typedef struct sqlite3 sqlite3;
 
 struct ClientChangedData {
-    std::set<std::string> tableNames; // disused,the tableNames will be removed in the next MR
     std::map<std::string, DistributedDB::ChangeProperties> tableData;
 };
 
@@ -35,5 +34,7 @@ using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>
 DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver);
 
 DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 
 #endif // RELATIONAL_STORE_CLIENT_H

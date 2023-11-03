@@ -73,7 +73,9 @@ public:
 
     virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
     virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
+    virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
 
+    virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

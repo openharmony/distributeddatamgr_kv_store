@@ -82,6 +82,7 @@ public:
     static const std::string SQLITE_MEMDB_IDENTIFY;
     static const std::string SCHEMA_KEY;
     static const std::string RELATIONAL_SCHEMA_KEY;
+    static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
 
     static const std::string PATH_POSTFIX_UNPACKED;
     static const std::string PATH_POSTFIX_IMPORT_BACKUP;

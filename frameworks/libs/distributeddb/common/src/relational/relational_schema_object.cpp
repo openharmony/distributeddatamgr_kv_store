@@ -148,6 +148,69 @@ void RelationalSchemaObject::SetTableMode(DistributedTableMode mode)
     GenerateSchemaString();
 }
 
+void RelationalSchemaObject::InsertTrackerSchema(const TrackerSchema &schema)
+{
+    TrackerTable table;
+    table.Init(schema);
+    trackerTables_[schema.tableName].SetTrackerTable(table);
+    GenerateTrackerSchemaString();
+}
+
+void RelationalSchemaObject::RemoveTrackerSchema(const TrackerSchema &schema)
+{
+    trackerTables_.erase(schema.tableName);
+    GenerateTrackerSchemaString();
+}
+
+void RelationalSchemaObject::GenerateTrackerSchemaString()
+{
+    schemaString_ = {};
+    schemaString_ += "{";
+    schemaString_ += R"("SCHEMA_TYPE":"TRACKER",)";
+    schemaString_ += R"("TABLES":[)";
+    for (auto it = trackerTables_.begin(); it != trackerTables_.end(); it++) {
+        if (it != trackerTables_.begin()) {
+            schemaString_ += ",";
+        }
+        schemaString_ += it->second.GetTrackerTable().ToString();
+    }
+    schemaString_ += R"(])";
+    schemaString_ += "}";
+}
+
+TrackerTable RelationalSchemaObject::GetTrackerTable(const std::string &tableName) const
+{
+    auto it = trackerTables_.find(tableName);
+    if (it != trackerTables_.end()) {
+        return it->second.GetTrackerTable();
+    }
+    return {};
+}
+
+int RelationalSchemaObject::ParseFromTrackerSchemaString(const std::string &inSchemaString)
+{
+    JsonObject schemaObj;
+    int errCode = schemaObj.Parse(inSchemaString);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Schema json string parse failed: %d.", errCode);
+        return errCode;
+    }
+
+    errCode = ParseTrackerSchema(schemaObj);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Parse to relational schema failed: %d.", errCode);
+        return errCode;
+    }
+
+    schemaString_ = schemaObj.ToString();
+    return E_OK;
+}
+
+const TableInfoMap &RelationalSchemaObject::GetTrackerTables() const
+{
+    return trackerTables_;
+}
+
 int RelationalSchemaObject::CompareAgainstSchemaObject(const std::string &inSchemaString,
     std::map<std::string, int> &cmpRst) const
 {
@@ -192,6 +255,117 @@ int GetMemberFromJsonObject(const JsonObject &inJsonObject, const std::string &f
     }
     return E_OK;
 }
+}
+
+int RelationalSchemaObject::ParseTrackerSchema(const JsonObject &inJsonObject)
+{
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {SchemaConstant::KEYWORD_SCHEMA_TABLE}, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get tracker schema TABLES fieldType failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
+        LOGE("[RelationalSchema][Parse] Expect tracker TABLES fieldType ARRAY but %s.",
+             SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::vector<JsonObject> tables;
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{SchemaConstant::KEYWORD_SCHEMA_TABLE}, tables);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get tracker schema TABLES value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    for (const JsonObject &table : tables) {
+        errCode = ParseCheckTrackerTable(table);
+        if (errCode != E_OK) {
+            LOGE("[RelationalSchema][Parse] Parse schema TABLES failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckTrackerTable(const JsonObject &inJsonObject)
+{
+    TrackerTable table;
+    int errCode = ParseCheckTrackerTableName(inJsonObject, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = ParseCheckTrackerExtendName(inJsonObject, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = ParseCheckTrackerName(inJsonObject, table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    trackerTables_[table.GetTableName()].SetTrackerTable(table);
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckTrackerTableName(const JsonObject &inJsonObject, TrackerTable &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "NAME", FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode == E_OK) {
+        if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+            LOGE("[RelationalSchema][Parse] Invalid characters in table name, err=%d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        resultTable.SetTableName(fieldValue.stringValue);
+    }
+    return errCode;
+}
+
+int RelationalSchemaObject::ParseCheckTrackerExtendName(const JsonObject &inJsonObject, TrackerTable &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "EXTEND_NAME", FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode == E_OK) {
+        if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+            LOGE("[RelationalSchema][Parse] Invalid characters in extend name, err=%d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        resultTable.SetExtendName(fieldValue.stringValue);
+    }
+    return errCode;
+}
+
+int RelationalSchemaObject::ParseCheckTrackerName(const JsonObject &inJsonObject, TrackerTable &resultTable)
+{
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {"TRACKER_NAMES"}, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get tracker col names fieldType failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
+        LOGE("[RelationalSchema][Parse] Expect tracker TABLES fieldType ARRAY but %s.",
+            SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::vector<JsonObject> fieldValues;
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{"TRACKER_NAMES"}, fieldValues);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get tracker col names value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::set<std::string> colNames;
+    for (const JsonObject &value : fieldValues) {
+        FieldValue fieldValue;
+        errCode = value.GetFieldValueByFieldPath(FieldPath {}, fieldValue);
+        if (errCode != E_OK) {
+            LOGE("[RelationalSchema][Parse] Parse tracker col name failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        colNames.insert(fieldValue.stringValue);
+    }
+    resultTable.SetTrackerNames(colNames);
+    return errCode;
 }
 
 int RelationalSchemaObject::ParseRelationalSchema(const JsonObject &inJsonObject)

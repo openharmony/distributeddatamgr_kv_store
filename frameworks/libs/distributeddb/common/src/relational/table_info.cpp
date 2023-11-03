@@ -704,4 +704,45 @@ bool TableInfo::Empty() const
 {
     return tableName_.empty() || fields_.empty();
 }
+
+void TableInfo::SetTrackerTable(const TrackerTable &table)
+{
+    trackerTable_ = table;
+}
+
+int TableInfo::CheckTrackerTable()
+{
+    if (GetTrackerTable().GetTrackerColNames().empty()) {
+        return E_OK;
+    }
+    for (const auto &colName: GetTrackerTable().GetTrackerColNames()) {
+        if (colName.empty()) {
+            LOGE("tracker col cannot be empty.");
+            return -E_INVALID_ARGS;
+        }
+        if (GetFields().find(colName) == GetFields().end()) {
+            LOGE("unable to match the tracker col from table schema.");
+            return -E_SCHEMA_MISMATCH;
+        }
+    }
+    if (trackerTable_.GetExtendName().empty()) {
+        return E_OK;
+    }
+    auto iter = GetFields().find(trackerTable_.GetExtendName());
+    if (iter == GetFields().end()) {
+        LOGE("unable to match the extend col from table schema.");
+        return -E_SCHEMA_MISMATCH;
+    } else {
+        if (iter->second.IsAssetType() || iter->second.IsAssetsType()) {
+            LOGE("extend col is not allowed to be set as an asset field.");
+            return -E_INVALID_ARGS;
+        }
+    }
+    return E_OK;
+}
+
+const TrackerTable &TableInfo::GetTrackerTable() const
+{
+    return trackerTable_;
+}
 } // namespace DistributeDB

@@ -736,12 +736,16 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         int observerCnt = 0;
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
         for (const auto &item : dataChangeCallbackMap_) {
-            for (const auto &action : item.second) {
-                if (action.second != nullptr) {
-                    observerCnt++;
-                    ChangedData observerChangeData = changedData;
-                    action.second(deviceName, std::move(observerChangeData), isChangedData);
+            for (auto &action : item.second) {
+                if (action.second == nullptr) {
+                    continue;
                 }
+                observerCnt++;
+                ChangedData observerChangeData = changedData;
+                if (action.first != nullptr) {
+                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
+                }
+                action.second(deviceName, std::move(observerChangeData), isChangedData);
             }
         }
         LOGD("relational observer size = %d", observerCnt);
@@ -1163,7 +1167,11 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     transactionHandle_->SetLocalSchema(localSchema);
-    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1319,6 +1327,86 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
         return -E_INVALID_ARGS;
     }
     return errCode;
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableName)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        trackerTable.SetTableName(tableName);
+    }
+    errCode = handle->CreateTempSyncTrigger(trackerTable);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetAndResetServerObserverData(const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetAndResetServerObserverData(tableName, changeProperties);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get server observer data failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type)
+{
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::DEFAULT)) == 0) {
+        changedData.field = {};
+        for (size_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
+            changedData.primaryData[i].clear();
+        }
+    }
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::BRIEF)) == 0) {
+        changedData.properties = {};
+    }
+}
+
+int RelationalSyncAbleStorage::ClearAllTempSyncTrigger()
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->ClearAllTempSyncTrigger();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] clear all temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
+{
+    logicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
+}
+
+void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    allowLogicDelete_ = config.allowLogicDelete;
+    LOGD("[RelationalSyncAbleStorage] allow logic delete %d", static_cast<int>(config.allowLogicDelete));
+}
+
+bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
+{
+    return allowLogicDelete_ && logicDelete_;
 }
 }
 #endif

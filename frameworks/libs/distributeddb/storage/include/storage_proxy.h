@@ -98,6 +98,11 @@ public:
     std::string GetIdentify() const;
 
     int CleanWaterMark(const TableName &tableName);
+
+    int CreateTempSyncTrigger(const std::string &tableName);
+    int ClearAllTempSyncTrigger();
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config);
 protected:
     void Init();
 

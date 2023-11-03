@@ -1171,7 +1171,7 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql
     sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
     sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)":
         " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
-    sql += " AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
+    sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
 }
 

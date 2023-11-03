@@ -37,6 +37,11 @@ struct LogInfo {
     std::string cloudGid; // use for sync with cloud
 };
 
+enum class LogInfoFlag : uint32_t {
+    FLAG_DELETE = 0x1,
+    FLAG_LOGIC_DELETE = 0x8
+};
+
 struct RowDataWithLog {
     LogInfo logInfo;
     RowData rowData;

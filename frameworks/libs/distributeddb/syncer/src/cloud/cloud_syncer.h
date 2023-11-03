@@ -245,7 +245,7 @@ protected:
 
     void ModifyFieldNameToLower(VBucket &data);
 
-    int GetLocalInfo(const std::string &tableName, const VBucket &cloudData, DataInfoWithLog &logInfo,
+    int GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
         std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
 
     TaskId GetNextTaskId();

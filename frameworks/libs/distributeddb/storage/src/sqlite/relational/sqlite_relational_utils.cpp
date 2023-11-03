@@ -17,6 +17,9 @@
 #include "db_errno.h"
 #include "cloud/cloud_db_types.h"
 #include "sqlite_utils.h"
+#include "cloud/cloud_storage_utils.h"
+#include "runtime_context.h"
+#include "cloud/cloud_db_constant.h"
 
 namespace DistributedDB {
 int SQLiteRelationalUtils::GetDataValueByType(sqlite3_stmt *statement, int cid, DataValue &value)
@@ -154,5 +157,245 @@ void SQLiteRelationalUtils::CalCloudValueLen(Type &cloudValue, uint32_t &totalSi
             break;
         }
     }
+}
+
+int SQLiteRelationalUtils::BindStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal)
+{
+    int errCode = E_OK;
+    switch (typeVal.index()) {
+        case TYPE_INDEX<int64_t>: {
+            int64_t value = 0;
+            (void)CloudStorageUtils::GetValueFromType(typeVal, value);
+            errCode = SQLiteUtils::BindInt64ToStatement(statement, cid, value);
+            break;
+        }
+        case TYPE_INDEX<bool>: {
+            bool value = false;
+            (void)CloudStorageUtils::GetValueFromType<bool>(typeVal, value);
+            errCode = SQLiteUtils::BindInt64ToStatement(statement, cid, value);
+            break;
+        }
+        case TYPE_INDEX<double>: {
+            double value = 0.0;
+            (void)CloudStorageUtils::GetValueFromType<double>(typeVal, value);
+            errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_double(statement, cid, value));
+            break;
+        }
+        case TYPE_INDEX<std::string>: {
+            std::string value;
+            (void)CloudStorageUtils::GetValueFromType<std::string>(typeVal, value);
+            errCode = SQLiteUtils::BindTextToStatement(statement, cid, value);
+            break;
+        }
+        default: {
+            errCode = BindExtendStatementByType(statement, cid, typeVal);
+            break;
+        }
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal)
+{
+    int errCode = E_OK;
+    switch (typeVal.index()) {
+        case TYPE_INDEX<Bytes>: {
+            Bytes value;
+            (void)CloudStorageUtils::GetValueFromType<Bytes>(typeVal, value);
+            errCode = SQLiteUtils::BindBlobToStatement(statement, cid, value);
+            break;
+        }
+        case TYPE_INDEX<Asset>: {
+            Asset value;
+            (void)CloudStorageUtils::GetValueFromType<Asset>(typeVal, value);
+            Bytes val;
+            errCode = RuntimeContext::GetInstance()->AssetToBlob(value, val);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = SQLiteUtils::BindBlobToStatement(statement, cid, val);
+            break;
+        }
+        case TYPE_INDEX<Assets>: {
+            Assets value;
+            (void)CloudStorageUtils::GetValueFromType<Assets>(typeVal, value);
+            Bytes val;
+            errCode = RuntimeContext::GetInstance()->AssetsToBlob(value, val);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = SQLiteUtils::BindBlobToStatement(statement, cid, val);
+            break;
+        }
+        default: {
+            errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(statement, cid));
+            break;
+        }
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::StepNext(bool isMemDB, sqlite3_stmt *stmt)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = SQLiteUtils::StepWithRetry(stmt, isMemDB);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_FINISHED;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        errCode = E_OK;
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket)
+{
+    if (stmt == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    for (int cid = 0, colCount = sqlite3_column_count(stmt); cid < colCount; ++cid) {
+        Type typeVal;
+        errCode = GetTypeValByStatement(stmt, cid, typeVal);
+        if (errCode != E_OK) {
+            LOGE("get typeVal from stmt failed");
+            return errCode;
+        }
+        const char *colName = sqlite3_column_name(stmt, cid);
+        bucket.insert_or_assign(colName, std::move(typeVal));
+    }
+    return E_OK;
+}
+
+bool SQLiteRelationalUtils::GetDbFileName(sqlite3 *db, std::string &fileName)
+{
+    if (db == nullptr) {
+        return false;
+    }
+
+    auto dbFilePath = sqlite3_db_filename(db, nullptr);
+    if (dbFilePath == nullptr) {
+        return false;
+    }
+    fileName = std::string(dbFilePath);
+    return true;
+}
+
+int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal)
+{
+    if (stmt == nullptr || cid < 0 || cid >= sqlite3_column_count(stmt)) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    switch (sqlite3_column_type(stmt, cid)) {
+        case SQLITE_INTEGER: {
+            const char *declType = sqlite3_column_decltype(stmt, cid);
+            if (declType == nullptr) {
+                typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
+                break;
+            }
+            if (strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOL.c_str()) == 0 ||
+                strcasecmp(declType, SchemaConstant::KEYWORD_TYPE_BOOLEAN.c_str()) == 0) {
+                typeVal = static_cast<bool>(sqlite3_column_int(stmt, cid));
+                break;
+            }
+            typeVal = static_cast<int64_t>(sqlite3_column_int64(stmt, cid));
+            break;
+        }
+        case SQLITE_FLOAT: {
+            typeVal = sqlite3_column_double(stmt, cid);
+            break;
+        }
+        case SQLITE_BLOB: {
+            errCode = GetBlobByStatement(stmt, cid, typeVal);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+        case SQLITE3_TEXT: {
+            errCode = GetBlobByStatement(stmt, cid, typeVal);
+            if (errCode != E_OK) {
+                break;
+            }
+            if (typeVal.index() != TYPE_INDEX<Nil>) {
+                break;
+            }
+            std::string str;
+            (void)SQLiteUtils::GetColumnTextValue(stmt, cid, str);
+            typeVal = str;
+            break;
+        }
+        default: {
+            typeVal = Nil();
+        }
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal)
+{
+    const char *declType = sqlite3_column_decltype(stmt, cid);
+    int errCode = E_OK;
+    if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSET) == 0) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        Asset asset;
+        errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        typeVal = asset;
+    } else if (declType != nullptr && strcasecmp(declType, CloudDbConstant::ASSETS) == 0) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        Assets assets;
+        errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        typeVal = assets;
+    } else if (sqlite3_column_type(stmt, cid) == SQLITE_BLOB) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, cid, blobValue);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        typeVal = blobValue;
+    }
+    return errCode;
+}
+
+int SQLiteRelationalUtils::SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged)
+{
+    if (db == nullptr || tableName.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    std::string sql;
+    if (isChanged) {
+        sql = "SELECT server_observer('" + tableName + "', 1);";
+    } else {
+        sql = "SELECT server_observer('" + tableName + "', 0);";
+    }
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("get select server observer stmt failed. %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt, false);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("select server observer failed. %d", errCode);
+        return SQLiteUtils::MapSQLiteErrno(errCode);
+    }
+    return ret == E_OK ? E_OK : ret;
 }
 } // namespace DistributedDB

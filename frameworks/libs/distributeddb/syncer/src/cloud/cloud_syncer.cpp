@@ -198,6 +198,7 @@ int CloudSyncer::DoSync(TaskId taskId)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         taskInfo = cloudTaskInfos_[taskId];
     }
+    storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
     int errCode = LockCloudIfNeed(taskId);
     if (errCode != E_OK) {
         return errCode;
@@ -267,10 +268,14 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
     int errCode = E_OK;
     for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
         LOGD("[CloudSyncer] try download table, index: %zu", i);
+        std::string table;
         {
             std::lock_guard<std::mutex> autoLock(dataLock_);
             currentContext_.tableName = taskInfo.table[i];
+            table = currentContext_.tableName;
         }
+        // shared table not allow logic delete
+        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
         errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
             LOGW("[CloudSyncer] task is invalid, abort sync");
@@ -290,7 +295,6 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
             return errCode;
         }
     }
-
     return DoUploadInNeed(taskInfo, needUpload);
 }
 
@@ -733,8 +737,7 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
     DataInfo dataInfo;
     VBucket localAssetInfo;
     bool isExist = true;
-    ret = GetLocalInfo(param.tableName, param.downloadData.data[idx], dataInfo.localInfo, localLogInfoCache,
-        localAssetInfo);
+    ret = GetLocalInfo(idx, param, dataInfo.localInfo, localLogInfoCache, localAssetInfo);
     if (ret == -E_NOT_FOUND) {
         isExist = false;
     } else if (ret != E_OK) {
@@ -939,6 +942,7 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
     if (!skipSave) {
         param.changedData = changedData;
         param.downloadData.opType.resize(param.downloadData.data.size());
+        param.downloadData.existDataKey.resize(param.downloadData.data.size());
         ret = SaveDataInTransaction(taskId, param);
         if (ret != E_OK) {
             return ret;
@@ -995,7 +999,9 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
         LOGE("[CloudSyncer] get sync param for download failed %d", errCode);
         return errCode;
     }
+    (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
     errCode = DoDownloadInner(taskId, param);
+    (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         resumeTaskInfos_[taskId].syncParam = std::move(param);
@@ -1755,13 +1761,15 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
-int CloudSyncer::GetLocalInfo(const std::string &tableName, const VBucket &cloudData, DataInfoWithLog &logInfo,
+int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
     std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
 {
-    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(tableName, cloudData, logInfo, localAssetInfo);
+    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index],
+        logInfo, localAssetInfo);
     if (errCode != E_OK) {
         return errCode;
     }
+    param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
         LOGD("[CloudSyncer] exist same record in one batch, override from cache record!");

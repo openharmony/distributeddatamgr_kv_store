@@ -54,6 +54,11 @@ public:
     DistributedTableMode GetTableMode() const;
     void SetTableMode(DistributedTableMode mode);
 
+    void InsertTrackerSchema(const TrackerSchema &schema);
+    void RemoveTrackerSchema(const TrackerSchema &schema);
+    TrackerTable GetTrackerTable(const std::string &tableName) const;
+    int ParseFromTrackerSchemaString(const std::string &inSchemaString);
+    const TableInfoMap &GetTrackerTables() const;
 private:
     int CompareAgainstSchemaObject(const std::string &inSchemaString, std::map<std::string, int> &cmpRst) const;
 
@@ -76,12 +81,19 @@ private:
     int ParseCheckTablePrimaryKey(const JsonObject &inJsonObject, TableInfo &resultTable);
 
     void GenerateSchemaString();
+    void GenerateTrackerSchemaString();
+    int ParseTrackerSchema(const JsonObject &inJsonObject);
+    int ParseCheckTrackerTable(const JsonObject &inJsonObject);
+    int ParseCheckTrackerTableName(const JsonObject &inJsonObject, TrackerTable &resultTable);
+    int ParseCheckTrackerExtendName(const JsonObject &inJsonObject, TrackerTable &resultTable);
+    int ParseCheckTrackerName(const JsonObject &inJsonObject, TrackerTable &resultTable);
 
     bool isValid_ = false; // set to true after parse success from string or add at least one relational table
     SchemaType schemaType_ = SchemaType::RELATIVE; // Default RELATIVE
     std::string schemaString_; // The minified and valid schemaString
     std::string schemaVersion_ = SchemaConstant::SCHEMA_SUPPORT_VERSION_V2; // Default version 2.0
     TableInfoMap tables_;
+    TableInfoMap trackerTables_;
 
     DistributedTableMode tableMode_ = DistributedTableMode::SPLIT_BY_DEVICE;
 };

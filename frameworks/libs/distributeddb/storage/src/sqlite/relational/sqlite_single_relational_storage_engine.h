@@ -20,6 +20,7 @@
 #include "relationaldb_properties.h"
 #include "sqlite_storage_engine.h"
 #include "sqlite_single_ver_relational_storage_executor.h"
+#include "tracker_table.h"
 
 namespace DistributedDB {
 class SQLiteSingleRelationalStorageEngine : public SQLiteStorageEngine {
@@ -42,6 +43,15 @@ public:
     const RelationalDBProperties &GetProperties() const;
     void SetProperties(const RelationalDBProperties &properties);
 
+    int SetTrackerTable(const TrackerSchema &schema);
+    int CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo);
+    int GetOrInitTrackerSchemaFromMeta();
+    int SaveTrackerSchema();
+
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    RelationalSchemaObject GetTrackerSchema() const;
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
@@ -60,7 +70,11 @@ private:
 
     int CreateRelationalMetaTable(sqlite3 *db);
 
+    int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
+        SQLiteSingleVerRelationalStorageExecutor *&handle);
+
     RelationalSchemaObject schema_;
+    RelationalSchemaObject trackerSchema_;
     mutable std::mutex schemaMutex_;
 
     RelationalDBProperties properties_;

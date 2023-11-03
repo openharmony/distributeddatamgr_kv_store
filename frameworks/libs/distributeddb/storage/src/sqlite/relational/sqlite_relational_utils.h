@@ -31,6 +31,21 @@ public:
     static int GetCloudValueByType(sqlite3_stmt *statement, int type, int cid, Type &cloudValue);
 
     static void CalCloudValueLen(Type &cloudValue, uint32_t &totalSize);
+
+    static int BindStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
+
+    static int StepNext(bool isMemDB, sqlite3_stmt *stmt);
+
+    static int GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket);
+
+    static bool GetDbFileName(sqlite3 *db, std::string &fileName);
+
+    static int SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged);
+private:
+    static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
+
+    static int GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
+    static int GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type &typeVal);
 };
 } // namespace DistributedDB
 #endif // SQLITE_RELATIONAL_UTILS_H

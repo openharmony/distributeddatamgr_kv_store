@@ -171,6 +171,11 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
         LOGE("Get relational schema from meta failed. errcode=%d", errCode);
         return errCode;
     }
+    int ret = InitTrackerSchemaFromMeta();
+    if (ret != E_OK) {
+        LOGE("Init tracker schema from meta failed. errcode=%d", ret);
+        return ret;
+    }
     properties.SetSchema(schema);
 
     // Empty schema means no distributed table has been used, we may set DB to any table mode
@@ -1095,6 +1100,66 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
     info.callback = onProcess;
     info.timeout = option.waitTime;
     info.priorityTask = option.priorityTask;
+}
+
+int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
+{
+    TrackerSchema lowerSchema;
+    SchemaUtils::TransTrackerSchemaToLower(trackerSchema, lowerSchema);
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfo tableInfo = localSchema.GetTable(lowerSchema.tableName);
+    if (tableInfo.Empty()) {
+        return sqliteStorageEngine_->SetTrackerTable(lowerSchema);
+    }
+    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(lowerSchema, tableInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CreateDistributedTable(lowerSchema.tableName, tableInfo.GetTableSyncType());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return sqliteStorageEngine_->SaveTrackerSchema();
+}
+
+int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (condition.sql.empty()) {
+        LOGE("[RelationalStore] execute sql is empty.");
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
+{
+    int errCode = sqliteStorageEngine_->GetOrInitTrackerSchemaFromMeta();
+    return errCode == -E_NOT_FOUND ? E_OK : errCode;
+}
+
+int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (tableName.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
+}
+
+int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    if (cmd != LOGIC_DELETE_SYNC_DATA) {
+        return -E_NOT_SUPPORT;
+    }
+    if (pragmaData == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    auto logicDelete = *(static_cast<bool *>(pragmaData));
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    storageEngine_->SetLogicDelete(logicDelete);
+    return E_OK;
 }
 }
 #endif

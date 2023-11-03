@@ -168,6 +168,8 @@ public:
 
     static int RegisterCloudDataChangeObserver(sqlite3 *db);
 
+    static int RegisterCloudDataChangeServerObserver(sqlite3 *db);
+
     static int CreateRelationalLogTable(sqlite3 *db, const std::string &oriTableName);
 
     static int AddRelationalLogTableTrigger(sqlite3 *db, const std::string &identity, const TableInfo &table);
@@ -205,6 +207,9 @@ public:
 
     static int SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes);
 
+    static void GetAndResetServerObserverData(const std::string &dbName, const std::string &tableName,
+        ChangeProperties &changeProperties);
+
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);
@@ -229,6 +234,7 @@ private:
     static void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void CloudDataChangedServerObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static int SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
         const std::vector<std::string> &sqls);

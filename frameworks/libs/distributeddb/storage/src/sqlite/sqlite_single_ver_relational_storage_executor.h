@@ -16,6 +16,7 @@
 #define SQLITE_SINGLE_VER_RELATIONAL_STORAGE_EXECUTOR_H
 #ifdef RELATIONAL_STORE
 
+#include <atomic>
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_store_types.h"
 #include "data_transformer.h"
@@ -29,6 +30,7 @@
 #include "sqlite_single_ver_relational_continue_token.h"
 #include "sqlite_storage_executor.h"
 #include "sqlite_utils.h"
+#include "tracker_table.h"
 
 namespace DistributedDB {
 class SQLiteSingleVerRelationalStorageExecutor : public SQLiteStorageExecutor {
@@ -110,7 +112,8 @@ public:
     int GetInfoByPrimaryKeyOrGid(const TableSchema &tableSchema, const VBucket &vBucket,
         DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData);
+    int PutCloudSyncData(const std::string &tableName, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, DownloadData &downloadData);
 
     int FillCloudAssetForDownload(const TableSchema &tableSchema, VBucket &vBucket, bool isDownloadSuccess);
     int DoCleanInner(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -120,6 +123,16 @@ public:
 
     int SetLogTriggerStatus(bool status);
 
+    int AnalysisTrackerTable(const TrackerTable &trackerTable, TableInfo &tableInfo);
+    int CreateTrackerTable(const TrackerTable &trackerTable, bool isUpgrade);
+    int GetOrInitTrackerSchemaFromMeta(RelationalSchemaObject &schema);
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    int CreateTempSyncTrigger(const TrackerTable &trackerTable);
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
+    int ClearAllTempSyncTrigger();
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
+    void SetLogicDelete(bool isLogicDelete);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList);
 
@@ -170,15 +183,18 @@ private:
 
     void SetTableInfo(const TableInfo &tableInfo);  // When put or get sync data, must call the func first.
 
-    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash);
+    int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
+        TableInfo &tableInfo);
+    int UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo);
+    int CleanExtendAndCursorForDeleteData(sqlite3 *db, const std::string &tableName);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
         uint32_t &totalSize, const uint32_t &maxSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);
 
-    int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema, DownloadData &downloadData,
-        std::map<int, int> &statisticMap);
+    int ExecutePutCloudData(const std::string &tableName, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, DownloadData &downloadData, std::map<int, int> &statisticMap);
 
     std::string GetInsertSqlForCloudSync(const TableSchema &tableSchema);
 
@@ -205,18 +221,20 @@ private:
     int GetInfoByStatement(sqlite3_stmt *statement, std::vector<Field> &assetFields,
         const std::map<std::string, Field> &pkMap, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
 
-    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema);
+    int InsertCloudData(VBucket &vBucket, const TableSchema &tableSchema, const TrackerTable &trackerTable,
+        int64_t dataKey);
 
-    int InsertLogRecord(const TableSchema &tableSchema, VBucket &vBucket);
+    int InsertLogRecord(const TableSchema &tableSchema, const TrackerTable &trackerTable, VBucket &vBucket);
 
     int BindOneField(int index, const VBucket &vBucket, const Field &field, sqlite3_stmt *updateStmt);
 
     int BindValueToUpsertStatement(const VBucket &vBucket,  const std::vector<Field> &fields, sqlite3_stmt *upsertStmt);
 
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
-        sqlite3_stmt *insertLogStmt);
+        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
-    int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *insertLogStmt);
+    int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
         const std::string &tableName, bool queryByPk = true);
@@ -239,7 +257,8 @@ private:
     int GetDeleteStatementForCloudSync(const TableSchema &tableSchema, const std::set<std::string> &pkSet,
         const VBucket &vBucket, sqlite3_stmt *&deleteStmt);
 
-    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema);
+    int DeleteCloudData(const std::string &tableName, const VBucket &vBucket, const TableSchema &tableSchema,
+        const TrackerTable &trackerTable);
 
     int OnlyUpdateLogTable(const VBucket &vBucket, const TableSchema &tableSchema, OpType opType);
 
@@ -251,6 +270,12 @@ private:
 
     int IsTableOnceDropped(const std::string &tableName, int execCode, bool &onceDropped);
 
+    std::string GetCloudDeleteSql(const std::string &logTable);
+
+    int RemoveDataAndLog(const std::string &tableName, int64_t dataKey);
+
+    int64_t GetLocalDataKey(size_t index, const DownloadData &downloadData);
+
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
     TableSchema tableSchema_; // for cloud table
@@ -260,6 +285,8 @@ private:
 
     std::map<int32_t, std::function<int(int, const VBucket &, const Field &, sqlite3_stmt *)>> bindCloudFieldFuncMap_;
     std::map<int32_t, std::function<int(const VBucket &, const Field &, std::vector<uint8_t> &)>> toVectorFuncMap_;
+
+    std::atomic<bool> isLogicDelete_;
 };
 } // namespace DistributedDB
 #endif

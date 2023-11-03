@@ -93,6 +93,11 @@ public:
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
+    int SetTrackerTable(const TrackerSchema &trackerSchema);
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 private:
     void ReleaseResources();
 
@@ -140,6 +145,8 @@ private:
 
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
+
+    int InitTrackerSchemaFromMeta();
 
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

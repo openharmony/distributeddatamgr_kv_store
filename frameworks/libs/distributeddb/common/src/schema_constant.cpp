@@ -34,6 +34,7 @@ const std::string SchemaConstant::KEYWORD_TYPE_INTEGER = "INTEGER";
 const std::string SchemaConstant::KEYWORD_TYPE_LONG = "LONG";
 const std::string SchemaConstant::KEYWORD_TYPE_DOUBLE = "DOUBLE";
 const std::string SchemaConstant::KEYWORD_TYPE_STRING = "STRING";
+const std::string SchemaConstant::KEYWORD_TYPE_BOOLEAN = "BOOLEAN";
 
 const std::string SchemaConstant::KEYWORD_ATTR_NOT_NULL = "NOT NULL";
 const std::string SchemaConstant::KEYWORD_ATTR_DEFAULT = "DEFAULT";
