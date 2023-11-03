@@ -130,7 +130,7 @@ public:
                 task.interval = interval;
             }
             auto time = std::chrono::steady_clock::now() + interval;
-            return std::pair{ true, time };
+            return std::pair{ task.interval != INVALID_INTERVAL, time };
         });
         return updated ? taskId : INVALID_TASK_ID;
     }
