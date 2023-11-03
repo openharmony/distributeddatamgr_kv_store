@@ -98,7 +98,7 @@ public:
             tasks_.erase(index->second);
             index->second = tasks_.emplace(time, std::move(matrix));
             popCv_.notify_all();
-            return repeat;
+            return true;
         }
 
         auto running = running_.find(id);
