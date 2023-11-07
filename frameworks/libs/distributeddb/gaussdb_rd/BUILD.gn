@@ -46,6 +46,12 @@ group("build_module") {
 }
 
 ohos_static_library("gaussdb_rd") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
   sources = [
     "src/common/src/collection_option.cpp",
     "src/common/src/db_config.cpp",
