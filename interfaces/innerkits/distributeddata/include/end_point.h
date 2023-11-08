@@ -13,15 +13,15 @@
  * limitations under the License.
  */
 
-#ifndef ENTRY_POINT_H
-#define ENTRY_POINT_H
+#ifndef END_POINT_H
+#define END_POINT_H
 
 #include <functional>
 #include "types.h"
 
 namespace OHOS {
 namespace DistributedKv {
-struct PermissionCheckParam { //yltest
+struct PermissionCheckParam {
     std::string userId;
     std::string appId;
     std::string storeId;
@@ -30,15 +30,6 @@ struct PermissionCheckParam { //yltest
     std::map<std::string, std::string> extraConditions;
 };
 
-    // struct SecurityOption {
-    //     int securityLabel = 0;
-    //     int securityFlag = 0;
-    //     bool operator==(const SecurityOption &rhs) const
-    //     {
-    //         return securityLabel == rhs.securityLabel && securityFlag == rhs.securityFlag;
-    //     }
-    // };
-
 struct DeviceInfos {
     std::string identifier;
 };
@@ -46,11 +37,8 @@ struct DeviceInfos {
 class API_EXPORT EndPoint {
 public:
 
-    // using DeviceInfo = DistributedKv::CommDeviceInfo;
     using OnDeviceChange = std::function<void(const DeviceInfos &devInfo, bool isOnline)>;
     using OnDataReceive = std::function<void(const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length)>;
-    // using DeviceInfos = DistributedKv::DeviceInfos;
-    // using SecurityOption = DistributedKv::SecurityOption;
 
     /**
      * @brief Constructor.
@@ -122,4 +110,4 @@ public:
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
-#endif  // ENTRY_POINT_H
+#endif  // END_POINT_H

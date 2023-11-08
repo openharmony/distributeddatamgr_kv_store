@@ -257,8 +257,8 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     }
 
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x type:%{public}d->%{public}d observer:0x%{public}x isClientSync:%{public}d", status, type, realType,
-            StoreUtil::Anonymous(bridge.get()), isClientSync_);
+        ZLOGE("status:0x%{public}x type:%{public}d->%{public}d observer:0x%{public}x", status, type, realType,
+            StoreUtil::Anonymous(bridge.get()));
         TakeOut(realType, observer);
     }
     return status;
@@ -812,7 +812,7 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
 
 void SingleStoreImpl::DoAutoSync()
 {
-    if (!autoSync_) { //yltest
+    if (!autoSync_) {
         return;
     }
     ZLOGD("app:%{public}s store:%{public}s!", appId_.c_str(), StoreUtil::Anonymous(storeId_).c_str());
