@@ -92,9 +92,6 @@ void PutFuzz(const uint8_t *data, size_t size)
     std::string svalue(data, data + size);
     Key key = { skey };
     Value val = { svalue };
-    if (!singleKvStore_) {
-        return;
-    }
     singleKvStore_->Put(key, val);
     singleKvStore_->Delete(key);
 }
