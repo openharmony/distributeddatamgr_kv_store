@@ -18,7 +18,7 @@
 
 #include "iprocess_communicator.h"
 #include "types.h"
-#include "entry_point.h"
+#include "end_point.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -29,7 +29,7 @@ public:
     using OnDeviceChange = DistributedDB::OnDeviceChange;
     using OnDataReceive = DistributedDB::OnDataReceive;
     
-    API_EXPORT explicit ProcessCommunicationImpl(std::shared_ptr<EntryPoint> entryPoint);
+    API_EXPORT explicit ProcessCommunicationImpl(std::shared_ptr<EndPoint> endPoint);
     API_EXPORT ~ProcessCommunicationImpl() override;
 
     DBStatus Start(const std::string &processLabel) override;
@@ -45,9 +45,7 @@ public:
     std::vector<DistributedDB::DeviceInfos> GetRemoteOnlineDeviceInfosList() override;
     bool IsSameProcessLabelStartedOnPeerDevice(const DistributedDB::DeviceInfos &peerDevInfo) override;
 private:
-    
-    static constexpr uint32_t DEFAULT_MTU_SIZE = 4096u;
-    std::shared_ptr<EntryPoint> entryPoint_;
+    std::shared_ptr<EndPoint> endPoint_;
     bool isCreateSessionServer_ = false;
 };
 }  // namespace AppDistributedKv

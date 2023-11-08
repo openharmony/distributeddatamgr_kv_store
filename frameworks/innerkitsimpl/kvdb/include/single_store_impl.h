@@ -101,8 +101,6 @@ private:
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    Status DoSyncOnClient(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
-    std::shared_ptr<KvStoreSyncCallbackClient> GetClientSyncAgent();
     void DoAutoSync();
     void Register();
 
@@ -118,8 +116,6 @@ private:
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;
     static constexpr int32_t INTERVAL = 500; // ms
     uint64_t taskId_ = 0;
-    static std::shared_ptr<KvStoreSyncCallbackClient> clientSyncAgent_;
-    std::mutex agentMtx_;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_SINGLE_STORE_IMPL_H

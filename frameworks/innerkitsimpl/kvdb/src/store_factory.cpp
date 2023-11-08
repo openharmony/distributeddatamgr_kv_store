@@ -171,7 +171,7 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
 StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const DBPassword &dbPassword) const
 {
     DBOption dbOption;
-    dbOption.syncDualTupleMode = true; // tuple of (appid+storeid)
+    dbOption.syncDualTupleMode = (!options.isClientSync); // tuple of (appid+storeid)
     dbOption.createIfNecessary = options.createIfMissing;
     dbOption.isNeedRmCorruptedDb = options.rebuild;
     dbOption.isMemoryDb = (!options.persistent);

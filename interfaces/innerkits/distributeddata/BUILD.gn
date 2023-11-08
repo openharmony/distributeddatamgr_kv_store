@@ -123,14 +123,14 @@ ohos_shared_library("distributeddata_inner") {
 
 ohos_shared_library("distributeddata_client_sync") {
   sources = [
-    "../../../frameworks/innerkitsimpl/kvdb/src/process_communication_impl.cpp",
-    "../../../frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/process_communication_impl.cpp",
+    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
   ]
 
   configs = [ ":distributeddatafwk_config" ]
 
   deps = [
-    "../../../frameworks/libs/distributeddb:distributeddb",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
   ]
   
   external_deps = [

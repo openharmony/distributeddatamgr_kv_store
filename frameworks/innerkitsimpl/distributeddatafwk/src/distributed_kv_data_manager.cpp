@@ -177,26 +177,26 @@ void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> execut
     TaskExecutor::GetInstance().SetExecutors(std::move(executors));
 }
 
-Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entryPoint)
+Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
 {
-    if (entryPoint == nullptr) {
-        ZLOGE("entryPoint is nullptr.");
+    if (endPoint == nullptr) {
+        ZLOGE("endPoint is nullptr.");
         return ERROR;
     }
 
     if (isAlreadySet_) {
-        ZLOGW("EntryPoint already set");
-        return ERROR;
+        ZLOGW("endPoint already set");
+        return SUCCESS;
     }
     
-    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("com.huawei.profile+-1000", "default");
+    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
         ZLOGE("SetProcessLabel failed: %d", status);
         return status;
     }
 
-    auto communicator = std::make_shared<ProcessCommunicationImpl>(entryPoint);
+    auto communicator = std::make_shared<ProcessCommunicationImpl>(endPoint);
     dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
     status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -204,7 +204,7 @@ Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entry
         return status;
     }
 
-    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(entryPoint);
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(endPoint);
     dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
     status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -212,7 +212,7 @@ Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entry
         return status;
     }
 
-    auto permissionCallback = [entryPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
+    auto permissionCallback = [endPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
         PermissionCheckParam params = {
             std::move(param.userId),
             std::move(param.appId),
@@ -221,7 +221,7 @@ Status DistributedKvDataManager::SetEntryPoint(std::shared_ptr<EntryPoint> entry
             std::move(param.instanceId),
             std::move(param.extraConditions)
         };
-        return entryPoint->SyncPermissionCheck(params, flag);
+        return endPoint->SyncPermissionCheck(params, flag);
     };
     
     dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);

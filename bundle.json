@@ -106,7 +106,7 @@
               "executor_pool.h",
               "pool.h",
               "priority_queue.h",
-              "entry_point.h"
+              "end_point.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
           }

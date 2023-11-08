@@ -21,23 +21,20 @@
 namespace OHOS {
 namespace DistributedKv {
 using namespace DistributedDB;
-ProcessCommunicationImpl::ProcessCommunicationImpl(std::shared_ptr<EntryPoint> entryPoint)
-    : entryPoint_(entryPoint)
+ProcessCommunicationImpl::ProcessCommunicationImpl(std::shared_ptr<EndPoint> endPoint)
+    : endPoint_(endPoint)
 {
-    ZLOGI("constructor.");
 }
 
 ProcessCommunicationImpl::~ProcessCommunicationImpl()
 {
-    ZLOGI("destructor.");
 }
 
 DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 {
-    ZLOGI("init ProcessCommunication");
-    Status errCode = entryPoint_->Start(processLabel);
+    Status errCode = endPoint_->Start();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("entryPoint Start Fail.");
+        ZLOGE("endPoint Start Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = true;
@@ -46,9 +43,9 @@ DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 
 DBStatus ProcessCommunicationImpl::Stop()
 {
-    Status errCode = entryPoint_->Stop();
+    Status errCode = endPoint_->Stop();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("entryPoint Stop Fail.");
+        ZLOGE("endPoint Stop Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = false;
@@ -57,19 +54,6 @@ DBStatus ProcessCommunicationImpl::Stop()
 
 DBStatus ProcessCommunicationImpl::RegOnDeviceChange(const OnDeviceChange &callback)
 {
-    auto devChangeCallback = [callback](const DeviceInfos &devInfos, bool isOnline) {
-        DistributedDB::DeviceInfos devInfo = {
-            devInfos.identifier
-        };
-        callback(devInfo, isOnline);
-    };
-
-    Status errCode = entryPoint_->RegOnDeviceChange(devChangeCallback);
-    if (errCode != Status::SUCCESS) {
-        ZLOGE("RegOnDeviceChange Fail.");
-        return DBStatus::DB_ERROR;
-    };
-
     return DBStatus::OK;
 }
 
@@ -82,7 +66,7 @@ DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callbac
         callback(devInfo, data, length);
     };
     
-    Status errCode = entryPoint_->RegOnDataReceive(dataReciveCallback);
+    Status errCode = endPoint_->RegOnDataReceive(dataReciveCallback);
     if (errCode != Status::SUCCESS) {
         ZLOGE("RegOnDataReceive Fail.");
         return DBStatus::DB_ERROR;
@@ -96,7 +80,7 @@ DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &ds
     DeviceInfos infos = {
         dstDevInfo.identifier
     };
-    Status errCode = entryPoint_->SendData(infos, data, length);
+    Status errCode = endPoint_->SendData(infos, data, length);
     if (errCode != Status::SUCCESS) {
         ZLOGE("SendData Fail.");
         return DBStatus::DB_ERROR;
@@ -107,7 +91,7 @@ DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &ds
 
 uint32_t ProcessCommunicationImpl::GetMtuSize()
 {
-    return DEFAULT_MTU_SIZE;
+    return endPoint_->GetMtuSize({""});
 }
 
 uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &devInfo)
@@ -115,12 +99,12 @@ uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &
     DeviceInfos infos = {
         devInfo.identifier
     };
-    return entryPoint_->GetMtuSize(infos);
+    return endPoint_->GetMtuSize(infos);
 }
 
 DistributedDB::DeviceInfos ProcessCommunicationImpl::GetLocalDeviceInfos()
 {
-    auto devInfo = entryPoint_->GetLocalDeviceInfos();
+    auto devInfo = endPoint_->GetLocalDeviceInfos();
     DistributedDB::DeviceInfos devInfos = {
         devInfo.identifier
     };
@@ -129,16 +113,7 @@ DistributedDB::DeviceInfos ProcessCommunicationImpl::GetLocalDeviceInfos()
 
 std::vector<DistributedDB::DeviceInfos> ProcessCommunicationImpl::GetRemoteOnlineDeviceInfosList()
 {
-    auto devInfos = entryPoint_->GetRemoteOnlineDeviceInfosList();
-    if (devInfos.empty()) {
-        return {};
-    }
-    int size = devInfos.size();
-    std::vector<DistributedDB::DeviceInfos> infos(size, {""});
-    for (int i = 0; i < size; ++i) {
-        infos[i].identifier = devInfos[i].identifier;
-    }
-    return infos;
+    return {};
 }
 
 bool ProcessCommunicationImpl::IsSameProcessLabelStartedOnPeerDevice(__attribute__((unused)) const DistributedDB::DeviceInfos &peerDevInfo)

@@ -16,14 +16,15 @@
 #ifndef PROCESS_SYSTEM_API_ADAPTER_IMPL_H
 #define PROCESS_SYSTEM_API_ADAPTER_IMPL_H
 #include "iprocess_system_api_adapter.h"
-#include "entry_point.h"
+#include "end_point.h"
+
 namespace OHOS::DistributedKv {
-class API_EXPORT ProcessSystemApiAdapterImpl : public DistributedDB::IProcessSystemApiAdapter {
+class ProcessSystemApiAdapterImpl : public DistributedDB::IProcessSystemApiAdapter {
 public:
     using AccessEventHanle = DistributedDB::OnAccessControlledEvent;
     using DBStatus = DistributedDB::DBStatus;
     using DBOption = DistributedDB::SecurityOption;
-    API_EXPORT explicit ProcessSystemApiAdapterImpl(std::shared_ptr<EntryPoint> entryPoint);
+    API_EXPORT explicit ProcessSystemApiAdapterImpl(std::shared_ptr<EndPoint> endPoint);
     API_EXPORT ~ProcessSystemApiAdapterImpl();
     DBStatus RegOnAccessControlledEvent(const AccessEventHanle &callback) override;
     bool IsAccessControlled() const override;
@@ -31,7 +32,7 @@ public:
     DBStatus GetSecurityOption(const std::string &filePath, DBOption &option) const override;
     bool CheckDeviceSecurityAbility(const std::string &devId, const DBOption &option) const override;
 private:
-    std::shared_ptr<EntryPoint> entryPoint_;
+    std::shared_ptr<EndPoint> endPoint_;
 };
 }
 #endif // PROCESS_SYSTEM_API_ADAPTER_IMPL_H

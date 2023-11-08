@@ -172,6 +172,10 @@ enum SubscribeType : uint32_t {
      * Both local changes and synced data changes.
     */
     SUBSCRIBE_TYPE_ALL = 3,
+    /**
+     * Synced data changes from remote devices in client.
+    */
+    SUBSCRIBE_TYPE_CLIENT_REMOTE = 4,
 };
 
 /**
@@ -426,33 +430,6 @@ struct UserInfo {
      * The userType Info.
     */
     int32_t userType;
-};
-
-struct PermissionCheckParam {
-    std::string userId;
-    std::string appId;
-    std::string storeId;
-    std::string deviceId;
-    int32_t instanceId = 0;
-    std::map<std::string, std::string> extraConditions;
-};
-
-struct PipeInfo {
-    std::string pipeId;
-    std::string userId;
-};
-
-struct DeviceInfos {
-    std::string identifier;
-};
-
-struct SecurityOption {
-    int securityLabel = 0;
-    int securityFlag = 0;
-    bool operator==(const SecurityOption &rhs) const
-    {
-        return securityLabel == rhs.securityLabel && securityFlag == rhs.securityFlag;
-    }
 };
 
 }  // namespace DistributedKv

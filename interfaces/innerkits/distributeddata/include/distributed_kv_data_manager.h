@@ -23,7 +23,7 @@
 #include "kvstore_observer.h"
 #include "single_kvstore.h"
 #include "types.h"
-#include "entry_point.h"
+#include "end_point.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -157,11 +157,11 @@ public:
     API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
 
     /**
-     * @brief set entryPoint for client sync.
-     * @param entryPoint The pointer of entryPoint.
+     * @brief set endPoint for client sync.
+     * @param endPoint The pointer of endPoint.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT Status SetEntryPoint(std::shared_ptr<EntryPoint> entryPoint);
+    API_EXPORT Status SetEndPoint(std::shared_ptr<EndPoint> endPoint);
 private:
     static bool isAlreadySet_;
 };

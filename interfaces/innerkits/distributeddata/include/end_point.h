@@ -21,43 +21,59 @@
 
 namespace OHOS {
 namespace DistributedKv {
-class API_EXPORT EntryPoint {
+struct PermissionCheckParam { //yltest
+    std::string userId;
+    std::string appId;
+    std::string storeId;
+    std::string deviceId;
+    int32_t instanceId = 0;
+    std::map<std::string, std::string> extraConditions;
+};
+
+    // struct SecurityOption {
+    //     int securityLabel = 0;
+    //     int securityFlag = 0;
+    //     bool operator==(const SecurityOption &rhs) const
+    //     {
+    //         return securityLabel == rhs.securityLabel && securityFlag == rhs.securityFlag;
+    //     }
+    // };
+
+struct DeviceInfos {
+    std::string identifier;
+};
+
+class API_EXPORT EndPoint {
 public:
-    
+
+    // using DeviceInfo = DistributedKv::CommDeviceInfo;
     using OnDeviceChange = std::function<void(const DeviceInfos &devInfo, bool isOnline)>;
     using OnDataReceive = std::function<void(const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length)>;
-    using DeviceInfos = DistributedKv::DeviceInfos;
-    using SecurityOption = DistributedKv::SecurityOption;
+    // using DeviceInfos = DistributedKv::DeviceInfos;
+    // using SecurityOption = DistributedKv::SecurityOption;
 
     /**
      * @brief Constructor.
      */
-    API_EXPORT EntryPoint() = default;
+    API_EXPORT EndPoint() = default;
 
     /**
      * @brief Destructor.
      */
-    API_EXPORT virtual ~EntryPoint() {};
+    API_EXPORT virtual ~EndPoint() {};
 
     /**
      * @brief Start the Process Communicator.
      * @param processLabel Identifies current process
      * @return Return SUCCESS for success, others for failure.    
      */
-    API_EXPORT virtual Status Start(const std::string &processLabel) = 0;
+    API_EXPORT virtual Status Start() = 0;
 
     /**
      * @brief Start the Process Communicator.
      * @return Return SUCCESS for success, others for failure. 
      */
     API_EXPORT virtual Status Stop() = 0;
-
-    /**
-     * @brief Register the callback function for receiving data.
-     * @param callback Callback to register device change.
-     * @return Return SUCCESS for success, others for failure. 
-     */
-    API_EXPORT virtual Status RegOnDeviceChange(const OnDeviceChange &callback) = 0;
 
     /**
      * @brief Close all opened kvstores for this appId.
@@ -87,12 +103,6 @@ public:
      * @return loacl device info.
      */
     API_EXPORT virtual DeviceInfos GetLocalDeviceInfos() = 0;
-
-    /**
-     * @brief Obtains the IDs of all online devices.
-     * @return All online devices info.
-     */
-    API_EXPORT virtual std::vector<DeviceInfos> GetRemoteOnlineDeviceInfosList() = 0;
     
     /**
      * @brief Determines whether the device has the capability of data of this level.
@@ -100,7 +110,7 @@ public:
      * @param option Security params.
      * @return Return true for success, false for failure.
      */
-    API_EXPORT virtual bool CheckDeviceSecurityAbility(const std::string &devId, const SecurityOption &option) = 0;
+    API_EXPORT virtual bool CheckDeviceSecurityAbility(const std::string &devId, const int &securityLabel) = 0;
 
     /**
      * @brief Verify sync permission.
