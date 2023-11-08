@@ -64,6 +64,7 @@ void SetUpTestCase(void)
         .createIfMissing = true,
         .encrypt = false,
         .autoSync = true,
+        .securityLevel = S1,
         .kvStoreType = KvStoreType::DEVICE_COLLABORATION
     };
     options.area = EL1;
@@ -89,6 +90,9 @@ void PutFuzz(const uint8_t *data, size_t size)
     std::string svalue(data, data + size);
     Key key = { skey };
     Value val = { svalue };
+    if (!deviceKvStore_) {
+        return;
+    }
     deviceKvStore_->Put(key, val);
     deviceKvStore_->Delete(key);
 }

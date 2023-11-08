@@ -62,10 +62,13 @@ void DeviceSyncCallbackTestImpl::SyncCompleted(const std::map<std::string, Statu
 void SetUpTestCase(void)
 {
     DistributedKvDataManager manager;
-    Options options = { .createIfMissing = true,
+    Options options = {
+        .createIfMissing = true,
         .encrypt = false,
         .autoSync = true,
-        .kvStoreType = KvStoreType::SINGLE_VERSION };
+        .securityLevel = S1,
+        .kvStoreType = KvStoreType::SINGLE_VERSION
+    };
     options.area = EL1;
     AppId appId = { "kvstorefuzzertest" };
     options.baseDir = std::string("/data/service/el1/public/database/") + appId.appId;
@@ -89,6 +92,9 @@ void PutFuzz(const uint8_t *data, size_t size)
     std::string svalue(data, data + size);
     Key key = { skey };
     Value val = { svalue };
+    if (!singleKvStore_) {
+        return;
+    }
     singleKvStore_->Put(key, val);
     singleKvStore_->Delete(key);
 }
