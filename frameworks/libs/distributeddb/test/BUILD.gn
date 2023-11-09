@@ -50,6 +50,10 @@ config("module_private_config") {
     "../syncer/src",
     "../syncer/src/cloud",
     "//third_party/openssl/include/",
+    "../gaussdb_rd/include",
+    "../gaussdb_rd/include/grd_base",
+    "../gaussdb_rd/include/grd_document",
+    "../gaussdb_rd/include/grd_kv",
   ]
 
   defines = [
@@ -113,6 +117,7 @@ ohos_source_set("src_file") {
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
   deps += [
+    "../gaussdb_rd:gaussdb_rd",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]
