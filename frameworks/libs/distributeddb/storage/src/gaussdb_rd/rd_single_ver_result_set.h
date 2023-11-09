@@ -46,12 +46,14 @@ public:
     // Get the entry of current position.
     int GetEntry(Entry &entry) const override;
 
-    int MoveToNext();
-
-    int MoveToPrev();
-
 private:
     int PreCheckResultSet() const;
+
+    int PreProcessMoveToPrev(bool &needReturn) const;
+
+    int MoveToNext(bool needPreCheck = true) const;
+
+    int MoveToPrev(bool needPreCheck = true) const;
 
     mutable std::mutex mutex_;
 

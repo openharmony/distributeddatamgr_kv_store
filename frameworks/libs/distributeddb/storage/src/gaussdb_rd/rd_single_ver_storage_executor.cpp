@@ -313,11 +313,10 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
             }
             return ret;
         }
-        entries.push_back(tmpEntry);
+        entries.push_back(std::move(tmpEntry));
         ret = TransferGrdErrno(GRD_Next(resultSet));
     }
-    if (ret != -E_NOT_FOUND) {
-        LOGE("[RdSingleVerStorageExecutor][GetEntries]fail to move, %d", ret);
+    if (ret != -E_NOT_FOUND) {        LOGE("[RdSingleVerStorageExecutor][GetEntries]fail to move, %d", ret);
         innerCode = ClearEntriesAndFreeResultSet(entries, resultSet);
         if (innerCode != E_OK) {
             return innerCode;

@@ -122,37 +122,90 @@ int RdSingleVerResultSet::GetPosition() const
     return position_;
 }
 
-int RdSingleVerResultSet::MoveToNext()
+int RdSingleVerResultSet::MoveToNext(bool needPreCheck) const
 {
-    int errCode = PreCheckResultSet();
-    if (errCode != E_OK) {
-        return errCode;
+    int errCode = E_OK;
+    if (needPreCheck) {
+        errCode = PreCheckResultSet();
+        if (errCode != E_OK) {
+            return errCode;
+        }
     }
+
     errCode = handle_->MoveToNext(resultSet_);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[RdSinResSet] move next failed, errCode=%d.", errCode);
         return errCode;
     }
-    if (errCode != -E_NOT_FOUND) {
-        ++position_;
+    ++position_;
+    return errCode;
+}
+
+int RdSingleVerResultSet::PreProcessMoveToPrev(bool &needReturn) const
+{
+    int errCode = E_OK;
+    needReturn = false;
+    // Check whether we are in the index = last_index + 1
+    if (position_ > INIT_POSITION) {
+        errCode = handle_->MoveToNext(resultSet_);
+        if (errCode == -E_NOT_FOUND) {
+            // we are in last_index + 1
+            int innerCode = handle_->MoveToPrev(resultSet_);
+            if (innerCode != E_OK && innerCode != -E_NOT_FOUND) {
+                LOGE("[RdSinResSet] move prev failed, errCode=%d.", innerCode);
+                return innerCode;
+            }
+            position_ -= 2; // when position in last_index + 1, the actual pos is last_index, so we need o decrease 2
+            innerCode = handle_->MoveToNext(resultSet_);
+            if (innerCode != E_OK && innerCode != -E_NOT_FOUND) {
+                LOGE("[RdSinResSet] move prev failed, errCode=%d.", innerCode);
+                return innerCode;
+            }
+            ++position_;
+            needReturn = true;
+            return E_OK;
+        } else if (errCode == E_OK) {
+            ++position_;
+            int ret = handle_->MoveToPrev(resultSet_);
+            if (ret != E_OK && ret != -E_NOT_FOUND) {
+                LOGE("[RdSinResSet] move prev failed, errCode=%d.", ret);
+                return ret;
+            }
+            --position_;
+        } else {
+            LOGE("[RdSinResSet] move prev failed, errCode=%d.", errCode);
+            return errCode;
+        }
     }
     return errCode;
 }
 
-int RdSingleVerResultSet::MoveToPrev()
+int RdSingleVerResultSet::MoveToPrev(bool needPreCheck) const
 {
-    int errCode = PreCheckResultSet();
-    if (errCode != E_OK) {
+    int errCode = E_OK;
+    if (needPreCheck) {
+        errCode = PreCheckResultSet();
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    bool needReturn = false;
+    errCode = PreProcessMoveToPrev(needReturn);
+    if (needReturn || errCode != E_OK) {
         return errCode;
     }
+
     errCode = handle_->MoveToPrev(resultSet_);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         LOGE("[RdSinResSet] move prev failed, errCode=%d.", errCode);
         return errCode;
     }
-    if (errCode != -E_NOT_FOUND) {
+    if (errCode == -E_NOT_FOUND) {
+        position_ = INIT_POSITION;
+    } else {
         --position_;
     }
+
     return errCode;
 }
 
@@ -166,11 +219,17 @@ int RdSingleVerResultSet::MoveTo(int position) const
     if (position < 0) {
         LOGW("[SqlSinResSet][MoveTo] Target Position=%d invalid.", position);
     }
-    errCode = handle_->MoveTo(position, resultSet_, position_);
+    if (position == position_ + 1) {
+        errCode = MoveToNext(false);
+    } else if (position == position_ - 1) {
+        errCode = MoveToPrev(false);
+    } else {
+        errCode = handle_->MoveTo(position, resultSet_, position_);
+    }
     if (errCode != E_OK) {
         LOGE("[SqlSinResSet][MoveTo] fail to move to, %d", errCode);
     }
-    return errCode;
+    return errCode == -E_NOT_FOUND ? -E_INVALID_ARGS : errCode;
 }
 
 int RdSingleVerResultSet::GetEntry(Entry &entry) const
