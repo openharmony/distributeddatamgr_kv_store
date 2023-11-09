@@ -513,7 +513,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
 
     errCode = handle->SaveSyncItems(inserter);
 

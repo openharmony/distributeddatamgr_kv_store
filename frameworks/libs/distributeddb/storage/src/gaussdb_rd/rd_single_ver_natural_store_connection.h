@@ -82,6 +82,8 @@ public:
     // Get the result set
     int GetResultSet(const IOption &option, const Key &keyPrefix, IKvDBResultSet *&resultSet) const override;
 
+    int GetResultSet(const IOption &option, const Query &query, IKvDBResultSet *&resultSet) const override;
+
     // Release the result set
     void ReleaseResultSet(IKvDBResultSet *&resultSet) override;
 
@@ -101,6 +103,9 @@ public:
 private:
     int GetEntriesInner(bool isGetValue, const IOption &option,
         const Key &keyPrefix, std::vector<Entry> &entries) const;
+
+    int GetEntriesInner(const IOption &option, const Query &query,
+        std::vector<Entry> &entries) const;
 
     static int CheckOption(const IOption &option, SingleVerDataType &type);
     int ForceCheckPoint() const;

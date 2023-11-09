@@ -25,8 +25,43 @@
 #include "ikvdb_result_set.h"
 #include "rd_utils.h"
 #include "sqlite_single_ver_storage_executor_sql.h"
+#include "get_query_info.h"
 #include "grd_type_export.h"
+
 namespace DistributedDB {
+int GetQueryParam(const Query &query, QueryParam &queryParam)
+{
+    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
+    std::list<QueryObjNode> queryObjNodes_ = queryExpression.GetQueryExpression();
+    if (queryObjNodes_.size() > 1) { // Only Support one query filter.
+        return -E_INVALID_ARGS;
+    }
+    for (const auto &queryObjNode : queryObjNodes_) {
+        if (queryObjNode.operFlag != QueryObjType::KEY_RANGE) {
+            return -E_INVALID_ARGS;
+        }
+    }
+    queryParam.beginKey_ = queryExpression.GetBeginKey();
+    queryParam.endKey_ = queryExpression.GetEndKey();
+    if (queryParam.beginKey_.size() > DBConstant::MAX_KEY_SIZE ||
+        queryParam.endKey_.size() > DBConstant::MAX_KEY_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+    if (!queryParam.beginKey_.empty() || queryParam.endKey_.empty()) {
+        queryParam.kvScanMode_ = KV_SCAN_EQUAL_OR_GREATER_KEY;
+    } else {
+        queryParam.kvScanMode_ = KV_SCAN_EQUAL_OR_LESS_KEY;
+    }
+    return E_OK;
+}
+
+int GetQueryParam(const Key &keyPrefix, QueryParam &queryParam)
+{
+    queryParam.kvScanMode_ = KV_SCAN_PREFIX;
+    queryParam.keyPrefix_ = keyPrefix;
+    return E_OK;
+}
+
 RDStorageExecutor::RDStorageExecutor(GRD_DB *db, bool isWrite) : StorageExecutor(isWrite), db_(db)
 {
 }
@@ -68,7 +103,7 @@ RdSingleVerStorageExecutor::~RdSingleVerStorageExecutor()
 
 int RdSingleVerStorageExecutor::OpenResultSet(const Key &key, GRD_KvScanModeE mode, GRD_ResultSet **resultSet)
 {
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, KV_SCAN_PREFIX, resultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, mode, resultSet);
     if (errCode != E_OK) {
         LOGE("Can not open rd result set.");
     }
@@ -112,13 +147,17 @@ int RdSingleVerStorageExecutor::InnerMoveToHead(const int position, GRD_ResultSe
     return E_OK;
 }
 
-int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition)
+bool RdSingleVerStorageExecutor::CompareKeyWithEndKey(const Key &key, const Key &keyEnd)
 {
-    // incase it never been move before
-    int errCode = E_OK;
+    return key > keyEnd;
+}
+
+int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition,
+    Entry &entry_, const Key &keyEnd)
+{
+    int errCode = E_OK; // incase it never been move before
     if (currPosition == INIT_POSITION) {
-        // but when we have only 1 element ?
-        errCode = TransferGrdErrno(GRD_Next(resultSet));
+        errCode = TransferGrdErrno(GRD_Next(resultSet)); // but when we have only 1 element ?
         if (errCode == -E_NOT_FOUND) {
             LOGE("[RdSingleVerStorageExecutor] result set is empty when move to");
             return -E_RESULT_SET_EMPTY;
@@ -129,12 +168,10 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
         }
         currPosition++;
     }
-
     errCode = InnerMoveToHead(position, resultSet, currPosition);
     if (errCode != E_OK) {
         return errCode;
     }
-
     if (position <= INIT_POSITION) {
         LOGE("[RdSingleVerStorageExecutor] current position must > -1 when move to.");
         int ret = TransferGrdErrno(GRD_Prev(resultSet));
@@ -155,6 +192,15 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
         } else if (errCode != E_OK) {
             LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
             return errCode;
+        }
+        if (!keyEnd.empty()) {
+            Entry tmpEntry;
+            errCode = RdKvFetch(resultSet, tmpEntry.key, tmpEntry.value); // If get Next successfully, then absulotle fetch successfully; 
+            if (errCode != E_OK || CompareKeyWithEndKey(tmpEntry.key, keyEnd)) {
+                return -E_NOT_FOUND;
+            } else {
+                entry_ = tmpEntry; // store the entry.
+            }
         }
         currPosition++;
     }
@@ -188,11 +234,11 @@ int RdSingleVerStorageExecutor::GetEntry(GRD_ResultSet *resultSet, Entry &entry)
     return errCode;
 }
 
-int RdSingleVerStorageExecutor::GetCount(const Key key, int &count)
+int RdSingleVerStorageExecutor::GetCount(const Key &key, int &count, GRD_KvScanModeE kvScanMode, const Key &keyEnd)
 {
     count = 0;
     GRD_ResultSet *tmpResultSet = nullptr;
-    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, KV_SCAN_PREFIX, &tmpResultSet);
+    int errCode = RdKVScan(db_, SYNC_COLLECTION_NAME.c_str(), key, kvScanMode, &tmpResultSet);
     if (errCode != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to get count for current key.");
         return errCode;
@@ -216,6 +262,13 @@ int RdSingleVerStorageExecutor::GetCount(const Key key, int &count)
                 return ret;
             }
             return errCode;
+        }
+        if (kvScanMode == GRD_KvScanModeE::KV_SCAN_EQUAL_OR_GREATER_KEY && !keyEnd.empty()) {
+            Entry tmpEntry;
+            ret = RdKvFetch(tmpResultSet, tmpEntry.key, tmpEntry.value); // If get Next successfully, then absulotle fetch successfully; 
+            if (ret != E_OK || CompareKeyWithEndKey(tmpEntry.key, keyEnd)) {
+                break;
+            }
         }
         ++count;
         isFirstMove = false;
@@ -266,14 +319,27 @@ int RdSingleVerStorageExecutor::ClearEntriesAndFreeResultSet(std::vector<Entry> 
     return errCode;
 }
 
-int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const Key &keyPrefix,
+int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam,
     std::vector<Entry> &entries, GRD_ResultSet **resultSet)
 {
     if (type != SingleVerDataType::SYNC_TYPE) {
         LOGE("[RdSingleVerStorageExecutor][GetEntries]unsupported data type");
         return -E_INVALID_ARGS;
     }
-    int ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), keyPrefix, KV_SCAN_PREFIX, resultSet);
+    int ret = E_OK;
+    switch (queryParam.kvScanMode_) {
+        case  KV_SCAN_PREFIX:
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.keyPrefix_, KV_SCAN_PREFIX, resultSet);
+            break;
+        case  KV_SCAN_EQUAL_OR_GREATER_KEY:
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.beginKey_, KV_SCAN_EQUAL_OR_GREATER_KEY, resultSet);
+            break;
+        case  KV_SCAN_EQUAL_OR_LESS_KEY:
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.endKey_, KV_SCAN_EQUAL_OR_LESS_KEY, resultSet);
+            break;
+        default:
+            break;
+    }
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageExecutor][GetEntries]ERROR %d", ret);
         return ret;
@@ -288,7 +354,13 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
 {
     (void)isGetValue;
     GRD_ResultSet *resultSet = nullptr;
-    int ret = GetEntriesPrepare(db_, type, keyPrefix, entries, &resultSet);
+    QueryParam queryParam;
+    int ret = GetQueryParam(keyPrefix, queryParam);
+    if (ret != E_OK) {
+        LOGE("[RdSingleVerStorageExecutor] Init rd QueryObject fail");
+        return ret;
+    }
+    ret = GetEntriesPrepare(db_, type, queryParam, entries, &resultSet);
     if (ret != E_OK) {
         return ret;
     }
@@ -317,6 +389,60 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
         ret = TransferGrdErrno(GRD_Next(resultSet));
     }
     if (ret != -E_NOT_FOUND) {        LOGE("[RdSingleVerStorageExecutor][GetEntries]fail to move, %d", ret);
+        innerCode = ClearEntriesAndFreeResultSet(entries, resultSet);
+        if (innerCode != E_OK) {
+            return innerCode;
+        }
+        return ret;
+    }
+
+    ret = RdFreeResultSet(resultSet);
+    if (ret != E_OK) {
+        LOGE("[RdSingleVerStorageExecutor] failed to free result set.");
+        return ret;
+    }
+    return E_OK;
+}
+
+int RdSingleVerStorageExecutor::GetEntries(QueryParam &queryParam, SingleVerDataType type, std::vector<Entry> &entries) const
+{
+    GRD_ResultSet *resultSet = nullptr;
+    int ret = GetEntriesPrepare(db_, type, queryParam, entries, &resultSet);
+    if (ret != E_OK) {
+        return ret;
+    }
+
+    int innerCode = E_OK;
+    ret = TransferGrdErrno(GRD_Next(resultSet));
+    if (ret == -E_NOT_FOUND) {
+        innerCode = ClearEntriesAndFreeResultSet(entries, resultSet);
+        if (innerCode != E_OK) {
+            return innerCode;
+        }
+        return ret;
+    }
+    while (ret == E_OK) {
+        Entry tmpEntry;
+        ret = RdKvFetch(resultSet, tmpEntry.key, tmpEntry.value);
+        if (ret != E_OK && ret != -E_NOT_FOUND) {
+            LOGE("[RdSingleVerStorageExecutor][GetEntries]fail to fetch, %d", ret);
+            innerCode = ClearEntriesAndFreeResultSet(entries, resultSet);
+            if (innerCode != E_OK) {
+                return innerCode;
+            }
+            return ret;
+        }
+        if (!queryParam.endKey_.empty() && !queryParam.beginKey_.empty()) {
+            if (CompareKeyWithEndKey(tmpEntry.key, queryParam.endKey_)) {
+                ret = -E_NOT_FOUND;
+                break;
+            }
+        }
+        entries.push_back(std::move(tmpEntry));
+        ret = TransferGrdErrno(GRD_Next(resultSet));
+    }
+    if (ret != -E_NOT_FOUND) {
+        LOGE("[RdSingleVerStorageExecutor][GetEntries]fail to move, %d", ret);
         innerCode = ClearEntriesAndFreeResultSet(entries, resultSet);
         if (innerCode != E_OK) {
             return innerCode;
@@ -410,11 +536,6 @@ int RdSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key &key
 }
 
 int RdSingleVerStorageExecutor::GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const
-{
-    return -E_NOT_SUPPORT;
-}
-
-int RdSingleVerStorageExecutor::GetCount(QueryObject &queryObj, int &count) const
 {
     return -E_NOT_SUPPORT;
 }

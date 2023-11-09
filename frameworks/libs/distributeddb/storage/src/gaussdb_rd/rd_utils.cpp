@@ -169,10 +169,10 @@ int RdKVScan(GRD_DB *db, const char *collectionName, const Key &key, GRD_KvScanM
         return -E_INVALID_DB;
     }
     if (key.empty()) {
-        return TransferGrdErrno(GRD_KVScan(db, collectionName, NULL, KV_SCAN_PREFIX, resultSet));
+        return TransferGrdErrno(GRD_KVScan(db, collectionName, NULL, mode, resultSet));
     }
     GRD_KVItemT innerKey = BlobToKvItem(key);
-    return TransferGrdErrno(GRD_KVScan(db, collectionName, &innerKey, KV_SCAN_PREFIX, resultSet));
+    return TransferGrdErrno(GRD_KVScan(db, collectionName, &innerKey, mode, resultSet));
 }
 
 int RdKvFetch(GRD_ResultSet *resultSet, Key &key, Value &value)

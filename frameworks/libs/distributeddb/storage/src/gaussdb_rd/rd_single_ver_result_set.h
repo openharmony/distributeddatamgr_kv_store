@@ -24,6 +24,8 @@ namespace DistributedDB {
 class RdSingleVerResultSet : public IKvDBResultSet {
 public:
     RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &key);
+    RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &beginKey,
+        const Key &endKey, GRD_KvScanModeE kvScanMode, const ResultSetType &ResultSetType);
     ~RdSingleVerResultSet() override;
 
     // Initialize logic
@@ -46,6 +48,8 @@ public:
     // Get the entry of current position.
     int GetEntry(Entry &entry) const override;
 
+    int GetEntry(Entry &entry, bool isGetValueFromEntry) const;
+
 private:
     int PreCheckResultSet() const;
 
@@ -55,16 +59,28 @@ private:
 
     int MoveToPrev(bool needPreCheck = true) const;
 
+    int CmpKeyAndStoreEntry(bool isCmpKey = true) const;
+
     mutable std::mutex mutex_;
 
     mutable bool isOpen_ = false;
 
     mutable int position_ = INIT_POSITION; // The position in the overall result
 
-    // For KeyPrefix Type Or Query Type. (RD not support query type)
-    const ResultSetType type_ = ResultSetType::KEYPREFIX;
+    // For KeyPrefix Type Or Query Type.
+    ResultSetType type_ = ResultSetType::KEYPREFIX;
 
     Key key_;
+
+    Key beginKey_;
+
+    Key endKey_;
+
+    GRD_KvScanModeE kvScanMode_ = KV_SCAN_PREFIX;
+
+    mutable bool isGetValueFromEntry_ = false;
+
+    mutable Entry entry_;
 
     // Common Pointer For Use, Not Own it, Not Responsible To Release It.
     RdSingleVerNaturalStore *kvDB_ = nullptr;

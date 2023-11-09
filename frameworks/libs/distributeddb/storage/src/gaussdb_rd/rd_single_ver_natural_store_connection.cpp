@@ -69,7 +69,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IO
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
@@ -125,6 +125,45 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, const
     kvDbResultSets_.insert(resultSet);
     return E_OK;
 }
+
+int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, const Query &query, IKvDBResultSet *&resultSet) const
+{
+    // maximum of result set size is 4
+    std::lock_guard<std::mutex> lock(kvDbResultSetsMutex_);
+    if (kvDbResultSets_.size() >= maxResultSetSize_) {
+        LOGE("Over max result set size");
+        return -E_MAX_LIMITS;
+    }
+
+    RdSingleVerNaturalStore *naturalStore = GetDB<RdSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        return -E_INVALID_DB;
+    }
+    QueryParam queryParam;
+    int errCode = GetQueryParam(query, queryParam);
+    if (errCode != E_OK) {
+        LOGE("[RdSingleVerNaturalStoreConnection] GetQueryParam faild");
+        return errCode;
+    }
+    RdSingleVerResultSet *tmpResultSet = new (std::nothrow) RdSingleVerResultSet(naturalStore,
+        queryParam.beginKey_, queryParam.endKey_, queryParam.kvScanMode_, ResultSetType::QUERY);
+    if (tmpResultSet == nullptr) {
+        LOGE("Create single version result set failed.");
+        return -E_OUT_OF_MEMORY;
+    }
+    errCode = tmpResultSet->Open(false);
+    if (errCode != E_OK) {
+        delete tmpResultSet;
+        resultSet = nullptr;
+        tmpResultSet = nullptr;
+        LOGE("Open result set failed.");
+        return errCode;
+    }
+    resultSet = (IKvDBResultSet *)tmpResultSet;
+    kvDbResultSets_.insert(resultSet);
+    return E_OK;
+}
+
 
 void RdSingleVerNaturalStoreConnection::ReleaseResultSet(IKvDBResultSet *&resultSet)
 {
@@ -217,7 +256,7 @@ int RdSingleVerNaturalStoreConnection::Get(const IOption &option, const Key &key
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         // need to check if the transaction started
         std::lock_guard<std::mutex> lock(transactionMutex_);
@@ -247,10 +286,46 @@ int RdSingleVerNaturalStoreConnection::Clear(const IOption &option)
     return -E_NOT_SUPPORT;
 }
 
+int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, const Query &query,
+    std::vector<Entry> &entries) const
+{
+    QueryParam queryParam;
+    int errCode = GetQueryParam(query, queryParam);
+    if (errCode != E_OK) {
+        LOGE("[RdSingleVerNaturalStoreConnection] GetQueryParam faild");
+        return errCode;
+    }
+    SingleVerDataType type;
+    errCode = CheckOption(option, type);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    DBDfxAdapter::StartTracing();
+    {
+        std::lock_guard<std::mutex> lock(transactionMutex_);
+        if (writeHandle_ != nullptr) {
+            LOGD("[RdSingleVerNaturalStoreConnection] Transaction started already.");
+            errCode = writeHandle_->GetEntries(queryParam, type, entries);
+            DBDfxAdapter::FinishTraceSQL();
+            return errCode;
+        }
+    }
+    RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
+    if (handle == nullptr) {
+        LOGE("[RdSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
+        DBDfxAdapter::FinishTraceSQL();
+        return errCode;
+    }
+    errCode = handle->GetEntries(queryParam, type, entries);
+    ReleaseExecutor(handle);
+    DBDfxAdapter::FinishTraceSQL();
+    return errCode;
+
+}
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
     std::vector<Entry> &entries) const
 {
-    return -E_NOT_SUPPORT;
+    return GetEntriesInner(option, query, entries);
 }
 
 int RdSingleVerNaturalStoreConnection::GetCount(const IOption &option, const Query &query, int &count) const
@@ -570,7 +645,7 @@ int RdSingleVerNaturalStoreConnection::CheckSyncKeysValid(const std::vector<Key>
 
 int RdSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
 {
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     bool isAuto = false;
     int errCode = E_OK;
     if (option.dataType != IOption::SYNC_DATA) {

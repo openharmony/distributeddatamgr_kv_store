@@ -1243,7 +1243,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncItems(const QueryObject &query, std::ve
     if (handle == nullptr) {
         return errCode;
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         ReleaseHandle(handle);
@@ -1296,7 +1296,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     }
 
     Timestamp maxTimestamp = 0;
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     errCode = SaveSyncItemsInCacheMode(handle, query, dataItems, deviceInfo, maxTimestamp);
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Failed to save sync data in cache mode, err : %d", errCode);

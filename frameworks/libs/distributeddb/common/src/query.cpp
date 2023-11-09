@@ -30,7 +30,6 @@ Query Query::Select(const std::string &tableName)
     return query;
 }
 
-
 Query &Query::FromTable(const std::vector<std::string> &tableNames)
 {
     queryExpression_.SetTables(tableNames);
@@ -64,6 +63,12 @@ Query &Query::IsNotNull(const std::string &field)
 Query &Query::PrefixKey(const std::vector<uint8_t> &key)
 {
     queryExpression_.QueryByPrefixKey(key);
+    return *this;
+}
+
+Query &Query::Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd)
+{
+    queryExpression_.QueryByKeyRange(keyBegin, keyEnd);
     return *this;
 }
 

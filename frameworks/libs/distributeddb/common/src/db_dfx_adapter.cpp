@@ -95,7 +95,7 @@ void DBDfxAdapter::FinishTrace()
     ::FinishTrace(HITRACE_LABEL);
 }
 
-void DBDfxAdapter::StartTraceSQL()
+void DBDfxAdapter::StartTracing()
 {
 #ifdef TRACE_SQLITE_EXECUTE
     ::StartTrace(HITRACE_LABEL, SQLITE_EXECUTE);
@@ -149,7 +149,7 @@ void DBDfxAdapter::FinishAsyncTrace(const std::string &action, int32_t taskId)
     (void) taskId;
 }
 
-void DBDfxAdapter::StartTraceSQL()
+void DBDfxAdapter::StartTracing()
 {
 }
 

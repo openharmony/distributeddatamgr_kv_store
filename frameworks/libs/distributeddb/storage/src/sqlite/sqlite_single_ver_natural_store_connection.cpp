@@ -97,7 +97,7 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         // need to check if the transaction started
         std::lock_guard<std::mutex> lock(transactionMutex_);
@@ -160,7 +160,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
@@ -208,7 +208,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
@@ -795,7 +795,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetDeviceIdentifier(PragmaEntryDevice
 
 int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries)
 {
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -836,7 +836,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
 
 int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
 {
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -1790,11 +1790,10 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
-        if (writeHandle_ != nullptr) {
-            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
+        if (writeHandle_ != nullptr) {            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
             DBDfxAdapter::FinishTraceSQL();
             return errCode;

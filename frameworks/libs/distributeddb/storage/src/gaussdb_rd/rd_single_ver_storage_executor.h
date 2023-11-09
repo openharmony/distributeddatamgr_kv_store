@@ -25,6 +25,16 @@
 #include "single_ver_natural_store_commit_notify_data.h"
 
 namespace DistributedDB {
+struct QueryParam {
+    GRD_KvScanModeE kvScanMode_;
+    std::vector<uint8_t> beginKey_;
+    std::vector<uint8_t> endKey_;
+    Key keyPrefix_;
+};
+
+int GetQueryParam(const Query &query, QueryParam & queryParam);
+
+int GetQueryParam(const Key &keyPrefix, QueryParam & queryParam);
 
 class RDStorageExecutor : public StorageExecutor {
 public:
@@ -65,9 +75,9 @@ public:
 
     int GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const;
 
-    int GetCount(const Key key, int &count);
+    int GetEntries(QueryParam &queryParam, SingleVerDataType type, std::vector<Entry> &entries) const;
 
-    int GetCount(QueryObject &queryObj, int &count) const;
+    int GetCount(const Key &key, int &count, GRD_KvScanModeE kvScanMode, const Key &keyEnd);
 
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
@@ -109,7 +119,8 @@ public:
 
     int CloseResultSet(GRD_ResultSet *resultSet);
 
-    int MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition);
+    int MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition,
+        Entry &entry_, const Key &keyEnd);
 
     int MoveToNext(GRD_ResultSet *resultSet);
 
@@ -197,6 +208,8 @@ public:
 
     int UpdateKey(const UpdateKeyCallback &callback);
 
+    static bool CompareKeyWithEndKey(const Key &key, const Key &keyEnd);
+
 protected:
     int SaveKvData(SingleVerDataType type, const Key &key, const Value &value);
 
@@ -219,6 +232,9 @@ private:
     static int ClearEntriesAndFreeResultSet(std::vector<Entry> &entries, GRD_ResultSet *resultSet);
 
     static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries,
+        GRD_ResultSet **resultSet);
+
+    static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam, std::vector<Entry> &entries,
         GRD_ResultSet **resultSet);
 };
 } // namespace DistributedDB
