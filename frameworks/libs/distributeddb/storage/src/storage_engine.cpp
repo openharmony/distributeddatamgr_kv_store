@@ -29,12 +29,12 @@ const int StorageEngine::MAX_READ_SIZE = 16;
 StorageEngine::StorageEngine()
     : isUpdated_(false),
       isMigrating_(false),
-      engineState_(EngineState::INVALID),
       commitNotifyFunc_(nullptr),
       isInitialized_(false),
       perm_(OperatePerm::NORMAL_PERM),
       operateAbort_(false),
-      isExistConnection_(false)
+      isExistConnection_(false),
+      engineState_(EngineState::INVALID)
 {}
 
 StorageEngine::~StorageEngine()
@@ -107,6 +107,11 @@ int StorageEngine::Init()
     return errCode;
 }
 
+int StorageEngine::ReInit()
+{
+    return E_OK;
+}
+
 StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, int &errCode, int waitTime)
 {
     if (GetEngineState() == EngineState::ENGINE_BUSY) {
@@ -136,6 +141,7 @@ StorageExecutor *StorageEngine::FindExecutor(bool writable, OperatePerm perm, in
 
 StorageExecutor *StorageEngine::FindWriteExecutor(OperatePerm perm, int &errCode, int waitTime)
 {
+    LOGD("[FindWriteExecutor]Finding WriteExecutor");
     std::unique_lock<std::mutex> lock(writeMutex_);
     errCode = -E_BUSY;
     if (perm_ == OperatePerm::DISABLE_PERM || perm_ != perm) {
@@ -149,7 +155,6 @@ StorageExecutor *StorageEngine::FindWriteExecutor(OperatePerm perm, int &errCode
         }
         return FetchStorageExecutor(true, writeIdleList_, writeUsingList_, errCode);
     }
-
     // Not prohibited and there is an available handle
     bool result = writeCondition_.wait_for(lock, std::chrono::seconds(waitTime),
         [this, &perm]() {
@@ -253,6 +258,11 @@ void StorageEngine::ClearCorruptedFlag()
     return;
 }
 
+bool StorageEngine::IsEngineCorrupted() const
+{
+    return false;
+}
+
 void StorageEngine::Release()
 {
     CloseExecutor();
@@ -321,7 +331,8 @@ void StorageEngine::Abort(OperatePerm enableType)
 
 bool StorageEngine::IsNeedTobeReleased() const
 {
-    return true;
+    EngineState engineState = GetEngineState();
+    return ((engineState == EngineState::MAINDB) || (engineState == EngineState::INVALID));
 }
 
 const std::string &StorageEngine::GetIdentifier() const
@@ -360,11 +371,6 @@ void StorageEngine::SetConnectionFlag(bool isExisted)
 bool StorageEngine::IsExistConnection() const
 {
     return isExistConnection_.load();
-}
-
-void StorageEngine::ClearEnginePasswd()
-{
-    return;
 }
 
 int StorageEngine::CheckEngineOption(const KvDBProperties &kvdbOption) const
@@ -464,5 +470,20 @@ void StorageEngine::WaitWriteHandleIdle()
     LOGD("Wait wHandle release finish id[%s]. write[%zu-%zu-%" PRIu32 "]",
         DBCommon::TransferStringToHex(identifier_).c_str(), writeIdleList_.size(), writeUsingList_.size(),
         engineAttr_.maxWriteNum);
+}
+
+void StorageEngine::IncreaseCacheRecordVersion()
+{
+    return;
+}
+
+uint64_t StorageEngine::GetCacheRecordVersion() const
+{
+    return 0;
+}
+
+uint64_t StorageEngine::GetAndIncreaseCacheRecordVersion()
+{
+    return 0;
 }
 }

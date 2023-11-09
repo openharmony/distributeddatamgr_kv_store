@@ -29,6 +29,7 @@ config("distrdb_config") {
     "storage/src",
     "storage/src/multiver",
     "storage/src/operation",
+    "storage/src/gaussdb_rd",
     "storage/src/sqlite",
     "storage/src/sqlite/relational",
     "storage/src/upgrader",

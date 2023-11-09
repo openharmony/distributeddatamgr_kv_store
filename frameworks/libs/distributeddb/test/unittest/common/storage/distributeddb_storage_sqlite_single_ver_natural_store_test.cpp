@@ -64,7 +64,7 @@ void DistributedDBStorageSQLiteSingleVerNaturalStoreTest::SetUp(void)
     property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNB");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     g_store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_store, nullptr);
@@ -1127,7 +1127,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalStoreTest, MigrationAndReleas
     property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNBMigration");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     int iterCount = 100;
     for (int i = 0; i < iterCount; i++) {

@@ -16,6 +16,7 @@
 #ifndef SQLITE_SINGLE_VER_NATURAL_STORE_CONNECTION_H
 #define SQLITE_SINGLE_VER_NATURAL_STORE_CONNECTION_H
 #include <atomic>
+#include "single_ver_natural_store_connection.h"
 #include "sync_able_kvdb_connection.h"
 #include "sqlite_single_ver_storage_executor.h"
 #include "db_types.h"
@@ -24,22 +25,16 @@
 namespace DistributedDB {
 class SQLiteSingleVerNaturalStore;
 
-class SQLiteSingleVerNaturalStoreConnection : public SyncAbleKvDBConnection {
+class SQLiteSingleVerNaturalStoreConnection : public SingleVerNaturalStoreConnection {
 public:
     explicit SQLiteSingleVerNaturalStoreConnection(SQLiteSingleVerNaturalStore *kvDB);
-    ~SQLiteSingleVerNaturalStoreConnection() override;
+    virtual ~SQLiteSingleVerNaturalStoreConnection() override;
 
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerNaturalStoreConnection);
 
     // Get the value from the database
     int Get(const IOption &option, const Key &key, Value &value) const override;
-
-    // Put the value to the database
-    int Put(const IOption &option, const Key &key, const Value &value) override;
-
-    // Delete the value from the database
-    int Delete(const IOption &option, const Key &key) override;
 
     // Clear all the data from the database
     int Clear(const IOption &option) override;
@@ -115,8 +110,8 @@ private:
 
     void ClearConflictNotifierCount();
 
-    int PutBatchInner(const IOption &option, const std::vector<Entry> &entries);
-    int DeleteBatchInner(const IOption &option, const std::vector<Key> &keys);
+    int PutBatchInner(const IOption &option, const std::vector<Entry> &entries) override;
+    int DeleteBatchInner(const IOption &option, const std::vector<Key> &keys) override;
 
     int SaveSyncEntries(const std::vector<Entry> &entries);
     int SaveLocalEntries(const std::vector<Entry> &entries);
@@ -127,11 +122,11 @@ private:
 
     int CheckDataStatus(const Key &key, const Value &value, bool isDelete) const;
 
-    int CheckWritePermission() const;
+    int CheckWritePermission() const override;
 
-    int CheckSyncEntriesValid(const std::vector<Entry> &entries) const;
+    int CheckSyncEntriesValid(const std::vector<Entry> &entries) const override;
 
-    int CheckSyncKeysValid(const std::vector<Key> &keys) const;
+    int CheckSyncKeysValid(const std::vector<Key> &keys) const override;
 
     int CheckLocalEntriesValid(const std::vector<Entry> &entries) const;
 
@@ -195,7 +190,7 @@ private:
     int StartTransactionNormally(TransactType transType = TransactType::DEFERRED);
 
     bool IsCacheDBMode() const;
-    bool IsExtendedCacheDBMode() const;
+    bool IsExtendedCacheDBMode() const override;
     int CheckReadDataControlled() const;
     bool IsFileAccessControlled() const;
 

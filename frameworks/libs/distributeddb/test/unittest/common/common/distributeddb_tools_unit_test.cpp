@@ -99,7 +99,7 @@ int DistributedDBToolsUnitTest::CreateMockSingleDb(DatabaseInfo &dbInfo, OpenDbP
     }
 
     properties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     if (properties.sqls.empty()) {
         std::vector<std::string> defaultCreateTableSqls = {
             CREATE_LOCAL_TABLE_SQL,
@@ -146,16 +146,16 @@ int DistributedDBToolsUnitTest::OpenMockMultiDb(DatabaseInfo &dbInfo, OpenDbProp
 
     OpenDbProperties commitProperties = properties;
     commitProperties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/commit_logs" + DBConstant::SQLITE_DB_EXTENSION;
+        "/commit_logs" + DBConstant::DB_EXTENSION;
 
     commitProperties.sqls = {CREATE_SQL};
 
     OpenDbProperties kvStorageProperties = commitProperties;
     kvStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::DB_EXTENSION;
     OpenDbProperties metaStorageProperties = commitProperties;
     metaStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::DB_EXTENSION;
 
     // test code, Don't needpay too much attention to exception handling
     int errCode = CreatMockMultiDb(properties, dbInfo);
@@ -194,7 +194,7 @@ int DistributedDBToolsUnitTest::CreateMockMultiDb(DatabaseInfo &dbInfo, OpenDbPr
     }
 
     properties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
 
     if (properties.sqls.empty()) {
         properties.sqls = {CREATE_TABLE_SQL};

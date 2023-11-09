@@ -22,6 +22,12 @@
 
 namespace DistributedDB {
     //  cache.sync_data is design for migrating action after process restart
+    const std::string LOCAL_COLLECTION_NAME =
+        "LOCAL_COLLECTION_NAME";
+    const std::string META_COLLECTION_NAME =
+        "META_COLLECTION_NAME";
+    const std::string SYNC_COLLECTION_NAME =
+        "SYNC_COLLECTION_NAME";
     const std::string INSERT_LOCAL_SQL =
         "INSERT OR REPLACE INTO local_data VALUES(?,?,?,?);";
     const std::string INSERT_LOCAL_SQL_FROM_CACHEHANDLE =

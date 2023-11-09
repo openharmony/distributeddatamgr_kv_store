@@ -41,11 +41,11 @@ KvDBProperties::~KvDBProperties() {}
 std::string KvDBProperties::GetStoreSubDirectory(int type)
 {
     switch (type) {
-        case LOCAL_TYPE:
+        case LOCAL_TYPE_SQLITE:
             return DBConstant::LOCAL_SUB_DIR;
-        case MULTI_VER_TYPE:
+        case MULTI_VER_TYPE_SQLITE:
             return DBConstant::MULTI_SUB_DIR;
-        case SINGLE_VER_TYPE:
+        case SINGLE_VER_TYPE_SQLITE:
             return DBConstant::SINGLE_SUB_DIR;
         default:
             return "unknown";

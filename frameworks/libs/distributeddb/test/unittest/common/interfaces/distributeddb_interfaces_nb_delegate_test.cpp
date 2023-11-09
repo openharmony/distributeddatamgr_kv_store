@@ -171,7 +171,7 @@ namespace {
         std::string hashIdentifier = DBCommon::TransferHashString(identifier);
         std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
         std::string storeDir = g_testDir + "/" + identifierName + "/" + DBConstant::SINGLE_SUB_DIR + "/" +
-            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
         sqlite3 *db = nullptr;
         EXPECT_EQ(sqlite3_open_v2(storeDir.c_str(), &db, SQLITE_OPEN_READWRITE, nullptr), SQLITE_OK);
         if (db == nullptr) {
@@ -2824,7 +2824,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
 
     std::string identifier = DBCommon::GenerateIdentifierId(storeId, APP_ID, USER_ID);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, DBCommon::TransferHashString(identifier));
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     int errCode;
     SQLiteSingleVerStorageEngine *storageEngine =
@@ -2839,7 +2839,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
      */
     std::string cacheDir =  g_testDir + "/" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(identifier)) +
         "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::CACHEDB_DIR;
-    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
     EXPECT_EQ(OS::CreateFileByFileName(cacheDB), E_OK);
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);

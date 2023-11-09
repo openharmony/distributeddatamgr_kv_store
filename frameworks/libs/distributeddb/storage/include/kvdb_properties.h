@@ -68,9 +68,10 @@ public:
     static const std::string COMPRESSION_RATE;
     static const std::string LOCAL_ONLY;
 
-    static const int LOCAL_TYPE = 1;
-    static const int MULTI_VER_TYPE = 2;
-    static const int SINGLE_VER_TYPE = 3;
+    static const int LOCAL_TYPE_SQLITE = 1;
+    static const int MULTI_VER_TYPE_SQLITE = 2;
+    static const int SINGLE_VER_TYPE_SQLITE = 3;
+    static const int SINGLE_VER_TYPE_RD_KERNAL = 4;
 
 private:
     CipherType cipherType_;

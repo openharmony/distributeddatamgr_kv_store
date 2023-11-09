@@ -25,43 +25,15 @@
 #include "param_check_utils.h"
 #include "platform_specific.h"
 #include "runtime_context.h"
+#include "single_ver_utils.h"
 #include "sqlite_single_ver_database_upgrader.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_schema_database_upgrader.h"
 
 namespace DistributedDB {
-namespace {
-    const uint64_t CACHE_RECORD_DEFAULT_VERSION = 1;
-    int GetPathSecurityOption(const std::string &filePath, SecurityOption &secOpt)
-    {
-        return RuntimeContext::GetInstance()->GetSecurityOption(filePath, secOpt);
-    }
-
-    enum class DbType : int32_t {
-        MAIN,
-        META,
-        CACHE
-    };
-
-    std::string GetDbDir(const std::string &subDir, DbType type)
-    {
-        switch (type) {
-            case DbType::MAIN:
-                return subDir + "/" + DBConstant::MAINDB_DIR;
-            case DbType::META:
-                return subDir + "/" + DBConstant::METADB_DIR;
-            case DbType::CACHE:
-                return subDir + "/" + DBConstant::CACHEDB_DIR;
-            default:
-                break;
-        }
-        return "";
-    }
-} // namespace
-
 SQLiteSingleVerStorageEngine::SQLiteSingleVerStorageEngine()
-    : cacheRecordVersion_(CACHE_RECORD_DEFAULT_VERSION),
-      executorState_(ExecutorState::INVALID),
+    : executorState_(ExecutorState::INVALID),
+      cacheRecordVersion_(CACHE_RECORD_DEFAULT_VERSION),
       isCorrupted_(false),
       isNeedUpdateSecOpt_(false)
 {}
@@ -244,7 +216,7 @@ int SQLiteSingleVerStorageEngine::ReleaseHandleTransiently(SQLiteSingleVerStorag
 
 int SQLiteSingleVerStorageEngine::AddSubscribeToMainDBInMigrate()
 {
-    LOGD("Add subscribe to mainDB from cache. %d", engineState_);
+    LOGD("Add subscribe to mainDB from cache. %d", GetEngineState());
     std::lock_guard<std::mutex> lock(subscribeMutex_);
     if (subscribeQuery_.empty()) {
         return E_OK;
@@ -328,11 +300,11 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(SQLiteSingleVerStorageE
     std::string attachAbsPath;
     if (stateBeforeMigrate == EngineState::MAINDB) {
         attachAbsPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-            DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::DB_EXTENSION;
         errCode = handle->AttachMainDbAndCacheDb(option_.cipherType, option_.passwd, attachAbsPath, stateBeforeMigrate);
     } else if (stateBeforeMigrate == EngineState::CACHEDB) {
         attachAbsPath = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::DB_EXTENSION;
         errCode = handle->AttachMainDbAndCacheDb(option_.cipherType, option_.passwd, attachAbsPath, stateBeforeMigrate);
     } else {
         return -E_NOT_SUPPORT;
@@ -360,11 +332,11 @@ int SQLiteSingleVerStorageEngine::AttachMainDbAndCacheDb(sqlite3 *dbHandle, Engi
     std::string attachAbsPath;
     if (stateBeforeMigrate == EngineState::MAINDB) {
         attachAbsPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-            DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::DB_EXTENSION;
         errCode = SQLiteUtils::AttachNewDatabase(dbHandle, option_.cipherType, option_.passwd, attachAbsPath, "cache");
     } else if (stateBeforeMigrate == EngineState::CACHEDB) {
         attachAbsPath = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::DB_EXTENSION;
         errCode = SQLiteUtils::AttachNewDatabase(dbHandle, option_.cipherType, option_.passwd, attachAbsPath, "maindb");
     } else {
         return -E_NOT_SUPPORT;
@@ -493,7 +465,7 @@ int SQLiteSingleVerStorageEngine::ExecuteMigrate()
     std::lock_guard<std::mutex> lock(migrateLock_);
     if (preState == EngineState::MIGRATING || preState == EngineState::INVALID ||
         !OS::CheckPathExistence(GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-        DBConstant::SQLITE_DB_EXTENSION)) {
+        DBConstant::DB_EXTENSION)) {
         LOGD("[SqlSingleVerEngine] Being single ver migrating or never create db! engine state [%u]", preState);
         return E_OK;
     }
@@ -602,7 +574,7 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
 
     if (!option_.isMemDb) {
         option_.uri = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::DB_EXTENSION;
     }
 
     OpenDbProperties optionTemp = option_;
@@ -624,7 +596,7 @@ int SQLiteSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, sqlite3 *&
     SetEngineState(EngineState::MAINDB);
 
     if (OS::CheckPathExistence(GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-        DBConstant::SQLITE_DB_EXTENSION)) {
+        DBConstant::DB_EXTENSION)) {
         // In status cacheDb crash
         errCode = AttachMainDbAndCacheDb(db, EngineState::MAINDB);
         if (errCode != E_OK) {
@@ -647,9 +619,9 @@ int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption
     if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
         return errCode;
     }
-
+    // NOTE: 如果是S3级别 且 密码被REVOKED了，那么创建cacheDB
     std::string cacheDbPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-        DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::DB_EXTENSION;
     if (!isWrite || GetEngineState() != EngineState::INVALID ||
         OS::CheckPathExistence(cacheDbPath)) {
         LOGI("[SQLiteSingleStorageEng][GetDbHandle] Only use for first create cache db! [%d] [%d]",
@@ -698,7 +670,7 @@ const std::string CREATE_CACHE_SYNC_TABLE_SQL =
 int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
 {
     option_.uri = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
-        DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::DB_EXTENSION;
     // creatTable
     option_.sqls = {
         CacheDbSqls::CREATE_CACHE_LOCAL_TABLE_SQL,
@@ -707,7 +679,7 @@ int SQLiteSingleVerStorageEngine::GetCacheDbHandle(sqlite3 *&db)
 
     if (!option_.createIfNecessary) {
         std::string mainDbPtah = GetDbDir(option_.subdir, DbType::MAIN) + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::DB_EXTENSION;
         if (!OS::CheckPathExistence(mainDbPtah)) { // Whether to create a cacheDb is based on whether the mainDb exists
             return -E_INVALID_DB;
         }
@@ -728,8 +700,9 @@ int SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secO
     if (!(secOption == option_.securityOpt) &&
         secOption.securityLabel != SecurityLabel::NOT_SET &&
         option_.securityOpt.securityLabel != SecurityLabel::NOT_SET) {
-        LOGE("SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]", secOption.securityLabel,
-            secOption.securityFlag, option_.securityOpt.securityLabel, option_.securityOpt.securityFlag);
+        LOGE("[SQLiteSingleVerStorageEngine] SecurityOption mismatch, existed:[%d-%d] vs input:[%d-%d]",
+            secOption.securityLabel, secOption.securityFlag, option_.securityOpt.securityLabel,
+            option_.securityOpt.securityFlag);
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
     return E_OK;
@@ -737,73 +710,14 @@ int SQLiteSingleVerStorageEngine::CheckDatabaseSecOpt(const SecurityOption &secO
 
 int SQLiteSingleVerStorageEngine::CreateNewDirsAndSetSecOpt() const
 {
-    std::vector<std::string> dbDir {DBConstant::MAINDB_DIR, DBConstant::METADB_DIR, DBConstant::CACHEDB_DIR};
-    for (const auto &item : dbDir) {
-        if (OS::CheckPathExistence(option_.subdir + "/" + item)) {
-            continue;
-        }
-
-        // Dir and old db file not existed, it means that the database is newly created
-        // need create flag of database not incomplete
-        if (!OS::CheckPathExistence(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) &&
-            !OS::CheckPathExistence(option_.subdir + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-            DBConstant::SQLITE_DB_EXTENSION) &&
-            OS::CreateFileByFileName(option_.subdir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE) != E_OK) {
-            LOGE("Fail to create the token of database incompleted! errCode = [E_SYSTEM_API_FAIL]");
-            return -E_SYSTEM_API_FAIL;
-        }
-
-        if (DBCommon::CreateDirectory(option_.subdir + "/" + item) != E_OK) {
-            LOGE("Create sub-directory for single ver failed, errno:%d", errno);
-            return -E_SYSTEM_API_FAIL;
-        }
-
-        if (option_.securityOpt.securityLabel == NOT_SET) {
-            continue;
-        }
-
-        SecurityOption option = option_.securityOpt;
-        if (item == DBConstant::METADB_DIR) {
-            option.securityLabel = ((option_.securityOpt.securityLabel >= SecurityLabel::S2) ?
-                SecurityLabel::S2 : option_.securityOpt.securityLabel);
-            option.securityFlag = SecurityFlag::ECE;
-        }
-
-        int errCode = RuntimeContext::GetInstance()->SetSecurityOption(option_.subdir + "/" + item, option);
-        if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
-            LOGE("Set the security option of sub-directory failed[%d]", errCode);
-            return errCode;
-        }
-    }
-    return E_OK;
+    LOGD("[SQLiteSingleVerStorageEngine] Begin to create new dirs and set security option");
+    return CreateNewDirsAndSetSecOption(option_);
 }
 
 int SQLiteSingleVerStorageEngine::GetExistedSecOption(SecurityOption &secOption) const
 {
-    // Check the existence of the database, include the origin database and the database in the 'main' directory.
-    auto mainDbDir = GetDbDir(option_.subdir, DbType::MAIN);
-    auto mainDbFilePath = mainDbDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
-    auto origDbFilePath = option_.subdir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
-    if (!OS::CheckPathExistence(origDbFilePath) && !OS::CheckPathExistence(mainDbFilePath)) {
-        secOption = option_.securityOpt;
-        return E_OK;
-    }
-
-    // the main database file has high priority of the security option.
-    int errCode;
-    if (OS::CheckPathExistence(mainDbFilePath)) {
-        errCode = GetPathSecurityOption(mainDbFilePath, secOption);
-    } else {
-        errCode = GetPathSecurityOption(origDbFilePath, secOption);
-    }
-    if (errCode != E_OK) {
-        secOption = SecurityOption();
-        if (errCode == -E_NOT_SUPPORT) {
-            return E_OK;
-        }
-        LOGE("Get the security option of the existed database failed.");
-    }
-    return errCode;
+    LOGD("[SQLiteSingleVerStorageEngine] Try to get existed sec option");
+    return GetExistedSecOpt(option_, secOption);
 }
 
 void SQLiteSingleVerStorageEngine::ClearCorruptedFlag()
@@ -971,7 +885,7 @@ int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
     }
 
     std::string mainDbDir = GetDbDir(option_.subdir, DbType::MAIN);
-    std::string mainDbFilePath = mainDbDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    std::string mainDbFilePath = mainDbDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     SecurityOption secOpt = option_.securityOpt;
     int errCode = E_OK;
     if (isNeedUpdateSecOpt_) {
@@ -1033,7 +947,7 @@ int SQLiteSingleVerStorageEngine::AttachMetaDatabase(sqlite3 *dbHandle, const Op
     int errCode;
     LOGD("SQLiteSingleVerStorageEngine begin attach metaDb!");
     std::string metaDbPath = option.subdir + "/" + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
     // attach metaDb may failed while createIfNecessary is false, here need to create metaDb first.
     if (!option.createIfNecessary && !OS::CheckPathExistence(metaDbPath)) {
         errCode = SQLiteUtils::CreateMetaDatabase(metaDbPath);

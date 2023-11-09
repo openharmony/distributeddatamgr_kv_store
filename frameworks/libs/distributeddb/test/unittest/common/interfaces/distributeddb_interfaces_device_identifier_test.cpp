@@ -72,7 +72,7 @@ void DistributedDBDeviceIdentifierTest::SetUpTestCase(void)
     }
     g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
-    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 }
 
 void DistributedDBDeviceIdentifierTest::TearDownTestCase(void)

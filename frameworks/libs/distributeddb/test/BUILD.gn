@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import("//build/test.gni")
+import("../distributeddb.gni)
 
 module_output_path = "kv_store/distributeddb"
 
@@ -31,19 +32,21 @@ config("module_private_config") {
     "../interfaces/include/relational",
     "../interfaces/src",
     "../interfaces/src/relational",
+    "../common/include",
+    "../common/include/cloud",
+    "../common/include/relational",
+    "../common/src",
+    "../communicator/include",
+    "../communicator/src",
     "../storage/include",
     "../storage/src",
     "../storage/src/multiver",
     "../storage/src/operation",
+    "../storage/src/gaussdb_rd",
     "../storage/src/sqlite",
     "../storage/src/sqlite/relational",
     "../storage/src/upgrader",
-    "../common/include",
-    "../common/include/relational",
-    "../common/include/cloud",
-    "../common/src",
-    "../communicator/include",
-    "../communicator/src",
+    "../storage/src/cloud",
     "../syncer/include",
     "../syncer/src",
     "../syncer/src/cloud",
@@ -76,11 +79,11 @@ config("module_private_config") {
 ohos_source_set("src_file") {
   testonly = true
 
-  sources = [
+  sources = distributeddb_src
+  sources += [
     "../common/src/auto_launch.cpp",
     "../common/src/data_compression.cpp",
-    "../common/src/data_value.cpp",
-    "../common/src/db_common.cpp",
+    "../common/src/data_value.cpp",    "../common/src/db_common.cpp",
     "../common/src/db_constant.cpp",
     "../common/src/db_dfx_adapter.cpp",
     "../common/src/db_dump_helper.cpp",

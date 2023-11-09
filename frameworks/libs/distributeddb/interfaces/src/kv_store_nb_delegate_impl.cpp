@@ -113,6 +113,7 @@ DBStatus KvStoreNbDelegateImpl::GetEntries(const Key &keyPrefix, KvStoreResultSe
         }
 
         LOGE("[KvStoreNbDelegate] Alloc result set failed.");
+         // todohbx: 这里需要实现
         conn_->ReleaseResultSet(kvDbResultSet);
         kvDbResultSet = nullptr;
         return DB_ERROR;

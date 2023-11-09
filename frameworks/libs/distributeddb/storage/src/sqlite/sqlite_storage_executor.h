@@ -29,7 +29,7 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteStorageExecutor);
 
-    int Reset() override;
+    virtual int Reset() override;
     int GetDbHandle(sqlite3 *&dbHandle) const;
 
 protected:

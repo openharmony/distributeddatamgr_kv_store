@@ -16,6 +16,7 @@
 #include "param_check_utils.h"
 
 #include "db_common.h"
+#include "db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "platform_specific.h"

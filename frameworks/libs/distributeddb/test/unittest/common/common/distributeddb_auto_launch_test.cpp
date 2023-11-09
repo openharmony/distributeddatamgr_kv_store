@@ -141,7 +141,7 @@ static void GetProperty(KvDBProperties &prop, std::string &identifier, std::stri
     std::string identifierDirA = DBCommon::TransferStringToHex(identifier);
     prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierDirA);
     prop.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
-    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     prop.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false);
 }
