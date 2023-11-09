@@ -1793,6 +1793,65 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetLimitTest001, TestSiz
     EXPECT_EQ(g_mgr.DeleteKvStore("ResultSetLimitTest001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
+
+void GetDataFromDatabase(const std::string &storeId)
+{
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    DBStatus status;
+    KvStoreNbDelegate *delegate = nullptr;
+    auto nbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
+        placeholders::_2, std::ref(status), std::ref(delegate));
+    int successTime = 0;
+    for (size_t i = 0; i < 1000; i++) { // cycle 100 times.
+        g_mgr.GetKvStore(storeId, option, nbDelegateCallback);
+        if (delegate != nullptr) {
+            successTime++;
+        }
+        Value value;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        EXPECT_EQ(delegate->Get(KEY_1, value), OK);
+        EXPECT_EQ(value, VALUE_1);
+        g_mgr.CloseKvStore(delegate);
+        delegate = nullptr;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    LOGD("Succeed times is %d", successTime);
+}
+
+void FreqGet001()
+{
+    std::string storeId = "FreqGet001";
+    g_mgr.GetKvStore(storeId, g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr = nullptr;
+
+    std::thread t1(GetDataFromDatabase, storeId);
+    std::thread t2(GetDataFromDatabase, storeId);
+    std::thread t3(GetDataFromDatabase, storeId);
+    std::thread t4(GetDataFromDatabase, storeId);
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+}
+
+/**
+  * @tc.name: FreqGet001
+  * @tc.desc: Open and close the kv store concurrently.
+  * @tc.type: FUNC
+  * @tc.require: AR000DR9K2
+  * @tc.author: wangbingquan
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqGet001, TestSize.Level2)
+{
+    ASSERT_NO_FATAL_FAILURE(FreqGet001());
+}
+
 #endif // RUNNING_ON_SIMULATED_ENV
 }
 #endif // USE_RD_KERNEL

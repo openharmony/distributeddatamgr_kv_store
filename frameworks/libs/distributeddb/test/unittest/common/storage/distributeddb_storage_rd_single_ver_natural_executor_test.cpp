@@ -475,7 +475,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaTest003, Test
     PragmaEntryDeviceIdentifier identifier = {.key = KEY_1};
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_GET_DEVICE_IDENTIFIER_OF_ENTRY, &identifier), -E_NOT_SUPPORT);
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_EXEC_CHECKPOINT, nullptr), -E_NOT_INIT);
-    EXPECT_EQ(emptyConn->CheckIntegrity(), -E_NOT_SUPPORT);
+    EXPECT_EQ(emptyConn->CheckIntegrity(), -E_NOT_INIT);
 
     int limit = 0;
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_SET_MAX_LOG_LIMIT, &limit), -E_NOT_SUPPORT);

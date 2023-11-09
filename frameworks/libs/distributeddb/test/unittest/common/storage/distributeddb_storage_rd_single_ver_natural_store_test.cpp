@@ -80,6 +80,7 @@ void DistributedDBStorageRdSingleVerNaturalStoreTest::TearDown(void)
 {
     if (g_connection != nullptr) {
         g_connection->Close();
+        g_connection = nullptr;
     }
 
     g_store = nullptr;

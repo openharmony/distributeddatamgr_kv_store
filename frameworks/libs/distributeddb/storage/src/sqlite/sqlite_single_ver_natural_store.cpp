@@ -544,7 +544,7 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value)
+int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
     int errCode = SQLiteSingleVerNaturalStore::CheckDataStatus(key, value, false);
     if (errCode != E_OK) {
@@ -2058,7 +2058,7 @@ int SQLiteSingleVerNaturalStore::SaveCreateDBTime()
         return -E_PARSE_FAIL;
     }
 
-    int errCode = PutMetaData(key, value);
+    int errCode = PutMetaData(key, value, false);
     if (errCode != E_OK) {
         LOGE("SaveCreateDBTime failed, errCode = %d", errCode);
         return errCode;

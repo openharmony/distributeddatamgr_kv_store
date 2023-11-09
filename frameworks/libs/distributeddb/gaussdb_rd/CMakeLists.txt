@@ -143,7 +143,7 @@ execute_process(
 )
 cmake_repo("third_party_googletest")
 
-add_definitions(-DRUNNING_ON_SIMULATED_ENV)
+add_definitions(-DDB_DEBUG_ENV)
 
 # build coverage rate
 add_definitions(-fprofile-arcs)

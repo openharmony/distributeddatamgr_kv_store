@@ -65,6 +65,8 @@ int TransferDocErr(int err)
             return GetErrorCategory(GRD_INVALID_FILE_FORMAT);
         case -E_FAILED_FILE_OPERATION:
             return GetErrorCategory(GRD_FAILED_FILE_OPERATION);
+        case -E_NOT_SUPPORT:
+            return GetErrorCategory(GRD_NOT_SUPPORT);
         case -E_INNER_ERROR:
         default:
             return GetErrorCategory(GRD_INNER_ERR);

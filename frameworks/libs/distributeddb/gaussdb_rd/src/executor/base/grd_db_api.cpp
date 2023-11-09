@@ -25,12 +25,12 @@
 #include "log_print.h"
 
 using namespace DocumentDB;
-static GRD_APIInfo GRD_DBApiInfo = GetApiInfoInstance();
+static GRD_APIInfo GRD_DBApiInfo;
 
 GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db)
 {
     if (GRD_DBApiInfo.DBOpenApi == nullptr) {
-        return GRD_INNER_ERR;
+        GRD_DBApiInfo = GetApiInfoInstance();
     }
     return GRD_DBApiInfo.DBOpenApi(dbPath, configStr, flags, db);
 }
@@ -38,7 +38,7 @@ GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t f
 GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo.DBCloseApi == nullptr) {
-        return GRD_INNER_ERR;
+        GRD_DBApiInfo = GetApiInfoInstance();
     }
     return GRD_DBApiInfo.DBCloseApi(db, flags);
 }
@@ -46,7 +46,7 @@ GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo.FlushApi == nullptr) {
-        return GRD_INNER_ERR;
+        GRD_DBApiInfo = GetApiInfoInstance();
     }
     return GRD_DBApiInfo.FlushApi(db, flags);
 }
@@ -54,7 +54,7 @@ GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
 GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
 {
     if (GRD_DBApiInfo.IndexPreloadApi == nullptr) {
-        return GRD_INNER_ERR;
+        GRD_DBApiInfo = GetApiInfoInstance();
     }
     return GRD_DBApiInfo.IndexPreloadApi(db, collectionName);
 }

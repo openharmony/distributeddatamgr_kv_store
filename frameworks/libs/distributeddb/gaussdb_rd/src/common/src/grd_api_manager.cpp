@@ -56,8 +56,9 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVFreeItemApi = GRD_KVFreeItemInner;
     GRD_DBApiInfo.KVBatchPrepareApi = GRD_KVBatchPrepareInner;
     GRD_DBApiInfo.KVBatchPushbackApi = GRD_KVBatchPushbackInner;
+    GRD_DBApiInfo.KVBatchPutApi = GRD_KVBatchPutInner;
     GRD_DBApiInfo.KVBatchDelApi = GRD_KVBatchDelInner;
-    GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestoryInner;
+    GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestroyInner;
     GRD_DBApiInfo.CreateSeqApi = GRD_CreateSeqInner;
     GRD_DBApiInfo.DropSeqApi = GRD_DropSeqInner;
     GRD_DBApiInfo.CrcCheckApi = GRD_CrcCheckInner;
@@ -89,8 +90,9 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVFreeItemApi = (KVFreeItem)dlsym(g_library, "GRD_KVFreeItem");
     GRD_DBApiInfo.KVBatchPrepareApi = (KVBatchPrepare)dlsym(g_library, "GRD_KVBatchPrepare");
     GRD_DBApiInfo.KVBatchPushbackApi = (KVBatchPushback)dlsym(g_library, "GRD_KVBatchPushback");
+    GRD_DBApiInfo.KVBatchPutApi = (KVBatchPut)dlsym(g_library, "GRD_KVBatchPut");
     GRD_DBApiInfo.KVBatchDelApi = (KVBatchDel)dlsym(g_library, "GRD_KVBatchDel");
-    GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestory");
+    GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestroy");
     GRD_DBApiInfo.CreateSeqApi = (CreateSeq)dlsym(g_library, "GRD_CreateSeq");
     GRD_DBApiInfo.DropSeqApi = (DropSeq)dlsym(g_library, "GRD_DropSeq");
     GRD_DBApiInfo.CrcCheckApi = (CrcCheck)dlsym(g_library, "GRD_CrcCheck");

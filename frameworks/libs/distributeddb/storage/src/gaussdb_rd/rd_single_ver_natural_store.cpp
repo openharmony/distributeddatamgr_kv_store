@@ -246,16 +246,18 @@ int RdSingleVerNaturalStore::Import(const std::string &filePath, const CipherPas
 RdSingleVerStorageExecutor *RdSingleVerNaturalStore::GetHandle(bool isWrite, int &errCode,
     OperatePerm perm) const
 {
+    engineMutex_.lock_shared();
     if (storageEngine_ == nullptr) {
         errCode = -E_INVALID_DB;
+        engineMutex_.unlock_shared(); // unlock when get handle failed.
         return nullptr;
     }
-    auto handle = static_cast<RdSingleVerStorageExecutor *>(
-        storageEngine_->FindExecutor(isWrite, perm, errCode));
+    auto handle = storageEngine_->FindExecutor(isWrite, perm, errCode);
     if (handle == nullptr) {
-        LOGE("Find null storage engine");
+        LOGD("Find null storage engine");
+        engineMutex_.unlock_shared(); // unlock when get handle failed.
     }
-    return handle;
+    return static_cast<RdSingleVerStorageExecutor *>(handle);
 }
 
 SchemaObject RdSingleVerNaturalStore::GetSchemaInfo() const

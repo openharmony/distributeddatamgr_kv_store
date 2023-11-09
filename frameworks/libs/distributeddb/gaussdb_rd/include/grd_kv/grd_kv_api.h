@@ -30,7 +30,7 @@ GRD_API int32_t GRD_KVGet(GRD_DB *db, const char *collectionName, const GRD_KVIt
 
 GRD_API int32_t GRD_KVDel(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key);
 
-GRD_API int32_t GRD_KVScan(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, KvScanModeE mode,
+GRD_API int32_t GRD_KVScan(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, GRD_KvScanModeE mode,
     GRD_ResultSet **resultSet);
 
 GRD_API int32_t GRD_KVFreeItem(GRD_KVItemT *item);
@@ -40,9 +40,11 @@ GRD_API int32_t GRD_KVBatchPrepare(uint16_t itemNum, GRD_KVBatchT **batch);
 GRD_API int32_t GRD_KVBatchPushback(const void *key, uint32_t keyLen, const void *data, uint32_t dataLen,
     GRD_KVBatchT *batch);
 
+GRD_API int32_t GRD_KVBatchPut(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
+
 GRD_API int32_t GRD_KVBatchDel(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 
-GRD_API int32_t GRD_KVBatchDestory(GRD_KVBatchT *batch);
+GRD_API int32_t GRD_KVBatchDestroy(GRD_KVBatchT *batch);
 #ifdef __cplusplus
 }
 #endif

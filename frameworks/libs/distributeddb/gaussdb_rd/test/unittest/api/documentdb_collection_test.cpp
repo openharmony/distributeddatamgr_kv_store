@@ -202,4 +202,16 @@ HWTEST_F(DocumentDBCollectionTest, CollectionTest007, TestSize.Level0)
         EXPECT_EQ(GRD_DropCollection(g_db, "student", flag), GRD_INVALID_ARGS);
     }
 }
+
+/**
+ * @tc.name: CollectionTest008
+ * @tc.desc: Test create KV db collection 
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DocumentDBCollectionTest, CollectionTest008, TestSize.Level0)
+{
+    EXPECT_EQ(GRD_CreateCollection(g_db, "student", "{\"mode\" : \"kv\"}", 0), GRD_NOT_SUPPORT);
+}
 } // namespace

@@ -67,11 +67,11 @@ int32_t GRD_FreeResultSetInner(GRD_ResultSet *resultSet)
 
 int32_t GRD_PrevInner(GRD_ResultSet *resultSet)
 {
-    return GRD_OK; // No support;
+    return GRD_NOT_SUPPORT; // No support;
 }
 
 int32_t GRD_FetchInner(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value)
 {
-    return GRD_OK; // No support;
+    return GRD_NOT_SUPPORT; // No support;
 }
 } // namespace DocumentDB

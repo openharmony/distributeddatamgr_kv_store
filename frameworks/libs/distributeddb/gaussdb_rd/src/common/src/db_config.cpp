@@ -43,7 +43,6 @@ constexpr const char *DB_CONFIG_CRC_CHECK_ENABLE = "crccheckenable";
 constexpr const char *DB_CONFIG_BUFFPOOL_POLICY = "bufferpoolpolicy";
 constexpr const char *DB_CONFIG_SHARED_MODE = "sharedmodeenable";
 
-const int DB_CONFIG_SIZE = 6; // db config size
 const char *DB_CONFIG[] = { DB_CONFIG_PAGESIZE, DB_CONFIG_REDO_FLUSH_BY_TRX,
     DB_CONFIG_REDO_PUB_BUFF_SIZE, DB_CONFIG_MAX_CONN_NUM, DB_CONFIG_BUFFER_POOL_SIZE, DB_CONFIG_CRC_CHECK_ENABLE,
     DB_CONFIG_BUFFPOOL_POLICY, DB_CONFIG_SHARED_MODE};
