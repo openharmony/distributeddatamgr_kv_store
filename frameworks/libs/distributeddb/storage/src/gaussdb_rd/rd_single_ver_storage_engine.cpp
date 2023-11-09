@@ -42,15 +42,18 @@ int RdSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&
     GRD_DB *db = nullptr;
     ret = TryToOpenMainDatabase(isWrite, db);
     if (ret != E_OK) {
-        LOGE("[RdSingleVerStorageEngine] GRD_DBOPEN FAILED%d", ret);
+        LOGE("[RdSingleVerStorageEngine] GRD_DBOPEN FAILED:%d", ret);
         return ret;
     }
-    ret = GRD_CreateCollection(db, SYNC_COLLECTION_NAME.c_str(), DBConstant::RD_KV_COLLECTION_MODE.c_str(), 0);
-    if (ret != GRD_OK) {
-        LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
-        return ret;
+    if (!option_.readOnly) {
+        ret = TransferGrdErrno(GRD_CreateCollection(db, SYNC_COLLECTION_NAME.c_str(),
+            DBConstant::RD_KV_COLLECTION_MODE.c_str(), 0));
+        if (ret != E_OK) {
+            LOGE("[RdSingleVerStorageEngine] GRD_CreateCollection SYNC_COLLECTION_NAME FAILED %d", ret);
+            return ret;
+        }
     }
-    ret = IndexPreLoad(db, SYNC_COLLECTION_NAME.c_str());
+    ret = TransferGrdErrno(IndexPreLoad(db, SYNC_COLLECTION_NAME.c_str()));
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageEngine] GRD_IndexPreload FAILED %d", ret);
         return ret;
@@ -174,11 +177,14 @@ int RdSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
 int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *&db)
 {
     uint32_t flag = GRD_DB_OPEN_ONLY;
-    if (option.createIfNecessary) {
+    if (option.createIfNecessary && !option.readOnly) {
         flag |= GRD_DB_OPEN_CREATE;
     }
-    if (option.isNeedIntegrityCheck || option.isNeedRmCorruptedDb) {
+    if (!option.readOnly && (option.isNeedIntegrityCheck || option.isNeedRmCorruptedDb)) {
         flag |= GRD_DB_OPEN_CHECK;
+    }
+    if (option.readOnly) {
+        flag |= GRD_DB_OPEN_SHARED_READ_ONLY;
     }
     return RdDbOpen(option.uri.c_str(), option.rdConfig.c_str(), flag, db);
 }

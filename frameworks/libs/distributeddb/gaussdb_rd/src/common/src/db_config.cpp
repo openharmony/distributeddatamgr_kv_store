@@ -40,10 +40,13 @@ constexpr const char *DB_CONFIG_REDO_PUB_BUFF_SIZE = "redopubbufsize";
 constexpr const char *DB_CONFIG_MAX_CONN_NUM = "maxconnnum";
 constexpr const char *DB_CONFIG_BUFFER_POOL_SIZE = "bufferpoolsize";
 constexpr const char *DB_CONFIG_CRC_CHECK_ENABLE = "crccheckenable";
+constexpr const char *DB_CONFIG_BUFFPOOL_POLICY = "bufferpoolpolicy";
+constexpr const char *DB_CONFIG_SHARED_MODE = "sharedmodeenable";
 
 const int DB_CONFIG_SIZE = 6; // db config size
-const char *dbConfig[6] = { DB_CONFIG_PAGESIZE, DB_CONFIG_REDO_FLUSH_BY_TRX, // 6 is db config size
-    DB_CONFIG_REDO_PUB_BUFF_SIZE, DB_CONFIG_MAX_CONN_NUM, DB_CONFIG_BUFFER_POOL_SIZE, DB_CONFIG_CRC_CHECK_ENABLE };
+const char *DB_CONFIG[] = { DB_CONFIG_PAGESIZE, DB_CONFIG_REDO_FLUSH_BY_TRX,
+    DB_CONFIG_REDO_PUB_BUFF_SIZE, DB_CONFIG_MAX_CONN_NUM, DB_CONFIG_BUFFER_POOL_SIZE, DB_CONFIG_CRC_CHECK_ENABLE,
+    DB_CONFIG_BUFFPOOL_POLICY, DB_CONFIG_SHARED_MODE};
 
 template<typename T>
 bool CheckAndGetDBConfig(const JsonObject &config, const std::string &name, const std::function<bool(T)> &checkValid,
@@ -125,21 +128,21 @@ bool CheckCrcCheckEnableConfig(const JsonObject &config, uint32_t &crcCheckEnabl
     return CheckAndGetDBConfig(config, DB_CONFIG_CRC_CHECK_ENABLE, checkFunction, crcCheckEnable);
 }
 
-int CFG_IsValid(const JsonObject &config)
+int IsDbconfigValid(const JsonObject &config)
 {
     JsonObject child = config.GetChild();
     while (!child.IsNull()) {
         std::string fieldName = child.GetItemField();
         bool isSupport = false;
-        for (int i = 0; i < DB_CONFIG_SIZE; i++) {
-            if (strcmp(dbConfig[i], fieldName.c_str()) == 0) {
+        for (uint32_t i = 0; i < sizeof(DB_CONFIG) / sizeof(char *); i++) {
+            if (strcmp(DB_CONFIG[i], fieldName.c_str()) == 0) {
                 isSupport = true;
                 break;
             }
         }
 
         if (!isSupport) {
-            GLOGE("Invalid db config.");
+            GLOGE("Invalid db config=%s.", fieldName.c_str());
             return -E_INVALID_CONFIG_VALUE;
         }
 
@@ -157,7 +160,7 @@ DBConfig DBConfig::GetDBConfigFromJsonStr(const std::string &confStr, int &errCo
         return {};
     }
 
-    errCode = CFG_IsValid(dbConfig);
+    errCode = IsDbconfigValid(dbConfig);
     if (errCode != E_OK) {
         GLOGE("Check DB config, not support config item. %d", errCode);
         return {};

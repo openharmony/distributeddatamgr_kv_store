@@ -112,6 +112,8 @@ namespace {
         }
         properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
         properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
+        properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.readOnly);
+        properties.SetBoolProp(KvDBProperties::SHARED_MODE, option.isSharedMode);
     }
 
     bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)

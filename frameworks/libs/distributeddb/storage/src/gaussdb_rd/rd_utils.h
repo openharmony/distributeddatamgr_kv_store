@@ -26,6 +26,7 @@
 #include "grd_document_api.h"
 
 namespace DistributedDB {
+std::string InitRdConfig();
 
 GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob);
 

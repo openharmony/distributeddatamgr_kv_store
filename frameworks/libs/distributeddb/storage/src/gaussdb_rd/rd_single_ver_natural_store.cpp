@@ -15,6 +15,7 @@
 #include "rd_single_ver_natural_store.h"
 
 #include "rd_single_ver_natural_store_connection.h"
+#include "rd_utils.h"
 #include "sqlite_single_ver_storage_engine.h"
 
 namespace DistributedDB {
@@ -409,9 +410,15 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
         securityOpt.securityLabel = kvDBProp.GetSecLabel();
         securityOpt.securityFlag = kvDBProp.GetSecFlag();
     }
-    option.rdConfig = InitRdConfig();
     option.createIfNecessary = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     option.createDirByStoreIdOnly = kvDBProp.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false);
+    option.readOnly = kvDBProp.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
+    option.isNeedIntegrityCheck = kvDBProp.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false);
+    bool isSharedMode = kvDBProp.GetBoolProp(KvDBProperties::SHARED_MODE, false);
+    std::string config = "{" + InitRdConfig();
+    config += isSharedMode ? R"(, "sharedModeEnable": 1)" : R"(, "sharedModeEnable": 0)";
+    config += "}";
+    option.rdConfig = config;
 }
 
 } // namespace DistributedDB

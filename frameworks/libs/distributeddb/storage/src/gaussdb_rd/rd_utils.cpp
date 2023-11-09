@@ -54,6 +54,12 @@ struct GrdErrnoPair {
     int kvDbCode;
 };
 
+std::string InitRdConfig()
+{
+    return R"("pageSize": 16, "redoFlushByTrx": 1, "redoPubBufSize": 1024, "maxConnNum": 100,
+        "bufferPoolSize": 1024, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
+}
+
 const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_OK, E_OK },
     { GRD_INNER_ERR, -E_INTERNAL_ERROR },
@@ -64,6 +70,7 @@ const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_RESOURCE_BUSY, -E_BUSY },
     { GRD_INVALID_FILE_FORMAT, -E_INVALID_ARGS },
     { GRD_INVALID_ARGS, -E_INVALID_ARGS },
+    { GRD_PERMISSION_DENIED, -E_NOT_PERMIT },
 };
 
 GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob)

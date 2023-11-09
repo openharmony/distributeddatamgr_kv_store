@@ -35,6 +35,7 @@ typedef struct GRD_DB GRD_DB;
 #define GRD_DB_OPEN_CHECK_FOR_ABNORMAL 0x02
 // check data in database when open database, if data is corrupted, rebuild the database.
 #define GRD_DB_OPEN_CHECK 0x04
+#define GRD_DB_OPEN_SHARED_READ_ONLY 0x08
 
 /**
  * @brief Close database config

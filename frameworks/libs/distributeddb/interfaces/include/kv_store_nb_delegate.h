@@ -56,6 +56,8 @@ public:
         bool syncDualTupleMode = false; // communicator label use dualTuple hash or not
         bool localOnly = false; // active sync module
         std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
+        bool isSharedMode = false;
+        bool readOnly = false; // only effectived when sharedMode is true
     };
 
     DB_API virtual ~KvStoreNbDelegate() {}

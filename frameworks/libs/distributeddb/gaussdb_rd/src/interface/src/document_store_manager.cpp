@@ -26,7 +26,8 @@ namespace DocumentDB {
 namespace {
 bool CheckDBOpenFlag(unsigned int flag)
 {
-    unsigned int mask = ~(GRD_DB_OPEN_CREATE | GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK);
+    unsigned int mask = ~(GRD_DB_OPEN_CREATE | GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK |
+        GRD_DB_OPEN_SHARED_READ_ONLY);
     unsigned int invalidOpt = (GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK);
     return ((flag & mask) == 0x00) && ((flag & invalidOpt) != invalidOpt);
 }

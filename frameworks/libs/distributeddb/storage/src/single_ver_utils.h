@@ -47,6 +47,7 @@ struct OpenDbProperties {
     std::string rdConfig {};
     bool isNeedIntegrityCheck = false;
     bool isNeedRmCorruptedDb = false;
+    bool readOnly = false;
 };
 
 int GetPathSecurityOption(const std::string &filePath, SecurityOption &secOpt);
@@ -65,8 +66,6 @@ int GetExistedSecOpt(const OpenDbProperties &option, SecurityOption &secOption);
 
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus);
-
-std::string InitRdConfig();
 } // namespace DistributedDB
 
 #endif // SINGLE_VER_UTILS_H

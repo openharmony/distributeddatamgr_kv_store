@@ -32,6 +32,9 @@ const std::string KvDBProperties::COMPRESS_ON_SYNC = "needCompressOnSync";
 const std::string KvDBProperties::COMPRESSION_RATE = "compressionRate";
 const std::string KvDBProperties::LOCAL_ONLY = "localOnly";
 
+const std::string KvDBProperties::SHARED_MODE = "sharedMode";
+const std::string KvDBProperties::READ_ONLY_MODE = "read_only";
+
 KvDBProperties::KvDBProperties()
     : cipherType_(CipherType::AES_256_GCM)
 {}
