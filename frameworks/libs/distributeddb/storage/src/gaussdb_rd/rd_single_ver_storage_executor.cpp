@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_storage_executor.h"
 
 #include <algorithm>
@@ -758,4 +757,3 @@ int RdSingleVerStorageExecutor::SaveSyncDataToDatabase(const Entry &entry, bool 
     return SaveKvData(SingleVerDataType::SYNC_TYPE, entry.key, entry.value);
 }
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL

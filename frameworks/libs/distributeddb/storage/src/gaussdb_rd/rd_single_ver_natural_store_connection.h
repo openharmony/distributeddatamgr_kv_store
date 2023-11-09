@@ -15,7 +15,6 @@
 
 #ifndef RD_SINGLE_VER_NATURAL_STORE_CONNECTION_H
 #define RD_SINGLE_VER_NATURAL_STORE_CONNECTION_H
-#ifdef USE_RD_KERNEL
 #include <atomic>
 
 #include "db_common.h"
@@ -160,5 +159,4 @@ private:
     RdSingleVerStorageExecutor *writeHandle_; // only existed while in transaction.
 };
 }
-#endif // USE_RD_KERNEL
 #endif

@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_result_set.h"
 #include "db_errno.h"
 #include "grd_db_api.h"
@@ -55,9 +54,7 @@ int RdSingleVerResultSet::Open(bool isMemDb)
         LOGE("[RdSinResSet] Get handle failed, errCode=%d.", errCode);
         return errCode;
     }
-#ifdef USE_RD_KERNEL
     errCode = handle_->OpenResultSet(key_, KV_SCAN_PREFIX, &resultSet_);
-#endif // USE_RD_KERNEL
     if (errCode != E_OK) {
         LOGE("[RdSinResSet] open result set failed, %d.", errCode);
         kvDB_->ReleaseHandle(handle_);
@@ -191,4 +188,3 @@ int RdSingleVerResultSet::GetEntry(Entry &entry) const
 }
 
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL

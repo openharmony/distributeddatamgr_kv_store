@@ -42,9 +42,7 @@ namespace {
 #ifndef OMIT_MULTI_VER
         MULTI_VER_KVDB_SQLITE,
 #endif // OMIT_MULTI_VER
-#ifdef USE_RD_KERNEL
         SINGLE_VER_KVDB_RD
-#endif // USE_RD_KERNEL
     };
 
     int CreateDataBaseInstance(const KvDBProperties &property, IKvDB *&kvDB)
@@ -67,11 +65,7 @@ namespace {
         } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE_SQLITE) {
             kvDB = factory->CreateKvDb(SINGER_VER_KVDB_SQLITE, errCode);
         } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
-#ifndef USE_RD_KERNEL
-            kvDB = factory->CreateKvDb(SINGER_VER_KVDB_SQLITE, errCode);
-#else
             kvDB = factory->CreateKvDb(SINGLE_VER_KVDB_RD, errCode);
-#endif // USE_RD_KERNEL
         } else {
 #ifndef OMIT_MULTI_VER
             kvDB = factory->CreateKvDb(MULTI_VER_KVDB_SQLITE, errCode);
@@ -501,6 +495,9 @@ int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t
 
     uint64_t totalSize = 0;
     for (KvDBType kvDbType : g_dbTypeArr) {
+        if (kvDbType == SINGLE_VER_KVDB_RD) {
+            continue;
+        }
         int innerErrCode = E_OK;
         IKvDB *kvDB = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {

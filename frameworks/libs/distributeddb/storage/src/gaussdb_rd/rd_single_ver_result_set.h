@@ -15,7 +15,6 @@
 
 #ifndef RD_SINGLE_VER_RESULT_SET_H
 #define RD_SINGLE_VER_RESULT_SET_H
-#ifdef USE_RD_KERNEL
 #include "ikvdb_result_set.h"
 #include "grd_resultset_api.h"
 #include "rd_single_ver_natural_store.h"
@@ -74,5 +73,4 @@ private:
     GRD_ResultSet *resultSet_ = nullptr;
 };
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL
 #endif // RD_SINGLE_VER_RESULT_SET_H

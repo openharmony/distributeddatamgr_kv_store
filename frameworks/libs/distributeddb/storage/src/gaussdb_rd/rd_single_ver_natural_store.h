@@ -14,7 +14,6 @@
  */
 #ifndef RD_SINGLE_VER_NATURAL_STORE_H
 #define RD_SINGLE_VER_NATURAL_STORE_H
-#ifdef USE_RD_KERNEL
 #include <atomic>
 #include <mutex>
 
@@ -154,5 +153,4 @@ private:
     bool notificationEventsRegistered_;
 };
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL
 #endif // RD_SINGLE_VER_NATURAL_STORE_H

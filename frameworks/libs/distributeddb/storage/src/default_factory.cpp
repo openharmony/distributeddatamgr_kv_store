@@ -23,9 +23,7 @@
 #include "multi_ver_natural_store.h"
 #include "multi_ver_natural_store_commit_storage.h"
 #endif
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_natural_store.h"
-#endif // USE_RD_KERNEL
 #include "sqlite_single_ver_natural_store.h"
 #ifndef OMIT_MULTI_VER
 #include "sqlite_multi_ver_data_storage.h"
@@ -81,14 +79,9 @@ IKvDB *DefaultFactory::CreateSingleVerNaturalStore(int &errCode)
 // Create the single version natural store with gaussdb_rd
 IKvDB *DefaultFactory::CreateRdSingleVerNaturalStore(int &errCode)
 {
-#ifdef USE_RD_KERNEL
     IKvDB *kvDb = new (std::nothrow) RdSingleVerNaturalStore();
     errCode = ((kvDb == nullptr) ? -E_OUT_OF_MEMORY : E_OK);
     return kvDb;
-#else
-    errCode = E_OK;
-    return nullptr;
-#endif // USE_RD_KERNEL
 }
 
 #ifndef OMIT_MULTI_VER

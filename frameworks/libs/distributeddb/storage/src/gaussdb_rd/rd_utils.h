@@ -15,7 +15,6 @@
 
 #ifndef RD_UTILS_H
 #define RD_UTILS_H
-#ifdef USE_RD_KERNEL
 #include <vector>
 #include "db_errno.h"
 #include "grd_db_api.h"
@@ -71,5 +70,4 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
 
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL
 #endif // RD_UTILS_H

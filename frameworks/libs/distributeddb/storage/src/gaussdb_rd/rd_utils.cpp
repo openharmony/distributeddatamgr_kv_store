@@ -12,8 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
-
 #include "rd_utils.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -254,10 +252,7 @@ int RdIndexPreload(GRD_DB *&db, const char *collectionName)
         LOGE("[rdUtils][RdIndexPreload] db is null");
         return -E_INVALID_DB;
     }
-#ifdef USE_RD_KERNEL
     return TransferGrdErrno(GRD_IndexPreload(db, collectionName));
-#endif // USE_RD_KERNEL
-    return E_OK;
 }
 
 bool CheckRdOption(const KvStoreNbDelegate::Option &option,
@@ -274,4 +269,3 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
     return true;
 }
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL

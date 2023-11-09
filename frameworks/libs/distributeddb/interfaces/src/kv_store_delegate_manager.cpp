@@ -32,9 +32,7 @@
 #include "kvdb_manager.h"
 #include "kv_store_nb_delegate_impl.h"
 #include "network_adapter.h"
-#ifdef USE_RD_KERNEL
 #include "rd_utils.h"
-#endif // USE_RD_KERNEL
 #include "runtime_config.h"
 #include "runtime_context.h"
 #include "param_check_utils.h"
@@ -254,12 +252,10 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
         LOGE("[KvStoreMgr] Invalid callback for kv store");
         return false;
     }
-#ifdef USE_RD_KERNEL
     if (!CheckRdOption(option, callback)) {
         LOGE("[KvStoreMgr] Unsupport option for RD mode");
         return false;
     }
-#endif // USE_RD_KERNEL
     if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) ||
         (GetKvStorePath().empty() && !option.isMemoryDb)) {
         LOGE("[KvStoreMgr] Invalid id or path info for the store");

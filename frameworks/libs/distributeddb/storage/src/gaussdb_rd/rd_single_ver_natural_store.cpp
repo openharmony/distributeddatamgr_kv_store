@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_natural_store.h"
 
 #include "rd_single_ver_natural_store_connection.h"
@@ -410,9 +409,9 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
         securityOpt.securityLabel = kvDBProp.GetSecLabel();
         securityOpt.securityFlag = kvDBProp.GetSecFlag();
     }
+    InitRdConfig(option.rdConfig);
     option.createIfNecessary = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     option.createDirByStoreIdOnly = kvDBProp.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false);
 }
 
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL

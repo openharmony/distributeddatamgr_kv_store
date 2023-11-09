@@ -15,7 +15,6 @@
 
 #ifndef RD_SINGLE_VER_STORAGE_ENGINE_H
 #define RD_SINGLE_VER_STORAGE_ENGINE_H
-#ifdef USE_RD_KERNEL
 #include "db_common.h"
 #include "grd_db_api.h"
 #include "param_check_utils.h"
@@ -55,5 +54,4 @@ private:
     int IndexPreLoad(GRD_DB *&db, const char *collectionName);
 };
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL
 #endif // RD_SINGLE_VER_STORAGE_ENGINE_H

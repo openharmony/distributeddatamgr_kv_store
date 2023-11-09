@@ -15,7 +15,6 @@
 
 #ifndef RD_SINGLE_VER_STORAGE_EXECUTOR_H
 #define RD_SINGLE_VER_STORAGE_EXECUTOR_H
-#ifdef USE_RD_KERNEL
 #include "macro_utils.h"
 #include "db_types.h"
 #include "grd_kv_api.h"
@@ -223,5 +222,4 @@ private:
         GRD_ResultSet **resultSet);
 };
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL
 #endif // RD_SINGLE_VER_STORAGE_EXECUTOR_H

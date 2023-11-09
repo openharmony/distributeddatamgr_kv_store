@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_storage_engine.h"
 
 #include "grd_error.h"
@@ -190,4 +189,3 @@ int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionNa
 }
 
 } // namespace DistributedDB
-#endif // USE_RD_KERNEL

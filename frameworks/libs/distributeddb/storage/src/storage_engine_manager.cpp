@@ -17,9 +17,7 @@
 #include "log_print.h"
 #include "db_errno.h"
 #include "runtime_context.h"
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_storage_engine.h"
-#endif // USE_RD_KERNEL
 #include "sqlite_single_ver_storage_engine.h"
 
 namespace DistributedDB {
@@ -204,13 +202,10 @@ StorageEngine *CreateSingleVerStorageEngine(int databaseType)
     if (databaseType == KvDBProperties::SINGLE_VER_TYPE_SQLITE) {
         return new (std::nothrow) SQLiteSingleVerStorageEngine();
     } else {
-#ifdef USE_RD_KERNEL
         return new (std::nothrow) RdSingleVerStorageEngine();
-#endif // USE_RD_KERNEL
     }
     return nullptr;
 }
-
 StorageEngine *StorageEngineManager::CreateStorageEngine(const KvDBProperties &property, int &errCode)
 {
     int databaseType = GetDatabaseType(property);

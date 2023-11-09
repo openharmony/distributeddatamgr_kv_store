@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifdef USE_RD_KERNEL
 #include "rd_single_ver_natural_store_connection.h"
 #include "rd_single_ver_result_set.h"
 
@@ -618,5 +617,5 @@ int RdSingleVerNaturalStoreConnection::GetSyncDataSize(const std::string &device
 {
     return -E_NOT_SUPPORT;
 }
-} // namespace DistributedDB
-#endif // USE_RD_KERNEL
+}
+// namespace DistributedDB
