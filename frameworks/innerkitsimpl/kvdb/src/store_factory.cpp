@@ -39,6 +39,7 @@ StoreFactory::StoreFactory()
     convertors_[DEVICE_COLLABORATION] = new DeviceConvertor();
     convertors_[SINGLE_VERSION] = new Convertor();
     convertors_[MULTI_VERSION] = new Convertor();
+    convertors_[LOCAL_ONLY] = new Convertor();
     DistributedDB::RuntimeConfig::SetThreadPool(std::make_shared<TaskExecutorAdapter>());
     if (DBManager::IsProcessSystemApiAdapterValid()) {
         return;
@@ -68,10 +69,10 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             status = SUCCESS;
             return !stores.empty();
         }
-
-        auto dbManager = GetDBManager(options.baseDir, appId);
+        std::string path = options.GetDatabaseDir();
+        auto dbManager = GetDBManager(path, appId);
         auto dbPassword =
-            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, options.baseDir, options.encrypt);
+            SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
             status = CRYPT_ERROR;
             ZLOGE("Crypt kvStore failed to get password, storeId is %{public}s, error is %{public}d",
@@ -79,14 +80,14 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             return !stores.empty();
         }
         if (options.encrypt) {
-            status = RekeyRecover(storeId, options.baseDir, dbPassword, dbManager, options);
+            status = RekeyRecover(storeId, path, dbPassword, dbManager, options);
             if (status != SUCCESS) {
                 ZLOGE("KvStore password error, storeId is %{public}s, error is %{public}d",
                     StoreUtil::Anonymous(storeId.storeId).c_str(), static_cast<int>(status));
                 return !stores.empty();
             }
             if (dbPassword.isKeyOutdated) {
-                ReKey(storeId, options.baseDir, dbPassword, dbManager, options);
+                ReKey(storeId, path, dbPassword, dbManager, options);
             }
         }
         DBStatus dbStatus = DBStatus::DB_ERROR;
@@ -105,7 +106,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         status = StoreUtil::ConvertStatus(dbStatus);
         if (kvStore == nullptr) {
             ZLOGE("failed! status:%{public}d appId:%{public}s storeId:%{public}s path:%{public}s", dbStatus,
-                appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), options.baseDir.c_str());
+                appId.appId.c_str(), StoreUtil::Anonymous(storeId.storeId).c_str(), path.c_str());
             return !stores.empty();
         }
         isCreate = true;
@@ -172,8 +173,9 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
 {
     DBOption dbOption;
     dbOption.syncDualTupleMode = true; // tuple of (appid+storeid)
-    dbOption.createIfNecessary = options.createIfMissing;
-    dbOption.isNeedRmCorruptedDb = options.rebuild;
+    dbOption.createIfNecessary = (options.role == VISITOR ? false : options.createIfMissing);
+    dbOption.isNeedRmCorruptedDb = (options.role == VISITOR ? false : options.rebuild);
+    dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
     dbOption.isMemoryDb = (!options.persistent);
     dbOption.isEncryptedDb = options.encrypt;
     if (options.encrypt) {
@@ -185,6 +187,8 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
         dbOption.conflictResolvePolicy = DistributedDB::LAST_WIN;
     } else if (options.kvStoreType == KvStoreType::DEVICE_COLLABORATION) {
         dbOption.conflictResolvePolicy = DistributedDB::DEVICE_COLLABORATION;
+    } else if (options.kvStoreType == KvStoreType::LOCAL_ONLY) {
+        dbOption.storageEngineType = DistributedDB::GAUSSDB_RD;
     }
 
     dbOption.schema = options.schema;
