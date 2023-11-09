@@ -155,9 +155,10 @@ namespace DistributedDB {
         committedData->InitKeyPropRecord(hashKey, existedStatus);
     }
 
-    void InitRdConfig(std::string &rdConfig)
+    std::string InitRdConfig()
     {
-        rdConfig = R"({"pageSize": 4, "redoFlushByTrx": 0, "redoPubBufSize": 1024, "maxConnNum": 100,
-            "bufferPoolSize": 4096, "crcCheckEnable": 1, "bufferPoolPolicy": 0})";
+        std::string rdConfig = R"({"pageSize": 4, "redoFlushByTrx": 0, "redoPubBufSize": 1024, "maxConnNum": 100,
+            "bufferPoolSize": 4096, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_NORMAL"})";
+        return rdConfig;
     }
 } // namespace DistributedDB

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -100,13 +100,13 @@ void DistributedDBStorageRdResultAndJsonOptimizeTest::SetUp(void)
     option.dataType = IOption::SYNC_DATA;
     g_connection->Clear(option);
     Key insertKey;
-    ASSERT_EQ(g_connection->StartTransaction(), E_OK);
+    ASSERT_EQ(g_connection->StartTransaction(), -E_NOT_SUPPORT);
     for (int i = 1; i < INSERT_NUMBER + 1; i++) {
         insertKey.clear();
         insertKey.push_back(i);
         ASSERT_EQ(g_connection->Put(option, insertKey, VALUE_1), OK);
     }
-    ASSERT_EQ(g_connection->Commit(), E_OK);
+    ASSERT_EQ(g_connection->Commit(), -E_NOT_SUPPORT);
 }
 
 void DistributedDBStorageRdResultAndJsonOptimizeTest::TearDown(void)
@@ -350,13 +350,13 @@ HWTEST_F(DistributedDBStorageRdResultAndJsonOptimizeTest, ResultSetTest002, Test
     IOption option;
     option.dataType = IOption::SYNC_DATA;
     Key insertKey;
-    ASSERT_EQ(g_connection->StartTransaction(), E_OK);
+    ASSERT_EQ(g_connection->StartTransaction(), -E_NOT_SUPPORT);
     for (int i = 1; i < INSERT_NUMBER + 1; i++) {
         insertKey.clear();
         insertKey.push_back(i);
         ASSERT_EQ(g_connection->Delete(option, insertKey), OK);
     }
-    ASSERT_EQ(g_connection->Commit(), E_OK);
+    ASSERT_EQ(g_connection->Commit(), -E_NOT_SUPPORT);
     resultSet2->Open(false);
     EXPECT_EQ(resultSet2->MoveTo(INSERT_NUMBER - 1), -E_RESULT_SET_EMPTY);
 

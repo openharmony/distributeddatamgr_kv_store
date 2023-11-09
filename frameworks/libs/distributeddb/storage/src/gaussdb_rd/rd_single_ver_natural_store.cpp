@@ -409,7 +409,7 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
         securityOpt.securityLabel = kvDBProp.GetSecLabel();
         securityOpt.securityFlag = kvDBProp.GetSecFlag();
     }
-    InitRdConfig(option.rdConfig);
+    option.rdConfig = InitRdConfig();
     option.createIfNecessary = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     option.createDirByStoreIdOnly = kvDBProp.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false);
 }

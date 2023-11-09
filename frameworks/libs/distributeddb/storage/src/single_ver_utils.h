@@ -66,7 +66,7 @@ int GetExistedSecOpt(const OpenDbProperties &option, SecurityOption &secOption);
 void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
     const DataOperStatus &dataStatus);
 
-void InitRdConfig(std::string &rdConfig);
+std::string InitRdConfig();
 } // namespace DistributedDB
 
 #endif // SINGLE_VER_UTILS_H

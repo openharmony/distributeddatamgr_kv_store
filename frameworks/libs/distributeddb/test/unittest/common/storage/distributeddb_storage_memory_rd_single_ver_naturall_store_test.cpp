@@ -44,7 +44,8 @@ void DistributedDBStorageMemoryRdSingleVerNaturalStoreTest::SetUpTestCase(void)
 {
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     LOGD("Test dir is %s", g_testDir.c_str());
-    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/TestGeneralNB/" + DBConstant::SINGLE_SUB_DIR);
+    // IDENTIFIER_DIR is 31
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/31/" + DBConstant::SINGLE_SUB_DIR);
 }
 
 void DistributedDBStorageMemoryRdSingleVerNaturalStoreTest::TearDownTestCase(void) {}
@@ -75,7 +76,7 @@ void DistributedDBStorageMemoryRdSingleVerNaturalStoreTest::TearDown(void)
     }
 
     g_store = nullptr;
-    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/TestGeneralNB/" + DBConstant::SINGLE_SUB_DIR);
+    DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir + "/31/" + DBConstant::SINGLE_SUB_DIR);
 }
 
 /**

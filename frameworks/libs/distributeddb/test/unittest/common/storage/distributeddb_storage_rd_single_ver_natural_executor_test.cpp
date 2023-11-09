@@ -144,7 +144,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam001, Te
      * @tc.steps: step3. The db is null
      * @tc.expected: step3. Expect -E_INVALID_DB
      */
-    EXPECT_EQ(g_nullHandle->GetKvData(SingleVerDataType(type), key, value, timestamp), -E_INVALID_DB);
+    EXPECT_EQ(g_nullHandle->GetKvData(SingleVerDataType(type), KEY_1, value, timestamp), -E_INVALID_DB);
 }
 
 /**
@@ -186,7 +186,6 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam003, Te
     vector<Entry> entries;
     EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::META_TYPE, KEY_1, entries), -E_INVALID_ARGS);
     EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::LOCAL_TYPE_SQLITE, KEY_1, entries), -E_INVALID_ARGS);
-
     /**
      * @tc.steps: step2. The db is null
      * @tc.expected: step2.. Expect -E_INVALID_DB
@@ -233,7 +232,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam005, Te
 
 /**
   * @tc.name: InvalidParam008
-  * @tc.desc: Test transaction with Invalid condition (rd not support transcation yet)
+  * @tc.desc: Test transaction with Invalid condition (rd not support transcaction yet)
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: bty
@@ -241,7 +240,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam005, Te
 HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam008, TestSize.Level1)
 {
     EXPECT_EQ(g_nullHandle->StartTransaction(TransactType::DEFERRED), E_OK);    // -E_INVALID_DB
-    EXPECT_EQ(g_nullHandle->Commit(), E_OK);    // -E_INVALID_DB
+    EXPECT_EQ(g_nullHandle->Commit(), E_OK);   // -E_INVALID_DB
     EXPECT_EQ(g_nullHandle->Rollback(), E_OK); // -E_INVALID_DB
 
     EXPECT_EQ(g_handle->StartTransaction(TransactType::DEFERRED), E_OK);
@@ -400,7 +399,7 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, PragmaTest001, Test
     int size = 0;
     EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, &size), -E_NOT_SUPPORT);
     size = 1;
-    EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, &size), E_NOT_SUPPORT);
+    EXPECT_EQ(emptyConn->Pragma(PRAGMA_RESULT_SET_CACHE_MAX_SIZE, &size), -E_NOT_SUPPORT);
 
     /**
      * @tc.steps: step4. the mode is invalid

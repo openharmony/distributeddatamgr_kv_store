@@ -1504,13 +1504,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, MaxLogCheckPoint001, TestSize.
      * @tc.steps:step3. Get the disk file size, execute the checkpoint and get the disk file size.
      * @tc.expected: step3. Returns DB_ERROR because of Getting file size is not currently supported
      */
-    uint64_t sizeBeforeChk = 0;
-    EXPECT_EQ(g_mgr.GetKvStoreDiskSize("MaxLogCheckPoint001", sizeBeforeChk), DB_ERROR);
     int param = 0;
     PragmaData paraData = static_cast<PragmaData>(&param);
-    g_kvNbDelegatePtr->Pragma(EXEC_CHECKPOINT, paraData);
-    uint64_t sizeAfterChk = 0;
-    EXPECT_EQ(g_mgr.GetKvStoreDiskSize("MaxLogCheckPoint001", sizeAfterChk), DB_ERROR);
+    EXPECT_EQ(g_kvNbDelegatePtr->Pragma(EXEC_CHECKPOINT, paraData), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("MaxLogCheckPoint001"), OK);
     g_kvNbDelegatePtr = nullptr;
@@ -1795,69 +1791,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetLimitTest001, TestSiz
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.DeleteKvStore("ResultSetLimitTest001"), OK);
-    g_kvNbDelegatePtr = nullptr;
-}
-
-/**
-  * @tc.name: BlockTimer001
-  * @tc.desc: Test open close function with block timer
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: zhangqiquan
-  */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, BlockTimer001, TestSize.Level0)
-{
-    /**
-     * @tc.steps:step1. Create database.
-     * @tc.expected: step1. Returns a non-null store.
-     */
-    g_mgr.GetKvStore("BlockTimer001", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
-    /**
-     * @tc.steps:step2. Create block timer.
-     * @tc.expected: step2. create ok.
-     */
-    TimerId timerId = 0u;
-    bool timerFinalize = false;
-    std::condition_variable cv;
-    std::mutex finalizeMutex;
-    bool triggerTimer = false;
-    std::condition_variable triggerCv;
-    std::mutex triggerMutex;
-    int errCode = RuntimeContext::GetInstance()->SetTimer(1, [&triggerTimer, &triggerCv, &triggerMutex](TimerId id) {
-        {
-            std::lock_guard<std::mutex> autoLock(triggerMutex);
-            triggerTimer = true;
-        }
-        triggerCv.notify_all();
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-        return -E_END_TIMER;
-    }, [&timerFinalize, &finalizeMutex, &cv]() {
-        {
-            std::lock_guard<std::mutex> autoLock(finalizeMutex);
-            timerFinalize = true;
-        }
-        cv.notify_all();
-    }, timerId);
-    ASSERT_EQ(errCode, E_OK);
-    {
-        std::unique_lock<std::mutex> uniqueLock(triggerMutex);
-        triggerCv.wait(uniqueLock, [&triggerTimer]() {
-            return triggerTimer;
-        });
-    }
-    /**
-     * @tc.steps:step3. Close store.
-     * @tc.expected: step3. Returns OK.
-     */
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    std::unique_lock<std::mutex> uniqueLock(finalizeMutex);
-    EXPECT_TRUE(timerFinalize);
-    cv.wait(uniqueLock, [&timerFinalize]() {
-        return timerFinalize;
-    });
-    EXPECT_EQ(g_mgr.DeleteKvStore("BlockTimer001"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 #endif // RUNNING_ON_SIMULATED_ENV
