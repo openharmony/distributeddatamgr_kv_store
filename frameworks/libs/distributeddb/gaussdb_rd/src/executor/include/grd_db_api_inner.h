@@ -25,5 +25,7 @@ int32_t GRD_DBCloseInner(GRD_DB *db, uint32_t flags);
 int32_t GRD_IndexPreloadInner(GRD_DB *db, const char *collectionName);
 
 int32_t GRD_FlushInner(GRD_DB *db, uint32_t flags);
+
+int32_t GRD_CrcCheckInner(const char *dbFile);
 } // namespace DocumentDB
 #endif // GRD_DB_API_INNER_H

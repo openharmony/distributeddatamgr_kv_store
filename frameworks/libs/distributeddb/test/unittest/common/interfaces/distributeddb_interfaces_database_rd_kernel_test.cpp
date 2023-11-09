@@ -316,12 +316,14 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore006, TestSize.Le
     option.isSharedMode = true;
     option.readOnly = false;
     /**
-     * @tc.steps: step2. write db handle close
+     * @tc.steps: step2. write db handle write data and close
      * @tc.expected: step2. close ok
      */
     g_mgr.GetKvStore("distributed_getkvstore_006", option, g_kvNbDelegateCallback);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    Entry entry = {{'1', '2'}};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry.key, entry.value), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
     /**
@@ -332,9 +334,288 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore006, TestSize.Le
     g_mgr.GetKvStore("distributed_getkvstore_006", option, g_kvNbDelegateCallback);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
+    /**
+     * @tc.steps: step4. read db handle put entry
+     * @tc.expected: step4. return not ok
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry.key, entry.value), NO_PERMISSION);
+    EXPECT_EQ(g_kvNbDelegatePtr->PutBatch({entry}), NO_PERMISSION);
+    EXPECT_EQ(g_kvNbDelegatePtr->Delete(entry.key), NO_PERMISSION);
+    EXPECT_EQ(g_kvNbDelegatePtr->DeleteBatch({entry.key}), NO_PERMISSION);
+    /**
+     * @tc.steps: step5. read db handle get entry and close
+     * @tc.expected: step5. return not ok
+     */
+    Value value;
+    EXPECT_EQ(g_kvNbDelegatePtr->Get(entry.key, value), OK);
+    EXPECT_TRUE(value == entry.value);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 }
+
+/**
+  * @tc.name: GetKvStore007
+  * @tc.desc: Get kv store parameters with wrong rd shared mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with not share mode and readOnly is true
+     * @tc.expected: step1. open not ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isSharedMode = false;
+    option.readOnly = true;
+    g_mgr.GetKvStore("distributed_getkvstore_007", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+}
+
+/**
+  * @tc.name: GetKvStore008
+  * @tc.desc: Get kv store parameters with rd shared mode
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and readOnly is true
+     * @tc.expected: step1. open not ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isSharedMode = true;
+    option.readOnly = true;
+    g_mgr.GetKvStore("distributed_getkvstore_006", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+}
+
+/**
+  * @tc.name: GetKvStore009
+  * @tc.desc: Get kv store parameters with use Integrity check
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and IntegrityCheck is true
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = false;
+    option.isNeedRmCorruptedDb = true;
+    g_mgr.GetKvStore("distributed_getkvstore_009", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    g_mgr.GetKvStore("distributed_getkvstore_009", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    g_mgr.GetKvStore("distributed_getkvstore_007", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+
+/**
+  * @tc.name: GetKvStore010
+  * @tc.desc: Get kv store parameters with Integrity check and RmCorruptedDb
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db and isReadOnly is false and RmCorruptedDb false
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = false;
+    g_mgr.GetKvStore("distributed_getkvstore_010", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    g_mgr.GetKvStore("distributed_getkvstore_010", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+
+    g_mgr.GetKvStore("distributed_getkvstore_008", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+
+/**
+  * @tc.name: GetKvStore011
+  * @tc.desc: Get kv store parameters when crcCheck is true and not create db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore011, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode
+     * @tc.expected: step1. open not ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.createIfNecessary = false;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = true;
+    option.isReadOnly = true;
+    g_mgr.GetKvStore("distributed_getkvstore_011", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+}
+
+/**
+  * @tc.name: GetKvStore012
+  * @tc.desc: Get kv store parameters and call CheckIntegity
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore012, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and isReadOnly is true
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isSharedMode = false;
+    option.isReadOnly = false;
+    /**
+     * @tc.steps: step2. write db handle close
+     * @tc.expected: step2. close ok
+     */
+    g_mgr.GetKvStore("distributed_getkvstore_012", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    g_kvNbDelegatePtr->CheckIntegrity();
+    
+}
+
+/**
+  * @tc.name: GetKvStore007
+  * @tc.desc: Get kv store parameters with rd shared mode use Integrity check
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore007, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and isReadOnly is false and IntegrityCheck is true
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = true;
+    option.isNeedRmCorruptedDb = true;
+    g_mgr.GetKvStore("distributed_getkvstore_007", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+
+/**
+  * @tc.name: GetKvStore008
+  * @tc.desc: Get kv store parameters with rd shared mode use Integrity check and RmCorruptedDb
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore008, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and isReadOnly is false and RmCorruptedDb false
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = true;
+    g_mgr.GetKvStore("distributed_getkvstore_008", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+
+/**
+  * @tc.name: GetKvStore009
+  * @tc.desc: Get kv store parameters with rd shared mode when crcCheck is true and not create db
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode
+     * @tc.expected: step1. open not ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.createIfNecessary = false;
+    option.isNeedIntegrityCheck = true;
+    option.isSharedMode = true;
+    option.isReadOnly = true;
+    g_mgr.GetKvStore("distributed_getkvstore_009", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
+    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+}
+
+/**
+  * @tc.name: GetKvStore006
+  * @tc.desc: Get kv store parameters and call CheckIntegity
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhuwentao
+  */
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. open db with share mode and isReadOnly is true
+     * @tc.expected: step1. open ok
+     */
+    KvStoreNbDelegate::Option option;
+    option.storageEngineType = GAUSSDB_RD;
+    option.isSharedMode = true;
+    option.isReadOnly = false;
+    g_mgr.GetKvStore("distributed_getkvstore_010", option, g_kvNbDelegateCallback);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+
+    /**
+     * @tc.steps: step2. check db and write db handle close
+     * @tc.expected: step2. close ok
+     */
+    g_kvNbDelegatePtr->CheckIntegrity();
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+}
+
 
 /**
   * @tc.name: GetKvStoreWithInvalidOption001

@@ -127,11 +127,23 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     if (!isWrite) {
         optionTemp.createIfNecessary = false;
     }
-
-    int errCode = OpenGrdDb(optionTemp, db);
+    int errCode = E_OK;
+    bool isNeedUpdateCrcCheck_ = true;
+    if (OS::CheckPathExistence(optionTemp.uri)) {
+        errCode = CrcCheckIfNeed(optionTemp);
+        if (errCode != E_OK) {
+            LOGE("crc check failed [%d]", errCode);
+            return errCode;
+        }
+        isNeedUpdateCrcCheck_ = false;
+    }
+    errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
-        LOGI("Failed to open the main database [%d]", errCode);
+        LOGE("Failed to open the main database [%d]", errCode);
         return errCode;
+    }
+    if (isNeedUpdateCrcCheck_) {
+        crcCheck_ = true;
     }
 
     // Set the engine state to main status for that the main database is valid.
@@ -192,6 +204,27 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
 int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionName)
 {
     return RdIndexPreload(db, collectionName);
+}
+
+int RdSingleVerStorageEngine::CrcCheckIfNeed(const OpenDbProperties &option)
+{
+    if (!option.isNeedIntegrityCheck || crcCheck_) {
+        return E_OK;
+    }
+    int errCode = RdCrcCheck(option.uri.c_str());
+    if (errCode != E_OK && errCode != -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
+        return errCode;
+    }
+    if (option.readOnly && errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
+        LOGE("crc check failed [%d], read process can not open", errCode);
+        return errCode;
+    }
+    if (errCode != E_OK && !option.readOnly && !option.isNeedRmCorruptedDb) {
+        LOGE("crc check failed [%d], write process can not open", errCode);
+        return errCode;
+    }
+    crcCheck_ = true;
+    return E_OK;
 }
 
 } // namespace DistributedDB

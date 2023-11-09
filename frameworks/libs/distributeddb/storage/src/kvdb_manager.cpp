@@ -382,8 +382,15 @@ int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection)
 IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
 {
     IKvDB *kvDB = OpenNewDatabase(property, errCode);
+    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
     if (kvDB == nullptr) {
         LOGE("Failed to open the new database.");
+        bool isReadOnly = property.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
+        if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&
+            databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL && isReadOnly) {
+            LOGI("readOnly process can ot remove database");
+            return kvDB;
+        }
         if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&
             property.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false)) {
             LOGI("Remove the corrupted database while open");
@@ -392,8 +399,8 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
         }
         return kvDB;
     }
-
-    if (property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false)) {
+    if (property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false) &&
+        databaseType != KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
         int integrityStatus = kvDB->CheckIntegrity();
         if (integrityStatus == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
             RemoveKvDBFromCache(kvDB);

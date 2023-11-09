@@ -142,7 +142,7 @@ int IsDbconfigValid(const JsonObject &config)
         }
 
         if (!isSupport) {
-            GLOGE("Invalid db config=%s.", fieldName.c_str());
+            GLOGE("Invalid db config");
             return -E_INVALID_CONFIG_VALUE;
         }
 

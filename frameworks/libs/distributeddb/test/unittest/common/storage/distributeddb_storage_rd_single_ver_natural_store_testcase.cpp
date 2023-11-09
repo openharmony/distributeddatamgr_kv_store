@@ -202,28 +202,28 @@ void DistributedDBStorageRdSingleVerNaturalStoreTestCase::DataBaseCommonPutOpera
     /**
      * @tc.steps: step7. Set Ioption to the local data, insert data
      *  whose key2(!=key1) is not empty, and value is empty.
-     * @tc.expected: step7. Return -E_INVALID_ARGS.
+     * @tc.expected: step7. Return E_OK
      */
     Key key2;
     DistributedDBToolsUnitTest::GetRandomKeyValue(key2, static_cast<int>(key1.size() + 1));
-    EXPECT_EQ(connection->Put(option, key2, emptyValue), -E_INVALID_ARGS);
+    EXPECT_EQ(connection->Put(option, key2, emptyValue), E_OK);
 
     /**
      * @tc.steps: step8. Set option to local data, obtain the value of key2,
      *  and check whether the value is empty.
-     * @tc.expected: step8. Return -E_NOT_FOUND.
+     * @tc.expected: step8. Return E_OK.
      */
-    EXPECT_EQ(connection->Get(option, key2, valueRead), -E_NOT_FOUND);
+    EXPECT_EQ(connection->Get(option, key2, valueRead), E_OK);
 
     /**
      * @tc.steps: step9. Ioption Set the local data.
-     *  Insert the data whose key size is 1024 and value size is 4Mb.
+     *  Insert the data whose key size is 1024 and value size is 4Mb + 1.
      * @tc.expected: step9. Return OK.
      */
     Key sizeKey;
     Value sizeValue;
     DistributedDBToolsUnitTest::GetRandomKeyValue(sizeKey, MAX_TEST_KEY_SIZE);
-    DistributedDBToolsUnitTest::GetRandomKeyValue(sizeValue, MAX_TEST_VAL_SIZE);
+    DistributedDBToolsUnitTest::GetRandomKeyValue(sizeValue, MAX_TEST_VAL_SIZE + 1);
     EXPECT_EQ(connection->Put(option, sizeKey, sizeValue), -E_INVALID_ARGS);
     EXPECT_EQ(connection->Get(option, sizeKey, valueRead), -E_NOT_FOUND);
 

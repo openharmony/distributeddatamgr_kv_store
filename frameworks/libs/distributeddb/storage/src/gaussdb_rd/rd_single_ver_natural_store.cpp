@@ -367,7 +367,9 @@ uint64_t RdSingleVerNaturalStore::GetAndIncreaseCacheRecordVersion() const
 
 int RdSingleVerNaturalStore::CheckIntegrity() const
 {
-    return -E_NOT_SUPPORT;
+    KvDBProperties dbProp = GetDbProperties();
+    std::string uri = GetDatabasePath(dbProp);
+    return RdCrcCheck(uri.c_str());
 }
 
 int RdSingleVerNaturalStore::GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmSet) const
@@ -414,6 +416,7 @@ void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp,
     option.createDirByStoreIdOnly = kvDBProp.GetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, false);
     option.readOnly = kvDBProp.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
     option.isNeedIntegrityCheck = kvDBProp.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false);
+    option.isNeedRmCorruptedDb = kvDBProp.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false);
     bool isSharedMode = kvDBProp.GetBoolProp(KvDBProperties::SHARED_MODE, false);
     std::string config = "{" + InitRdConfig();
     config += isSharedMode ? R"(, "sharedModeEnable": 1)" : R"(, "sharedModeEnable": 0)";

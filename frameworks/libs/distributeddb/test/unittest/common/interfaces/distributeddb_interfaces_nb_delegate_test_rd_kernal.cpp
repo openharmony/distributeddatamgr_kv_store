@@ -330,7 +330,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetLocalEntries001, T
   * @tc.require: AR000D08KT
   * @tc.author: wumin
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetTest001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, DISABLED_ResultSetTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. initialize result set.

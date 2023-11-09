@@ -37,7 +37,6 @@ namespace {
             option.conflictType != 0 ||
             option.notifier != nullptr ||
             option.conflictResolvePolicy != LAST_WIN ||
-            option.isNeedRmCorruptedDb ||
             option.isNeedCompressOnSync ||
             option.compressionRate != 100 ||    // Valid in [1, 100].
             option.localOnly)) {
@@ -68,9 +67,12 @@ const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_DATA_CONFLICT, -E_INVALID_DATA },
     { GRD_NO_DATA, -E_NOT_FOUND },
     { GRD_RESOURCE_BUSY, -E_BUSY },
-    { GRD_INVALID_FILE_FORMAT, -E_INVALID_ARGS },
+    { GRD_INVALID_FILE_FORMAT, -E_INVALID_PASSWD_OR_CORRUPTED_DB },
     { GRD_INVALID_ARGS, -E_INVALID_ARGS },
-    { GRD_PERMISSION_DENIED, -E_NOT_PERMIT },
+    { GRD_PERMISSION_DENIED, -E_DENIED_SQL },
+    { GRD_NOT_SUPPORT, -E_NOT_SUPPORT },
+    { GRD_FAILED_FILE_OPERATION, -E_SYSTEM_API_FAIL },
+    { GRD_CRC_CHECK_DISABLED, -E_INVALID_ARGS },
 };
 
 GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob)
@@ -274,5 +276,10 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
         return false;
     }
     return true;
+}
+
+int RdCrcCheck(const char *dbFile)
+{
+    return TransferGrdErrno(GRD_CrcCheck(dbFile));
 }
 } // namespace DistributedDB

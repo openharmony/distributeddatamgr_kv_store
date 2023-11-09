@@ -60,6 +60,7 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestoryInner;
     GRD_DBApiInfo.CreateSeqApi = GRD_CreateSeqInner;
     GRD_DBApiInfo.DropSeqApi = GRD_DropSeqInner;
+    GRD_DBApiInfo.CrcCheckApi = GRD_CrcCheckInner;
 }
 
 void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
@@ -92,6 +93,7 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestory");
     GRD_DBApiInfo.CreateSeqApi = (CreateSeq)dlsym(g_library, "GRD_CreateSeq");
     GRD_DBApiInfo.DropSeqApi = (DropSeq)dlsym(g_library, "GRD_DropSeq");
+    GRD_DBApiInfo.CrcCheckApi = (CrcCheck)dlsym(g_library, "GRD_CrcCheck");
 }
 
 GRD_APIInfo GetApiInfoInstance()

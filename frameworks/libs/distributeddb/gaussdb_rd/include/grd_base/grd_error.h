@@ -43,6 +43,7 @@ extern "C" {
 #define GRD_NOT_AVAILABLE (-19000)
 #define GRD_INVALID_FORMAT (-37000)
 #define GRD_REBUILD_DATABASE (-38000)
+#define GRD_CRC_CHECK_DISABLED (-42000)
 
 // not support
 #define GRD_JSON_OPERATION_NOT_SUPPORT (-5001001)
@@ -66,7 +67,6 @@ extern "C" {
 // no data
 #define GRD_COLLECTION_NOT_FOUND (-5011001)
 #define GRD_RECORD_NOT_FOUND (-5011002)
-#define GRD_DB_NOT_FOUND (-11003)
 #define GRD_FIELD_NOT_FOUND (-5011004)
 
 // data conflicted

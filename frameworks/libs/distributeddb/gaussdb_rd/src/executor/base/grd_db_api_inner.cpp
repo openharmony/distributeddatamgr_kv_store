@@ -78,4 +78,9 @@ int32_t GRD_IndexPreloadInner(GRD_DB *db, const char *collectionName)
 {
     return GRD_OK; // No support;
 }
+
+int32_t GRD_CrcCheckInner(const char *dbFile)
+{
+    return GRD_NOT_SUPPORT;
+}
 } // namespace DocumentDB

@@ -15,6 +15,7 @@
 
 #ifndef RD_SINGLE_VER_STORAGE_ENGINE_H
 #define RD_SINGLE_VER_STORAGE_ENGINE_H
+
 #include "db_common.h"
 #include "grd_db_api.h"
 #include "param_check_utils.h"
@@ -52,6 +53,10 @@ private:
     int OpenGrdDb(const OpenDbProperties &option, GRD_DB *&db);
 
     int IndexPreLoad(GRD_DB *&db, const char *collectionName);
+
+    int CrcCheckIfNeed(const OpenDbProperties &dbFile);
+
+    std::atomic<bool> crcCheck_ = false;
 };
 } // namespace DistributedDB
 #endif // RD_SINGLE_VER_STORAGE_ENGINE_H

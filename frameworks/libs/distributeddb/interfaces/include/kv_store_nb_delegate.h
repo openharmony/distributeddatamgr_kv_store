@@ -57,7 +57,7 @@ public:
         bool localOnly = false; // active sync module
         std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
         bool isSharedMode = false;
-        bool readOnly = false; // only effectived when sharedMode is true
+        bool readOnly = false;
     };
 
     DB_API virtual ~KvStoreNbDelegate() {}

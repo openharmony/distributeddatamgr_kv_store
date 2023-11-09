@@ -58,3 +58,11 @@ GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
     }
     return GRD_DBApiInfo.IndexPreloadApi(db, collectionName);
 }
+
+GRD_API int32_t GRD_CrcCheck(const char *dbFile)
+{
+    if (GRD_DBApiInfo.CrcCheckApi == nullptr) {
+        GRD_DBApiInfo = GetApiInfoInstance();
+    }
+    return GRD_DBApiInfo.CrcCheckApi(dbFile);
+}

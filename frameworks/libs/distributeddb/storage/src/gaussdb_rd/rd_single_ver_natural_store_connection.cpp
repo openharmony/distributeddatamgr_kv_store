@@ -340,7 +340,12 @@ int RdSingleVerNaturalStoreConnection::PreClose()
 
 int RdSingleVerNaturalStoreConnection::CheckIntegrity() const
 {
-    return -E_NOT_SUPPORT;
+    RdSingleVerNaturalStore *naturalStore = GetDB<RdSingleVerNaturalStore>();
+    if (naturalStore == nullptr) {
+        LOGE("[SingleVerConnection] the store is null");
+        return -E_NOT_INIT;
+    }
+    return naturalStore->CheckIntegrity();
 }
 
 int RdSingleVerNaturalStoreConnection::GetKeys(const IOption &option, const Key &keyPrefix,
