@@ -32,7 +32,7 @@ namespace DistributedDB {
 RdSingleVerNaturalStoreConnection::RdSingleVerNaturalStoreConnection(RdSingleVerNaturalStore *kvDB)
     : SingleVerNaturalStoreConnection(kvDB), committedData_(nullptr), writeHandle_(nullptr)
 {
-    LOGD("==============RdSingleVerNaturalStoreConnection Created==================");
+    LOGD("RdSingleVerNaturalStoreConnection Created");
 }
 
 RdSingleVerNaturalStoreConnection::~RdSingleVerNaturalStoreConnection()
@@ -152,7 +152,7 @@ int RdSingleVerNaturalStoreConnection::Pragma(int cmd, void *parameter)
         default:
             break;
     }
-    LOGE("Rd Pragma only support check point for now:%d", cmd);
+    LOGD("Rd Pragma only support check point for now:%d", cmd);
     return -E_NOT_SUPPORT;
 }
 

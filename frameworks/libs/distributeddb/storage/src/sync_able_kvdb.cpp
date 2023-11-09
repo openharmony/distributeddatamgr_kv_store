@@ -120,7 +120,7 @@ void SyncAbleKvDB::SetSyncModuleActive()
     }
     IKvDBSyncInterface *syncInterface = GetSyncInterface();
     if (syncInterface == nullptr) {
-        LOGF("KvDB got null sync interface.");
+        LOGD("KvDB got null sync interface.");
         return;
     }
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
@@ -165,7 +165,7 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
 {
     IKvDBSyncInterface *syncInterface = GetSyncInterface();
     if (syncInterface == nullptr) {
-        LOGF("KvDB got null sync interface.");
+        LOGD("KvDB got null sync interface.");
         return -E_INVALID_ARGS;
     }
     if (!isCheckSyncActive) {
@@ -229,7 +229,7 @@ void SyncAbleKvDB::UserChangeHandle()
     bool isNeedActive = true;
     IKvDBSyncInterface *syncInterface = GetSyncInterface();
     if (syncInterface == nullptr) {
-        LOGF("KvDB got null sync interface.");
+        LOGD("KvDB got null sync interface.");
         return;
     }
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().
@@ -389,11 +389,10 @@ int SyncAbleKvDB::SetSyncRetry(bool isRetry)
 {
     IKvDBSyncInterface *syncInterface = GetSyncInterface();
     if (syncInterface == nullptr) {
-        LOGF("KvDB got null sync interface.");
+        LOGD("KvDB got null sync interface.");
         return -E_INVALID_DB;
     }
-    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);
-    if (localOnly) {
+    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);    if (localOnly) {
         return -E_NOT_SUPPORT;
     }
     if (NeedStartSyncer()) {
