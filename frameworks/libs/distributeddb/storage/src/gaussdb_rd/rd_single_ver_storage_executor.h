@@ -44,7 +44,7 @@ public:
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(RDStorageExecutor);
 
-    virtual int Reset() override;
+    int Reset() override;
 
     int GetDbHandle(GRD_DB *&dbHandle) const;
 

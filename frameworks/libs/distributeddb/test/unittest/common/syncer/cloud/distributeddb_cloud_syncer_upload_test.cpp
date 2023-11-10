@@ -624,11 +624,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
         count = 3000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK)); 
+    EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
+    EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));    EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));

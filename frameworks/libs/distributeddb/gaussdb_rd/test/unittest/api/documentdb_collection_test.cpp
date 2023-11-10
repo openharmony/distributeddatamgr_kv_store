@@ -205,7 +205,7 @@ HWTEST_F(DocumentDBCollectionTest, CollectionTest007, TestSize.Level0)
 
 /**
  * @tc.name: CollectionTest008
- * @tc.desc: Test create KV db collection 
+ * @tc.desc: Test create KV db collection
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: mazhao

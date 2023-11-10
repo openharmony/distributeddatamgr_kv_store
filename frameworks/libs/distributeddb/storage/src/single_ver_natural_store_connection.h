@@ -26,7 +26,7 @@ public:
 
     int Put(const IOption &option, const Key &key, const Value &value) override;
 
-    virtual int PutBatch(const IOption &option, const std::vector<Entry> &entries) override;
+    int PutBatch(const IOption &option, const std::vector<Entry> &entries) override;
 
     virtual bool IsExtendedCacheDBMode() const;
 

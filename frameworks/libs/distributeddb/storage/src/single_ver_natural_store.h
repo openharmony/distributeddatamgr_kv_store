@@ -23,7 +23,7 @@ namespace DistributedDB {
 class SingleVerNaturalStore : public SyncAbleKvDB, public SingleVerKvDBSyncInterface {
 public:
     SingleVerNaturalStore();
-    virtual ~SingleVerNaturalStore() override;
+    ~SingleVerNaturalStore() override;
 
     virtual void EnableHandle();
 

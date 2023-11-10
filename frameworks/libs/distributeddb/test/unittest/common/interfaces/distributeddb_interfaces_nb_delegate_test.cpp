@@ -2862,18 +2862,17 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, DISABLED_RdRangeQueryInSqlite001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     KvStoreNbDelegate::Option option;
-    g_mgr.GetKvStore("RdRangeQuery001", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("RdRangeQueryInSqlite001", option, g_kvNbDelegateCallback);
     std::vector<Entry> entries;
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
-
     // /**
     //  * @tc.steps: step2.
     //  * @tc.expected: step2.

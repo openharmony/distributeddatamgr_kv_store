@@ -1174,7 +1174,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerPutBatchObserver004, 
     EXPECT_EQ(entrys1.size(), 20UL);
     EXPECT_EQ(g_kvNbDelegatePtr->PutBatch(entrys1), OK);
     std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
-    //TODO:下面用例预期结果是不是得讨论下？当前RD不支持事务，一个putBatch接口，插入了10个K-V,又插入了10个一样KEY的K-V，通告结果应该是怎样的？
     EXPECT_TRUE(DistributedDBToolsUnitTest::CheckObserverResult(entrys2, observer->GetEntriesInserted()));
     EXPECT_EQ(observer->GetEntriesUpdated().size(), 0UL);
 

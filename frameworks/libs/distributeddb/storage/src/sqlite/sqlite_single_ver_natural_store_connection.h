@@ -28,7 +28,7 @@ class SQLiteSingleVerNaturalStore;
 class SQLiteSingleVerNaturalStoreConnection : public SingleVerNaturalStoreConnection {
 public:
     explicit SQLiteSingleVerNaturalStoreConnection(SQLiteSingleVerNaturalStore *kvDB);
-    virtual ~SQLiteSingleVerNaturalStoreConnection() override;
+    ~SQLiteSingleVerNaturalStoreConnection() override;
 
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerNaturalStoreConnection);
