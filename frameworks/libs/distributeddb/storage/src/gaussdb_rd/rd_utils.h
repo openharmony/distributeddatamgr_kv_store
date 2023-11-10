@@ -26,6 +26,7 @@
 #include "grd_document_api.h"
 
 namespace DistributedDB {
+
 std::string InitRdConfig();
 
 GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob);
@@ -71,6 +72,5 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
 
 int RdCrcCheck(const char *dbFile);
-
 } // namespace DistributedDB
 #endif // RD_UTILS_H

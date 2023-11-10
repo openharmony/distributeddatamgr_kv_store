@@ -192,7 +192,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
      * @tc.steps:step1. Get the nb delegate.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
-    g_mgr.GetKvStore("distributed_nb_delegate_test", g_option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("distributed_nb_delegate_test_rd", g_option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     std::string keyStr("acd");
@@ -243,14 +243,13 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
     EXPECT_EQ(g_kvNbDelegatePtr->UnRegisterObserver(observer), NOT_FOUND);
     delete observer;
     observer = nullptr;
-
     /**
      * @tc.steps:step8. Close the kv store.
      * @tc.expected: step8. Results OK and delete successfully.
      */
     LOGD("step8 =========== Close store");
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test"), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("distributed_nb_delegate_test_rd"), OK);
     g_kvNbDelegatePtr = nullptr;
 }
 
@@ -1794,64 +1793,431 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetLimitTest001, TestSiz
     g_kvNbDelegatePtr = nullptr;
 }
 
-void GetDataFromDatabase(const std::string &storeId)
+void GetDataFromDatabase()
 {
-    KvStoreNbDelegate::Option option;
-    option.storageEngineType = GAUSSDB_RD;
-    DBStatus status;
-    KvStoreNbDelegate *delegate = nullptr;
-    auto nbDelegateCallback = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback, placeholders::_1,
-        placeholders::_2, std::ref(status), std::ref(delegate));
     int successTime = 0;
-    for (size_t i = 0; i < 1000; i++) { // cycle 100 times.
-        g_mgr.GetKvStore(storeId, option, nbDelegateCallback);
-        if (delegate != nullptr) {
-            successTime++;
-        }
+    for (size_t i = 0; i < 1000; i++) { // cycle 1000 times.
         Value value;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        EXPECT_EQ(delegate->Get(KEY_1, value), OK);
+        EXPECT_EQ(g_kvNbDelegatePtr->Get(KEY_1, value), OK);
         EXPECT_EQ(value, VALUE_1);
-        g_mgr.CloseKvStore(delegate);
-        delegate = nullptr;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        successTime += 1;
     }
     LOGD("Succeed times is %d", successTime);
 }
 
 void FreqGet001()
 {
-    std::string storeId = "FreqGet001";
-    g_mgr.GetKvStore(storeId, g_option, g_kvNbDelegateCallback);
+    /**
+     * @tc.steps:step1. Get KV store connection as well as putting an entry (KEY_1, VALUE_1)
+     * @tc.expected: step1. Returns OK.
+     */
+    g_mgr.GetKvStore("FreqGet001", g_option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     EXPECT_EQ(g_kvNbDelegatePtr->Put(KEY_1, VALUE_1), OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-    g_kvNbDelegatePtr = nullptr;
-
-    std::thread t1(GetDataFromDatabase, storeId);
-    std::thread t2(GetDataFromDatabase, storeId);
-    std::thread t3(GetDataFromDatabase, storeId);
-    std::thread t4(GetDataFromDatabase, storeId);
+    /**
+     * @tc.steps:step2. multiple threads tring to get the entry
+     * @tc.expected: step2. Returns OK.
+     */
+    std::thread t1(GetDataFromDatabase);
+    std::thread t2(GetDataFromDatabase);
+    std::thread t3(GetDataFromDatabase);
+    std::thread t4(GetDataFromDatabase);
     t1.join();
     t2.join();
     t3.join();
     t4.join();
-    EXPECT_EQ(g_mgr.DeleteKvStore(storeId), OK);
+    /**
+     * @tc.steps:step3. Close and delete KV store
+     * @tc.expected: step3. Returns OK.
+     */
+    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
+    EXPECT_EQ(g_mgr.DeleteKvStore("FreqGet001"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
   * @tc.name: FreqGet001
   * @tc.desc: Open and close the kv store concurrently.
   * @tc.type: FUNC
-  * @tc.require: AR000DR9K2
-  * @tc.author: wangbingquan
+  * @tc.require:
+  * @tc.author: wanyi
   */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, FreqGet001, TestSize.Level2)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, FreqGet001, TestSize.Level2)
 {
     ASSERT_NO_FATAL_FAILURE(FreqGet001());
 }
+/**
+  * @tc.name: RdRangeQuery001
+  * @tc.desc: Test GetEntries and the out of the parameter is entries.
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdRangeQuery001", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
 
+    /**
+     * @tc.steps: step1.
+     * @tc.expected: step1.
+     */
+    Entry entry0 = {{'0'}, {'0'}};
+    Entry entry1 = {{'1'}, {'1'}};
+    Entry entry2 = {{'2'}, {'2'}};
+    Entry entry3 = {{'3'}, {'3'}};
+    Entry entry4 = {{'4'}, {'4'}};
+    Entry entry5 = {{'5'}, {'5'}};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
+
+
+    /**
+     * @tc.steps: step2.
+     * @tc.expected: step2.
+     */
+    Query query1 = Query::Select().Range({'2'}, {'4'});
+    std::vector<Entry> entries;
+    int ret = g_kvNbDelegatePtr->GetEntries(query1, entries);
+    EXPECT_EQ(entries.size(), 3u);
+    int count1 = 2;
+    for(auto item:entries) {
+        std::string keyStr(item.key.begin(), item.key.end());
+        EXPECT_EQ(to_string(count1), keyStr);
+        count1++;
+    }
+
+    /**
+     * @tc.steps: step3.
+     * @tc.expected: step3.
+     */
+    Query query2 = Query::Select().Range({}, {'4'});
+    ret = g_kvNbDelegatePtr->GetEntries(query2, entries);
+    EXPECT_EQ(entries.size(), 5u);
+    int count2 = 0;
+    for(auto item:entries) {
+        std::string keyStr(item.key.begin(), item.key.end());
+        EXPECT_EQ(to_string(count2), keyStr);
+        count2++;
+    }
+
+    /**
+     * @tc.steps: step4.
+     * @tc.expected: step4.
+     */
+    Query query3 = Query::Select().Range({'2'}, {});
+    ret = g_kvNbDelegatePtr->GetEntries(query3, entries);
+    EXPECT_EQ(entries.size(), 4u);
+    int count3 = 2;
+    for(auto item:entries) {
+        std::string keyStr(item.key.begin(), item.key.end());
+        EXPECT_EQ(to_string(count3), keyStr);
+        count3++;
+    }
+}
+
+/**
+  * @tc.name: RdRangeQuery002
+  * @tc.desc:Test GetEntries and the out of the parameter is resultSet.
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdRangeQuery002", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step1.
+     * @tc.expected: step1.
+     */
+    Entry entry0 = {{'0'}, {'0'}};
+    Entry entry1 = {{'1'}, {'1'}};
+    Entry entry2 = {{'2'}, {'2'}};
+    Entry entry3 = {{'3'}, {'3'}};
+    Entry entry4 = {{'4'}, {'4'}};
+    Entry entry5 = {{'5'}, {'5'}};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
+
+
+    /**
+     * @tc.steps: step2.
+     * @tc.expected: step2. 2, 3, 4
+     */
+    Query fullQuery = Query::Select().Range({'2'}, {'4'});
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count1 = 1;
+    while (resultSet->MoveToNext()) {
+        count1++;
+        Entry entryValue;
+        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+        EXPECT_EQ(to_string(count1), keyStr); 
+    }
+    EXPECT_EQ(count1, 4);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
+    Entry entryValue;
+    EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+    std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+
+    /**
+     * @tc.steps: step3.
+     * @tc.expected: step3. 0, 1 ,2 ,3 ,4
+     */
+    Query fullQuery2 = Query::Select().Range({}, {'4'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count2 = 0;
+    while (resultSet->MoveToNext()) {
+        Entry entryValue;
+        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+        EXPECT_EQ(to_string(count2), keyStr);
+        count2++;
+    }
+    EXPECT_EQ(count2, 5);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
+
+
+
+    /**
+     * @tc.steps: step4.
+     * @tc.expected: step4. 2, 3 ,4 ,5
+     */
+    Query fullQuery3 = Query::Select().Range({'2'}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count3 = 2;
+    while (resultSet->MoveToNext()) {
+        Entry entryValue;
+        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+        EXPECT_EQ(to_string(count3), keyStr);
+        count3++;
+    }
+    EXPECT_EQ(count3, 6);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    }
+
+    /**
+     * @tc.steps: step4.
+     * @tc.expected: step4. 0, 1, 2, 3 ,4 ,5
+     */
+    Query fullQuery4 = Query::Select().Range({}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery4, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count4 = 0;
+    while (resultSet->MoveToNext()) {
+        Entry entryValue;
+        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+        EXPECT_EQ(to_string(count4), keyStr);
+        count4++;
+    }
+    EXPECT_EQ(count4, 6);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    }
+}
+
+/**
+  * @tc.name: RdRangeQuery003
+  * @tc.desc: Test GetEntries and the in put paramter is invalid.
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    std::vector<Entry> entries;
+    g_mgr.GetKvStore("RdRangeQuery003", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step2.
+     * @tc.expected: step2.
+     */
+    KvStoreResultSet *resultSet = nullptr;
+    Query inValidQuery = Query::Select().Range({'2'}, {'4'}).Range({'1'}, {'6'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step3.
+     * @tc.expected: step3.
+     */
+    Query inValidQuery2 = Query::Select().Range({'2'}, {'4'}).And();
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, entries), INVALID_ARGS);
+
+    /**
+     * @tc.steps: step4.
+     * @tc.expected: step4.
+     */
+    Key keyCan(1024, 'a');
+    Query ValidQuery3 = Query::Select().Range(keyCan, {'4'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(ValidQuery3, resultSet), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(ValidQuery3, entries), NOT_FOUND);
+
+    Key keyInvalid(1025, 'a');
+    Query inValidQuery4 = Query::Select().Range(keyInvalid, {'4'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery4, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery4, entries), INVALID_ARGS);
+}
+
+/**
+  * @tc.name: RdRangeQuery004
+  * @tc.desc: Test resultSet fuction.
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdRangeQuery004", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step1.
+     * @tc.expected: step1.
+     */
+    Entry entry0 = {{'0'}, {'0'}};
+    Entry entry1 = {{'1'}, {'1'}};
+    Entry entry2 = {{'2'}, {'2'}};
+    Entry entry3 = {{'3'}, {'3'}};
+    Entry entry4 = {{'4'}, {'4'}};
+    Entry entry5 = {{'5'}, {'5'}};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
+
+
+    /**
+     * @tc.steps: step2.
+     * @tc.expected: step2.
+     */
+    Query fullQuery = Query::Select().Range({'2'}, {'4'});
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+
+    resultSet->MoveToLast();
+    Entry entryValue;
+    EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+    std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+    int count1 = 4;
+    EXPECT_EQ(to_string(count1), keyStr);
+    EXPECT_EQ(count1, 4);
+
+    int count2 = 3;
+    while (resultSet->MoveToPrevious()) {
+        Entry entryValue2;
+        EXPECT_EQ(resultSet->GetEntry(entryValue2), OK);
+        std::string keyStr2(entryValue2.value.begin(), entryValue2.value.end());
+        EXPECT_EQ(to_string(count2), keyStr2);
+        count2--;
+    }
+    EXPECT_EQ(count2, 1);
+    EXPECT_EQ(resultSet->MoveToPrevious(), false);
+
+
+    /**
+     * @tc.steps: step2. Getentries by query, query is full-set;
+     * @tc.expected: step2. Getentries return OK;
+     */
+    Query fullQuery2 = Query::Select().Range({}, {'4'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+
+    resultSet->MoveToLast();
+    Entry entryValue3;
+    EXPECT_EQ(resultSet->GetEntry(entryValue3), OK);
+    std::string keyStr3(entryValue3.value.begin(), entryValue3.value.end());
+    int count3 = 4;
+    EXPECT_EQ(to_string(count3), keyStr3);
+
+    int count4 = 3;
+    while (resultSet->MoveToPrevious()) {
+        Entry entryValue4;
+        EXPECT_EQ(resultSet->GetEntry(entryValue4), OK);
+        std::string keyStr4(entryValue4.value.begin(), entryValue4.value.end());
+        EXPECT_EQ(to_string(count4), keyStr4);
+        count4--;
+    }
+    EXPECT_EQ(count4, -1);
+    EXPECT_EQ(resultSet->MoveToPrevious(), false);
+
+
+
+    /**
+     * @tc.steps: step2. Getentries by query, query is full-set;
+     * @tc.expected: step2. Getentries return OK;
+     */
+    Query fullQuery3 = Query::Select().Range({'2'}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+
+    resultSet->MoveToLast();
+    Entry entryValue5;
+    EXPECT_EQ(resultSet->GetEntry(entryValue5), OK);
+    std::string keyStr5(entryValue5.value.begin(), entryValue5.value.end());
+    int count5 = 5;
+    EXPECT_EQ(to_string(count5), keyStr5);
+    EXPECT_EQ(count5, 5);
+    
+    int count6 = 4;
+    while (resultSet->MoveToPrevious()) {
+        Entry entryValue6;
+        EXPECT_EQ(resultSet->GetEntry(entryValue6), OK);
+        std::string keyStr6(entryValue6.value.begin(), entryValue6.value.end());
+        EXPECT_EQ(to_string(count6), keyStr6);
+        count6--;
+    }
+    EXPECT_EQ(count2, 1);
+    EXPECT_EQ(resultSet->MoveToPrevious(), false);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    }
+}
 #endif // RUNNING_ON_SIMULATED_ENV
 }
 #endif // USE_RD_KERNEL

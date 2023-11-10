@@ -59,7 +59,7 @@ enum class QueryObjType : uint32_t {
     ORDERBY,
     SUGGEST_INDEX = 0x0801,
     IN_KEYS = 0x0901,
-    KEY_RANGE,
+    KEY_RANGE = 0x1001,
 };
 
 struct QueryObjNode {
@@ -220,5 +220,5 @@ public:
         return QueryValueType::VALUE_TYPE_STRING;
     }
 };
-} // namespace DistributedDB
+} // DistributedDB
 #endif // DISTRIBUTEDDB_QUERY_EXPRESSION_H

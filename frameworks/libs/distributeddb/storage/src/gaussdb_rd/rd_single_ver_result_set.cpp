@@ -169,7 +169,7 @@ int RdSingleVerResultSet::MoveToNext(bool needPreCheck) const
     if (needPreCheck) {
         errCode = PreCheckResultSet();
         if (errCode != E_OK) {
-            LOGE("[RdSinResSet] PreCheckResultSet faild");
+            LOGE("[RdSinResSet] PreCheckResultSet failed");
             return errCode;
         }
     }
@@ -244,7 +244,7 @@ int RdSingleVerResultSet::MoveToPrev(bool needPreCheck) const
         errCode = PreProcessMoveToPrev(needReturn);
         if (needReturn || errCode != E_OK) {
             return errCode;
-        } 
+        }
     }
     errCode = handle_->MoveToPrev(resultSet_);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {

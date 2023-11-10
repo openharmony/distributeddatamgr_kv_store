@@ -2854,4 +2854,33 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
         LOGE("rm test db files error!");
     }
 }
+
+/**
+  * @tc.name: RdRangeQueryInSqlite001
+  * @tc.desc: Test GetEntries with range query filter by sqlite
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("RdRangeQuery001", option, g_kvNbDelegateCallback);
+    std::vector<Entry> entries;
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    // /**
+    //  * @tc.steps: step2.
+    //  * @tc.expected: step2.
+    //  */
+    KvStoreResultSet *resultSet = nullptr;
+    Query inValidQuery = Query::Select().Range({}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
+}
 }

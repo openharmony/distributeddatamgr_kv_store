@@ -192,5 +192,9 @@ static constexpr const char *SQLITE = "sqlite";
 struct ChangeProperties {
     bool isTrackedDataChange = false;
 };
+
+struct Rdconfig {
+    bool readOnly = false;
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

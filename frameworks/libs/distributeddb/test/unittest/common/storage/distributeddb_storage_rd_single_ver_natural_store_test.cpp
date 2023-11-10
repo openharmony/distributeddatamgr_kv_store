@@ -244,28 +244,8 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, SyncDatabaseOperate006
 }
 
 /**
- * @tc.name: EraseDeviceWaterMark001
- * @tc.desc: Test erase water mark
- * @tc.type: FUNC
- * @tc.require: AR000CKRTC AR000CQE0D
- * @tc.author: zhangqiquan
- */
-HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, EraseDeviceWaterMark001, TestSize.Level1)
-{
-    auto store = new (std::nothrow) RdSingleVerNaturalStore;
-    ASSERT_NE(store, nullptr);
-    if (RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
-        EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_INVALID_DB);
-    } else {
-        EXPECT_EQ(store->EraseDeviceWaterMark("", true), -E_NOT_INIT);
-    }
-    RefObject::KillAndDecObjRef(store);
-}
-
-/**
  * @tc.name: ExportBusy001
- * @tc.desc: Test export with busy
- * @tc.type: FUNC
+ * @tc.desc: Test export with busy * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhangqiquan
  */

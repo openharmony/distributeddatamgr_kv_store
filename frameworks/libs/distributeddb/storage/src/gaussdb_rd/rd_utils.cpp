@@ -271,6 +271,10 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
         callback(INVALID_ARGS, nullptr);
         return false;
     }
+    if (option.rdconfig.readOnly && option.isNeedRmCorruptedDb) {
+        callback(INVALID_ARGS, nullptr);
+        return false;
+    }
     if (!CheckOption(option)) {
         callback(NOT_SUPPORT, nullptr);
         return false;

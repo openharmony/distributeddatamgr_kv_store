@@ -30,6 +30,7 @@ Query Query::Select(const std::string &tableName)
     return query;
 }
 
+
 Query &Query::FromTable(const std::vector<std::string> &tableNames)
 {
     queryExpression_.SetTables(tableNames);

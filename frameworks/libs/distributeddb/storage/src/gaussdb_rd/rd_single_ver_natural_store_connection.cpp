@@ -79,7 +79,6 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IO
             return errCode;
         }
     }
-
     RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
         LOGE("[RdSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
@@ -300,6 +299,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
     if (errCode != E_OK) {
         return errCode;
     }
+
     DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
@@ -316,6 +316,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
         DBDfxAdapter::FinishTraceSQL();
         return errCode;
     }
+
     errCode = handle->GetEntries(queryParam, type, entries);
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTraceSQL();
