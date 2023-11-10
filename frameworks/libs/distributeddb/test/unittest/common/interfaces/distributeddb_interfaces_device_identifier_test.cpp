@@ -470,7 +470,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
      * @tc.expected: step5. Expect return -E_INVALID_DB
      */
     Value values;
-    EXPECT_EQ(errStore->PutMetaData(keys.front(), values), -E_INVALID_DB);
+    EXPECT_EQ(errStore->PutMetaData(keys.front(), values, false), -E_INVALID_DB);
 
     /**
      * @tc.steps: step6. Test remove device data

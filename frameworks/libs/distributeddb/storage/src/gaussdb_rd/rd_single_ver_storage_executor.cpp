@@ -152,6 +152,23 @@ bool RdSingleVerStorageExecutor::CompareKeyWithEndKey(const Key &key, const Key 
     return key > keyEnd;
 }
 
+int RdSingleVerStorageExecutor::CompareKeyAndStoreEntry(GRD_ResultSet *resultSet, const Key &keyEnd,
+    bool isNeedStore, Entry &entry_)
+{
+    if (!keyEnd.empty()) {
+        Entry tmpEntry;
+        int errCode = RdKvFetch(resultSet, tmpEntry.key, tmpEntry.value);
+        if (errCode != E_OK || CompareKeyWithEndKey(tmpEntry.key, keyEnd)) {
+            return -E_NOT_FOUND;
+        } else {
+            if (isNeedStore) {
+                entry_ = tmpEntry; // store the entry.
+            }
+        }
+    }
+    return E_OK;
+}
+
 int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition,
     Entry &entry_, const Key &keyEnd)
 {
@@ -193,14 +210,9 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
             LOGE("[RdSingleVerStorageExecutor] failed to move next for result set.");
             return errCode;
         }
-        if (!keyEnd.empty()) {
-            Entry tmpEntry;
-            errCode = RdKvFetch(resultSet, tmpEntry.key, tmpEntry.value); // If get Next successfully, then absulotle fetch successfully; 
-            if (errCode != E_OK || CompareKeyWithEndKey(tmpEntry.key, keyEnd)) {
-                return -E_NOT_FOUND;
-            } else {
-                entry_ = tmpEntry; // store the entry.
-            }
+        errCode = CompareKeyAndStoreEntry(resultSet, keyEnd, true, entry_);
+        if (errCode != E_OK) {
+            return -E_NOT_FOUND; // Current Key is bigger than End key, return no found.
         }
         currPosition++;
     }
@@ -263,12 +275,10 @@ int RdSingleVerStorageExecutor::GetCount(const Key &key, int &count, GRD_KvScanM
             }
             return errCode;
         }
-        if (kvScanMode == GRD_KvScanModeE::KV_SCAN_EQUAL_OR_GREATER_KEY && !keyEnd.empty()) {
-            Entry tmpEntry;
-            ret = RdKvFetch(tmpResultSet, tmpEntry.key, tmpEntry.value); // If get Next successfully, then absulotle fetch successfully; 
-            if (ret != E_OK || CompareKeyWithEndKey(tmpEntry.key, keyEnd)) {
-                break;
-            }
+        Entry entryTmp;
+        errCode = CompareKeyAndStoreEntry(tmpResultSet, keyEnd, false, entryTmp);
+        if (errCode != E_OK) {
+            break; // No need to return errCode when GetCount.
         }
         ++count;
         isFirstMove = false;
@@ -332,7 +342,8 @@ int RdSingleVerStorageExecutor::GetEntriesPrepare(GRD_DB *db, SingleVerDataType 
             ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.keyPrefix_, KV_SCAN_PREFIX, resultSet);
             break;
         case  KV_SCAN_EQUAL_OR_GREATER_KEY:
-            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.beginKey_, KV_SCAN_EQUAL_OR_GREATER_KEY, resultSet);
+            ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.beginKey_,
+                KV_SCAN_EQUAL_OR_GREATER_KEY, resultSet);
             break;
         case  KV_SCAN_EQUAL_OR_LESS_KEY:
             ret = RdKVScan(db, SYNC_COLLECTION_NAME.c_str(), queryParam.endKey_, KV_SCAN_EQUAL_OR_LESS_KEY, resultSet);
@@ -405,7 +416,8 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
     return E_OK;
 }
 
-int RdSingleVerStorageExecutor::GetEntries(QueryParam &queryParam, SingleVerDataType type, std::vector<Entry> &entries) const
+int RdSingleVerStorageExecutor::GetEntries(QueryParam &queryParam, SingleVerDataType type,
+    std::vector<Entry> &entries) const
 {
     GRD_ResultSet *resultSet = nullptr;
     int ret = GetEntriesPrepare(db_, type, queryParam, entries, &resultSet);
@@ -782,8 +794,9 @@ int RdSingleVerStorageExecutor::RemoveTrigger(const std::vector<std::string> &tr
     return -E_NOT_SUPPORT;
 }
 
-int RdSingleVerStorageExecutor::GetSyncDataWithQuery(const QueryObject &query, size_t appendLength, const DataSizeSpecInfo &dataSizeInfo,
-    const std::pair<Timestamp, Timestamp> &timeRange, std::vector<DataItem> &dataItems) const
+int RdSingleVerStorageExecutor::GetSyncDataWithQuery(const QueryObject &query, size_t appendLength,
+    const DataSizeSpecInfo &dataSizeInfo, const std::pair<Timestamp, Timestamp> &timeRange,
+    std::vector<DataItem> &dataItems) const
 {
     return -E_NOT_SUPPORT;
 }

@@ -54,7 +54,7 @@ int RdSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &kvDBP
 
     errCode = InitDatabaseContext(kvDBProp);
     if (errCode != E_OK) {
-        LOGE("[SqlSinStore][GetAndInitStorageEngine] Init database context fail! errCode = [%d]", errCode);
+        LOGE("[RdSinStore][GetAndInitStorageEngine] Init database context fail! errCode = [%d]", errCode);
     }
     return errCode;
 }

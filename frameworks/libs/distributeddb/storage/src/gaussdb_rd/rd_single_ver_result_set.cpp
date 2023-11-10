@@ -263,7 +263,6 @@ int RdSingleVerResultSet::MoveToPrev(bool needPreCheck) const
         }
         --position_;
     }
-
     return errCode;
 }
 
@@ -286,7 +285,7 @@ int RdSingleVerResultSet::MoveTo(int position) const
         return errCode;
     }
     if (position < 0) {
-        LOGW("[SqlSinResSet][MoveTo] Target Position=%d invalid.", position);
+        LOGW("[RdSinResSet][MoveTo] Target Position=%d invalid.", position);
     }
     if (position == position_ + 1) {
         errCode = MoveToNext(false);
@@ -301,7 +300,7 @@ int RdSingleVerResultSet::MoveTo(int position) const
         }
     }
     if (errCode != E_OK) {
-        LOGE("[SqlSinResSet][MoveTo] fail to move to, %d", errCode);
+        LOGE("[RdSinResSet][MoveTo] fail to move to, %d", errCode);
     }
     return errCode == -E_NOT_FOUND ? -E_INVALID_ARGS : errCode;
 }
@@ -316,7 +315,7 @@ int RdSingleVerResultSet::GetEntry(Entry &entry) const
     if (!isGetValueFromEntry_) {
         errCode = handle_->GetEntry(resultSet_, entry);
         if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-            LOGE("[SqlSinResSet][GetEntry] failed to get entry form result set.");
+            LOGE("[RdSinResSet][GetEntry] failed to get entry form result set.");
         }
     } else {
         entry = entry_;
@@ -333,7 +332,7 @@ int RdSingleVerResultSet::GetEntry(Entry &entry, bool isGetValueFromEntry) const
     if (!isGetValueFromEntry) {
         errCode = handle_->GetEntry(resultSet_, entry);
         if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-            LOGE("[SqlSinResSet][GetEntry] failed to get entry form result set.");
+            LOGE("[RdSinResSet][GetEntry] failed to get entry form result set.");
         }
     } else {
         entry = entry_;

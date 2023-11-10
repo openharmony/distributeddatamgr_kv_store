@@ -116,7 +116,7 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
 {
     // Only could get the main database handle in the uninitialized and the main status.
     if (GetEngineState() != EngineState::INVALID && GetEngineState() != EngineState::MAINDB) {
-        LOGE("[SQLiteSinStoreEng][GetMainHandle] Can only create new handle for state[%d]", GetEngineState());
+        LOGE("[RdSinStoreEng][GetMainHandle] Can only create new handle for state[%d]", GetEngineState());
         return -E_EKEYREVOKED;
     }
 
@@ -128,21 +128,21 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
         optionTemp.createIfNecessary = false;
     }
     int errCode = E_OK;
-    bool isNeedUpdateCrcCheck_ = true;
+    bool isNeedUpdateCrcCheck = true;
     if (OS::CheckPathExistence(optionTemp.uri)) {
         errCode = CrcCheckIfNeed(optionTemp);
         if (errCode != E_OK) {
             LOGE("crc check failed [%d]", errCode);
             return errCode;
         }
-        isNeedUpdateCrcCheck_ = false;
+        isNeedUpdateCrcCheck = false;
     }
     errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
         LOGE("Failed to open the main database [%d]", errCode);
         return errCode;
     }
-    if (isNeedUpdateCrcCheck_) {
+    if (isNeedUpdateCrcCheck) {
         crcCheck_ = true;
     }
 

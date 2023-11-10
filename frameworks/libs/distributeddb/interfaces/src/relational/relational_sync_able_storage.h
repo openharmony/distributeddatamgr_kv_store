@@ -219,7 +219,7 @@ private:
     mutable std::mutex heartBeatMutex_;
 
     LruMap<std::string, std::string> remoteDeviceSchema_;
-    StorageExecutor *reusedHandle_;
+    StorageExecutor *reusedHandle_ = nullptr;
     mutable std::mutex reusedHandleMutex_;
 
     // cache securityOption

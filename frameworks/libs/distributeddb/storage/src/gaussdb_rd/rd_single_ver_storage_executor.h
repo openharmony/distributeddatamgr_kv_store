@@ -32,9 +32,9 @@ struct QueryParam {
     Key keyPrefix_;
 };
 
-int GetQueryParam(const Query &query, QueryParam & queryParam);
+int GetQueryParam(const Query &query, QueryParam &queryParam);
 
-int GetQueryParam(const Key &keyPrefix, QueryParam & queryParam);
+int GetQueryParam(const Key &keyPrefix, QueryParam &queryParam);
 
 class RDStorageExecutor : public StorageExecutor {
 public:
@@ -234,8 +234,11 @@ private:
     static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries,
         GRD_ResultSet **resultSet);
 
-    static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam, std::vector<Entry> &entries,
-        GRD_ResultSet **resultSet);
+    static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam,
+        std::vector<Entry> &entries, GRD_ResultSet **resultSet);
+    
+    int CompareKeyAndStoreEntry(GRD_ResultSet *resultSet, const Key &keyEnd,
+        bool isNeedStore, Entry &entry_);
 };
 } // namespace DistributedDB
 #endif // RD_SINGLE_VER_STORAGE_EXECUTOR_H

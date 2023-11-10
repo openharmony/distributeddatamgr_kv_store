@@ -183,8 +183,8 @@ void DistributedDBInterfacesNBDelegateRdTest::TearDown(void)
   * @tc.name:
   * @tc.desc:
   * @tc.type: FUNC
-  * @tc.require: 
-  * @tc.author: 
+  * @tc.require:
+  * @tc.author:
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level1)
 {
@@ -215,11 +215,10 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
     /**
      * @tc.steps:step3. Put the local data.
      * @tc.expected: step3. Put returns OK.
-     * 
+     *
      */
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
-    /**
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));    /**
      * @tc.steps:step4. Check the local data.
      * @tc.expected: step4. The get data is equal to the put data.
      */

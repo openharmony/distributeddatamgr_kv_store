@@ -34,7 +34,7 @@ int CFG_IsValid(const JsonObject &config)
     while (!child.IsNull()) {
         std::string fieldName = child.GetItemField();
         if (strcmp(OPT_COLLECTION_MODE, fieldName.c_str()) == 0) {
-            if (strcmp(child.GetItemValue().GetStringValue().c_str(), KV_COLLECTION_MODE) == 0){ // The value of mode
+            if (strcmp(child.GetItemValue().GetStringValue().c_str(), KV_COLLECTION_MODE) == 0) { // The value of mode
                 return -E_NOT_SUPPORT;
             } else {
                 child = child.GetNext();

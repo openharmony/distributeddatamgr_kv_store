@@ -22,7 +22,7 @@ namespace {
 
     bool CheckRdOptionMode(const KvStoreNbDelegate::Option &option)
     {
-        return (option.mode != 0 && option.mode != 1 ) || option.syncDualTupleMode;
+        return (option.mode != 0 && option.mode != 1) || option.syncDualTupleMode;
     }
 
     bool CheckOption(const KvStoreNbDelegate::Option &option)
