@@ -26,7 +26,6 @@
 #include "res_finalizer.h"
 #include "rd_single_ver_natural_store_connection.h"
 #include "rd_single_ver_result_set.h"
-// #include "sqlite_utils.h"
 #include "store_types.h"
 
 using namespace testing::ext;

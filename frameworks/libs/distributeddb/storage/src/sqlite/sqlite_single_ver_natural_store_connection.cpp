@@ -561,7 +561,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
     errCode = resultSet->Open(isMemDb);
     if (errCode != E_OK) {
         delete resultSet;
-        resultSet = nullptr; 
+        resultSet = nullptr;
         LOGE("Open result set failed.");
         return errCode;
     }
@@ -1793,7 +1793,8 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
     DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
-        if (writeHandle_ != nullptr) {            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
+        if (writeHandle_ != nullptr) {
+            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
             DBDfxAdapter::FinishTraceSQL();
             return errCode;

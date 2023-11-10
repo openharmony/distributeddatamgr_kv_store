@@ -392,7 +392,8 @@ int SyncAbleKvDB::SetSyncRetry(bool isRetry)
         LOGD("KvDB got null sync interface.");
         return -E_INVALID_DB;
     }
-    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);    if (localOnly) {
+    bool localOnly = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::LOCAL_ONLY, false);
+    if (localOnly) {
         return -E_NOT_SUPPORT;
     }
     if (NeedStartSyncer()) {
