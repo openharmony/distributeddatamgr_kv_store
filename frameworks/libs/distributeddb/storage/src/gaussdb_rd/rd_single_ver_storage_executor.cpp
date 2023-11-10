@@ -375,7 +375,6 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
     if (ret != E_OK) {
         return ret;
     }
-
     int innerCode = E_OK;
     ret = TransferGrdErrno(GRD_Next(resultSet));
     if (ret == -E_NOT_FOUND) {
@@ -407,7 +406,6 @@ int RdSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType ty
         }
         return ret;
     }
-
     ret = RdFreeResultSet(resultSet);
     if (ret != E_OK) {
         LOGE("[RdSingleVerStorageExecutor] failed to free result set.");

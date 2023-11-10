@@ -31,7 +31,7 @@ class SQLiteSingleVerNaturalStore;
 class RdSingleVerNaturalStoreConnection : public SingleVerNaturalStoreConnection {
 public:
     explicit RdSingleVerNaturalStoreConnection(RdSingleVerNaturalStore *kvDB);
-    virtual ~RdSingleVerNaturalStoreConnection() override;
+    ~RdSingleVerNaturalStoreConnection() override;
 
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(RdSingleVerNaturalStoreConnection);

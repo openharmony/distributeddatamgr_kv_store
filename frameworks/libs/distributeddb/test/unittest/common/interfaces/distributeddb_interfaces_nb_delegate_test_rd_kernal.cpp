@@ -1889,7 +1889,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     int ret = g_kvNbDelegatePtr->GetEntries(query1, entries);
     EXPECT_EQ(entries.size(), 3u);
     int count1 = 2;
-    for(auto item:entries) {
+    for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(count1), keyStr);
         count1++;
@@ -1903,7 +1903,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     ret = g_kvNbDelegatePtr->GetEntries(query2, entries);
     EXPECT_EQ(entries.size(), 5u);
     int count2 = 0;
-    for(auto item:entries) {
+    for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(count2), keyStr);
         count2++;
@@ -1917,7 +1917,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
     ret = g_kvNbDelegatePtr->GetEntries(query3, entries);
     EXPECT_EQ(entries.size(), 4u);
     int count3 = 2;
-    for(auto item:entries) {
+    for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
         EXPECT_EQ(to_string(count3), keyStr);
         count3++;
@@ -1973,7 +1973,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
         Entry entryValue;
         EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
         std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-        EXPECT_EQ(to_string(count1), keyStr); 
+        EXPECT_EQ(to_string(count1), keyStr);
     }
     EXPECT_EQ(count1, 4);
     EXPECT_EQ(resultSet->MoveToNext(), false);
@@ -1998,8 +1998,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
     }
     EXPECT_EQ(count2, 5);
     EXPECT_EQ(resultSet->MoveToNext(), false);
-
-
 
     /**
      * @tc.steps: step4.
@@ -2184,12 +2182,9 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Leve
     EXPECT_EQ(count4, -1);
     EXPECT_EQ(resultSet->MoveToPrevious(), false);
 
-
-
     /**
      * @tc.steps: step2. Getentries by query, query is full-set;
-     * @tc.expected: step2. Getentries return OK;
-     */
+     * @tc.expected: step2. Getentries return OK;     */
     Query fullQuery3 = Query::Select().Range({'2'}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
