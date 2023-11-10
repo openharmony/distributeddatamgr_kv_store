@@ -96,7 +96,6 @@ public:
     int DeleteLocalKvData(const Key &key, SingleVerNaturalStoreCommitNotifyData *committedData, Value &value,
         Timestamp &timestamp);
 
-    // delete a row data by hashKey, with no tombstone left.
     int EraseSyncData(const Key &hashKey);
 
     int RemoveDeviceData(const std::string &deviceName);

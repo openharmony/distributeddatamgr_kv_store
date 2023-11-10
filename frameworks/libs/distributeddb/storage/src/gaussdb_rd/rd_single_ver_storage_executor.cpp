@@ -585,7 +585,6 @@ int RdSingleVerStorageExecutor::SaveSyncDataItem(const Entry &entry,
     return errCode;
 }
 
-// delete a row data by hashKey, with no tombstone left.
 int RdSingleVerStorageExecutor::EraseSyncData(const Key &hashKey)
 {
     return -E_NOT_SUPPORT;
