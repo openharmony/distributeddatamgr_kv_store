@@ -22,8 +22,14 @@ distrdb_Dir = [
   "${kv_store_distributeddb_path}common/include",
   "${kv_store_distributeddb_path}common/include/relational",
   "${kv_store_distributeddb_path}communicator/include",
+  "${kv_store_distributeddb_path}gaussdb_rd",
+  "${kv_store_distributeddb_path}gaussdb_rd/include",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_base",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_document",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_kv",
   "${kv_store_distributeddb_path}storage/include",
   "${kv_store_distributeddb_path}storage/src",
+  "${kv_store_distributeddb_path}storage/src/gaussdb_rd",
   "${kv_store_distributeddb_path}storage/src/multiver",
   "${kv_store_distributeddb_path}storage/src/operation",
   "${kv_store_distributeddb_path}storage/src/sqlite",
@@ -54,6 +60,9 @@ config("distrdb_public_config") {
     "${kv_store_distributeddb_path}interfaces/include",
     "${kv_store_distributeddb_path}interfaces/include/relational",
     "${kv_store_distributeddb_path}include",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_base",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_document",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_kv",
   ]
 }
 
