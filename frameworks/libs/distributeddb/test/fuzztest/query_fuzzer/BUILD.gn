@@ -21,11 +21,12 @@ ohos_fuzztest("QueryFuzzTest") {
   module_out_path = "kv_store/kv_store"
 
   include_dirs = [
-    "..../interfaces/include/cloud",
-    "..../storage/src/cloud",
-    "..../common/include/cloud",
-    "..../syncer/cloud",
-    "..../test/fuzztest/common",
+    "../../../common/include/cloud",
+    "../../../interfaces/include/cloud",
+    "../../../syncer/cloud",
+    "../../../storage/src/cloud",
+    "../../../storage/src/gaussdb_rd",
+    "../../../test/fuzztest/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",
@@ -36,7 +37,6 @@ ohos_fuzztest("QueryFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/gaussdb_rd",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/multiver",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/operation",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",
