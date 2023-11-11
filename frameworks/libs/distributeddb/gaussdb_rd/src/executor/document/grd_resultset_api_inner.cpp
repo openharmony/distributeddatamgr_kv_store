@@ -17,7 +17,7 @@
 #include "grd_base/grd_error.h"
 #include "grd_resultset_api_inner.h"
 #include "grd_resultset_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 int32_t GRD_NextInner(GRD_ResultSet *resultSet)

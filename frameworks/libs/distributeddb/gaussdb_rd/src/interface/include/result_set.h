@@ -24,7 +24,7 @@
 #include "doc_errno.h"
 #include "document_store.h"
 #include "grd_base/grd_type_export.h"
-#include "json_object.h"
+#include "rd_json_object.h"
 
 namespace DocumentDB {
 class ResultSet {

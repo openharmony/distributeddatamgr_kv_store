@@ -20,7 +20,7 @@
 #include "grd_document_api_inner.h"
 #include "grd_resultset_inner.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 namespace DocumentDB {
 int32_t GRD_CreateCollectionInner(GRD_DB *db, const char *collectionName, const char *optionStr, uint32_t flags)
 {

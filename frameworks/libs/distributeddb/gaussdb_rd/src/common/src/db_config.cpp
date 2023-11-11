@@ -22,8 +22,8 @@
 
 #include "doc_errno.h"
 #include "doc_limit.h"
-#include "json_object.h"
-#include "log_print.h"
+#include "rd_json_object.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 namespace {

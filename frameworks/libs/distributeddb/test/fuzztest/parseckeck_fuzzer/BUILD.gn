@@ -36,6 +36,7 @@ ohos_fuzztest("ParseCkeckFuzzTest") {
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src/relational",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",
+    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/gaussdb_rd",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/multiver",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/operation",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src/sqlite",

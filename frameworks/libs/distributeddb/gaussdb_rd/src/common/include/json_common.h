@@ -21,7 +21,7 @@
 #include <set>
 #include <vector>
 
-#include "json_object.h"
+#include "rd_json_object.h"
 
 namespace DocumentDB {
 class JsonCommon {

@@ -14,15 +14,13 @@
 */
 #include "grd_base/grd_db_api.h"
 
-#include <dlfcn.h>
-
 #include "check_common.h"
 #include "doc_errno.h"
 #include "document_store_manager.h"
 #include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 using namespace DocumentDB;
 static GRD_APIInfo GRD_DBApiInfo;

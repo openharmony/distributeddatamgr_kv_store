@@ -14,9 +14,9 @@
 */
 #include "result_set.h"
 
-#include "db_constant.h"
 #include "document_key.h"
-#include "log_print.h"
+#include "rd_db_constant.h"
+#include "rd_log_print.h"
 #include "securec.h"
 
 namespace DocumentDB {

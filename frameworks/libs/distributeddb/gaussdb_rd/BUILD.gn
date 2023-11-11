@@ -57,7 +57,7 @@ ohos_static_library("gaussdb_rd") {
     "src/common/src/db_config.cpp",
     "src/common/src/grd_api_manager.cpp",
     "src/common/src/json_common.cpp",
-    "src/common/src/log_print.cpp",
+    "src/common/src/rd_log_print.cpp",
     "src/common/src/os_api.cpp",
     "src/executor/base/grd_db_api.cpp",
     "src/executor/base/grd_db_api_inner.cpp",
@@ -78,10 +78,10 @@ ohos_static_library("gaussdb_rd") {
     "src/interface/src/projection_tree.cpp",
     "src/interface/src/result_set.cpp",
     "src/interface/src/result_set_common.cpp",
-    "src/oh_adapter/src/json_object.cpp",
+    "src/oh_adapter/src/rd_json_object.cpp",
     "src/oh_adapter/src/kv_store_manager.cpp",
     "src/oh_adapter/src/sqlite_store_executor_impl.cpp",
-    "src/oh_adapter/src/sqlite_utils.cpp",
+    "src/oh_adapter/src/rd_sqlite_utils.cpp",
   ]
 
   configs = [ ":gaussdb_rd_config" ]
@@ -91,7 +91,7 @@ ohos_static_library("gaussdb_rd") {
 
   configs += [ "//third_party/cJSON:cJSON_config" ]
   ldflags = [ "-Wl,--exclude-libs,ALL" ]
-  cflags_cc = [ "-fvisibility=hidden" ]
+  cflags_cc = [ "-fvisibility=hidden", "-std=c++17" ]
   deps += [ "//third_party/cJSON:cjson" ]
 
   external_deps = [

@@ -17,7 +17,7 @@
 #include "grd_base/grd_error.h"
 #include "grd_kv_api_inner.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 namespace DocumentDB {
 int32_t GRD_KVPutInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, const GRD_KVItemT *value)
 {

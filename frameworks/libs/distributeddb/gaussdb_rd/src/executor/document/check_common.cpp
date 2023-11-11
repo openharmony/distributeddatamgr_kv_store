@@ -19,7 +19,7 @@
 
 #include "doc_errno.h"
 #include "grd_base/grd_db_api.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 #include "securec.h"
 
 using namespace DocumentDB;

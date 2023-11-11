@@ -18,7 +18,7 @@
 #include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
 #include "grd_resultset_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 using namespace DocumentDB;
 static GRD_APIInfo GRD_ResultSetApiInfo;

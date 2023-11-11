@@ -12,12 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "sqlite_utils.h"
+#include "rd_sqlite_utils.h"
 
 #include <mutex>
 
 #include "doc_errno.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
@@ -51,12 +51,12 @@ std::mutex g_logConfigMutex;
 bool g_configLog = false;
 } // namespace
 
-void SQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
+void RDSQLiteUtils::SqliteLogCallback(void *data, int err, const char *msg)
 {
     GLOGD("[SQLite] err=%d sys=%d %s", err, errno, sqlite3_errstr(err));
 }
 
-int SQLiteUtils::CreateDataBase(const std::string &path, int flag, sqlite3 *&db)
+int RDSQLiteUtils::CreateDataBase(const std::string &path, int flag, sqlite3 *&db)
 {
     {
         std::lock_guard<std::mutex> lock(g_logConfigMutex);
@@ -83,7 +83,7 @@ int SQLiteUtils::CreateDataBase(const std::string &path, int flag, sqlite3 *&db)
     return MapSqliteError(errCode);
 }
 
-int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt *&statement)
+int RDSQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt *&statement)
 {
     if (db == nullptr) {
         GLOGE("Invalid db for get statement");
@@ -97,7 +97,7 @@ int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt 
     int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
         GLOGE("Prepare SQLite statement failed:%d", errCode);
-        (void)SQLiteUtils::ResetStatement(statement, true);
+        (void)RDSQLiteUtils::ResetStatement(statement, true);
         return MapSqliteError(errCode);
     }
 
@@ -108,7 +108,7 @@ int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt 
     return E_OK;
 }
 
-int SQLiteUtils::StepWithRetry(sqlite3_stmt *statement)
+int RDSQLiteUtils::StepWithRetry(sqlite3_stmt *statement)
 {
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
@@ -116,13 +116,13 @@ int SQLiteUtils::StepWithRetry(sqlite3_stmt *statement)
 
     int errCode = sqlite3_step(statement);
     if (errCode != SQLITE_DONE && errCode != SQLITE_ROW) {
-        GLOGE("[SQLiteUtils] Step error:%d, sys:%d", errCode, errno);
+        GLOGE("[RDSQLiteUtils] Step error:%d, sys:%d", errCode, errno);
     }
 
     return errCode;
 }
 
-int SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool finalize)
+int RDSQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool finalize)
 {
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
@@ -132,7 +132,7 @@ int SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool finalize)
     if (!finalize) {
         errCode = sqlite3_reset(statement);
         if (errCode != SQLITE_OK) {
-            GLOGE("[SQLiteUtils] reset statement error:%d, sys:%d", errCode, errno);
+            GLOGE("[RDSQLiteUtils] reset statement error:%d, sys:%d", errCode, errno);
             goto FINALIZE;
         }
 
@@ -143,13 +143,13 @@ int SQLiteUtils::ResetStatement(sqlite3_stmt *&statement, bool finalize)
 FINALIZE:
     int finalizeResult = sqlite3_finalize(statement);
     if (finalizeResult != SQLITE_OK) {
-        GLOGE("[SQLiteUtils] finalize statement error:%d, sys:%d", finalizeResult, errno);
+        GLOGE("[RDSQLiteUtils] finalize statement error:%d, sys:%d", finalizeResult, errno);
     }
     statement = nullptr;
     return (errCode == SQLITE_OK ? finalizeResult : errCode);
 }
 
-int SQLiteUtils::BindBlobToStatement(sqlite3_stmt *statement, int index, const std::vector<uint8_t> &value)
+int RDSQLiteUtils::BindBlobToStatement(sqlite3_stmt *statement, int index, const std::vector<uint8_t> &value)
 {
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
@@ -165,7 +165,7 @@ int SQLiteUtils::BindBlobToStatement(sqlite3_stmt *statement, int index, const s
     return errCode;
 }
 
-int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vector<uint8_t> &value)
+int RDSQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vector<uint8_t> &value)
 {
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
@@ -173,7 +173,7 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
 
     int keySize = sqlite3_column_bytes(statement, index);
     if (keySize < 0 || keySize > MAX_BLOB_READ_SIZE) {
-        GLOGW("[SQLiteUtils][Column blob] size over limit:%d", keySize);
+        GLOGW("[RDSQLiteUtils][Column blob] size over limit:%d", keySize);
         value.resize(MAX_BLOB_READ_SIZE + 1); // Reset value size to invalid
         return E_OK; // Return OK for continue get data, but value is invalid
     }
@@ -189,7 +189,7 @@ int SQLiteUtils::GetColumnBlobValue(sqlite3_stmt *statement, int index, std::vec
     return E_OK;
 }
 
-int SQLiteUtils::BindTextToStatement(sqlite3_stmt *statement, int index, const std::string &value)
+int RDSQLiteUtils::BindTextToStatement(sqlite3_stmt *statement, int index, const std::string &value)
 {
     if (statement == nullptr) {
         return -E_INVALID_ARGS;
@@ -204,7 +204,7 @@ int SQLiteUtils::BindTextToStatement(sqlite3_stmt *statement, int index, const s
     return E_OK;
 }
 
-int SQLiteUtils::BeginTransaction(sqlite3 *db, TransactType type)
+int RDSQLiteUtils::BeginTransaction(sqlite3 *db, TransactType type)
 {
     if (type == TransactType::IMMEDIATE) {
         return ExecSql(db, BEGIN_IMMEDIATE_SQL);
@@ -213,17 +213,17 @@ int SQLiteUtils::BeginTransaction(sqlite3 *db, TransactType type)
     return ExecSql(db, BEGIN_SQL);
 }
 
-int SQLiteUtils::CommitTransaction(sqlite3 *db)
+int RDSQLiteUtils::CommitTransaction(sqlite3 *db)
 {
     return ExecSql(db, COMMIT_SQL);
 }
 
-int SQLiteUtils::RollbackTransaction(sqlite3 *db)
+int RDSQLiteUtils::RollbackTransaction(sqlite3 *db)
 {
     return ExecSql(db, ROLLBACK_SQL);
 }
 
-int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql)
+int RDSQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql)
 {
     if (db == nullptr || sql.empty()) {
         return -E_INVALID_ARGS;
@@ -239,7 +239,7 @@ int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql)
     return MapSqliteError(errCode);
 }
 
-int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql, const std::function<int(sqlite3_stmt *)> &bindCallback,
+int RDSQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql, const std::function<int(sqlite3_stmt *)> &bindCallback,
     const std::function<int(sqlite3_stmt *, bool &)> &resultCallback)
 {
     if (db == nullptr || sql.empty()) {
@@ -248,7 +248,7 @@ int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql, const std::functio
     bool bindFinish = true;
     sqlite3_stmt *stmt = nullptr;
     bool isMatchOneData = false;
-    int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
+    int errCode = RDSQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
         goto END;
     }
@@ -262,7 +262,7 @@ int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql, const std::functio
         }
 
         while (true) {
-            errCode = SQLiteUtils::StepWithRetry(stmt);
+            errCode = RDSQLiteUtils::StepWithRetry(stmt);
             if (errCode == SQLITE_DONE) {
                 break;
             } else if (errCode != SQLITE_ROW) {
@@ -275,11 +275,11 @@ int SQLiteUtils::ExecSql(sqlite3 *db, const std::string &sql, const std::functio
                 goto END;
             }
         }
-        errCode = SQLiteUtils::ResetStatement(stmt, false);
+        errCode = RDSQLiteUtils::ResetStatement(stmt, false);
     } while (!bindFinish);
 
 END:
-    (void)SQLiteUtils::ResetStatement(stmt, true);
+    (void)RDSQLiteUtils::ResetStatement(stmt, true);
     return MapSqliteError(errCode);
 }
 } // namespace DocumentDB
