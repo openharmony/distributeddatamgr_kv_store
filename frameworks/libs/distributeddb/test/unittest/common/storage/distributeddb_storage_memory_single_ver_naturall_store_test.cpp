@@ -56,7 +56,7 @@ void DistributedDBStorageMemorySingleVerNaturalStoreTest::SetUp(void)
     property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNB");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "31");
     property.SetBoolProp(KvDBProperties::MEMORY_MODE, true);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     g_store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_store, nullptr);
     ASSERT_EQ(g_store->Open(property), E_OK);

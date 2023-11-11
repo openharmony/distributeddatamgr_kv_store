@@ -260,7 +260,7 @@ int Metadata::SetMetadataToDb(const std::vector<uint8_t> &key, const std::vector
     if (naturalStoragePtr_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return naturalStoragePtr_->PutMetaData(key, inValue);
+    return naturalStoragePtr_->PutMetaData(key, inValue, false);
 }
 
 void Metadata::PutMetadataToMap(const DeviceID &deviceId, const MetaDataValue &value)

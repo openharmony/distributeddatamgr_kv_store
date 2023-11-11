@@ -19,7 +19,7 @@
 #include "doc_errno.h"
 #include "documentdb_test_utils.h"
 #include "json_common.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 using namespace DocumentDB;
 using namespace testing::ext;

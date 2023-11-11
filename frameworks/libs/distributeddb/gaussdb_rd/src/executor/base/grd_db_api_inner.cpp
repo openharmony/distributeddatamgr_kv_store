@@ -12,7 +12,6 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#include <dlfcn.h>
 #include "grd_db_api_inner.h"
 #include "check_common.h"
 #include "doc_errno.h"
@@ -20,7 +19,7 @@
 #include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 int32_t GRD_DBOpenInner(const char *dbPath, const char *configStr, uint32_t flags, GRD_DB **db)
@@ -77,5 +76,10 @@ int32_t GRD_FlushInner(GRD_DB *db, uint32_t flags)
 int32_t GRD_IndexPreloadInner(GRD_DB *db, const char *collectionName)
 {
     return GRD_OK; // No support;
+}
+
+int32_t GRD_CrcCheckInner(const char *dbFile)
+{
+    return GRD_NOT_SUPPORT;
 }
 } // namespace DocumentDB

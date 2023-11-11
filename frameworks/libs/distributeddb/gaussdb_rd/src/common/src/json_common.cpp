@@ -17,7 +17,7 @@
 #include <queue>
 
 #include "doc_errno.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 ValueObject JsonCommon::GetValueInSameLevel(JsonObject &node, const std::string &field)
