@@ -112,7 +112,6 @@ ohos_shared_library("distributeddb_mock") {
   public_configs = [ ":distrdb_public_config" ]
   ldflags = [ "-v" ]
   deps = [
-    #"//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/gaussdb_rd:gaussdb_rd_shared",
     "//third_party/bounds_checking_function:libsec_static",
     "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/openssl:libcrypto_static",
