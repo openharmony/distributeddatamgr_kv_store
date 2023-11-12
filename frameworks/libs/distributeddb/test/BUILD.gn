@@ -81,6 +81,12 @@ config("module_private_config") {
 
 ###############################################################################
 ohos_source_set("src_file") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+  }
   testonly = true
 
   sources = distributeddb_src
