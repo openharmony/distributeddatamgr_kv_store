@@ -30,8 +30,9 @@ StoreManager &StoreManager::GetInstance()
 std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, const StoreId &storeId,
     const Options &options, Status &status)
 {
+    std::string path = options.GetDatabaseDir();
     ZLOGD("appId:%{public}s, storeId:%{public}s type:%{public}d area:%{public}d dir:%{public}s", appId.appId.c_str(),
-        StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area, options.baseDir.c_str());
+        StoreUtil::Anonymous(storeId.storeId).c_str(), options.kvStoreType, options.area, path.c_str());
     status = ILLEGAL_STATE;
     if (!appId.IsValid() || !storeId.IsValid() || !options.IsValidType()) {
         status = INVALID_ARGUMENT;
@@ -53,7 +54,7 @@ std::shared_ptr<SingleKvStore> StoreManager::GetKVStore(const AppId &appId, cons
     auto kvStore = StoreFactory::GetInstance().GetOrOpenStore(appId, storeId, options, status, isCreate);
     if (isCreate && options.persistent) {
         auto dbPassword = SecurityManager::GetInstance().GetDBPassword(storeId.storeId,
-            options.baseDir, options.encrypt);
+            path, options.encrypt);
         std::vector<uint8_t> pwd(dbPassword.GetData(), dbPassword.GetData() + dbPassword.GetSize());
         if (service != nullptr) {
             // delay notify

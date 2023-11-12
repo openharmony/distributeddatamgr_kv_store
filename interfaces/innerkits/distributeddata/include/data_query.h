@@ -260,6 +260,14 @@ public:
     DataQuery &IsNull(const std::string &field);
 
     /**
+     * @brief Greater than or equal to small value and less than or equal to large value.
+     * @param field The small value.
+     * @param value The large value.
+     * @return This query
+    */
+    DataQuery& Between(const std::string& valueLow, const std::string& valueHigh);
+
+    /**
      * @brief Is not null field value.
      * @param field The field name.
      * @return This query

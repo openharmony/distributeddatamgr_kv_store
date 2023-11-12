@@ -344,6 +344,16 @@ DataQuery& DataQuery::LessThanOrEqualTo(const std::string &field, const std::str
     return *this;
 }
 
+DataQuery& DataQuery::Between(const std::string &valueLow, const std::string &valueHigh)
+{
+    std::vector<uint8_t> keyBegin;
+    keyBegin.assign(valueLow.begin(), valueLow.end());
+    std::vector<uint8_t> keyEnd;
+    keyEnd.assign(valueHigh.begin(), valueHigh.end());
+    query_->Range(keyBegin, keyEnd);
+    return *this;
+}
+
 DataQuery& DataQuery::IsNull(const std::string &field)
 {
     std::string myField = field;
