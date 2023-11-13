@@ -48,8 +48,6 @@ private:
 #endif
 
     IKvDB *CreateSingleVerNaturalStore(int &errCode);
-
-    IKvDB *CreateRdSingleVerNaturalStore(int &errCode);
 };
 } // namespace DistributedDB
 #endif // DEFAULT_FACTORY_H

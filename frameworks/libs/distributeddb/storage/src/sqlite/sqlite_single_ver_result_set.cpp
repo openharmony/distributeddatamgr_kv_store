@@ -265,11 +265,11 @@ int SQLiteSingleVerResultSet::GetEntry(Entry &entry) const
     return -E_NO_SUCH_ENTRY;
 }
 
-int SQLiteSingleVerResultSet::Close()
+void SQLiteSingleVerResultSet::Close()
 {
     std::lock_guard<std::mutex> lockGuard(mutex_);
     if (!isOpen_) {
-        return E_OK;
+        return;
     }
     if (option_.cacheMode == ResultSetCacheMode::CACHE_FULL_ENTRY) {
         CloseForCacheFullEntryMode();
@@ -280,7 +280,6 @@ int SQLiteSingleVerResultSet::Close()
     count_ = 0;
     position_ = INIT_POSITION;
     LOGD("[SqlSinResSet][Close] Done, Type=%d, Mode=%d.", static_cast<int>(type_), static_cast<int>(option_.cacheMode));
-    return E_OK;
 }
 
 void SQLiteSingleVerResultSet::CloseForCacheFullEntryMode()

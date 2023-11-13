@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef RD_SQLITE_UTILS_H
-#define RD_SQLITE_UTILS_H
+#ifndef SQLITE_UTILS_H
+#define SQLITE_UTILS_H
 
 #include <functional>
 #include <string>
@@ -28,7 +28,7 @@ enum class TransactType {
     IMMEDIATE,
 };
 
-class RDSQLiteUtils {
+class SQLiteUtils {
 public:
     static int CreateDataBase(const std::string &path, int flag, sqlite3 *&db);
 

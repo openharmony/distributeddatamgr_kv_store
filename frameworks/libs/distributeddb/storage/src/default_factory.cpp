@@ -23,7 +23,6 @@
 #include "multi_ver_natural_store.h"
 #include "multi_ver_natural_store_commit_storage.h"
 #endif
-#include "rd_single_ver_natural_store.h"
 #include "sqlite_single_ver_natural_store.h"
 #ifndef OMIT_MULTI_VER
 #include "sqlite_multi_ver_data_storage.h"
@@ -34,15 +33,13 @@ IKvDB *DefaultFactory::CreateKvDb(KvDBType kvDbType, int &errCode)
 {
     switch (kvDbType) {
 #ifndef OMIT_MULTI_VER
-        case LOCAL_KVDB_SQLITE:
+        case LOCAL_KVDB:
             return CreateLocalKvDB(errCode);
 #endif
-        case SINGER_VER_KVDB_SQLITE:
+        case SINGER_VER_KVDB:
             return CreateSingleVerNaturalStore(errCode);
-        case SINGLE_VER_KVDB_RD:
-            return CreateRdSingleVerNaturalStore(errCode);
 #ifndef OMIT_MULTI_VER
-        case MULTI_VER_KVDB_SQLITE:
+        case MULTI_VER_KVDB:
             return CreateMultiVerNaturalStore(errCode);
 #endif
         default:
@@ -72,14 +69,6 @@ IKvDB *DefaultFactory::CreateMultiVerNaturalStore(int &errCode)
 IKvDB *DefaultFactory::CreateSingleVerNaturalStore(int &errCode)
 {
     IKvDB *kvDb = new (std::nothrow) SQLiteSingleVerNaturalStore();
-    errCode = ((kvDb == nullptr) ? -E_OUT_OF_MEMORY : E_OK);
-    return kvDb;
-}
-
-// Create the single version natural store with gaussdb_rd
-IKvDB *DefaultFactory::CreateRdSingleVerNaturalStore(int &errCode)
-{
-    IKvDB *kvDb = new (std::nothrow) RdSingleVerNaturalStore();
     errCode = ((kvDb == nullptr) ? -E_OUT_OF_MEMORY : E_OK);
     return kvDb;
 }

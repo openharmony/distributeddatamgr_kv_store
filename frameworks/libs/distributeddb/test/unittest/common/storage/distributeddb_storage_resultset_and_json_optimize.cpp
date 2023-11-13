@@ -68,7 +68,7 @@ void DistributedDBStorageResultAndJsonOptimizeTest::SetUpTestCase(void)
     g_Property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_Property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
     g_Property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    g_Property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    g_Property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
 }
 
 void DistributedDBStorageResultAndJsonOptimizeTest::TearDownTestCase(void)

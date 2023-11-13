@@ -21,12 +21,11 @@ ohos_fuzztest("QueryFuzzTest") {
   module_out_path = "kv_store/kv_store"
 
   include_dirs = [
-    "../../../common/include/cloud",
-    "../../../interfaces/include/cloud",
-    "../../../syncer/cloud",
-    "../../../storage/src/cloud",
-    "../../../storage/src/gaussdb_rd",
-    "../../../test/fuzztest/common",
+    "..../interfaces/include/cloud",
+    "..../storage/src/cloud",
+    "..../common/include/cloud",
+    "..../syncer/cloud",
+    "..../test/fuzztest/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/common",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/syncer",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/test/unittest/common/storage",

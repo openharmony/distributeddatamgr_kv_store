@@ -13,7 +13,7 @@
 * limitations under the License.
 */
 
-#include "rd_log_print.h"
+#include <log_print.h>
 
 #include "hilog/log.h"
 #include "securec.h"

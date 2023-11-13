@@ -91,7 +91,7 @@ int LocalDatabaseOper::BackupDb(const CipherPassword &passwd) const
     CipherType cipherType;
     CipherPassword oldPasswd;
     localKvDb_->GetDbProperties().GetPassword(cipherType, oldPasswd);
-    std::string backupDbName = backupDir + "/" + DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
+    std::string backupDbName = backupDir + "/" + DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
     return localKvDb_->RunExportLogic(cipherType, passwd, backupDbName);
 }
 
@@ -122,8 +122,8 @@ int LocalDatabaseOper::RekeyPostHandle(const CipherPassword &passwd)
 int LocalDatabaseOper::ExportAllDatabases(const std::string &currentDir, const CipherPassword &passwd,
     const std::string &dbDir) const
 {
-    std::string backupDbName = dbDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
-    std::string currentDb = currentDir + "/" + DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
+    std::string backupDbName = dbDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
+    std::string currentDb = currentDir + "/" + DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
 
     CipherType cipherType;
     CipherPassword currPasswd;
@@ -154,9 +154,9 @@ int LocalDatabaseOper::BackupCurrentDatabase(const ImportFileInfo &info) const
     }
 
     std::string currentFile = info.currentDir + DBConstant::LOCAL_DATABASE_NAME +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     std::string backupFile = info.backupDir + DBConstant::LOCAL_DATABASE_NAME +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     errCode = DBCommon::CopyFile(currentFile, backupFile);
     if (errCode != E_OK) {
         LOGE("Backup the current database error:%d", errCode);
@@ -178,8 +178,8 @@ int LocalDatabaseOper::ImportUnpackedDatabase(const ImportFileInfo &info, const 
         return errCode;
     }
 
-    std::string unpackedFile = info.unpackedDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
-    std::string currentFile = info.currentDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
+    std::string unpackedFile = info.unpackedDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
+    std::string currentFile = info.currentDir + DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
     CipherType cipherType;
     CipherPassword passwd;
     localKvDb_->GetDbProperties().GetPassword(cipherType, passwd);

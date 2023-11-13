@@ -13,14 +13,14 @@
 * limitations under the License.
 */
 
-#include "rd_json_object.h"
+#include "json_object.h"
 
 #include <algorithm>
 #include <cmath>
 #include <queue>
 
 #include "doc_errno.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 
 namespace DocumentDB {
 namespace {

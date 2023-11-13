@@ -32,9 +32,6 @@ const std::string KvDBProperties::COMPRESS_ON_SYNC = "needCompressOnSync";
 const std::string KvDBProperties::COMPRESSION_RATE = "compressionRate";
 const std::string KvDBProperties::LOCAL_ONLY = "localOnly";
 
-const std::string KvDBProperties::SHARED_MODE = "sharedMode";
-const std::string KvDBProperties::READ_ONLY_MODE = "read_only";
-
 KvDBProperties::KvDBProperties()
     : cipherType_(CipherType::AES_256_GCM)
 {}
@@ -44,11 +41,11 @@ KvDBProperties::~KvDBProperties() {}
 std::string KvDBProperties::GetStoreSubDirectory(int type)
 {
     switch (type) {
-        case LOCAL_TYPE_SQLITE:
+        case LOCAL_TYPE:
             return DBConstant::LOCAL_SUB_DIR;
-        case MULTI_VER_TYPE_SQLITE:
+        case MULTI_VER_TYPE:
             return DBConstant::MULTI_SUB_DIR;
-        case SINGLE_VER_TYPE_SQLITE:
+        case SINGLE_VER_TYPE:
             return DBConstant::SINGLE_SUB_DIR;
         default:
             return "unknown";

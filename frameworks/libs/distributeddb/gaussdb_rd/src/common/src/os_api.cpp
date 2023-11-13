@@ -15,12 +15,11 @@
 #include "os_api.h"
 
 #include <climits>
-#include <stdlib.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "doc_errno.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 #include "securec.h"
 
 namespace DocumentDB {
@@ -54,19 +53,12 @@ int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
         delete[] realPath;
         return -E_SECUREC_ERROR;
     }
-#ifndef _WIN32
+
     if (realpath(inOriPath.c_str(), realPath) == nullptr) {
         GLOGE("[OS_API] Realpath error:%d.", errno);
         delete[] realPath;
         return -E_SYSTEM_API_FAIL;
     }
-#else
-    if (_fullpath(realPath, inOriPath.c_str(), MAX_PATH_LENGTH) == nullptr) {
-        GLOGE("[OS] Realpath error:%d.", errno);
-        delete [] realPath;
-        return -E_SYSTEM_API_FAIL;
-    }  
-#endif
     outRealPath = std::string(realPath);
     delete[] realPath;
     return E_OK;

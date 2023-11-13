@@ -56,7 +56,7 @@ int QuerySyncWaterMarkHelper::SetMetadataToDb(const std::vector<uint8_t> &key, c
     if (storage_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return storage_->PutMetaData(key, inValue, false);
+    return storage_->PutMetaData(key, inValue);
 }
 
 int QuerySyncWaterMarkHelper::DeleteMetaDataFromDB(const std::vector<Key> &keys) const

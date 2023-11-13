@@ -24,10 +24,14 @@
 #include "query_object.h"
 
 namespace DistributedDB {
+constexpr int INIT_POSITION = -1;
 constexpr int DEFAULT_RESULT_SET_CACHE_MAX_SIZE = 1; // Unit MB, default 1 MB
 constexpr int RESULT_SET_CACHE_MAX_SIZE_MIN = 1;
 constexpr int RESULT_SET_CACHE_MAX_SIZE_MAX = 16;
-
+enum class ResultSetType : int {
+    KEYPREFIX = 0,
+    QUERY = 1,
+};
 // Forward declaration
 class SQLiteSingleVerNaturalStore;
 class SQLiteSingleVerStorageExecutor;
@@ -64,7 +68,7 @@ public:
     int GetEntry(Entry &entry) const override;
 
     // Finalize logic
-    int Close() override;
+    void Close() override;
 private:
     int OpenForCacheFullEntryMode(bool isMemDb);
     int OpenForCacheEntryIdMode();

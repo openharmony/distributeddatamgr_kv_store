@@ -17,7 +17,7 @@
 
 #include "doc_errno.h"
 #include "documentdb_test_utils.h"
-#include "rd_json_object.h"
+#include "json_object.h"
 
 using namespace DocumentDB;
 using namespace testing::ext;

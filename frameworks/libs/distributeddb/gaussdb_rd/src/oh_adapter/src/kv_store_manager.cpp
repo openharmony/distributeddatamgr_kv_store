@@ -16,9 +16,9 @@
 #include "kv_store_manager.h"
 
 #include "doc_errno.h"
-#include "rd_log_print.h"
-#include "rd_sqlite_utils.h"
+#include "log_print.h"
 #include "sqlite_store_executor_impl.h"
+#include "sqlite_utils.h"
 
 namespace DocumentDB {
 int KvStoreManager::GetKvStore(const std::string &path, const DBConfig &config, bool isFirstOpen,

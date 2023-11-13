@@ -16,10 +16,10 @@
 #include "collection.h"
 
 #include "check_common.h"
-#include "rd_db_constant.h"
+#include "db_constant.h"
 #include "doc_errno.h"
 #include "document_key.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 
 namespace DocumentDB {
 Collection::Collection(const std::string &name, KvStoreExecutor *executor) : executor_(executor)

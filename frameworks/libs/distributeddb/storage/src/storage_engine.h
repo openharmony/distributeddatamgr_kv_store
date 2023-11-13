@@ -23,7 +23,6 @@
 
 #include "db_types.h"
 #include "macro_utils.h"
-#include "sqlite_utils.h"
 #include "storage_executor.h"
 #include "kvdb_commit_notify_filterable_data.h"
 
@@ -45,13 +44,9 @@ public:
 
     int Init();
 
-    virtual int ReInit();
-
     StorageExecutor *FindExecutor(bool writable, OperatePerm perm, int &errCode, int waitTime = MAX_WAIT_TIME);
 
     void Recycle(StorageExecutor *&handle);
-
-    virtual bool IsEngineCorrupted() const;
 
     void Release();
 
@@ -65,9 +60,9 @@ public:
 
     virtual const std::string &GetIdentifier() const;
 
-    EngineState GetEngineState() const;
+    virtual EngineState GetEngineState() const;
 
-    void SetEngineState(EngineState state);
+    virtual void SetEngineState(EngineState state);
 
     virtual int ExecuteMigrate();
 
@@ -77,15 +72,13 @@ public:
 
     bool IsExistConnection() const;
 
+    virtual void ClearEnginePasswd();
+
     virtual int CheckEngineOption(const KvDBProperties &kvdbOption) const;
 
     virtual bool IsMigrating() const;
 
     void WaitWriteHandleIdle();
-
-    virtual void IncreaseCacheRecordVersion();
-    virtual uint64_t GetCacheRecordVersion() const;
-    virtual uint64_t GetAndIncreaseCacheRecordVersion();
 
 protected:
     virtual int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) = 0;
@@ -98,12 +91,11 @@ protected:
 
     int InitReadWriteExecutors();
 
-    OpenDbProperties option_;
-
     StorageEngineAttr engineAttr_;
     bool isUpdated_;
     std::atomic<bool> isMigrating_;
     std::string identifier_;
+    EngineState engineState_;
 
     // Mutex for commitNotifyFunc_.
     mutable std::shared_mutex notifyMutex_;
@@ -142,8 +134,6 @@ private:
 
     std::mutex idleMutex_;
     std::condition_variable idleCondition_;
-
-    EngineState engineState_;
 };
 } // namespace DistributedDB
 #endif // STORAGE_ENGINE_H

@@ -24,6 +24,76 @@
 #include "single_ver_natural_store_commit_notify_data.h"
 
 namespace DistributedDB {
+enum class SingleVerDataType {
+    META_TYPE,
+    LOCAL_TYPE,
+    SYNC_TYPE,
+};
+
+enum class DataStatus {
+    NOEXISTED,
+    DELETED,
+    EXISTED,
+};
+
+enum class ExecutorState {
+    INVALID = -1,
+    MAINDB,
+    CACHEDB,
+    MAIN_ATTACH_CACHE, // After process crash and cacheDb existed
+    CACHE_ATTACH_MAIN, // while cacheDb migrating to mainDb
+};
+
+struct DataOperStatus {
+    DataStatus preStatus = DataStatus::NOEXISTED;
+    bool isDeleted = false;
+    bool isDefeated = false; // whether the put data is defeated.
+};
+
+struct SingleVerRecord {
+    Key key;
+    Value value;
+    Timestamp timestamp = 0;
+    uint64_t flag = 0;
+    std::string device;
+    std::string origDevice;
+    Key hashKey;
+    Timestamp writeTimestamp = 0;
+};
+
+struct DeviceInfo {
+    bool isLocal = false;
+    std::string deviceName;
+};
+
+struct LocalDataItem {
+    Key key;
+    Value value;
+    Timestamp timestamp = 0;
+    Key hashKey;
+    uint64_t flag = 0;
+};
+
+struct NotifyConflictAndObserverData {
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    DataItem getData;
+    Key hashKey;
+    DataOperStatus dataStatus;
+};
+
+struct NotifyMigrateSyncData {
+    bool isRemote = false;
+    bool isRemoveDeviceData = false;
+    bool isPermitForceWrite = true;
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    std::vector<Entry> entries{};
+};
+
+struct SyncDataDevices {
+    std::string origDev;
+    std::string dev;
+};
+
 class SQLiteSingleVerStorageExecutor : public SQLiteStorageExecutor {
 public:
     SQLiteSingleVerStorageExecutor(sqlite3 *dbHandle, bool writable, bool isMemDb);
@@ -34,17 +104,16 @@ public:
     DISABLE_COPY_ASSIGN_MOVE(SQLiteSingleVerStorageExecutor);
 
     // Get the Kv data according the type(sync, meta, local data).
-    virtual int GetKvData(SingleVerDataType type, const Key &key, Value &value, Timestamp &timestamp) const;
+    int GetKvData(SingleVerDataType type, const Key &key, Value &value, Timestamp &timestamp) const;
 
     // Get the sync data record by hash key.
     int GetKvDataByHashKey(const Key &hashKey, SingleVerRecord &result) const;
 
     // Put the Kv data according the type(meta and the local data).
-    virtual int PutKvData(SingleVerDataType type, const Key &key, const Value &value,
+    int PutKvData(SingleVerDataType type, const Key &key, const Value &value,
         Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData);
 
-    virtual int GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix,
-        std::vector<Entry> &entries) const;
+    int GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries) const;
 
     int GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const;
 
@@ -58,7 +127,7 @@ public:
     int SaveSyncDataItem(DataItem &dataItem, const DeviceInfo &deviceInfo,
         Timestamp &maxStamp, SingleVerNaturalStoreCommitNotifyData *committedData, bool isPermitForceWrite = true);
 
-    virtual int DeleteLocalKvData(const Key &key, SingleVerNaturalStoreCommitNotifyData *committedData, Value &value,
+    int DeleteLocalKvData(const Key &key, SingleVerNaturalStoreCommitNotifyData *committedData, Value &value,
         Timestamp &timestamp);
 
     // delete a row data by hashKey, with no tombstone left.
@@ -183,12 +252,6 @@ public:
 
     int UpdateKey(const UpdateKeyCallback &callback);
 
-protected:
-    virtual int SaveKvData(SingleVerDataType type, const Key &key, const Value &value, Timestamp timestamp);
-
-    virtual int DeleteLocalDataInner(SingleVerNaturalStoreCommitNotifyData *committedData,
-        const Key &key, const Value &value);
-
 private:
     struct SaveRecordStatements {
         sqlite3_stmt *queryStatement = nullptr;
@@ -252,6 +315,11 @@ private:
 
     int SaveSyncDataToDatabase(const DataItem &dataItem, const Key &hashKey, const std::string &origDev,
         const std::string &deviceName, bool isUpdate);
+
+    int SaveKvData(SingleVerDataType type, const Key &key, const Value &value, Timestamp timestamp);
+
+    int DeleteLocalDataInner(SingleVerNaturalStoreCommitNotifyData *committedData,
+        const Key &key, const Value &value);
 
     int PrepareForSavingData(const std::string &readSql, const std::string &insertSql,
         const std::string &updateSql, SaveRecordStatements &statements) const;

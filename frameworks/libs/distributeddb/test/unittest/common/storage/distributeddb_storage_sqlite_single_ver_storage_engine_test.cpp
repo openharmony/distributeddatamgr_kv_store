@@ -70,13 +70,13 @@ void DistributedDBStorageSQLiteSingleVerStorageEngineTest::SetUpTestCase(void)
     g_identifier = DBCommon::TransferStringToHex(identifier);
 
     g_databaseName = "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNBStorageEngine");
     g_property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     g_cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
-        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
 }
 
 void DistributedDBStorageSQLiteSingleVerStorageEngineTest::TearDownTestCase(void)

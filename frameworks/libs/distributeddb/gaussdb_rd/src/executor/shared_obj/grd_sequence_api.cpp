@@ -17,13 +17,13 @@
 #include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
 #include "grd_type_inner.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 using namespace DocumentDB;
-static GRD_APIInfo GRD_SeqApiInfo;
+static GRD_APIInfo GRD_SeqApiInfo = GetApiInfoInstance();
 GRD_API int32_t GRD_CreateSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
     if (GRD_SeqApiInfo.CreateSeqApi == nullptr) {
-        GRD_SeqApiInfo = GetApiInfoInstance();
+        return GRD_INNER_ERR;
     }
     return GRD_SeqApiInfo.CreateSeqApi(db, sequenceName, flags);
 }
@@ -31,7 +31,7 @@ GRD_API int32_t GRD_CreateSeq(GRD_DB *db, const char *sequenceName, uint32_t fla
 GRD_API int32_t GRD_DropSeq(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {
     if (GRD_SeqApiInfo.DropSeqApi == nullptr) {
-        GRD_SeqApiInfo = GetApiInfoInstance();
+        return GRD_INNER_ERR;
     }
     return GRD_SeqApiInfo.DropSeqApi(db, sequenceName, flags);
 }

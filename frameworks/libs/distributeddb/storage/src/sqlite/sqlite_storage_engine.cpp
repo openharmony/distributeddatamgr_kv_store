@@ -96,6 +96,58 @@ int SQLiteStorageEngine::CreateNewExecutor(bool isWrite, StorageExecutor *&handl
     return E_OK;
 }
 
+int SQLiteStorageEngine::ReInit()
+{
+    return E_OK;
+}
+
+bool SQLiteStorageEngine::IsNeedTobeReleased() const
+{
+    EngineState engineState = GetEngineState();
+    return ((engineState == EngineState::MAINDB) || (engineState == EngineState::INVALID));
+}
+
+const std::string &SQLiteStorageEngine::GetIdentifier() const
+{
+    return identifier_;
+}
+
+EngineState SQLiteStorageEngine::GetEngineState() const
+{
+    return engineState_;
+}
+
+void SQLiteStorageEngine::SetEngineState(EngineState state)
+{
+    LOGD("[SQLiteStorageEngine::SetEngineState] Engine State : [%d]", state);
+    engineState_ = state; // Current usage logically can guarantee no concurrency
+}
+
+int SQLiteStorageEngine::ExecuteMigrate()
+{
+    return -E_NOT_SUPPORT;
+}
+
+void SQLiteStorageEngine::IncreaseCacheRecordVersion()
+{
+    return;
+}
+
+uint64_t SQLiteStorageEngine::GetCacheRecordVersion() const
+{
+    return 0;
+}
+
+uint64_t SQLiteStorageEngine::GetAndIncreaseCacheRecordVersion()
+{
+    return 0;
+}
+
+bool SQLiteStorageEngine::IsEngineCorrupted() const
+{
+    return false;
+}
+
 void SQLiteStorageEngine::ClearEnginePasswd()
 {
     option_.passwd.Clear();

@@ -61,8 +61,6 @@ public:
     // Put meta data as a key-value entry.
     int PutMetaData(const Key &key, const Value &value) override;
 
-    int PutMetaData(const Key &key, const Value &value, bool isInTransaction) override;
-
     // Delete multiple meta data records in a transaction.
     int DeleteMetaData(const std::vector<Key> &keys) override;
 
@@ -219,8 +217,6 @@ private:
     mutable std::mutex heartBeatMutex_;
 
     LruMap<std::string, std::string> remoteDeviceSchema_;
-    StorageExecutor *reusedHandle_ = nullptr;
-    mutable std::mutex reusedHandleMutex_;
 
     // cache securityOption
     mutable std::mutex securityOptionMutex_;

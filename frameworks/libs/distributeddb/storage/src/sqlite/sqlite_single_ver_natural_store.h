@@ -20,14 +20,15 @@
 #include "isyncer.h"
 #include "kv_store_nb_conflict_data_impl.h"
 #include "runtime_context.h"
-#include "single_ver_natural_store.h"
+#include "single_ver_kvdb_sync_interface.h"
 #include "single_ver_natural_store_commit_notify_data.h"
 #include "sqlite_single_ver_continue_token.h"
 #include "sqlite_single_ver_storage_engine.h"
 #include "sqlite_utils.h"
+#include "sync_able_kvdb.h"
 
 namespace DistributedDB {
-class SQLiteSingleVerNaturalStore : public SingleVerNaturalStore {
+class SQLiteSingleVerNaturalStore : public SyncAbleKvDB, public SingleVerKvDBSyncInterface {
 public:
     SQLiteSingleVerNaturalStore();
     ~SQLiteSingleVerNaturalStore() override;
@@ -47,7 +48,7 @@ public:
     // Get interface type of this kvdb.
     int GetInterfaceType() const override;
 
-    // Get the interface ref-count, in order to access asynchronously.1
+    // Get the interface ref-count, in order to access asynchronously.
     void IncRefCount() override;
 
     // Drop the interface ref-count.
@@ -63,7 +64,7 @@ public:
 
     int GetMetaData(const Key &key, Value &value) const override;
 
-    int PutMetaData(const Key &key, const Value &value, bool isInTransaction) override;
+    int PutMetaData(const Key &key, const Value &value) override;
 
     // Delete multiple meta data records in a transaction.
     int DeleteMetaData(const std::vector<Key> &keys) override;
@@ -131,6 +132,8 @@ public:
 
     const KvDBProperties &GetDbProperties() const override;
 
+    int RemoveKvDB(const KvDBProperties &properties) override;
+
     int GetKvDBSize(const KvDBProperties &properties, uint64_t &size) const override;
     KvDBProperties &GetDbPropertyForUpdate();
 
@@ -191,9 +194,9 @@ public:
 
     int IsSupportSubscribe() const override;
 
-    void AbortHandle() override;
+    void AbortHandle();
 
-    void EnableHandle() override;
+    void EnableHandle();
 
     int TryHandle() const override;
 
@@ -203,8 +206,15 @@ protected:
     void ReleaseResources();
 
 private:
-
+    struct TransPair {
+        int index;
+        RegisterFuncType funcType;
+    };
+    static RegisterFuncType GetFuncType(int index, const TransPair *transMap, int32_t len);
     int CheckDatabaseRecovery(const KvDBProperties &kvDBProp);
+
+    void CommitAndReleaseNotifyData(SingleVerNaturalStoreCommitNotifyData *&committedData,
+        bool isNeedCommit, int eventType);
 
     int RegisterNotification();
 
@@ -223,6 +233,8 @@ private:
 
     static int SetUserVer(const KvDBProperties &kvDBProp, int version);
 
+    static std::string GetDatabasePath(const KvDBProperties &kvDBProp);
+    static std::string GetSubDirPath(const KvDBProperties &kvDBProp);
     void NotifyRemovedData(std::vector<Entry> &entries);
 
     // Decide read only based on schema situation
@@ -258,13 +270,15 @@ private:
     int SaveSyncItemsInCacheMode(SQLiteSingleVerStorageExecutor *handle, const QueryObject &query,
         std::vector<DataItem> &dataItems, const DeviceInfo &deviceInfo, Timestamp &maxTimestamp) const;
 
+    int ClearIncompleteDatabase(const KvDBProperties &kvDBPro) const;
+
     int GetSyncDataForQuerySync(std::vector<DataItem> &dataItems, SQLiteSingleVerContinueToken *&continueStmtToken,
         const DataSizeSpecInfo &dataSizeInfo) const;
 
     int SaveCreateDBTime();
     int SaveCreateDBTimeIfNotExisted();
 
-    virtual int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);
+    int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);
 
     int RemoveAllSubscribe();
 

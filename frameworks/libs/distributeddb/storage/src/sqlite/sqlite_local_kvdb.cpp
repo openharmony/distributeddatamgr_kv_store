@@ -48,8 +48,8 @@ SQLiteLocalKvDB::~SQLiteLocalKvDB()
 
 int SQLiteLocalKvDB::Open(const KvDBProperties &kvDBProp)
 {
-    int databaseType = kvDBProp.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
-    if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
+    int databaseType = kvDBProp.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
+    if (databaseType == KvDBProperties::LOCAL_TYPE) {
         std::unique_ptr<LocalDatabaseOper> operation = std::make_unique<LocalDatabaseOper>(this, nullptr);
         (void)operation->ClearExportedTempFiles(kvDBProp);
         int errCode = operation->RekeyRecover(kvDBProp);
@@ -296,7 +296,7 @@ void SQLiteLocalKvDB::InitDataBaseOption(const KvDBProperties &kvDBProp, OpenDbP
     std::string dataDir = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR, "");
     std::string identifierDir = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
     std::string dbName = kvDBProp.GetStringProp(KvDBProperties::FILE_NAME, DBConstant::LOCAL_DATABASE_NAME);
-    int databaseType = kvDBProp.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int databaseType = kvDBProp.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     bool createIfNecessary = kvDBProp.GetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     std::string subDir = KvDBProperties::GetStoreSubDirectory(databaseType);
     // Table name "data" should not be changed in the future, otherwise when an older software open a newer database
@@ -305,7 +305,7 @@ void SQLiteLocalKvDB::InitDataBaseOption(const KvDBProperties &kvDBProp, OpenDbP
     CipherType cipherType;
     CipherPassword passwd;
     kvDBProp.GetPassword(cipherType, passwd);
-    std::string uri = dataDir + "/" + identifierDir + "/" + subDir + "/" + dbName + DBConstant::DB_EXTENSION;
+    std::string uri = dataDir + "/" + identifierDir + "/" + subDir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
     option = {uri, createIfNecessary, false, createTableSqls, cipherType, passwd};
 }
 
@@ -318,10 +318,10 @@ int SQLiteLocalKvDB::BackupCurrentDatabase(const KvDBProperties &properties, con
         return errCode;
     }
     std::string dbName = properties.GetStringProp(KvDBProperties::FILE_NAME, DBConstant::LOCAL_DATABASE_NAME);
-    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string subDir = KvDBProperties::GetStoreSubDirectory(databaseType);
-    std::string currentDb = baseDir + "/" + subDir + "/" + dbName + DBConstant::DB_EXTENSION;
-    std::string dstDb = dir + "/" + dbName + DBConstant::DB_EXTENSION;
+    std::string currentDb = baseDir + "/" + subDir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
+    std::string dstDb = dir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
     errCode = DBCommon::CopyFile(currentDb, dstDb);
     if (errCode != E_OK) {
         LOGE("Copy the local current db error:%d", errCode);
@@ -338,10 +338,10 @@ int SQLiteLocalKvDB::ImportDatabase(const KvDBProperties &properties, const std:
         return errCode;
     }
     std::string dbName = properties.GetStringProp(KvDBProperties::FILE_NAME, DBConstant::LOCAL_DATABASE_NAME);
-    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string subDir = KvDBProperties::GetStoreSubDirectory(databaseType);
-    std::string dstDb = baseDir + "/" + subDir + "/" + dbName + DBConstant::DB_EXTENSION;
-    std::string currentDb = dir + "/" + dbName + DBConstant::DB_EXTENSION;
+    std::string dstDb = baseDir + "/" + subDir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
+    std::string currentDb = dir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
     CipherType cipherType;
     CipherPassword dstPasswd;
     properties.GetPassword(cipherType, dstPasswd);
@@ -353,8 +353,8 @@ int SQLiteLocalKvDB::RemoveKvDB(const KvDBProperties &properties)
     // Only care the data directory and the db name.
     std::string storeOnlyDir;
     std::string storeDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::LOCAL_TYPE_SQLITE, storeDir, storeOnlyDir);
-    int dbType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::LOCAL_TYPE, storeDir, storeOnlyDir);
+    int dbType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     return KvDBUtils::RemoveKvDB(storeDir, storeOnlyDir, KvDBProperties::GetStoreSubDirectory(dbType));
 }
 
@@ -362,8 +362,8 @@ int SQLiteLocalKvDB::GetKvDBSize(const KvDBProperties &properties, uint64_t &siz
 {
     std::string storeOnlyDir;
     std::string storeDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::LOCAL_TYPE_SQLITE, storeDir, storeOnlyDir);
-    int dbType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::LOCAL_TYPE, storeDir, storeOnlyDir);
+    int dbType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     return KvDBUtils::GetKvDbSize(storeDir, storeOnlyDir, KvDBProperties::GetStoreSubDirectory(dbType), size);
 }
 

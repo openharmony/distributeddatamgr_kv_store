@@ -20,6 +20,7 @@
 #include <map>
 #include <set>
 #include <string>
+
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -187,14 +188,8 @@ struct TrackerSchema {
     std::set<std::string> trackerColNames;
 };
 
-static constexpr const char *GAUSSDB_RD = "gaussdb_rd";
-static constexpr const char *SQLITE = "sqlite";
 struct ChangeProperties {
     bool isTrackedDataChange = false;
-};
-
-struct Rdconfig {
-    bool readOnly = false;
 };
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

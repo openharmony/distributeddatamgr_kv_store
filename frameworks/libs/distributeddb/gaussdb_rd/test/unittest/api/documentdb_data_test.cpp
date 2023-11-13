@@ -21,8 +21,8 @@
 #include "grd_base/grd_db_api.h"
 #include "grd_base/grd_error.h"
 #include "grd_document/grd_document_api.h"
-#include "rd_log_print.h"
-#include "rd_sqlite_utils.h"
+#include "log_print.h"
+#include "sqlite_utils.h"
 
 using namespace DocumentDB;
 using namespace testing::ext;

@@ -101,9 +101,8 @@ int VirtualSingleVerSyncDBInterface::GetMetaData(const Key &key, Value &value) c
     return -E_NOT_FOUND;
 }
 
-int VirtualSingleVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
+int VirtualSingleVerSyncDBInterface::PutMetaData(const Key &key, const Value &value)
 {
-    (void)isInTransaction;
     if (busy_) {
         return -E_BUSY;
     }

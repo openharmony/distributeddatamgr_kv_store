@@ -21,7 +21,7 @@
 #include "document_key.h"
 #include "grd_base/grd_type_export.h"
 #include "grd_resultset_inner.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 #include "result_set.h"
 #include "result_set_common.h"
 

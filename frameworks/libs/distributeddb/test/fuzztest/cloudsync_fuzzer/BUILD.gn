@@ -35,7 +35,6 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "../../../storage/include",
     "../../../storage/src",
     "../../../storage/src/cloud",
-    "../../../storage/src/gaussdb_rd",
     "../../../storage/src/multiver",
     "../../../storage/src/operation",
     "../../../storage/src/sqlite",

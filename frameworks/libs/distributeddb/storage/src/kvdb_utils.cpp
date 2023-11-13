@@ -50,7 +50,7 @@ int KvDBUtils::RemoveKvDB(const std::string &dir, const std::string &dbName)
 {
     std::string dbFileName = dir;
     GetStoreDirectory(dbFileName, dbName);
-    dbFileName += DBConstant::DB_EXTENSION;
+    dbFileName += DBConstant::SQLITE_DB_EXTENSION;
     int errCode = E_OK;
     if (OS::CheckPathExistence(dbFileName)) {
         errCode = DBCommon::RemoveAllFilesOfDirectory(dir, true);

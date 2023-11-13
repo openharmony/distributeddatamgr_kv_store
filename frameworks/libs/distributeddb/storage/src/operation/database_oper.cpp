@@ -81,7 +81,7 @@ int DatabaseOper::GetCtrlFilePrefix(const KvDBProperties &property, std::string 
         return errCode;
     }
 
-    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string dbSubDir = KvDBProperties::GetStoreSubDirectory(dbType);
     filePrefix = baseDir + "/" + dbSubDir;
     return E_OK;
@@ -95,7 +95,7 @@ int DatabaseOper::RekeyRecover(const KvDBProperties &property)
         return errCode;
     }
 
-    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string dbSubDir = KvDBProperties::GetStoreSubDirectory(dbType);
 
     std::string preCtrlFileName = workDir + "/" + dbSubDir + DBConstant::REKEY_FILENAME_POSTFIX_PRE;
@@ -230,7 +230,7 @@ int DatabaseOper::CreateBackupDirForExport(const KvDBProperties &property, std::
         return errCode;
     }
 
-    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string subDir = KvDBProperties::GetStoreSubDirectory(databaseType);
     currentDir = baseDir + "/" + subDir;
 
@@ -419,7 +419,7 @@ void DatabaseOper::InitImportFileInfo(ImportFileInfo &info, const KvDBProperties
 {
     std::string dataDir = property.GetStringProp(KvDBProperties::DATA_DIR, "");
     std::string identifierDir = property.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
-    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     std::string subDir = KvDBProperties::GetStoreSubDirectory(databaseType);
 
     std::string baseDir = dataDir + "/" + identifierDir + "/" + subDir;
@@ -445,7 +445,7 @@ int DatabaseOper::UnpackAndCheckImportedFile(const std::string &srcFile, const I
         LOGE("Failed to unpack the imported file:%d", errCode);
         return errCode;
     }
-    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     if (fileInfo.dbType != static_cast<uint32_t>(dbType)) {
         DBCommon::RemoveAllFilesOfDirectory(info.unpackedDir);
         LOGE("Check db type [%u] vs [%u] or devicesId fail!", fileInfo.dbType, static_cast<uint32_t>(dbType));
@@ -504,7 +504,7 @@ int DatabaseOper::ClearImportTempFile(const KvDBProperties &property) const
         return errCode;
     }
 
-    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string dbSubDir = KvDBProperties::GetStoreSubDirectory(dbType);
 
     std::string oriKeepFile = workDir + "/" + dbSubDir + DBConstant::PATH_POSTFIX_IMPORT_ORIGIN;
@@ -552,7 +552,7 @@ int DatabaseOper::ClearExportedTempFiles(const KvDBProperties &property) const
         return errCode;
     }
 
-    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int dbType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::string dbSubDir = KvDBProperties::GetStoreSubDirectory(dbType);
     std::string backupDir = workDir + "/" + dbSubDir + DBConstant::PATH_POSTFIX_EXPORT_BACKUP;
     errCode = DBCommon::RemoveAllFilesOfDirectory(backupDir);
@@ -568,7 +568,7 @@ int DatabaseOper::PackExportedDatabase(const std::string &fileDir, const std::st
     const KvDBProperties &property) const
 {
     LOGI("Pack the exported database.");
-    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     FileInfo fileInfo = {static_cast<uint32_t>(databaseType), deviceId_};
     int errCode = PackageFile::PackageFiles(fileDir, packedFile, fileInfo);
     if (errCode != E_OK) {

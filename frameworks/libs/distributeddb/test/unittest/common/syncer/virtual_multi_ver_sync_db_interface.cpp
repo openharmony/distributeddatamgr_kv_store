@@ -153,7 +153,7 @@ int VirtualMultiVerSyncDBInterface::Initialize(const std::string &deviceId)
     std::string identifierDir = DBCommon::TransferStringToHex(identifier);
     prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierDir);
     prop.SetStringProp(KvDBProperties::DATA_DIR, dir + "/commitstore");
-    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
+    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
     prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
 
     int errCode = E_OK;

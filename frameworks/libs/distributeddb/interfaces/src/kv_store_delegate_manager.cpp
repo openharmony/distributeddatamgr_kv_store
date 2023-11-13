@@ -32,7 +32,6 @@
 #include "kvdb_manager.h"
 #include "kv_store_nb_delegate_impl.h"
 #include "network_adapter.h"
-#include "rd_utils.h"
 #include "runtime_config.h"
 #include "runtime_context.h"
 #include "param_check_utils.h"
@@ -85,8 +84,7 @@ namespace {
         const SchemaObject &schema, const KvStoreNbDelegate::Option &option)
     {
         properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
-        properties.SetIntProp(KvDBProperties::DATABASE_TYPE, option.storageEngineType == GAUSSDB_RD ?
-            KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL : KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+        properties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
         properties.SetBoolProp(KvDBProperties::MEMORY_MODE, option.isMemoryDb);
         properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
         if (!option.isMemoryDb) { // memory db ignore store path
@@ -112,8 +110,6 @@ namespace {
         }
         properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
         properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
-        properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
-        properties.SetBoolProp(KvDBProperties::SHARED_MODE, false);
     }
 
     bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)
@@ -138,7 +134,7 @@ namespace {
         properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, option.createIfNecessary);
         properties.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, option.createDirByStoreIdOnly);
         properties.SetIntProp(KvDBProperties::DATABASE_TYPE,
-            ((option.localOnly == true) ? KvDBProperties::LOCAL_TYPE_SQLITE : KvDBProperties::MULTI_VER_TYPE_SQLITE));
+            ((option.localOnly == true) ? KvDBProperties::LOCAL_TYPE : KvDBProperties::MULTI_VER_TYPE));
         properties.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
         properties.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, option.isEncryptedDb);
         properties.SetStringProp(KvDBProperties::DATA_DIR, storePath);
@@ -252,10 +248,6 @@ bool KvStoreDelegateManager::GetKvStoreParamCheck(const std::string &storeId, co
 {
     if (!callback) {
         LOGE("[KvStoreMgr] Invalid callback for kv store");
-        return false;
-    }
-    if (!CheckRdOption(option, callback)) {
-        LOGE("[KvStoreMgr] Unsupport option for RD mode");
         return false;
     }
     if (!ParamCheckUtils::CheckStoreParameter(storeId, appId_, userId_) ||

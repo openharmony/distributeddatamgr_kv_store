@@ -55,8 +55,6 @@ public:
         uint8_t compressionRate = 100; // Valid in [1, 100].
         bool syncDualTupleMode = false; // communicator label use dualTuple hash or not
         bool localOnly = false; // active sync module
-        std::string storageEngineType = SQLITE; // use gaussdb_rd as storage engine
-        Rdconfig rdconfig;
     };
 
     DB_API virtual ~KvStoreNbDelegate() {}

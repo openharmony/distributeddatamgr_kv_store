@@ -16,11 +16,11 @@
 #include "sqlite_store_executor_impl.h"
 
 #include "check_common.h"
-#include "rd_db_constant.h"
+#include "db_constant.h"
 #include "doc_errno.h"
 #include "document_key.h"
-#include "rd_log_print.h"
-#include "rd_sqlite_utils.h"
+#include "log_print.h"
+#include "sqlite_utils.h"
 
 namespace DocumentDB {
 constexpr const uint8_t KEY_TYPE = uint8_t(DocIdType::STRING);
@@ -30,26 +30,26 @@ int SqliteStoreExecutorImpl::CreateDatabase(const std::string &path, const DBCon
         return -E_INVALID_ARGS;
     }
 
-    int errCode = RDSQLiteUtils::CreateDataBase(path, 0, db);
+    int errCode = SQLiteUtils::CreateDataBase(path, 0, db);
     if (errCode != E_OK || db == nullptr) {
         GLOGE("Open or create database failed. %d", errCode);
         return errCode;
     }
 
     std::string pageSizeSql = "PRAGMA page_size=" + std::to_string(config.GetPageSize() * 1024);
-    errCode = RDSQLiteUtils::ExecSql(db, pageSizeSql);
+    errCode = SQLiteUtils::ExecSql(db, pageSizeSql);
     if (errCode != E_OK) {
         GLOGE("Set db page size failed. %d", errCode);
         goto END;
     }
 
-    errCode = RDSQLiteUtils::ExecSql(db, "PRAGMA journal_mode=WAL;");
+    errCode = SQLiteUtils::ExecSql(db, "PRAGMA journal_mode=WAL;");
     if (errCode != E_OK) {
         GLOGE("Set db journal_mode failed. %d", errCode);
         goto END;
     }
 
-    errCode = RDSQLiteUtils::ExecSql(db, "CREATE TABLE IF NOT EXISTS grd_meta (key BLOB PRIMARY KEY, value BLOB);");
+    errCode = SQLiteUtils::ExecSql(db, "CREATE TABLE IF NOT EXISTS grd_meta (key BLOB PRIMARY KEY, value BLOB);");
     if (errCode != E_OK) {
         GLOGE("Create meta table failed. %d", errCode);
         goto END;
@@ -91,17 +91,17 @@ int SqliteStoreExecutorImpl::SetDBConfig(const std::string &config)
 
 int SqliteStoreExecutorImpl::StartTransaction()
 {
-    return RDSQLiteUtils::BeginTransaction(dbHandle_, TransactType::IMMEDIATE);
+    return SQLiteUtils::BeginTransaction(dbHandle_, TransactType::IMMEDIATE);
 }
 
 int SqliteStoreExecutorImpl::Commit()
 {
-    return RDSQLiteUtils::CommitTransaction(dbHandle_);
+    return SQLiteUtils::CommitTransaction(dbHandle_);
 }
 
 int SqliteStoreExecutorImpl::Rollback()
 {
-    return RDSQLiteUtils::RollbackTransaction(dbHandle_);
+    return SQLiteUtils::RollbackTransaction(dbHandle_);
 }
 
 int SqliteStoreExecutorImpl::PutData(const std::string &collName, Key &key, const Value &value, bool isNeedAddKeyType)
@@ -113,11 +113,11 @@ int SqliteStoreExecutorImpl::PutData(const std::string &collName, Key &key, cons
         key.push_back(KEY_TYPE); // Stitching ID type
     }
     std::string sql = "INSERT OR REPLACE INTO '" + collName + "' VALUES (?,?);";
-    int errCode = RDSQLiteUtils::ExecSql(
+    int errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key, value](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
-            RDSQLiteUtils::BindBlobToStatement(stmt, 2, value);
+            SQLiteUtils::BindBlobToStatement(stmt, 1, key);
+            SQLiteUtils::BindBlobToStatement(stmt, 2, value);
             return E_OK;
         },
         nullptr);
@@ -142,11 +142,11 @@ int SqliteStoreExecutorImpl::InsertData(const std::string &collName, Key &key, c
         key.push_back(KEY_TYPE); // Stitching ID type
     }
     std::string sql = "INSERT INTO '" + collName + "' VALUES (?,?);";
-    int errCode = RDSQLiteUtils::ExecSql(
+    int errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key, value](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
-            RDSQLiteUtils::BindBlobToStatement(stmt, 2, value);
+            SQLiteUtils::BindBlobToStatement(stmt, 1, key);
+            SQLiteUtils::BindBlobToStatement(stmt, 2, value);
             return E_OK;
         },
         nullptr);
@@ -169,14 +169,14 @@ int SqliteStoreExecutorImpl::GetDataByKey(const std::string &collName, Key &key,
     }
     int innerErrorCode = -E_NOT_FOUND;
     std::string sql = "SELECT value FROM '" + collName + "' WHERE key=?;";
-    int errCode = RDSQLiteUtils::ExecSql(
+    int errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
+            SQLiteUtils::BindBlobToStatement(stmt, 1, key);
             return E_OK;
         },
         [&value, &innerErrorCode](sqlite3_stmt *stmt, bool &isMatchOneData) {
-            RDSQLiteUtils::GetColumnBlobValue(stmt, 0, value);
+            SQLiteUtils::GetColumnBlobValue(stmt, 0, value);
             innerErrorCode = E_OK;
             return E_OK;
         });
@@ -196,14 +196,14 @@ int SqliteStoreExecutorImpl::GetDataById(const std::string &collName, Key &key, 
     key.push_back(KEY_TYPE); // Stitching ID type
     int innerErrorCode = -E_NOT_FOUND;
     std::string sql = "SELECT value FROM '" + collName + "' WHERE key=?;";
-    int errCode = RDSQLiteUtils::ExecSql(
+    int errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
+            SQLiteUtils::BindBlobToStatement(stmt, 1, key);
             return E_OK;
         },
         [&value, &innerErrorCode](sqlite3_stmt *stmt, bool &isMatchOneData) {
-            RDSQLiteUtils::GetColumnBlobValue(stmt, 0, value);
+            SQLiteUtils::GetColumnBlobValue(stmt, 0, value);
             innerErrorCode = E_OK;
             return E_OK;
         });
@@ -250,18 +250,18 @@ int SqliteStoreExecutorImpl::GetDataByFilter(const std::string &collName, Key &k
     std::string sql = GeneralInsertSql(collName, key, isIdExist);
     key.push_back(KEY_TYPE);
     std::string keyStr(key.begin(), key.end());
-    int errCode = RDSQLiteUtils::ExecSql(
+    int errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key](sqlite3_stmt *stmt) {
             if (!key.empty()) {
-                RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
+                SQLiteUtils::BindBlobToStatement(stmt, 1, key);
             }
             return E_OK;
         },
         [&keyResult, &innerErrorCode, &valueResult, &filterObj, &values, &isFindMatch](sqlite3_stmt *stmt,
             bool &isMatchOneData) {
-            RDSQLiteUtils::GetColumnBlobValue(stmt, 0, keyResult);
-            RDSQLiteUtils::GetColumnBlobValue(stmt, 1, valueResult);
+            SQLiteUtils::GetColumnBlobValue(stmt, 0, keyResult);
+            SQLiteUtils::GetColumnBlobValue(stmt, 1, valueResult);
             std::string keyStr(keyResult.begin(), keyResult.end());
             std::string valueStr(valueResult.begin(), valueResult.end());
             JsonObject srcObj = JsonObject::Parse(valueStr, innerErrorCode, true);
@@ -300,10 +300,10 @@ int SqliteStoreExecutorImpl::DelData(const std::string &collName, Key &key)
         return -E_NO_DATA;
     }
     std::string sql = "DELETE FROM '" + collName + "' WHERE key=?;";
-    errCode = RDSQLiteUtils::ExecSql(
+    errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [key](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindBlobToStatement(stmt, 1, key);
+            SQLiteUtils::BindBlobToStatement(stmt, 1, key);
             return E_OK;
         },
         nullptr);
@@ -335,7 +335,7 @@ int SqliteStoreExecutorImpl::CreateCollection(const std::string &name, const std
     }
 
     std::string sql = "CREATE TABLE IF NOT EXISTS '" + collName + "' (key BLOB PRIMARY KEY, value BLOB);";
-    errCode = RDSQLiteUtils::ExecSql(dbHandle_, sql);
+    errCode = SQLiteUtils::ExecSql(dbHandle_, sql);
     if (errCode != E_OK) {
         GLOGE("[sqlite executor] Create collection failed. err=%d", errCode);
         return errCode;
@@ -368,7 +368,7 @@ int SqliteStoreExecutorImpl::DropCollection(const std::string &name, bool ignore
     }
 
     std::string sql = "DROP TABLE IF EXISTS '" + collName + "';";
-    int errCode = RDSQLiteUtils::ExecSql(dbHandle_, sql);
+    int errCode = SQLiteUtils::ExecSql(dbHandle_, sql);
     if (errCode != E_OK) {
         GLOGE("[sqlite executor] Drop collection failed. err=%d", errCode);
     }
@@ -379,10 +379,10 @@ bool SqliteStoreExecutorImpl::IsCollectionExists(const std::string &name, int &e
 {
     bool isExists = false;
     std::string sql = "SELECT tbl_name FROM sqlite_master WHERE tbl_name=?;";
-    errCode = RDSQLiteUtils::ExecSql(
+    errCode = SQLiteUtils::ExecSql(
         dbHandle_, sql,
         [name](sqlite3_stmt *stmt) {
-            RDSQLiteUtils::BindTextToStatement(stmt, 1, name);
+            SQLiteUtils::BindTextToStatement(stmt, 1, name);
             return E_OK;
         },
         [&isExists](sqlite3_stmt *stmt, bool &isMatchOneData) {
