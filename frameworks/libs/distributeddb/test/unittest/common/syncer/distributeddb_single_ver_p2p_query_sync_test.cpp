@@ -1686,7 +1686,7 @@ HWTEST_F(DistributedDBSingleVerP2PQuerySyncTest, VerifyManagerQuerySyncStorage00
     DBCommon::StringToVector(QuerySyncWaterMarkHelper::GetQuerySyncPrefixKey()
         + DBCommon::TransferHashString(deviceId) + newQueryId, dbKey);
     Value wrongValue;
-    EXPECT_EQ(storage.PutMetaData(dbKey, wrongValue, false), E_OK);
+    EXPECT_EQ(storage.PutMetaData(dbKey, wrongValue), E_OK);
 
     /**
     * @tc.steps: step4. initialize new meta with storage

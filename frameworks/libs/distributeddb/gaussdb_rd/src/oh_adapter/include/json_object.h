@@ -13,8 +13,8 @@
 * limitations under the License.
 */
 
-#ifndef RD_JSON_OBJECT_H
-#define RD_JSON_OBJECT_H
+#ifndef JSON_OBJECT_H
+#define JSON_OBJECT_H
 
 #include <memory>
 #include <set>

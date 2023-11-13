@@ -67,12 +67,6 @@ Query &Query::PrefixKey(const std::vector<uint8_t> &key)
     return *this;
 }
 
-Query &Query::Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd)
-{
-    queryExpression_.QueryByKeyRange(keyBegin, keyEnd);
-    return *this;
-}
-
 Query &Query::SuggestIndex(const std::string &indexName)
 {
     queryExpression_.QueryBySuggestIndex(indexName);

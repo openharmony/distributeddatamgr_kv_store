@@ -52,8 +52,7 @@ int KvDBWindowedResultSet::GetEntry(Entry &entry) const
     return -E_NOT_SUPPORT;
 }
 
-int KvDBWindowedResultSet::Close()
+void KvDBWindowedResultSet::Close()
 {
-    return E_OK;
 }
 } // namespace DistributedDB

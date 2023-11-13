@@ -19,7 +19,7 @@
 
 #include "doc_errno.h"
 #include "grd_base/grd_db_api.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 #include "securec.h"
 
 using namespace DocumentDB;
@@ -175,7 +175,7 @@ int SplitFieldName(const std::string &fieldName, std::vector<std::string> &allFi
     return E_OK;
 }
 
-static int CheckSingleUpdataDocPath(std::vector<std::string> &singleUpdataPath)
+static int CheckSingleUpdataDocPath(const std::vector<std::string> &singleUpdataPath)
 {
     for (const auto &fieldName : singleUpdataPath) {
         for (auto oneChar : fieldName) {
@@ -217,7 +217,7 @@ int CheckCommon::CheckUpdata(JsonObject &updataObj)
     return E_OK;
 }
 
-static int CheckSingleProjectionDocPath(std::vector<std::string> &singleProjectionPath)
+static int CheckSingleProjectionDocPath(const std::vector<std::string> &singleProjectionPath)
 {
     for (const auto &fieldName : singleProjectionPath) {
         if (fieldName.empty()) {

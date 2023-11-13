@@ -216,42 +216,6 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
     return errCode;
 }
 
-int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
-{
-    CHECK_STORAGE_ENGINE;
-    int errCode = E_OK;
-    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
-    std::unique_lock<std::mutex> handLock(reusedHandleMutex_, std::defer_lock);
-
-    // try to recycle using the handle
-    if (isInTransaction) {
-        handLock.lock();
-        if (reusedHandle_ != nullptr) {
-            handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(reusedHandle_);
-        } else {
-            isInTransaction = false;
-            handLock.unlock();
-        }
-    }
-
-    if (handle == nullptr) {
-        handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
-        if (handle == nullptr) {
-            return errCode;
-        }
-    }
-
-    errCode = handle->PutKvData(key, value);
-    if (errCode != E_OK) {
-        LOGE("Put kv data err:%d", errCode);
-        TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
-    }
-    if (!isInTransaction) {
-        ReleaseHandle(handle);
-    }
-    return errCode;
-}
-
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
@@ -549,7 +513,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
-    DBDfxAdapter::StartTracing();
+    DBDfxAdapter::StartTraceSQL();
 
     errCode = handle->SaveSyncItems(inserter);
 

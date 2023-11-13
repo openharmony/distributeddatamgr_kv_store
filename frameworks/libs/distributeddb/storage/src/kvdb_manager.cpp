@@ -36,13 +36,12 @@ namespace {
 
     static const KvDBType g_dbTypeArr[] = {
 #ifndef OMIT_MULTI_VER
-        LOCAL_KVDB_SQLITE,
+        LOCAL_KVDB,
 #endif // OMIT_MULTI_VER
-        SINGER_VER_KVDB_SQLITE,
+        SINGER_VER_KVDB,
 #ifndef OMIT_MULTI_VER
-        MULTI_VER_KVDB_SQLITE,
+        MULTI_VER_KVDB
 #endif // OMIT_MULTI_VER
-        SINGLE_VER_KVDB_RD
     };
 
     int CreateDataBaseInstance(const KvDBProperties &property, IKvDB *&kvDB)
@@ -52,23 +51,21 @@ namespace {
             return -E_OUT_OF_MEMORY;
         }
         int errCode = E_OK;
-        int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
-        if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
+        int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
+        if (databaseType == KvDBProperties::LOCAL_TYPE) {
 #ifndef OMIT_MULTI_VER
-            kvDB = factory->CreateKvDb(LOCAL_KVDB_SQLITE, errCode);
+            kvDB = factory->CreateKvDb(LOCAL_KVDB, errCode);
             if (kvDB != nullptr) {
                 kvDB->EnableAutonomicUpgrade();
             }
 #else
             return -E_NOT_SUPPORT;
 #endif // OMIT_MULTI_VER
-        } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE_SQLITE) {
-            kvDB = factory->CreateKvDb(SINGER_VER_KVDB_SQLITE, errCode);
-        } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
-            kvDB = factory->CreateKvDb(SINGLE_VER_KVDB_RD, errCode);
+        } else if (databaseType == KvDBProperties::SINGLE_VER_TYPE) {
+            kvDB = factory->CreateKvDb(SINGER_VER_KVDB, errCode);
         } else {
 #ifndef OMIT_MULTI_VER
-            kvDB = factory->CreateKvDb(MULTI_VER_KVDB_SQLITE, errCode);
+            kvDB = factory->CreateKvDb(MULTI_VER_KVDB, errCode);
 #else
             return -E_NOT_SUPPORT;
 #endif // OMIT_MULTI_VER
@@ -382,15 +379,8 @@ int KvDBManager::ReleaseDatabaseConnection(IKvDBConnection *connection)
 IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
 {
     IKvDB *kvDB = OpenNewDatabase(property, errCode);
-    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
     if (kvDB == nullptr) {
         LOGE("Failed to open the new database.");
-        bool isReadOnly = property.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
-        if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&
-            databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL && isReadOnly) {
-            LOGI("readOnly process can ot remove database");
-            return kvDB;
-        }
         if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&
             property.GetBoolProp(KvDBProperties::RM_CORRUPTED_DB, false)) {
             LOGI("Remove the corrupted database while open");
@@ -399,8 +389,8 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
         }
         return kvDB;
     }
-    if (property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false) &&
-        databaseType != KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
+
+    if (property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false)) {
         int integrityStatus = kvDB->CheckIntegrity();
         if (integrityStatus == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
             RemoveKvDBFromCache(kvDB);
@@ -502,9 +492,6 @@ int KvDBManager::CalculateKvStoreSize(const KvDBProperties &properties, uint64_t
 
     uint64_t totalSize = 0;
     for (KvDBType kvDbType : g_dbTypeArr) {
-        if (kvDbType == SINGLE_VER_KVDB_RD) {
-            continue;
-        }
         int innerErrCode = E_OK;
         IKvDB *kvDB = factory->CreateKvDb(kvDbType, innerErrCode);
         if (innerErrCode != E_OK) {
@@ -684,17 +671,17 @@ IKvDB *KvDBManager::SaveKvDBToCache(IKvDB *kvDB)
     {
         KvDBProperties properties = kvDB->GetMyProperties();
         std::string identifier = GenerateKvDBIdentifier(properties);
-        int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+        int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
         std::lock_guard<std::mutex> lockGuard(kvDBLock_);
         int errCode = E_OK;
-        if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
+        if (databaseType == KvDBProperties::LOCAL_TYPE) {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, localKvDBs_, true, errCode);
             if (kvDBTmp != nullptr) {
                 kvDBTmp->IncObjRef(kvDBTmp);
                 return kvDBTmp;
             }
             localKvDBs_.insert(std::pair<std::string, IKvDB *>(identifier, kvDB));
-        } else if (databaseType == KvDBProperties::MULTI_VER_TYPE_SQLITE) {
+        } else if (databaseType == KvDBProperties::MULTI_VER_TYPE) {
             IKvDB *kvDBTmp = FindKvDBFromCache(properties, multiVerNaturalStores_, true, errCode);
             if (kvDBTmp != nullptr) {
                 kvDBTmp->IncObjRef(kvDBTmp);
@@ -726,11 +713,11 @@ void KvDBManager::RemoveKvDBFromCache(const IKvDB *kvDB)
 {
     const KvDBProperties &properties = kvDB->GetMyProperties();
     std::string identifier = GenerateKvDBIdentifier(properties);
-    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    int databaseType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
     std::lock_guard<std::mutex> lockGuard(kvDBLock_);
-    if (databaseType == KvDBProperties::LOCAL_TYPE_SQLITE) {
+    if (databaseType == KvDBProperties::LOCAL_TYPE) {
         localKvDBs_.erase(identifier);
-    } else if (databaseType == KvDBProperties::MULTI_VER_TYPE_SQLITE) {
+    } else if (databaseType == KvDBProperties::MULTI_VER_TYPE) {
         multiVerNaturalStores_.erase(identifier);
     } else {
         singleVerNaturalStores_.erase(identifier);
@@ -781,9 +768,8 @@ IKvDB *KvDBManager::FindKvDBFromCache(const KvDBProperties &properties, const st
             errCode = -E_INTERNAL_ERROR;
             return nullptr;
         }
-        int newType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
-        int oldType = kvDB->GetMyProperties().GetIntProp(KvDBProperties::DATABASE_TYPE,
-            KvDBProperties::LOCAL_TYPE_SQLITE);
+        int newType = properties.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
+        int oldType = kvDB->GetMyProperties().GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
         if (oldType == newType) {
             errCode = CheckKvDBProperties(kvDB, properties, isNeedCheckPasswd);
             if (errCode != E_OK) {

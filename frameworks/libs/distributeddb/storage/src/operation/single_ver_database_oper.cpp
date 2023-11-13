@@ -33,8 +33,8 @@ int SingleVerDatabaseOper::SetSecOpt(const std::string &path, bool isDir) const
     std::string currentMetaPath = path + "/" + DBConstant::METADB_DIR;
     std::string currentMainPath = path + "/" + DBConstant::MAINDB_DIR;
     if (!isDir) {
-        currentMetaPath = currentMetaPath + "/" + DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
-        currentMainPath = currentMainPath + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        currentMetaPath = currentMetaPath + "/" + DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        currentMainPath = currentMainPath + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     }
     SecurityOption option;
     int mainSecLabel = singleVerNaturalStore_->GetDbProperties().GetSecLabel();
@@ -174,9 +174,9 @@ int SingleVerDatabaseOper::ExportMainDB(const std::string &currentDir, const Cip
     const std::string &dbDir) const
 {
     std::string backupDbName = dbDir + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     std::string currentDb = currentDir + "/" + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
 
     CipherType cipherType;
     CipherPassword currPasswd;
@@ -194,9 +194,9 @@ int SingleVerDatabaseOper::ExportMetaDB(const std::string &currentDir, const Cip
     const std::string &dbDir) const
 {
     std::string backupDbName = dbDir + DBConstant::METADB_DIR + "/" + DBConstant::SINGLE_VER_META_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     std::string currentDb = currentDir + "/" + DBConstant::METADB_DIR  + "/" + DBConstant::SINGLE_VER_META_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     if (!OS::CheckPathExistence(currentDb)) { // Is S2 label, can access
         LOGD("No metaDB, no need Export metaDB.");
         return E_OK;
@@ -233,9 +233,9 @@ int SingleVerDatabaseOper::ExportAllDatabases(const std::string &currentDir, con
 int SingleVerDatabaseOper::BackupDatabase(const ImportFileInfo &info) const
 {
     std::string currentMainFile = info.currentDir + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     std::string backupMainFile = info.backupDir + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     int errCode = DBCommon::CopyFile(currentMainFile, backupMainFile);
     if (errCode != E_OK) {
         LOGE("Backup the current database error:%d", errCode);
@@ -243,10 +243,10 @@ int SingleVerDatabaseOper::BackupDatabase(const ImportFileInfo &info) const
     }
 
     std::string currentMetaFile = info.currentDir + DBConstant::METADB_DIR + "/" + DBConstant::SINGLE_VER_META_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     if (OS::CheckPathExistence(currentMetaFile)) {
         std::string backupMetaFile = info.backupDir + DBConstant::METADB_DIR + "/" + DBConstant::SINGLE_VER_META_STORE +
-            DBConstant::DB_EXTENSION;
+            DBConstant::SQLITE_DB_EXTENSION;
         errCode = DBCommon::CopyFile(currentMetaFile, backupMetaFile);
         if (errCode != E_OK) {
             LOGE("Backup the current database error:%d", errCode);
@@ -328,15 +328,15 @@ int SingleVerDatabaseOper::ImportUnpackedMainDatabase(const ImportFileInfo &info
     const CipherPassword &srcPasswd) const
 {
     std::string unpackedMainFile = info.unpackedDir + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     std::string currentMainFile = info.currentDir + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     CipherType cipherType;
     CipherPassword passwd;
     singleVerNaturalStore_->GetDbProperties().GetPassword(cipherType, passwd);
 
     std::string unpackedOldMainFile = info.unpackedDir + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::DB_EXTENSION;
+        DBConstant::SQLITE_DB_EXTENSION;
     bool isMainDbExisted = OS::CheckPathExistence(unpackedMainFile);
     bool isOldMainDbExisted = OS::CheckPathExistence(unpackedOldMainFile); // version < 3, mainDb in singer_ver/
     if (isMainDbExisted && isOldMainDbExisted) {
@@ -367,9 +367,9 @@ int SingleVerDatabaseOper::ImportUnpackedMetaDatabase(const ImportFileInfo &info
 {
     LOGI("MetaDB existed, need import, no need upgrade!");
     std::string unpackedMetaFile = info.unpackedDir + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
     std::string currentMetaFile = info.currentDir + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
     int errCode = SQLiteUtils::ExportDatabase(unpackedMetaFile, CipherType::DEFAULT, CipherPassword(),
         currentMetaFile, CipherPassword());
     if (errCode != E_OK) {
@@ -382,7 +382,7 @@ int SingleVerDatabaseOper::ImportUnpackedMetaDatabase(const ImportFileInfo &info
 int SingleVerDatabaseOper::ImportUnpackedDatabase(const ImportFileInfo &info, const CipherPassword &srcPasswd) const
 {
     std::string unpackedMetaFile = info.unpackedDir + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
     bool metaDbExisted = OS::CheckPathExistence(unpackedMetaFile);
     int errCode = ClearCurrentDatabase(info);
     if (errCode != E_OK) {
@@ -430,14 +430,14 @@ int SingleVerDatabaseOper::ImportPostHandle() const
 int SingleVerDatabaseOper::RunExportLogic(const CipherPassword &passwd, const std::string &filePrefix) const
 {
     std::string currentMainDb = filePrefix + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     CipherType cipherType;
     CipherPassword currPasswd;
     singleVerNaturalStore_->GetDbProperties().GetPassword(cipherType, currPasswd);
 
     // get backup db name
     std::string backupMainDbName = filePrefix + DBConstant::PATH_BACKUP_POSTFIX + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
 
     int errCode = SQLiteUtils::ExportDatabase(currentMainDb, cipherType, currPasswd, backupMainDbName, passwd);
     if (errCode != E_OK) {
@@ -446,7 +446,7 @@ int SingleVerDatabaseOper::RunExportLogic(const CipherPassword &passwd, const st
     }
 
     std::string currentMetaDb = filePrefix + "/" + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
     if (!OS::CheckPathExistence(currentMetaDb)) {
         LOGD("No metaDB, no need Export metaDB.");
         return E_OK;
@@ -454,7 +454,7 @@ int SingleVerDatabaseOper::RunExportLogic(const CipherPassword &passwd, const st
 
     LOGI("Begin export metaDB to back up!");
     std::string backupMetaDbName = filePrefix + DBConstant::PATH_BACKUP_POSTFIX + "/" + DBConstant::METADB_DIR + "/" +
-        DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
     // Set metaDB db passwd same as mainDB temp, may be not need
     errCode = SQLiteUtils::ExportDatabase(currentMetaDb, CipherType::DEFAULT, CipherPassword(),
         backupMetaDbName, CipherPassword());
@@ -490,7 +490,7 @@ void SingleVerDatabaseOper::InitDataBaseOption(OpenDbProperties &option) const
     const std::string dataDir = properties.GetStringProp(KvDBProperties::DATA_DIR, "");
     const std::string identifierDir = properties.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
     std::string uri = dataDir + "/" + identifierDir + "/" + DBConstant::SINGLE_SUB_DIR + "/" +
-        DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     bool isMemoryDb  = properties.GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     if (isMemoryDb) {
         uri = identifierDir + DBConstant::SQLITE_MEMDB_IDENTIFY;

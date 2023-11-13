@@ -149,8 +149,6 @@ public:
 
     DB_API Query &InKeys(const std::set<Key> &keys);
 
-    DB_API Query &Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
-
     friend class GetQueryInfo;
     DB_API ~Query() = default;
     DB_API Query() = default;

@@ -17,7 +17,7 @@
 #include "grd_base/grd_error.h"
 #include "grd_sequence_api_inner.h"
 #include "grd_type_inner.h"
-#include "rd_log_print.h"
+#include "log_print.h"
 namespace DocumentDB {
 int32_t GRD_CreateSeqInner(GRD_DB *db, const char *sequenceName, uint32_t flags)
 {

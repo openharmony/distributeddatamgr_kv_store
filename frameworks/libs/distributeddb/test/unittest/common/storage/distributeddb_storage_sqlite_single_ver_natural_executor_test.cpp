@@ -60,11 +60,11 @@ void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::SetUpTestCase(void)
     g_identifier = DBCommon::TransferStringToHex(identifier);
 
     g_databaseName = "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_property.SetStringProp(KvDBProperties::STORE_ID, "TestGeneralNBExecutor");
     g_property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
 }
 
 void DistributedDBStorageSQLiteSingleVerNaturalExecutorTest::TearDownTestCase(void)
@@ -194,14 +194,14 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam003
      * @tc.steps: step2. The db is null
      * @tc.expected: step2.. Expect -E_INVALID_DB
      */
-    EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::LOCAL_TYPE_SQLITE, KEY_1, entries), -E_INVALID_DB);
+    EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::LOCAL_TYPE, KEY_1, entries), -E_INVALID_DB);
 
     /**
      * @tc.steps: step3. This key does not exist
      * @tc.expected: step3. Expect -E_NOT_FOUND
      */
     Key key;
-    EXPECT_EQ(g_handle->GetEntries(false, SingleVerDataType::LOCAL_TYPE_SQLITE, KEY_1, entries), -E_NOT_FOUND);
+    EXPECT_EQ(g_handle->GetEntries(false, SingleVerDataType::LOCAL_TYPE, KEY_1, entries), -E_NOT_FOUND);
 }
 
 /**
@@ -422,7 +422,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidParam011
     Key key = KEY_1;
     Value value;
     Timestamp timestamp = 0;
-    EXPECT_EQ(g_handle->PutKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, timestamp, nullptr), E_OK);
+    EXPECT_EQ(g_handle->PutKvData(SingleVerDataType::LOCAL_TYPE, key, value, timestamp, nullptr), E_OK);
 
     /**
      * @tc.steps: step2. Get sqlite3 handle,then create executor for state CACHE_ATTACH_MAIN
@@ -482,7 +482,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, InvalidSync001,
      * @tc.steps: step2. Try to prepare when the db is null
      * @tc.expected: step2. Expect -E_INVALID_DB
      */
-    EXPECT_EQ(g_nullHandle->PrepareForSavingData(SingleVerDataType::LOCAL_TYPE_SQLITE), -E_INVALID_DB);
+    EXPECT_EQ(g_nullHandle->PrepareForSavingData(SingleVerDataType::LOCAL_TYPE), -E_INVALID_DB);
 
     /**
      * @tc.steps: step3. The data item key is empty
@@ -878,12 +878,12 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
     EXPECT_EQ(g_handle->DeleteMetaDataByPrefixKey(KEY_1), SQL_STATE_ERR);
     std::vector<Key> keys;
     EXPECT_EQ(g_handle->DeleteMetaData(keys), SQL_STATE_ERR);
-    EXPECT_EQ(g_handle->PrepareForSavingCacheData(SingleVerDataType::LOCAL_TYPE_SQLITE), SQL_STATE_ERR);
+    EXPECT_EQ(g_handle->PrepareForSavingCacheData(SingleVerDataType::LOCAL_TYPE), SQL_STATE_ERR);
     std::string hashDev = DBCommon::TransferHashString("device1");
     EXPECT_EQ(g_handle->RemoveDeviceDataInCacheMode(hashDev, true, 0u), SQL_STATE_ERR);
     Timestamp timestamp;
     EXPECT_EQ(g_handle->GetMaxTimestampDuringMigrating(timestamp), -E_NOT_INIT);
-    EXPECT_EQ(g_handle->ResetForSavingCacheData(SingleVerDataType::LOCAL_TYPE_SQLITE), E_OK);
+    EXPECT_EQ(g_handle->ResetForSavingCacheData(SingleVerDataType::LOCAL_TYPE), E_OK);
 }
 
 /**
@@ -956,7 +956,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
      * @tc.steps: step1. Copy empty db, then attach
      */
     string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
-        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
     EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
     CipherPassword password;
     EXPECT_EQ(g_nullHandle->AttachMainDbAndCacheDb(
@@ -993,7 +993,7 @@ HWTEST_F(DistributedDBStorageSQLiteSingleVerNaturalExecutorTest, ExecutorCache00
      * @tc.expected: step1. Expect E_OK
      */
     string cacheDir = g_testDir + "/" + g_identifier + "/" + DBConstant::SINGLE_SUB_DIR +
-        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
+        "/" + DBConstant::CACHEDB_DIR + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
     EXPECT_EQ(g_handle->ForceCheckPoint(), E_OK);
     EXPECT_EQ(DBCommon::CopyFile(g_testDir + g_databaseName, cacheDir), E_OK);
     CipherPassword password;

@@ -54,13 +54,13 @@ namespace {
         string filePath = g_testDir + "/" + identifierName + "/";
         if (databaseType == DBConstant::DB_TYPE_LOCAL) { // local
             filePath += (DBConstant::LOCAL_SUB_DIR + "/" + DBConstant::LOCAL_DATABASE_NAME +
-                DBConstant::DB_EXTENSION);
+                DBConstant::SQLITE_DB_EXTENSION);
         } else if (databaseType == DBConstant::DB_TYPE_SINGLE_VER) { // single ver
             filePath += (DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
-                DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION);
+                DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION);
         } else if (databaseType == DBConstant::DB_TYPE_MULTI_VER) { // multi ver
             filePath += (DBConstant::MULTI_SUB_DIR + "/" + DBConstant::MULTI_VER_DATA_STORE +
-                DBConstant::DB_EXTENSION);
+                DBConstant::SQLITE_DB_EXTENSION);
         } else {
             filePath = "";
         }

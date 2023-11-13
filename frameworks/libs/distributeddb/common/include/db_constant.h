@@ -78,13 +78,11 @@ public:
     static const std::string SINGLE_VER_CACHE_STORE;
 
     static const std::string SQLITE_URL_PRE;
-    static const std::string DB_EXTENSION;
+    static const std::string SQLITE_DB_EXTENSION;
     static const std::string SQLITE_MEMDB_IDENTIFY;
     static const std::string SCHEMA_KEY;
     static const std::string RELATIONAL_SCHEMA_KEY;
     static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
-
-    static const std::string RD_KV_COLLECTION_MODE;
 
     static const std::string PATH_POSTFIX_UNPACKED;
     static const std::string PATH_POSTFIX_IMPORT_BACKUP;

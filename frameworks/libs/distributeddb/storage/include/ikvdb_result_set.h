@@ -20,14 +20,6 @@
 #include "db_types.h"
 
 namespace DistributedDB {
-
-enum class ResultSetType : int {
-    KEYPREFIX = 0,
-    QUERY = 1,
-};
-
-constexpr int INIT_POSITION = -1;
-
 class IKvDBResultSet {
 public:
     IKvDBResultSet() = default;
@@ -53,7 +45,7 @@ public:
     virtual int GetEntry(Entry &entry) const = 0;
 
     // Finalize logic
-    virtual int Close() = 0;
+    virtual void Close() = 0;
 };
 } // namespace DistributedDB
 

@@ -83,14 +83,10 @@ SQLiteSingleVerDatabaseUpgrader::~SQLiteSingleVerDatabaseUpgrader()
     db_ = nullptr;
 }
 
-// NOTE: 先看upgradeLockFile是否存在，存在就把parentDir目录下的，移动到parentDir/main_db目录下
-// 如果文件锁不存在，那么看dbFilePath-的数据库文件是否存在，如果存在，就
-// GetDbVersion, 先开库获得版本之， 然后如果版本值是0， 就移除原来的。
-// 如果版本值不是0， 就创建文件锁， 再把parentDir目录下的，移动到parentDir/main_db目录下
 int SQLiteSingleVerDatabaseUpgrader::TransferDatabasePath(const std::string &parentDir,
     const OpenDbProperties &option)
 {
-    std::string dbFilePath = parentDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    std::string dbFilePath = parentDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
     std::string upgradeLockFile = parentDir + "/" + DBConstant::UPGRADE_POSTFIX;
 
     if (OS::CheckPathExistence(upgradeLockFile)) {
@@ -263,8 +259,8 @@ int SQLiteSingleVerDatabaseUpgrader::SetPathSecOptWithCheck(const std::string &p
     const std::string &dbStore, bool isWithChecked)
 {
     SecurityOption dbOpt;
-    std::vector<std::string> dbFilePathVec {DBConstant::DB_EXTENSION};
-    std::string dbFilePath = path + "/" + dbStore + DBConstant::DB_EXTENSION;
+    std::vector<std::string> dbFilePathVec {DBConstant::SQLITE_DB_EXTENSION};
+    std::string dbFilePath = path + "/" + dbStore + DBConstant::SQLITE_DB_EXTENSION;
     if (OS::CheckPathExistence(dbFilePath) && isWithChecked) {
         int errCode = RuntimeContext::GetInstance()->GetSecurityOption(dbFilePath, dbOpt);
         if (errCode != E_OK) {
@@ -345,7 +341,7 @@ int SQLiteSingleVerDatabaseUpgrader::SetSecOption(const std::string &path, const
 int SQLiteSingleVerDatabaseUpgrader::MoveDatabaseToNewDir(const std::string &parentDir,
     const std::string &upgradeLockFile)
 {
-    std::vector<std::string> dbFilePathVec {DBConstant::DB_EXTENSION, ".db-wal", ".db-shm"};
+    std::vector<std::string> dbFilePathVec {DBConstant::SQLITE_DB_EXTENSION, ".db-wal", ".db-shm"};
     for (const auto &item : dbFilePathVec) {
         std::string oldDbPath = parentDir + "/" + DBConstant::SINGLE_VER_DATA_STORE + item;
         std::string currentDbPath = parentDir + "/" + DBConstant::MAINDB_DIR + "/" +

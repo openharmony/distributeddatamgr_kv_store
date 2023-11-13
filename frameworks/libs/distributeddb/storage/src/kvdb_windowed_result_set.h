@@ -44,7 +44,7 @@ public:
     int GetEntry(Entry &entry) const override;
 
     // Finalize logic
-    int Close() override;
+    void Close() override;
 
 private:
     ResultEntriesWindow *window_;

@@ -13,8 +13,8 @@
 * limitations under the License.
 */
 
-#ifndef RD_LOG_PRINT_H
-#define RD_LOG_PRINT_H
+#ifndef LOG_PRINT_H
+#define LOG_PRINT_H
 
 #include <string>
 

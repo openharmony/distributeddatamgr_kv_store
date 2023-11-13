@@ -287,7 +287,7 @@ IKvDB *GetKvDB(const std::string &storeId)
     std::string identifierDir = DBCommon::TransferStringToHex(identifier);
     prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierDir);
     prop.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
-    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
     int errCode = E_OK;
     return KvDBManager::OpenDatabase(prop, errCode);

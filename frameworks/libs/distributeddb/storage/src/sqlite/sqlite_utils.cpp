@@ -2064,7 +2064,7 @@ void SQLiteUtils::CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
 int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size)
 {
-    std::string dataDir = dir + "/" + dbName + DBConstant::DB_EXTENSION;
+    std::string dataDir = dir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
     uint64_t localDbSize = 0;
     int errCode = OS::CalFileSize(dataDir, localDbSize);
     if (errCode != E_OK) {

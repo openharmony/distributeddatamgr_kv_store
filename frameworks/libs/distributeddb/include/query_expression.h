@@ -59,7 +59,6 @@ enum class QueryObjType : uint32_t {
     ORDERBY,
     SUGGEST_INDEX = 0x0801,
     IN_KEYS = 0x0901,
-    KEY_RANGE = 0x1001,
 };
 
 struct QueryObjNode {
@@ -123,13 +122,7 @@ public:
 
     void QueryBySuggestIndex(const std::string &indexName);
 
-    void QueryByKeyRange(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
-
     std::vector<uint8_t> GetPreFixKey() const;
-
-    std::vector<uint8_t> GetBeginKey() const;
-
-    std::vector<uint8_t> GetEndKey() const;
 
     void SetTableName(const std::string &tableName);
     const std::string &GetTableName();
@@ -167,8 +160,6 @@ private:
     std::list<QueryObjNode> queryInfo_;
     bool errFlag_ = true;
     std::vector<uint8_t> prefixKey_;
-    std::vector<uint8_t> beginKey_;
-    std::vector<uint8_t> endKey_;
     std::string suggestIndex_;
     std::string tableName_;
     bool isTableNameSpecified_;

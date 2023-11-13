@@ -19,15 +19,14 @@
 #include "doc_errno.h"
 #include "grd_base/grd_type_export.h"
 #include "kv_store_manager.h"
+#include "log_print.h"
 #include "os_api.h"
-#include "rd_log_print.h"
 
 namespace DocumentDB {
 namespace {
 bool CheckDBOpenFlag(unsigned int flag)
 {
-    unsigned int mask = ~(GRD_DB_OPEN_CREATE | GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK |
-        GRD_DB_OPEN_SHARED_READ_ONLY);
+    unsigned int mask = ~(GRD_DB_OPEN_CREATE | GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK);
     unsigned int invalidOpt = (GRD_DB_OPEN_CHECK_FOR_ABNORMAL | GRD_DB_OPEN_CHECK);
     return ((flag & mask) == 0x00) && ((flag & invalidOpt) != invalidOpt);
 }

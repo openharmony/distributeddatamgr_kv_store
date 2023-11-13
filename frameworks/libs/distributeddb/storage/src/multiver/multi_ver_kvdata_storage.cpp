@@ -42,7 +42,7 @@ static IKvDB *OpenKvDB(const DatabaseIdentifierCfg &config, CipherType type, con
         return nullptr;
     }
 
-    IKvDB *kvDB = factory->CreateKvDb(LOCAL_KVDB_SQLITE, errCode);
+    IKvDB *kvDB = factory->CreateKvDb(LOCAL_KVDB, errCode);
     if (kvDB == nullptr) {
         LOGE("Create local kvdb failed:%d", errCode);
         return nullptr;
@@ -53,7 +53,7 @@ static IKvDB *OpenKvDB(const DatabaseIdentifierCfg &config, CipherType type, con
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, config.databaseDir);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, config.fileName);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, config.identifier);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
     dbProperties.SetPassword(type, passwd);
 
     errCode = kvDB->Open(dbProperties);
@@ -302,7 +302,7 @@ int MultiVerKvDataStorage::GetVersion(const Property &property, int &metaVer, bo
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.dataDir);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_VALUE_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
     int errCode = localKvdb->GetVersion(dbProperties, sliceVer, isSliceDbExist);
     if (errCode != E_OK) {
@@ -438,7 +438,7 @@ int MultiVerKvDataStorage::BackupCurrentDatabase(const Property &property, const
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.dataDir);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_META_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
     int errCode = SQLiteLocalKvDB::BackupCurrentDatabase(dbProperties, dir);
     if (errCode != E_OK) {
@@ -457,7 +457,7 @@ int MultiVerKvDataStorage::ImportDatabase(const Property &property, const std::s
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.dataDir);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_META_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
     int errCode = SQLiteLocalKvDB::ImportDatabase(dbProperties, dir, passwd);
     if (errCode != E_OK) {

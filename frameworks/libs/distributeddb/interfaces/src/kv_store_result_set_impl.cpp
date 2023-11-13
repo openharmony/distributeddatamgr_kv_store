@@ -155,6 +155,9 @@ DBStatus KvStoreResultSetImpl::GetEntry(Entry &entry) const
     if (resultSet_ == nullptr) {
         return DB_ERROR;
     }
+    if (GetCount() == 0) {
+        return NOT_FOUND;
+    }
 
     if (resultSet_->GetEntry(entry) == E_OK) {
         return OK;

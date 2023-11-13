@@ -19,7 +19,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "rd_json_object.h"
+#include "json_object.h"
 
 #define GRD_DOC_OID_TIME_SIZE 4
 #define GRD_DOC_OID_INCREMENTAL_VALUE_SIZE 2

@@ -533,7 +533,7 @@ int MultiVerNaturalStore::GetMetaData(const Key &key, Value &value) const
 }
 
 // Put meta data as a key-value entry.
-int MultiVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
+int MultiVerNaturalStore::PutMetaData(const Key &key, const Value &value)
 {
     int errCode = E_OK;
     auto handle = GetHandle(true, errCode);
@@ -1059,7 +1059,7 @@ int MultiVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
 {
     std::string storeOnlyDir;
     std::string storeDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::MULTI_VER_TYPE_SQLITE, storeDir, storeOnlyDir);
+    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::MULTI_VER_TYPE, storeDir, storeOnlyDir);
     int errCodeVersion = KvDBUtils::RemoveKvDB(storeDir, storeOnlyDir, DBConstant::MULTI_VER_DATA_STORE);
     int errCodeCommit = KvDBUtils::RemoveKvDB(storeDir, storeOnlyDir, DBConstant::MULTI_VER_COMMIT_STORE);
     int errCodeValue = KvDBUtils::RemoveKvDB(storeDir, storeOnlyDir, DBConstant::MULTI_VER_VALUE_STORE);
@@ -1087,7 +1087,7 @@ int MultiVerNaturalStore::GetKvDBSize(const KvDBProperties &properties, uint64_t
 {
     std::string storeOnlyDir;
     std::string storeDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::MULTI_VER_TYPE_SQLITE, storeDir, storeOnlyDir);
+    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::MULTI_VER_TYPE, storeDir, storeOnlyDir);
 
     std::vector<std::string> storageNames = {
         DBConstant::MULTI_VER_DATA_STORE,

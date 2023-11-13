@@ -138,7 +138,7 @@ void DistributedDBStorageQuerySyncTest::SetUp(void)
     property.SetStringProp(KvDBProperties::STORE_ID, "31");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestQuerySync");
     property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::DEVICE_COLLABORATION);
     g_store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_store, nullptr);
@@ -1422,7 +1422,7 @@ HWTEST_F(DistributedDBStorageQuerySyncTest, QueryObject005, TestSize.Level1)
     property.SetStringProp(KvDBProperties::STORE_ID, "31");
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "TestQuerySync");
     property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
     property.SetIntProp(KvDBProperties::CONFLICT_RESOLVE_POLICY, ConflictResolvePolicy::DEVICE_COLLABORATION);
     int errCode = E_OK;
     SQLiteSingleVerStorageEngine *storageEngine =

@@ -55,7 +55,7 @@ public:
     virtual int GetMetaData(const Key &key, Value &value) const = 0;
 
     // Put meta data as a key-value entry.
-    virtual int PutMetaData(const Key &key, const Value &value, bool isInTransaction) = 0;
+    virtual int PutMetaData(const Key &key, const Value &value) = 0;
 
     // Delete multiple meta data records in a transaction.
     virtual int DeleteMetaData(const std::vector<Key> &keys) = 0;
