@@ -171,7 +171,7 @@ namespace {
         std::string hashIdentifier = DBCommon::TransferHashString(identifier);
         std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
         std::string storeDir = g_testDir + "/" + identifierName + "/" + DBConstant::SINGLE_SUB_DIR + "/" +
-            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
         sqlite3 *db = nullptr;
         EXPECT_EQ(sqlite3_open_v2(storeDir.c_str(), &db, SQLITE_OPEN_READWRITE, nullptr), SQLITE_OK);
         if (db == nullptr) {
@@ -2824,7 +2824,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
 
     std::string identifier = DBCommon::GenerateIdentifierId(storeId, APP_ID, USER_ID);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, DBCommon::TransferHashString(identifier));
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     int errCode;
     SQLiteSingleVerStorageEngine *storageEngine =
@@ -2839,7 +2839,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
      */
     std::string cacheDir =  g_testDir + "/" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(identifier)) +
         "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::CACHEDB_DIR;
-    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
     EXPECT_EQ(OS::CreateFileByFileName(cacheDB), E_OK);
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
@@ -2853,5 +2853,33 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+}
+
+/**
+  * @tc.name: RdRangeQueryInSqlite001
+  * @tc.desc: Test GetEntries with range query filter by sqlite
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, DISABLED_RdRangeQueryInSqlite001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("RdRangeQueryInSqlite001", option, g_kvNbDelegateCallback);
+    std::vector<Entry> entries;
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    // /**
+    //  * @tc.steps: step2.
+    //  * @tc.expected: step2.
+    //  */
+    KvStoreResultSet *resultSet = nullptr;
+    Query inValidQuery = Query::Select().Range({}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
 }
 }

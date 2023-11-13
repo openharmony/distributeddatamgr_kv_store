@@ -88,6 +88,7 @@ KvDBObserverHandle *GenericKvDBConnection::RegisterObserver(unsigned mode,
     }
     if (isExclusive_.load()) {
         errCode = -E_BUSY;
+        LOGE("Observer is exclusived %d", errCode);
         return nullptr;
     }
     auto observerHandle = new (std::nothrow) KvDBObserverHandle(mode);
@@ -180,9 +181,11 @@ int GenericKvDBConnection::Close()
     }
 
     if (isExclusive_.load()) {
+        LOGE("Current connection is occupied by other connection");
         return -E_BUSY;
     }
     if (kvDB_->IsDataMigrating()) {
+        LOGE("Data is migrating");
         return -E_BUSY;
     }
 

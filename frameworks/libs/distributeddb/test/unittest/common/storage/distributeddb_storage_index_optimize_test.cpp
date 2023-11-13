@@ -68,7 +68,7 @@ namespace {
         string hashIdentifierName = DBCommon::TransferHashString(identifier);
         string identifierName = DBCommon::TransferStringToHex(hashIdentifierName);
         string filePath = g_testDir + "/" + identifierName + "/" + DBConstant::SINGLE_SUB_DIR + "/main/";
-        filePath += DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        filePath += DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
         return filePath;
     }
 

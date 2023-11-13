@@ -24,6 +24,7 @@
 
 #include "db_types.h"
 #include "schema_object.h"
+#include "single_ver_utils.h"
 #include "store_types.h"
 #ifdef RELATIONAL_STORE
 #include "relational_schema_object.h"
@@ -52,21 +53,6 @@ enum class TriggerModeEnum {
 
 std::string GetTriggerModeString(TriggerModeEnum mode);
 }
-
-struct OpenDbProperties {
-    std::string uri {};
-    bool createIfNecessary = true;
-    bool isMemDb = false;
-    std::vector<std::string> sqls {};
-    CipherType cipherType = CipherType::AES_256_GCM;
-    CipherPassword passwd {};
-    std::string schema {};
-    std::string subdir {};
-    SecurityOption securityOpt {};
-    int conflictReslovePolicy = DEFAULT_LAST_WIN;
-    bool createDirByStoreIdOnly = false;
-    uint32_t iterTimes = DBConstant::DEFAULT_ITER_TIMES;
-};
 
 class SQLiteUtils {
 public:

@@ -206,6 +206,20 @@ void QueryExpression::QueryByPrefixKey(const std::vector<uint8_t> &key)
     prefixKey_ = key;
 }
 
+void QueryExpression::QueryByKeyRange(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd)
+{
+    if (useFromTable_) {
+        expressions_[fromTable_].QueryByKeyRange(keyBegin, keyEnd);
+        validStatus_ = -E_NOT_SUPPORT;
+        return;
+    }
+    SetNotSupportIfFromTables();
+    queryInfo_.emplace_front(QueryObjNode{QueryObjType::KEY_RANGE, std::string(),
+        QueryValueType::VALUE_TYPE_NULL, std::vector<FieldValue>()});
+    beginKey_ = keyBegin;
+    endKey_ = keyEnd;
+}
+
 void QueryExpression::QueryBySuggestIndex(const std::string &indexName)
 {
     if (useFromTable_) {
@@ -240,6 +254,16 @@ const std::list<QueryObjNode> &QueryExpression::GetQueryExpression()
         LOGE("Query operate illegal!");
     }
     return queryInfo_;
+}
+
+std::vector<uint8_t> QueryExpression::GetBeginKey() const
+{
+    return beginKey_;
+}
+
+std::vector<uint8_t> QueryExpression::GetEndKey() const
+{
+    return endKey_;
 }
 
 std::vector<uint8_t> QueryExpression::GetPreFixKey() const
