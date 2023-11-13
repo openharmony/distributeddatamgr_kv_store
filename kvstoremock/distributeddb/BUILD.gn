@@ -96,6 +96,7 @@ config("distrdb_config") {
     "EVLOOP_TIMER_ONLY",
     "USING_PRINTF_LOGGER",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "OMIT_cJSON",
   ]
   if (use_platform_win) {
     defines += [ "OS_TYPE_WINDOWS" ]
@@ -129,9 +130,6 @@ ohos_shared_library("distributeddb_mock") {
         [ "//base/hiviewdfx/hilog/interfaces/native/innerkits:libhilog_mac" ]
   }
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
-
-  configs += [ "//third_party/cJSON:cJSON_config" ]
-  deps += [ "//third_party/cJSON:cjson" ]
 
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"

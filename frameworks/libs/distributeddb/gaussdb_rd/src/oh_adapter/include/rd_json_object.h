@@ -22,7 +22,13 @@
 #include <typeinfo>
 #include <vector>
 
+#ifndef OMIT_cJSON
 #include "cJSON.h"
+#endif
+
+#ifdef OMIT_cJSON
+typedef void cJSON;
+#endif
 
 namespace DocumentDB {
 class ValueObject {
