@@ -222,8 +222,9 @@ int VirtualRelationalVerSyncDBInterface::GetMetaData(const Key &key, Value &valu
     return -E_NOT_FOUND;
 }
 
-int VirtualRelationalVerSyncDBInterface::PutMetaData(const Key &key, const Value &value)
+int VirtualRelationalVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
+    (void)isInTransaction;
     metadata_[key] = value;
     return E_OK;
 }

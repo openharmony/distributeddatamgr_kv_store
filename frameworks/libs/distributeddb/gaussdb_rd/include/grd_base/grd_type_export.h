@@ -22,6 +22,8 @@ extern "C" {
 
 #ifndef _WIN32
 #define GRD_API __attribute__((visibility("default")))
+#else
+#define GRD_API
 #endif
 
 typedef struct GRD_DB GRD_DB;
@@ -35,6 +37,7 @@ typedef struct GRD_DB GRD_DB;
 #define GRD_DB_OPEN_CHECK_FOR_ABNORMAL 0x02
 // check data in database when open database, if data is corrupted, rebuild the database.
 #define GRD_DB_OPEN_CHECK 0x04
+#define GRD_DB_OPEN_SHARED_READ_ONLY 0x08
 
 /**
  * @brief Close database config
@@ -64,7 +67,7 @@ typedef enum KvScanMode {
     KV_SCAN_EQUAL_OR_LESS_KEY = 1,
     KV_SCAN_EQUAL_OR_GREATER_KEY = 2,
     KV_SCAN_BUTT
-} KvScanModeE;
+} GRD_KvScanModeE;
 
 typedef struct GRD_ResultSet GRD_ResultSet;
 typedef struct GRD_DB GRD_DB;

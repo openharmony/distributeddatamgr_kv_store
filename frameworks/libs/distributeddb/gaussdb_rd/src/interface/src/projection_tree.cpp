@@ -17,7 +17,7 @@
 namespace DocumentDB {
 constexpr int JSON_DEEP_MAX = 4;
 
-static int ParseSinglePathToTree(ProjectionNode *node, const std::vector<std::string> &singlePath)
+static int ParseSinglePathToTree(ProjectionNode *node, std::vector<std::string> &singlePath)
 {
     for (size_t j = 0; j < singlePath.size(); j++) {
         if (node->sonNode[singlePath[j]] != nullptr) {

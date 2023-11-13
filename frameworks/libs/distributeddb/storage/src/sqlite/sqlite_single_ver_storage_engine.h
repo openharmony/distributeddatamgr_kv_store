@@ -61,11 +61,13 @@ public:
     void CacheSubscribe(const std::string &subscribeId, const QueryObject &query);
 
 protected:
-    StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
+    virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
 
     int Upgrade(sqlite3 *db) override;
 
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
+
+    ExecutorState executorState_;
 
 private:
     // For executor.
@@ -119,7 +121,6 @@ private:
 
     mutable std::mutex migrateLock_;
     std::atomic<uint64_t> cacheRecordVersion_;
-    ExecutorState executorState_;
     bool isCorrupted_;
     bool isNeedUpdateSecOpt_; // update the option_
 

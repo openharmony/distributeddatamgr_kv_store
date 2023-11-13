@@ -30,23 +30,6 @@
 namespace DistributedDB {
 namespace {
 
-void InitCommitNotifyDataKeyStatus(SingleVerNaturalStoreCommitNotifyData *committedData, const Key &hashKey,
-    const DataOperStatus &dataStatus)
-{
-    if (committedData == nullptr) {
-        return;
-    }
-
-    ExistStatus existedStatus = ExistStatus::NONE;
-    if (dataStatus.preStatus == DataStatus::DELETED) {
-        existedStatus = ExistStatus::DELETED;
-    } else if (dataStatus.preStatus == DataStatus::EXISTED) {
-        existedStatus = ExistStatus::EXIST;
-    }
-
-    committedData->InitKeyPropRecord(hashKey, existedStatus);
-}
-
 int ResetOrRegetStmt(sqlite3 *db, sqlite3_stmt *&stmt, const std::string &sql)
 {
     int errCode = E_OK;
@@ -123,7 +106,7 @@ int SQLiteSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key 
     Timestamp &timestamp) const
 {
     std::string sql;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         sql = SELECT_LOCAL_VALUE_TIMESTAMP_SQL;
     } else if (type == SingleVerDataType::SYNC_TYPE) {
         sql = SELECT_SYNC_VALUE_WTIMESTAMP_SQL;
@@ -159,7 +142,7 @@ int SQLiteSingleVerStorageExecutor::GetKvData(SingleVerDataType type, const Key 
     errCode = SQLiteUtils::GetColumnBlobValue(statement, 0, value); // only one result.
 
     // get timestamp
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_LOCAL_TIME_INDEX));
     } else if (type == SingleVerDataType::SYNC_TYPE) {
         timestamp = static_cast<Timestamp>(sqlite3_column_int64(statement, GET_KV_RES_SYNC_TIME_INDEX));
@@ -185,7 +168,7 @@ int SQLiteSingleVerStorageExecutor::BindPutKvData(sqlite3_stmt *statement, const
         return errCode;
     }
 
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         Key hashKey;
         errCode = DBCommon::CalcValueHash(key, hashKey);
         if (errCode != E_OK) {
@@ -265,7 +248,7 @@ int SQLiteSingleVerStorageExecutor::SaveKvData(SingleVerDataType type, const Key
 {
     sqlite3_stmt *statement = nullptr;
     std::string sql;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         sql = (executorState_ == ExecutorState::CACHE_ATTACH_MAIN ? INSERT_LOCAL_SQL_FROM_CACHEHANDLE :
             INSERT_LOCAL_SQL);
     } else {
@@ -294,11 +277,11 @@ ERROR:
 int SQLiteSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key &key, const Value &value,
     Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData)
 {
-    if (type != SingleVerDataType::LOCAL_TYPE && type != SingleVerDataType::META_TYPE) {
+    if (type != SingleVerDataType::LOCAL_TYPE_SQLITE && type != SingleVerDataType::META_TYPE) {
         return -E_INVALID_ARGS;
     }
     // committedData is only for local data, not for meta data.
-    bool isLocal = (SingleVerDataType::LOCAL_TYPE == type);
+    bool isLocal = (SingleVerDataType::LOCAL_TYPE_SQLITE == type);
     Timestamp localTimestamp = 0;
     Value readValue;
     bool isExisted = CheckIfKeyExisted(key, isLocal, readValue, localTimestamp);
@@ -326,7 +309,7 @@ int SQLiteSingleVerStorageExecutor::PutKvData(SingleVerDataType type, const Key 
 int SQLiteSingleVerStorageExecutor::GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix,
     std::vector<Entry> &entries) const
 {
-    if ((type != SingleVerDataType::LOCAL_TYPE) && (type != SingleVerDataType::SYNC_TYPE)) {
+    if ((type != SingleVerDataType::LOCAL_TYPE_SQLITE) && (type != SingleVerDataType::SYNC_TYPE)) {
         return -E_INVALID_ARGS;
     }
 
@@ -1083,7 +1066,7 @@ bool SQLiteSingleVerStorageExecutor::CheckIfKeyExisted(const Key &key, bool isLo
         return false;
     }
 
-    int errCode = GetKvData(SingleVerDataType::LOCAL_TYPE, key, value, timestamp);
+    int errCode = GetKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, timestamp);
     if (errCode != E_OK) {
         return false;
     }
@@ -1180,7 +1163,7 @@ ERR:
 int SQLiteSingleVerStorageExecutor::PrepareForSavingData(SingleVerDataType type)
 {
     int errCode = -E_NOT_SUPPORT;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         // currently, Local type has not been optimized, so pass updateSql parameter with INSERT_LOCAL_SQL
         errCode = PrepareForSavingData(SELECT_LOCAL_HASH_SQL, INSERT_LOCAL_SQL, INSERT_LOCAL_SQL, saveLocalStatements_);
     } else if (type == SingleVerDataType::SYNC_TYPE) {
@@ -1192,7 +1175,7 @@ int SQLiteSingleVerStorageExecutor::PrepareForSavingData(SingleVerDataType type)
 int SQLiteSingleVerStorageExecutor::ResetForSavingData(SingleVerDataType type)
 {
     int errCode = E_OK;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         SQLiteUtils::ResetStatement(saveLocalStatements_.insertStatement, false, errCode);
         SQLiteUtils::ResetStatement(saveLocalStatements_.updateStatement, false, errCode);
         SQLiteUtils::ResetStatement(saveLocalStatements_.queryStatement, false, errCode);
@@ -1577,7 +1560,7 @@ int SQLiteSingleVerStorageExecutor::Reset()
         LOGE("Finalize the sync resources for saving sync data failed: %d", errCode);
     }
 
-    errCode = ResetForSavingData(SingleVerDataType::LOCAL_TYPE);
+    errCode = ResetForSavingData(SingleVerDataType::LOCAL_TYPE_SQLITE);
     if (errCode != E_OK) {
         LOGE("Finalize the local resources for saving sync data failed: %d", errCode);
     }
@@ -1687,7 +1670,7 @@ ERROR:
 int SQLiteSingleVerStorageExecutor::DeleteLocalKvData(const Key &key,
     SingleVerNaturalStoreCommitNotifyData *committedData, Value &value, Timestamp &timestamp)
 {
-    int errCode = GetKvData(SingleVerDataType::LOCAL_TYPE, key, value, timestamp);
+    int errCode = GetKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, key, value, timestamp);
     if (errCode != E_OK) {
         return CheckCorruptedStatus(errCode);
     }

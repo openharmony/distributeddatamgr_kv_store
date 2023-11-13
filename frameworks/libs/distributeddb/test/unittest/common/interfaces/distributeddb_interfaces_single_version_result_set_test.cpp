@@ -104,7 +104,7 @@ void DistributedDBInterfacesSingleVersionResultSetTest::SetUp(void)
     property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, g_identifier);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     g_store = new (std::nothrow) SQLiteSingleVerNaturalStore;
     ASSERT_NE(g_store, nullptr);

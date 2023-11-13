@@ -14,9 +14,13 @@
 */
 #include "document_key.h"
 
+#include <time.h>
+#include <stdio.h>
+
 #include "doc_errno.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 #include "securec.h"
+
 namespace DocumentDB {
 static uint16_t g_oIdIncNum = 0;
 constexpr uint16_t MAX_NUMBER_OF_AUTOINCREMENTS = 65535;

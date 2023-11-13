@@ -28,7 +28,7 @@ int32_t GRD_KVGetInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT
 
 int32_t GRD_KVDelInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key);
 
-int32_t GRD_KVScanInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, KvScanModeE mode,
+int32_t GRD_KVScanInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, GRD_KvScanModeE mode,
     GRD_ResultSet **resultSet);
 
 int32_t GRD_KVFreeItemInner(GRD_KVItemT *item);
@@ -38,8 +38,10 @@ int32_t GRD_KVBatchPrepareInner(uint16_t itemNum, GRD_KVBatchT **batch);
 int32_t GRD_KVBatchPushbackInner(const void *key, uint32_t keyLen, const void *data, uint32_t dataLen,
     GRD_KVBatchT *batch);
 
+int32_t GRD_KVBatchPutInner(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
+
 int32_t GRD_KVBatchDelInner(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 
-int32_t GRD_KVBatchDestoryInner(GRD_KVBatchT *batch);
+int32_t GRD_KVBatchDestroyInner(GRD_KVBatchT *batch);
 } // namespace DocumentDB
 #endif // GRD_KV_API_INNER_H

@@ -1252,7 +1252,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseTest, GetDBWhileOpened001, TestSize.Leve
     property.SetStringProp(KvDBProperties::IDENTIFIER_DIR, hexDir);
     property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     property.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     property.SetBoolProp(KvDBProperties::MEMORY_MODE, false);
     property.SetBoolProp(KvDBProperties::ENCRYPTED_MODE, false);
     property.SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, true);

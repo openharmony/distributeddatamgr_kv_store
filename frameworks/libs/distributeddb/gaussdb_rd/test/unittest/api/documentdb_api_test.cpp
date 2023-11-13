@@ -21,8 +21,8 @@
 #include "grd_base/grd_db_api.h"
 #include "grd_base/grd_error.h"
 #include "grd_document/grd_document_api.h"
-#include "log_print.h"
-#include "sqlite_utils.h"
+#include "rd_log_print.h"
+#include "rd_sqlite_utils.h"
 
 using namespace DocumentDB;
 using namespace testing::ext;
@@ -448,13 +448,13 @@ namespace {
 int GetDBPageSize(const std::string &path)
 {
     sqlite3 *db = nullptr;
-    int ret = SQLiteUtils::CreateDataBase(path, 0, db);
+    int ret = RDSQLiteUtils::CreateDataBase(path, 0, db);
     EXPECT_EQ(ret, E_OK);
     if (db == nullptr) {
         return 0;
     }
     int pageSize = 0;
-    SQLiteUtils::ExecSql(db, "PRAGMA page_size;", nullptr, [&pageSize](sqlite3_stmt *stmt, bool &isMatchOneData) {
+    RDSQLiteUtils::ExecSql(db, "PRAGMA page_size;", nullptr, [&pageSize](sqlite3_stmt *stmt, bool &isMatchOneData) {
         pageSize = sqlite3_column_int(stmt, 0);
         return E_OK;
     });

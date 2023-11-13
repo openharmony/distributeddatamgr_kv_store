@@ -29,7 +29,7 @@ namespace DistributedDB {
 int SQLiteSingleVerStorageExecutor::PrepareForSavingCacheData(SingleVerDataType type)
 {
     int errCode = -E_NOT_SUPPORT;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         std::string insertLocalSql = ((executorState_ == ExecutorState::CACHE_ATTACH_MAIN) ?
             INSERT_LOCAL_SQL_FROM_CACHEHANDLE : INSERT_CACHE_LOCAL_SQL);
         std::string updateLocalSql = ((executorState_ == ExecutorState::CACHE_ATTACH_MAIN) ?
@@ -54,7 +54,7 @@ int SQLiteSingleVerStorageExecutor::PrepareForSavingCacheData(SingleVerDataType 
 int SQLiteSingleVerStorageExecutor::ResetForSavingCacheData(SingleVerDataType type)
 {
     int errCode = E_OK;
-    if (type == SingleVerDataType::LOCAL_TYPE) {
+    if (type == SingleVerDataType::LOCAL_TYPE_SQLITE) {
         SQLiteUtils::ResetStatement(saveLocalStatements_.insertStatement, false, errCode);
         SQLiteUtils::ResetStatement(saveLocalStatements_.updateStatement, false, errCode);
         SQLiteUtils::ResetStatement(saveLocalStatements_.queryStatement, false, errCode);
