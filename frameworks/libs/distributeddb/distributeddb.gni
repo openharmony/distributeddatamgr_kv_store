@@ -259,8 +259,6 @@ distributeddb_src_rd = [
   "${distributeddb_path}/gaussdb_rd/src/executor/document/grd_resultset_api_inner.cpp",
   "${distributeddb_path}/gaussdb_rd/src/executor/kv/grd_kv_api.cpp",
   "${distributeddb_path}/gaussdb_rd/src/executor/kv/grd_kv_api_inner.cpp",
-  "${distributeddb_path}/gaussdb_rd/src/executor/shared_obj/grd_sequence_api.cpp",
-  "${distributeddb_path}/gaussdb_rd/src/executor/shared_obj/grd_sequence_api_inner.cpp",
   "${distributeddb_path}/gaussdb_rd/src/interface/src/collection.cpp",
   "${distributeddb_path}/gaussdb_rd/src/interface/src/doc_errno.cpp",
   "${distributeddb_path}/gaussdb_rd/src/interface/src/document_key.cpp",

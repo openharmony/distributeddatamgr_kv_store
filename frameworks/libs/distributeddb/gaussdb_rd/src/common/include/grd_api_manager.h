@@ -51,8 +51,6 @@ typedef int32_t (*KVBatchPushback)(const void *key, uint32_t keyLen, const void 
 typedef int32_t (*KVBatchPut)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDel)(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch);
 typedef int32_t (*KVBatchDestory)(GRD_KVBatchT *batch);
-typedef int32_t (*CreateSeq)(GRD_DB *db, const char *sequenceName, uint32_t flags);
-typedef int32_t (*DropSeq)(GRD_DB *db, const char *sequenceName, uint32_t flags);
 typedef int32_t (*CrcCheck)(const char *dbFile);
 
 struct GRD_APIInfo {
@@ -83,8 +81,6 @@ struct GRD_APIInfo {
     KVBatchDel KVBatchPutApi = nullptr;
     KVBatchDel KVBatchDelApi = nullptr;
     KVBatchDestory KVBatchDestoryApi = nullptr;
-    CreateSeq CreateSeqApi = nullptr;
-    DropSeq DropSeqApi = nullptr;
     CrcCheck CrcCheckApi = nullptr;
 };
 GRD_APIInfo GetApiInfoInstance();
