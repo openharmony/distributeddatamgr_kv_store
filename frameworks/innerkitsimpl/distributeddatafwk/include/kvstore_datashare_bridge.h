@@ -38,7 +38,7 @@ public:
 private:
     int Count();
 
-    bool FillBlock(int startRowIndex, DataShare::ResultSetBridge::Writer &writer) __attribute__((no_sanitize("cfi")));
+    bool FillBlock(int startRowIndex, DataShare::ResultSetBridge::Writer &writer);
 
     static constexpr int32_t INVALID_COUNT = -1;
 

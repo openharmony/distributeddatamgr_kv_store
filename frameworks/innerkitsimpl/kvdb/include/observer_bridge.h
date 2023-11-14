@@ -39,7 +39,7 @@ private:
     class ObserverClient : public KvStoreObserverClient {
     public:
         ObserverClient(std::shared_ptr<Observer> observer, const Convertor &cvt);
-        void OnChange(const ChangeNotification &data) override __attribute__((no_sanitize("cfi")));
+        void OnChange(const ChangeNotification &data) override;
 
     private:
         const Convertor &convert_;

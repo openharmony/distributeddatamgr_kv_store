@@ -34,7 +34,7 @@ private:
     AutoSyncTimer() = default;
     ~AutoSyncTimer() = default;
     std::map<std::string, std::vector<StoreId>> GetStoreIds();
-    std::function<void()> ProcessTask() __attribute__((no_sanitize("cfi")));
+    std::function<void()> ProcessTask();
     void StartTimer();
     void StopTimer();
     void AddSyncStores(const std::string &appId, std::set<StoreId> storeIds);
