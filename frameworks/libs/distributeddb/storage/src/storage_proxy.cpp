@@ -164,19 +164,6 @@ int StorageProxy::GetUploadCount(const QuerySyncObject &query, const Timestamp &
     return store_->GetUploadCount(query, localMark, isCloudForcePush, count);
 }
 
-int StorageProxy::FillCloudGid(const CloudSyncData &data)
-{
-    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
-    if (store_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    if (!transactionExeFlag_.load()) {
-        LOGE("the transaction has not been started");
-        return -E_TRANSACT_STATE;
-    }
-    return store_->FillCloudGid(data);
-}
-
 int StorageProxy::GetCloudData(const std::string &tableName, const Timestamp &timeRange,
     ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
@@ -383,7 +370,7 @@ int StorageProxy::SetLogTriggerStatus(bool status)
     return store_->SetLogTriggerStatus(status);
 }
 
-int StorageProxy::FillCloudGidAndAsset(OpType opType, const CloudSyncData &data)
+int StorageProxy::FillCloudLogAndAsset(OpType opType, const CloudSyncData &data)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
     if (store_ == nullptr) {
@@ -393,7 +380,7 @@ int StorageProxy::FillCloudGidAndAsset(OpType opType, const CloudSyncData &data)
         LOGE("the transaction has not been started");
         return -E_TRANSACT_STATE;
     }
-    return store_->FillCloudGidAndAsset(opType, data);
+    return store_->FillCloudLogAndAsset(opType, data, true, false);
 }
 
 std::string StorageProxy::GetIdentify() const
@@ -421,6 +408,26 @@ int StorageProxy::CleanWaterMark(const DistributedDB::TableName &tableName)
     return cloudMetaData_->CleanWaterMark(tableName);
 }
 
+int StorageProxy::CleanWaterMarkInMemory(const DistributedDB::TableName &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (cloudMetaData_ == nullptr) {
+        LOGW("[StorageProxy] CleanWaterMarkInMemory is nullptr return default");
+        return -E_INVALID_DB;
+    }
+    cloudMetaData_->CleanWaterMarkInMemory(tableName);
+    return E_OK;
+}
+
+int StorageProxy::GetCloudDataGid(const QuerySyncObject &query,  Timestamp beginTime, std::vector<std::string> &gid)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    return store_->GetCloudDataGid(query, beginTime, gid);
+}
+
 int StorageProxy::CreateTempSyncTrigger(const std::string &tableName)
 {
     std::shared_lock<std::shared_mutex> readLock(storeMutex_);
@@ -438,6 +445,29 @@ int StorageProxy::ClearAllTempSyncTrigger()
     }
     // Clean up all temporary triggers
     return store_->ClearAllTempSyncTrigger();
+}
+
+int StorageProxy::IsSharedTable(const std::string &tableName, bool &IsSharedTable)
+{
+    std::unique_lock<std::shared_mutex> writeLock(storeMutex_);
+    if (store_ == nullptr) {
+        return -E_INVALID_DB;
+    }
+    IsSharedTable = store_->IsSharedTable(tableName);
+    return E_OK;
+}
+
+void StorageProxy::FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        LOGW("[StorageProxy] fill gid failed with store invalid");
+        return;
+    }
+    int errCode = store_->FillCloudLogAndAsset(opType, data, true, true);
+    if (errCode != E_OK) {
+        LOGW("[StorageProxy] fill gid failed %d", errCode);
+    }
 }
 
 void StorageProxy::SetCloudTaskConfig(const CloudTaskConfig &config)

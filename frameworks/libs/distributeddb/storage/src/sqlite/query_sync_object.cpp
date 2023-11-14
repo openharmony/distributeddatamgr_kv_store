@@ -15,7 +15,7 @@
 
 #include "query_sync_object.h"
 
-#include "cloud/cloud_db_constant.h"
+#include "cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -472,7 +472,6 @@ int QuerySyncObject::TransformValueToType(const QueryObjNode &objNode, std::vect
                 types.emplace_back(value.doubleValue);
                 break;
             case QueryValueType::VALUE_TYPE_INVALID:
-            default:
                 return -E_INVALID_ARGS;
         }
     }

@@ -145,23 +145,23 @@ bool SchemaMgr::ComparePrimaryField(std::map<int, FieldName> &localPrimaryKeys, 
 
 void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
 {
-    DataBaseSchema cloudSchema;
-    for (const auto &table : schema.tables) {
-        TableSchema tableSchema;
-        std::string name(table.name.length(), ' ');
-        std::transform(table.name.begin(), table.name.end(), name.begin(), tolower);
-        tableSchema.name = name;
-        for (const auto &field : table.fields) {
-            Field tableField;
-            std::string colName(field.colName.length(), ' ');
-            std::transform(field.colName.begin(), field.colName.end(), colName.begin(), tolower);
-            tableField.colName = colName;
-            tableField.type = field.type;
-            tableField.primary = field.primary;
-            tableField.nullable = field.nullable;
-            tableSchema.fields.emplace_back(tableField);
+    DataBaseSchema cloudSchema = schema;
+    DataBaseSchema cloudSharedSchema;
+    for (const auto &tableSchema : cloudSchema.tables) {
+        if (tableSchema.name.empty()) {
+            continue;
         }
-        cloudSchema.tables.emplace_back(tableSchema);
+        bool hasPrimaryKey = DBCommon::HasPrimaryKey(tableSchema.fields);
+        auto sharedTableFields = tableSchema.fields;
+        Field ownerField = { CloudDbConstant::CLOUD_OWNER, TYPE_INDEX<std::string>, hasPrimaryKey, true };
+        Field privilegeField = { CloudDbConstant::CLOUD_PRIVILEGE, TYPE_INDEX<std::string>, false, true };
+        sharedTableFields.push_back(ownerField);
+        sharedTableFields.push_back(privilegeField);
+        TableSchema sharedTableSchema = { tableSchema.sharedTableName, "", sharedTableFields };
+        cloudSharedSchema.tables.push_back(sharedTableSchema);
+    }
+    for (const auto &sharedTableSchema : cloudSharedSchema.tables) {
+        cloudSchema.tables.push_back(sharedTableSchema);
     }
     cloudSchema_ = std::make_shared<DataBaseSchema>(cloudSchema);
 }
@@ -185,4 +185,37 @@ int SchemaMgr::GetCloudTableSchema(const TableName &tableName, TableSchema &retS
     return -E_NOT_FOUND;
 }
 
+bool SchemaMgr::IsSharedTable(const std::string &tableName)
+{
+    if (cloudSchema_ == nullptr) {
+        return false;
+    }
+    if (sharedTableMap_.find(tableName) != sharedTableMap_.end()) {
+        return sharedTableMap_[tableName];
+    }
+    for (const auto &tableSchema : (*cloudSchema_).tables) {
+        if (DBCommon::CaseInsensitiveCompare(tableName, tableSchema.sharedTableName)) {
+            sharedTableMap_[tableName] = true;
+            return true;
+        }
+    }
+    sharedTableMap_[tableName] = false;
+    return false;
+}
+
+std::map<std::string, std::string> SchemaMgr::GetSharedTableOriginNames()
+{
+    if (cloudSchema_ == nullptr) {
+        LOGW("[SchemaMgr] Not found cloud schema!");
+        return {};
+    }
+    std::map<std::string, std::string> res;
+    for (const auto &item : cloudSchema_->tables) {
+        if (item.sharedTableName.empty()) {
+            continue;
+        }
+        res[item.name] = item.sharedTableName;
+    }
+    return res;
+}
 } // namespace DistributedDB

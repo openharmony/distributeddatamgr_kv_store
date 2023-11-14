@@ -58,7 +58,7 @@ constexpr int E_OK = 0;
 constexpr int E_ERROR = 1;
 constexpr int STR_TO_LL_BY_DEVALUE = 10;
 constexpr int BUSY_TIMEOUT = 2000;  // 2s.
-const int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
+constexpr int MAX_BLOB_READ_SIZE = 5 * 1024 * 1024; // 5M limit
 const std::string DEVICE_TYPE = "device";
 const std::string SYNC_TABLE_TYPE = "sync_table_type_";
 class ValueHashCalc {
@@ -132,6 +132,7 @@ public:
     static constexpr uint64_t MULTIPLES_BETWEEN_SECONDS_AND_MICROSECONDS = 1000000;
 
     static constexpr int64_t MAX_NOISE = 9 * 100 * 1000; // 900ms
+
     static constexpr uint64_t MAX_INC_COUNT = 9; // last bit from 0-9
 
     static int GetSysCurrentRawTime(uint64_t &curTime)
@@ -168,8 +169,8 @@ public:
             if (getDbLocalTimeOffset != nullptr) {
                 localTimeOffset_ = getDbLocalTimeOffset();
             }
-            LOGD("First use time helper with maxTimestamp:%" PRIu64 " localTimeOffset:%" PRIu64, lastLocalTime_,
-                 localTimeOffset_);
+            LOGD("Use time helper with maxTimestamp:%" PRIu64 " localTimeOffset:%" PRIu64 " first time", lastLocalTime_,
+                localTimeOffset_);
             isLoaded_ = true;
         }
         Timestamp currentSystemTime = 0u;
@@ -215,7 +216,7 @@ public:
                 localTimeOffset_ = static_cast<Timestamp>(static_cast<int64_t>(localTimeOffset_) -
                     (systemTimeOffset - monotonicTimeOffset) * static_cast<int64_t>(TO_100_NS));
                 LOGD("Save ext local time offset: %" PRIu64 ", changedOffset: %" PRId64, localTimeOffset_,
-                     changedOffset);
+                    changedOffset);
             } else {
                 localTimeOffset_ = localTimeOffset;
                 LOGD("Save ext local time offset: %" PRIu64, localTimeOffset_);
@@ -470,7 +471,7 @@ int GetLocalTimeOffsetFromMeta(sqlite3 *db, TimeOffset &offset)
     sqlite3_stmt *stmt = nullptr;
     int errCode = GetStatement(db, "SELECT value FROM naturalbase_rdb_aux_metadata WHERE key = ?", stmt);
     if (errCode != E_OK) {
-        LOGE("Prepare mate data stmt failed. %d", errCode);
+        LOGE("Prepare meta data stmt failed. %d", errCode);
         return -E_ERROR;
     }
 
@@ -645,7 +646,7 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-int CommitHookCallback(void *data)
+int CommitHookCallback(void* data)
 {
     sqlite3 *db = static_cast<sqlite3 *>(data);
     std::string fileName;
@@ -850,13 +851,13 @@ int GetCurrentMaxTimestamp(sqlite3 *db, Timestamp &maxTimestamp)
             ResetStatement(checkTableStmt);
             return -E_ERROR;
         }
-        std::string logTablename;
-        GetColumnTextValue(checkTableStmt, 0, logTablename);
-        if (logTablename.empty()) {
+        std::string logTableName;
+        GetColumnTextValue(checkTableStmt, 0, logTableName);
+        if (logTableName.empty()) {
             continue;
         }
 
-        std::string getMaxTimestampSql = "SELECT MAX(timestamp) FROM " + logTablename + ";";
+        std::string getMaxTimestampSql = "SELECT MAX(timestamp) FROM " + logTableName + ";";
         sqlite3_stmt *getTimeStmt = nullptr;
         errCode = GetStatement(db, getMaxTimestampSql, getTimeStmt);
         if (errCode != E_OK) {
@@ -889,7 +890,6 @@ bool CheckTableExists(sqlite3 *db, const std::string &tableName)
         isLogTblExists = true;
     }
     (void)sqlite3_finalize(stmt);
-    stmt = nullptr;
     return isLogTblExists;
 }
 
@@ -993,12 +993,11 @@ int SaveDeleteFlagToDB(sqlite3 *db, const std::string &tableName)
     DBCommon::StringToVector(keyStr, key);
     Value value;
     DBCommon::StringToVector("1", value); // 1 means delete
-    std::string sql = "insert or replace into naturalbase_rdb_aux_metadata values(?, ?);";
+    std::string sql = "INSERT OR REPLACE INTO naturalbase_rdb_aux_metadata VALUES(?, ?);";
     sqlite3_stmt *statement = nullptr;
     int errCode = sqlite3_prepare_v2(db, sql.c_str(), -1, &statement, nullptr);
     if (errCode != SQLITE_OK) {
         LOGE("[SaveDeleteFlagToDB] prepare statement failed, %d", errCode);
-        (void)ResetStatement(statement);
         return -E_ERROR;
     }
 
@@ -1049,7 +1048,7 @@ void ClearTheLogAfterDropTable(sqlite3 *db, const char *tableName, const char *s
         if (tableType == DEVICE_TYPE) {
             RegisterGetSysTime(db);
             RegisterGetLastTime(db);
-            std::string sql = "UPDATE " + logTblName + " SET flag=0x03, timestamp=get_sys_time(0) "
+            std::string sql = "UPDATE " + logTblName + " SET data_key=-1, flag=0x03, timestamp=get_sys_time(0) "
                 "WHERE flag&0x03=0x02 AND timestamp<" + std::to_string(dropTimeStamp);
             (void)sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
         } else {

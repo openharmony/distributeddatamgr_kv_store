@@ -151,6 +151,16 @@ namespace DistributedDB {
         std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
+    void CloudDBSyncUtilsTest::DeleteUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
+    {
+        for (size_t i = 0; i < g_tables.size(); i++) {
+            for (int64_t j = begin; j < begin + count; j++) {
+                string sql = "Delete from " + g_tables[i] + " where name = 'Cloud" + std::to_string(j) + "';";
+                ASSERT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+            }
+        }
+    }
+
     void CloudDBSyncUtilsTest::GetCallback(SyncProcess &syncProcess, CloudSyncStatusCallback &callback,
         std::vector<SyncProcess> &expectProcess)
     {
@@ -291,6 +301,7 @@ namespace DistributedDB {
     {
         TableSchema tableSchema = {
             .name = tableName,
+            .sharedTableName = "",
             .fields = cloudField
         };
         dataBaseSchema.tables.push_back(tableSchema);

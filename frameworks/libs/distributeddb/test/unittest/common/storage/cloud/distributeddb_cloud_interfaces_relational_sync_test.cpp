@@ -559,18 +559,22 @@ namespace {
     {
         TableSchema tableSchema1 = {
             .name = g_tableName1,
+            .sharedTableName = "",
             .fields = g_cloudFiled1
         };
         TableSchema tableSchema2 = {
             .name = g_tableName2,
+            .sharedTableName = "",
             .fields = g_cloudFiled2
         };
         TableSchema tableSchemaWithOutPrimaryKey = {
             .name = g_tableName3,
+            .sharedTableName = "",
             .fields = g_cloudFiledWithOutPrimaryKey3
         };
         TableSchema tableSchema4 = {
             .name = g_tableName4,
+            .sharedTableName = "",
             .fields = g_cloudFiled2
         };
         dataBaseSchema.tables.push_back(tableSchema1);
@@ -584,10 +588,12 @@ namespace {
     {
         TableSchema tableSchema1 = {
             .name = g_tableName1,
+            .sharedTableName = "",
             .fields = g_invalidCloudFiled1
         };
         TableSchema tableSchema2 = {
-            .name = g_tableName1,
+            .name = g_tableName2,
+            .sharedTableName = "",
             .fields = g_cloudFiled2
         };
         dataBaseSchema.tables.push_back(tableSchema1);
@@ -2087,7 +2093,6 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest007, 
     CloseDb();
 }
 
-
 /**
  * @tc.name: DownloadAssetTest001
  * @tc.desc: Test the sync of different Asset status out of parameters when the download is successful
@@ -2176,6 +2181,30 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest008, 
      * @tc.steps:step4. clear data.
      */
     g_virtualAssetLoader->SetDownloadStatus(OK);
+    CloseDb();
+}
+
+/*
+ * @tc.name: CloudSyncAssetTest009
+ * @tc.desc:
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, CloudSyncAssetTest009, TestSize.Level0)
+{
+    // insert 3 data with asset 3 data without asset into local
+    // sync them to cloud
+    int64_t paddingSize = 10;
+    int localCount = 3;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertUserTableRecord(db, localCount, localCount, paddingSize, true);
+    callSync(g_tables, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    // update these data and sync again
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    InsertUserTableRecord(db, localCount, localCount, paddingSize, true);
+    callSync(g_tables, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    EXPECT_EQ(g_syncProcess.errCode, DBStatus::OK);
     CloseDb();
 }
 
@@ -2344,7 +2373,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalSyncTest, SchemaTest002, TestSize
     ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName4, DEVICE_COOPERATION), DBStatus::OK);
     /**
      * @tc.steps:step1. do sync
-     * @tc.expected: step1. return ok.
+     * @tc.expected: step1. return NOT_SUPPORT.
      */
     callSync({g_tableName4}, SYNC_MODE_CLOUD_MERGE, DBStatus::NOT_SUPPORT);
     CloseDb();

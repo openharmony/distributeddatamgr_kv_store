@@ -21,14 +21,14 @@
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "icloud_sync_storage_interface.h"
+#include "mock_relational_sync_able_storage.h"
 #include "relational_store_instance.h"
 #include "relational_store_manager.h"
 #include "relational_sync_able_storage.h"
+#include "runtime_config.h"
 #include "sqlite_relational_store.h"
 #include "storage_proxy.h"
 #include "virtual_cloud_data_translate.h"
-#include "runtime_config.h"
-
 
 using namespace testing::ext;
 using namespace  DistributedDB;
@@ -79,7 +79,7 @@ namespace {
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
     }
 
-    void SetCloudSchema(PrimaryKeyType pkType, bool nullable)
+    void SetCloudSchema(PrimaryKeyType pkType, bool nullable, bool asset = false)
     {
         TableSchema tableSchema;
         bool isIdPk = pkType == PrimaryKeyType::SINGLE_PRIMARY_KEY || pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY;
@@ -87,12 +87,19 @@ namespace {
         Field field2 = { "name", TYPE_INDEX<std::string>, pkType == PrimaryKeyType::COMPOSITE_PRIMARY_KEY, true };
         Field field3 = { "age", TYPE_INDEX<double>, false, true };
         Field field4 = { "sex", TYPE_INDEX<bool>, false, nullable };
-        Field field5 = { "image", TYPE_INDEX<Bytes>, false, true };
-        tableSchema = { g_tableName, { field1, field2, field3, field4, field5} };
-
+        Field field5;
+        if (asset) {
+            field5 = { "image", TYPE_INDEX<Asset>, false, true };
+        } else {
+            field5 = { "image", TYPE_INDEX<Bytes>, false, true };
+        }
+        tableSchema = { g_tableName, "", { field1, field2, field3, field4, field5} };
         DataBaseSchema dbSchema;
-        dbSchema.tables = { tableSchema };
-        g_cloudStore->SetCloudDbSchema(dbSchema);
+        dbSchema.tables.push_back(tableSchema);
+        tableSchema = { g_assetTableName, "", { field1, field2, field3, field4, field5} };
+        dbSchema.tables.push_back(tableSchema);
+
+        g_delegate->SetCloudDbSchema(dbSchema);
     }
 
     void PrepareDataBase(const std::string &tableName, PrimaryKeyType pkType, bool nullable = true)
@@ -157,6 +164,32 @@ namespace {
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
 
         SetCloudSchema(pkType, nullable);
+    }
+
+    void PrepareDataBaseForAsset(const std::string &tableName, bool nullable = true)
+    {
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+        EXPECT_NE(db, nullptr);
+        std::string sql =
+            "create table " + tableName + "(id int, name TEXT, age REAL, sex INTEGER, image BLOB);";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable(tableName, DistributedDB::CLOUD_COOPERATION), OK);
+
+        sql = "insert into " + tableName + "(id, name, image) values(1, 'zhangsan1', ?);";
+        sqlite3_stmt *stmt = nullptr;
+        EXPECT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), SQLITE_OK);
+        Asset asset;
+        asset.name = "123";
+        asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
+        VirtualCloudDataTranslate translate;
+        Bytes bytes = translate.AssetToBlob(asset);
+        EXPECT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, bytes), E_OK);
+        EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+        int errCode = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+
+        EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+        SetCloudSchema(PrimaryKeyType::NO_PRIMARY_KEY, nullable, true);
     }
 
     void InitStoreProp(const std::string &storePath, const std::string &appId, const std::string &userId,
@@ -465,11 +498,11 @@ namespace {
         TableSchema tableSchema;
         Field field1 = { "name", TYPE_INDEX<std::string>, true, false };
         Field field2 = { "age", TYPE_INDEX<std::string>, ageIsPrimaryKey, false };
-        tableSchema = { g_tableName, { field1, field2 } };
+        tableSchema = { g_tableName, "", { field1, field2 } };
 
         DataBaseSchema dbSchema;
         dbSchema.tables = { tableSchema };
-        g_cloudStore->SetCloudDbSchema(dbSchema);
+        g_delegate->SetCloudDbSchema(dbSchema);
     }
 
     void PrimaryKeyCollateTest(const std::string &createSql, const std::string &insertSql,
@@ -1332,5 +1365,111 @@ namespace {
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(count, 1);
         EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    }
+
+    /**
+     * @tc.name: GetDataWithAsset001
+     * @tc.desc: Test get data with abnormal asset
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, GetDataWithAsset001, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. create db, create table, prepare data.
+         * @tc.expected: step1. success.
+         */
+        PrepareDataBaseForAsset(g_assetTableName, true);
+        RuntimeConfig::SetCloudTranslate(std::make_shared<VirtualCloudDataTranslate>());
+        std::shared_ptr<StorageProxy> storageProxy = GetStorageProxy(g_cloudStore);
+        ASSERT_NE(storageProxy, nullptr);
+        int errCode = storageProxy->StartTransaction();
+        EXPECT_EQ(errCode, E_OK);
+        /**
+         * @tc.steps:step2. create db, create table, prepare data.
+         * @tc.expected: step2. success.
+         */
+        ContinueToken token = nullptr;
+        CloudSyncData data;
+        errCode = storageProxy->GetCloudData(g_assetTableName, 0u, token, data);
+        EXPECT_EQ(errCode, E_OK);
+        EXPECT_EQ(data.ignoredCount, 1);
+
+        EXPECT_EQ(storageProxy->Commit(), E_OK);
+        EXPECT_EQ(token, nullptr);
+        RuntimeConfig::SetCloudTranslate(nullptr);
+    }
+
+    void CheckCloudBatchData(CloudSyncBatch &batchData, bool existRef)
+    {
+        for (size_t i = 0u; i < batchData.rowid.size(); ++i) {
+            int64_t rowid = batchData.rowid[i];
+            auto &extend = batchData.extend[i];
+            ASSERT_EQ(extend.find(CloudDbConstant::REFERENCE_FIELD) != extend.end(), existRef);
+            if (!existRef) {
+                continue;
+            }
+            Entries entries = std::get<Entries>(extend[CloudDbConstant::REFERENCE_FIELD]);
+            EXPECT_EQ(std::to_string(rowid), entries["targetTable"]);
+        }
+    }
+
+    /**
+     * @tc.name: FillReferenceGid001
+     * @tc.desc: Test fill gid data with normal
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, FillReferenceGid001, TestSize.Level0)
+    {
+        auto storage = new(std::nothrow) MockRelationalSyncAbleStorage();
+        CloudSyncData syncData("FillReferenceGid001");
+        EXPECT_CALL(*storage, GetReferenceGid).WillRepeatedly([&syncData](const std::string &tableName,
+            const CloudSyncBatch &syncBatch, std::map<int64_t, Entries> &referenceGid) {
+            EXPECT_EQ(syncData.tableName, tableName);
+            EXPECT_EQ(syncBatch.rowid.size(), 1u); // has 1 record
+            for (auto rowid : syncBatch.rowid) {
+                Entries entries;
+                entries["targetTable"] = std::to_string(rowid);
+                referenceGid[rowid] = entries;
+            }
+            return E_OK;
+        });
+        syncData.insData.rowid.push_back(1); // rowid is 1
+        syncData.insData.extend.resize(1);   // has 1 record
+        syncData.updData.rowid.push_back(2); // rowid is 2
+        syncData.updData.extend.resize(1);   // has 1 record
+        syncData.delData.rowid.push_back(3); // rowid is 3
+        syncData.delData.extend.resize(1);   // has 1 record
+        EXPECT_EQ(storage->CallFillReferenceData(syncData), E_OK);
+        CheckCloudBatchData(syncData.insData, true);
+        CheckCloudBatchData(syncData.updData, true);
+        CheckCloudBatchData(syncData.delData, false);
+        RefObject::KillAndDecObjRef(storage);
+    }
+
+    /**
+     * @tc.name: FillReferenceGid002
+     * @tc.desc: Test fill gid data with abnormal
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudSaveCloudDataTest, FillReferenceGid002, TestSize.Level0)
+    {
+        auto storage = new(std::nothrow) MockRelationalSyncAbleStorage();
+        CloudSyncData syncData("FillReferenceGid002");
+        syncData.insData.rowid.push_back(1); // rowid is 1
+        EXPECT_CALL(*storage, GetReferenceGid).WillRepeatedly([](const std::string &,
+            const CloudSyncBatch &, std::map<int64_t, Entries> &referenceGid) {
+            referenceGid[0] = {}; // create default
+            return E_OK;
+        });
+        EXPECT_EQ(storage->CallFillReferenceData(syncData), -E_UNEXPECTED_DATA);
+        syncData.insData.extend.resize(1); // rowid is 1
+        EXPECT_EQ(storage->CallFillReferenceData(syncData), E_OK);
+        RefObject::KillAndDecObjRef(storage);
     }
 }

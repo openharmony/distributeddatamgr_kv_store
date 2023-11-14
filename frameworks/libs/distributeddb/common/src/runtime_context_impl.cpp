@@ -22,6 +22,10 @@
 #include "network_adapter.h"
 
 namespace DistributedDB {
+#ifdef RUNNING_ON_TESTCASE
+static std::atomic_uint taskID = 0;
+#endif
+
 RuntimeContextImpl::RuntimeContextImpl()
     : adapter_(nullptr),
       communicatorAggregator_(nullptr),
@@ -257,7 +261,16 @@ int RuntimeContextImpl::ScheduleTask(const TaskAction &task)
         LOGE("Schedule task failed, fail to prepare task pool.");
         return errCode;
     }
+#ifdef RUNNING_ON_TESTCASE
+    auto id = taskID++;
+    LOGI("Schedule task succeed, ID:%u", id);
+    return taskPool_->Schedule([task, id] {
+        LOGI("Execute task, ID:%u", id);
+        task();
+    });
+#else
     return taskPool_->Schedule(task);
+#endif
 }
 
 int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,
@@ -272,7 +285,16 @@ int RuntimeContextImpl::ScheduleQueuedTask(const std::string &queueTag,
         LOGE("Schedule queued task failed, fail to prepare task pool.");
         return errCode;
     }
+#ifdef RUNNING_ON_TESTCASE
+    auto id = taskID++;
+    LOGI("Schedule queued task succeed, ID:%u", id);
+    return taskPool_->Schedule(queueTag, [task, id] {
+        LOGI("Execute queued task, ID:%u", id);
+        task();
+    });
+#else
     return taskPool_->Schedule(queueTag, task);
+#endif
 }
 
 void RuntimeContextImpl::ShrinkMemory(const std::string &description)

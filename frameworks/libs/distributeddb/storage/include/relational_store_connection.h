@@ -64,7 +64,7 @@ public:
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
     virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
-    virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
+    virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
     virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 
     virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
@@ -74,6 +74,8 @@ public:
     virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
     virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
     virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
+
+    virtual int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
 
     virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
 protected:

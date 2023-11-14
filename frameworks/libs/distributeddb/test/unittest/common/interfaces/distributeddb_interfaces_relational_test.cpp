@@ -1884,4 +1884,105 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest003, T
     EXPECT_EQ(status, OK);
     delegate = nullptr;
 }
+
+/**
+  * @tc.name: CreateDistributedTableTest004
+  * @tc.desc: Test create distributed table will violate the constraint when table contains "_rowid_" column
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Prepare db and table
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string t1 = "t1";
+    std::string sql = "create table " + t1 + "(key text, _rowid_ int);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::string t2 = "t2";
+    sql = "create table " + t2 + "(rowid int);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::string t3 = "t3";
+    sql = "create table " + t3 + "(oid int);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::string t4 = "t4";
+    sql = "create table " + t4 + "(rowid int, oid int, _rowid_ text);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    std::string t5 = "t5";
+    sql = "create table " + t5 + "(_RoWiD_ int);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+    /**
+     * @tc.steps:step2. open relational store, create distributed table
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable(t1), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable(t1, DistributedDB::CLOUD_COOPERATION), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable(t2), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(t3), OK);
+    EXPECT_EQ(delegate->CreateDistributedTable(t4), NOT_SUPPORT);
+    EXPECT_EQ(delegate->CreateDistributedTable(t5), NOT_SUPPORT);
+
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
+}
+
+/**
+  * @tc.name: CreateDistributedTableTest005
+  * @tc.desc: Test create distributed table again will return ok when rebuild table(miss one field)
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangshijie
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest005, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Prepare db and table
+     * @tc.expected: step1. Return OK.
+     */
+    sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+    ASSERT_NE(db, nullptr);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
+    std::string t1 = "t1";
+    std::string sql = "create table " + t1 + "(key int, value text);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+
+    /**
+     * @tc.steps:step2. open relational store, create distributed table with default mode
+     * @tc.expected: step2. Return OK.
+     */
+    RelationalStoreDelegate *delegate = nullptr;
+    EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
+
+    /**
+     * @tc.steps:step3. drop t1, rebuild t1(miss one column), then reopen store, create distributed table
+     * @tc.expected: step3. Return OK.
+     */
+     sql = "drop table " + t1;
+     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+     sql = "create table " + t1 + "(key int);";
+     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+     delegate = nullptr;
+     EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
+     ASSERT_NE(delegate, nullptr);
+     EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
+
+     /**
+     * @tc.steps:step4. close store
+     * @tc.expected: step4. Return OK.
+     */
+     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+     delegate = nullptr;
+}
 }

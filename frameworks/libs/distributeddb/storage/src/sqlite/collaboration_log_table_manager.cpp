@@ -90,7 +90,7 @@ std::string CollaborationLogTableManager::GetUpdateTrigger(const TableInfo &tabl
             std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '', get_sys_time(0), "
             "get_last_time(), CASE WHEN (" + CalcPrimaryKeyHash("NEW.", table, identity) + " != " +
             CalcPrimaryKeyHash("NEW.", table, identity) + ") THEN 0x02 ELSE 0x22 END, " +
-            CalcPrimaryKeyHash("NEW.", table, identity) + ", '', '', '');\n";
+            CalcPrimaryKeyHash("NEW.", table, identity) + ", '', '', '', '');\n";
     }
     updateTrigger += "END;";
     return updateTrigger;
@@ -107,7 +107,7 @@ std::string CollaborationLogTableManager::GetDeleteTrigger(const TableInfo &tabl
     deleteTrigger += "BEGIN\n";
     deleteTrigger += "\t UPDATE " + DBConstant::RELATIONAL_PREFIX + table.GetTableName() + "_log";
     deleteTrigger += " SET data_key=-1,flag=0x03,timestamp=get_sys_time(0)";
-    deleteTrigger += " WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
+    deleteTrigger += " WHERE data_key = OLD." +  std::string(DBConstant::SQLITE_INNER_ROWID) + ";";
     deleteTrigger += "END;";
     return deleteTrigger;
 }

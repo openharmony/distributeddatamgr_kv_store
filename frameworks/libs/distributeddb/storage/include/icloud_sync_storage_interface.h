@@ -34,6 +34,7 @@ enum class OpType : uint8_t {
     SET_CLOUD_FORCE_PUSH_FLAG_ZERO,
     UPDATE_TIMESTAMP,
     CLEAR_GID,
+    UPDATE_VERSION,
     NOT_HANDLE
 };
 
@@ -56,7 +57,7 @@ public:
 
     virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
 
-    virtual int GetCloudDbSchema(DataBaseSchema &cloudSchema) = 0;
+    virtual int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) = 0;
 
     virtual int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) = 0;
 
@@ -68,8 +69,6 @@ public:
 
     virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) = 0;
-
-    virtual int FillCloudGid(const CloudSyncData &data) = 0;
 
     virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
@@ -96,9 +95,12 @@ public:
 
     virtual int SetLogTriggerStatus(bool status) = 0;
 
-    virtual int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) = 0;
+    virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
+
+    virtual int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
+        std::vector<std::string> &gid) = 0;
 
     virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
 
@@ -116,6 +118,8 @@ public:
     {
         return E_OK;
     }
+
+    virtual bool IsSharedTable(const std::string &tableName) = 0;
 
     virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
     {

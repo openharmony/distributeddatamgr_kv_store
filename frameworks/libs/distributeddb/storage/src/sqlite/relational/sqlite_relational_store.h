@@ -85,7 +85,7 @@ public:
 
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
 
-    int SetCloudDbSchema(const DataBaseSchema &schema);
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
@@ -96,6 +96,8 @@ public:
     int SetTrackerTable(const TrackerSchema &trackerSchema);
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
+    int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
 private:
@@ -146,7 +148,15 @@ private:
     void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
         CloudSyncer::CloudTaskInfo &info);
 
+    int CleanWaterMark(std::set<std::string> &clearWaterMarkTable);
     int InitTrackerSchemaFromMeta();
+
+    void GetLocalSchema(DataBaseSchema &schema);
+    void PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
+        std::vector<std::string> &notHandleTableNames, std::map<std::string, std::string> &alterTableNames);
+    int CreateSharedTable(const DataBaseSchema &schema);
+
+    static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

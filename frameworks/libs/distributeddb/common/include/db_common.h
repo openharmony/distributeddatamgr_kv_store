@@ -87,11 +87,27 @@ public:
 
     static std::string ToUpperCase(const std::string &str);
 
-    static bool CaseInsensitiveCompare(std::string first, std::string second);
+    static bool CaseInsensitiveCompare(const std::string &first, const std::string &second);
 
     static bool CheckIsAlnumOrUnderscore(const std::string &text);
 
     static bool CheckQueryWithoutMultiTable(const Query &query);
+
+    static bool IsCircularDependency(int size, const std::vector<std::vector<int>> &dependency);
+
+    static int SerializeWaterMark(Timestamp localMark, const std::string &cloudMark, Value &blobMeta);
+
+    static Key GetPrefixTableName(const TableName &tableName);
+
+    static std::list<std::string> GenerateNodesByNodeWeight(const std::vector<std::string> &nodes,
+        const std::map<std::string, std::map<std::string, bool>> &graph,
+        const std::map<std::string, int> &nodeWeight);
+
+    static bool HasPrimaryKey(const std::vector<Field> &fields);
+private:
+    static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
+        const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,
+        std::list<std::string> &insertTarget);
 };
 
 // Define short macro substitute for original long expression for convenience of using

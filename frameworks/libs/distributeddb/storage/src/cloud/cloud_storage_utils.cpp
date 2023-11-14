@@ -300,13 +300,18 @@ std::vector<Field> CloudStorageUtils::GetCloudAsset(const TableSchema &tableSche
     return assetFields;
 }
 
-std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema)
+std::vector<Field> CloudStorageUtils::GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName)
 {
     std::vector<Field> pkVec;
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
             pkVec.push_back(field);
         }
+    }
+    if (sortByName) {
+        std::sort(pkVec.begin(), pkVec.end(), [](const Field &a, const Field &b) {
+           return a.colName < b.colName;
+        });
     }
     return pkVec;
 }
@@ -728,5 +733,49 @@ bool CloudStorageUtils::CheckAssetStatus(const Assets &assets)
         }
     }
     return true;
+}
+
+std::string CloudStorageUtils::GetTableRefUpdateSql(const TableInfo &table, OpType opType)
+{
+    std::string sql;
+    std::string rowid = std::string(DBConstant::SQLITE_INNER_ROWID);
+    for (const auto &reference : table.GetTableReference()) {
+        if (reference.columns.empty()) {
+            return "";
+        }
+        std::string sourceLogName = DBCommon::GetLogTableName(reference.sourceTableName);
+        sql += " UPDATE " + sourceLogName + " SET timestamp=get_raw_sys_time(), flag=flag|0x02 WHERE ";
+        int index = 0;
+        for (const auto &itCol : reference.columns) {
+            if (opType != OpType::UPDATE) {
+                continue;
+            }
+            if (index++ != 0) {
+                sql += " OR ";
+            }
+            sql += " OLD." + itCol.second + " <> " + " NEW." + itCol.second;
+        }
+        if (opType == OpType::UPDATE) {
+            sql += " AND ";
+        }
+        sql += " flag&0x08=0x00 AND data_key IN (SELECT " + sourceLogName + ".data_key FROM " + sourceLogName +
+            " LEFT JOIN " + reference.sourceTableName + " ON " + sourceLogName + ".data_key = " +
+            reference.sourceTableName + "." + rowid + " WHERE ";
+        index = 0;
+        for (const auto &itCol : reference.columns) {
+            if (index++ != 0) {
+                sql += " OR ";
+            }
+            if (opType == OpType::UPDATE) {
+                sql += itCol.first + "=OLD." + itCol.second + " OR " + itCol.first + "=NEW." + itCol.second;
+            } else if (opType == OpType::INSERT) {
+                sql += itCol.first + "=NEW." + itCol.second;
+            } else if (opType == OpType::DELETE) {
+                sql += itCol.first + "=OLD." + itCol.second;
+            }
+        }
+        sql += ");";
+    }
+    return sql;
 }
 }

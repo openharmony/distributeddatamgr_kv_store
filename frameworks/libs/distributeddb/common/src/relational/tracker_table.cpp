@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,13 +39,7 @@ const std::string TrackerTable::GetAssignValSql(bool isDelete) const
     if (extendColName_.empty()) {
         return "''";
     }
-    std::string sql;
-    if (isDelete) {
-        sql += "OLD." + extendColName_;
-    } else {
-        sql += "NEW." + extendColName_;
-    }
-    return sql;
+    return isDelete ? ("OLD." + extendColName_) : ("NEW." + extendColName_);
 }
 
 const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
@@ -53,13 +47,7 @@ const std::string TrackerTable::GetExtendAssignValSql(bool isDelete) const
     if (extendColName_.empty()) {
         return "";
     }
-    std::string sql;
-    if (isDelete) {
-        sql += ", extend_field = OLD." + extendColName_;
-    } else {
-        sql += ", extend_field = NEW." + extendColName_;
-    }
-    return sql;
+    return isDelete ? (", extend_field = OLD." + extendColName_) : (", extend_field = NEW." + extendColName_);
 }
 
 const std::string TrackerTable::GetDiffTrackerValSql() const

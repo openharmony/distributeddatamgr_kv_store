@@ -167,8 +167,6 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         std::lock_guard<std::mutex> lock(logMutex_);
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
-            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
-            LOGW("close look aside config");
             g_configLog = true;
         }
     }
@@ -1413,7 +1411,6 @@ void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc,
     if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is param counts
         return;
     }
-    LOGD("Cloud data changed server observer callback.");
     sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
     std::string fileName;
     if (!SQLiteRelationalUtils::GetDbFileName(db, fileName)) {
@@ -1426,6 +1423,7 @@ void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc,
     std::string tableName = static_cast<std::string>(tableNameChar);
 
     uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[1])); // 1 is param index
+    LOGD("Cloud data changed, server observer callback %u", isTrackerChange);
     {
         std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
         auto itTable = g_serverChangedDataMap[fileName].find(tableName);

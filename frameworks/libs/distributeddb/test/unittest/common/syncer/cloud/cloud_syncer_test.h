@@ -23,6 +23,16 @@
 
 namespace DistributedDB {
 
+const Asset ASSET_COPY = { .version = 1,
+    .name = "Phone",
+    .assetId = "0",
+    .subpath = "/local/sync",
+    .uri = "/local/sync",
+    .modifyTime = "123456",
+    .createTime = "",
+    .size = "256",
+    .hash = "ASE" };
+
 class TestStorageProxy : public StorageProxy {
 public:
     explicit TestStorageProxy(ICloudSyncStorageInterface *iCloud) : StorageProxy(iCloud)
@@ -182,12 +192,16 @@ public:
 
     void initFullCloudSyncData(CloudSyncData &uploadData, int size)
     {
-        VBucket tmp = {std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                       std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1)};
+        VBucket tmp = { std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+                        std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                        std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+        VBucket asset = { std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
         uploadData.insData.record = std::vector<VBucket>(size, tmp);
         uploadData.insData.extend = std::vector<VBucket>(size, tmp);
+        uploadData.insData.assets = std::vector<VBucket>(size, asset);
         uploadData.updData.record = std::vector<VBucket>(size, tmp);
         uploadData.updData.extend = std::vector<VBucket>(size, tmp);
+        uploadData.updData.assets = std::vector<VBucket>(size, asset);
         uploadData.delData.record = std::vector<VBucket>(size, tmp);
         uploadData.delData.extend = std::vector<VBucket>(size, tmp);
     }
@@ -237,6 +251,84 @@ public:
         currentContext_.cloudWaterMarks[tableName] = mark;
     }
 
+    int CallDownloadAssets()
+    {
+        InnerProcessInfo info;
+        std::vector<std::string> pKColNames;
+        std::set<Key> dupHashKeySet;
+        ChangedData changedAssets;
+        return CloudSyncer::DownloadAssets(info, pKColNames, dupHashKeySet, changedAssets);
+    }
+
+    void SetCurrentContext(TaskId taskId)
+    {
+        currentContext_.currentTaskId = taskId;
+    }
+
+    void SetLastTaskId(TaskId taskId)
+    {
+        lastTaskId_ = taskId;
+    }
+
+    void SetCurrentTaskPause()
+    {
+        cloudTaskInfos_[currentContext_.currentTaskId].pause = true;
+    }
+
+    void SetAssetDownloadList(int downloadCount)
+    {
+        for (int i = 0; i < downloadCount; ++i) {
+            currentContext_.assetDownloadList.push_back({});
+        }
+    }
+
+    void SetQuerySyncObject(TaskId taskId, const QuerySyncObject &query)
+    {
+        std::vector<QuerySyncObject> queryList;
+        queryList.push_back(query);
+        cloudTaskInfos_[taskId].queryList = queryList;
+    }
+
+    QuerySyncObject CallGetQuerySyncObject(const std::string &tableName)
+    {
+        return CloudSyncer::GetQuerySyncObject(tableName);
+    }
+
+    void CallReloadWaterMarkIfNeed(TaskId taskId, WaterMark &waterMark)
+    {
+        CloudSyncer::ReloadWaterMarkIfNeed(taskId, waterMark);
+    }
+
+    void CallRecordWaterMark(TaskId taskId, Timestamp waterMark)
+    {
+        CloudSyncer::RecordWaterMark(taskId, waterMark);
+    }
+
+    void SetResumeSyncParam(TaskId taskId, const SyncParam &syncParam)
+    {
+        resumeTaskInfos_[taskId].syncParam = syncParam;
+        resumeTaskInfos_[taskId].context.tableName = syncParam.tableName;
+    }
+
+    void ClearResumeTaskInfo(TaskId taskId)
+    {
+        resumeTaskInfos_.erase(taskId);
+    }
+
+    void SetTaskResume(TaskId taskId, bool resume)
+    {
+        cloudTaskInfos_[taskId].resume = resume;
+    }
+
+    int CallGetSyncParamForDownload(TaskId taskId, SyncParam &param)
+    {
+        return CloudSyncer::GetSyncParamForDownload(taskId, param);
+    }
+
+    bool IsResumeTaskUpload(TaskId taskId)
+    {
+        return resumeTaskInfos_[taskId].upload;
+    }
     CloudTaskInfo taskInfo_;
 private:
     std::map<TaskId, SyncProcess> process_;

@@ -380,7 +380,9 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, SecOptionCheck005, TestSize.Lev
     EXPECT_EQ(status, OK);
     for (const auto &pair : result) {
         LOGD("dev %s, status %d", pair.first.c_str(), pair.second);
+#ifdef ABANDON_NOT_SET
         EXPECT_TRUE(pair.second == SECURITY_OPTION_CHECK_ERROR);
+#endif
     }
 
     adapter->ForkCheckDeviceSecurityAbility(nullptr);

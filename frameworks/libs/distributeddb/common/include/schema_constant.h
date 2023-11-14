@@ -58,6 +58,13 @@ public:
     static const std::string SCHEMA_SUPPORT_VERSION_V2_1;
     static const std::string SCHEMA_CURRENT_VERSION;
 
+    static constexpr const char *REFERENCE_PROPERTY = "REFERENCE_PROPERTY";
+    static constexpr const char *SOURCE_TABLE_NAME = "SOURCE_TABLE_NAME";
+    static constexpr const char *TARGET_TABLE_NAME = "TARGET_TABLE_NAME";
+    static constexpr const char *COLUMNS = "COLUMNS";
+    static constexpr const char *SOURCE_COL = "SOURCE_COL";
+    static constexpr const char *TARGET_COL = "TARGET_COL";
+
     static const uint32_t SCHEMA_META_FEILD_COUNT_MAX;
     static const uint32_t SCHEMA_META_FEILD_COUNT_MIN;
     static const uint32_t SCHEMA_FEILD_NAME_LENGTH_MAX;

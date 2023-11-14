@@ -317,7 +317,7 @@ int RdSingleVerNaturalStore::InitDatabaseContext(const KvDBProperties &kvDBProp)
     std::string identifier = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
     int errCode = storageEngine_->InitRdStorageEngine(poolSize, option, identifier);
     if (errCode != E_OK) {
-        LOGE("Init the sqlite storage engine failed:%d", errCode);
+        LOGE("Init the rd storage engine failed:%d", errCode);
     }
     return errCode;
 }

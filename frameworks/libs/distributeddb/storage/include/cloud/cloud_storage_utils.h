@@ -17,6 +17,7 @@
 #define CLOUD_STORAGE_UTILS_H
 
 #include "cloud/cloud_store_types.h"
+#include "icloud_sync_storage_interface.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
@@ -46,7 +47,7 @@ public:
         std::vector<uint8_t> &value);
 
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName = false);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
         bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
@@ -78,6 +79,7 @@ public:
     static bool CheckAssetStatus(const Assets &assets);
 
     static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
+    static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)

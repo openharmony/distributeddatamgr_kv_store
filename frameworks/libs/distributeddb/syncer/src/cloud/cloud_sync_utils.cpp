@@ -70,6 +70,7 @@ void CloudSyncUtils::RemoveDataExceptExtendInfo(VBucket &datum, const std::vecto
             key != CloudDbConstant::MODIFY_FIELD &&
             key != CloudDbConstant::DELETE_FIELD &&
             key != CloudDbConstant::CURSOR_FIELD &&
+            key != CloudDbConstant::VERSION_FIELD &&
             (std::find(pkColNames.begin(), pkColNames.end(), key) == pkColNames.end())) {
                 item = datum.erase(item);
             } else {
@@ -427,5 +428,78 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.insertData.clear();
     param.withoutRowIdData.updateData.clear();
     param.withoutRowIdData.assetInsertData.clear();
+}
+
+int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data)
+{
+    if (data.extend.size() != data.assets.size()) {
+        LOGE("[CloudSyncUtils][FillAssetIdToAssets] Extend size does not match the assets size.");
+        return -E_CLOUD_ERROR;
+    }
+    for (size_t i = 0; i < data.assets.size(); i++) {
+        if (data.assets[i].empty() || data.extend[i].find(CloudDbConstant::ERROR_FIELD) != data.extend[i].end()) {
+            continue;
+        }
+        for (auto &[col, value] : data.assets[i]) {
+            auto extendIt = data.extend[i].find(col);
+            if (extendIt == data.extend[i].end()) {
+                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field name can not find in extend.");
+                return -E_CLOUD_ERROR;
+            }
+            if (extendIt->second.index() != value.index()) {
+                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field type and type in extend is not the same.");
+                return -E_CLOUD_ERROR;
+            }
+            int errCode = FillAssetIdToAssetData(extendIt->second, value);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Failed to fill assetId to Asset, %d.", errCode);
+                return errCode;
+            }
+        }
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::FillAssetIdToAssetData(const Type &extend, Type &assetData)
+{
+    if (extend.index() == TYPE_INDEX<Asset>) {
+        if (std::get<Asset>(assetData).name != std::get<Asset>(extend).name) {
+            LOGE("[CloudSyncUtils][FillAssetIdToAssetData] Asset name can not find in extend.");
+            return -E_CLOUD_ERROR;
+        }
+        if (std::get<Asset>(extend).assetId.empty()) {
+            LOGE("[CloudSyncUtils][FillAssetIdToAssetData] Asset id is empty.");
+            return -E_CLOUD_ERROR;
+        }
+        std::get<Asset>(assetData).assetId = std::get<Asset>(extend).assetId;
+    }
+    if (extend.index() == TYPE_INDEX<Assets>) {
+        int errCode = FillAssetIdToAssetsData(std::get<Assets>(extend), std::get<Assets>(assetData));
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncUtils][FillAssetIdToAssetData] Failed to fill assetId to Assets, %d.", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets)
+{
+    for (auto &asset : assets) {
+        auto extendAssets = extend;
+        bool isAssetExisted = false;
+        for (const auto &extendAsset : extendAssets) {
+            if (asset.name == extendAsset.name && !extendAsset.assetId.empty()) {
+                asset.assetId = extendAsset.assetId;
+                isAssetExisted = true;
+                break;
+            }
+        }
+        if (!isAssetExisted) {
+            LOGE("[CloudSyncUtils][FillAssetIdToAssets] Assets name can not find in extend.");
+            return -E_CLOUD_ERROR;
+        }
+    }
+    return E_OK;
 }
 }

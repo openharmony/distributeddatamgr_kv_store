@@ -311,7 +311,7 @@ int SQLiteRelationalStoreConnection::SetCloudDB(const std::shared_ptr<ICloudDb> 
     return store->SetCloudDB(cloudDb);
 }
 
-int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &schema)
+int SQLiteRelationalStoreConnection::PrepareAndSetCloudDbSchema(const DataBaseSchema &schema)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -319,9 +319,9 @@ int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &sche
         return -E_INVALID_CONNECTION;
     }
 
-    int ret = store->SetCloudDbSchema(schema);
+    int ret = store->PrepareAndSetCloudDbSchema(schema);
     if (ret != E_OK) {
-        LOGE("[RelationalConnection] SetCloudDbSchema failed. %d", ret);
+        LOGE("[RelationalConnection] PrepareAndSetCloudDbSchema failed. %d", ret);
     }
     return ret;
 }
@@ -398,6 +398,16 @@ int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, s
         return -E_INVALID_CONNECTION;
     }
     return store->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStoreConnection::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[SetReference] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetReference(tableReferenceProperty);
 }
 
 int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)

@@ -71,6 +71,8 @@ public:
 
     DBStatus ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
 
+    DBStatus SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
+
     DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
     DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;

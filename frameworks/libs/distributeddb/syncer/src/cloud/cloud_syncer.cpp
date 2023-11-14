@@ -274,8 +274,14 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
         }
+        bool isShared = false;
+        errCode = storageProxy_->IsSharedTable(table, isShared);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] check shared table failed %d", errCode);
+            return errCode;
+        }
         // shared table not allow logic delete
-        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
+        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
         errCode = CheckTaskIdValid(taskInfo.taskId);
         if (errCode != E_OK) {
             LOGW("[CloudSyncer] task is invalid, abort sync");
@@ -927,6 +933,35 @@ int CloudSyncer::SaveDataInTransaction(CloudSyncer::TaskId taskId, SyncParam &pa
     return ret;
 }
 
+int CloudSyncer::DoDownloadAssets(bool skipSave, SyncParam &param)
+{
+    // Begin dowloading assets
+    ChangedData changedAssets;
+    int ret = DownloadAssets(param.info, param.pkColNames, param.dupHashKeySet, changedAssets);
+    bool isSharedTable = false;
+    int errCode = storageProxy_->IsSharedTable(param.tableName, isSharedTable);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] HandleTagAssets cannot judge the table is a shared table. %d", errCode);
+        return errCode;
+    }
+    if (!isSharedTable) {
+        (void)NotifyChangedData(std::move(changedAssets));
+    }
+    if (ret == -E_TASK_PAUSED) {
+        LOGD("[CloudSyncer] current task was paused, abort dowload asset");
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = true;
+        return ret;
+    } else if (skipSave) {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = false;
+    }
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Cannot notify downloadAssets due to error %d", ret);
+    }
+    return ret;
+}
+
 int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param)
 {
     ChangedData changedData;
@@ -954,21 +989,8 @@ int CloudSyncer::SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &pa
             return ret;
         }
     }
-    // Begin downloading assets
-    ChangedData changedAssets;
-    ret = DownloadAssets(param.info, param.pkColNames, param.dupHashKeySet, changedAssets);
-    (void)NotifyChangedData(std::move(changedAssets));
-    if (ret == -E_TASK_PAUSED) {
-        LOGD("[CloudSyncer] current task was paused, abort download asset");
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = true;
-        return ret;
-    } else if (skipSave) {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        resumeTaskInfos_[currentContext_.currentTaskId].skipQuery = false;
-    }
+    ret = DoDownloadAssets(skipSave, param);
     if (ret != E_OK) {
-        LOGE("[CloudSyncer] Cannot notify downloadAssets due to error %d", ret);
         return ret;
     }
     UpdateCloudWaterMark(taskId, param);
@@ -1070,13 +1092,10 @@ int CloudSyncer::PreCheckUpload(CloudSyncer::TaskId &taskId, const TableName &ta
     return ret;
 }
 
-int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo)
+int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &deleteInfo, CloudSyncData &uploadData,
+    InnerProcessInfo &innerProcessInfo)
 {
     int errCode = E_OK;
-    Info insertInfo;
-    Info updateInfo;
-    Info deleteInfo;
-
     if (!uploadData.delData.record.empty() && !uploadData.delData.extend.empty()) {
         errCode = cloudDB_.BatchDelete(uploadData.tableName, uploadData.delData.record,
             uploadData.delData.extend, deleteInfo);
@@ -1087,32 +1106,26 @@ int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadPar
     }
 
     if (!uploadData.insData.record.empty() && !uploadData.insData.extend.empty()) {
-        errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
-            uploadData.insData.extend, insertInfo);
+        errCode = BatchInsert(insertInfo, uploadData, innerProcessInfo);
         if (errCode != E_OK) {
             return errCode;
         }
-        // we need to fill back gid after insert data to cloud.
-        int ret = storageProxy_->FillCloudGidAndAsset(OpType::INSERT, uploadData);
-        if (ret != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", ret);
-            return ret;
-        }
-        innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
     }
 
     if (!uploadData.updData.record.empty() && !uploadData.updData.extend.empty()) {
-        errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
-            uploadData.updData.extend, updateInfo);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        errCode = storageProxy_->FillCloudGidAndAsset(OpType::UPDATE, uploadData);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errCode);
-            return errCode;
-        }
-        innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
+        errCode = BatchUpdate(updateInfo, uploadData, innerProcessInfo);
+    }
+    return errCode;
+}
+
+int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo)
+{
+    Info insertInfo;
+    Info updateInfo;
+    Info deleteInfo;
+    int errCode = SaveUploadData(insertInfo, updateInfo, deleteInfo, uploadData, innerProcessInfo);
+    if (errCode != E_OK) {
+        return errCode;
     }
     bool lastBatch = innerProcessInfo.upLoadInfo.successCount == innerProcessInfo.upLoadInfo.total;
     if (lastBatch) {
@@ -1701,6 +1714,19 @@ int CloudSyncer::CleanCloudData(ClearMode mode, const std::vector<std::string> &
     return errCode;
 }
 
+int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameList)
+{
+    std::lock_guard<std::mutex> lock(syncMutex_);
+    for (const auto &tableName: tableNameList) {
+        int ret = storageProxy_->CleanWaterMarkInMemory(tableName);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] failed to clean cloud water mark in memory, %d.", ret);
+            return ret;
+        }
+    }
+    return E_OK;
+}
+
 void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
 {
     bool isUpdateCloudCursor = true;
@@ -1935,9 +1961,17 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
     if (downloadAssets.empty()) { // Download data (include deleting)
         return E_OK;
     }
-    int errorCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, downloadAssets);
-    if (errorCode == -E_NOT_SET) {
-        return -E_NOT_SET;
+    bool isSharedTable = false;
+    int errorCode = storageProxy_->IsSharedTable(info.tableName, isSharedTable);
+    if (errorCode != E_OK) {
+        LOGE("[CloudSyncer] DownloadOneAssetRecord cannot judge the table is a shared table. %d", errorCode);
+        return errorCode;
+    }
+    if (!isSharedTable) {
+        errorCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, downloadAssets);
+        if (errorCode == -E_NOT_SET) {
+            return -E_NOT_SET;
+        }
     }
     if (errorCode != E_OK) {
         info.downLoadInfo.failCount += 1;
@@ -2193,5 +2227,80 @@ void CloudSyncer::NotifyUploadFailed(int errCode, InnerProcessInfo &info)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.notifier->UpdateProcess(info);
     }
+}
+
+int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
+{
+    int errCode = cloudDB_.BatchInsert(uploadData.tableName, uploadData.insData.record,
+        uploadData.insData.extend, insertInfo);
+    bool isSharedTable = false;
+    int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] DoBatchUpload cannot judge the table is shared table. %d", ret);
+        return ret;
+    }
+    if (!isSharedTable) {
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to fill assetId to Assets, %d.", ret);
+            return ret;
+        }
+    }
+    if (errCode != E_OK) {
+        storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
+        return errCode;
+    }
+    // we need to fill back gid after insert data to cloud.
+    ret = storageProxy_->FillCloudLogAndAsset(OpType::INSERT, uploadData);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill back when doing upload insData, %d.", ret);
+        return ret;
+    }
+    if (isSharedTable) {
+        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
+            return ret;
+        }
+    }
+    innerProcessInfo.upLoadInfo.successCount += insertInfo.successCount;
+    return E_OK;
+}
+
+int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo)
+{
+    int errCode = cloudDB_.BatchUpdate(uploadData.tableName, uploadData.updData.record,
+        uploadData.updData.extend, updateInfo);
+    bool isSharedTable = false;
+    int ret = storageProxy_->IsSharedTable(uploadData.tableName, isSharedTable);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] DoBatchUpload cannot judge the table is shared table. %d", ret);
+        return ret;
+    }
+    if (!isSharedTable) {
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to fill assetId to Assets, %d.", ret);
+            return ret;
+        }
+    }
+    if (errCode != E_OK) {
+        storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
+        return errCode;
+    }
+    ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE, uploadData);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Failed to fill back when doing upload updData, %d.", errCode);
+        return ret;
+    }
+    if (isSharedTable) {
+        ret = storageProxy_->FillCloudLogAndAsset(OpType::UPDATE_VERSION, uploadData);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to fill back version when doing upload insData, %d.", ret);
+            return ret;
+        }
+    }
+    innerProcessInfo.upLoadInfo.successCount += updateInfo.successCount;
+    return E_OK;
 }
 } // namespace DistributedDB

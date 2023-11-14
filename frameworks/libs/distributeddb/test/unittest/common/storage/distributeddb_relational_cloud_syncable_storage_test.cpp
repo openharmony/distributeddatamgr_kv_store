@@ -57,9 +57,10 @@ const std::vector<Field> g_cloudFiled = {
     {"assert", TYPE_INDEX<Asset>}, {"asserts", TYPE_INDEX<Assets>}
 };
 const Asset g_localAsset = {
-    .version = 1, .name = "Phone", .uri = "/local/sync", .modifyTime = "123456", .createTime = "",
-    .size = "256", .hash = " ", .flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE),
-    .status = static_cast<uint32_t>(AssetStatus::NORMAL), .timestamp = 0L
+    .version = 1, .name = "Phone", .assetId = "0", .subpath = "/local/sync", .uri = "/local/sync",
+    .modifyTime = "123456", .createTime = "", .size = "256", .hash = " ",
+    .flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE), .status = static_cast<uint32_t>(AssetStatus::NORMAL),
+    .timestamp = 0L
 };
 DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
 RelationalStoreDelegate *g_delegate = nullptr;
@@ -188,9 +189,9 @@ void InitLogicDelete(int64_t count)
     sqlite3_close(db);
 }
 
-void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData)
+void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData, std::vector<OpType> &opTypes)
 {
-    for (int i = 1; i <= 5; i++) { // 5 is random num
+    for (size_t i = 1; i <= opTypes.size(); i++) {
         Asset asset = g_localAsset;
         Assets assets;
         VBucket vBucket;
@@ -219,15 +220,28 @@ void ConstructMultiDownloadData(int64_t count, DownloadData &downloadData)
         vBucket[CloudDbConstant::CREATE_FIELD] = mTime;
         downloadData.data.push_back(vBucket);
     }
-    downloadData.opType = { OpType::DELETE, OpType::INSERT, OpType::UPDATE,
-        OpType::UPDATE, OpType::NOT_HANDLE };
+    downloadData.opType = opTypes;
+}
+
+void AddVersionToDownloadData(DownloadData &downloadData)
+{
+    for (size_t i = 0; i < downloadData.data.size(); i++) {
+        downloadData.data[i].insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("11"));
+    }
+}
+
+void AddCloudOwnerToDownloadData(DownloadData &downloadData)
+{
+    for (size_t i = 0; i < downloadData.data.size(); i++) {
+        downloadData.data[i].insert_or_assign(CloudDbConstant::CLOUD_OWNER, std::to_string(i));
+    }
 }
 
 void SetDbSchema(const TableSchema &tableSchema)
 {
     DataBaseSchema dataBaseSchema;
     dataBaseSchema.tables.push_back(tableSchema);
-    EXPECT_EQ(g_cloudStore->SetCloudDbSchema(dataBaseSchema), E_OK);
+    EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), E_OK);
 }
 
 void InitUserDataForAssetTest(int64_t insCount, int64_t photoSize)
@@ -381,7 +395,7 @@ void DistributedDBRelationalCloudSyncableStorageTest::TearDown(void)
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest001, TestSize.Level0)
 {
     EXPECT_EQ(g_cloudStore->PutMetaData(KEY_1, VALUE_2), E_OK);
     EXPECT_EQ(g_cloudStore->PutMetaData(KEY_1, VALUE_3), E_OK);
@@ -398,7 +412,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest001, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest002, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest002, TestSize.Level0)
 {
     const string str(DBConstant::MAX_KEY_SIZE, 'k');
     const Key key(str.begin(), str.end());
@@ -420,7 +434,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, MetaDataTest002, TestS
  * @tc.require:
  * @tc.author: bty
   */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest001, TestSize.Level0)
 {
     /**
      * @tc.steps: allow get or put meta in read transaction
@@ -448,7 +462,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest001, Te
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest002, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest002, TestSize.Level0)
 {
     Timestamp cloudTime = 666888;
     Timestamp localTime;
@@ -492,7 +506,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest002, Te
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest003, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest003, TestSize.Level0)
 {
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
 
@@ -526,7 +540,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest003, Te
  * @tc.require:
  * @tc.author: bty
   */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest004, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest004, TestSize.Level0)
 {
     /**
      * @tc.steps: transaction is not allowed after closing the proxy
@@ -557,7 +571,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, TransactionTest004, Te
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, TestSize.Level0)
 {
     /**
      * @tc.steps: Table does not exist
@@ -591,7 +605,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
  * @tc.require:
  * @tc.author: bty
   */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 100;
@@ -628,7 +642,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 100;
@@ -655,7 +669,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 100;
@@ -666,7 +680,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      * @tc.steps: rowid set is empty
      * @tc.expected: return -E_INVALID_ARGS.
      */
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_ARGS);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_ARGS);
     syncData.insData.rowid.push_back(1);
     syncData.insData.rowid.push_back(2); // 2 is random id
 
@@ -674,7 +688,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      * @tc.steps: insData set is empty
      * @tc.expected: return -E_INVALID_ARGS.
      */
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_ARGS);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_ARGS);
     VBucket bucket1;
     bucket1.insert_or_assign(g_tableName, g_tableName);
     bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, 1L);
@@ -684,7 +698,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
      * @tc.steps: the size of rowid and insData is not equal
      * @tc.expected: return -E_INVALID_ARGS.
      */
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_ARGS);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_ARGS);
 
     /**
      * @tc.steps: table name is empty
@@ -693,14 +707,14 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
     VBucket bucket2;
     bucket2.insert_or_assign(CloudDbConstant::CREATE_FIELD, 2L); // 2L is random field
     syncData.insData.extend.push_back(bucket2);
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -SQLITE_ERROR);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -SQLITE_ERROR);
 
     /**
      * @tc.steps: the field type does not match
      * @tc.expected: return -E_INVALID_DATA.
      */
     syncData.tableName = g_tableName;
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_DATA);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_DATA);
 
     /**
      * @tc.steps: missing field GID_FIELD
@@ -711,114 +725,19 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid001, TestS
     bucket2.insert_or_assign(CloudDbConstant::CREATE_FIELD, std::string("2"));
     syncData.insData.extend.push_back(bucket1);
     syncData.insData.extend.push_back(bucket2);
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -E_INVALID_ARGS);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -E_INVALID_ARGS);
 
     syncData.insData.extend.pop_back();
     bucket2.insert_or_assign(CloudDbConstant::GID_FIELD, std::string("2"));
     syncData.insData.extend.push_back(bucket2);
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), E_OK);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), E_OK);
 
     /**
      * @tc.steps: table name is not exists
      * @tc.expected: return -SQLITE_ERROR.
      */
     syncData.tableName = "noneTable";
-    EXPECT_EQ(g_cloudStore->FillCloudGid(syncData), -SQLITE_ERROR);
-}
-
-/**
- * @tc.name: FillCloudGid002
- * @tc.desc: Test whether the num of gid after fill are correct
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid002, TestSize.Level1)
-{
-    CreateLogTable();
-    int64_t insCount = 100;
-    int64_t updCount = 50;
-    int64_t delCount = 50;
-    InitLogData(insCount, updCount, delCount, insCount);
-
-    CloudSyncData syncData(g_tableName);
-    for (int64_t i = 1; i <= 3 * insCount; ++i) { // 3 is insert,update and delete type data
-        syncData.insData.rowid.push_back(i);
-        VBucket bucket1;
-        bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(g_startTime + i));
-        syncData.insData.extend.push_back(bucket1);
-    }
-    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->FillCloudGid(syncData), E_OK);
-    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
-
-    sqlite3 *db = nullptr;
-    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
-    std::string querySql = "SELECT COUNT(*) FROM " + g_logTblName + " WHERE cloud_gid in (";
-    for (int64_t i = 1; i <= (insCount + updCount + delCount); ++i) {
-        querySql += "'" + std::to_string(g_startTime + i) + "',";
-    }
-    querySql.pop_back();
-    querySql += ");";
-    EXPECT_EQ(sqlite3_exec(db, querySql.c_str(),
-        QueryCountCallback, reinterpret_cast<void *>(insCount + updCount + delCount), nullptr), SQLITE_OK);
-    sqlite3_close(db);
-}
-
-/**
- * @tc.name: FillCloudGid003
- * @tc.desc: Test FillCloudGid after in write transaction
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid003, TestSize.Level1)
-{
-    CreateLogTable();
-    int64_t insCount = 10;
-    InitLogData(insCount, insCount, insCount, insCount);
-    CloudSyncData syncData(g_tableName);
-    for (int64_t i = 1; i <= (insCount + insCount + insCount); ++i) {
-        syncData.insData.rowid.push_back(i);
-        VBucket bucket1;
-        bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::to_string(g_startTime + i));
-        syncData.insData.extend.push_back(bucket1);
-    }
-
-    /**
-     * @tc.steps: FillCloudGid is not allowed after starting write transaction
-     * @tc.expected: return -E_BUSY.
-     */
-    EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
-    EXPECT_EQ(g_storageProxy->FillCloudGid(syncData), -E_BUSY);
-    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
-}
-
-/**
- * @tc.name: FillCloudGid004
- * @tc.desc: Test FillCloudGid when gid is empty
- * @tc.type: FUNC
- * @tc.require:
- * @tc.author: bty
- */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid004, TestSize.Level1)
-{
-    CreateLogTable();
-    int64_t insCount = 2;
-    InitLogData(insCount, insCount, insCount, insCount);
-    CloudSyncData syncData(g_tableName);
-    syncData.insData.rowid.push_back(0);
-    VBucket bucket1;
-    bucket1.insert_or_assign(CloudDbConstant::GID_FIELD, std::string(""));
-    syncData.insData.extend.push_back(bucket1);
-
-    /**
-     * @tc.steps: FillCloudGid is not allowed when gid is empty
-     * @tc.expected: return -E_CLOUD_ERROR.
-     */
-    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    EXPECT_EQ(g_storageProxy->FillCloudGid(syncData), -E_CLOUD_ERROR);
-    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+    EXPECT_EQ(g_cloudStore->FillCloudLogAndAsset(OpType::INSERT, syncData, false, false), -SQLITE_ERROR);
 }
 
 /**
@@ -828,7 +747,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudGid004, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 100;
@@ -881,7 +800,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 1024;
@@ -931,7 +850,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData002, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 1024;
@@ -963,7 +882,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData003, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 10;
@@ -999,7 +918,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData004, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestSize.Level0)
 {
     CreateLogTable();
     int64_t insCount = 1024;
@@ -1029,7 +948,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData005, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Init data and set asset status to invalid num
@@ -1063,7 +982,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData006, TestS
  * @tc.require:
  * @tc.author: bty
  */
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid001, TestSize.Level0)
 {
     int64_t insCount = 100;
     int64_t photoSize = 10;
@@ -1129,7 +1048,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, T
     InitLogGid(insCount);
 
     DownloadData downloadData;
-    ConstructMultiDownloadData(insCount, downloadData);
+    std::vector<OpType> opTypes = { OpType::DELETE, OpType::INSERT, OpType::UPDATE,
+                                    OpType::UPDATE, OpType::NOT_HANDLE };
+    ConstructMultiDownloadData(insCount, downloadData, opTypes);
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName, downloadData), E_OK);
     ContinueToken token = nullptr;
@@ -1138,7 +1059,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, T
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, TestSize.Level0)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1152,7 +1073,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset001, Tes
     fillCloudAssetTest(insCount, AssetStatus::ABNORMAL, true);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, TestSize.Level1)
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, TestSize.Level0)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;
@@ -1171,7 +1092,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
 
     CloudSyncData syncData(g_tableName);
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE, syncData), E_OK);
     syncData.updData.rowid.push_back(1L);
     VBucket bucket1;
     Asset asset = g_localAsset;
@@ -1184,8 +1105,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset002, Tes
     assets.push_back(asset);
     bucket1.insert_or_assign("asserts", assets);
     syncData.updData.assets.push_back(bucket1);
+    syncData.updData.extend.push_back(bucket1);
     syncData.updData.timestamp.push_back(timeStamp);
-    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 
     ASSERT_EQ(SQLiteUtils::GetStatement(db, "SELECT assert, asserts FROM " + g_tableName + " WHERE rowid = 1;",
@@ -1238,10 +1160,12 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset003, Tes
     bucket2.insert_or_assign("asserts", assets);
     syncData.updData.assets.push_back(bucket1);
     syncData.updData.assets.push_back(bucket2);
+    syncData.updData.extend.push_back(bucket1);
+    syncData.updData.extend.push_back(bucket2);
     syncData.updData.timestamp.push_back(timeStamp1);
     syncData.updData.timestamp.push_back(timeStamp2);
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::UPDATE, syncData), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
@@ -1290,7 +1214,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudAsset004, Tes
         syncData.insData.timestamp.push_back(timeVector[i - 1]);
     }
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
-    ASSERT_EQ(g_storageProxy->FillCloudGidAndAsset(OpType::INSERT, syncData), E_OK);
+    ASSERT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::INSERT, syncData), E_OK);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
@@ -1403,6 +1327,141 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, CalPrimaryKeyHash002, 
     EXPECT_EQ(errCode, E_OK);
     SQLiteUtils::ResetStatement(statement, true, errCode);
     sqlite3_close(db);
+}
+
+/*
+ * @tc.name: FillCloudVersion001
+ * @tc.desc: Test FillCloudLogAndAsset interface when opType is UPDATE_VERSION
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, FillCloudVersion001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. init data
+     * @tc.expected: OK.
+     */
+    CreateLogTable();
+    int64_t insCount = 100;
+    InitLogData(insCount, 0, insCount, insCount);
+
+    /**
+     * @tc.steps: step2. FillCloudLogAndAsset which isShared is false, but extend val is empty
+     * @tc.expected: OK.
+     */
+    CloudSyncData syncData(g_tableName);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step3. FillCloudLogAndAsset which isShared is true, but extend val is empty
+     * @tc.expected: OK.
+     */
+    syncData.isShared = true;
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+
+    /**
+     * @tc.steps: step4. the extend size is not equal to the hashKey size
+     * @tc.expected: -E_INVALID_ARGS.
+     */
+    VBucket extend1;
+    extend1.insert_or_assign(CloudDbConstant::VERSION_FIELD, std::string("1"));
+    syncData.delData.extend.push_back(extend1);
+    syncData.updData.extend.push_back(extend1);
+    syncData.insData.extend.push_back(extend1);
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), -E_INVALID_ARGS);
+
+    /**
+     * @tc.steps: step5. the extend size is equal to the hashKey size
+     * @tc.expected: OK.
+     */
+    std::string hashKeyStr = "1";
+    Bytes hashKey(hashKeyStr.begin(), hashKeyStr.end());
+    syncData.delData.hashKey.push_back(hashKey);
+    syncData.updData.hashKey.push_back(hashKey);
+    syncData.insData.hashKey.push_back(hashKey);
+    EXPECT_EQ(g_storageProxy->FillCloudLogAndAsset(OpType::UPDATE_VERSION, syncData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+}
+
+/*
+ * @tc.name: PutCloudSyncVersion001
+ * @tc.desc: Test PutCloudSyncData interface that table is share
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion001, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
+     * @tc.expected: -E_CLOUD_ERROR.
+     */
+    int64_t insCount = 10;
+    int64_t photoSize = 10;
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
+    DownloadData downloadData;
+    std::vector<OpType> opTypes = { OpType::INSERT, OpType::INSERT, OpType::DELETE, OpType::UPDATE,
+        OpType::ONLY_UPDATE_GID, OpType::NOT_HANDLE };
+    ConstructMultiDownloadData(insCount, downloadData, opTypes);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), -E_CLOUD_ERROR);
+    EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
+
+    /**
+     * @tc.steps: step2. PutCloudSyncData and check table row num
+     * @tc.expected: E_OK.
+     */
+    AddVersionToDownloadData(downloadData);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    std::string querySql = "SELECT COUNT(*) FROM " + DBConstant::RELATIONAL_PREFIX + g_tableName +
+        CloudDbConstant::SHARED + "_log";
+    EXPECT_EQ(sqlite3_exec(db, querySql.c_str(),
+        QueryCountCallback, reinterpret_cast<void *>(2L), nullptr), SQLITE_OK);
+    sqlite3_close(db);
+}
+
+/*
+ * @tc.name: PutCloudSyncVersion002
+ * @tc.desc: Test PutCloudSyncData interface that download data is not contains version
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncVersion002, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. table type is shareTable, but downloadData is not contains version
+     * @tc.expected: E_OK.
+     */
+    int64_t insCount = 10;
+    int64_t photoSize = 10;
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
+    DownloadData downloadData;
+    std::vector<OpType> opTypes = { OpType::INSERT, OpType::INSERT, OpType::INSERT };
+    ConstructMultiDownloadData(insCount, downloadData, opTypes);
+    AddVersionToDownloadData(downloadData);
+    AddCloudOwnerToDownloadData(downloadData);
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), E_OK);
+
+    /**
+     * @tc.steps: step2. test opType of DELETE,UPDATE_TIMESTAMP,and CLEAR_GID without version field
+     * @tc.expected: E_OK.
+     */
+    downloadData.opType = { OpType::DELETE, OpType::UPDATE_TIMESTAMP, OpType::CLEAR_GID };
+    for (size_t i = 0; i < downloadData.data.size(); i++) {
+        downloadData.data[i].erase(CloudDbConstant::VERSION_FIELD);
+    }
+    EXPECT_EQ(g_storageProxy->PutCloudSyncData(g_tableName + CloudDbConstant::SHARED, downloadData), E_OK);
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 }
 #endif // RELATIONAL_STORE

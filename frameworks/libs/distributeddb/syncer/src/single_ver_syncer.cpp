@@ -37,13 +37,13 @@ void SingleVerSyncer::RemoteDeviceOffline(const std::string &device)
     ISyncInterface *storage = syncInterface_;
     storage->IncRefCount();
     int errCode = RuntimeContext::GetInstance()->ScheduleTask([engine, device, storage]() {
-        static_cast<SingleVerSyncEngine *>(engine)->OfflineHandleByDevice(device);
+        static_cast<SingleVerSyncEngine *>(engine)->OfflineHandleByDevice(device, storage);
         RefObject::DecObjRef(engine);
         storage->DecRefCount();
     });
     if (errCode != E_OK) {
         LOGW("[SingleVerSyncer][RemoteDeviceOffline] async task failed errCode = %d", errCode);
-        RefObject::DecObjRef(syncEngine_);
+        RefObject::DecObjRef(engine);
         storage->DecRefCount();
     }
 }

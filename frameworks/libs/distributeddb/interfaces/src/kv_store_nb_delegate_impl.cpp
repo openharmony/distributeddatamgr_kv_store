@@ -506,6 +506,7 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
     }
 
     if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
+        LOGE("not support for invalid query");
         return NOT_SUPPORT;
     }
     QuerySyncObject querySyncObj(query);

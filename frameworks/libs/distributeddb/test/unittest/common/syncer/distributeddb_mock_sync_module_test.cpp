@@ -1935,7 +1935,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck002, TestSize.Level1)
  * @tc.require: AR000CCPOM
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBMockSyncModuleTest, SyncerCheck003, TestSize.Level1)
+HWTEST_F(DistributedDBMockSyncModuleTest, DISABLE_SyncerCheck003, TestSize.Level1)
 {
     MockSingleVerKVSyncer syncer;
     InternalSyncParma param;

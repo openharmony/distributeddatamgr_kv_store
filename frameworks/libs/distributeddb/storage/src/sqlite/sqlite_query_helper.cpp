@@ -1009,7 +1009,8 @@ std::string GetRelationalCloudSyncDataQueryHeader(const std::vector<Field> &fiel
         "b.wtimestamp,"
         "b.flag,"
         "b.hash_key,"
-        "b.cloud_gid,";
+        "b.cloud_gid,"
+        "b.version,";
     if (fields.empty()) {  // For query check. If column count changed, can be discovered.
         sql += "a.*";
     } else {
@@ -1152,7 +1153,7 @@ int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint6
 int SqliteQueryHelper::GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
     bool isCloudForcePush, sqlite3_stmt *&statement)
 {
-    std::string sql = "SELECT COUNT(1) ";
+    std::string sql = "SELECT COUNT(*) ";
     AppendCloudQuery(isCloudForcePush, sql);
     return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
 }
@@ -1208,10 +1209,10 @@ int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *d
         }
         return errCode;
     }
-    int index = 2; // the query node begin with 2 in this sql
+    int index = 2;
     errCode = BindObjNodes(statement, index);
     if (errCode != E_OK) {
-        LOGE("BindObjNodes failed %d", errCode);
+        LOGE("[Query] BindObjNodes failed %d", errCode);
         int resetRet = E_OK;
         SQLiteUtils::ResetStatement(statement, true, errCode);
         if (resetRet != E_OK) {

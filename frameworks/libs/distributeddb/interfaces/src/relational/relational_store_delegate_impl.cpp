@@ -47,20 +47,20 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         LOGE("Invalid mode for Remove device data, %d.", INVALID_ARGS);
         return INVALID_ARGS;
     }
-    if (mode == FLAG_ONLY || mode == FLAG_AND_DATA) {
-        if (conn_ == nullptr) {
-            LOGE("[RelationalStore Delegate] Invalid connection for operation!");
-            return DB_ERROR;
-        }
-
-        int errCode = conn_->DoClean(mode);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
-            return TransferDBErrno(errCode);
-        }
-        return OK;
+    if (mode == DEFAULT) {
+        return RemoveDeviceData(device, "");
     }
-    return RemoveDeviceData(device, "");
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->DoClean(mode);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
 }
 
 int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
@@ -252,8 +252,22 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb>
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
 {
-    if (conn_ == nullptr || conn_->SetCloudDbSchema(schema) != E_OK) {
+    DataBaseSchema cloudSchema = schema;
+    ParamCheckUtils::TransferSchemaToLower(cloudSchema);
+    if (!ParamCheckUtils::CheckSharedTableName(cloudSchema)) {
+        LOGE("[RelationalStore Delegate] SharedTableName check failed!");
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
         return DB_ERROR;
+    }
+    int errorCode = conn_->PrepareAndSetCloudDbSchema(cloudSchema);
+    if (errorCode != E_OK) {
+        LOGE("[RelationalStore Delegate] set cloud schema failed!");
+        if (errorCode == -E_INVALID_CONNECTION || errorCode == -E_INVALID_DB) {
+            return DB_ERROR;
+        }
+        return TransferDBErrno(errorCode);
     }
     return OK;
 }
@@ -362,6 +376,27 @@ DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, 
     int errCode = conn_->ExecuteSql(condition, records);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] execute sql failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore SetReference] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    if (!ParamCheckUtils::CheckTableReference(tableReferenceProperty)) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetReference(tableReferenceProperty);
+    if (errCode != E_OK) {
+        if (errCode != -E_TABLE_REFERENCE_CHANGED) {
+            LOGE("[RelationalStore] SetReference failed:%d", errCode);
+        } else {
+            LOGI("[RelationalStore] reference changed");
+        }
         return TransferDBErrno(errCode);
     }
     return OK;

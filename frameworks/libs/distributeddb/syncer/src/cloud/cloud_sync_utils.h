@@ -85,6 +85,12 @@ public:
         std::vector<std::pair<Key, size_t>> &deletedList);
 
     static void ClearWithoutData(ICloudSyncer::SyncParam &param);
+
+    static int FillAssetIdToAssets(CloudSyncBatch &data);
+
+    static int FillAssetIdToAssetData(const Type &extend, Type &assetData);
+
+    static int FillAssetIdToAssetsData(const Assets &extend, Assets &assets);
 };
 }
 #endif // CLOUD_SYNC_UTILS_H

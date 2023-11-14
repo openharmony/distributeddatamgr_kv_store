@@ -245,7 +245,8 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalStoreTest, SyncDatabaseOperate006
 
 /**
  * @tc.name: ExportBusy001
- * @tc.desc: Test export with busy * @tc.type: FUNC
+ * @tc.desc: Test export with busy
+ * @tc.type: FUNC
  * @tc.require:
  * @tc.author: zhangqiquan
  */

@@ -86,6 +86,7 @@ void RelationalSchemaObject::GenerateSchemaString()
         schemaString_ += it->second.ToTableInfoString(schemaVersion_);
     }
     schemaString_ += R"(])";
+    schemaString_ += GetReferencePropertyString();
     schemaString_ += "}";
 }
 
@@ -178,6 +179,125 @@ void RelationalSchemaObject::GenerateTrackerSchemaString()
     schemaString_ += "}";
 }
 
+std::string RelationalSchemaObject::GetReferencePropertyString()
+{
+    std::string res;
+    if (!referenceProperty_.empty()) {
+        res += R"(,"REFERENCE_PROPERTY":[)";
+        for (const auto &reference : referenceProperty_) {
+            res += GetOneReferenceString(reference) + ",";
+        }
+        res.pop_back();
+        res += R"(])";
+    }
+    return res;
+}
+
+std::string RelationalSchemaObject::GetOneReferenceString(const TableReferenceProperty &reference)
+{
+    std::string res = R"({"SOURCE_TABLE_NAME":")";
+    res += reference.sourceTableName;
+    res += R"(","TARGET_TABLE_NAME":")";
+    res += reference.targetTableName;
+    res += R"(","COLUMNS":[)";
+    for (const auto &item : reference.columns) {
+        res += R"({"SOURCE_COL":")";
+        res += item.first;
+        res += R"(","TARGET_COL":")";
+        res += item.second;
+        res += R"("},)";
+    }
+    res.pop_back();
+    res += R"(]})";
+    return res;
+}
+
+static bool ColumnsCompare(const std::map<std::string, std::string> &left,
+    const std::map<std::string, std::string> &right)
+{
+    if (left.size() != right.size()) {
+        LOGE("[ColumnsCompare] column size not equal");
+        return false;
+    }
+    std::map<std::string, std::string>::const_iterator leftIt = left.begin();
+    std::map<std::string, std::string>::const_iterator rightIt = right.begin();
+    for (; leftIt != left.end() && rightIt != right.end(); leftIt++, rightIt++) {
+        if (strcasecmp(leftIt->first.c_str(), rightIt->first.c_str()) != 0 ||
+            strcasecmp(leftIt->second.c_str(), rightIt->second.c_str()) != 0) {
+            LOGE("[ColumnsCompare] column not equal");
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool ReferenceCompare(const TableReferenceProperty &left, const TableReferenceProperty &right)
+{
+    if (strcasecmp(left.sourceTableName.c_str(), right.sourceTableName.c_str()) == 0 &&
+        strcasecmp(left.targetTableName.c_str(), right.targetTableName.c_str()) == 0 &&
+        ColumnsCompare(left.columns, right.columns)) {
+        return true;
+    }
+    return false;
+}
+
+static void PropertyCompare(const std::vector<TableReferenceProperty> &left,
+    const std::vector<TableReferenceProperty> &right, std::set<std::string> &changeTables)
+{
+    for (const auto &reference : left) {
+        bool found = false;
+        for (const auto &otherRef : right) {
+            if (ReferenceCompare(reference, otherRef)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            changeTables.insert(reference.sourceTableName);
+            changeTables.insert(reference.targetTableName);
+        }
+    }
+}
+
+std::set<std::string> RelationalSchemaObject::GetSharedTableForChangeTable(std::set<std::string> &changeTables) const
+{
+    std::set<std::string> res;
+    TableInfoMap tableInfos = GetTables();
+    for (const auto &changeName : changeTables) {
+        for (const auto &item : tableInfos) {
+            if (item.second.GetSharedTableMark() &&
+                (strcasecmp(item.second.GetOriginTableName().c_str(), changeName.c_str()) == 0)) {
+                res.insert(item.second.GetTableName()); // get shared table name
+            }
+        }
+    }
+    return res;
+}
+
+std::set<std::string> RelationalSchemaObject::CompareReferenceProperty(
+    const std::vector<TableReferenceProperty> &others) const
+{
+    std::set<std::string> changeTables;
+    PropertyCompare(referenceProperty_, others, changeTables);
+    PropertyCompare(others, referenceProperty_, changeTables);
+    if (!changeTables.empty()) { // get shared tables
+        std::set<std::string> sharedTables = GetSharedTableForChangeTable(changeTables);
+        changeTables.insert(sharedTables.begin(), sharedTables.end());
+    }
+    LOGI("[CompareReferenceProperty] changeTables size = %zu", changeTables.size());
+    return changeTables;
+}
+
+std::map<std::string, std::map<std::string, bool>> RelationalSchemaObject::GetReachableRef()
+{
+    return reachableReference_;
+}
+
+std::map<std::string, int> RelationalSchemaObject::GetTableWeight()
+{
+    return tableWeight_;
+}
+
 TrackerTable RelationalSchemaObject::GetTrackerTable(const std::string &tableName) const
 {
     auto it = trackerTables_.find(tableName);
@@ -209,6 +329,19 @@ int RelationalSchemaObject::ParseFromTrackerSchemaString(const std::string &inSc
 const TableInfoMap &RelationalSchemaObject::GetTrackerTables() const
 {
     return trackerTables_;
+}
+
+void RelationalSchemaObject::SetReferenceProperty(const std::vector<TableReferenceProperty> &referenceProperty)
+{
+    referenceProperty_ = referenceProperty;
+    GenerateSchemaString();
+    GenerateReachableRef();
+    GenerateTableInfoReferenced();
+}
+
+const std::vector<TableReferenceProperty> &RelationalSchemaObject::GetReferenceProperty() const
+{
+    return referenceProperty_;
 }
 
 int RelationalSchemaObject::CompareAgainstSchemaObject(const std::string &inSchemaString,
@@ -271,7 +404,7 @@ int RelationalSchemaObject::ParseTrackerSchema(const JsonObject &inJsonObject)
         return -E_SCHEMA_PARSE_FAIL;
     }
     std::vector<JsonObject> tables;
-    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{SchemaConstant::KEYWORD_SCHEMA_TABLE}, tables);
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath {SchemaConstant::KEYWORD_SCHEMA_TABLE}, tables);
     if (errCode != E_OK) {
         LOGE("[RelationalSchema][Parse] Get tracker schema TABLES value failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
@@ -382,7 +515,11 @@ int RelationalSchemaObject::ParseRelationalSchema(const JsonObject &inJsonObject
     if (errCode != E_OK) {
         return errCode;
     }
-    return ParseCheckSchemaTableDefine(inJsonObject);
+    errCode = ParseCheckSchemaTableDefine(inJsonObject);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return ParseCheckReferenceProperty(inJsonObject);
 }
 
 namespace {
@@ -475,7 +612,7 @@ int RelationalSchemaObject::ParseCheckSchemaTableDefine(const JsonObject &inJson
         return -E_SCHEMA_PARSE_FAIL;
     }
     std::vector<JsonObject> tables;
-    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{SchemaConstant::KEYWORD_SCHEMA_TABLE}, tables);
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath {SchemaConstant::KEYWORD_SCHEMA_TABLE}, tables);
     if (errCode != E_OK) {
         LOGE("[RelationalSchema][Parse] Get schema TABLES value failed: %d.", errCode);
         return -E_SCHEMA_PARSE_FAIL;
@@ -501,7 +638,15 @@ int RelationalSchemaObject::ParseCheckTableInfo(const JsonObject &inJsonObject)
     if (errCode != E_OK) {
         return errCode;
     }
+    errCode = ParseCheckOriginTableName(inJsonObject, resultTable);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     errCode = ParseCheckTableAutoInc(inJsonObject, resultTable);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = ParseCheckSharedTableMark(inJsonObject, resultTable);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -613,12 +758,43 @@ int RelationalSchemaObject::ParseCheckTableFieldInfo(const JsonObject &inJsonObj
     return E_OK;
 }
 
+int RelationalSchemaObject::ParseCheckOriginTableName(const JsonObject &inJsonObject, TableInfo &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "ORIGINTABLENAME", FieldType::LEAF_FIELD_STRING,
+        false, fieldValue);
+    if (errCode == E_OK) {
+        if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+            LOGE("[RelationalSchema][Parse] Invalid characters in origin table name, err=%d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+        resultTable.SetOriginTableName(fieldValue.stringValue);
+    } else if (errCode != -E_NOT_FOUND) {
+        LOGE("[RelationalSchema][Parse] Get schema orgin table name failed: %d", errCode);
+        return errCode;
+    }
+    return E_OK;
+}
+
 int RelationalSchemaObject::ParseCheckTableAutoInc(const JsonObject &inJsonObject, TableInfo &resultTable)
 {
     FieldValue fieldValue;
     int errCode = GetMemberFromJsonObject(inJsonObject, "AUTOINCREMENT", FieldType::LEAF_FIELD_BOOL, false, fieldValue);
     if (errCode == E_OK) {
         resultTable.SetAutoIncrement(fieldValue.boolValue);
+    } else if (errCode != -E_NOT_FOUND) {
+        return errCode;
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckSharedTableMark(const JsonObject &inJsonObject, TableInfo &resultTable)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, "SHAREDTABLEMARK", FieldType::LEAF_FIELD_BOOL, false,
+        fieldValue);
+    if (errCode == E_OK) {
+        resultTable.SetSharedTableMark(fieldValue.boolValue);
     } else if (errCode != -E_NOT_FOUND) {
         return errCode;
     }
@@ -656,6 +832,140 @@ int RelationalSchemaObject::ParseCheckTablePrimaryKey(const JsonObject &inJsonOb
         errCode = -E_SCHEMA_PARSE_FAIL;
     }
     return errCode;
+}
+
+int RelationalSchemaObject::ParseCheckReferenceProperty(const JsonObject &inJsonObject)
+{
+    if (!inJsonObject.IsFieldPathExist(FieldPath {SchemaConstant::REFERENCE_PROPERTY})) {
+        return E_OK;
+    }
+
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {SchemaConstant::REFERENCE_PROPERTY}, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get schema REFERENCE_PROPERTY fieldType failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
+        LOGE("[RelationalSchema][Parse] Expect TABLES REFERENCE_PROPERTY ARRAY but %s.",
+             SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::vector<JsonObject> references;
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{SchemaConstant::REFERENCE_PROPERTY}, references);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get schema REFERENCE_PROPERTY value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    for (const JsonObject &reference : references) {
+        errCode = ParseCheckReference(reference);
+        if (errCode != E_OK) {
+            LOGE("[RelationalSchema][Parse] Parse schema reference failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckReference(const JsonObject &inJsonObject)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::SOURCE_TABLE_NAME, FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get source table name failed, errCode = %d", errCode);
+        return errCode;
+    }
+    if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+        LOGE("[RelationalSchema][Parse] Invalid characters in source table name.");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    TableReferenceProperty referenceProperty;
+    referenceProperty.sourceTableName = fieldValue.stringValue;
+    errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::TARGET_TABLE_NAME, FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get target table name failed, errCode = %d", errCode);
+        return errCode;
+    }
+    if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+        LOGE("[RelationalSchema][Parse] Invalid characters in target table name.");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    referenceProperty.targetTableName = fieldValue.stringValue;
+    errCode = ParseCheckReferenceColumns(inJsonObject, referenceProperty);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Parse reference columns failed, errCode = %d", errCode);
+        return errCode;
+    }
+    referenceProperty_.emplace_back(referenceProperty);
+    tables_[referenceProperty.targetTableName].AddTableReferenceProperty(referenceProperty);
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckReferenceColumns(const JsonObject &inJsonObject,
+    TableReferenceProperty &tableReferenceProperty)
+{
+    // parse columns
+    FieldType fieldType;
+    int errCode = inJsonObject.GetFieldTypeByFieldPath(FieldPath {SchemaConstant::COLUMNS}, fieldType);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get schema reference COLUMNS fieldType failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    if (FieldType::LEAF_FIELD_ARRAY != fieldType) {
+        LOGE("[RelationalSchema][Parse] Expect reference COLUMNS ARRAY but %s.",
+             SchemaUtils::FieldTypeString(fieldType).c_str());
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::vector<JsonObject> columns;
+    errCode = inJsonObject.GetObjectArrayByFieldPath(FieldPath{SchemaConstant::COLUMNS}, columns);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get schema reference COLUMNS value failed: %d.", errCode);
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    for (const JsonObject &column : columns) {
+        errCode = ParseCheckReferenceColumn(column, tableReferenceProperty);
+        if (errCode != E_OK) {
+            LOGE("[RelationalSchema][Parse] Parse reference one COLUMN failed: %d.", errCode);
+            return -E_SCHEMA_PARSE_FAIL;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalSchemaObject::ParseCheckReferenceColumn(const JsonObject &inJsonObject,
+    TableReferenceProperty &tableReferenceProperty)
+{
+    FieldValue fieldValue;
+    int errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::SOURCE_COL, FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get source col failed, errCode = %d", errCode);
+        return errCode;
+    }
+    if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+        LOGE("[RelationalSchema][Parse] Invalid characters in source col name.");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+
+    std::string sourceCol = fieldValue.stringValue;
+    errCode = GetMemberFromJsonObject(inJsonObject, SchemaConstant::TARGET_COL, FieldType::LEAF_FIELD_STRING,
+        true, fieldValue);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSchema][Parse] Get target col failed, errCode = %d", errCode);
+        return errCode;
+    }
+    if (!DBCommon::CheckIsAlnumOrUnderscore(fieldValue.stringValue)) {
+        LOGE("[RelationalSchema][Parse] Invalid characters in target col name.");
+        return -E_SCHEMA_PARSE_FAIL;
+    }
+    std::string targetCol = fieldValue.stringValue;
+    tableReferenceProperty.columns[sourceCol] = targetCol;
+    return E_OK;
 }
 
 int RelationalSchemaObject::ParseCheckTableSyncType(const JsonObject &inJsonObject, TableInfo &resultTable)
@@ -714,6 +1024,94 @@ int RelationalSchemaObject::ParseCheckTableUnique(const JsonObject &inJsonObject
     }
     resultTable.SetUniqueDefine(uniques);
     return E_OK;
+}
+
+void RelationalSchemaObject::GenerateReachableRef()
+{
+    reachableReference_.clear();
+    tableWeight_.clear();
+    std::set<std::string> startNodes; // such as {a->b->c,d->e}, record {a,d}
+    std::map<std::string, std::set<std::string>> nextNodes; // such as {a->b->c}, record {{a,{b}}, {b, {c}}}
+    // we need to record all table reachable reference here
+    for (const auto &tableRef : referenceProperty_) {
+        // they also can reach target
+        RefreshReachableRef(tableRef);
+        startNodes.insert(tableRef.sourceTableName);
+        startNodes.erase(tableRef.targetTableName);
+        nextNodes[tableRef.sourceTableName].insert(tableRef.targetTableName);
+    }
+    CalculateTableWeight(startNodes, nextNodes);
+}
+
+void RelationalSchemaObject::GenerateTableInfoReferenced()
+{
+    for (auto &table : tables_) {
+        table.second.SetSourceTableReference({});
+    }
+    for (const auto &reference : referenceProperty_) {
+        tables_[reference.targetTableName].AddTableReferenceProperty(reference);
+    }
+}
+
+void RelationalSchemaObject::RefreshReachableRef(const TableReferenceProperty &referenceProperty)
+{
+    // such as source:A target:B
+    std::set<std::string> recordSources;
+    // find all node which can reach source as collection recordSources
+    for (const auto &[start, end] : reachableReference_) {
+        auto node = end.find(referenceProperty.sourceTableName);
+        // find the node and it can reach
+        if (node != end.end() && node->second) {
+            recordSources.insert(start);
+        }
+    }
+    recordSources.insert(referenceProperty.sourceTableName);
+    // find all node which start with target as collection recordTargets
+    std::set<std::string> recordTargets;
+    for (auto &[entry, reach] : reachableReference_[referenceProperty.targetTableName]) {
+        if (reach) {
+            recordTargets.insert(entry);
+        }
+    }
+    recordTargets.insert(referenceProperty.targetTableName);
+    for (const auto &source : recordSources) {
+        for (const auto &target : recordTargets) {
+            reachableReference_[source][target] = true;
+        }
+    }
+}
+
+void RelationalSchemaObject::CalculateTableWeight(const std::set<std::string> &startNodes,
+    const std::map<std::string, std::set<std::string>> &nextNodes)
+{
+    // record the max long path as table weight
+    for (const auto &start : startNodes) {
+        std::map<std::string, int> tmpTableWeight;
+        tmpTableWeight[start] = 1;
+        if (nextNodes.find(start) == nextNodes.end()) {
+            continue;
+        }
+        std::list<std::string> queue;
+        for (const auto &target : nextNodes.at(start)) {
+            queue.push_back(target);
+            tmpTableWeight[target] = 2; // this path contain 2 nodes
+        }
+        // bfs all the path which start from startNodes
+        while (!queue.empty()) {
+            auto node = queue.front();
+            queue.pop_front();
+            if (nextNodes.find(node) == nextNodes.end()) {
+                continue;
+            }
+            for (const auto &item : nextNodes.at(node)) {
+                queue.push_back(item);
+                tmpTableWeight[item] = std::max(tmpTableWeight[item], tmpTableWeight[node] + 1);
+            }
+        }
+        for (const auto &[table, weight] : tmpTableWeight) {
+            tableWeight_[table] = std::max(tableWeight_[table], weight);
+        }
+    }
 }
 }
 #endif

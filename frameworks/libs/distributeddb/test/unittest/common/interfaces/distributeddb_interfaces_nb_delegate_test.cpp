@@ -2873,6 +2873,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, DISABLED_RdRangeQueryInSqlite001
     std::vector<Entry> entries;
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
+
     // /**
     //  * @tc.steps: step2.
     //  * @tc.expected: step2.

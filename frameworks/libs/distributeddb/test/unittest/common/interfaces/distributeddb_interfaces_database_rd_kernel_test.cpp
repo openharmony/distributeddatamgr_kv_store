@@ -34,7 +34,6 @@ namespace {
         SCHEMA_TYPE1 = 1,
         SCHEMA_TYPE2
     };
-    static int g_conflictCount = 0;
     // define some variables to init a KvStoreDelegateManager object.
     KvStoreDelegateManager g_mgr(APP_ID, USER_ID);
     string g_testDir;
@@ -184,12 +183,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore003, TestSize.Le
     EXPECT_TRUE(g_mgr.DeleteKvStore("distributed_getkvstore_003") == OK);
 }
 
-static void NotifierCallback(const KvStoreNbConflictData &data)
-{
-    LOGE("Trigger conflict callback!");
-    g_conflictCount++;
-}
-
 /**
   * @tc.name: GetKvStore004
   * @tc.desc: Get kv store parameters with Observer and Notifier, then trigger callback.
@@ -217,7 +210,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore004, TestSize.Le
     option.key = key;
     option.observer = observer;
     option.mode = OBSERVER_CHANGES_NATIVE;
-    g_conflictCount = 0;
     int sleepTime = 100;
     g_mgr.GetKvStore("distributed_getkvstore_004", option, g_kvNbDelegateCallback);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
@@ -326,7 +318,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore006, TestSize.Le
      * @tc.expected: step3. open ok
      */
     option.rdconfig.readOnly = true;
-    g_mgr.GetKvStore("distributed_getkvstore_008", option, g_kvNbDelegateCallback);
+    g_mgr.GetKvStore("distributed_getkvstore_006", option, g_kvNbDelegateCallback);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     /**
@@ -388,6 +380,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore008, TestSize.Le
     EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
     ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
 }
+
 /**
   * @tc.name: GetKvStore009
   * @tc.desc: Get kv store parameters with use Integrity check
@@ -494,7 +487,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore012, TestSize.Le
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 }
 
-
 /**
   * @tc.name: GetKvStore013
   * @tc.desc: Get kv store parameters in readOnly mode and RmCorruptedDb is true
@@ -520,7 +512,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore013, TestSize.Le
 
 /**
   * @tc.name: GetKvStoreWithInvalidOption001
-  * @tc.desc: Get kv store with invalid option.storageEngineType  * @tc.type:
+  * @tc.desc: Get kv store with invalid option.storageEngineType
+  * @tc.type:
   * @tc.require:
   * @tc.author: wanyi
   */

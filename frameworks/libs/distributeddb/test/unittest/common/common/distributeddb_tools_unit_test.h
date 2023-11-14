@@ -332,6 +332,8 @@ public:
     static int CheckTableRecords(sqlite3 *db, const std::string &table);
     static int GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value);
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
+    static void CloudBlockSync(const DistributedDB::Query &query, DistributedDB::RelationalStoreDelegate *delegate,
+        DistributedDB::DBStatus expect = DistributedDB::DBStatus::OK);
 };
 } // namespace DistributedDBUnitTest
 

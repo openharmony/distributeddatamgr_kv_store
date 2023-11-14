@@ -32,6 +32,8 @@ public:
     std::shared_ptr<DataBaseSchema> GetCloudDbSchema();
     int GetCloudTableSchema(const TableName &tableName, TableSchema &retSchema);
     int ChkSchema(const TableName &tableName, RelationalSchemaObject &localSchema);
+    bool IsSharedTable(const std::string &tableName);
+    std::map<std::string, std::string> GetSharedTableOriginNames();
 
 private:
     bool IsAssetPrimaryField(const Field &cloudField);
@@ -41,6 +43,7 @@ private:
     int CompareFieldSchema(std::map<int, FieldName> &primaryKeys, FieldInfoMap &localFields,
         std::vector<Field> &cloudFields);
     std::shared_ptr<DataBaseSchema> cloudSchema_ = nullptr;
+    std::map<std::string, bool> sharedTableMap_;
 };
 } // namespace DistributedDB
 

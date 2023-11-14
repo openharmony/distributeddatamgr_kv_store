@@ -48,7 +48,7 @@ public:
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
-    int SetCloudDbSchema(const DataBaseSchema &schema) override;
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) override;
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
@@ -58,6 +58,8 @@ public:
     int SetTrackerTable(const TrackerSchema &schema) override;
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
     int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
+
+    int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
 protected:

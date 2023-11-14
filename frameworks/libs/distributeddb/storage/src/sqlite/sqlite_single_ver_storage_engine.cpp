@@ -619,7 +619,6 @@ int SQLiteSingleVerStorageEngine::GetDbHandle(bool isWrite, const SecurityOption
     if (!(ParamCheckUtils::IsS3SECEOpt(secOpt) && errCode == -E_EKEYREVOKED)) {
         return errCode;
     }
-    // NOTE: 如果是S3级别 且 密码被REVOKED了，那么创建cacheDB
     std::string cacheDbPath = GetDbDir(option_.subdir, DbType::CACHE) + "/" + DBConstant::SINGLE_VER_CACHE_STORE +
         DBConstant::DB_EXTENSION;
     if (!isWrite || GetEngineState() != EngineState::INVALID ||

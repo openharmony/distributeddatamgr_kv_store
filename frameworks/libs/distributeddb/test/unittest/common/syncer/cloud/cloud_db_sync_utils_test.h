@@ -57,6 +57,8 @@ public:
     static void DeleteCloudTableRecordByGid(int64_t begin, int64_t count,
         std::shared_ptr<VirtualCloudDb> &virtualCloudDb);
 
+    static void DeleteUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count);
+
     static void GetCallback(SyncProcess &syncProcess, CloudSyncStatusCallback &callback,
         std::vector<SyncProcess> &expectProcess);
 

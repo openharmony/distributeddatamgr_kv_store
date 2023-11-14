@@ -25,13 +25,12 @@ public:
     MOCK_METHOD2(PutMetaData, int(const Key &, const Value &));
     MOCK_METHOD1(ChkSchema, int(const TableName &));
     MOCK_METHOD1(SetCloudDbSchema, int(const DataBaseSchema &));
-    MOCK_METHOD1(GetCloudDbSchema, int(DataBaseSchema &));
+    MOCK_METHOD1(GetCloudDbSchema, int(std::shared_ptr<DataBaseSchema> &));
     MOCK_METHOD2(GetCloudTableSchema, int(const TableName &, TableSchema &));
     MOCK_METHOD1(StartTransaction, int(TransactType));
     MOCK_METHOD0(Commit, int(void));
     MOCK_METHOD0(Rollback, int(void));
     MOCK_METHOD4(GetUploadCount, int(const QuerySyncObject &, const Timestamp &, bool, int64_t &));
-    MOCK_METHOD1(FillCloudGid, int(const CloudSyncData &));
     MOCK_METHOD5(GetCloudData, int(const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
         CloudSyncData &));
     MOCK_METHOD2(GetCloudDataNext, int(ContinueToken &, CloudSyncData &));
@@ -44,9 +43,11 @@ public:
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets));
     MOCK_METHOD3(FillCloudAssetForDownload, int(const std::string &, VBucket &, bool));
     MOCK_METHOD1(SetLogTriggerStatus, int(bool));
-    MOCK_METHOD2(FillCloudGidAndAsset, int(OpType, const CloudSyncData &));
+    MOCK_METHOD4(FillCloudLogAndAsset, int(OpType, const CloudSyncData &, bool, bool));
     MOCK_CONST_METHOD0(GetIdentify, std::string());
+    MOCK_METHOD3(GetCloudDataGid, int(const QuerySyncObject &, Timestamp, std::vector<std::string> &));
     MOCK_METHOD1(CheckQueryValid, int(const QuerySyncObject &));
+    MOCK_METHOD1(IsSharedTable, bool(const std::string &));
 };
 
 }
