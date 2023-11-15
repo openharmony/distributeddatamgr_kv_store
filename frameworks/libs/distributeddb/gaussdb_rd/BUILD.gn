@@ -43,7 +43,6 @@ config("gaussdb_rd_public_config") {
     "include/grd_base",
     "include/grd_document",
     "include/grd_kv",
-    "include/grd_shared_obj",
   ]
 }
 
@@ -74,8 +73,6 @@ ohos_static_library("gaussdb_rd") {
     "src/executor/document/grd_resultset_api_inner.cpp",
     "src/executor/kv/grd_kv_api.cpp",
     "src/executor/kv/grd_kv_api_inner.cpp",
-    "src/executor/shared_obj/grd_sequence_api.cpp",
-    "src/executor/shared_obj/grd_sequence_api_inner.cpp",
     "src/interface/src/collection.cpp",
     "src/interface/src/doc_errno.cpp",
     "src/interface/src/document_key.cpp",

@@ -66,8 +66,6 @@ ohos_source_set("src_file") {
     "../../src/executor/document/grd_resultset_api_inner.cpp",
     "../../src/executor/kv/grd_kv_api.cpp",
     "../../src/executor/kv/grd_kv_api_inner.cpp",
-    "../../src/executor/shared_obj/grd_sequence_api.cpp",
-    "../../src/executor/shared_obj/grd_sequence_api_inner.cpp",
     "../../src/interface/src/collection.cpp",
     "../../src/interface/src/doc_errno.cpp",
     "../../src/interface/src/document_key.cpp",
