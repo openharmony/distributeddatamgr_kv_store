@@ -23,6 +23,7 @@
 #include <variant>
 #include <vector>
 
+#include "common_types.h"
 #include "iremote_object.h"
 #include "message_parcel.h"
 namespace OHOS {
@@ -204,6 +205,11 @@ bool Marshalling(const T &input, MessageParcel &data);
 template<typename T>
 bool Unmarshalling(T &output, MessageParcel &data);
 
+template<class T>
+bool Marshalling(const CommonTypes::Result<T> &val, MessageParcel &data);
+template<class T>
+bool Unmarshalling(CommonTypes::Result<T> &val, MessageParcel &data);
+
 template<class T, typename std::enable_if<is_container<T>{}, int>::type = 0>
 bool MarshalToContainer(const T &val, MessageParcel &parcel);
 template<class T, typename std::enable_if<is_container<T>{}, int>::type = 0>
@@ -225,6 +231,24 @@ bool Marshal(MessageParcel &parcel, const T &first, const Types &...others);
 template<typename T, typename... Types>
 bool Unmarshal(MessageParcel &parcel, T &first, Types &...others);
 } // namespace ITypesUtil
+
+template<class T>
+bool ITypesUtil::Marshalling(const CommonTypes::Result<T> &val, MessageParcel &data)
+{
+    if (!data.WriteInt32(val.errCode)) {
+        return false;
+    }
+    return std::is_null_pointer<decltype(val.value)>::value ? true : Marshalling(val.value, data);
+}
+
+template<class T>
+bool ITypesUtil::Unmarshalling(CommonTypes::Result<T> &val, MessageParcel &data)
+{
+    if (!data.ReadInt32(val.errCode)) {
+        return false;
+    }
+    return std::is_null_pointer<decltype(val.value)>::value ? true : Unmarshalling(val.value, data);
+}
 
 template<typename _OutTp>
 bool ITypesUtil::ReadVariant(uint32_t step, uint32_t index, const _OutTp &output, MessageParcel &data)
