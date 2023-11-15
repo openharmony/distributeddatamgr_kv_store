@@ -122,6 +122,7 @@ ohos_shared_library("distributeddata_inner_mock") {
   deps = [
     "//foundation/arkui/napi:ace_napi",
     "//foundation/distributeddatamgr/kv_store/kvstoremock/distributeddb:distributeddb_mock",
+    "//third_party/bounds_checking_function:libsec_static",
     "//third_party/jsoncpp:jsoncpp_static",
     "//third_party/libuv:uv",
     "//third_party/sqlite:sqlite_sdk",

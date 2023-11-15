@@ -17,7 +17,7 @@
 #include "grd_base/grd_error.h"
 #include "grd_kv_api_inner.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 namespace DocumentDB {
 int32_t GRD_KVPutInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, const GRD_KVItemT *value)
 {
@@ -34,7 +34,7 @@ int32_t GRD_KVDelInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT
     return GRD_NOT_SUPPORT; // No support.
 }
 
-int32_t GRD_KVScanInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, KvScanModeE mode,
+int32_t GRD_KVScanInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, GRD_KvScanModeE mode,
     GRD_ResultSet **resultSet)
 {
     return GRD_NOT_SUPPORT; // No support.
@@ -56,12 +56,17 @@ int32_t GRD_KVBatchPushbackInner(const void *key, uint32_t keyLen, const void *d
     return GRD_NOT_SUPPORT; // No support.
 }
 
+int32_t GRD_KVBatchPutInner(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch)
+{
+    return GRD_NOT_SUPPORT; // No support.
+}
+
 int32_t GRD_KVBatchDelInner(GRD_DB *db, const char *collectionName, GRD_KVBatchT *batch)
 {
     return GRD_NOT_SUPPORT; // No support.
 }
 
-int32_t GRD_KVBatchDestoryInner(GRD_KVBatchT *batch)
+int32_t GRD_KVBatchDestroyInner(GRD_KVBatchT *batch)
 {
     return GRD_NOT_SUPPORT; // No support.
 }

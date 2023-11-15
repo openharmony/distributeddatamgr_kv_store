@@ -15,7 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_delegate_impl.h"
 
-#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "cloud/cloud_db_constant.h"
@@ -115,6 +114,10 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
         return NOT_SUPPORT;
     }
 
+    if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
+        LOGE("not support query with tables");
+        return NOT_SUPPORT;
+    }
     RelationalStoreConnection::SyncInfo syncInfo{devices, mode,
         std::bind(&RelationalStoreDelegateImpl::OnSyncComplete, std::placeholders::_1, onComplete), query, wait};
     int errCode = conn_->SyncToDevice(syncInfo);
@@ -226,7 +229,12 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
     if (conn_ == nullptr) {
         return DB_ERROR;
     }
-    int errCode = conn_->Sync(devices, mode, query, onProcess, waitTime);
+    CloudSyncOption option;
+    option.devices = devices;
+    option.mode = mode;
+    option.query = query;
+    option.waitTime = waitTime;
+    int errCode = conn_->Sync(option, onProcess);
     if (errCode != E_OK) {
         LOGW("[RelationalStore Delegate] cloud sync failed:%d", errCode);
         return TransferDBErrno(errCode);
@@ -308,6 +316,86 @@ DBStatus RelationalStoreDelegateImpl::UnRegisterObserver(StoreObserver *observer
         return DB_ERROR;
     }
     return TransferDBErrno(conn_->UnRegisterObserverAction(observer));
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    int errCode = conn_->Sync(option, onProcess);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] cloud sync failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    if (schema.tableName.empty()) {
+        LOGE("[RelationalStore Delegate] tracker table is empty.");
+        return INVALID_ARGS;
+    }
+    if (!ParamCheckUtils::CheckRelationalTableName(schema.tableName)) {
+        LOGE("[RelationalStore Delegate] Invalid tracker table name.");
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Set Subscribe table failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->ExecuteSql(condition, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] execute sql failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->CleanTrackerData(tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] clean tracker data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA) {
+        return NOT_SUPPORT;
+    }
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->Pragma(cmd, pragmaData);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Pragma failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
 }
 } // namespace DistributedDB
 #endif

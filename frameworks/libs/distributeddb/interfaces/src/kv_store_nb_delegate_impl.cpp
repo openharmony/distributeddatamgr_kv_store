@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 
+#include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
 #include "db_types.h"
@@ -504,6 +505,9 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         return NOT_SUPPORT;
     }
 
+    if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
+        return NOT_SUPPORT;
+    }
     QuerySyncObject querySyncObj(query);
     if (querySyncObj.GetSortType() != SortType::NONE) {
         LOGE("not support order by timestamp");

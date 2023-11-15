@@ -41,6 +41,7 @@ private:
     virtual std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) = 0;
     virtual std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) = 0;
     virtual std::string GetDeleteTrigger(const TableInfo &table, const std::string &identity) = 0;
+    virtual std::vector<std::string> GetDropTriggers(const TableInfo &table) = 0;
 
     virtual std::string GetPrimaryKeySql(const TableInfo &table) = 0;
 };

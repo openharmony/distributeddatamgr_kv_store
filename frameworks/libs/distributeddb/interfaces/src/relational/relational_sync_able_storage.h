@@ -61,6 +61,8 @@ public:
     // Put meta data as a key-value entry.
     int PutMetaData(const Key &key, const Value &value) override;
 
+    int PutMetaData(const Key &key, const Value &value, bool isInTransaction) override;
+
     // Delete multiple meta data records in a transaction.
     int DeleteMetaData(const std::vector<Key> &keys) override;
 
@@ -134,15 +136,18 @@ public:
 
     int Rollback() override;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, bool isCloudForcePush,
+    int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) override;
 
     int FillCloudGid(const CloudSyncData &data) override;
 
-    int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
+
+    int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
+        std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
@@ -176,6 +181,15 @@ public:
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
 
+    int CheckQueryValid(const QuerySyncObject &query) override;
+
+    int CreateTempSyncTrigger(const std::string &tableName) override;
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
+    int ClearAllTempSyncTrigger() override;
+
+    void SetLogicDelete(bool logicDelete);
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
         OperatePerm perm = OperatePerm::NORMAL_PERM) const;
@@ -192,7 +206,9 @@ private:
     // put
     int PutSyncData(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
+    void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
 
+    bool IsCurrentLogicDelete() const;
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
@@ -203,6 +219,8 @@ private:
     mutable std::mutex heartBeatMutex_;
 
     LruMap<std::string, std::string> remoteDeviceSchema_;
+    StorageExecutor *reusedHandle_ = nullptr;
+    mutable std::mutex reusedHandleMutex_;
 
     // cache securityOption
     mutable std::mutex securityOptionMutex_;
@@ -215,6 +233,9 @@ private:
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
+
+    std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> allowLogicDelete_ = false;
 };
 }  // namespace DistributedDB
 #endif

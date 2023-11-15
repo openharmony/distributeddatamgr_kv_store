@@ -48,6 +48,7 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
+        "bounds_checking_function",
         "cJSON",
         "jsoncpp",
         "libuv",
@@ -162,6 +163,7 @@
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
           "header": {
             "header_files": [
+              "relational_store_client.h",
               "relational_store_delegate.h",
               "relational_store_manager.h",
               "relational_store_sqlite_ext.h"

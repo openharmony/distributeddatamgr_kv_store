@@ -21,7 +21,7 @@
 
 #include "doc_errno.h"
 #include "json_common.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 struct ProjectionNode {

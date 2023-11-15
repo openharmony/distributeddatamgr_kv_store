@@ -41,6 +41,7 @@ public:
     static const std::string KEYWORD_TYPE_LONG;
     static const std::string KEYWORD_TYPE_DOUBLE;
     static const std::string KEYWORD_TYPE_STRING;
+    static const std::string KEYWORD_TYPE_BOOLEAN;
 
     static const std::string KEYWORD_ATTR_NOT_NULL;
     static const std::string KEYWORD_ATTR_DEFAULT;

@@ -13,16 +13,17 @@
 * limitations under the License.
 */
 
-#include "json_object.h"
+#include "rd_json_object.h"
 
 #include <algorithm>
 #include <cmath>
 #include <queue>
 
 #include "doc_errno.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
+#ifndef OMIT_cJSON
 namespace {
 bool IsNumber(const std::string &str)
 {
@@ -666,4 +667,280 @@ int JsonObject::DeleteItemDeeplyOnTarget(const JsonFieldPath &path)
 
     return E_OK;
 }
+#else
+ValueObject::ValueObject(bool val)
+{
+    valueType = ValueType::VALUE_BOOL;
+    boolValue = val;
+}
+
+ValueObject::ValueObject(double val)
+{
+    valueType = ValueType::VALUE_NUMBER;
+    doubleValue = val;
+}
+
+ValueObject::ValueObject(const char *val)
+{
+    valueType = ValueType::VALUE_STRING;
+    stringValue = val;
+}
+
+ValueObject::ValueType ValueObject::GetValueType() const
+{
+    return valueType;
+}
+
+bool ValueObject::GetBoolValue() const
+{
+    return boolValue;
+}
+
+int64_t ValueObject::GetIntValue() const
+{
+    return static_cast<int64_t>(std::llround(doubleValue));
+}
+
+double ValueObject::GetDoubleValue() const
+{
+    return doubleValue;
+}
+
+std::string ValueObject::GetStringValue() const
+{
+    return stringValue;
+}
+
+JsonObject JsonObject::Parse(const std::string &jsonStr, int &errCode, bool caseSensitive, bool isFilter)
+{
+    (void)jsonStr;
+    (void)errCode;
+    (void)caseSensitive;
+    (void)isFilter;
+    return {};
+}
+
+JsonObject::JsonObject()
+{
+    cjson_ = nullptr;
+    jsonDeep_ = 0;
+    isOwner_ = false;
+    caseSensitive_ = false;
+}
+
+JsonObject::~JsonObject()
+{
+}
+
+bool JsonObject::operator==(const JsonObject &other) const
+{
+    return true;
+}
+
+
+bool JsonObject::IsNull() const
+{
+    return true;
+}
+
+JsonObject::Type JsonObject::GetType() const
+{
+    return JsonObject::Type::JSON_LEAF;
+}
+
+int JsonObject::GetDeep()
+{
+    return jsonDeep_;
+}
+
+int JsonObject::GetDeep(cJSON *cjson)
+{
+    return jsonDeep_;
+}
+
+int JsonObject::CheckNumber(cJSON *item)
+{
+    (void)item;
+    return E_OK;
+}
+
+int JsonObject::Init(const std::string &str, bool isFilter)
+{
+    (void)str;
+    (void)isFilter;
+    return E_OK;
+}
+
+int JsonObject::CheckJsonRepeatField(cJSON *object, bool isFirstFloor)
+{
+    (void)object;
+    (void)isFirstFloor;
+    return E_OK;
+}
+
+bool IsFieldNameLegal(const std::string &fieldName)
+{
+    (void)fieldName;
+    return true;
+}
+
+int JsonObject::CheckSubObj(std::set<std::string> &fieldSet, cJSON *subObj, int parentType, bool isFirstFloor)
+{
+    (void)fieldSet;
+    (void)subObj;
+    (void)parentType;
+    (void)isFirstFloor;
+    return true;
+}
+
+std::string JsonObject::Print() const
+{
+    return std::string();
+}
+
+JsonObject JsonObject::GetObjectItem(const std::string &field, int &errCode)
+{
+    (void)field;
+    (void)errCode;
+    return {};
+}
+
+JsonObject JsonObject::GetNext() const
+{
+    return {};
+}
+
+JsonObject JsonObject::GetChild() const
+{
+    return {};
+}
+
+int JsonObject::DeleteItemFromObject(const std::string &field)
+{
+    (void)field;
+    return E_OK;
+}
+
+int JsonObject::AddItemToObject(const std::string &fieldName, const JsonObject &item)
+{
+    (void)fieldName;
+    (void)item;
+    return E_OK;
+}
+
+int JsonObject::AddItemToObject(const std::string &fieldName)
+{
+    (void)fieldName;
+    return E_OK;
+}
+
+ValueObject JsonObject::GetItemValue() const
+{
+    return {};
+}
+
+void JsonObject::ReplaceItemInObject(const std::string &fieldName, const JsonObject &newItem, int &errCode)
+{
+    (void)fieldName;
+    (void)newItem;
+    (void)errCode;
+}
+
+void JsonObject::ReplaceItemInArray(const int &index, const JsonObject &newItem, int &errCode)
+{
+    (void)index;
+    (void)newItem;
+    (void)errCode;
+}
+
+int JsonObject::InsertItemObject(int which, const JsonObject &newItem)
+{
+    (void)which;
+    (void)newItem;
+    return E_OK;
+}
+
+std::string JsonObject::GetItemField() const
+{
+    return std::string();
+}
+
+std::string JsonObject::GetItemField(int &errCode) const
+{
+    (void)errCode;
+    return std::string();
+}
+
+cJSON *GetChild(cJSON *cjson, const std::string &field, bool caseSens)
+{
+    (void)cjson;
+    (void)field;
+    (void)caseSens;
+    return nullptr;
+}
+
+cJSON *GetChildPowerMode(cJSON *cjson, const std::string &field, bool caseSens)
+{
+    (void)cjson;
+    (void)field;
+    (void)caseSens;
+    return nullptr;
+}
+
+cJSON *MoveToPath(cJSON *cjson, const JsonFieldPath &jsonPath, bool caseSens)
+{
+    (void)cjson;
+    (void)jsonPath;
+    (void)caseSens;
+    return nullptr;
+}
+
+cJSON *MoveToPathPowerMode(cJSON *cjson, const JsonFieldPath &jsonPath, bool caseSens)
+{
+    (void)jsonPath;
+    (void)caseSens;
+    return nullptr;
+}
+
+bool JsonObject::IsFieldExists(const JsonFieldPath &jsonPath) const
+{
+    (void)jsonPath;
+    return true;
+}
+
+bool JsonObject::IsFieldExistsPowerMode(const JsonFieldPath &jsonPath) const
+{
+    (void)jsonPath;
+    return true;
+}
+
+JsonObject JsonObject::FindItem(const JsonFieldPath &jsonPath, int &errCode) const
+{
+    (void)jsonPath;
+    (void)errCode;
+    return {};
+}
+
+// Compared with the non-powerMode mode, the node found by this function is an Array, and target is an object,
+// if the Array contains the same object as the target, it can match this object in this mode.
+JsonObject JsonObject::FindItemPowerMode(const JsonFieldPath &jsonPath, int &errCode) const
+{
+    (void)jsonPath;
+    (void)errCode;  
+    return {};
+}
+
+ValueObject JsonObject::GetObjectByPath(const JsonFieldPath &jsonPath, int &errCode) const
+{
+    (void)jsonPath;
+    (void)errCode;
+    return {};
+}
+
+int JsonObject::DeleteItemDeeplyOnTarget(const JsonFieldPath &path)
+{
+    (void)path;
+    return E_OK;
+}
+#endif
 } // namespace DocumentDB

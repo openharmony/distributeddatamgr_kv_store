@@ -34,11 +34,14 @@ const std::string DBConstant::SINGLE_VER_META_STORE = "meta";
 const std::string DBConstant::SINGLE_VER_CACHE_STORE = "cache";
 
 const std::string DBConstant::SQLITE_URL_PRE = "file:";
-const std::string DBConstant::SQLITE_DB_EXTENSION = ".db";
+const std::string DBConstant::DB_EXTENSION = ".db";
 const std::string DBConstant::SQLITE_MEMDB_IDENTIFY = "?mode=memory&cache=shared";
 
 const std::string DBConstant::SCHEMA_KEY = "schemaKey";
 const std::string DBConstant::RELATIONAL_SCHEMA_KEY = "relational_schema";
+const std::string DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY = "relational_tracker_schema";
+
+const std::string DBConstant::RD_KV_COLLECTION_MODE = "{\"mode\" : \"kv\"}";
 
 const std::string DBConstant::PATH_POSTFIX_UNPACKED = "_unpacked";
 const std::string DBConstant::PATH_POSTFIX_IMPORT_BACKUP = "_import_bak";
@@ -72,7 +75,6 @@ const std::string DBConstant::LOG_POSTFIX = "_log";
 
 const std::string DBConstant::LOG_TABLE_VERSION_1 = "1.0";
 const std::string DBConstant::LOG_TABLE_VERSION_2 = "2.0";
-const char *LOG_TABLE_VERSION_3 = "3.0";
 const std::string DBConstant::LOG_TABLE_VERSION_CURRENT = "4.0";
 
 const std::string DBConstant::LOG_TABLE_VERSION_KEY = "log_table_version";

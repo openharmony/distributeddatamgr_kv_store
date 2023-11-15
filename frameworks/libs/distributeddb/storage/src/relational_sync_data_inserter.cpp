@@ -191,8 +191,8 @@ int RelationalSyncDataInserter::GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stm
 
 int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt *&stmt)
 {
-    std::string sql = "DELETE FROM '" + insertTableName_ + "' WHERE rowid IN ("
-        "SELECT data_key FROM " + DBConstant::RELATIONAL_PREFIX + localTable_.GetTableName() + "_log ";
+    std::string sql = "DELETE FROM '" + insertTableName_ + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " IN (SELECT data_key FROM " + DBConstant::RELATIONAL_PREFIX + localTable_.GetTableName() + "_log ";
     if (mode_ == DistributedTableMode::COLLABORATION) {
         sql += "WHERE hash_key=?);";
     } else {

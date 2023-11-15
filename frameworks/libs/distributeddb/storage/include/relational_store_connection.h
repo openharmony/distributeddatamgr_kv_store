@@ -67,11 +67,15 @@ public:
     virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
     virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 
-    virtual int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) = 0;
+    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
 
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
+    virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
+    virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
+    virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
+
+    virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

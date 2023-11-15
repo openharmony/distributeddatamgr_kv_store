@@ -501,4 +501,19 @@ std::string SchemaUtils::FieldPathString(const FieldPath &inPath)
     }
     return outString;
 }
+
+void SchemaUtils::TransTrackerSchemaToLower(const TrackerSchema &srcSchema, TrackerSchema &destSchema)
+{
+    std::string tableName(srcSchema.tableName.length(), ' ');
+    std::transform(srcSchema.tableName.begin(), srcSchema.tableName.end(), tableName.begin(), tolower);
+    destSchema.tableName = tableName;
+    std::string extendName(srcSchema.extendColName.length(), ' ');
+    std::transform(srcSchema.extendColName.begin(), srcSchema.extendColName.end(), extendName.begin(), tolower);
+    destSchema.extendColName = extendName;
+    for (const auto &srcName : srcSchema.trackerColNames) {
+        std::string colName(srcName.length(), ' ');
+        std::transform(srcName.begin(), srcName.end(), colName.begin(), tolower);
+        destSchema.trackerColNames.insert(colName);
+    }
+}
 } // namespace DistributedDB

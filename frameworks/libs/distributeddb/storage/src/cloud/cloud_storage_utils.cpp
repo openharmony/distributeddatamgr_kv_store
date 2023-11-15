@@ -239,9 +239,7 @@ int CloudStorageUtils::TextToVector(const VBucket &vBucket, const Field &field, 
         return -E_CLOUD_ERROR;
     }
     if (collateType == CollateType::COLLATE_NOCASE) {
-        for (auto &c : val) {
-            c = static_cast<char>(std::toupper(c));
-        }
+        std::transform(val.begin(), val.end(), val.begin(), ::toupper);
     } else if (collateType == CollateType::COLLATE_RTRIM) {
         DBCommon::RTrim(val);
     }
@@ -329,7 +327,7 @@ std::map<std::string, Field> CloudStorageUtils::GetCloudPrimaryKeyFieldMap(const
     return pkMap;
 }
 
-int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
     std::vector<Field> &fields)
 {
     for (const auto &field: tableSchema.fields) {

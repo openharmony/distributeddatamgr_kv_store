@@ -34,6 +34,7 @@
 #include "schema_constant.h"
 #include "time_helper.h"
 #include "platform_specific.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
     std::mutex SQLiteUtils::logMutex_;
@@ -76,6 +77,8 @@ namespace {
         "type='table' AND tbl_name=?);";
 
     bool g_configLog = false;
+    std::mutex g_serverChangedDataMutex;
+    std::map<std::string, std::map<std::string, DistributedDB::ChangeProperties>> g_serverChangedDataMap;
 }
 
 namespace TriggerMode {
@@ -1399,10 +1402,57 @@ void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **ar
 
 void SQLiteUtils::CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
+}
+
+void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is param counts
+        return;
+    }
+    LOGD("Cloud data changed server observer callback.");
+    sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
+    std::string fileName;
+    if (!SQLiteRelationalUtils::GetDbFileName(db, fileName)) {
+        return;
+    }
+    auto tableNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+    if (tableNameChar == nullptr) {
+        return;
+    }
+    std::string tableName = static_cast<std::string>(tableNameChar);
+
+    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[1])); // 1 is param index
+    {
+        std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
+        auto itTable = g_serverChangedDataMap[fileName].find(tableName);
+        if (itTable != g_serverChangedDataMap[fileName].end()) {
+            itTable->second.isTrackedDataChange =
+                (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
+        } else {
+            DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
+            g_serverChangedDataMap[fileName].insert_or_assign(tableName, properties);
+        }
+    }
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
+}
+
+void SQLiteUtils::GetAndResetServerObserverData(const std::string &dbName, const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
+    auto itDb = g_serverChangedDataMap.find(dbName);
+    if (itDb != g_serverChangedDataMap.end() && !itDb->second.empty()) {
+        auto itTable = itDb->second.find(tableName);
+        if (itTable == itDb->second.end()) {
+            return;
+        }
+        changeProperties = itTable->second;
+        g_serverChangedDataMap[dbName].erase(itTable);
+    }
 }
 
 int SQLiteUtils::RegisterGetSysTime(sqlite3 *db)
@@ -1430,7 +1480,14 @@ int SQLiteUtils::RegisterCloudDataChangeObserver(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
-    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
+    return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
+}
+
+int SQLiteUtils::RegisterCloudDataChangeServerObserver(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &CloudDataChangedServerObserver;
+    return RegisterFunction(db, "server_observer", 2, db, func); // 2 is param counts
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
@@ -2007,7 +2064,7 @@ void SQLiteUtils::CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
 int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size)
 {
-    std::string dataDir = dir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
+    std::string dataDir = dir + "/" + dbName + DBConstant::DB_EXTENSION;
     uint64_t localDbSize = 0;
     int errCode = OS::CalFileSize(dataDir, localDbSize);
     if (errCode != E_OK) {

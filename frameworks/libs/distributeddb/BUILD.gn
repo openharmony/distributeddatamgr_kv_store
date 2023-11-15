@@ -29,6 +29,7 @@ config("distrdb_config") {
     "storage/src",
     "storage/src/multiver",
     "storage/src/operation",
+    "storage/src/gaussdb_rd",
     "storage/src/sqlite",
     "storage/src/sqlite/relational",
     "storage/src/upgrader",
@@ -69,6 +70,9 @@ config("distrdb_public_config") {
     "interfaces/include/relational",
     "include",
     "gaussdb_rd/include",
+    "gaussdb_rd/include/grd_base",
+    "gaussdb_rd/include/grd_document",
+    "gaussdb_rd/include/grd_kv",
   ]
 }
 
@@ -77,6 +81,13 @@ group("build_module") {
 }
 
 ohos_shared_library("distributeddb") {
+  branch_protector_ret = "pac_ret"
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    debug = false
+    blocklist = "./cfi_blocklist.txt"
+  }
   sources = distributeddb_src
 
   configs = [ ":distrdb_config" ]

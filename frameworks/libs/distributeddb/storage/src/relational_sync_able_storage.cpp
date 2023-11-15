@@ -216,6 +216,42 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
     return errCode;
 }
 
+int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
+{
+    CHECK_STORAGE_ENGINE;
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    std::unique_lock<std::mutex> handLock(reusedHandleMutex_, std::defer_lock);
+
+    // try to recycle using the handle
+    if (isInTransaction) {
+        handLock.lock();
+        if (reusedHandle_ != nullptr) {
+            handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(reusedHandle_);
+        } else {
+            isInTransaction = false;
+            handLock.unlock();
+        }
+    }
+
+    if (handle == nullptr) {
+        handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+        if (handle == nullptr) {
+            return errCode;
+        }
+    }
+
+    errCode = handle->PutKvData(key, value);
+    if (errCode != E_OK) {
+        LOGE("Put kv data err:%d", errCode);
+        TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
+    }
+    if (!isInTransaction) {
+        ReleaseHandle(handle);
+    }
+    return errCode;
+}
+
 // Delete multiple meta data records in a transaction.
 int RelationalSyncAbleStorage::DeleteMetaData(const std::vector<Key> &keys)
 {
@@ -513,7 +549,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
 
     errCode = handle->SaveSyncItems(inserter);
 
@@ -736,12 +772,16 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         int observerCnt = 0;
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
         for (const auto &item : dataChangeCallbackMap_) {
-            for (const auto &action : item.second) {
-                if (action.second != nullptr) {
-                    observerCnt++;
-                    ChangedData observerChangeData = changedData;
-                    action.second(deviceName, std::move(observerChangeData), isChangedData);
+            for (auto &action : item.second) {
+                if (action.second == nullptr) {
+                    continue;
                 }
+                observerCnt++;
+                ChangedData observerChangeData = changedData;
+                if (action.first != nullptr) {
+                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
+                }
+                action.second(deviceName, std::move(observerChangeData), isChangedData);
             }
         }
         LOGD("relational observer size = %d", observerCnt);
@@ -985,7 +1025,7 @@ int RelationalSyncAbleStorage::Rollback()
     return errCode;
 }
 
-int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
+int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
     bool isCloudForcePush, int64_t &count)
 {
     int errCode = E_OK;
@@ -993,7 +1033,9 @@ int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, cons
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = handle->GetUploadCount(tableName, timestamp, isCloudForcePush, count);
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, queryObj, count);
     if (transactionHandle_ == nullptr) {
         ReleaseHandle(handle);
     }
@@ -1027,17 +1069,17 @@ int RelationalSyncAbleStorage::FillCloudGid(const CloudSyncData &data)
     return errCode;
 }
 
-int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
-    ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
+int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+    const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
     if (transactionHandle_ == nullptr) {
         LOGE(" the transaction has not been started");
         return -E_INVALID_DB;
     }
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
-    QueryObject queryObject;
-    queryObject.SetTableName(tableSchema.name);
-    auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
+    QuerySyncObject query = querySyncObject;
+    query.SetSchema(GetSchemaInfo());
+    auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, query);
     if (token == nullptr) {
         LOGE("[SingleVerNStore] Allocate continue token failed.");
         return -E_OUT_OF_MEMORY;
@@ -1068,6 +1110,26 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
         token = nullptr;
     }
     continueStmtToken = static_cast<ContinueToken>(token);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+    bool isCloudForcePush, std::vector<std::string> &cloudGid)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    Timestamp beginTime = 0u;
+    SyncTimeRange syncTimeRange = { .beginTime = beginTime };
+    QuerySyncObject query = querySyncObject;
+    query.SetSchema(GetSchemaInfo());
+    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, cloudGid);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] GetCloudGid failed %d", errCode);
+    }
     return errCode;
 }
 
@@ -1141,7 +1203,11 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     transactionHandle_->SetLocalSchema(localSchema);
-    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1273,6 +1339,110 @@ void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmt
     }
     delete token;
     continueStmtToken = nullptr;
+}
+
+int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CheckQueryObjectLegal(query);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    int64_t count = 0;
+    errCode = handle->GetUploadCount(UINT64_MAX, false, queryObj, count);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] CheckQueryValid failed %d", errCode);
+        return -E_INVALID_ARGS;
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableName)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        trackerTable.SetTableName(tableName);
+    }
+    errCode = handle->CreateTempSyncTrigger(trackerTable);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetAndResetServerObserverData(const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetAndResetServerObserverData(tableName, changeProperties);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get server observer data failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type)
+{
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::DEFAULT)) == 0) {
+        changedData.field = {};
+        for (size_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
+            changedData.primaryData[i].clear();
+        }
+    }
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::BRIEF)) == 0) {
+        changedData.properties = {};
+    }
+}
+
+int RelationalSyncAbleStorage::ClearAllTempSyncTrigger()
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->ClearAllTempSyncTrigger();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] clear all temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
+{
+    logicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
+}
+
+void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    allowLogicDelete_ = config.allowLogicDelete;
+    LOGD("[RelationalSyncAbleStorage] allow logic delete %d", static_cast<int>(config.allowLogicDelete));
+}
+
+bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
+{
+    return allowLogicDelete_ && logicDelete_;
 }
 }
 #endif

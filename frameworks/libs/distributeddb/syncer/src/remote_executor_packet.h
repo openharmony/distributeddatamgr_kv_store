@@ -67,10 +67,12 @@ public:
 
     static void Release(RemoteExecutorRequestPacket *&packet);
 
-    static const uint32_t REQUEST_PACKET_VERSION_V1 = SOFTWARE_VERSION_RELEASE_6_0;
-    static const uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1;
-    static const uint32_t REQUEST_PACKET_VERSION_V3 = SOFTWARE_VERSION_RELEASE_6_0 + 2;
-    static const uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V3;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V1 = SOFTWARE_VERSION_RELEASE_6_0;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V3 = SOFTWARE_VERSION_RELEASE_6_0 + 2;
+    // abandon not set security label in v4
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V4 = SOFTWARE_VERSION_RELEASE_6_0 + 3;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V4;
 private:
     uint32_t version_ = 0u;
     uint32_t flag_ = 0u; // 0x01 mean need reply ack

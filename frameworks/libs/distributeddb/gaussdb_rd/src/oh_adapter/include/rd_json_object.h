@@ -13,8 +13,8 @@
 * limitations under the License.
 */
 
-#ifndef JSON_OBJECT_H
-#define JSON_OBJECT_H
+#ifndef RD_JSON_OBJECT_H
+#define RD_JSON_OBJECT_H
 
 #include <memory>
 #include <set>
@@ -22,7 +22,13 @@
 #include <typeinfo>
 #include <vector>
 
+#ifndef OMIT_cJSON
 #include "cJSON.h"
+#endif
+
+#ifdef OMIT_cJSON
+typedef void cJSON;
+#endif
 
 namespace DocumentDB {
 class ValueObject {

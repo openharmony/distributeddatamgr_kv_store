@@ -59,6 +59,7 @@ enum class QueryObjType : uint32_t {
     ORDERBY,
     SUGGEST_INDEX = 0x0801,
     IN_KEYS = 0x0901,
+    KEY_RANGE = 0x1001,
 };
 
 struct QueryObjNode {
@@ -122,7 +123,13 @@ public:
 
     void QueryBySuggestIndex(const std::string &indexName);
 
+    void QueryByKeyRange(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
+
     std::vector<uint8_t> GetPreFixKey() const;
+
+    std::vector<uint8_t> GetBeginKey() const;
+
+    std::vector<uint8_t> GetEndKey() const;
 
     void SetTableName(const std::string &tableName);
     const std::string &GetTableName();
@@ -144,23 +151,36 @@ public:
     std::vector<std::string> GetTables();
     void SetTables(const std::vector<std::string> &tableNames);
 
-    void SetIsDeviceSyncQuery(bool isDeviceSync = true);
-    bool GetIsDeviceSyncQuery() const;
-
+    void From(const std::string &tableName);
+    int GetExpressionStatus() const;
+    std::vector<QueryExpression> GetQueryExpressions() const;
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);
 
+    void SetNotSupportIfFromTables();
+
+    void SetNotSupportIfCondition();
+
+    void SetNotSupportIfNeed(QueryObjType type);
+
     std::list<QueryObjNode> queryInfo_;
     bool errFlag_ = true;
     std::vector<uint8_t> prefixKey_;
+    std::vector<uint8_t> beginKey_;
+    std::vector<uint8_t> endKey_;
     std::string suggestIndex_;
     std::string tableName_;
     bool isTableNameSpecified_;
     std::set<Key> keys_;
     int sortType_ = 0;
     std::vector<std::string> tables_;
-    bool isWithDeviceSyncQuery_ = false;
+
+    bool useFromTable_ = false;
+    std::string fromTable_;
+    std::list<std::string> tableSequence_;
+    std::map<std::string, QueryExpression> expressions_;
+    int validStatus_ = 0;
 };
 
 // specialize for double

@@ -37,19 +37,18 @@ OpType CloudMergeStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &l
         return type;
     }
     if (isCloudDelete) {
-        if (isLocalDelete) {
-            return OpType::UPDATE_TIMESTAMP;
-        } else {
-            return OpType::DELETE;
-        }
-    } else {
-        if (isLocalDelete) {
-            type = OpType::INSERT;
-        } else {
-            type = OpType::UPDATE;
-        }
+        return isLocalDelete ? OpType::UPDATE_TIMESTAMP : OpType::DELETE;
     }
-    return type;
+    if (isLocalDelete) {
+        return OpType::INSERT;
+    }
+    // avoid local data insert to cloud success but return failed
+    // we just fill back gid here
+    if ((localInfo.timestamp == cloudInfo.timestamp) &&
+        (localInfo.wTimestamp == cloudInfo.wTimestamp) && localInfo.cloudGid.empty()) {
+        return OpType::ONLY_UPDATE_GID;
+    }
+    return OpType::UPDATE;
 }
 
 bool CloudMergeStrategy::JudgeUpdateCursor()

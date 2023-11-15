@@ -17,6 +17,7 @@
 #include "log_print.h"
 #include "db_errno.h"
 #include "runtime_context.h"
+#include "rd_single_ver_storage_engine.h"
 #include "sqlite_single_ver_storage_engine.h"
 
 namespace DistributedDB {
@@ -33,7 +34,13 @@ namespace {
 
     int GetDatabaseType(const KvDBProperties &property)
     {
-        return property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
+        return property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    }
+
+    int IsSingleVerType(int databaseType)
+    {
+        return databaseType == KvDBProperties::SINGLE_VER_TYPE_SQLITE ||
+            databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL;
     }
 }
 
@@ -190,16 +197,25 @@ void StorageEngineManager::LockStatusNotifier(bool isAccessControlled)
     }
 }
 
+StorageEngine *CreateSingleVerStorageEngine(int databaseType)
+{
+    if (databaseType == KvDBProperties::SINGLE_VER_TYPE_SQLITE) {
+        return new (std::nothrow) SQLiteSingleVerStorageEngine();
+    } else {
+        return new (std::nothrow) RdSingleVerStorageEngine();
+    }
+    return nullptr;
+}
 StorageEngine *StorageEngineManager::CreateStorageEngine(const KvDBProperties &property, int &errCode)
 {
     int databaseType = GetDatabaseType(property);
-    if (databaseType != KvDBProperties::SINGLE_VER_TYPE) {
+    if (!IsSingleVerType(databaseType)) {
         LOGE("[StorageEngineManager] Database type error : %d", databaseType);
         errCode = -E_NOT_SUPPORT;
         return nullptr;
     }
 
-    auto storageEngine = new (std::nothrow) SQLiteSingleVerStorageEngine();
+    auto storageEngine = CreateSingleVerStorageEngine(databaseType);
     if (storageEngine == nullptr) {
         LOGE("[StorageEngineManager] Create storage engine failed");
         errCode = -E_OUT_OF_MEMORY;

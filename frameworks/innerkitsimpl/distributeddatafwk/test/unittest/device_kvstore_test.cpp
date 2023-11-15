@@ -62,6 +62,7 @@ void DeviceKvStoreTest::SetUpTestCase(void)
     DistributedKvDataManager manager;
     options_.area = EL1;
     options_.baseDir = std::string("/data/service/el1/public/database/odmf");
+    options_.securityLevel = S1;
     mkdir(options_.baseDir.c_str(), (S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH));
     AppId appId = { "odmf" };
     StoreId storeId = { "student_device" }; // define kvstore(database) name.
@@ -516,6 +517,7 @@ HWTEST_F(DeviceKvStoreTest, TestSchemaStoreC001, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.schema = VALID_SCHEMA;
     options.area = EL1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
@@ -1178,6 +1180,7 @@ HWTEST_F(DeviceKvStoreTest, DeviceSync001, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };
@@ -1205,6 +1208,7 @@ HWTEST_F(DeviceKvStoreTest, DeviceSync002, TestSize.Level1)
     DistributedKvDataManager manager;
     Options options;
     options.encrypt = true;
+    options.securityLevel = S1;
     options.area = EL1;
     options.baseDir = std::string("/data/service/el1/public/database/odmf");
     AppId appId = { "odmf" };

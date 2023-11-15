@@ -281,12 +281,13 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
         case DELETE:
             status = DMLActionTask(context, cloudDb, action);
             break;
-        case QUERY:
+        case QUERY: {
             status = QueryAction(context, cloudDb);
             if (status == QUERY_END) {
                 setResAlready = true;
             }
             break;
+        }
         case LOCK:
             status = InnerActionLock(context, cloudDb);
             break;
@@ -306,11 +307,7 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
     }
 
     context->FinishAndNotify();
-    {
-        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
-        asyncTaskCount_--;
-    }
-    asyncTaskCv_.notify_all();
+    DecAsyncTaskCount();
 }
 
 DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
@@ -362,6 +359,15 @@ DBStatus CloudDBProxy::QueryAction(const std::shared_ptr<CloudActionContext> &co
         context->SetActionRes(-E_QUERY_END);
     }
     return status;
+}
+
+void CloudDBProxy::DecAsyncTaskCount()
+{
+    {
+        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
+        asyncTaskCount_--;
+    }
+    asyncTaskCv_.notify_all();
 }
 
 CloudDBProxy::CloudActionContext::CloudActionContext()

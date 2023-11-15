@@ -46,12 +46,17 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     singleKvStore = nullptr;
+    if (options.securityLevel == INVALID_LABEL) {
+        ZLOGE("invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
+            appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
+        return Status::INVALID_ARGUMENT;
+    }
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
-    if (options.baseDir.empty()) {
-        ZLOGE("base dir empty.");
+    if (!options.IsPathValid()) {
+        ZLOGE("invalid path.");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -112,7 +117,6 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
-
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;

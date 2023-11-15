@@ -51,11 +51,15 @@ public:
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
-    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) override;
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
+    int SetTrackerTable(const TrackerSchema &schema) override;
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+    int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
+
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

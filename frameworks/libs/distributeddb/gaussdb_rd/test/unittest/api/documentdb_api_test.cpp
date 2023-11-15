@@ -21,8 +21,8 @@
 #include "grd_base/grd_db_api.h"
 #include "grd_base/grd_error.h"
 #include "grd_document/grd_document_api.h"
-#include "log_print.h"
-#include "sqlite_utils.h"
+#include "rd_log_print.h"
+#include "rd_sqlite_utils.h"
 
 using namespace DocumentDB;
 using namespace testing::ext;
@@ -60,19 +60,14 @@ HWTEST_F(DocumentDBApiTest, OpenDBTest001, TestSize.Level0)
     std::string path = "./document.db";
     GRD_DB *db = nullptr;
     int status = GRD_DBOpen(path.c_str(), nullptr, GRD_DB_OPEN_CREATE, &db);
-    printf("mazhao work here aaa");
     EXPECT_EQ(status, GRD_OK);
     EXPECT_NE(db, nullptr);
     GLOGD("Open DB test 001: status: %d", status);
 
     EXPECT_EQ(GRD_CreateCollection(db, "student", "", 0), GRD_OK);
-    printf("mazhao work here bbb");
     EXPECT_EQ(GRD_UpsertDoc(db, "student", R""({"_id":"10001"})"", R""({"name":"Tom", "age":23})"", 0), 1);
-    printf("mazhao work here ccc");
     EXPECT_EQ(GRD_DropCollection(db, "student", 0), GRD_OK);
-    printf("mazhao work here ddd");
     status = GRD_DBClose(db, GRD_DB_CLOSE);
-    printf("mazhao work here eee");
     EXPECT_EQ(status, GRD_OK);
     db = nullptr;
 
@@ -453,13 +448,13 @@ namespace {
 int GetDBPageSize(const std::string &path)
 {
     sqlite3 *db = nullptr;
-    int ret = SQLiteUtils::CreateDataBase(path, 0, db);
+    int ret = RDSQLiteUtils::CreateDataBase(path, 0, db);
     EXPECT_EQ(ret, E_OK);
     if (db == nullptr) {
         return 0;
     }
     int pageSize = 0;
-    SQLiteUtils::ExecSql(db, "PRAGMA page_size;", nullptr, [&pageSize](sqlite3_stmt *stmt, bool &isMatchOneData) {
+    RDSQLiteUtils::ExecSql(db, "PRAGMA page_size;", nullptr, [&pageSize](sqlite3_stmt *stmt, bool &isMatchOneData) {
         pageSize = sqlite3_column_int(stmt, 0);
         return E_OK;
     });

@@ -15,16 +15,18 @@
 #ifdef RELATIONAL_STORE
 #include <gtest/gtest.h>
 
-#include "distributeddb_tools_unit_test.h"
-#include "relational_store_manager.h"
-#include "distributeddb_data_generate_unit_test.h"
-#include "relational_sync_able_storage.h"
-#include "relational_store_instance.h"
-#include "sqlite_relational_store.h"
-#include "log_table_manager_factory.h"
 #include "cloud_db_constant.h"
+#include "distributeddb_data_generate_unit_test.h"
+#include "distributeddb_tools_unit_test.h"
+#include "log_table_manager_factory.h"
+#include "query_sync_object.h"
+#include "relational_store_instance.h"
+#include "relational_store_manager.h"
+#include "relational_sync_able_storage.h"
 #include "runtime_config.h"
+#include "sqlite_relational_store.h"
 #include "virtual_cloud_data_translate.h"
+
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -169,6 +171,18 @@ void InitLogGid(int64_t count)
     for (int i = 1; i <= count; i++) {
         string sql = "update " + g_logTblName + " set cloud_gid = '" + std::to_string(i) +
             "' where data_key = " + std::to_string(i);
+        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    }
+    sqlite3_close(db);
+}
+
+void InitLogicDelete(int64_t count)
+{
+    sqlite3 *db = nullptr;
+    ASSERT_EQ(sqlite3_open(g_storePath.c_str(), &db), SQLITE_OK);
+    for (int i = 1; i <= count; i++) {
+        string sql = "update " + g_logTblName + " set flag = flag | 0x09"
+                     " where data_key = " + std::to_string(i);
         ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
     }
     sqlite3_close(db);
@@ -550,12 +564,15 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
      * @tc.expected: return -SQLITE_ERROR.
      */
     int64_t resCount = 0;
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime, false, resCount), -SQLITE_ERROR);
+    QuerySyncObject query;
+    query.SetTableName(g_tableName);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), -E_INVALID_QUERY_FORMAT);
 
     CreateLogTable();
     int64_t insCount = 100;
+    CreateAndInitUserTable(insCount, insCount);
     InitLogData(insCount, insCount, insCount, insCount);
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, g_startTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, g_startTime, false, resCount), E_OK);
     EXPECT_EQ(resCount, insCount + insCount + insCount);
 
     /**
@@ -563,7 +580,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount001, Tes
      * @tc.expected: count is 0 and return E_OK.
      */
     Timestamp invalidTime = g_startTime + g_startTime;
-    EXPECT_EQ(g_cloudStore->GetUploadCount(g_tableName, invalidTime, false, resCount), E_OK);
+    EXPECT_EQ(g_cloudStore->GetUploadCount(query, invalidTime, false, resCount), E_OK);
     EXPECT_EQ(resCount, 0);
 }
 
@@ -579,6 +596,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount002, Tes
     CreateLogTable();
     int64_t insCount = 100;
     InitLogData(insCount, insCount, 0, insCount);
+    CreateAndInitUserTable(insCount, insCount);
     int64_t resCount = 0;
 
     /**
@@ -614,6 +632,7 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetUploadCount003, Tes
 {
     CreateLogTable();
     int64_t insCount = 100;
+    CreateAndInitUserTable(insCount, insCount);
     InitLogData(0, 0, insCount, insCount);
     int64_t resCount = 0;
 
@@ -828,7 +847,9 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData001, TestS
      * @tc.expected: return -E_INVALID_DB.
      */
     int timeOffset = 10;
-    EXPECT_EQ(g_cloudStore->GetCloudData(g_tableSchema, g_startTime + timeOffset, token, cloudSyncData), -E_INVALID_DB);
+    QuerySyncObject object;
+    EXPECT_EQ(g_cloudStore->GetCloudData(g_tableSchema, object, g_startTime + timeOffset, token, cloudSyncData),
+        -E_INVALID_DB);
 
     EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
     EXPECT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime + timeOffset, token, cloudSyncData), E_OK);
@@ -1072,7 +1093,35 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrG
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
 
-HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level1)
+/**
+ * @tc.name: GetInfoByPrimaryKeyOrGid002
+ * @tc.desc: Test the query of the GetInfoByPrimaryKeyOrGid interface to obtain assets.
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zqq
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetInfoByPrimaryKeyOrGid002, TestSize.Level0)
+{
+    int64_t insCount = 5;
+    int64_t photoSize = 1;
+    InitUserDataForAssetTest(insCount, photoSize);
+    InitLogGid(insCount);
+    InitLogicDelete(insCount);
+
+    EXPECT_EQ(g_storageProxy->StartTransaction(), E_OK);
+    for (int i = 1; i <= insCount; i++) {
+        VBucket vBucket;
+        vBucket[CloudDbConstant::GID_FIELD] = std::to_string(i);
+        VBucket assetInfo;
+        DataInfoWithLog dataInfo;
+        ASSERT_EQ(g_storageProxy->GetInfoByPrimaryKeyOrGid(g_tableName, vBucket, dataInfo, assetInfo), E_OK);
+        ASSERT_EQ(dataInfo.logInfo.cloudGid, std::to_string(i));
+        EXPECT_EQ(assetInfo.size(), 0u);
+    }
+    EXPECT_EQ(g_storageProxy->Commit(), E_OK);
+}
+
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, PutCloudSyncData001, TestSize.Level0)
 {
     int64_t insCount = 10;
     int64_t photoSize = 10;

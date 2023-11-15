@@ -24,6 +24,7 @@
 
 #include "db_types.h"
 #include "schema_object.h"
+#include "single_ver_utils.h"
 #include "store_types.h"
 #ifdef RELATIONAL_STORE
 #include "relational_schema_object.h"
@@ -52,21 +53,6 @@ enum class TriggerModeEnum {
 
 std::string GetTriggerModeString(TriggerModeEnum mode);
 }
-
-struct OpenDbProperties {
-    std::string uri {};
-    bool createIfNecessary = true;
-    bool isMemDb = false;
-    std::vector<std::string> sqls {};
-    CipherType cipherType = CipherType::AES_256_GCM;
-    CipherPassword passwd {};
-    std::string schema {};
-    std::string subdir {};
-    SecurityOption securityOpt {};
-    int conflictReslovePolicy = DEFAULT_LAST_WIN;
-    bool createDirByStoreIdOnly = false;
-    uint32_t iterTimes = DBConstant::DEFAULT_ITER_TIMES;
-};
 
 class SQLiteUtils {
 public:
@@ -168,6 +154,8 @@ public:
 
     static int RegisterCloudDataChangeObserver(sqlite3 *db);
 
+    static int RegisterCloudDataChangeServerObserver(sqlite3 *db);
+
     static int CreateRelationalLogTable(sqlite3 *db, const std::string &oriTableName);
 
     static int AddRelationalLogTableTrigger(sqlite3 *db, const std::string &identity, const TableInfo &table);
@@ -205,6 +193,9 @@ public:
 
     static int SetKeyInner(sqlite3 *db, CipherType type, const CipherPassword &passwd, uint32_t iterTimes);
 
+    static void GetAndResetServerObserverData(const std::string &dbName, const std::string &tableName,
+        ChangeProperties &changeProperties);
+
 private:
 
     static int CreateDataBase(const OpenDbProperties &properties, sqlite3 *&dbTemp, bool setWal);
@@ -229,6 +220,7 @@ private:
     static void GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void GetRawSysTime(sqlite3_context *ctx, int argc, sqlite3_value **argv);
     static void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv);
+    static void CloudDataChangedServerObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv);
 
     static int SetDataBaseProperty(sqlite3 *db, const OpenDbProperties &properties, bool setWal,
         const std::vector<std::string> &sqls);

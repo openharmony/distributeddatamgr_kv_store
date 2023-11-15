@@ -90,6 +90,8 @@ public:
     static bool CaseInsensitiveCompare(std::string first, std::string second);
 
     static bool CheckIsAlnumOrUnderscore(const std::string &text);
+
+    static bool CheckQueryWithoutMultiTable(const Query &query);
 };
 
 // Define short macro substitute for original long expression for convenience of using

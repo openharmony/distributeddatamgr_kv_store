@@ -138,7 +138,7 @@ bool TaskPoolImpl::IdleExit(std::unique_lock<std::mutex> &lock)
     if (!isGenericWorker && (curThreads_ > minThreads_)) {
         std::cv_status status = hasTasks_.wait_for(lock,
             std::chrono::seconds(IDLE_WAIT_PERIOD));
-        if (status == std::cv_status::timeout && IsNoTaskExecute()) {
+        if (status == std::cv_status::timeout && IsExecutingTasksEmpty()) {
             --idleThreads_;
             return true;
         }
@@ -292,7 +292,7 @@ void TaskPoolImpl::TryToSpawnThreads()
     (void)(SpawnThreads(false));
 }
 
-bool TaskPoolImpl::IsNoTaskExecute() const
+bool TaskPoolImpl::IsExecutingTasksEmpty() const
 {
     if (genericTaskCount_ > 0) {
         return false;

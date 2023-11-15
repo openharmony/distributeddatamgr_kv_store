@@ -36,6 +36,7 @@ private:
     std::string GetInsertTrigger(const TableInfo &table, const std::string &identity) override;
     std::string GetUpdateTrigger(const TableInfo &table, const std::string &identity) override;
     std::string GetDeleteTrigger(const TableInfo &table, const std::string &identity) override;
+    std::vector<std::string> GetDropTriggers(const TableInfo &table) override;
 };
 
 } // DistributedDB

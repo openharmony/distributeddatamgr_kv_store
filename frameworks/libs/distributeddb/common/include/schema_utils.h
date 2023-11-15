@@ -51,6 +51,8 @@ public:
     // Restore to string representation of fieldPath with $. prefix
     static std::string FieldPathString(const FieldPath &inPath);
 
+    static void TransTrackerSchemaToLower(const TrackerSchema &srcSchema, TrackerSchema &destSchema);
+
     SchemaUtils() = delete;
     ~SchemaUtils() = delete;
 

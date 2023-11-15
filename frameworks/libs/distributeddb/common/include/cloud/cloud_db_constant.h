@@ -28,7 +28,11 @@ public:
     static constexpr const char *MODIFY_FIELD = "#_modifyTime";
     static constexpr const char *DELETE_FIELD = "#_deleted";
     static constexpr const char *CURSOR_FIELD = "#_cursor";
+    static constexpr const char *TYPE_FIELD = "#_type";
+    static constexpr const char *QUERY_FIELD = "#_query";
     static constexpr const char *ROW_ID_FIELD_NAME = "rowid";
+    static constexpr const char *ASSET = "asset";
+    static constexpr const char *ASSETS = "assets";
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp

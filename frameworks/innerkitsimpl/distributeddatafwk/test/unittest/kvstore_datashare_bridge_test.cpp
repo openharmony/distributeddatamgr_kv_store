@@ -125,6 +125,7 @@ void KvstoreDatashareBridgeTest::SetUpTestCase(void)
     Options options = { .createIfMissing = true, .encrypt = false, .autoSync = false,
                         .kvStoreType = KvStoreType::SINGLE_VERSION, .schema =  VALID_SCHEMA_STRICT_DEFINE };
     options.area = EL1;
+    options.securityLevel = S1;
     options.baseDir = std::string("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
     AppId appId = { "KvstoreDatashareBridgeTest" };
     StoreId storeId = { "test_single" };

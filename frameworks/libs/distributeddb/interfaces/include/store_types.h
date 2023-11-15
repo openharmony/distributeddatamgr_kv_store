@@ -18,8 +18,8 @@
 
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
-
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -102,6 +102,7 @@ enum PragmaCmd {
     SET_SYNC_RETRY,
     SET_MAX_LOG_LIMIT,
     EXEC_CHECKPOINT,
+    LOGIC_DELETE_SYNC_DATA,
 };
 
 enum ResolutionPolicyType {
@@ -179,5 +180,21 @@ struct RemoteCondition {
     std::vector<std::string> bindArgs;  // The bind args.
 };
 using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
+
+struct TrackerSchema {
+    std::string tableName;
+    std::string extendColName;
+    std::set<std::string> trackerColNames;
+};
+
+static constexpr const char *GAUSSDB_RD = "gaussdb_rd";
+static constexpr const char *SQLITE = "sqlite";
+struct ChangeProperties {
+    bool isTrackedDataChange = false;
+};
+
+struct Rdconfig {
+    bool readOnly = false;
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

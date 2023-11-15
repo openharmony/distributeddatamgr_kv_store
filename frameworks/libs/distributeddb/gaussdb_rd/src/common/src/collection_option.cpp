@@ -19,18 +19,28 @@
 #include <cstring>
 
 #include "doc_errno.h"
-#include "json_object.h"
-#include "log_print.h"
+#include "rd_json_object.h"
+#include "rd_log_print.h"
 
 namespace DocumentDB {
 namespace {
 constexpr const char *OPT_MAX_DOC = "maxdoc";
+constexpr const char *OPT_COLLECTION_MODE = "mode";
+constexpr const char *KV_COLLECTION_MODE = "kv";
 
 int CFG_IsValid(const JsonObject &config)
 {
     JsonObject child = config.GetChild();
     while (!child.IsNull()) {
         std::string fieldName = child.GetItemField();
+        if (strcmp(OPT_COLLECTION_MODE, fieldName.c_str()) == 0) {
+            if (strcmp(child.GetItemValue().GetStringValue().c_str(), KV_COLLECTION_MODE) == 0) { // The value of mode
+                return -E_NOT_SUPPORT;
+            } else {
+                child = child.GetNext();
+                continue;
+            }
+        }
         if (strcmp(OPT_MAX_DOC, fieldName.c_str()) != 0) {
             GLOGE("Invalid collection config.");
             return -E_INVALID_CONFIG_VALUE;

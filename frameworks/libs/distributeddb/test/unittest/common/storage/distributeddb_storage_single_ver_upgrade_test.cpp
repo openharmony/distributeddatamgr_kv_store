@@ -276,11 +276,11 @@ void DistributedDBStorageSingleVerUpgradeTest::SetUpTestCase(void)
     g_identifier = DBCommon::TransferHashString(oriIdentifier);
     std::string identifier = DBCommon::TransferStringToHex(g_identifier);
     g_databaseName = "/" + identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     g_newDatabaseName = "/" + identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR + "/" +
-        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     g_localdatabaseName = "/" + identifier + "/" + DBConstant::LOCAL_SUB_DIR + "/" +
-        DBConstant::LOCAL_DATABASE_NAME + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::LOCAL_DATABASE_NAME + DBConstant::DB_EXTENSION;
     const int passwdLen = 5;
     const int passwdVal = 1;
     vector<uint8_t> passwdBuffer1(passwdLen, passwdVal);
@@ -289,11 +289,11 @@ void DistributedDBStorageSingleVerUpgradeTest::SetUpTestCase(void)
     g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
     g_maindbPath = g_testDir + "/" + identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::MAINDB_DIR +
-        "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     g_metadbPath = g_testDir + "/" + identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::METADB_DIR +
-        "/" + DBConstant::SINGLE_VER_META_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        "/" + DBConstant::SINGLE_VER_META_STORE + DBConstant::DB_EXTENSION;
     g_cachedbPath = g_testDir + "/" + identifier + "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::CACHEDB_DIR +
-        "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
 }
 
 void DistributedDBStorageSingleVerUpgradeTest::TearDownTestCase(void)

@@ -78,7 +78,7 @@ int SQLiteMultiVerDataStorage::CheckVersion(const Property &property, bool &isDb
 int SQLiteMultiVerDataStorage::GetVersion(const Property &property, int &version, bool &isDbExisted) const
 {
     std::string uri = property.path + "/" + property.identifierName + "/" + DBConstant::MULTI_SUB_DIR + "/" +
-        DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     isDbExisted = OS::CheckPathExistence(uri);
     if (isDbExisted) {
         std::vector<std::string> tableVect;
@@ -94,7 +94,7 @@ int SQLiteMultiVerDataStorage::Open(const Property &property)
     // whether create the transactions.
     property_ = property;
     uri_ = property.path + "/" + property_.identifierName + "/" + DBConstant::MULTI_SUB_DIR + "/" +
-        DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     std::vector<std::string> tableVect;
     tableVect.push_back(CREATE_TABLE_SQL);
     tableVect.push_back(CREATE_TABLE_VERSION_INDEX_SQL);
@@ -361,7 +361,7 @@ int SQLiteMultiVerDataStorage::RunExportLogic(CipherType type, const CipherPassw
     }
 
     // execute export
-    std::string newDbName = dbDir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    std::string newDbName = dbDir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     errCode = SQLiteUtils::ExportDatabase(db, type, passwd, newDbName);
     if (errCode != E_OK) {
         LOGE("multi ver data export failed:%d", errCode);
@@ -376,8 +376,8 @@ int SQLiteMultiVerDataStorage::RunExportLogic(CipherType type, const CipherPassw
 int SQLiteMultiVerDataStorage::BackupCurrentDatabase(const Property &property, const std::string &dir)
 {
     std::string currentDb = property.path + "/" + property.identifierName + "/" + DBConstant::MULTI_SUB_DIR + "/" +
-        DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
-    std::string dstDb = dir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    std::string dstDb = dir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     int errCode = DBCommon::CopyFile(currentDb, dstDb);
     if (errCode != E_OK) {
         LOGE("Copy the local current db error:%d", errCode);
@@ -389,8 +389,8 @@ int SQLiteMultiVerDataStorage::ImportDatabase(const Property &property, const st
     const CipherPassword &passwd)
 {
     std::string currentDb = property.path + "/" + property.identifierName + "/" + DBConstant::MULTI_SUB_DIR + "/" +
-        DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
-    std::string srcDb = dir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
+    std::string srcDb = dir + "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     int errCode = SQLiteUtils::ExportDatabase(srcDb, property.cipherType, passwd, currentDb, property.passwd);
     if (errCode != E_OK) {
         LOGE("import the multi ver data db error:%d", errCode);

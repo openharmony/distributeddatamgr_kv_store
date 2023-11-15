@@ -93,10 +93,7 @@ public:
         std::unique_lock<decltype(pqMtx_)> lock(pqMtx_);
         auto index = indexes_.find(id);
         if (index != indexes_.end()) {
-            auto [updated, time] = updater(index->second->second.task_);
-            if (!updated) {
-                return false;
-            }
+            auto [repeat, time] = updater(index->second->second.task_);
             auto matrix = std::move(index->second->second);
             tasks_.erase(index->second);
             index->second = tasks_.emplace(time, std::move(matrix));
@@ -106,8 +103,8 @@ public:
 
         auto running = running_.find(id);
         if (running != running_.end()) {
-            auto [updated, time] = updater((*running).second.task_);
-            return updated;
+            auto [repeat, time] = updater((*running).second.task_);
+            return repeat;
         }
 
         return false;

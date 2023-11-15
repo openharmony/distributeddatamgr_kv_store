@@ -341,8 +341,7 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     return ret;
 }
 
-int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-    const SyncProcessCallback &onProcess, int64_t waitTime)
+int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -358,7 +357,7 @@ int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &device
         }
         IncObjRef(this);
     }
-    int errCode = store->Sync(devices, mode, query, onProcess, waitTime);
+    int errCode = store->Sync(option, onProcess);
     DecObjRef(this);
     return errCode;
 }
@@ -375,6 +374,50 @@ int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::stri
     appId = properties.GetStringProp(RelationalDBProperties::APP_ID, "");
     storeId = properties.GetStringProp(RelationalDBProperties::STORE_ID, "");
     return E_OK;
+}
+
+int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    int errCode = store->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] set tracker table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->CleanTrackerData(tableName, cursor);
+}
+
+int SQLiteRelationalStoreConnection::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->Pragma(cmd, pragmaData);
 }
 }
 #endif

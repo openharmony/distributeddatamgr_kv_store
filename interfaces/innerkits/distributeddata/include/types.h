@@ -249,6 +249,7 @@ enum KvStoreType : int32_t {
      * Not support type.
     */
     MULTI_VERSION,
+    LOCAL_ONLY,
     INVALID_TYPE,
 };
 
@@ -256,6 +257,7 @@ enum KvStoreType : int32_t {
  * @brief Enumeration of database security level.
 */
 enum SecurityLevel : int32_t {
+    INVALID_LABEL = -1,
     NO_LABEL,
     S0,
     S1,
@@ -338,6 +340,25 @@ struct SyncPolicy {
 };
 
 /**
+ * @brief Role Type value.
+*/
+enum RoleType : uint32_t {
+    /**
+      * The user has administrative rights.
+    */
+    OWNER = 0,
+    /**
+      * The user has read-only permission.
+    */
+    VISITOR,
+};
+
+struct Group {
+    std::string groupDir = "";
+    std::string groupId = "";
+};
+
+/**
  * @brief Provide configuration information for database creation.
 */
 struct Options {
@@ -377,7 +398,7 @@ struct Options {
     /**
      * Set database security level.
     */
-    int32_t securityLevel = NO_LABEL;
+    int32_t securityLevel = INVALID_LABEL;
     /**
      * Set database directory area.
     */
@@ -409,12 +430,38 @@ struct Options {
     */
     inline bool IsValidType() const
     {
-        return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION;
+        return kvStoreType == KvStoreType::DEVICE_COLLABORATION || kvStoreType == KvStoreType::SINGLE_VERSION ||
+               kvStoreType == KvStoreType::LOCAL_ONLY;
     }
     /**
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
+    /** 
+     * Get the databaseDir.
+    */
+    inline std::string GetDatabaseDir() const
+    {
+        if (baseDir.empty()) {
+            return group.groupDir;
+        }
+        return !group.groupDir.empty() ? "" : baseDir;
+    }
+    /**
+     * Whether the databaseDir is valid.
+    */
+    inline bool IsPathValid() const
+    {
+        if ((baseDir.empty() && group.groupDir.empty()) || (!baseDir.empty() && !group.groupDir.empty())) {
+            return false;
+        }
+        return true;
+    }
+    Group group;
+    /**
+     * Set database role.
+    */
+    RoleType role;
 };
 
 /**

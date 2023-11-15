@@ -31,13 +31,15 @@ SingleStoreImpl::SingleStoreImpl(
     std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
     : convertor_(cvt), dbStore_(std::move(dbStore))
 {
+    std::string path = options.GetDatabaseDir();
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
     isClientSync_ = options.isClientSync;
     syncObserver_ = std::make_shared<SyncObserver>();
+    roleType_ = options.role;
     if (options.backup) {
-        BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
+        BackupManager::GetInstance().Prepare(path, storeId_);
     }
 }
 

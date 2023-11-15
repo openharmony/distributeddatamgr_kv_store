@@ -34,8 +34,13 @@ struct CloudSyncData {
     CloudSyncBatch updData;
     CloudSyncBatch delData;
     bool isCloudForcePushStrategy = false;
+    int ignoredCount = 0;
     CloudSyncData() = default;
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};
+};
+
+struct CloudTaskConfig {
+    bool allowLogicDelete = false;
 };
 
 template<typename Tp, typename... Types>

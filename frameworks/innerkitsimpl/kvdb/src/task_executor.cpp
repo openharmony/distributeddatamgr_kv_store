@@ -32,6 +32,9 @@ TaskExecutor::TaskId TaskExecutor::Execute(const Task &task)
     if (pool_ == nullptr) {
         GenerateExecutors();
     }
+    if (pool_ == nullptr) {
+        return INVALID_TASK_ID;
+    }
     return pool_->Execute(std::move(task));
 }
 
@@ -39,6 +42,9 @@ TaskExecutor::TaskId TaskExecutor::Schedule(Duration delay, const Task &task, Du
 {
     if (pool_ == nullptr) {
         GenerateExecutors();
+    }
+    if (pool_ == nullptr) {
+        return INVALID_TASK_ID;
     }
     return pool_->Schedule(task, delay, interval, times);
 }

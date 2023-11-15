@@ -239,7 +239,7 @@ int RemoteExecutor::CheckPermissions(const std::string &device, Message *inMsg)
         storage->DecRefCount();
         return -E_INVALID_ARGS;
     }
-    errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel());
+    errCode = CheckRemoteRecvData(device, storage, requestPacket->GetSecLabel(), requestPacket->GetVersion());
     storage->DecRefCount();
     return errCode;
 }
@@ -747,6 +747,10 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
+    if (errCode == E_OK && localOption.securityLabel == NOT_SET) {
+        LOGE("[AbilitySync] Local not set security option");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     Task task;
     {
         std::lock_guard<std::mutex> autoLock(taskLock_);
@@ -761,7 +765,7 @@ int RemoteExecutor::FillRequestPacket(RemoteExecutorRequestPacket *packet, uint3
     packet->SetSql(task.condition.sql);
     packet->SetBindArgs(task.condition.bindArgs);
     packet->SetNeedResponse();
-    packet->SetSecLabel(errCode == E_NOT_SUPPORT ? NOT_SURPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
+    packet->SetSecLabel(errCode == -E_NOT_SUPPORT ? NOT_SURPPORT_SEC_CLASSIFICATION : localOption.securityLabel);
     target = task.target;
     return E_OK;
 }
@@ -996,10 +1000,23 @@ int RemoteExecutor::CheckSecurityOption(ISyncInterface *storage, ICommunicator *
 }
 
 int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericInterface *storage,
-    int32_t remoteSecLabel)
+    int32_t remoteSecLabel, uint32_t remoteVersion)
 {
     SecurityOption localOption;
     int errCode = storage->GetSecurityOption(localOption);
+    LOGI("[RemoteExecutor] remote label:%d local l:%d, f:%d, errCode:%d, remote ver %" PRIu32, remoteSecLabel,
+         localOption.securityLabel, localOption.securityFlag, errCode, remoteVersion);
+    if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
+        return E_OK;
+    }
+    if (errCode != -E_NOT_SUPPORT && localOption.securityLabel == SecurityLabel::NOT_SET) {
+        LOGE("[RemoteExecutor] local security label not set!");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (remoteVersion >= RemoteExecutorRequestPacket::REQUEST_PACKET_VERSION_V4 && remoteSecLabel == NOT_SET) {
+        LOGE("[RemoteExecutor] remote security label not set!");
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
     if (errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }

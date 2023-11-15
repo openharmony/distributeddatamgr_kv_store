@@ -12,9 +12,12 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+
 #include "grd_api_manager.h"
 
+#ifndef _WIN32
 #include <dlfcn.h>
+#endif
 
 #include "check_common.h"
 #include "doc_errno.h"
@@ -26,9 +29,12 @@
 #include "grd_resultset_api_inner.h"
 #include "grd_sequence_api_inner.h"
 #include "grd_type_inner.h"
-#include "log_print.h"
+#include "rd_log_print.h"
 
+#ifndef _WIN32
 static void *g_library = nullptr;
+#endif
+
 namespace DocumentDB {
 void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
 {
@@ -56,14 +62,15 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVFreeItemApi = GRD_KVFreeItemInner;
     GRD_DBApiInfo.KVBatchPrepareApi = GRD_KVBatchPrepareInner;
     GRD_DBApiInfo.KVBatchPushbackApi = GRD_KVBatchPushbackInner;
+    GRD_DBApiInfo.KVBatchPutApi = GRD_KVBatchPutInner;
     GRD_DBApiInfo.KVBatchDelApi = GRD_KVBatchDelInner;
-    GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestoryInner;
-    GRD_DBApiInfo.CreateSeqApi = GRD_CreateSeqInner;
-    GRD_DBApiInfo.DropSeqApi = GRD_DropSeqInner;
+    GRD_DBApiInfo.KVBatchDestoryApi = GRD_KVBatchDestroyInner;
+    GRD_DBApiInfo.CrcCheckApi = GRD_CrcCheckInner;
 }
 
 void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
 {
+#ifndef _WIN32
     GRD_DBApiInfo.DBOpenApi = (DBOpen)dlsym(g_library, "GRD_DBOpen");
     GRD_DBApiInfo.DBCloseApi = (DBClose)dlsym(g_library, "GRD_DBClose");
     GRD_DBApiInfo.FlushApi = (DBFlush)dlsym(g_library, "GRD_Flush");
@@ -88,21 +95,24 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVFreeItemApi = (KVFreeItem)dlsym(g_library, "GRD_KVFreeItem");
     GRD_DBApiInfo.KVBatchPrepareApi = (KVBatchPrepare)dlsym(g_library, "GRD_KVBatchPrepare");
     GRD_DBApiInfo.KVBatchPushbackApi = (KVBatchPushback)dlsym(g_library, "GRD_KVBatchPushback");
+    GRD_DBApiInfo.KVBatchPutApi = (KVBatchPut)dlsym(g_library, "GRD_KVBatchPut");
     GRD_DBApiInfo.KVBatchDelApi = (KVBatchDel)dlsym(g_library, "GRD_KVBatchDel");
-    GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestory");
-    GRD_DBApiInfo.CreateSeqApi = (CreateSeq)dlsym(g_library, "GRD_CreateSeq");
-    GRD_DBApiInfo.DropSeqApi = (DropSeq)dlsym(g_library, "GRD_DropSeq");
+    GRD_DBApiInfo.KVBatchDestoryApi = (KVBatchDestory)dlsym(g_library, "GRD_KVBatchDestroy");
+    GRD_DBApiInfo.CrcCheckApi = (CrcCheck)dlsym(g_library, "GRD_CrcCheck");
+#endif
 }
 
 GRD_APIInfo GetApiInfoInstance()
 {
     GRD_APIInfo GRD_TempApiStruct;
+#ifndef _WIN32
     g_library = dlopen("/system/lib64/libgaussdb_rd.z.so", RTLD_LAZY);
     if (!g_library) {
         GRD_DBApiInitCommon(GRD_TempApiStruct); // When calling specific function, read whether init is successful.
     } else {
         GRD_DBApiInitEnhance(GRD_TempApiStruct);
     }
+#endif
     return GRD_TempApiStruct;
 }
 } // namespace DocumentDB

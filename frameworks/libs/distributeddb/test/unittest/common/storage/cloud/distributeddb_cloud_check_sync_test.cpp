@@ -86,6 +86,8 @@ protected:
     void InsertCloudTableRecord(int64_t begin, int64_t count, int64_t photoSize, bool assetIsNull);
     void DeleteUserTableRecord(int64_t id);
     void DeleteCloudTableRecord(int64_t gid);
+    void InitLogicDeleteDataEnv(int64_t dataCount);
+    void CheckLocalCount(int64_t expectCount);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -239,6 +241,33 @@ void DistributedDBCloudCheckSyncTest::DeleteCloudTableRecord(int64_t gid)
     ASSERT_EQ(virtualCloudDb_->DeleteByGid(tableName_, idMap), DBStatus::OK);
 }
 
+void DistributedDBCloudCheckSyncTest::InitLogicDeleteDataEnv(int64_t dataCount)
+{
+    // prepare data
+    InsertUserTableRecord(dataCount);
+    // sync
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    // delete cloud data
+    for (int i = 0; i < dataCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    // sync again
+    BlockSync(query, delegate_);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckLocalCount(int64_t expectCount)
+{
+    // check local data
+    int dataCnt = -1;
+    std::string checkLogSql = "SELECT count(*) FROM " + tableName_;
+    RelationalTestUtils::ExecSql(db_, checkLogSql, nullptr, [&dataCnt](sqlite3_stmt *stmt) {
+        dataCnt = sqlite3_column_int(stmt, 0);
+        return E_OK;
+    });
+    EXPECT_EQ(dataCnt, expectCount);
+}
+
 /**
  * @tc.name: CloudSyncTest001
  * @tc.desc: sync with device sync query
@@ -372,6 +401,115 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudSyncObserverTest001, TestSize.Lev
     delete observer2;
     observer2 = nullptr;
     EXPECT_EQ(mgr_->CloseStore(delegate2), DBStatus::OK);
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest001
+ * @tc.desc: sync with logic delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest001, TestSize.Level0)
+{
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(actualCount);
+    std::string device = "";
+    ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_AND_DATA), DBStatus::OK);
+    CheckLocalCount(0);
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest002
+ * @tc.desc: sync without logic delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest002, TestSize.Level0)
+{
+    bool logicDelete = false;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(0);
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest003
+ * @tc.desc: sync with logic delete and check observer
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. register observer.
+     * @tc.expected: step1. ok.
+     */
+    RelationalStoreDelegate::Option option;
+    auto observer = new (std::nothrow) RelationalStoreObserverUnitTest();
+    ASSERT_NE(observer, nullptr);
+    observer->SetCallbackDetailsType(static_cast<uint32_t>(CallbackDetailsType::DETAILED));
+    EXPECT_EQ(delegate_->RegisterObserver(observer), OK);
+    ChangedData expectData;
+    expectData.tableName = tableName_;
+    expectData.type = ChangedDataType::DATA;
+    expectData.field.push_back(std::string("id"));
+    const int count = 10;
+    for (int64_t i = 0; i < count; ++i) {
+        expectData.primaryData[ChangeType::OP_DELETE].push_back({std::to_string(i)});
+    }
+    expectData.properties = { .isTrackedDataChange = true };
+    observer->SetExpectedResult(expectData);
+
+    /**
+     * @tc.steps:step2. set tracker table
+     * @tc.expected: step2. ok.
+     */
+    TrackerSchema trackerSchema;
+    trackerSchema.tableName = tableName_;
+    trackerSchema.trackerColNames = { "id" };
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
+
+    /**
+     * @tc.steps:step3. set logic delete and sync
+     * @tc.expected: step3. ok.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(actualCount);
+    EXPECT_EQ(observer->IsAllChangedDataEq(), true);
+    observer->ClearChangedData();
+
+    /**
+     * @tc.steps:step4. unSetTrackerTable and sync
+     * @tc.expected: step4. ok.
+     */
+    expectData.properties = { .isTrackedDataChange = false };
+    observer->SetExpectedResult(expectData);
+    trackerSchema.trackerColNames = {};
+    EXPECT_EQ(delegate_->SetTrackerTable(trackerSchema), OK);
+    InsertUserTableRecord(actualCount);
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
+    for (int i = 0; i < actualCount + actualCount; ++i) {
+        DeleteCloudTableRecord(i);
+    }
+    BlockSync(Query::Select().FromTable({ tableName_ }), delegate_);
+    EXPECT_EQ(observer->IsAllChangedDataEq(), true);
+
+    EXPECT_EQ(delegate_->UnRegisterObserver(observer), OK);
+    delete observer;
+    observer = nullptr;
 }
 }
 #endif
