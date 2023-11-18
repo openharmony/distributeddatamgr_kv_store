@@ -34,7 +34,7 @@ struct DeviceInfos {
     std::string identifier;
 };
 
-class API_EXPORT EndPoint {
+class API_EXPORT Endpoint {
 public:
 
     using OnDeviceChange = std::function<void(const DeviceInfos &devInfo, bool isOnline)>;
@@ -43,12 +43,12 @@ public:
     /**
      * @brief Constructor.
      */
-    API_EXPORT EndPoint() = default;
+    API_EXPORT Endpoint() = default;
 
     /**
      * @brief Destructor.
      */
-    API_EXPORT virtual ~EndPoint() {};
+    API_EXPORT virtual ~Endpoint() {};
 
     /**
      * @brief Start the Process Communicator.
@@ -107,6 +107,12 @@ public:
      * @return Return true for success, false for failure.
      */
     API_EXPORT virtual bool SyncPermissionCheck(const PermissionCheckParam &param, uint8_t flag) = 0;
+
+    /**
+     * @brief Get userId.
+     * @return Return userId.
+     */
+    API_EXPORT virtual std::string GetUserId();
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

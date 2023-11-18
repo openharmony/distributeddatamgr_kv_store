@@ -29,7 +29,7 @@ public:
         Status &status, bool &isCreate);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
     Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
-
+    void SetUserId(std::string userId);
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
@@ -42,7 +42,7 @@ private:
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
 
     StoreFactory();
-    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
+    std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId, bool isClientSync = false);
     DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
     void ReKey(const std::string &storeId, const std::string &path, DBPassword &dbPassword,
         std::shared_ptr<DBManager> dbManager, const Options &options);
@@ -55,6 +55,7 @@ private:
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
+    std::string userId_ = "";
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H

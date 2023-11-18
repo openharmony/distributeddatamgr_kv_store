@@ -24,7 +24,7 @@ public:
     using AccessEventHanle = DistributedDB::OnAccessControlledEvent;
     using DBStatus = DistributedDB::DBStatus;
     using DBOption = DistributedDB::SecurityOption;
-    API_EXPORT explicit ProcessSystemApiAdapterImpl(std::shared_ptr<EndPoint> endPoint);
+    API_EXPORT explicit ProcessSystemApiAdapterImpl(std::shared_ptr<Endpoint> endpoint);
     API_EXPORT ~ProcessSystemApiAdapterImpl();
     DBStatus RegOnAccessControlledEvent(const AccessEventHanle &callback) override;
     bool IsAccessControlled() const override;
@@ -32,7 +32,7 @@ public:
     DBStatus GetSecurityOption(const std::string &filePath, DBOption &option) const override;
     bool CheckDeviceSecurityAbility(const std::string &devId, const DBOption &option) const override;
 private:
-    std::shared_ptr<EndPoint> endPoint_;
+    std::shared_ptr<Endpoint> endpoint_;
 };
 }
 #endif // PROCESS_SYSTEM_API_ADAPTER_IMPL_H

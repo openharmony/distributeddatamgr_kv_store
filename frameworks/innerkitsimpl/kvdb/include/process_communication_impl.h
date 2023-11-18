@@ -29,7 +29,7 @@ public:
     using OnDeviceChange = DistributedDB::OnDeviceChange;
     using OnDataReceive = DistributedDB::OnDataReceive;
     
-    API_EXPORT explicit ProcessCommunicationImpl(std::shared_ptr<EndPoint> endPoint);
+    API_EXPORT explicit ProcessCommunicationImpl(std::shared_ptr<Endpoint> endpoint);
     API_EXPORT ~ProcessCommunicationImpl() override;
 
     DBStatus Start(const std::string &processLabel) override;
@@ -45,7 +45,8 @@ public:
     std::vector<DistributedDB::DeviceInfos> GetRemoteOnlineDeviceInfosList() override;
     bool IsSameProcessLabelStartedOnPeerDevice(const DistributedDB::DeviceInfos &peerDevInfo) override;
 private:
-    std::shared_ptr<EndPoint> endPoint_;
+    
+    std::shared_ptr<Endpoint> endpoint_;
     bool isCreateSessionServer_ = false;
 };
 }  // namespace AppDistributedKv

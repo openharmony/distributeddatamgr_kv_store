@@ -157,11 +157,11 @@ public:
     API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
 
     /**
-     * @brief set endPoint for client sync.
-     * @param endPoint The pointer of endPoint.
+     * @brief set endpoint for client sync.
+     * @param endpoint The pointer of endpoint.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT Status SetEndPoint(std::shared_ptr<EndPoint> endPoint);
+    API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
 private:
     static bool isAlreadySet_;
 };

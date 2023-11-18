@@ -27,8 +27,8 @@ using SecurityLabel = DistributedFS::ModuleSecurityLabel::SecurityLabel;
 constexpr int32_t HEAD_SIZE = 3;
 constexpr int32_t END_SIZE = 3;
 constexpr const char *REPLACE_CHAIN = "***";
-ProcessSystemApiAdapterImpl::ProcessSystemApiAdapterImpl(std::shared_ptr<EndPoint> endPoint)
-    : endPoint_(endPoint)
+ProcessSystemApiAdapterImpl::ProcessSystemApiAdapterImpl(std::shared_ptr<Endpoint> endpoint)
+    : endpoint_(endpoint)
 {
 }
 
@@ -105,6 +105,6 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::GetSecurityOp
 bool ProcessSystemApiAdapterImpl::CheckDeviceSecurityAbility(const std::string &devId, const DBOption &option) const
 {
     auto securityLabel = option.securityLabel;
-    return endPoint_->CheckDeviceSecurityAbility(devId, securityLabel);
+    return endpoint_->CheckDeviceSecurityAbility(devId, securityLabel);
 }
 } // namespace OHOS::DistributedKv

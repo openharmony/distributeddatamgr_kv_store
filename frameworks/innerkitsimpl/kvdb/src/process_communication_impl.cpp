@@ -21,8 +21,8 @@
 namespace OHOS {
 namespace DistributedKv {
 using namespace DistributedDB;
-ProcessCommunicationImpl::ProcessCommunicationImpl(std::shared_ptr<EndPoint> endPoint)
-    : endPoint_(endPoint)
+ProcessCommunicationImpl::ProcessCommunicationImpl(std::shared_ptr<Endpoint> endpoint)
+    : endpoint_(endpoint)
 {
 }
 
@@ -32,9 +32,9 @@ ProcessCommunicationImpl::~ProcessCommunicationImpl()
 
 DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 {
-    Status errCode = endPoint_->Start();
+    Status errCode = endpoint_->Start();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("endPoint Start Fail: %{public}d", errCode);
+        ZLOGE("endpoint Start Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = true;
@@ -43,9 +43,9 @@ DBStatus ProcessCommunicationImpl::Start(const std::string &processLabel)
 
 DBStatus ProcessCommunicationImpl::Stop()
 {
-    Status errCode = endPoint_->Stop();
+    Status errCode = endpoint_->Stop();
     if (errCode != Status::SUCCESS) {
-        ZLOGE("endPoint Stop Fail: %{public}d", errCode);
+        ZLOGE("endpoint Stop Fail: %{public}d", errCode);
         return DBStatus::DB_ERROR;
     }
     isCreateSessionServer_ = false;
@@ -66,7 +66,7 @@ DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callbac
         callback(devInfo, data, length);
     };
     
-    Status errCode = endPoint_->RegOnDataReceive(dataReciveCallback);
+    Status errCode = endpoint_->RegOnDataReceive(dataReciveCallback);
     if (errCode != Status::SUCCESS) {
         ZLOGE("RegOnDataReceive Fail.");
         return DBStatus::DB_ERROR;
@@ -80,7 +80,7 @@ DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &ds
     DeviceInfos infos = {
         dstDevInfo.identifier
     };
-    Status errCode = endPoint_->SendData(infos, data, length);
+    Status errCode = endpoint_->SendData(infos, data, length);
     if (errCode != Status::SUCCESS) {
         ZLOGE("SendData Fail.");
         return DBStatus::DB_ERROR;
@@ -91,7 +91,7 @@ DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &ds
 
 uint32_t ProcessCommunicationImpl::GetMtuSize()
 {
-    return endPoint_->GetMtuSize({""});
+    return endpoint_->GetMtuSize({""});
 }
 
 uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &devInfo)
@@ -99,12 +99,12 @@ uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &
     DeviceInfos infos = {
         devInfo.identifier
     };
-    return endPoint_->GetMtuSize(infos);
+    return endpoint_->GetMtuSize(infos);
 }
 
 DistributedDB::DeviceInfos ProcessCommunicationImpl::GetLocalDeviceInfos()
 {
-    auto devInfo = endPoint_->GetLocalDeviceInfos();
+    auto devInfo = endpoint_->GetLocalDeviceInfos();
     DistributedDB::DeviceInfos devInfos = {
         devInfo.identifier
     };

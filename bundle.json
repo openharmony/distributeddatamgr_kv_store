@@ -83,7 +83,8 @@
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
-        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module"
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync"
       ],
       "inner_kits": [
         {

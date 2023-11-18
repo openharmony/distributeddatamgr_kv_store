@@ -28,6 +28,7 @@
 #include "kv_store_delegate_manager.h"
 #include "process_communication_impl.h"
 #include "process_system_api_adapter_impl.h"
+#include "store_factory.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -181,16 +182,16 @@ void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> execut
     TaskExecutor::GetInstance().SetExecutors(std::move(executors));
 }
 
-Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
+Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
 {
-    if (endPoint == nullptr) {
-        ZLOGE("endPoint is nullptr.");
+    if (endpoint == nullptr) {
+        ZLOGE("Endpoint is nullptr.");
         return ERROR;
     }
 
     if (isAlreadySet_) {
-        ZLOGW("endPoint already set");
-        return ERROR;
+        ZLOGW("Endpoint already set");
+        return SUCCESS;
     }
     
     auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
@@ -200,7 +201,7 @@ Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
         return status;
     }
 
-    auto communicator = std::make_shared<ProcessCommunicationImpl>(endPoint);
+    auto communicator = std::make_shared<ProcessCommunicationImpl>(endpoint);
     dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
     status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -208,7 +209,7 @@ Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
         return status;
     }
 
-    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(endPoint);
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(endpoint);
     dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
     status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
@@ -216,7 +217,7 @@ Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
         return status;
     }
 
-    auto permissionCallback = [endPoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
+    auto permissionCallback = [endpoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
         PermissionCheckParam params = {
             std::move(param.userId),
             std::move(param.appId),
@@ -225,7 +226,7 @@ Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
             std::move(param.instanceId),
             std::move(param.extraConditions)
         };
-        return endPoint->SyncPermissionCheck(params, flag);
+        return endpoint->SyncPermissionCheck(params, flag);
     };
     
     dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);
@@ -234,6 +235,7 @@ Status DistributedKvDataManager::SetEndPoint(std::shared_ptr<EndPoint> endPoint)
         ZLOGE("SetPermissionCheckCallback failed: %d", status);
         return status;
     }
+    StoreFactory::GetInstance().SetUserId(endpoint->GetUserId());
     isAlreadySet_ = true;
     return status;
 }

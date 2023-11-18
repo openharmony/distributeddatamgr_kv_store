@@ -776,6 +776,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 
 Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {        
+    Status cStatus = Status::SUCCESS;
     if (isClientSync_) {
         auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {  
             std::map<std::string, Status> result;
@@ -786,9 +787,9 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
         };
         
         auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
-        auto status = StoreUtil::ConvertStatus(dbStatus);
-        if (status != Status::SUCCESS) {
-            ZLOGE("client Sync failed: %{public}d", status);
+        cStatus = StoreUtil::ConvertStatus(dbStatus);
+        if (cStatus != Status::SUCCESS) {
+            ZLOGE("client Sync failed: %{public}d", cStatus);
         }
     }
 
@@ -809,7 +810,15 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     if (status != Status::SUCCESS) {
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
     }
-    return status;
+
+    if (!isClientSync_) {
+        return status;
+    }
+    if (cStatus == SUCCESS || status == SUCCESS) {
+        return SUCCESS;
+    } else {
+        return ERROR;
+    }
 }
 
 void SingleStoreImpl::DoAutoSync()
