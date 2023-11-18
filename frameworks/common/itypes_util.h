@@ -238,6 +238,9 @@ bool ITypesUtil::Marshalling(const CommonTypes::Result<T> &val, MessageParcel &d
     if (!data.WriteInt32(val.errCode)) {
         return false;
     }
+    if (!ITypesUtil::Marshalling(val.description, data)) {
+        return false;
+    }
     return std::is_null_pointer<decltype(val.value)>::value ? true : Marshalling(val.value, data);
 }
 
@@ -245,6 +248,9 @@ template<class T>
 bool ITypesUtil::Unmarshalling(CommonTypes::Result<T> &val, MessageParcel &data)
 {
     if (!data.ReadInt32(val.errCode)) {
+        return false;
+    }
+    if (!ITypesUtil::Unmarshalling(val.description, data)) {
         return false;
     }
     return std::is_null_pointer<decltype(val.value)>::value ? true : Unmarshalling(val.value, data);

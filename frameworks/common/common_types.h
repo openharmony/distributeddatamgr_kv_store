@@ -17,13 +17,29 @@
 #define DISTRIBUTED_DATA_FRAMEWORKS_COMMON_ITYPES_H
 
 #include <cstdint>
+#include <string>
 #include <type_traits>
 
 namespace OHOS {
 namespace CommonTypes {
+struct TsString {
+    std::string value;
+    TsString() = default;
+    explicit TsString(const std::string &str) : value(str) {}
+    operator std::string() const
+    {
+        return value;
+    }
+    bool operator==(const TsString &data)
+    {
+        return value == data.value;
+    }
+};
+
 template<typename T>
 struct Result {
     int32_t errCode;
+    TsString description;
     using value_type = typename std::conditional<std::is_void<T>::value, std::nullptr_t, T>::type;
     value_type value;
 };
