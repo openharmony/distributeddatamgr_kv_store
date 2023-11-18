@@ -184,6 +184,11 @@ enum Status : int32_t {
      * The wal file size over limit.
     */
     WAL_OVER_LIMITS = DISTRIBUTEDDATAMGR_ERR_OFFSET + 37,
+
+    /**
+     * Session is opening.
+    */
+    RATE_LIMIT = DISTRIBUTEDDATAMGR_ERR_OFFSET + 38,
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_INTERFACES_DISTRIBUTEDDATA_STORE_ERRNO_H

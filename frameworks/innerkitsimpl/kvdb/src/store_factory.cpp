@@ -172,7 +172,8 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
 StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const DBPassword &dbPassword) const
 {
     DBOption dbOption;
-    dbOption.syncDualTupleMode = (!options.isClientSync); // tuple of (appid+storeid)
+    dbOption.syncDualTupleMode =
+        ((options.kvStoreType == KvStoreType::LOCAL_ONLY || options.isClientSync) ? false : true); // tuple of (appid+storeid)
     dbOption.createIfNecessary = (options.role == VISITOR ? false : options.createIfMissing);
     dbOption.isNeedRmCorruptedDb = (options.role == VISITOR ? false : options.rebuild);
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
