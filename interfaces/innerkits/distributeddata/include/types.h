@@ -437,7 +437,7 @@ struct Options {
      * Whether the sync happend in client.
     */
     bool isClientSync = false;
-    /** 
+    /**
      * Get the databaseDir.
     */
     inline std::string GetDatabaseDir() const

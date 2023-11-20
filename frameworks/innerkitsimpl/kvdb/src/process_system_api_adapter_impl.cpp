@@ -36,7 +36,8 @@ ProcessSystemApiAdapterImpl::~ProcessSystemApiAdapterImpl()
 {
 }
 
-ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::RegOnAccessControlledEvent(const AccessEventHanle &callback)
+ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::RegOnAccessControlledEvent(
+    const AccessEventHanle &callback)
 {
     return DBStatus::NOT_SUPPORT;
 }
@@ -46,7 +47,8 @@ bool ProcessSystemApiAdapterImpl::IsAccessControlled() const
     return false;
 }
 
-ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &filePath, const DBOption &option)
+ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOption(const std::string &filePath,
+    const DBOption &option)
 {
     if (filePath.empty() || option.securityLabel < Label::NOT_SET || option.securityLabel > Label::S4) {
         return DBStatus::INVALID_ARGS;
@@ -69,14 +71,16 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::SetSecurityOp
     auto secLevel = std::string("s") + std::to_string(option.securityLabel - 1);
     bool result = SecurityLabel::SetSecurityLabel(filePath, secLevel);
     if (!result) {
-        auto fPath = filePath.substr(0, HEAD_SIZE) + REPLACE_CHAIN + filePath.substr(filePath.length() - END_SIZE, END_SIZE);
+        auto fPath = filePath.substr(0, HEAD_SIZE) + REPLACE_CHAIN +
+            filePath.substr(filePath.length() - END_SIZE, END_SIZE);
         ZLOGE("set label failed! level:%{public}s, file:%{public}s", secLevel.c_str(), fPath.c_str());
         return DBStatus::DB_ERROR;
     }
     return DBStatus::OK;
 }
 
-ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::GetSecurityOption(const std::string &filePath, DBOption &option) const
+ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::GetSecurityOption(const std::string &filePath,
+    DBOption &option) const
 {
     if (filePath.empty()) {
         return DBStatus::INVALID_ARGS;

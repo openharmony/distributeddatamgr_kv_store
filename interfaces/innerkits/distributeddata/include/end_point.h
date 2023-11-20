@@ -52,14 +52,14 @@ public:
 
     /**
      * @brief Start the Process Communicator.
-     * @param processLabel Identifies current process
-     * @return Return SUCCESS for success, others for failure.    
+     * @param processLabel Identifies current process.
+     * @return Return SUCCESS for success, others for failure.
      */
     API_EXPORT virtual Status Start() = 0;
 
     /**
      * @brief Start the Process Communicator.
-     * @return Return SUCCESS for success, others for failure. 
+     * @return Return SUCCESS for success, others for failure.
      */
     API_EXPORT virtual Status Stop() = 0;
 

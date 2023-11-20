@@ -75,7 +75,8 @@ DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callbac
     return DBStatus::OK;
 }
 
-DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length)
+DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &dstDevInfo, const uint8_t *data,
+    uint32_t length)
 {
     DeviceInfos infos = {
         dstDevInfo.identifier

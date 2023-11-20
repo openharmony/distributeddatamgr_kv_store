@@ -153,7 +153,8 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
 std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId)
 {
     std::shared_ptr<DBManager> dbManager;
-    dbManagers_.Compute(path, [&dbManager, &appId, isClientSync, this](const auto &path, std::shared_ptr<DBManager> &manager) {
+    dbManagers_.Compute(path, [&dbManager, &appId, this](const auto &path,
+        std::shared_ptr<DBManager> &manager) {
         if (manager != nullptr) {
             dbManager = manager;
             return true;
@@ -174,7 +175,8 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
 {
     DBOption dbOption;
     dbOption.syncDualTupleMode =
-        ((options.kvStoreType == KvStoreType::LOCAL_ONLY || options.isClientSync) ? false : true); // tuple of (appid+storeid)
+        ((options.kvStoreType == KvStoreType::LOCAL_ONLY ||
+        options.isClientSync) ? false : true); // tuple of (appid+storeid)
     dbOption.createIfNecessary = (options.role == VISITOR ? false : options.createIfMissing);
     dbOption.isNeedRmCorruptedDb = (options.role == VISITOR ? false : options.rebuild);
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
@@ -309,7 +311,8 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     return true;
 }
 
-void StoreFactory::SetUserId(const std::string &userId) {
+void StoreFactory::SetUserId(const std::string &userId)
+{
     userId_ = userId;
 }
 } // namespace OHOS::DistributedKv

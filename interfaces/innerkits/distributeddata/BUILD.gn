@@ -17,8 +17,10 @@ import("//foundation/distributeddatamgr/kv_store/kv_store.gni")
 group("build_module") {
   deps = []
   if (!use_platform_win && !use_platforn_mac) {
-    deps += [ ":distributeddata_inner",
-              ":distributeddata_client_sync" ]
+    deps += [
+      ":distributeddata_client_sync",
+      ":distributeddata_inner",
+    ]
   }
 }
 
@@ -93,7 +95,7 @@ kvdb_source_config = [
 deps_config = [
   "../../../frameworks/libs/distributeddb:distributeddb",
   "../distributeddatamgr:distributeddata_mgr",
-  "../distributeddata:distributeddata_client_sync"
+  "../distributeddata:distributeddata_client_sync",
 ]
 
 external_deps_config = [
@@ -130,16 +132,14 @@ ohos_shared_library("distributeddata_inner") {
 
 ohos_shared_library("distributeddata_client_sync") {
   sources = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/process_communication_impl.cpp",
-    "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/process_communication_impl.cpp",
+    "${kv_store_base_path}/frameworks/innerkitsimpl/kvdb/src/process_system_api_adapter_impl.cpp",
   ]
 
   configs = [ ":distributeddatafwk_config" ]
 
-  deps = [
-    "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
-  ]
-  
+  deps = [ "${kv_store_base_path}/frameworks/libs/distributeddb:distributeddb" ]
+
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
