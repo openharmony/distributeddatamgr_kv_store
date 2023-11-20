@@ -70,7 +70,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
             return !stores.empty();
         }
         std::string path = options.GetDatabaseDir();
-        auto dbManager = GetDBManager(options.baseDir, appId, options.isClientSync);
+        auto dbManager = GetDBManager(path, appId);
         auto dbPassword =
             SecurityManager::GetInstance().GetDBPassword(storeId.storeId, path, options.encrypt);
         if (options.encrypt && !dbPassword.IsValid()) {
@@ -150,7 +150,7 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
     return status;
 }
 
-std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId, bool isClientSync)
+std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId)
 {
     std::shared_ptr<DBManager> dbManager;
     dbManagers_.Compute(path, [&dbManager, &appId, isClientSync, this](const auto &path, std::shared_ptr<DBManager> &manager) {
@@ -160,7 +160,8 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
         }
         std::string fullPath = path + "/kvdb";
         auto result = StoreUtil::InitPath(fullPath);
-        std::string userid = ((!userId_.empty()) && isClientSync) ? userId_ : "default";
+        std::string userid = (!userId_.empty()) ? userId_ : "default";
+        dbManager = std::make_shared<DBManager>(appId.appId, userId_);
         dbManager->SetKvStoreConfig({ fullPath });
         manager = dbManager;
         BackupManager::GetInstance().Init(path);
@@ -308,7 +309,7 @@ bool StoreFactory::ExecuteRekey(const std::string &storeId, const std::string &p
     return true;
 }
 
-void StoreFactory::SetUserId(std::string userId) {
+void StoreFactory::SetUserId(const std::string &userId) {
     userId_ = userId;
 }
 } // namespace OHOS::DistributedKv

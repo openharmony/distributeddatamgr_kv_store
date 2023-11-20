@@ -817,6 +817,7 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     if (cStatus == SUCCESS || status == SUCCESS) {
         return SUCCESS;
     } else {
+        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
         return ERROR;
     }
 }
