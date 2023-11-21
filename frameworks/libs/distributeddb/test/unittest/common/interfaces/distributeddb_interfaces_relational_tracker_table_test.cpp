@@ -41,9 +41,9 @@ namespace {
     constexpr const char *STORE_ID2 = "Relational_Store_tracker2";
     std::string g_testDir;
     std::string g_dbDir;
-    const string TABLE_NAME1 = "worker1";
-    const string TABLE_NAME2 = "worker2";
-    const string TABLE_NAME3 = "worker3";
+    const string TABLE_NAME1 = "worKer1";
+    const string TABLE_NAME2 = "worKer2";
+    const string TABLE_NAME3 = "worKer3";
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
     sqlite3 *g_db = nullptr;
@@ -1675,5 +1675,98 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, ExecuteSql010, TestS
     condition.sql = "select * from AA";
     EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
     EXPECT_EQ(records.size(), num);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest026
+  * @tc.desc: Test tracker table with case sensitive table name
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest026, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. SetTrackerTable on table2
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+
+    /**
+     * @tc.steps:step2. SetTrackerTable on table2 with case different
+     * @tc.expected: step2. Return NOT_FOUND.
+     */
+    schema.tableName = "worker2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    uint64_t num = 10;
+    BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
+    schema.tableName = "workeR2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    schema.trackerColNames = {};
+    schema.tableName = "WorkeR2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
+
+    schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    CloseStore();
+}
+
+/**
+  * @tc.name: TrackerTableTest027
+  * @tc.desc: Test tracker table with case sensitive distributed table name
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. create distributed table on table2 with case different
+     * @tc.expected: step1. Return OK.
+     */
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable("worker2", CLOUD_COOPERATION), DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. SetTrackerTable on table2 with case different
+     * @tc.expected: step2. Return NOT_FOUND.
+     */
+    schema.tableName = "Worker2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    uint64_t num = 10;
+    BatchOperatorTableName2Data(num, LOCAL_TABLE_TRACKER_NAME_SET3);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    schema.tableName = "WOrker2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    schema.trackerColNames = {};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+    schema.tableName = "Worker2";
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+
+    /**
+     * @tc.steps:step3. SetTrackerTable with "worKer2"
+     * @tc.expected: step3. Return NOT_FOUND.
+     */
+    schema.tableName = g_normalSchema1.tableName;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), NOT_FOUND);
+
+    /**
+     * @tc.steps:step4. SetTrackerTable with "worKer2" after reopening db
+     * @tc.expected: step4. Return OK.
+     */
+    CloseStore();
+    OpenStore();
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    schema.trackerColNames = {};
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     CloseStore();
 }

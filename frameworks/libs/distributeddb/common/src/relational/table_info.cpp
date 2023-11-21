@@ -712,7 +712,11 @@ void TableInfo::SetTrackerTable(const TrackerTable &table)
 
 int TableInfo::CheckTrackerTable()
 {
-    if (GetTrackerTable().GetTrackerColNames().empty()) {
+    if (tableName_ != trackerTable_.GetTableName()) {
+        LOGE("the table name in schema is different from tracker table.");
+        return -E_NOT_FOUND;
+    }
+    if (trackerTable_.GetTrackerColNames().empty()) {
         return E_OK;
     }
     for (const auto &colName: GetTrackerTable().GetTrackerColNames()) {

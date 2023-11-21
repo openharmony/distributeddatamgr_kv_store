@@ -1104,18 +1104,16 @@ void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const Sy
 
 int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
 {
-    TrackerSchema lowerSchema;
-    SchemaUtils::TransTrackerSchemaToLower(trackerSchema, lowerSchema);
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
-    TableInfo tableInfo = localSchema.GetTable(lowerSchema.tableName);
+    TableInfo tableInfo = localSchema.GetTable(trackerSchema.tableName);
     if (tableInfo.Empty()) {
-        return sqliteStorageEngine_->SetTrackerTable(lowerSchema);
+        return sqliteStorageEngine_->SetTrackerTable(trackerSchema);
     }
-    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(lowerSchema, tableInfo);
+    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo);
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = CreateDistributedTable(lowerSchema.tableName, tableInfo.GetTableSyncType());
+    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType());
     if (errCode != E_OK) {
         return errCode;
     }
