@@ -85,7 +85,7 @@ public:
      * @brief Obtains the ID of the loacl device info.
      * @return loacl device info.
      */
-    virtual DeviceInfos GetLocalDeviceInfos() = 0;
+    virtual std::string GetLocalDeviceInfos() = 0;
     
     /**
      * @brief Determines whether the device has the capability of data of this level.
