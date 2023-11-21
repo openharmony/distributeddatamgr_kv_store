@@ -29,6 +29,12 @@ using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
 class PoolTest : public testing::Test {
 public:
+    struct Node {
+        int value;
+        bool operator==(Node &other){
+            return value == other.value;
+        }
+    };
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
@@ -37,9 +43,9 @@ public:
 protected:
     static constexpr uint32_t CAPABILITY_ = 3; // capability
     static constexpr uint32_t MIN_ = 1;    // min
-    static Pool<Executor> pool_;
+    static Pool<PoolTest::Node> pool_;
 };
-Pool<Executor> PoolTest::pool_ = Pool<Executor>(CAPABILITY_, MIN_);
+Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_, MIN_);
 
 void PoolTest::SetUpTestCase(void)
 {}
@@ -71,12 +77,13 @@ HWTEST_F(PoolTest, Get_001, TestSize.Level1)
     ret = pool_.Get();
     EXPECT_EQ(ret, nullptr);
 
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    auto Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -99,12 +106,13 @@ HWTEST_F(PoolTest, Get_002, TestSize.Level1)
     ret = pool_.Get();
     EXPECT_EQ(ret, nullptr);
 
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    auto Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -123,12 +131,13 @@ HWTEST_F(PoolTest, Release_001, TestSize.Level1)
     pool_.Idle(ret);
     auto Ret = pool_.Release(ret);
     EXPECT_EQ(Ret, true);
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -145,12 +154,13 @@ HWTEST_F(PoolTest, Release_002, TestSize.Level1)
     pool_.Idle(ret);
     auto Ret = pool_.Release(ret);
     EXPECT_EQ(Ret, false);
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -169,12 +179,13 @@ HWTEST_F(PoolTest, Release_003, TestSize.Level1)
     pool_.Idle(ret);
     auto Ret = pool_.Release(ret);
     EXPECT_EQ(Ret, true);
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -199,12 +210,13 @@ HWTEST_F(PoolTest, Release_004, TestSize.Level1)
     pool_.Idle(ret);
     auto Ret = pool_.Release(ret);
     EXPECT_EQ(Ret, false);
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -227,12 +239,13 @@ HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
     auto Ret = pool_.Release(ret);
     EXPECT_EQ(Ret, true);
     ZLOGE("test_Idle passed.");
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    pool_.Clean(close);
+    Ret = pool_.Clean(close);
+    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -250,11 +263,10 @@ HWTEST_F(PoolTest, Clean_001, TestSize.Level1)
     EXPECT_TRUE(ret != nullptr);
     ret = pool_.Get();
     EXPECT_TRUE(ret != nullptr);
-    ret = pool_.Get(true);
 
-    auto close = [](std::shared_ptr<Executor> executor) {
-        pool_.Idle(executor);
-        pool_.Release(executor);
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
     auto Ret = pool_.Clean(close);
