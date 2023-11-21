@@ -59,9 +59,9 @@ DBStatus ProcessCommunicationImpl::RegOnDeviceChange(const OnDeviceChange &callb
 
 DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callback)
 {
-    auto dataReciveCallback = [callback](const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length) {
+    auto dataReciveCallback = [callback](const std::string &identifier, const uint8_t *data, uint32_t length) {
         DistributedDB::DeviceInfos devInfo = {
-            srcDevInfo.identifier
+            identifier
         };
         callback(devInfo, data, length);
     };
@@ -78,10 +78,8 @@ DBStatus ProcessCommunicationImpl::RegOnDataReceive(const OnDataReceive &callbac
 DBStatus ProcessCommunicationImpl::SendData(const DistributedDB::DeviceInfos &dstDevInfo, const uint8_t *data,
     uint32_t length)
 {
-    DeviceInfos infos = {
-        dstDevInfo.identifier
-    };
-    Status errCode = endpoint_->SendData(infos, data, length);
+    std::string dtsIdentifier = dstDevInfo.identifier;
+    Status errCode = endpoint_->SendData(dtsIdentifier, data, length);
     if (errCode != Status::SUCCESS) {
         ZLOGE("SendData Fail.");
         return DBStatus::DB_ERROR;
@@ -97,17 +95,15 @@ uint32_t ProcessCommunicationImpl::GetMtuSize()
 
 uint32_t ProcessCommunicationImpl::GetMtuSize(const DistributedDB::DeviceInfos &devInfo)
 {
-    DeviceInfos infos = {
-        devInfo.identifier
-    };
-    return endpoint_->GetMtuSize(infos);
+    std::string identifier = devInfo.identifier;
+    return endpoint_->GetMtuSize(identifier);
 }
 
 DistributedDB::DeviceInfos ProcessCommunicationImpl::GetLocalDeviceInfos()
 {
-    auto devInfo = endpoint_->GetLocalDeviceInfos();
+    std::string identifier = endpoint_->GetLocalDeviceInfos();
     DistributedDB::DeviceInfos devInfos = {
-        devInfo.identifier
+        identifier
     };
     return devInfos;
 }
@@ -117,7 +113,8 @@ std::vector<DistributedDB::DeviceInfos> ProcessCommunicationImpl::GetRemoteOnlin
     return {};
 }
 
-bool ProcessCommunicationImpl::IsSameProcessLabelStartedOnPeerDevice(__attribute__((unused)) const DistributedDB::DeviceInfos &peerDevInfo)
+bool ProcessCommunicationImpl::IsSameProcessLabelStartedOnPeerDevice(__attribute__((unused))
+    const DistributedDB::DeviceInfos &peerDevInfo)
 {
     return isCreateSessionServer_;
 }

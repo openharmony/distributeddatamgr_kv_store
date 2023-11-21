@@ -21,7 +21,7 @@
 
 namespace OHOS {
 namespace DistributedKv {
-struct PermissionCheckParam {
+struct StoreBriefInfo {
     std::string userId;
     std::string appId;
     std::string storeId;
@@ -30,15 +30,10 @@ struct PermissionCheckParam {
     std::map<std::string, std::string> extraConditions;
 };
 
-struct DeviceInfos {
-    std::string identifier;
-};
-
 class API_EXPORT Endpoint {
 public:
 
-    using OnDeviceChange = std::function<void(const DeviceInfos &devInfo, bool isOnline)>;
-    using OnDataReceive = std::function<void(const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length)>;
+    using RecvHandler = std::function<void(const std::string &identifier, const uint8_t *data, uint32_t length)>;
 
     /**
      * @brief Constructor.
@@ -55,20 +50,20 @@ public:
      * @param processLabel Identifies current process.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT virtual Status Start() = 0;
+    virtual Status Start() = 0;
 
     /**
      * @brief Start the Process Communicator.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT virtual Status Stop() = 0;
+    virtual Status Stop() = 0;
 
     /**
      * @brief Close all opened kvstores for this appId.
      * @param callback Callback to register data change.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT virtual Status RegOnDataReceive(const OnDataReceive &callback) = 0;
+    virtual Status RegOnDataReceive(const RecvHandler &callback) = 0;
 
     /**
      * @brief Used to send data to the softbus.
@@ -77,20 +72,20 @@ public:
      * @param length Data length.
      * @return Return SUCCESS for success, others for failure.
      */
-    API_EXPORT virtual Status SendData(const DeviceInfos &dstDevInfo, const uint8_t *data, uint32_t length) = 0;
+    virtual Status SendData(const std::string &dtsIdentifier, const uint8_t *data, uint32_t length) = 0;
 
     /**
      * @brief Obtains the size of maximum unit sent by the bottom layer.
      * @param devInfo Remote device ID.
      * @return Data size.
      */
-    API_EXPORT virtual uint32_t GetMtuSize(const DeviceInfos &devInfo) = 0;
+    virtual uint32_t GetMtuSize(const std::string &identifier) = 0;
     
     /**
      * @brief Obtains the ID of the loacl device info.
      * @return loacl device info.
      */
-    API_EXPORT virtual DeviceInfos GetLocalDeviceInfos() = 0;
+    virtual DeviceInfos GetLocalDeviceInfos() = 0;
     
     /**
      * @brief Determines whether the device has the capability of data of this level.
@@ -98,7 +93,7 @@ public:
      * @param option Security params.
      * @return Return true for success, false for failure.
      */
-    API_EXPORT virtual bool CheckDeviceSecurityAbility(const std::string &devId, const int &securityLabel) = 0;
+    virtual bool IsSaferThanDevice(int securityLevel, const std::string &devId) = 0;
 
     /**
      * @brief Verify sync permission.
@@ -106,13 +101,13 @@ public:
      * @param flag The direction of sync.
      * @return Return true for success, false for failure.
      */
-    API_EXPORT virtual bool SyncPermissionCheck(const PermissionCheckParam &param, uint8_t flag) = 0;
+    virtual bool SyncPermissionCheck(const StoreBriefInfo &param, uint8_t flag) = 0;
 
     /**
      * @brief Get userId.
      * @return Return userId.
      */
-    API_EXPORT virtual std::string GetUserId();
+    virtual std::string GetUserId() = 0;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

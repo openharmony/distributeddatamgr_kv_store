@@ -23,7 +23,7 @@
 namespace OHOS {
 namespace DistributedKv {
 
-class API_EXPORT ProcessCommunicationImpl : public DistributedDB::IProcessCommunicator {
+class ProcessCommunicationImpl : public DistributedDB::IProcessCommunicator {
 public:
     using DBStatus = DistributedDB::DBStatus;
     using OnDeviceChange = DistributedDB::OnDeviceChange;

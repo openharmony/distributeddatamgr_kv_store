@@ -109,6 +109,6 @@ ProcessSystemApiAdapterImpl::DBStatus ProcessSystemApiAdapterImpl::GetSecurityOp
 bool ProcessSystemApiAdapterImpl::CheckDeviceSecurityAbility(const std::string &devId, const DBOption &option) const
 {
     auto securityLabel = option.securityLabel;
-    return endpoint_->CheckDeviceSecurityAbility(devId, securityLabel);
+    return endpoint_->IsSaferThanDevice(securityLabel, devId);
 }
 } // namespace OHOS::DistributedKv
