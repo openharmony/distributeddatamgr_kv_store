@@ -33,7 +33,7 @@
 namespace OHOS {
 namespace DistributedKv {
 using namespace OHOS::DistributedDataDfx;
-bool DistributedKvDataManager::isAlreadySet_ = false;
+std::atomic<bool> DistributedKvDataManager::isAlreadySet_{false};
 DistributedKvDataManager::DistributedKvDataManager()
 {}
 
@@ -191,7 +191,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
 
     if (isAlreadySet_) {
         ZLOGW("Endpoint already set");
-        return SUCCESS;
+        return INVALID_ARGUMENT;
     }
     
     auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");

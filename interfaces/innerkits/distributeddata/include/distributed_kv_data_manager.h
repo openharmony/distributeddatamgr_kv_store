@@ -15,7 +15,7 @@
 
 #ifndef DISTRIBUTED_KV_DATA_MANAGER_H
 #define DISTRIBUTED_KV_DATA_MANAGER_H
-
+#include <atomic>
 #include <functional>
 #include "executor_pool.h"
 #include "kvstore.h"
@@ -163,7 +163,7 @@ public:
      */
     API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
 private:
-    static bool isAlreadySet_;
+    static std::atomic<bool> isAlreadySet_;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

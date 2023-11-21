@@ -144,6 +144,7 @@ ohos_shared_library("distributeddata_client_sync") {
     "c_utils:utils",
     "hilog:libhilog",
   ]
+  innerapi_tags = [ "platformsdk" ]
   subsystem_name = "distributeddatamgr"
   part_name = "kv_store"
 }
