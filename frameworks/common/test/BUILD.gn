@@ -92,6 +92,24 @@ ohos_unittest("TraitsTest") {
   deps = [ "//third_party/googletest:gtest" ]
 }
 
+ohos_unittest("PoolTest") {
+  module_out_path = module_output_path
+
+  sources = [ "pool_test.cpp" ]
+
+  configs = [ ":module_private_config" ]
+
+  external_deps = [
+    "c_utils:utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "safwk:system_ability_fwk",
+    "samgr:samgr_proxy",
+  ]
+
+  deps = [ "//third_party/googletest:gtest" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -101,6 +119,7 @@ group("unittest") {
     ":ConcurrentMapTest",
     ":ExecutorPoolTest",
     ":LruBucketTest",
+    ":PoolTest",
     ":TaskSchedulerTest",
     ":TraitsTest",
   ]
