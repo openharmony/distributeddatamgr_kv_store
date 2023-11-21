@@ -161,8 +161,8 @@ std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::s
         }
         std::string fullPath = path + "/kvdb";
         auto result = StoreUtil::InitPath(fullPath);
-        std::string userid = (!userId_.empty()) ? userId_ : "default";
-        dbManager = std::make_shared<DBManager>(appId.appId, userid);
+        std::string userId = (!userId_.empty()) ? userId_ : "default";
+        dbManager = std::make_shared<DBManager>(appId.appId, userId);
         dbManager->SetKvStoreConfig({ fullPath });
         manager = dbManager;
         BackupManager::GetInstance().Init(path);
