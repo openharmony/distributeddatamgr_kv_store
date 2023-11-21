@@ -218,7 +218,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
     }
 
     auto permissionCallback = [endpoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
-        PermissionCheckParam params = {
+        StoreBriefInfo params = {
             std::move(param.userId),
             std::move(param.appId),
             std::move(param.storeId),
