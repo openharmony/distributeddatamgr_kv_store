@@ -19,7 +19,6 @@
 #include <mutex>
 
 #include "gtest/gtest.h"
-#include "executor.h"
 #include "pool.h"
 #include "log_print.h"
 
@@ -31,7 +30,7 @@ class PoolTest : public testing::Test {
 public:
     struct Node {
         int value;
-        bool operator==(Node &other){
+        bool operator==(Node &other) {
             return value == other.value;
         }
     };
@@ -57,7 +56,13 @@ void PoolTest::SetUp(void)
 {}
 
 void PoolTest::TearDown(void)
-{}
+{
+    auto close = [](std::shared_ptr<PoolTest::Node> data) {
+        pool_.Idle(data);
+        pool_.Release(data);
+    };
+    pool_.Clean(close);
+}
 
 /**
 * @tc.name: Get_001
@@ -68,22 +73,21 @@ void PoolTest::TearDown(void)
 */
 HWTEST_F(PoolTest, Get_001, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
     EXPECT_EQ(ret, nullptr);
-
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    auto Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -95,24 +99,25 @@ HWTEST_F(PoolTest, Get_001, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Get_002, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get(true);
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
     EXPECT_EQ(ret, nullptr);
-
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    auto Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -124,20 +129,17 @@ HWTEST_F(PoolTest, Get_002, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Release_001, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+
     pool_.Idle(ret);
-    auto Ret = pool_.Release(ret);
-    EXPECT_EQ(Ret, true);
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
+    auto retRelease = pool_.Release(ret);
+    EXPECT_EQ(retRelease, true);
 }
 
 /**
@@ -150,17 +152,11 @@ HWTEST_F(PoolTest, Release_001, TestSize.Level1)
 HWTEST_F(PoolTest, Release_002, TestSize.Level1)
 {
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+
     pool_.Idle(ret);
-    auto Ret = pool_.Release(ret);
-    EXPECT_EQ(Ret, false);
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
+    auto retRelease = pool_.Release(ret);
+    EXPECT_EQ(retRelease, false);
 }
 
 /**
@@ -172,20 +168,17 @@ HWTEST_F(PoolTest, Release_002, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Release_003, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+
     pool_.Idle(ret);
-    auto Ret = pool_.Release(ret);
-    EXPECT_EQ(Ret, true);
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
+    auto retRelease = pool_.Release(ret);
+    EXPECT_EQ(retRelease, true);
 }
 
 /**
@@ -197,26 +190,29 @@ HWTEST_F(PoolTest, Release_003, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Release_004, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get(true);
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
     EXPECT_EQ(ret, nullptr);
+
     pool_.Idle(ret);
-    auto Ret = pool_.Release(ret);
-    EXPECT_EQ(Ret, false);
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
+    auto retRelease = pool_.Release(ret);
+    EXPECT_EQ(retRelease, false);
 }
 
 /**
@@ -228,24 +224,22 @@ HWTEST_F(PoolTest, Release_004, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
-    ret = pool_.Get(true);
+    EXPECT_NE(ret, nullptr);
+
     pool_.Idle(ret);
-    auto Ret = pool_.Release(ret);
-    EXPECT_EQ(Ret, true);
+    auto retRelease = pool_.Release(ret);
+    EXPECT_EQ(retRelease, true);
     ZLOGE("test_Idle passed.");
-    auto close = [](std::shared_ptr<PoolTest::Node> data) {
-        pool_.Idle(data);
-        pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
-    };
-    Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
 }
 
 /**
@@ -257,19 +251,24 @@ HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
 */
 HWTEST_F(PoolTest, Clean_001, TestSize.Level1)
 {
+    int index = 0;
     auto ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
     ret = pool_.Get();
-    EXPECT_TRUE(ret != nullptr);
+    EXPECT_NE(ret, nullptr);
 
     auto close = [](std::shared_ptr<PoolTest::Node> data) {
         pool_.Idle(data);
         pool_.Release(data);
         // Do nothing, just a placeholder for the close function.
     };
-    auto Ret = pool_.Clean(close);
-    EXPECT_EQ(Ret, true);
+    auto retClean = pool_.Clean(close);
+    EXPECT_EQ(retClean, true);
 }
 } // namespace OHOS::Test
