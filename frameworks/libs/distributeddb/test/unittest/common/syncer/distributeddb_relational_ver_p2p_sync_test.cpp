@@ -687,11 +687,7 @@ namespace {
         }
         if (localOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET) ||
             remoteOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET)) {
-#ifdef ABANDON_NOT_SET
             return SECURITY_OPTION_CHECK_ERROR;
-#else
-            return OK;
-#endif
         }
         if (localOption.securityLabel != remoteOption.securityLabel) {
             return SECURITY_OPTION_CHECK_ERROR;
