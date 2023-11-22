@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#define LOG_TAG "Pool"
-
 #include <functional>
 #include <mutex>
 
@@ -24,7 +22,6 @@
 
 using namespace testing::ext;
 using namespace OHOS;
-using namespace OHOS::DistributedKv;
 namespace OHOS::Test {
 class PoolTest : public testing::Test {
 public:
@@ -232,7 +229,7 @@ HWTEST_F(PoolTest, Release_005, TestSize.Level1)
     ret = pool_.Get();
     EXPECT_NE(ret, nullptr);
 
-    std::shared_ptr<PoolTest::Node> data;
+    auto data = std::make_shared<PoolTest::Node>();
     pool_.Idle(ret);
     auto retRelease = pool_.Release(data);
     EXPECT_EQ(retRelease, false);
@@ -293,7 +290,6 @@ HWTEST_F(PoolTest, Idle_001, TestSize.Level1)
     pool_.Idle(ret);
     auto retRelease = pool_.Release(ret);
     EXPECT_EQ(retRelease, true);
-    ZLOGE("test_Idle passed.");
 }
 
 /**
@@ -320,7 +316,6 @@ HWTEST_F(PoolTest, Clean_001, TestSize.Level1)
     auto close = [](std::shared_ptr<PoolTest::Node> data) {
         pool_.Idle(data);
         pool_.Release(data);
-        // Do nothing, just a placeholder for the close function.
     };
     auto retClean = pool_.Clean(close);
     EXPECT_EQ(retClean, true);
