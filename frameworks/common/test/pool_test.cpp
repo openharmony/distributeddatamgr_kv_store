@@ -216,6 +216,60 @@ HWTEST_F(PoolTest, Release_004, TestSize.Level1)
 }
 
 /**
+* @tc.name: Release_005
+* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: suoqilong
+*/
+HWTEST_F(PoolTest, Release_005, TestSize.Level1)
+{
+    int index = 0;
+    auto ret = pool_.Get();
+    EXPECT_NE(ret, nullptr);
+    ret->value = index++;
+
+    ret = pool_.Get();
+    EXPECT_NE(ret, nullptr);
+
+    std::shared_ptr<PoolTest::Node> data;
+    pool_.Idle(ret);
+    auto retRelease = pool_.Release(data);
+    EXPECT_EQ(retRelease, false);
+}
+
+/**
+* @tc.name: Release_006
+* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: suoqilong
+*/
+HWTEST_F(PoolTest, Release_006, TestSize.Level1)
+{
+    auto ret = pool_.Get();
+    EXPECT_NE(ret, nullptr);
+
+    pool_.Idle(ret);
+    auto retRelease = pool_.Release(ret, true);
+    EXPECT_EQ(retRelease, true);
+}
+
+/**
+* @tc.name: Release_007
+* @tc.desc: test the int32_t Release(std::shared_ptr<T> data, bool force = false) function.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: suoqilong
+*/
+HWTEST_F(PoolTest, Release_007, TestSize.Level1)
+{
+    auto ret = nullptr;
+    auto retRelease = pool_.Release(ret, true);
+    EXPECT_EQ(retRelease, false);
+}
+
+/**
 * @tc.name: Idle_001
 * @tc.desc: test the  void Idle(std::shared_ptr<T> data) function.
 * @tc.type: FUNC
