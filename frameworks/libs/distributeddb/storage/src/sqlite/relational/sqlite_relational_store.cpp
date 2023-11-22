@@ -1047,7 +1047,7 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
 int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     if (storageEngine_ == nullptr) {
-        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        LOGE("[RelationalStore][Sync] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
     int errCode = CheckBeforeSync(option);
@@ -1250,9 +1250,8 @@ int SQLiteRelationalStore::CleanWaterMark(std::set<std::string> &clearWaterMarkT
     errCode = cloudSyncer_->CleanWaterMarkInMemory(clearWaterMarkTable);
     if (errCode != E_OK) {
         LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", errCode);
-        return errCode;
     }
-    return E_OK;
+    return errCode;
 }
 
 int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
@@ -1277,7 +1276,7 @@ int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty
         storageEngine_->SetReusedHandle(handle);
         int ret = CleanWaterMark(clearWaterMarkTables);
         if (ret != E_OK) {
-            LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", ret);
+            LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", ret);
             storageEngine_->SetReusedHandle(nullptr);
             (void)handle->Rollback();
             ReleaseHandle(handle);

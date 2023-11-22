@@ -18,10 +18,10 @@
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
+#include "log_table_manager_factory.h"
 #include "runtime_context.h"
 #include "simple_tracker_log_table_manager.h"
 #include "sqlite_relational_utils.h"
-#include "log_table_manager_factory.h"
 
 namespace DistributedDB {
 static constexpr const int ROW_ID_INDEX = 1;

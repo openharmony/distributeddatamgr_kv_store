@@ -646,7 +646,7 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-int CommitHookCallback(void* data)
+int CommitHookCallback(void *data)
 {
     sqlite3 *db = static_cast<sqlite3 *>(data);
     std::string fileName;

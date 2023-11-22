@@ -1706,7 +1706,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
     int resetStatementErrCode = E_OK;
     SQLiteUtils::ResetStatement(queryStmt, true, resetStatementErrCode);
     queryStmt = nullptr;
-    return (errCode == E_OK ? resetStatementErrCode : errCode);;
+    return (errCode == E_OK ? resetStatementErrCode : errCode);
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
@@ -2483,6 +2483,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     errCode = SQLiteUtils::BindTextToStatement(insertLogStmt, 8, cloudGid); // 8 is cloud_gid
     if (errCode != E_OK) {
         LOGE("Bind cloud_gid to insert log statement failed, %d", errCode);
+        return errCode;
     }
 
     if (trackerTable.GetExtendName().empty() || vBucket.find(trackerTable.GetExtendName()) == vBucket.end()) {
@@ -2493,6 +2494,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     }
     if (errCode != E_OK) {
         LOGE("Bind extend_field to insert log statement failed, %d", errCode);
+        return errCode;
     }
 
     std::string version;

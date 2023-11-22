@@ -758,7 +758,7 @@ std::string CloudStorageUtils::GetTableRefUpdateSql(const TableInfo &table, OpTy
         if (opType == OpType::UPDATE) {
             sql += " AND ";
         }
-        sql += " flag&0x08=0x00 AND data_key IN (SELECT " + sourceLogName + ".data_key FROM " + sourceLogName +
+        sql += " (flag&0x08=0x00) AND data_key IN (SELECT " + sourceLogName + ".data_key FROM " + sourceLogName +
             " LEFT JOIN " + reference.sourceTableName + " ON " + sourceLogName + ".data_key = " +
             reference.sourceTableName + "." + rowid + " WHERE ";
         index = 0;

@@ -221,7 +221,7 @@ bool ParamCheckUtils::CheckTableReference(const std::vector<TableReferenceProper
             return false;
         }
         std::vector<int> vec;
-        for (const auto &tableName : {item.sourceTableName, item.targetTableName}) {
+        for (const auto &tableName : { item.sourceTableName, item.targetTableName }) {
             if (tableName2Int.find(tableName) != tableName2Int.end()) {
                 vec.push_back(tableName2Int.at(tableName));
             } else {
