@@ -235,7 +235,7 @@ bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t c
 int SQLiteSingleVerRelationalStorageExecutor::AnalysisTrackerTable(const TrackerTable &trackerTable,
     TableInfo &tableInfo)
 {
-    int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, trackerTable.GetTableName(), tableInfo);
+    int errCode = SQLiteUtils::AnalysisSchema(dbHandle_, trackerTable.GetTableName(), tableInfo, true);
     if (errCode != E_OK) {
         LOGW("analysis table schema failed. %d", errCode);
         return errCode;

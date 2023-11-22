@@ -662,9 +662,12 @@ int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 #ifdef RELATIONAL_STORE
 
 namespace { // anonymous namespace for schema analysis
-int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table)
+int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
-    std::string sql = "select type, sql from sqlite_master where tbl_name = ? COLLATE NOCASE";
+    std::string sql = "select type, sql from sqlite_master where tbl_name = ? ";
+    if (!caseSensitive) {
+        sql += "COLLATE NOCASE";
+    }
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -879,7 +882,7 @@ int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableIn
 }
 } // end of anonymous namespace for schema analysis
 
-int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table)
+int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
@@ -890,7 +893,7 @@ int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, Table
         return -E_NOT_SUPPORT;
     }
 
-    int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table);
+    int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table, caseSensitive);
     if (errCode != E_OK) {
         LOGE("[AnalysisSchema] Analysis sql and trigger failed. errCode = [%d]", errCode);
         return errCode;
