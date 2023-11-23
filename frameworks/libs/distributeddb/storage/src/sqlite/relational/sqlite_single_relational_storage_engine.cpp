@@ -222,7 +222,15 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
         schemaChanged = true;
     }
 
-    return CreateDistributedTable(tableName, isUpgraded, identity, schema, syncType);
+    int errCode = CreateDistributedTable(tableName, isUpgraded, identity, schema, syncType);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (isUpgraded && schemaChanged) {
+        // Used for upgrading the stock data of the trackerTable
+        errCode = UpgradeTrackerTableLog(tableName, schema);
+    }
+    return errCode;
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
@@ -439,6 +447,12 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
+    if (!tracker.GetTrackerTable(schema.tableName).IsChange(schema)) {
+        (void)handle->Rollback();
+        ReleaseExecutor(handle);
+        LOGW("tracker schema is no change.");
+        return E_OK;
+    }
     bool isUpgrade = !tracker.GetTrackerTable(schema.tableName).IsEmpty();
     tracker.InsertTrackerSchema(schema);
     errCode = handle->CreateTrackerTable(tracker.GetTrackerTable(schema.tableName), isUpgrade);
@@ -481,6 +495,11 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
+    if (!tracker.GetTrackerTable(schema.tableName).IsChange(schema)) {
+        ReleaseExecutor(handle);
+        LOGW("tracker schema is no change for distributed table.");
+        return -E_IGNORE_DATA;
+    }
     tracker.InsertTrackerSchema(schema);
     tableInfo.SetTrackerTable(tracker.GetTrackerTable(schema.tableName));
     errCode = tableInfo.CheckTrackerTable();
@@ -932,6 +951,33 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerDeviceTable(const std::vect
         LOGE("Save tracker schema to metaTable failed. %d", errCode);
     }
     return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::UpgradeTrackerTableLog(const std::string &tableName,
+    RelationalSchemaObject &schema)
+{
+    LOGD("Upgrade tracker table log.");
+    int errCode = E_OK;
+    auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true,
+        OperatePerm::NORMAL_PERM, errCode));
+    if (handle == nullptr) {
+        return errCode;
+    }
+    ResFinalizer finalizer([&handle, this] { this->ReleaseExecutor(handle); });
+
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+
+    TableInfo table = schema_.GetTable(tableName);
+    errCode = handle->UpgradedLogForExistedData(table);
+    if (errCode != E_OK) {
+        LOGE("Upgrade tracker table log failed. %d", errCode);
+        (void)handle->Rollback();
+        return errCode;
+    }
+    return handle->Commit();
 }
 
 std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorageEngine::GetReachableWithShared(

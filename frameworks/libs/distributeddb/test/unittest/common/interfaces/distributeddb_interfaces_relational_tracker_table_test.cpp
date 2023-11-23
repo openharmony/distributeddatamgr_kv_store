@@ -673,15 +673,19 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest011,
     BatchInsertTableName2Data(num);
 
     /**
-     * @tc.steps:step3. CreateDistributedTable on table2 again
+     * @tc.steps:step3. CreateDistributedTable on table2 again, but schema not change
      * @tc.expected: step3. Return OK.
      */
     EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    CheckExtendAndCursor(num, -num);
 
     /**
      * @tc.steps:step4. operator data on table2
      * @tc.expected: step4. Return OK.
      */
+    std::string sql = "ALTER TABLE " + TABLE_NAME2 + " ADD COLUMN xxx INT";
+    EXPECT_EQ(SQLiteUtils::ExecuteRawSQL(g_db, sql), E_OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
     CheckExtendAndCursor(num, 0);
 
     /**
@@ -1092,6 +1096,17 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest020,
     sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
         " AND cursor is NULL";
     EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
+        reinterpret_cast<void *>(0), nullptr), SQLITE_OK);
+
+    /**
+     * @tc.steps:step4. set diff schema, check the extend_field and cursor is null
+     * @tc.expected: step4. Return OK.
+     */
+    schema.extendColName = EXTEND_COL_NAME3;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    sql = "select count(*) from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log where extend_field is NULL " +
+        " AND cursor is NULL";
+    EXPECT_EQ(sqlite3_exec(g_db, sql.c_str(), CloudDBSyncUtilsTest::QueryCountCallback,
         reinterpret_cast<void *>(num + num), nullptr), SQLITE_OK);
     CloseStore();
 }
@@ -1149,6 +1164,7 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest023,
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, CREATE_LOCAL_PK_TABLE_SQL), SQLITE_OK);
     BatchInsertTableName2Data(num);
+    schema = g_normalSchema2;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
 
     /**

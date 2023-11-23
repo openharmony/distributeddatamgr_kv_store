@@ -215,9 +215,6 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateDistributedTable(Distributed
     if (!isUpgraded) {
         std::string calPrimaryKeyHash = tableManager->CalcPrimaryKeyHash("a.", table, identity);
         errCode = GeneLogInfoForExistedData(dbHandle_, tableName, calPrimaryKeyHash, table);
-    } else {
-        // Used for upgrading the stock data of the trackerTable
-        errCode = UpgradedLogForExistedData(dbHandle_, table);
     }
     if (errCode != E_OK) {
         return errCode;

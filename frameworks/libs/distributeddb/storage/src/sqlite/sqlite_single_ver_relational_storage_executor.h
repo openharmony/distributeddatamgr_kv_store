@@ -162,6 +162,8 @@ public:
     void SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int CleanResourceForDroppedTable(const std::string &tableName);
+
+    int UpgradedLogForExistedData(TableInfo &tableInfo);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -216,7 +218,6 @@ private:
 
     int GeneLogInfoForExistedData(sqlite3 *db, const std::string &tableName, const std::string &calPrimaryKeyHash,
         TableInfo &tableInfo);
-    int UpgradedLogForExistedData(sqlite3 *db, TableInfo &tableInfo);
     int CleanExtendAndCursorForDeleteData(sqlite3 *db, const std::string &tableName);
 
     int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
