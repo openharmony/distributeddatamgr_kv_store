@@ -15,7 +15,7 @@
 
 #include "query_sync_object.h"
 
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
