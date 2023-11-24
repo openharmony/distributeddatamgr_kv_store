@@ -1518,7 +1518,7 @@ int RelationalSyncAbleStorage::GetTableReference(const std::string &tableName,
         return errCode;
     }
     for (const auto &property : referenceProperty) {
-        if (property.sourceTableName == sourceTableName) {
+        if (DBCommon::CaseInsensitiveCompare(property.sourceTableName, sourceTableName)) {
             if (!IsSharedTable(tableName)) {
                 reference[property.targetTableName].push_back(property);
                 continue;
