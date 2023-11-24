@@ -54,20 +54,7 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][g_deleteField] = false;
         extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
-        for (const auto &recordData : record[i]) {
-            if (recordData.second.index() == TYPE_INDEX<Asset>) {
-                auto asset = std::get<Asset>(recordData.second);
-                asset.assetId = "10";
-                extend[i][recordData.first] = asset;
-            }
-            if (recordData.second.index() == TYPE_INDEX<Assets>) {
-                auto assets = std::get<Assets>(recordData.second);
-                for (auto &asset : assets) {
-                    asset.assetId = "10";
-                }
-                extend[i][recordData.first] = assets;
-            }
-        }
+        AddAssetIdForExtend(record[i], extend[i]);
         if (forkUploadFunc_) {
             forkUploadFunc_(tableName, extend[i]);
         }
@@ -110,20 +97,7 @@ DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::v
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][g_deleteField] = false;
         extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
-        for (const auto &recordData : record[i]) {
-            if (recordData.second.index() == TYPE_INDEX<Asset>) {
-                auto asset = std::get<Asset>(recordData.second);
-                asset.assetId = "10";
-                extend[i][recordData.first] = asset;
-            }
-            if (recordData.second.index() == TYPE_INDEX<Assets>) {
-                auto assets = std::get<Assets>(recordData.second);
-                for (auto &asset : assets) {
-                    asset.assetId = "10";
-                }
-                extend[i][recordData.first] = assets;
-            }
-        }
+        AddAssetIdForExtend(record[i], extend[i]);
         if (forkUploadFunc_) {
             forkUploadFunc_(tableName, extend[i]);
         }
@@ -306,16 +280,24 @@ void VirtualCloudDb::GetCloudData(const std::string &cursor, bool isIncreCursor,
 
 bool VirtualCloudDb::IsPrimaryKeyMatching(const std::vector<QueryNode> &queryNodes, VBucket &record)
 {
+    if (record.empty()) {
+        return false;
+    }
     for (const auto &queryNode : queryNodes) {
         if ((queryNode.type == QueryNodeType::IN) && (queryNode.fieldName != g_gidField)) {
-            for (const auto &value : queryNode.fieldValue) {
-                if (record.empty()) {
-                    return false;
-                }
-                if (std::get<std::string>(record[queryNode.fieldName]) == std::get<std::string>(value)) {
-                    return true;
-                }
+            if (IsPrimaryKeyMatchingInner(queryNode, record)) {
+                return true;
             }
+        }
+    }
+    return false;
+}
+
+bool VirtualCloudDb::IsPrimaryKeyMatchingInner(const QueryNode &queryNode, VBucket &record)
+{
+    for (const auto &value : queryNode.fieldValue) {
+        if (std::get<std::string>(record[queryNode.fieldName]) == std::get<std::string>(value)) {
+            return true;
         }
     }
     return false;
@@ -325,11 +307,19 @@ bool VirtualCloudDb::IsCloudGidMatching(const std::vector<QueryNode> &queryNodes
 {
     for (const auto &queryNode : queryNodes) {
         if ((queryNode.type == QueryNodeType::IN) && (queryNode.fieldName == g_gidField)) {
-            for (const auto &value : queryNode.fieldValue) {
-                if (std::get<std::string>(extend[g_gidField]) == std::get<std::string>(value)) {
-                    return true;
-                }
+            if (IsCloudGidMatchingInner(queryNode, extend)) {
+                return true;
             }
+        }
+    }
+    return false;
+}
+
+bool VirtualCloudDb::IsCloudGidMatchingInner(const QueryNode &queryNode, VBucket &extend)
+{
+    for (const auto &value : queryNode.fieldValue) {
+        if (std::get<std::string>(extend[g_gidField]) == std::get<std::string>(value)) {
+            return true;
         }
     }
     return false;
@@ -349,20 +339,7 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
         }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
-        for (const auto &recordData : record[i]) {
-            if (recordData.second.index() == TYPE_INDEX<Asset>) {
-                auto asset = std::get<Asset>(recordData.second);
-                asset.assetId = "10";
-                extend[i][recordData.first] = asset;
-            }
-            if (recordData.second.index() == TYPE_INDEX<Assets>) {
-                auto assets = std::get<Assets>(recordData.second);
-                for (auto &asset : assets) {
-                    asset.assetId = "10";
-                }
-                extend[i][recordData.first] = assets;
-            }
-        }
+        AddAssetIdForExtend(record[i], extend[i]);
         if (forkUploadFunc_) {
             forkUploadFunc_(tableName, extend[i]);
         }
@@ -516,5 +493,23 @@ void VirtualCloudDb::SetInsertFailed(int32_t count)
 void VirtualCloudDb::SetClearExtend(int32_t count)
 {
     missingExtendCount_ = count;
+}
+
+void VirtualCloudDb::AddAssetIdForExtend(const VBucket &record, VBucket &extend)
+{
+    for (const auto &recordData : record) {
+        if (recordData.second.index() == TYPE_INDEX<Asset>) {
+            auto asset = std::get<Asset>(recordData.second);
+            asset.assetId = "10";
+            extend[i][recordData.first] = asset;
+        }
+        if (recordData.second.index() == TYPE_INDEX<Assets>) {
+            auto assets = std::get<Assets>(recordData.second);
+            for (auto &asset : assets) {
+                asset.assetId = "10";
+            }
+            extend[recordData.first] = assets;
+        }
+    }
 }
 }

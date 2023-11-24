@@ -39,6 +39,7 @@ const Asset ASSET_COPY = { .version = 1,
     .createTime = "",
     .size = "256",
     .hash = "ASE" };
+const int COUNT = 1000;
 
 static void CommonExpectCall(MockICloudSyncStorageInterface *iCloud)
 {
@@ -63,6 +64,11 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+protected:
+    void PrepareRecord(VBucket &tmp, VBucket &assets);
+    void PrepareUploadDataInsData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
+    void PrepareUploadDataUpdData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
+    void PrepareUploadDataForUploadModeCheck012(CloudSyncData &uploadData);
 };
 
 void DistributedDBCloudSyncerUploadTest::SetUpTestCase(void)
@@ -80,6 +86,42 @@ void DistributedDBCloudSyncerUploadTest::SetUp(void)
 
 void DistributedDBCloudSyncerUploadTest::TearDown(void)
 {
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareRecord(VBucket &tmp, VBucket &assets)
+{
+    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataInsData(const VBucket &tmp,
+    const VBucket &assets, CloudSyncData &uploadData)
+{
+    uploadData.insData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.assets = std::vector<VBucket>(COUNT, assets);
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataUpdData(const VBucket &tmp,
+    const VBucket &assets, CloudSyncData &uploadData)
+{
+    uploadData.updData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.updData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.updData.assets = std::vector<VBucket>(COUNT, assets);
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataForUploadModeCheck012(CloudSyncData &uploadData)
+{
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
+    uploadData3.insData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData3.insData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData3.insData.assets = std::vector<VBucket>(COUNT, assets);
+    uploadData3.delData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData3.delData.extend = std::vector<VBucket>(COUNT, tmp);
 }
 
 /**
@@ -230,7 +272,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck004, TestSize.Level1
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(3u, SYNC_MODE_CLOUD_FORCE_PUSH);
-    
+
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
@@ -384,13 +426,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
     // Batch_n CloudSyncData quantity > total count
     cloudSyncer->InitCloudSyncer(5u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    uploadData2.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.assets = std::vector<VBucket>(1000, assets);
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
+    PrepareUploadDataInsData(tmp, assets, uploadData2);
 
     SyncTimeRange syncTimeRange = { .beginTime = 1u };
     QueryObject queryObject(Query::Select());
@@ -470,7 +509,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1
         cloudDataResult = uploadData2;
         return -E_UNFINISHED;
     });
-    
+
     int errCode = cloudSyncer->CallDoUpload(taskId);
     EXPECT_EQ(errCode, -E_INTERNAL_ERROR);
 
@@ -500,10 +539,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
 
     TaskId taskId = 5u;
     cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     CommonExpectCall(iCloud);
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
@@ -516,9 +554,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
     });
 
     CloudSyncData uploadData(cloudSyncer->GetCurrentContextTableName());
-    uploadData.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData.insData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData.insData.assets = std::vector<VBucket>(1000, assets);
+    PrepareUploadDataInsData(tmp, assets, uploadData);
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
     .WillOnce([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
@@ -672,10 +708,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -698,9 +733,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
 
     // insert has no data, update and delete have data
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    uploadData2.updData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.updData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData2.updData.assets = std::vector<VBucket>(1000, assets);
+    PrepareUploadDataUpdData(tmp, assets, uploadData2);
     uploadData2.delData.record = std::vector<VBucket>(1000, tmp);
     uploadData2.delData.extend = std::vector<VBucket>(1000, tmp);
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
@@ -737,10 +770,6 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
@@ -763,11 +792,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
 
     // insert has data, update has no data, delete has data
     CloudSyncData uploadData3(cloudSyncer->GetCurrentContextTableName());
-    uploadData3.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData3.insData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData3.insData.assets = std::vector<VBucket>(1000, assets);
-    uploadData3.delData.record = std::vector<VBucket>(1000, tmp);
-    uploadData3.delData.extend = std::vector<VBucket>(1000, tmp);
+    PrepareUploadDataForUploadModeCheck012(uploadData3);
     EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
     .WillOnce([cloudSyncer, &uploadData3](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
@@ -1088,15 +1113,12 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
     PrepareEnv018(iCloud, idb);
 
     // Batch_n CloudSyncData quantity > total count
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     cloudSyncer->InitCloudSyncer(5u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    uploadData2.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.assets = std::vector<VBucket>(1000, assets);
+    PrepareUploadDataInsData(tmp, assets, uploadData2);
 
     SyncTimeRange syncTimeRange = { .beginTime = 1u };
     QueryObject queryObject(Query::Select());

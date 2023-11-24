@@ -96,7 +96,13 @@ private:
 
     bool IsCloudGidMatching(const std::vector<QueryNode> &queryNodes, VBucket &extend);
 
+    bool IsCloudGidMatchingInner(const QueryNode &queryNode, VBucket &extend);
+
     bool IsPrimaryKeyMatching(const std::vector<QueryNode> &queryNodes, VBucket &record);
+
+    bool IsPrimaryKeyMatchingInner(const QueryNode &queryNode, VBucket &record);
+
+    void AddAssetIdForExtend(const VBucket &record, VBucket &extend);
 
     std::atomic<bool> cloudError_ = false;
     std::atomic<bool> heartbeatError_ = false;

@@ -391,13 +391,13 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest007(st
         if (count == 1) { // taskid1
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        if (count == 2) { // taskid3 because CheckCloudTableCount will query then count++
+        if (count == 2) { // 2 means taskid3 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 4) { // taskid2 because CheckCloudTableCount will query then count++
+        if (count == 4) { // 4 means taskid2 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 2); // 2 is count of cloud records after last sync
         }
-        if (count == 6) { // taskid4 because CheckCloudTableCount will query then count++
+        if (count == 6) { // 6 meanstaskid4 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after last sync
         }
     });
@@ -410,13 +410,13 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest008(st
         if (count == 1) { // taskid1
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        if (count == 2) { // taskid3 because CheckCloudTableCount will query then count++
+        if (count == 2) { // 2 means taskid3 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 4) { // taskid2 because CheckCloudTableCount will query then count++
+        if (count == 4) { // 4 means taskid2 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 6) { // taskid4 because CheckCloudTableCount will query then count++
+        if (count == 6) { // 6 means taskid4 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after last sync
         }
     });
@@ -667,7 +667,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, CloudPrioritySyncTest001, TestSize.Lev
         EXPECT_EQ(queryNodes[0].type, QueryNodeType::IN);
         EXPECT_EQ(queryNodes[0].fieldName, "id");
         ASSERT_EQ(queryNodes[0].fieldValue.size(), idValue.size());
-        for(size_t i = 0u; i < idValue.size(); i++) {
+        for (size_t i = 0u; i < idValue.size(); i++) {
             std::string val = std::get<std::string>(queryNodes[0].fieldValue[i]);
             EXPECT_EQ(val, idValue[i]);
         }

@@ -36,7 +36,7 @@ using namespace std;
 namespace {
     constexpr const char *DB_SUFFIX = ".db";
     constexpr const char *STORE_ID = "Relational_Store_ID";
-    constexpr const char *createTable1SQL =
+    constexpr const char *CREATE_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS worker1(" \
         "name TEXT PRIMARY KEY," \
         "height REAL ," \
@@ -44,7 +44,7 @@ namespace {
         "photo BLOB NOT NULL," \
         "asset BLOB," \
         "age INT);";
-    constexpr const char *createTable2SQL =
+    constexpr const char *CREATE_TABLE_WITHOUT_PRIMARY_SQL =
         "CREATE TABLE IF NOT EXISTS worker2(" \
         "id INT," \
         "name TEXT," \
@@ -52,7 +52,7 @@ namespace {
         "married BOOLEAN ," \
         "photo BLOB ," \
         "asset BLOB);";
-    constexpr const char *createTable3SQL =
+    constexpr const char *CREATE_SHARED_TABLE_SQL =
         "CREATE TABLE IF NOT EXISTS worker5_shared(" \
         "name TEXT PRIMARY KEY," \
         "height REAL ," \
@@ -150,8 +150,8 @@ namespace {
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CreateUserDBAndTable()
     {
         ASSERT_EQ(RelationalTestUtils::ExecSql(db_, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
-        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, createTable1SQL), SQLITE_OK);
-        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, createTable2SQL), SQLITE_OK);
+        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, CREATE_TABLE_SQL), SQLITE_OK);
+        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, CREATE_TABLE_WITHOUT_PRIMARY_SQL), SQLITE_OK);
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::CheckSharedTable(
@@ -376,17 +376,9 @@ namespace {
          * @tc.expected: step3. return INVALID_ARGS
          */
         dataBaseSchema.tables.clear();
-        tableSchema = {
-            .name = g_tableName1,
-            .sharedTableName = g_sharedTableName1,
-            .fields = g_cloudField1
-        };
+        tableSchema = { g_tableName1, g_sharedTableName1, g_cloudField1 };
         dataBaseSchema.tables.push_back(tableSchema);
-        tableSchema = {
-            .name = g_tableName2,
-            .sharedTableName = g_sharedTableName3,
-            .fields = g_cloudField2
-        };
+        tableSchema = { g_tableName2, g_sharedTableName3, g_cloudField2 };
         dataBaseSchema.tables.push_back(tableSchema);
         EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
 
@@ -513,11 +505,7 @@ namespace {
         dataBaseSchema.tables.clear();
         invalidFields = g_cloudField1;
         invalidFields.push_back({"Name", TYPE_INDEX<std::string>});
-        tableSchema = {
-            .name = g_tableName1,
-            .sharedTableName = g_sharedTableName1,
-            .fields = invalidFields
-        };
+        tableSchema = { g_tableName1, g_sharedTableName1, invalidFields };
         dataBaseSchema.tables.push_back(tableSchema);
         EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
 
@@ -528,11 +516,7 @@ namespace {
         dataBaseSchema.tables.clear();
         invalidFields = g_cloudField1;
         invalidFields.push_back({"Cloud_priVilege", TYPE_INDEX<std::string>});
-        tableSchema = {
-            .name = g_tableName1,
-            .sharedTableName = g_sharedTableName1,
-            .fields = invalidFields
-        };
+        tableSchema = { g_tableName1, g_sharedTableName1, invalidFields };
         dataBaseSchema.tables.push_back(tableSchema);
         EXPECT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
     }
@@ -864,7 +848,7 @@ namespace {
          * @tc.steps:step1. use SetCloudDbSchema
          * @tc.expected: step1. return OK
          */
-        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, createTable3SQL), SQLITE_OK);
+        ASSERT_EQ(RelationalTestUtils::ExecSql(db_, CREATE_SHARED_TABLE_SQL), SQLITE_OK);
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
             .name = g_tableName1,

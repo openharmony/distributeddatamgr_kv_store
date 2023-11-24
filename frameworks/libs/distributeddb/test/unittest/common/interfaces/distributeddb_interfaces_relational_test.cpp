@@ -1967,22 +1967,22 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest005, T
      * @tc.steps:step3. drop t1, rebuild t1(miss one column), then reopen store, create distributed table
      * @tc.expected: step3. Return OK.
      */
-     sql = "drop table " + t1;
-     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-     sql = "create table " + t1 + "(key int);";
-     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
-     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
-     delegate = nullptr;
-     EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
-     ASSERT_NE(delegate, nullptr);
-     EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
+    sql = "drop table " + t1;
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    sql = "create table " + t1 + "(key int);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
+    EXPECT_EQ(g_mgr.OpenStore(g_dbDir + STORE_ID + DB_SUFFIX, STORE_ID, {}, delegate), OK);
+    ASSERT_NE(delegate, nullptr);
+    EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
 
-     /**
-     * @tc.steps:step4. close store
-     * @tc.expected: step4. Return OK.
-     */
-     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
-     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
-     delegate = nullptr;
+    /**
+    * @tc.steps:step4. close store
+    * @tc.expected: step4. Return OK.
+    */
+    EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+    EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
+    delegate = nullptr;
 }
 }

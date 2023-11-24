@@ -443,7 +443,8 @@ namespace {
         };
     }
 
-    void CopySharedDataFromOriginalTable(sqlite3 *&db, const std::vector<std::string> &tableNames) {
+    void CopySharedDataFromOriginalTable(sqlite3 *&db, const std::vector<std::string> &tableNames)
+    {
         for (const auto &tableName: tableNames) {
             std::string sql = "INSERT OR REPLACE INTO " + tableName + CloudDbConstant::SHARED + " SELECT " +
                 "*," + std::string(DBConstant::SQLITE_INNER_ROWID) + ",''" + " FROM " + tableName;
