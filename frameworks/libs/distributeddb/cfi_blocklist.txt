@@ -15,4 +15,3 @@
  type:*DistributedDB::KvStoreObserver*
  src:*/foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/src/kv_store_nb_delegate_impl.cpp
  src:*/foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include/kv_store_observer.h
- src:*/foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/*
