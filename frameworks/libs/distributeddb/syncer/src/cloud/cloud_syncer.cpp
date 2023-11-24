@@ -110,10 +110,7 @@ void CloudSyncer::Close()
     }
     // mark current task db_closed
     SetTaskFailed(currentTask, -E_DB_CLOSED);
-    {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        currentContext_.locker = nullptr;
-    }
+    UnlockIfNeed();
     cloudDB_.Close();
     {
         LOGD("[CloudSyncer] begin wait current task finished");
@@ -1848,16 +1845,22 @@ int CloudSyncer::LockCloudIfNeed(TaskId taskId)
 
 void CloudSyncer::UnlockIfNeed()
 {
-    std::lock_guard<std::mutex> autoLock(dataLock_);
-    if ((cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && priorityTaskQueue_.size() > 1) ||
-        (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && !priorityTaskQueue_.empty())) {
-        LOGD("[CloudSyncer] don't unlock because exist priority task");
-        return;
+    std::shared_ptr<CloudLocker> cacheLocker;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if ((cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && priorityTaskQueue_.size() > 1) ||
+            (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && !priorityTaskQueue_.empty())) {
+            LOGD("[CloudSyncer] don't unlock because exist priority task");
+            return;
+        }
+        if (currentContext_.locker == nullptr) {
+            LOGW("[CloudSyncer] locker is nullptr when unlock it"); // should not happen
+        }
+        cacheLocker = currentContext_.locker;
+        currentContext_.locker = nullptr;
     }
-    if (currentContext_.locker == nullptr) {
-        LOGW("[CloudSyncer] locker is nullptr when unlock it"); // should not happen
-    }
-    currentContext_.locker = nullptr;
+    // unlock without mutex
+    cacheLocker = nullptr;
 }
 
 void CloudSyncer::ClearCurrentContextWithoutLock()
