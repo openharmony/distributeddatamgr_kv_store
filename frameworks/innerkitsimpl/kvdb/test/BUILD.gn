@@ -45,13 +45,6 @@ config("module_private_config") {
 
 ###############################################################################
 ohos_source_set("kvdb_src_file") {
-  branch_protector_ret = "pac_ret"
-  sanitize = {
-    cfi = true
-    cfi_cross_dso = true
-    debug = false
-    blocklist = "./cfi_blocklist.txt"
-  }
   testonly = true
 
   old_sources = [
