@@ -501,7 +501,7 @@ void VirtualCloudDb::AddAssetIdForExtend(const VBucket &record, VBucket &extend)
         if (recordData.second.index() == TYPE_INDEX<Asset>) {
             auto asset = std::get<Asset>(recordData.second);
             asset.assetId = "10";
-            extend[i][recordData.first] = asset;
+            extend[recordData.first] = asset;
         }
         if (recordData.second.index() == TYPE_INDEX<Assets>) {
             auto assets = std::get<Assets>(recordData.second);

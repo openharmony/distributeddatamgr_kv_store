@@ -90,10 +90,10 @@ void DistributedDBCloudSyncerUploadTest::TearDown(void)
 
 void DistributedDBCloudSyncerUploadTest::PrepareRecord(VBucket &tmp, VBucket &assets)
 {
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
-    VBucket assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+        pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+        pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
 }
 
 void DistributedDBCloudSyncerUploadTest::PrepareUploadDataInsData(const VBucket &tmp,
@@ -117,11 +117,11 @@ void DistributedDBCloudSyncerUploadTest::PrepareUploadDataForUploadModeCheck012(
     VBucket tmp;
     VBucket assets;
     PrepareRecord(tmp, assets);
-    uploadData3.insData.record = std::vector<VBucket>(COUNT, tmp);
-    uploadData3.insData.extend = std::vector<VBucket>(COUNT, tmp);
-    uploadData3.insData.assets = std::vector<VBucket>(COUNT, assets);
-    uploadData3.delData.record = std::vector<VBucket>(COUNT, tmp);
-    uploadData3.delData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.assets = std::vector<VBucket>(COUNT, assets);
+    uploadData.delData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.delData.extend = std::vector<VBucket>(COUNT, tmp);
 }
 
 /**
