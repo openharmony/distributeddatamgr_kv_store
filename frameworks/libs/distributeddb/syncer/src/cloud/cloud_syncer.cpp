@@ -1848,8 +1848,9 @@ void CloudSyncer::UnlockIfNeed()
     std::shared_ptr<CloudLocker> cacheLocker;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if ((cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && priorityTaskQueue_.size() > 1) ||
-            (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && !priorityTaskQueue_.empty())) {
+        if (!closed_ &&
+            ((cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && priorityTaskQueue_.size() > 1) ||
+            (!cloudTaskInfos_[currentContext_.currentTaskId].priorityTask && !priorityTaskQueue_.empty()))) {
             LOGD("[CloudSyncer] don't unlock because exist priority task");
             return;
         }
