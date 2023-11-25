@@ -97,7 +97,7 @@ std::string SimpleTrackerLogTableManager::GetUpdateTrigger(const TableInfo &tabl
     updateTrigger += "\t UPDATE " + logTblName;
     updateTrigger += " SET timestamp=get_raw_sys_time(), device='', flag=0x02";
     updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
-    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
     updateTrigger += " from " + logTblName + ") where data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);
     updateTrigger += ";\n";
     updateTrigger += "select client_observer('" + tableName + "', OLD." + std::string(DBConstant::SQLITE_INNER_ROWID);

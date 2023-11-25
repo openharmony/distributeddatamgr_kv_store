@@ -12,9 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "cloud/asset_operation_utils.h"
+#include "cloud/cloud_db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
-#include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_sync_utils.h"
 
 namespace DistributedDB {
@@ -81,7 +82,8 @@ void CloudSyncUtils::RemoveDataExceptExtendInfo(VBucket &datum, const std::vecto
 
 AssetOpType CloudSyncUtils::StatusToFlag(AssetStatus status)
 {
-    switch (status) {
+    auto tmpStatus = static_cast<AssetStatus>(AssetOperationUtils::EraseBitMask(static_cast<uint32_t>(status)));
+    switch (tmpStatus) {
         case AssetStatus::INSERT:
             return AssetOpType::INSERT;
         case AssetStatus::DELETE:
@@ -436,28 +438,38 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data)
         LOGE("[CloudSyncUtils][FillAssetIdToAssets] Extend size does not match the assets size.");
         return -E_CLOUD_ERROR;
     }
+    int errCode = E_OK;
     for (size_t i = 0; i < data.assets.size(); i++) {
-        if (data.assets[i].empty() || data.extend[i].find(CloudDbConstant::ERROR_FIELD) != data.extend[i].end()) {
+        if (data.assets[i].empty()) {
+            continue;
+        }
+        if (data.extend[i].find(CloudDbConstant::ERROR_FIELD) != data.extend[i].end()) {
+            errCode = -E_CLOUD_ERROR;
             continue;
         }
         for (auto &[col, value] : data.assets[i]) {
+            if (!CheckIfContainsInsertAssets(value)) {
+                continue;
+            }
             auto extendIt = data.extend[i].find(col);
             if (extendIt == data.extend[i].end()) {
                 LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field name can not find in extend.");
-                return -E_CLOUD_ERROR;
+                errCode = -E_CLOUD_ERROR;
+                continue;
             }
             if (extendIt->second.index() != value.index()) {
                 LOGE("[CloudSyncUtils][FillAssetIdToAssets] Asset field type and type in extend is not the same.");
-                return -E_CLOUD_ERROR;
+                errCode = -E_CLOUD_ERROR;
+                continue;
             }
-            int errCode = FillAssetIdToAssetData(extendIt->second, value);
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Failed to fill assetId to Asset, %d.", errCode);
-                return errCode;
+            int ret = FillAssetIdToAssetData(extendIt->second, value);
+            if (ret != E_OK) {
+                LOGE("[CloudSyncUtils][FillAssetIdToAssets] Failed to fill assetId to Asset, %d.", ret);
+                errCode = -E_CLOUD_ERROR;
             }
         }
     }
-    return E_OK;
+    return errCode;
 }
 
 int CloudSyncUtils::FillAssetIdToAssetData(const Type &extend, Type &assetData)
@@ -485,7 +497,11 @@ int CloudSyncUtils::FillAssetIdToAssetData(const Type &extend, Type &assetData)
 
 int CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets)
 {
+    int errCode = E_OK;
     for (auto &asset : assets) {
+        if (asset.flag != static_cast<uint32_t>(AssetOpType::INSERT)) {
+            continue;
+        }
         auto extendAssets = extend;
         bool isAssetExisted = false;
         for (const auto &extendAsset : extendAssets) {
@@ -497,9 +513,37 @@ int CloudSyncUtils::FillAssetIdToAssetsData(const Assets &extend, Assets &assets
         }
         if (!isAssetExisted) {
             LOGE("[CloudSyncUtils][FillAssetIdToAssets] Assets name can not find in extend.");
-            return -E_CLOUD_ERROR;
+            errCode = -E_CLOUD_ERROR;
         }
     }
-    return E_OK;
+    return errCode;
+}
+
+bool CloudSyncUtils::CheckIfContainsInsertAssets(const Type &assetData)
+{
+    if (assetData.index() == TYPE_INDEX<Asset>) {
+        if (std::get<Asset>(assetData).flag != static_cast<uint32_t>(AssetOpType::INSERT)) {
+            return false;
+        }
+    } else if (assetData.index() == TYPE_INDEX<Assets>) {
+        bool hasInsertAsset = false;
+        for (const auto &asset : std::get<Assets>(assetData)) {
+            if (asset.flag == static_cast<uint32_t>(AssetOpType::INSERT)) {
+                hasInsertAsset = true;
+                break;
+            }
+        }
+        if (!hasInsertAsset) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void CloudSyncUtils::UpdateAssetsFlag(CloudSyncData &uploadData)
+{
+    AssetOperationUtils::UpdateAssetsFlag(uploadData.insData.record, uploadData.insData.assets);
+    AssetOperationUtils::UpdateAssetsFlag(uploadData.updData.record, uploadData.updData.assets);
+    AssetOperationUtils::UpdateAssetsFlag(uploadData.delData.record, uploadData.delData.assets);
 }
 }

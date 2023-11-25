@@ -1256,7 +1256,12 @@ int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const C
     if (opType == OpType::UPDATE && data.updData.assets.empty()) {
         return E_OK;
     }
-    int errCode = E_OK;
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(data.tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("get table schema failed when fill log and asset. %d", errCode);
+        return errCode;
+    }
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
@@ -1267,24 +1272,9 @@ int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const C
         ReleaseHandle(writeHandle);
         return errCode;
     }
-    if (opType == OpType::UPDATE_VERSION) {
-        errCode = writeHandle->FillCloudVersionForUpload(data);
-    } else if (opType == OpType::INSERT) {
-        errCode = writeHandle->UpdateCloudLogGid(data, ignoreEmptyGid);
-        if (errCode != E_OK) {
-            LOGE("Failed to fill cloud log gid, %d.", errCode);
-            writeHandle->Rollback();
-            ReleaseHandle(writeHandle);
-            return errCode;
-        }
-        if (fillAsset && !data.insData.assets.empty()) {
-            errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.insData);
-        }
-    } else if (fillAsset) {
-        errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.updData);
-    }
+    errCode = writeHandle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
     if (errCode != E_OK) {
-        LOGE("Failed to fill version or cloud asset, %d.", errCode);
+        LOGE("Failed to fill version or cloud asset, opType:%d ret:%d.", opType, errCode);
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);
         return errCode;
@@ -1344,6 +1334,7 @@ int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
     }
     errCode = handle->CheckQueryObjectLegal(query);
     if (errCode != E_OK) {
+        ReleaseHandle(handle);
         return errCode;
     }
     QuerySyncObject queryObj = query;
@@ -1603,6 +1594,36 @@ void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config
 bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
 {
     return allowLogicDelete_ && logicDelete_;
+}
+
+int RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+    const Bytes &hashKey, VBucket &assets)
+{
+    if (gid.empty() && hashKey.empty()) {
+        LOGE("both gid and hashKey are empty.");
+        return -E_INVALID_ARGS;
+    }
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("get assets by gid or hashKey failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    int errCode = E_OK;
+    auto *wHandle = GetHandle(true, errCode);
+    if (wHandle == nullptr) {
+        return errCode;
+    }
+    wHandle->SetIAssetLoader(loader);
+    ReleaseHandle(wHandle);
+    return errCode;
 }
 }
 #endif

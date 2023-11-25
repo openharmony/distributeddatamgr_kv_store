@@ -356,39 +356,18 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore007, TestSize.Le
     option.storageEngineType = GAUSSDB_RD;
     option.rdconfig.readOnly = true;
     g_mgr.GetKvStore("distributed_getkvstore_007", option, g_kvNbDelegateCallback);
-    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
+    EXPECT_TRUE(g_kvDelegateStatus == BUSY);
     ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
 }
 
 /**
   * @tc.name: GetKvStore008
-  * @tc.desc: Get kv store parameters with rd shared mode
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: zhuwentao
-  */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore008, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. open db with share mode and readOnly is true
-     * @tc.expected: step1. open not ok
-     */
-    KvStoreNbDelegate::Option option;
-    option.storageEngineType = GAUSSDB_RD;
-    option.rdconfig.readOnly = true;
-    g_mgr.GetKvStore("distributed_getkvstore_008", option, g_kvNbDelegateCallback);
-    EXPECT_TRUE(g_kvDelegateStatus == INVALID_ARGS);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
-}
-
-/**
-  * @tc.name: GetKvStore009
   * @tc.desc: Get kv store parameters with use Integrity check
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore008, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open db and readOnly is false and IntegrityCheck is true
@@ -403,6 +382,16 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Le
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
 
+    /**
+     * @tc.steps: step2. make db damaged and open db
+     * @tc.expected: step2. open ok
+     */
+    std::string identifier = KvStoreDelegateManager::GetKvStoreIdentifier(USER_ID, APP_ID,
+        "distributed_getkvstore_009");
+    std::string dbFliePath = DistributedDBToolsUnitTest::GetKvNbStoreDirectory(identifier,
+        "single_ver/main/gen_natural_store.db", g_testDir);
+    DistributedDBToolsUnitTest::ModifyDatabaseFile(dbFliePath);
+
     g_mgr.GetKvStore("distributed_getkvstore_009", option, g_kvNbDelegateCallback);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
@@ -410,13 +399,13 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Le
 }
 
 /**
-  * @tc.name: GetKvStore010
+  * @tc.name: GetKvStore009
   * @tc.desc: Get kv store parameters use Integrity check and RmCorruptedDb
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore009, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open db and readOnly is false and RmCorruptedDb false
@@ -437,13 +426,13 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Le
 }
 
 /**
-  * @tc.name: GetKvStore011
+  * @tc.name: GetKvStore010
   * @tc.desc: Get kv store parameters when crcCheck is true and not create db
   * @tc.type: FUNC
   * @tc.require:
   * @tc.author: zhuwentao
   */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore011, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. open db

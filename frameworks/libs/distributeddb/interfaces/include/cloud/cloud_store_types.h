@@ -43,7 +43,8 @@ enum class AssetOpType {
     NO_CHANGE = 0,
     INSERT,
     DELETE,
-    UPDATE
+    UPDATE,
+    IGNORE // mark it ignore when not handle asset in (download, batchInsert, batchUpdate)
 };
 
 enum AssetStatus : uint32_t {
@@ -52,7 +53,10 @@ enum AssetStatus : uint32_t {
     ABNORMAL,
     INSERT, // INSERT/DELETE/UPDATE are for client use
     DELETE,
-    UPDATE
+    UPDATE,
+    // high 16 bit USE WITH BIT MASK
+    DOWNLOAD_WITH_NULL = 0x40000000,
+    UPLOADING = 0x80000000,
 };
 
 struct Asset {
@@ -90,7 +94,7 @@ struct Field {
 
 struct TableSchema {
     std::string name;
-    std::string sharedTableName;
+    std::string sharedTableName; // if table is shared table, its sharedtablename is ""
     std::vector<Field> fields;
 };
 
@@ -130,6 +134,11 @@ struct QueryNode {
 struct SqlCondition {
     std::string sql;  // The sql statement;
     std::vector<Type> bindArgs;  // The bind args.
+};
+
+enum class RecordStatus {
+    MIGRATING,
+    MIGRATE_FINISH
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

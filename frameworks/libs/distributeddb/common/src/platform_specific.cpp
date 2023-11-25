@@ -70,6 +70,9 @@ int RenameFilePath(const std::string &oldFilePath, const std::string &newFilePat
 
 int RemoveFile(const std::string &filePath)
 {
+#ifdef DB_DEBUG_ENV
+    LOGD("---> remove db filePath: %s", filePath.c_str());
+#endif
     int errCode = remove(filePath.c_str());
     if (errCode < 0) {
         LOGE("[RemoveFile] Remove file fail %s %d err = %d", filePath.c_str(), errCode, errno);
@@ -122,6 +125,9 @@ int MakeDBDirectory(const std::string &directory)
 
 int RemoveDBDirectory(const std::string &directory)
 {
+#ifdef DB_DEBUG_ENV
+    LOGD("---> remove db directory: %s", directory.c_str());
+#endif
     int ret = rmdir(directory.c_str());
     LOGI("CheckPathExistence %s ret:%d error %d", directory.c_str(), ret, errno);
     return ret;
@@ -164,6 +170,7 @@ int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
     delete [] realPath;
     return E_OK;
 }
+#ifndef DB_DEBUG_ENV
 namespace {
     const uint64_t MULTIPLES_BETWEEN_MICROSECONDS_AND_NANOSECONDS = 1000;
     const uint64_t MULTIPLES_BETWEEN_MICROSECONDS_AND_100_NANOSECONDS = 10;
@@ -180,6 +187,7 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
         MICROSECONDS_OFFSET;
     return E_OK;
 }
+#endif  // DB_DEBUG_ENV
 
 int GetMonotonicRelativeTimeInMicrosecond(uint64_t &outTime)
 {
@@ -475,7 +483,7 @@ int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
     return E_OK;
 }
 
-#ifndef RUNNING_ON_SIMULATED_ENV
+#ifndef DB_DEBUG_ENV
 int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
 {
     struct timeval rawTime;
@@ -488,7 +496,7 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
               static_cast<uint64_t>(rawTime.tv_usec);
     return E_OK;
 }
-#endif // RUNNING_ON_SIMULATED_ENV
+#endif // DB_DEBUG_ENV
 
 namespace {
     const uint64_t MULTIPLES_BETWEEN_MICROSECONDS_AND_NANOSECONDS = 1000;

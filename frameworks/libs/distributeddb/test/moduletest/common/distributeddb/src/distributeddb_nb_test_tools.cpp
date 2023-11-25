@@ -602,7 +602,7 @@ std::string DistributedDBNbTestTools::GetResourceDir()
         MST_LOG("[GetResourceDir] FAILED!");
         return "";
     }
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
     dir = dir + "resource/";
 #endif
     return dir;

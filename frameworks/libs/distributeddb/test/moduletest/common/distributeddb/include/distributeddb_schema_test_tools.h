@@ -15,7 +15,7 @@
 #ifndef DISTRIBUTED_DB_SCHEMA_TEST_TOOLS_H
 #define DISTRIBUTED_DB_SCHEMA_TEST_TOOLS_H
 
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
 #include <cfloat>
 #endif
 #include "kv_store_delegate.h"

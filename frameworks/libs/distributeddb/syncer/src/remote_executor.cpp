@@ -1017,6 +1017,7 @@ int RemoteExecutor::CheckRemoteRecvData(const std::string &device, SyncGenericIn
         LOGE("[RemoteExecutor] remote security label not set!");
         return -E_SECURITY_OPTION_CHECK_ERROR;
     }
+
     if (errCode == -E_NOT_SUPPORT) {
         return E_OK;
     }

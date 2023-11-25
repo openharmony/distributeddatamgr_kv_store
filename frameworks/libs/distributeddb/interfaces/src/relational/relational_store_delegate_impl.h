@@ -76,6 +76,9 @@ public:
     DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) override;
 
     DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
+
+    DBStatus UpsertData(RecordStatus status, const std::string &tableName,
+        const std::vector<VBucket> &records) override;
 private:
     static void OnSyncComplete(const std::map<std::string, std::vector<TableStatus>> &devicesStatus,
         const SyncStatusCallback &onComplete);

@@ -42,7 +42,42 @@ int KvDBWindowedResultSet::GetPosition() const
     return -1; // return invalid position
 }
 
+int KvDBWindowedResultSet::Move(int offset) const
+{
+    return -E_NOT_SUPPORT;
+}
+
 int KvDBWindowedResultSet::MoveTo(int position) const
+{
+    return -E_NOT_SUPPORT;
+}
+
+int KvDBWindowedResultSet::MoveToFirst()
+{
+    return -E_NOT_SUPPORT;
+}
+
+int KvDBWindowedResultSet::MoveToLast()
+{
+    return -E_NOT_SUPPORT;
+}
+
+bool KvDBWindowedResultSet::IsFirst() const
+{
+    return -E_NOT_SUPPORT;
+}
+
+bool KvDBWindowedResultSet::IsLast() const
+{
+    return -E_NOT_SUPPORT;
+}
+
+bool KvDBWindowedResultSet::IsBeforeFirst() const
+{
+    return -E_NOT_SUPPORT;
+}
+
+bool KvDBWindowedResultSet::IsAfterLast() const
 {
     return -E_NOT_SUPPORT;
 }

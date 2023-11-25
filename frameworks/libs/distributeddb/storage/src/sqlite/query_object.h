@@ -45,6 +45,7 @@ public:
     void SetSchema(const SchemaObject &schema);
 
     bool IsQueryOnlyByKey() const;
+    bool IsQueryByRange() const;
     bool IsQueryForRelationalDB() const;
 
     void SetTableName(const std::string &tableName);
@@ -63,7 +64,7 @@ public:
 
     SortType GetSortType() const;
 
-    int CheckPrimaryKey(const std::map<int, FieldName> &primaryMap) const;
+    int CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const;
 
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.

@@ -14,8 +14,8 @@
  */
 
 #include "cloudsync_fuzzer.h"
-#include "cloud_db_types.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_types.h"
+#include "cloud/cloud_db_constant.h"
 #include "time_helper.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_test.h"

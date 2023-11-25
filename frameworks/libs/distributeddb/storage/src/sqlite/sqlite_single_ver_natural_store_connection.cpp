@@ -150,8 +150,9 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         return errCode;
     }
     QueryObject queryObj(query);
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
-        LOGE("[GetEntries][query] timestamp sort only support prefixKey");
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey and not support Range search");
         return -E_NOT_SUPPORT;
     }
 
@@ -199,7 +200,8 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         return -E_INVALID_DB;
     }
     QueryObject queryObj(query);
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
         LOGE("[GetCount] get count query invalid");
         return -E_NOT_SUPPORT;
     }
@@ -598,8 +600,9 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
-        LOGE("[GetResultSet][query] timestamp sort only support prefixKey");
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey and not support Range search");
         return -E_NOT_SUPPORT;
     }
     bool isMemDb = naturalStore->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);

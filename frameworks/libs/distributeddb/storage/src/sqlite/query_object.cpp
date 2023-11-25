@@ -416,6 +416,13 @@ bool QueryObject::IsQueryOnlyByKey() const
     });
 }
 
+bool QueryObject::IsQueryByRange() const
+{
+    return std::any_of(queryObjNodes_.begin(), queryObjNodes_.end(), [&](const QueryObjNode &node) {
+        return node.operFlag == QueryObjType::KEY_RANGE;
+    });
+}
+
 bool QueryObject::IsQueryForRelationalDB() const
 {
     return isTableNameSpecified_ &&

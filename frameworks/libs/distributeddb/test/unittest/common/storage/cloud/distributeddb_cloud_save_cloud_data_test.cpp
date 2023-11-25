@@ -1391,7 +1391,7 @@ namespace {
          * @tc.expected: step2. success.
          */
         ContinueToken token = nullptr;
-        CloudSyncData data;
+        CloudSyncData data(g_assetTableName);
         errCode = storageProxy->GetCloudData(g_assetTableName, 0u, token, data);
         EXPECT_EQ(errCode, E_OK);
         EXPECT_EQ(data.ignoredCount, 1);

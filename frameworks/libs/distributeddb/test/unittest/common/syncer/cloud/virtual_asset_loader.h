@@ -16,9 +16,11 @@
 #ifndef VIRTUAL_ASSETLOADER_H
 #define VIRTUAL_ASSETLOADER_H
 #include <mutex>
-#include "iAssetLoader.h"
+#include "cloud/iAssetLoader.h"
 
 namespace DistributedDB {
+using DownloadCallBack = std::function<void (std::map<std::string, Assets> &assets)>;
+using RemoveAssetsCallBack = std::function<void (const std::vector<Asset> &assets)>;
 class VirtualAssetLoader : public IAssetLoader {
 public:
     VirtualAssetLoader() = default;
@@ -30,9 +32,15 @@ public:
     DBStatus RemoveLocalAssets(const std::vector<Asset> &assets) override;
 
     void SetDownloadStatus(DBStatus status);
+
+    void ForkDownload(const DownloadCallBack &callback);
+
+    void ForkRemoveLocalAssets(const RemoveAssetsCallBack &callback);
 private:
     std::mutex dataMutex_;
     DBStatus downloadStatus_ = OK;
+    DownloadCallBack downloadCallBack_;
+    RemoveAssetsCallBack removeAssetsCallBack_;
 };
 }
 #endif // VIRTUAL_ASSETLOADER_H

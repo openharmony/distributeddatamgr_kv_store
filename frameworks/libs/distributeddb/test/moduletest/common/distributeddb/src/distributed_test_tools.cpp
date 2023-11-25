@@ -1877,6 +1877,9 @@ std::string TransferStringToHashHexString(const std::string &origStr)
 #if defined(RUNNING_ON_LINUX)
 int RemoveDatabaseDirectory(const std::string &directory)
 {
+#ifdef DB_DEBUG_ENV
+    MST_LOG("---> remove db directory: %s", directory.c_str());
+#endif
     return remove(directory.c_str());
 }
 #else

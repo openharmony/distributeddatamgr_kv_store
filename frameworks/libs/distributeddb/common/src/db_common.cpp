@@ -318,9 +318,11 @@ void DBCommon::SetDatabaseIds(KvDBProperties &properties, const std::string &app
 
 std::string DBCommon::StringMasking(const std::string &oriStr, size_t remain)
 {
+#ifndef DB_DEBUG_ENV
     if (oriStr.size() > remain) {
         return oriStr.substr(0, remain);
     }
+#endif
     return oriStr;
 }
 

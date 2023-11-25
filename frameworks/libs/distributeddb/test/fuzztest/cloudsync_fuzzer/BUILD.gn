@@ -45,6 +45,7 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "../../../common/include/cloud",
     "../../../common/include/relational",
     "../../../common/src",
+    "../../../common/src/cloud",
     "../../../communicator/include",
     "../../../communicator/src",
     "../../../syncer/include",

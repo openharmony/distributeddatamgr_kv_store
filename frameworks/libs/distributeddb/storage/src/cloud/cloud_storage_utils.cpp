@@ -376,7 +376,7 @@ void CloudStorageUtils::ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &
 
 AssetOpType CloudStorageUtils::StatusToFlag(AssetStatus status)
 {
-    switch (status) {
+    switch (AssetOperationUtils::EraseBitMask(status)) {
         case AssetStatus::INSERT:
             return AssetOpType::INSERT;
         case AssetStatus::DELETE:
@@ -450,34 +450,18 @@ void CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
     }
 }
 
-void CloudStorageUtils::FillAssetAfterDownloadFail(Asset &asset)
+int CloudStorageUtils::FillAssetAfterDownload(Asset &asset, Asset &dbAsset,
+    AssetOperationUtils::AssetOpType assetOpType)
 {
-    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
-    AssetStatus status = static_cast<AssetStatus>(asset.status);
-    switch (flag) {
-        case AssetOpType::INSERT:
-        case AssetOpType::DELETE:
-        case AssetOpType::UPDATE: {
-            if (status != AssetStatus::NORMAL) {
-                asset.hash = std::string("");
-                asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
-            }
-            break;
-        }
-        default:
-            break;
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        return E_OK;
     }
-}
-
-int CloudStorageUtils::FillAssetAfterDownload(Asset &asset)
-{
+    dbAsset = asset;
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    if (asset.status != AssetStatus::NORMAL) {
+        return E_OK;
+    }
     switch (flag) {
-        case AssetOpType::INSERT:
-        case AssetOpType::UPDATE: {
-            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
-            break;
-        }
         case AssetOpType::DELETE: {
             return -E_NOT_FOUND;
         }
@@ -487,24 +471,25 @@ int CloudStorageUtils::FillAssetAfterDownload(Asset &asset)
     return E_OK;
 }
 
-void CloudStorageUtils::FillAssetsAfterDownload(Assets &assets)
+void CloudStorageUtils::FillAssetsAfterDownload(Assets &assets, Assets &dbAssets,
+    const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap)
 {
-    for (auto asset = assets.begin(); asset != assets.end();) {
-        if (FillAssetAfterDownload(*asset) == -E_NOT_FOUND) {
-            asset = assets.erase(asset);
-        } else {
-            asset++;
-        }
-    }
+    MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetAfterDownload);
 }
 
-int CloudStorageUtils::FillAssetForUpload(Asset &asset)
+int CloudStorageUtils::FillAssetForUpload(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType)
 {
-    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        // db assetId may be empty, need to be based on cache
+        dbAsset.assetId = asset.assetId;
+        return E_OK;
+    }
+    AssetStatus status = static_cast<AssetStatus>(dbAsset.status);
+    dbAsset = asset;
     switch (StatusToFlag(status)) {
         case AssetOpType::INSERT:
         case AssetOpType::UPDATE: {
-            asset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
+            dbAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
             break;
         }
         case AssetOpType::DELETE: {
@@ -514,18 +499,40 @@ int CloudStorageUtils::FillAssetForUpload(Asset &asset)
             break;
         }
     }
+    dbAsset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
     return E_OK;
 }
 
-void CloudStorageUtils::FillAssetsForUpload(Assets &assets)
+void CloudStorageUtils::FillAssetsForUpload(Assets &assets, Assets &dbAssets,
+    const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap)
 {
-    for (auto asset = assets.begin(); asset != assets.end();) {
-        if (FillAssetForUpload(*asset) == -E_NOT_FOUND) {
-            asset = assets.erase(asset);
-        } else {
-            asset++;
-        }
+    MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetForUpload);
+}
+
+int CloudStorageUtils::FillAssetBeforeUpload(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType)
+{
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        return E_OK;
     }
+    dbAsset = asset;
+    switch (static_cast<AssetOpType>(asset.flag)) {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE:
+        case AssetOpType::DELETE:
+            dbAsset.status |= static_cast<uint32_t>(AssetStatus::UPLOADING);
+            break;
+        case AssetOpType::NO_CHANGE:
+        default:
+            break;
+    }
+    dbAsset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+    return E_OK;
+}
+
+void CloudStorageUtils::FillAssetsBeforeUpload(Assets &assets, Assets &dbAssets, const std::map<std::string,
+    AssetOperationUtils::AssetOpType> &assetOpTypeMap)
+{
+    MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetBeforeUpload);
 }
 
 void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset)
@@ -547,29 +554,46 @@ void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::fun
     }
 }
 
-void CloudStorageUtils::FillAssetFromVBucketFinish(VBucket &vBucket, std::function<int(Asset &)> fillAsset,
-    std::function<void(Assets &)> fillAssets)
+void CloudStorageUtils::FillAssetFromVBucketFinish(const AssetOperationUtils::RecordAssetOpType &assetOpType,
+    VBucket &vBucket, VBucket &dbAssets,
+    std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset,
+    std::function<void(Assets &, Assets &,
+    const std::map<std::string, AssetOperationUtils::AssetOpType> &)> fillAssets)
 {
-    for (auto &item: vBucket) {
+    for (auto &item: dbAssets) {
         if (IsAsset(item.second)) {
-            Asset asset;
-            GetValueFromType(item.second, asset);
-            int errCode = fillAsset(asset);
+            Asset cacheItem;
+            GetValueFromType(vBucket[item.first], cacheItem);
+            Asset dbItem;
+            GetValueFromType(item.second, dbItem);
+            AssetOperationUtils::AssetOpType opType = AssetOperationUtils::AssetOpType::NOT_HANDLE;
+            auto iterCol = assetOpType.find(item.first);
+            if (iterCol != assetOpType.end() && iterCol->second.find(dbItem.name) != iterCol->second.end()) {
+                opType = iterCol->second.at(dbItem.name);
+            }
+            int errCode = fillAsset(cacheItem, dbItem, opType);
             if (errCode != E_OK) {
-                vBucket[item.first] = Nil();
+                dbAssets[item.first] = Nil();
             } else {
-                vBucket[item.first] = asset;
+                dbAssets[item.first] = dbItem;
             }
             continue;
         }
         if (IsAssets(item.second)) {
-            Assets assets;
-            GetValueFromType(item.second, assets);
-            fillAssets(assets);
-            if (assets.empty()) {
-                vBucket[item.first] = Nil();
+            Assets cacheItems;
+            GetValueFromType(vBucket[item.first], cacheItems);
+            Assets dbItems;
+            GetValueFromType(item.second, dbItems);
+            auto iterCol = assetOpType.find(item.first);
+            if (iterCol == assetOpType.end()) {
+                fillAssets(cacheItems, dbItems, {});
             } else {
-                vBucket[item.first] = assets;
+                fillAssets(cacheItems, dbItems, iterCol->second);
+            }
+            if (dbItems.empty()) {
+                dbAssets[item.first] = Nil();
+            } else {
+                dbAssets[item.first] = dbItems;
             }
         }
     }
@@ -727,7 +751,7 @@ int CloudStorageUtils::ConstraintsCheckForCloud(const TableInfo &table, const st
 bool CloudStorageUtils::CheckAssetStatus(const Assets &assets)
 {
     for (const Asset &asset: assets) {
-        if (asset.status > static_cast<uint32_t>(AssetStatus::UPDATE)) {
+        if (AssetOperationUtils::EraseBitMask(asset.status) > static_cast<uint32_t>(AssetStatus::UPDATE)) {
             LOGE("assets contain invalid status:[%u]", asset.status);
             return false;
         }
@@ -777,5 +801,144 @@ std::string CloudStorageUtils::GetTableRefUpdateSql(const TableInfo &table, OpTy
         sql += ");";
     }
     return sql;
+}
+
+std::string CloudStorageUtils::GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA)
+{
+    std::string sql;
+    if (logAsTableA) {
+        sql += " FROM '" + DBCommon::GetLogTableName(tableName) + "' AS a LEFT JOIN '" + tableName + "' AS b " +
+            " ON (a.data_key = b." + std::string(DBConstant::SQLITE_INNER_ROWID) + ")";
+    } else {
+        sql += " FROM '" + DBCommon::GetLogTableName(tableName) + "' AS b LEFT JOIN '" + tableName + "' AS a " +
+            " ON (b.data_key = a." + std::string(DBConstant::SQLITE_INNER_ROWID) + ")";
+    }
+    return sql;
+}
+
+bool CloudStorageUtils::ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode)
+{
+    if (data.assets.empty()) {
+        errCode = E_OK;
+        return true;
+    }
+    if (data.rowid.empty() || data.timestamp.empty()) {
+        errCode = -E_INVALID_ARGS;
+        LOGE("param is empty when fill cloud Asset. rowidN:%u, timeN:%u", errCode, data.rowid.size(),
+            data.timestamp.size());
+        return true;
+    }
+    if (data.assets.size() != data.rowid.size() || data.assets.size() != data.timestamp.size() ||
+        data.assets.size() != data.hashKey.size() || data.assets.size() != data.extend.size()) {
+        errCode = -E_INVALID_ARGS;
+        LOGE("the num of param is invalid when fill cloud Asset. assetsN:%u, rowidN:%u, timeN:%u, "
+             "hashKeyN:%u, extendN:%u", data.assets.size(), data.rowid.size(), data.timestamp.size(),
+             data.hashKey.size(), data.extend.size());
+        return true;
+    }
+    return false;
+}
+
+void CloudStorageUtils::GetToBeRemoveAssets(const VBucket &vBucket,
+    const AssetOperationUtils::RecordAssetOpType &assetOpType, std::vector<Asset> &removeAssets)
+{
+    for (const auto &col: assetOpType) {
+        auto itCol = vBucket.find(col.first);
+        if (itCol == vBucket.end()) {
+            continue;
+        }
+        auto itItem = itCol->second;
+        if (!CloudStorageUtils::IsAsset(itItem) && !CloudStorageUtils::IsAssets(itItem)) {
+            continue;
+        }
+        if (CloudStorageUtils::IsAsset(itItem)) {
+            Asset delAsset;
+            GetValueFromType(itItem, delAsset);
+            auto itOp = col.second.find(delAsset.name);
+            if (itOp != col.second.end() && itOp->second == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+                removeAssets.push_back(delAsset);
+            }
+            continue;
+        }
+        Assets assets;
+        GetValueFromType(itItem, assets);
+        for (const auto &asset: assets) {
+            auto itOp = col.second.find(asset.name);
+            if (itOp == col.second.end() || itOp->second == AssetOperationUtils::AssetOpType::HANDLE) {
+                continue;
+            }
+            removeAssets.push_back(asset);
+        }
+    }
+}
+
+int CloudStorageUtils::FillAssetForUploadFailed(Asset &asset, Asset &dbAsset,
+    AssetOperationUtils::AssetOpType assetOpType)
+{
+    dbAsset.assetId = asset.assetId;
+    dbAsset.status &= ~AssetStatus::UPLOADING;
+    return E_OK;
+}
+
+void CloudStorageUtils::FillAssetsForUploadFailed(Assets &assets, Assets &dbAssets,
+    const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap)
+{
+    MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetForUploadFailed);
+}
+
+int CloudStorageUtils::FillAssetAfterDownloadFail(Asset &asset, Asset &dbAsset,
+    AssetOperationUtils::AssetOpType assetOpType)
+{
+    AssetStatus status = static_cast<AssetStatus>(asset.status);
+    if (assetOpType == AssetOperationUtils::AssetOpType::NOT_HANDLE) {
+        return E_OK;
+    }
+    if (status != AssetStatus::ABNORMAL) {
+        return FillAssetAfterDownload(asset, dbAsset, assetOpType);
+    }
+    AssetOpType flag = static_cast<AssetOpType>(asset.flag);
+    dbAsset = asset;
+    switch (flag) {
+        case AssetOpType::INSERT:
+        case AssetOpType::DELETE:
+        case AssetOpType::UPDATE: {
+            dbAsset.hash = std::string("");
+            break;
+        }
+        default:
+            // other flag type do not need to clear hash
+            break;
+    }
+    return E_OK;
+}
+
+void CloudStorageUtils::FillAssetsAfterDownloadFail(Assets &assets, Assets &dbAssets,
+    const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap)
+{
+    MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetAfterDownloadFail);
+}
+
+void CloudStorageUtils::MergeAssetWithFillFunc(Assets &assets, Assets &dbAssets, const std::map<std::string,
+    AssetOperationUtils::AssetOpType> &assetOpTypeMap,
+    std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset)
+{
+    std::map<std::string, size_t> indexMap = GenAssetsIndexMap(assets);
+    for (auto dbAsset = dbAssets.begin(); dbAsset != dbAssets.end();) {
+        Asset cacheAsset;
+        auto it = indexMap.find(dbAsset->name);
+        if (it != indexMap.end()) {
+            cacheAsset = assets[it->second];
+        }
+        AssetOperationUtils::AssetOpType opType = AssetOperationUtils::AssetOpType::NOT_HANDLE;
+        auto iterOp = assetOpTypeMap.find(dbAsset->name);
+        if (iterOp != assetOpTypeMap.end()) {
+            opType = iterOp->second;
+        }
+        if (fillAsset(cacheAsset, *dbAsset, opType) == -E_NOT_FOUND) {
+            dbAsset = dbAssets.erase(dbAsset);
+        } else {
+            dbAsset++;
+        }
+    }
 }
 }

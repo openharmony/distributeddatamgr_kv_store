@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "cloud/cloud_storage_utils.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "process_system_api_adapter_impl.h"
@@ -42,7 +42,7 @@ class CloudDBSyncUtilsTest {
 public:
     static void SetStorePath(const std::string &path);
 
-    static void InitSyncUtils(std::vector<Field> cloudField, RelationalStoreObserverUnitTest *&observer,
+    static void InitSyncUtils(const std::vector<Field> &cloudField, RelationalStoreObserverUnitTest *&observer,
         std::shared_ptr<VirtualCloudDb> &virtualCloudDb, std::shared_ptr<VirtualAssetLoader> &virtualAssetLoader,
         RelationalStoreDelegate *&delegate);
 
@@ -75,11 +75,11 @@ public:
 
     static int QueryCountCallback(void *data, int count, char **colValue, char **colName);
 
-    static void CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts, std::string keyStr);
+    static void CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts, const std::string &keyStr);
 
-    static void CheckLocalRecordNum(sqlite3 *&db, std::string tableName, int count);
+    static void CheckLocalRecordNum(sqlite3 *&db, const std::string &tableName, int count);
 
-    static void GetCloudDbSchema(std::string tableName, std::vector<Field> cloudField,
+    static void GetCloudDbSchema(const std::string &tableName, const std::vector<Field> &cloudField,
         DataBaseSchema &dataBaseSchema);
 };
 }

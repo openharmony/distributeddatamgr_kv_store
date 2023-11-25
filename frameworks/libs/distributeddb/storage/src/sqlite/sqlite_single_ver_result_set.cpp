@@ -143,6 +143,19 @@ int SQLiteSingleVerResultSet::GetPosition() const
     return position_;
 }
 
+int SQLiteSingleVerResultSet::Move(int offset) const
+{
+    int64_t position = GetPosition();
+    int64_t aimPos = position + offset;
+    if (aimPos > INT_MAX) {
+        return MoveTo(INT_MAX);
+    }
+    if (aimPos < INIT_POSITION) {
+        return MoveTo(INIT_POSITION);
+    }
+    return MoveTo(aimPos);
+}
+
 int SQLiteSingleVerResultSet::MoveTo(int position) const
 {
     std::lock_guard<std::mutex> lockGuard(mutex_);
@@ -172,6 +185,67 @@ int SQLiteSingleVerResultSet::MoveTo(int position) const
     } else {
         return MoveToForCacheEntryIdMode(position);
     }
+}
+
+int SQLiteSingleVerResultSet::MoveToFirst()
+{
+    return MoveTo(0);
+}
+
+int SQLiteSingleVerResultSet::MoveToLast()
+{
+    return MoveTo(GetCount() - 1);
+}
+
+bool SQLiteSingleVerResultSet::IsFirst() const
+{
+    int position = GetPosition();
+    if (GetCount() == 0) {
+        return false;
+    }
+    if (position == 0) {
+        return true;
+    }
+    return false;
+}
+
+bool SQLiteSingleVerResultSet::IsLast() const
+{
+    int position = GetPosition();
+    int count = GetCount();
+    if (count == 0) {
+        return false;
+    }
+    if (position == (count - 1)) {
+        return true;
+    }
+    return false;
+}
+
+bool SQLiteSingleVerResultSet::IsBeforeFirst() const
+{
+    int position = GetPosition();
+
+    if (GetCount() == 0) {
+        return true;
+    }
+    if (position <= INIT_POSITION) {
+        return true;
+    }
+    return false;
+}
+
+bool SQLiteSingleVerResultSet::IsAfterLast() const
+{
+    int position = GetPosition();
+    int count = GetCount();
+    if (count == 0) {
+        return true;
+    }
+    if (position >= count) {
+        return true;
+    }
+    return false;
 }
 
 int SQLiteSingleVerResultSet::MoveToForCacheFullEntryMode(int position) const

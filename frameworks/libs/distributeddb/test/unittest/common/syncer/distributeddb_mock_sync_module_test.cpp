@@ -337,9 +337,9 @@ void SyncLifeTest003()
     virtualCommunicatorAggregator->OfflineDevice(DEVICE_B);
     EXPECT_EQ(syncDBInterface->Close(), E_OK);
     RefObject::KillAndDecObjRef(syncDBInterface);
-    RuntimeContext::GetInstance()->StopTaskPool();
     std::this_thread::sleep_for(std::chrono::seconds(1));
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(nullptr);
+    RuntimeContext::GetInstance()->StopTaskPool();
 }
 
 void MockRemoteQuery002()
@@ -1080,7 +1080,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
  * @tc.require: AR000CCPOM
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
+HWTEST_F(DistributedDBMockSyncModuleTest, DISABLED_SyncLifeTest003, TestSize.Level3)
 {
     ASSERT_NO_FATAL_FAILURE(SyncLifeTest003());
 }

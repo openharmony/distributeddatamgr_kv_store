@@ -196,6 +196,11 @@ public:
     void SetLogicDelete(bool logicDelete);
 
     void SetCloudTaskConfig(const CloudTaskConfig &config) override;
+
+    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
+        VBucket &assets) override;
+
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 

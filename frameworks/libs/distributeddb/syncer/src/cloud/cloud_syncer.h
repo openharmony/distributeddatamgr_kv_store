@@ -210,7 +210,7 @@ protected:
     int HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, size_t idx, SyncParam &param,
         VBucket &localAssetInfo);
 
-    int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo,
+    int TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
         VBucket &localAssetInfo);
 
     int TagUploadAssets(CloudSyncData &uploadData);
@@ -306,6 +306,15 @@ protected:
 
     int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
+    int DownloadAssetsOneByOne(const InnerProcessInfo &info, const DownloadItem &downloadItem,
+        std::map<std::string, Assets> &downloadAssets);
+
+    int GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
+        VBucket &dbAssets);
+
+    int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
+        std::map<std::string, Assets> &downloadAssets);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
@@ -339,7 +348,6 @@ protected:
     static constexpr const TaskId INVALID_TASK_ID = 0u;
     static constexpr const int MAX_HEARTBEAT_FAILED_LIMIT = 2;
     static constexpr const int HEARTBEAT_PERIOD = 3;
-    static constexpr const int MAX_DOWNLOAD_COMMIT_LIMIT = 1;
 };
 }
 #endif // CLOUD_SYNCER_H

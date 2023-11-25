@@ -46,8 +46,22 @@ public:
     // >= 0: position, < 0: errCode
     virtual int GetPosition() const = 0;
 
+    virtual int Move(int offset) const = 0;
+
     // Move the read position to an absolute position value.
     virtual int MoveTo(int position) const = 0;
+
+    virtual int MoveToFirst() = 0;
+
+    virtual int MoveToLast() = 0;
+
+    virtual bool IsFirst() const = 0;
+
+    virtual bool IsLast() const = 0;
+
+    virtual bool IsBeforeFirst() const = 0;
+
+    virtual bool IsAfterLast() const = 0;
 
     // Get the entry of current position.
     virtual int GetEntry(Entry &entry) const = 0;

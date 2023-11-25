@@ -51,6 +51,10 @@
 #error "PLATFORM NOT SPECIFIED!"
 #endif
 
+#ifdef DB_DEBUG_ENV
+#include "system_time.h"
+using namespace DistributedDB::OS;
+#endif
 using namespace DistributedDB;
 
 namespace {
@@ -255,6 +259,7 @@ public:
         return (curTime * TO_100_NS) + currentIncCount_; // Currently Timestamp is uint64_t
     }
 
+#ifndef DB_DEBUG_ENV
     static int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
     {
         struct timeval rawTime;
@@ -266,6 +271,7 @@ public:
             static_cast<uint64_t>(rawTime.tv_usec);
         return E_OK;
     }
+#endif
 
     static std::mutex systemTimeLock_;
     static Timestamp lastSystemTimeUs_;

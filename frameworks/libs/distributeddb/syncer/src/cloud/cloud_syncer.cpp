@@ -18,6 +18,7 @@
 #include <utility>
 #include <unordered_map>
 
+#include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "cloud/icloud_db.h"
@@ -96,6 +97,7 @@ void CloudSyncer::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDB)
 
 void CloudSyncer::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
 {
+    storageProxy_->SetIAssetLoader(loader);
     cloudDB_.SetIAssetLoader(loader);
     LOGI("[CloudSyncer] SetIAssetLoader finish");
 }
@@ -131,6 +133,8 @@ void CloudSyncer::Close()
         taskQueue_.clear();
         priorityTaskQueue_.clear();
         cloudTaskInfos_.clear();
+        resumeTaskInfos_.clear();
+        currentContext_.notifier = nullptr;
     }
     // notify all DB_CLOSED
     for (auto &info: infoList) {
@@ -546,18 +550,12 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
         // Process result of each asset
         commitList.push_back(std::make_tuple(downloadItem.gid, std::move(downloadItem.assets), errorCode == E_OK));
         downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
-        if ((i + 1) % MAX_DOWNLOAD_COMMIT_LIMIT == 0 || i == (commitList.size() - 1)) {
-            int ret = CommitDownloadResult(info, commitList);
-            if (ret != E_OK) {
-                return ret;
-            }
+        int ret = CommitDownloadResult(info, commitList);
+        if (ret != E_OK) {
+            return ret;
         }
     }
     LOGD("Download status is %d", downloadStatus);
-    int ret = CommitDownloadResult(info, commitList);
-    if (ret != E_OK) {
-        return ret;
-    }
     return errorCode == E_OK ? downloadStatus : errorCode;
 }
 
@@ -643,7 +641,7 @@ int CloudSyncer::TagStatus(bool isExist, SyncParam &param, size_t idx, DataInfo 
     return TagDownloadAssets(hashKey, idx, param, dataInfo, localAssetInfo);
 }
 
-int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, DataInfo &dataInfo,
+int CloudSyncer::TagDownloadAssets(const Key &hashKey, size_t idx, SyncParam &param, const DataInfo &dataInfo,
     VBucket &localAssetInfo)
 {
     int ret = E_OK;
@@ -1117,10 +1115,14 @@ int CloudSyncer::SaveUploadData(Info &insertInfo, Info &updateInfo, Info &delete
 
 int CloudSyncer::DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo)
 {
+    int errCode = storageProxy_->FillCloudLogAndAsset(OpType::SET_UPLOADING, uploadData);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     Info insertInfo;
     Info updateInfo;
     Info deleteInfo;
-    int errCode = SaveUploadData(insertInfo, updateInfo, deleteInfo, uploadData, innerProcessInfo);
+    errCode = SaveUploadData(insertInfo, updateInfo, deleteInfo, uploadData, innerProcessInfo);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1277,6 +1279,7 @@ int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &in
         LOGE("TagUploadAssets report ERROR, cannot tag uploadAssets");
         return ret;
     }
+    CloudSyncUtils::UpdateAssetsFlag(uploadData);
     // get local water mark to be updated in future.
     ret = CloudSyncUtils::UpdateExtendTime(uploadData, innerProcessInfo.upLoadInfo.total, taskId, localMark);
     if (ret != E_OK) {
@@ -1960,9 +1963,8 @@ int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param)
 int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
     DownloadItem &downloadItem, InnerProcessInfo &info, ChangedData &changedAssets)
 {
-    std::map<std::string, Assets> downloadAssets(downloadItem.assets);
-    CloudStorageUtils::EraseNoChangeAsset(downloadAssets);
-    if (downloadAssets.empty()) { // Download data (include deleting)
+    CloudStorageUtils::EraseNoChangeAsset(downloadItem.assets);
+    if (downloadItem.assets.empty()) { // Download data (include deleting)
         return E_OK;
     }
     bool isSharedTable = false;
@@ -1972,7 +1974,7 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
         return errorCode;
     }
     if (!isSharedTable) {
-        errorCode = cloudDB_.Download(info.tableName, downloadItem.gid, downloadItem.prefix, downloadAssets);
+        errorCode = DownloadAssetsOneByOne(info, downloadItem, downloadItem.assets);
         if (errorCode == -E_NOT_SET) {
             return -E_NOT_SET;
         }
@@ -1991,7 +1993,6 @@ int CloudSyncer::DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, cons
     if (downloadItem.strategy == OpType::DELETE) {
         return E_OK;
     }
-    CloudStorageUtils::MergeDownloadAsset(downloadAssets, downloadItem.assets);
     return errorCode;
 }
 

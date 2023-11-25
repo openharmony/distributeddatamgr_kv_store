@@ -15,10 +15,10 @@
 #include <gtest/gtest.h>
 
 #include <utility>
-#include "cloud_db_constant.h"
-#include "cloud_db_data_utils.h"
-#include "cloud_db_types.h"
-#include "cloud_db_proxy.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_data_utils.h"
+#include "cloud/cloud_db_types.h"
+#include "cloud/cloud_db_proxy.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_errno.h"
 #include "mock_icloud_sync_storage_interface.h"

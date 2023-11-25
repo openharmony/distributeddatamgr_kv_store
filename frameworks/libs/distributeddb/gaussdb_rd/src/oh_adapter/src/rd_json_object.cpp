@@ -926,7 +926,7 @@ JsonObject JsonObject::FindItem(const JsonFieldPath &jsonPath, int &errCode) con
 JsonObject JsonObject::FindItemPowerMode(const JsonFieldPath &jsonPath, int &errCode) const
 {
     (void)jsonPath;
-    (void)errCode;  
+    (void)errCode;
     return {};
 }
 

@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "cloud/cloud_storage_utils.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "process_system_api_adapter_impl.h"
@@ -300,6 +300,7 @@ namespace {
         asset.name = "Phone" + std::to_string(rowid - cloudCount - 1);
         if (opType == AssetOpType::UPDATE) {
             asset.uri = "/data/test";
+            asset.hash = "";
         } else if (opType == AssetOpType::INSERT) {
             asset.name = "Test10";
         }
@@ -326,6 +327,7 @@ namespace {
         if (opType == AssetOpType::UPDATE) {
             assets.push_back(asset1);
             asset2.uri = "/data/test";
+            asset2.hash = "";
             asset2.status = static_cast<uint32_t>(CloudStorageUtils::FlagToStatus(opType));
             assets.push_back(asset2);
         } else if (opType == AssetOpType::INSERT) {
@@ -989,11 +991,7 @@ namespace {
             Asset asset;
             ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset), E_OK);
             EXPECT_EQ(asset.version, g_cloudAsset.version);
-            if (index % 6u == 0) { // 6 is AssetStatus type num, include invalid type
-                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
-            } else {
-                EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::ABNORMAL));
-            }
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::ABNORMAL));
             index++;
         }
         int errCode;
@@ -1065,7 +1063,8 @@ namespace {
                 LOGD("Download GID:%s", gid.c_str());
                 for (auto &item: assets) {
                     for (auto &asset: item.second) {
-                        EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+                        EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status),
+                            static_cast<uint32_t>(AssetStatus::DOWNLOADING));
                         LOGD("asset [name]:%s, [status]:%u, [flag]:%u", asset.name.c_str(), asset.status, asset.flag);
                         asset.status = (index++) % 6u; // 6 is AssetStatus type num, include invalid type
                     }

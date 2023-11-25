@@ -15,9 +15,9 @@
 #include "virtual_cloud_db.h"
 
 #include <thread>
-#include "cloud_db_types.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_types.h"
 #include "db_constant.h"
-#include "cloud_db_constant.h"
 #include "log_print.h"
 #include "relational_store_manager.h"
 #include "time_helper.h"
@@ -45,6 +45,30 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         return DB_ERROR;
     }
     std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
+    DBStatus status = InnerBatchInsert(tableName, std::move(record), extend);
+    if (status != OK) {
+        return status;
+    }
+    if (missingExtendCount_ > 0) {
+        extend.erase(extend.end());
+    } else if (missingExtendCount_ < 0) {
+        VBucket vBucket;
+        extend.push_back(vBucket);
+    }
+    if (insertFailedCount_ > 0) {
+        insertFailedCount_--;
+        LOGW("[VirtualCloud] Insert failed by testcase config");
+        return DB_ERROR;
+    }
+    if (cloudNetworkError_) {
+        return CLOUD_NETWORK_ERROR;
+    }
+    return OK;
+}
+
+DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
+    std::vector<VBucket> &extend)
+{
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) != extend[i].end()) {
             LOGE("[VirtualCloudDb] Insert data should not have gid");
@@ -64,14 +88,6 @@ DBStatus VirtualCloudDb::BatchInsert(const std::string &tableName, std::vector<V
         };
         cloudData_[tableName].push_back(cloudData);
         auto gid = std::get<std::string>(extend[i][g_gidField]);
-    }
-    for (int32_t i = 0; i < missingExtendCount_; i++) {
-        extend.erase(extend.end());
-    }
-    if (insertFailedCount_ > 0) {
-        insertFailedCount_--;
-        LOGW("[VirtualCloud] Insert failed by testcase config");
-        return DB_ERROR;
     }
     return OK;
 }
@@ -107,7 +123,15 @@ DBStatus VirtualCloudDb::BatchInsertWithGid(const std::string &tableName, std::v
         };
         cloudData_[tableName].push_back(cloudData);
     }
-
+    if (missingExtendCount_ > 0) {
+        extend.erase(extend.end());
+    } else if (missingExtendCount_ < 0) {
+        VBucket vBucket;
+        extend.push_back(vBucket);
+    }
+    if (cloudNetworkError_) {
+        return CLOUD_NETWORK_ERROR;
+    }
     LOGI("[VirtualCloudDb] BatchInsertWithGid records");
     return OK;
 }
@@ -332,6 +356,25 @@ DBStatus VirtualCloudDb::InnerUpdate(const std::string &tableName, std::vector<V
         return DB_ERROR;
     }
     std::lock_guard<std::mutex> autoLock(cloudDataMutex_);
+    DBStatus res = InnerUpdateWithoutLock(tableName, std::move(record), extend, isDelete);
+    if (res != OK) {
+        return res;
+    }
+    if (missingExtendCount_ > 0) {
+        extend.erase(extend.end());
+    } else if (missingExtendCount_ < 0) {
+        VBucket vBucket;
+        extend.push_back(vBucket);
+    }
+    if (cloudNetworkError_) {
+        return CLOUD_NETWORK_ERROR;
+    }
+    return OK;
+}
+
+DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, std::vector<VBucket> &&record,
+    std::vector<VBucket> &extend, bool isDelete)
+{
     for (size_t i = 0; i < record.size(); ++i) {
         if (extend[i].find(g_gidField) == extend[i].end()) {
             LOGE("[VirtualCloudDb] Update data should have gid");
@@ -495,21 +538,31 @@ void VirtualCloudDb::SetClearExtend(int32_t count)
     missingExtendCount_ = count;
 }
 
-void VirtualCloudDb::AddAssetIdForExtend(const VBucket &record, VBucket &extend)
+void VirtualCloudDb::SetCloudNetworkError(bool cloudNetworkError)
 {
-    for (const auto &recordData : record) {
+    cloudNetworkError_ = cloudNetworkError;
+}
+
+void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
+{
+    for (auto &recordData : record) {
         if (recordData.second.index() == TYPE_INDEX<Asset>) {
-            auto asset = std::get<Asset>(recordData.second);
-            asset.assetId = "10";
-            extend[recordData.first] = asset;
-        }
-        if (recordData.second.index() == TYPE_INDEX<Assets>) {
-            auto assets = std::get<Assets>(recordData.second);
-            for (auto &asset : assets) {
+            auto &asset = std::get<Asset>(recordData.second);
+            if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
                 asset.assetId = "10";
             }
-            extend[recordData.first] = assets;
+            extend[recordData.first] = asset;
         }
+        if (recordData.second.index() != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        auto &assets = std::get<Assets>(recordData.second);
+        for (auto &asset : assets) {
+            if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
+                asset.assetId = "10";
+            }
+        }
+        extend[recordData.first] = assets;
     }
 }
 }

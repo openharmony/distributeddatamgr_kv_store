@@ -331,7 +331,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, SingleVerGetLocalEntries001, T
   * @tc.require: AR000D08KT
   * @tc.author: wumin
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, DISABLED_ResultSetTest001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, ResultSetTest001, TestSize.Level1)
 {
     /**
      * @tc.steps: step1. initialize result set.
@@ -1856,7 +1856,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, FreqGet001, TestSize.Level2)
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -1935,7 +1935,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Leve
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -1982,7 +1982,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
     EXPECT_EQ(count1, 4);
     EXPECT_EQ(resultSet->MoveToNext(), false);
     Entry entryValue;
-    EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+    EXPECT_EQ(resultSet->GetEntry(entryValue), NOT_FOUND);
     std::string keyStr(entryValue.value.begin(), entryValue.value.end());
 
     /**
@@ -2053,7 +2053,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Leve
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -2103,7 +2103,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Leve
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level0)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -2212,6 +2212,74 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Leve
     }
     EXPECT_EQ(count2, 1);
     EXPECT_EQ(resultSet->MoveToPrevious(), false);
+    if (resultSet != nullptr) {
+        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    }
+}
+
+/**
+  * @tc.name: RdRangeQuery005
+  * @tc.desc:Test resultSet fuction, end key is bigger or equal than the biggest data in DB.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    g_mgr.GetKvStore("RdRangeQuery005", g_option, g_kvNbDelegateCallback);
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    /**
+     * @tc.steps: step1.
+     * @tc.expected: step1.
+     */
+    Entry entry0 = {{'0'}, {'0'}};
+    Entry entry1 = {{'1'}, {'1'}};
+    Entry entry2 = {{'2'}, {'2'}};
+    Entry entry3 = {{'3'}, {'3'}};
+    Entry entry4 = {{'4'}, {'4'}};
+    Entry entry5 = {{'5'}, {'5'}};
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
+    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
+
+
+    /**
+     * @tc.steps: step2.
+     * @tc.expected: step2. 2, 3, 4
+     */
+    Query fullQuery = Query::Select().Range({'2'}, {'5'});
+    KvStoreResultSet *resultSet = nullptr;
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count1 = 0;
+    while (resultSet->MoveToNext()) {
+        count1++;
+    }
+    EXPECT_EQ(count1, 4);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
+
+    /**
+     * @tc.steps: step3.
+     * @tc.expected: step3. 0, 1 ,2 ,3 ,4
+     */
+    Query fullQuery2 = Query::Select().Range({'2'}, {'8'});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
+    EXPECT_NE(resultSet, nullptr);
+    int count2 = 0;
+    while (resultSet->MoveToNext()) {
+        count2++;
+    }
+    EXPECT_EQ(count2, 4);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
     if (resultSet != nullptr) {
         EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
     }

@@ -91,8 +91,8 @@ void DistributedDBCloudSyncerUploadTest::TearDown(void)
 void DistributedDBCloudSyncerUploadTest::PrepareRecord(VBucket &tmp, VBucket &assets)
 {
     tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-        pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
-        pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
     assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
 }
 

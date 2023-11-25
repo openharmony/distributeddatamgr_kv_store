@@ -78,6 +78,8 @@ public:
     virtual int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
 
     virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
+
+    virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

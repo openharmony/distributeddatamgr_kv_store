@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "system_timer.h"
+#include "system_time.h"
 
 #include <atomic>
 #include <sys/time.h>
@@ -29,7 +29,7 @@ namespace {
 namespace DistributedDB {
 namespace OS {
 
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
 int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
 {
     struct timeval rawTime;
@@ -43,7 +43,7 @@ int GetCurrentSysTimeInMicrosecond(uint64_t &outTime)
     outTime = outTime + g_timeOffset.load();
     return 0;
 }
-#endif // RUNNING_ON_SIMULATED_ENV
+#endif // DB_DEBUG_ENV
 
 void SetOffsetBySecond(int64_t inSecond)
 {

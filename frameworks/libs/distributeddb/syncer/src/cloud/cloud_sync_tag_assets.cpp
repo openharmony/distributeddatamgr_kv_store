@@ -24,7 +24,11 @@ void TagSingleAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets &
     } else {
         asset.flag = static_cast<uint32_t>(flag);
     }
-    asset.status = static_cast<uint32_t>(status);
+    uint32_t newStatus = static_cast<uint32_t>(status);
+    if (flag == AssetOpType::INSERT && status == AssetStatus::DOWNLOADING) {
+        newStatus |= AssetStatus::DOWNLOAD_WITH_NULL;
+    }
+    asset.status = static_cast<uint32_t>(newStatus);
 
     Timestamp timestamp;
     errCode = OS::GetCurrentSysTimeInMicrosecond(timestamp);
@@ -87,12 +91,11 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
     bool beCoveredHasAssets = IsDataContainField<Assets>(assetFieldName, beCoveredData);
     bool coveredHasAssets = IsDataContainField<Assets>(assetFieldName, coveredData);
     if (!beCoveredHasAssets) {
-        if (!coveredHasAssets) {
-            return res;
+        if (coveredHasAssets) {
+            // all the element in assets will be set to INSERT
+            TagAssetsWithNormalStatus(setNormalStatus,
+                AssetOpType::INSERT, std::get<Assets>(coveredData[assetFieldName]), res, errCode);
         }
-        // all the element in assets will be set to INSERT
-        TagAssetsWithNormalStatus(setNormalStatus,
-            AssetOpType::INSERT, std::get<Assets>(coveredData[assetFieldName]), res, errCode);
         return res;
     }
     if (!coveredHasAssets) {
@@ -116,7 +119,8 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
-            TagAssetWithNormalStatus(setNormalStatus, AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
+            TagAssetWithNormalStatus(setNormalStatus, beCoveredAsset.status == AssetStatus::DELETE ?
+                AssetOpType::UPDATE : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
         }
         // Erase element which has been handled, remaining element will be set to Insert
         coveredAssetsIndexMap.erase(it);

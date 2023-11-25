@@ -254,10 +254,9 @@ int SQLiteRelationalUtils::GetSelectVBucket(sqlite3_stmt *stmt, VBucket &bucket)
     if (stmt == nullptr) {
         return -E_INVALID_ARGS;
     }
-    int errCode = E_OK;
     for (int cid = 0, colCount = sqlite3_column_count(stmt); cid < colCount; ++cid) {
         Type typeVal;
-        errCode = GetTypeValByStatement(stmt, cid, typeVal);
+        int errCode = GetTypeValByStatement(stmt, cid, typeVal);
         if (errCode != E_OK) {
             LOGE("get typeVal from stmt failed");
             return errCode;
@@ -369,7 +368,7 @@ int SQLiteRelationalUtils::GetBlobByStatement(sqlite3_stmt *stmt, int cid, Type 
         }
         typeVal = blobValue;
     }
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteRelationalUtils::SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged)

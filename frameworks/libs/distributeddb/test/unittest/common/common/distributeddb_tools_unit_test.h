@@ -222,6 +222,9 @@ public:
 
     static void Dump();
 
+    static std::string GetKvNbStoreDirectory(const std::string &identifier, const std::string &dbFilePath,
+        const std::string &dbDir);
+
 private:
     static int OpenMockMultiDb(DatabaseInfo &dbInfo, DistributedDB::OpenDbProperties &properties);
 
@@ -334,6 +337,10 @@ public:
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
     static void CloudBlockSync(const DistributedDB::Query &query, DistributedDB::RelationalStoreDelegate *delegate,
         DistributedDB::DBStatus expect = DistributedDB::DBStatus::OK);
+    static int SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
+        std::vector<DistributedDB::VBucket> &data);
+    static DistributedDB::Assets GetAssets(const DistributedDB::Type &value,
+        const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate);
 };
 } // namespace DistributedDBUnitTest
 

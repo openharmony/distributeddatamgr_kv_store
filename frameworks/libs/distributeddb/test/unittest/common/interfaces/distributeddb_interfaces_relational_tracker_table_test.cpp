@@ -111,7 +111,7 @@ namespace {
         }
     }
 
-    void BatchUpdateTableName2Data(uint64_t num, std::set<std::string> colNames)
+    void BatchUpdateTableName2Data(uint64_t num, const std::set<std::string> &colNames)
     {
         std::string sql = "UPDATE " + TABLE_NAME2 + " SET ";
         for (const auto &col: colNames) {
@@ -130,7 +130,7 @@ namespace {
         EXPECT_EQ(RelationalTestUtils::ExecSql(g_db, sql), SQLITE_OK);
     }
 
-    void BatchOperatorTableName2Data(uint64_t num, std::set<std::string> colNames)
+    void BatchOperatorTableName2Data(uint64_t num, const std::set<std::string> &colNames)
     {
         BatchInsertTableName2Data(num);
         BatchInsertTableName2Data(num);

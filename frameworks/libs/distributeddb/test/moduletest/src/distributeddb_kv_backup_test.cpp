@@ -134,7 +134,7 @@ HWTEST_F(DistributeddbKvBackupTest, ExportTest001, TestSize.Level1)
      * @tc.steps: step3. call export interface to export data and the dir of filepath is no r,w right.
      * @tc.expected: step3. call failed return INVALID_ARGS.
      */
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
     const std::string noRightPath = "../noright";
     const int authRight = 0111;
     SetDir(noRightPath, authRight);

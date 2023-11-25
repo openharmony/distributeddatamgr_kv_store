@@ -27,7 +27,9 @@
 #include "runtime_context.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "storage_engine_manager.h"
-#include "system_timer.h"
+#ifdef DB_DEBUG_ENV
+#include "system_time.h"
+#endif // DB_DEBUG_ENV
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -2245,7 +2247,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     FreeVirtualDevice(g_deviceD);
 }
 
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -2371,7 +2373,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest003,
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("TimeChangeWithCloseStoreTest003"), OK);
 }
-#endif // RUNNING_ON_SIMULATED_ENV
+#endif // DB_DEBUG_ENV
 
 /**
   * @tc.name: ResultSetLimitTest001
@@ -2862,7 +2864,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
   * @tc.require: AR000DPTTA
   * @tc.author: mazhao
   */
-HWTEST_F(DistributedDBInterfacesNBDelegateTest, DISABLED_RdRangeQueryInSqlite001, TestSize.Level1)
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
 {
     /**
      * @tc.steps:step1. Get the nb delegate.
@@ -2880,7 +2882,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, DISABLED_RdRangeQueryInSqlite001
     //  */
     KvStoreResultSet *resultSet = nullptr;
     Query inValidQuery = Query::Select().Range({}, {});
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), INVALID_ARGS);
-    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), NOT_SUPPORT);
 }
 }

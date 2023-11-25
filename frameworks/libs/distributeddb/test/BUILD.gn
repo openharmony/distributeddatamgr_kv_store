@@ -36,6 +36,7 @@ config("module_private_config") {
     "../common/include/cloud",
     "../common/include/relational",
     "../common/src",
+    "../common/src/cloud",
     "../communicator/include",
     "../communicator/src",
     "../storage/include",
@@ -88,7 +89,7 @@ ohos_source_set("src_file") {
     "unittest/common/common/distributeddb_data_generate_unit_test.cpp",
     "unittest/common/common/distributeddb_tools_unit_test.cpp",
     "unittest/common/common/native_sqlite.cpp",
-    "unittest/common/common/system_timer.cpp",
+    "unittest/common/common/system_time.cpp",
     "unittest/common/common/thread_pool_test_stub.cpp",
     "unittest/common/interfaces/process_system_api_adapter_impl.cpp",
     "unittest/common/syncer/cloud/cloud_db_data_utils.cpp",
@@ -697,6 +698,10 @@ distributeddb_unittest("DistributedDBCloudReferenceSyncTest") {
   ]
 }
 
+distributeddb_unittest("DistributedDBCloudAssetsOperationSyncTest") {
+  sources = [ "unittest/common/storage/cloud/distributeddb_cloud_assets_operation_sync_test.cpp" ]
+}
+
 ###############################################################################
 group("unittest") {
   testonly = true
@@ -706,6 +711,7 @@ group("unittest") {
     ":DistributedDBAbilitySyncTest",
     ":DistributedDBAutoLaunchUnitTest",
     ":DistributedDBCloudAssetCompareTest",
+    ":DistributedDBCloudAssetsOperationSyncTest",
     ":DistributedDBCloudCheckSyncTest",
     ":DistributedDBCloudDBProxyTest",
     ":DistributedDBCloudInterfacesReferenceTest",
