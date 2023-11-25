@@ -26,6 +26,9 @@
 #include "relational_store_sqlite_ext.h"
 #include "relational_virtual_device.h"
 #include "runtime_config.h"
+#ifdef DB_DEBUG_ENV
+#include "system_time.h"
+#endif // DB_DEBUG_ENV
 #include "virtual_relational_ver_sync_db_interface.h"
 
 using namespace testing::ext;
@@ -1978,9 +1981,9 @@ HWTEST_F(DistributedDBInterfacesRelationalTest, CreateDistributedTableTest005, T
     EXPECT_EQ(delegate->CreateDistributedTable("t1"), OK);
 
     /**
-    * @tc.steps:step4. close store
-    * @tc.expected: step4. Return OK.
-    */
+     * @tc.steps:step4. close store
+     * @tc.expected: step4. Return OK.
+     */
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     EXPECT_EQ(g_mgr.CloseStore(delegate), OK);
     delegate = nullptr;

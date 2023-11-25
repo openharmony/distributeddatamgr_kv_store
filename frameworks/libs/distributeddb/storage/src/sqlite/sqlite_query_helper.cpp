@@ -22,6 +22,7 @@
 #include "log_print.h"
 #include "macro_utils.h"
 #include "sqlite_utils.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 using namespace TriggerMode;
@@ -1168,9 +1169,8 @@ int SqliteQueryHelper::GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, ui
 
 void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql)
 {
-    sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
-    sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
-    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)":
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
+    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
         " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
     sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
     sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
@@ -1178,8 +1178,7 @@ void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql
 
 void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &sql)
 {
-    sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
-    sql += tableName_ + "' AS a ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
     sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
         " WHERE b.timestamp > ?";
     sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.

@@ -17,6 +17,7 @@
 #define ICLOUD_SYNC_STORAGE_INTERFACE_H
 
 #include "cloud/cloud_db_types.h"
+#include "cloud/iAssetLoader.h"
 #include "data_transformer.h"
 #include "query_sync_object.h"
 #include "sqlite_utils.h"
@@ -35,6 +36,7 @@ enum class OpType : uint8_t {
     UPDATE_TIMESTAMP,
     CLEAR_GID,
     UPDATE_VERSION,
+    SET_UPLOADING,
     NOT_HANDLE
 };
 
@@ -123,6 +125,17 @@ public:
 
     virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
     {
+    }
+
+    virtual int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
+        VBucket &assets)
+    {
+        return E_OK;
+    }
+
+    virtual int SetIAssetLoader([[gnu::unused]] const std::shared_ptr<IAssetLoader> &loader)
+    {
+        return E_OK;
     }
 };
 }

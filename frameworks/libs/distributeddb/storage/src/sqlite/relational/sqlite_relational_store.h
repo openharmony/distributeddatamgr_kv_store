@@ -94,12 +94,16 @@ public:
     int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
     int SetTrackerTable(const TrackerSchema &trackerSchema);
+
     int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
+
+    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 private:
     void ReleaseResources();
 
@@ -149,12 +153,16 @@ private:
         CloudSyncer::CloudTaskInfo &info);
 
     int CleanWaterMark(std::set<std::string> &clearWaterMarkTable);
+
     int InitTrackerSchemaFromMeta();
 
-    void GetLocalSchema(DataBaseSchema &schema);
-    void PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
-        std::vector<std::string> &notHandleTableNames, std::map<std::string, std::string> &alterTableNames);
-    int CreateSharedTable(const DataBaseSchema &schema);
+    bool CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo, std::vector<Field> &addFields);
+
+    bool PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
+        std::map<std::string, std::vector<Field>> &updateTableNames,
+        std::map<std::string, std::string> &alterTableNames);
+
+    int ExecuteCreateSharedTable(const DataBaseSchema &schema);
 
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 

@@ -23,6 +23,7 @@
 namespace DistributedDB {
 constexpr const char *ASSET = "asset";
 constexpr const char *ASSETS = "assets";
+constexpr const char *ROW_ID = "rowid";
 
 const std::string &FieldInfo::GetFieldName() const
 {
@@ -349,7 +350,7 @@ const std::map<int, FieldName> &TableInfo::GetPrimaryKey() const
 
 CompositeFields TableInfo::GetIdentifyKey() const
 {
-    if (primaryKey_.size() == 1 && primaryKey_.at(0) == "rowid") {
+    if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
         if (!uniqueDefines_.empty()) {
             return uniqueDefines_.at(0);
         }
@@ -647,16 +648,16 @@ int TableInfo::CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) c
 
 int TableInfo::CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const
 {
-    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") &&
+    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) &&
         !CompareWithPrimaryKey(primaryKey_, liteTableInfo.GetPrimaryKey())) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == "rowid")) {
+    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == ROW_ID)) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") && !autoInc_)) {
+    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) && !autoInc_)) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
@@ -749,7 +750,7 @@ int TableInfo::CheckTrackerTable()
     if (trackerTable_.GetTrackerColNames().empty()) {
         return E_OK;
     }
-    for (const auto &colName: GetTrackerTable().GetTrackerColNames()) {
+    for (const auto &colName: trackerTable_.GetTrackerColNames()) {
         if (colName.empty()) {
             LOGE("tracker col cannot be empty.");
             return -E_INVALID_ARGS;

@@ -198,7 +198,17 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
     if (option.readOnly) {
         flag |= GRD_DB_OPEN_SHARED_READ_ONLY;
     }
-    return RdDbOpen(option.uri.c_str(), option.rdConfig.c_str(), flag, db);
+    int errCode = RdDbOpen(option.uri.c_str(), option.rdConfig.c_str(), flag, db);
+    if (errCode == -E_REBUILD_DATABASE) {
+        if (option.isNeedRmCorruptedDb) {
+            LOGD("[RdSingleVerStorageEngine] rebuild database successfully");
+            return E_OK;
+        } else {
+            LOGE("[RdSingleVerStorageEngine] database is corrupted");
+            return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
+        }
+    }
+    return errCode;
 }
 
 int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionName)

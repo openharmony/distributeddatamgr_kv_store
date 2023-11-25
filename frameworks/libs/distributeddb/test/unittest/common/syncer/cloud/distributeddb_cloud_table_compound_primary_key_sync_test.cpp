@@ -16,7 +16,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include "cloud/cloud_storage_utils.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "process_system_api_adapter_impl.h"

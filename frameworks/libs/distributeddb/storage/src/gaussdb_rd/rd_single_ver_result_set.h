@@ -42,8 +42,22 @@ public:
     // >= 0: position, < 0: errCode
     int GetPosition() const override;
 
+    int Move(int offset) const override;
+
     // Move the read position to an absolute position value.
     int MoveTo(int position) const override;
+
+    int MoveToFirst() override;
+
+    int MoveToLast() override;
+
+    bool IsFirst() const override;
+
+    bool IsLast() const override;
+
+    bool IsBeforeFirst() const override;
+
+    bool IsAfterLast() const override;
 
     // Get the entry of current position.
     int GetEntry(Entry &entry) const override;
@@ -53,11 +67,9 @@ public:
 private:
     int PreCheckResultSet() const;
 
-    int PreProcessMoveToPrev(bool &needReturn) const;
+    int MoveToNext() const;
 
-    int MoveToNext(bool needPreCheck = true) const;
-
-    int MoveToPrev(bool needPreCheck = true) const;
+    int MoveToPrev() const;
 
     int CmpKeyAndStoreEntry(bool isCmpKey = true) const;
 
@@ -66,6 +78,10 @@ private:
     mutable bool isOpen_ = false;
 
     mutable int position_ = INIT_POSITION; // The position in the overall result
+
+    mutable int endPosition_ = INIT_POSITION;   // the position after the last position, if find
+
+    mutable bool isMovedBefore_ = false;
 
     // For KeyPrefix Type Or Query Type.
     ResultSetType type_ = ResultSetType::KEYPREFIX;

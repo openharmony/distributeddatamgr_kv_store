@@ -94,6 +94,9 @@ public:
     DB_API virtual DBStatus CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
 
     DB_API virtual DBStatus Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
+
+    DB_API virtual DBStatus UpsertData(RecordStatus status, const std::string &tableName,
+        const std::vector<VBucket> &records) = 0;
 protected:
     virtual DBStatus RemoveDeviceDataInner(const std::string &device, ClearMode mode) = 0;
     virtual DBStatus CreateDistributedTableInner(const std::string &tableName, TableSyncType type) = 0;

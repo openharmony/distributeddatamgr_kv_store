@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_single_ver_relational_storage_executor.h"
 
+#include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
@@ -26,6 +27,7 @@
 namespace DistributedDB {
 static constexpr const int ROW_ID_INDEX = 1;
 static constexpr const int TIMESTAMP_INDEX = 2;
+static constexpr const char *HASH_KEY = "HASH_KEY";
 using PairStringVector = std::pair<std::vector<std::string>, std::vector<std::string>>;
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
@@ -53,8 +55,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     for (const auto &pk : pkSet) {
         sql += ", b." + pk;
     }
-    sql += " from '" + DBCommon::GetLogTableName(tableName) + "' AS a LEFT JOIN '" + tableName + "' AS b ";
-    sql += " ON (a.data_key = b." + std::string(DBConstant::SQLITE_INNER_ROWID) + ") WHERE ";
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableName) + " WHERE ";
     if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
     }
@@ -107,57 +108,57 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForDownload(const Ta
     }
     CloudStorageUtils::ChangeAssetsOnVBucketToAsset(vBucket, assetsField);
 
+    Bytes hashKey;
+    (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
+    VBucket dbAssets;
+    errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        return errCode;
+    }
+    AssetOperationUtils::RecordAssetOpType assetOpType = AssetOperationUtils::CalAssetOperation(vBucket, dbAssets,
+        AssetOperationUtils::CloudSyncAction::END_DOWNLOAD);
+
     if (isDownloadSuccess) {
-        CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetAfterDownload,
-            CloudStorageUtils::FillAssetsAfterDownload);
+        CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+            CloudStorageUtils::FillAssetAfterDownload, CloudStorageUtils::FillAssetsAfterDownload);
     } else {
-        CloudStorageUtils::PrepareToFillAssetFromVBucket(vBucket, CloudStorageUtils::FillAssetAfterDownloadFail);
+        CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+            CloudStorageUtils::FillAssetAfterDownloadFail, CloudStorageUtils::FillAssetsAfterDownloadFail);
     }
+
     sqlite3_stmt *stmt = nullptr;
-    errCode = GetFillDownloadAssetStatement(tableSchema.name, vBucket, assetsField, stmt);
+    errCode = GetFillDownloadAssetStatement(tableSchema.name, dbAssets, assetsField, stmt);
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = SQLiteUtils::BindTextToStatement(stmt, assetsField.size() + 1, cloudGid);
-    if (errCode != E_OK) {
-        LOGE("Bind cloud gid to statement failed. %d", errCode);
-        int ret = E_OK;
-        SQLiteUtils::ResetStatement(stmt, true, ret);
-        return errCode;
-    }
-    errCode = SQLiteUtils::StepWithRetry(stmt);
-    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-        errCode = E_OK;
-    } else {
-        LOGE("Fill cloud asset failed:%d", errCode);
-    }
-    int ret = E_OK;
-    SQLiteUtils::ResetStatement(stmt, true, ret);
-    return errCode != E_OK ? errCode : ret;
+    errCode = ExecuteFillDownloadAssetStatement(stmt, assetsField.size() + 1, cloudGid);
+    int ret = CleanDownloadChangedAssets(vBucket, assetOpType);
+    return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opType, const TableSchema &tableSchema,
     const CloudSyncBatch &data)
 {
-    if (data.rowid.empty() || data.timestamp.empty()) {
-        return -E_INVALID_ARGS;
+    int errCode = E_OK;
+    if (CloudStorageUtils::ChkFillCloudAssetParam(data, errCode)) {
+        return errCode;
     }
-    if (data.assets.size() != data.rowid.size() || data.assets.size() != data.timestamp.size()) {
-        return -E_INVALID_ARGS;
-    }
-    int errCode = SetLogTriggerStatus(false);
+    errCode = SetLogTriggerStatus(false);
     if (errCode != E_OK) {
         LOGE("Fail to set log trigger off, %d", errCode);
         return errCode;
     }
     sqlite3_stmt *stmt = nullptr;
     for (size_t i = 0; i < data.assets.size(); ++i) {
-        if (data.assets.at(i).empty() ||
-            data.extend.at(i).find(CloudDbConstant::ERROR_FIELD) != data.extend.at(i).end()) {
+        if (data.assets.at(i).empty()) {
             continue;
         }
-        errCode = InitFillUploadAssetStatement(tableName, data, i, stmt);
+        errCode = InitFillUploadAssetStatement(opType, tableSchema, data, i, stmt);
         if (errCode != E_OK) {
+            if (errCode == -E_NOT_FOUND) {
+                errCode = E_OK;
+                continue;
+            }
             break;
         }
         errCode = SQLiteUtils::StepWithRetry(stmt, false);
@@ -261,40 +262,44 @@ int SQLiteSingleVerRelationalStorageExecutor::BindUpdateVersionStatement(const V
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(const std::string &tableName,
-    const CloudSyncBatch &data, const int &index, sqlite3_stmt *&statement)
+int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpType opType,
+    const TableSchema &tableSchema, const CloudSyncBatch &data, const int &index, sqlite3_stmt *&statement)
 {
     VBucket vBucket = data.assets.at(index);
-    CloudStorageUtils::FillAssetFromVBucketFinish(vBucket, CloudStorageUtils::FillAssetForUpload,
-        CloudStorageUtils::FillAssetsForUpload);
-    std::string sql = "UPDATE " + tableName + " SET ";
-    for (const auto &item: vBucket) {
-        sql += item.first + " = ?,";
-    }
-    sql.pop_back();
-    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = ? and (select 1 from " +
-        DBCommon::GetLogTableName(tableName) + " WHERE timestamp = ?);";
-    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    VBucket dbAssets;
+    std::string cloudGid;
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    int errCode = GetAssetsByGidOrHashKey(tableSchema, cloudGid, data.hashKey.at(index), dbAssets);
     if (errCode != E_OK) {
         return errCode;
     }
-    int bindIndex = 1;
-    for (const auto &item: vBucket) {
-        Field field = {
-            .colName = item.first, .type = static_cast<int32_t>(item.second.index())
-        };
-        errCode = bindCloudFieldFuncMap_[TYPE_INDEX<Assets>](bindIndex++, vBucket, field, statement);
-        if (errCode != E_OK) {
-            return errCode;
+    AssetOperationUtils::CloudSyncAction action = opType == OpType::SET_UPLOADING ?
+        AssetOperationUtils::CloudSyncAction::START_UPLOAD : AssetOperationUtils::CloudSyncAction::END_UPLOAD;
+    AssetOperationUtils::RecordAssetOpType assetOpType = AssetOperationUtils::CalAssetOperation(vBucket, dbAssets,
+        action);
+    if (action == AssetOperationUtils::CloudSyncAction::START_UPLOAD) {
+        CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+            CloudStorageUtils::FillAssetBeforeUpload, CloudStorageUtils::FillAssetsBeforeUpload);
+    } else {
+        if (data.extend.at(index).find(CloudDbConstant::ERROR_FIELD) != data.extend.at(index).end()) {
+            CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+                CloudStorageUtils::FillAssetForUploadFailed, CloudStorageUtils::FillAssetsForUploadFailed);
         }
+        CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+            CloudStorageUtils::FillAssetForUpload, CloudStorageUtils::FillAssetsForUpload);
+    }
+
+    errCode = GetAndBindFillUploadAssetStatement(tableSchema.name, dbAssets, statement);
+    if (errCode != E_OK) {
+        return errCode;
     }
     int64_t rowid = data.rowid[index];
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + ROW_ID_INDEX, rowid);
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + ROW_ID_INDEX, rowid);
     if (errCode != E_OK) {
         return errCode;
     }
     int64_t timeStamp = data.timestamp[index];
-    return SQLiteUtils::BindInt64ToStatement(statement, vBucket.size() + TIMESTAMP_INDEX, timeStamp);
+    return SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + TIMESTAMP_INDEX, timeStamp);
 }
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize,
@@ -596,21 +601,21 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const DataBaseSc
     for (const auto &table : schema.tables) {
         std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + table.sharedTableName + "(";
         std::string primaryKey = ", PRIMARY KEY (";
-        bool hasPrimaryKey = false;
-        for (const auto &field : table.fields) {
-            createTableSql += field.colName + " ";
-            createTableSql += cloudFieldTypeMap[field.type];
-            createTableSql += field.nullable ? ", " : " NOT NULL, ";
-            if (field.primary) {
-                primaryKey += field.colName + ",";
-                hasPrimaryKey = true;
-            }
-        }
         createTableSql += CloudDbConstant::CLOUD_OWNER;
         createTableSql += " TEXT, ";
         createTableSql += CloudDbConstant::CLOUD_PRIVILEGE;
         createTableSql += " TEXT";
         primaryKey += CloudDbConstant::CLOUD_OWNER;
+        bool hasPrimaryKey = false;
+        for (const auto &field : table.fields) {
+            createTableSql += ", " + field.colName + " ";
+            createTableSql += cloudFieldTypeMap[field.type];
+            createTableSql += field.nullable ? "" : " NOT NULL";
+            if (field.primary) {
+                primaryKey += ", " + field.colName;
+                hasPrimaryKey = true;
+            }
+        }
         if (hasPrimaryKey) {
             createTableSql += primaryKey + ")";
         }
@@ -635,6 +640,40 @@ int SQLiteSingleVerRelationalStorageExecutor::DeleteTable(const std::vector<std:
         }
     }
     return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateSharedTable(
+    const std::map<std::string, std::vector<Field>> &updateTableNames)
+{
+    int errCode = E_OK;
+    std::map<int32_t, std::string> fieldTypeMap;
+    fieldTypeMap[TYPE_INDEX<Nil>] = "NULL";
+    fieldTypeMap[TYPE_INDEX<int64_t>] = "INT";
+    fieldTypeMap[TYPE_INDEX<double>] = "REAL";
+    fieldTypeMap[TYPE_INDEX<std::string>] = "TEXT";
+    fieldTypeMap[TYPE_INDEX<bool>] = "BOOLEAN";
+    fieldTypeMap[TYPE_INDEX<Bytes>] = "BLOB";
+    fieldTypeMap[TYPE_INDEX<Asset>] = "ASSET";
+    fieldTypeMap[TYPE_INDEX<Assets>] = "ASSETS";
+    for (const auto &table : updateTableNames) {
+        if (table.second.empty()) {
+            continue;
+        }
+        std::string addColumnSql = "";
+        for (const auto &field : table.second) {
+            addColumnSql += "ALTER TABLE " + table.first + " ADD ";
+            addColumnSql += field.colName + " ";
+            addColumnSql += fieldTypeMap[field.type];
+            addColumnSql += field.primary ? " PRIMARY KEY" : "";
+            addColumnSql += field.nullable ? ";" : " NOT NULL;";
+        }
+        errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, addColumnSql);
+        if (errCode != E_OK) {
+            LOGE("Shared table add column failed, %d", errCode);
+            return errCode;
+        }
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::AlterTableName(const std::map<std::string, std::string> &tableNames)
@@ -917,35 +956,27 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanExtendAndCursorForDeleteData(
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const DataBaseSchema &cloudSchema,
-    const std::map<std::string, std::string> &alterTableNames, const std::vector<std::string> &notHandleTableNames)
+int SQLiteSingleVerRelationalStorageExecutor::CheckIfExistUserTable(const std::string &tableName)
 {
-    for (const auto &tableSchema : cloudSchema.tables) {
-        auto it = std::find(notHandleTableNames.begin(), notHandleTableNames.end(), tableSchema.sharedTableName);
-        if (alterTableNames.find(tableSchema.sharedTableName) != alterTableNames.end() ||
-            it != notHandleTableNames.end()) {
-            continue;
-        }
-        std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?";
-        sqlite3_stmt *statement = nullptr;
-        int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
-        if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Prepare the sql statement error:%d", errCode);
-            return errCode;
-        }
-        errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableSchema.sharedTableName);
-        if (errCode != E_OK) {
-            LOGE("[RDBExecutor] Bind table name failed:%d", errCode);
-            SQLiteUtils::ResetStatement(statement, true, errCode);
-            return errCode;
-        }
-        if (SQLiteUtils::StepWithRetry(statement) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            LOGE("[RDBExecutor] local exists user table which shared table name is same as");
-            SQLiteUtils::ResetStatement(statement, true, errCode);
-            return -E_INVALID_ARGS;
-        }
-        SQLiteUtils::ResetStatement(statement, true, errCode);
+    std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?";
+    sqlite3_stmt *statement = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Prepare the sql statement error:%d", errCode);
+        return errCode;
     }
+    errCode = SQLiteUtils::BindTextToStatement(statement, 1, tableName);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Bind table name failed:%d", errCode);
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return errCode;
+    }
+    if (SQLiteUtils::StepWithRetry(statement) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        LOGE("[RDBExecutor] local exists user table which shared table name is same as");
+        SQLiteUtils::ResetStatement(statement, true, errCode);
+        return -E_INVALID_ARGS;
+    }
+    SQLiteUtils::ResetStatement(statement, true, errCode);
     return E_OK;
 }
 
@@ -1046,18 +1077,18 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetId(const std::string &ta
     for (const auto &fieldInfo : fieldInfos) {
         if (fieldInfo.IsAssetType()) {
             Assets assets;
-            errCode = GetCloudAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud asset on table, %d.", errCode);
                 return errCode;
             }
-            errCode = CleanAssetIdOnUserTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = UpdateAssetIdOnUserTable(tableName, fieldInfo.GetFieldName(), dataKeys, {}, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to save clean asset id on table, %d.", errCode);
                 return errCode;
             }
         } else if (fieldInfo.IsAssetsType()) {
-            errCode = GetAssetsAndCleanAssetsId(tableName, fieldInfo.GetFieldName(), dataKeys);
+            errCode = GetAssetsAndUpdateAssetsId(tableName, fieldInfo.GetFieldName(), dataKeys, {});
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud assets on table, %d.", errCode);
                 return errCode;
@@ -1067,45 +1098,61 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetId(const std::string &ta
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CleanAssetIdOnUserTable(const std::string &tableName,
-    const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
+int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetIdOnUserTable(const std::string &tableName,
+    const std::string &fieldName, const std::vector<int64_t> &dataKeys, const VBucket &vBucket,
+    std::vector<Asset> &assets)
 {
+    if (assets.empty()) {
+        return E_OK;
+    }
     int errCode = E_OK;
-    for (size_t i = 0; i < dataKeys.size(); i++) {
+    int ret = E_OK;
+    sqlite3_stmt *stmt = nullptr;
+    size_t index = 0;
+    for (const auto &rowId : dataKeys) {
+        if (rowId == -1) { // -1 means data is deleted
+            continue;
+        }
+        if (assets[index].name.empty()) {
+            index++;
+            continue;
+        }
         std::string cleanAssetIdSql = "UPDATE " + tableName  + " SET " + fieldName + " = ? WHERE " +
-            std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(dataKeys[i]) + ";";
-        sqlite3_stmt *stmt = nullptr;
+            std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
         errCode = SQLiteUtils::GetStatement(dbHandle_, cleanAssetIdSql, stmt);
         if (errCode != E_OK) {
             LOGE("Get statement failed, %d", errCode);
             return errCode;
         }
-        assets[i].assetId = "";
-        std::vector<uint8_t> blobValue;
-        errCode = RuntimeContext::GetInstance()->AssetToBlob(assets[i], blobValue);
-        if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
-            return errCode;
+        if (vBucket.empty()) {
+            assets[index].assetId = "";
+            assets[index].status &= ~AssetStatus::UPLOADING;
+        } else {
+            UpdateLocalAssetId(vBucket, fieldName, assets[index]);
         }
-        errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, blobValue, false);
+        errCode = BindAssetToBlobStatement(assets[index], stmt);
+        index++;
         if (errCode != E_OK) {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
-            return errCode;
+            LOGE("Bind asset to blob statement failed, %d", errCode);
+            goto END;
         }
         errCode = SQLiteUtils::StepWithRetry(stmt);
         if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
             errCode = E_OK;
         } else {
-            SQLiteUtils::ResetStatement(stmt, true, errCode);
-            return errCode;
+            LOGE("Step statement failed, %d", errCode);
+            goto END;
         }
-        SQLiteUtils::ResetStatement(stmt, true, errCode);
+        SQLiteUtils::ResetStatement(stmt, true, ret);
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
+END:
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetAssetsAndCleanAssetsId(const std::string &tableName,
-    const std::string &fieldName, const std::vector<int64_t> &dataKeys)
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetsAndUpdateAssetsId(const std::string &tableName,
+    const std::string &fieldName, const std::vector<int64_t> &dataKeys, const VBucket &vBucket)
 {
     int errCode = E_OK;
     int ret = E_OK;
@@ -1119,28 +1166,27 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsAndCleanAssetsId(const st
             goto END;
         }
         Assets assets;
-        errCode = SQLiteUtils::StepWithRetry(selectStmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            std::vector<uint8_t> blobValue;
-            errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
-            if (errCode != E_OK) {
-                goto END;
-            }
-            errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
-            if (errCode != E_OK) {
-                goto END;
-            }
-        } else {
+        errCode = GetAssetsByRowId(selectStmt, assets);
+        if (errCode != E_OK) {
+            LOGE("Get assets by rowId failed, %d", errCode);
             goto END;
         }
         SQLiteUtils::ResetStatement(selectStmt, true, ret);
-        for (auto &asset : assets) {
-            asset.assetId = "";
+        if (assets.empty()) {
+            continue;
+        }
+        if (vBucket.empty()) {
+            for (auto &asset : assets) {
+                asset.assetId = "";
+                asset.status &= ~AssetStatus::UPLOADING;
+            }
+        } else {
+            UpdateLocalAssetsId(vBucket, fieldName, assets);
         }
         std::vector<uint8_t> assetsValue;
         errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsValue);
         if (errCode != E_OK) {
-            LOGE("[CleanAssetsIdOnUserTable] clean assets id on user table failed, %d", errCode);
+            LOGE("[CleanAssetsIdOnUserTable] failed to transfer assets to blob, %d", errCode);
             return errCode;
         }
         errCode = CleanAssetsIdOnUserTable(tableName, fieldName, rowId, assetsValue);
@@ -1177,6 +1223,316 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanAssetsIdOnUserTable(const std
         errCode = E_OK;
     }
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const TableSchema &tableSchema,
+    const std::string &gid, const Bytes &hashKey, VBucket &assets)
+{
+    std::vector<Field> assetFields;
+    std::string sql = "SELECT";
+    for (const auto &field: tableSchema.fields) {
+        if (field.type == TYPE_INDEX<Asset> || field.type == TYPE_INDEX<Assets>) {
+            assetFields.emplace_back(field);
+            sql += " b." + field.colName + ",";
+        }
+    }
+    if (assetFields.empty()) {
+        return -E_NOT_FOUND;
+    }
+    sql.pop_back();
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE ";
+    if (!gid.empty()) {
+        sql += " a.cloud_gid = ? or ";
+    }
+    sql += " a.hash_key = ?;";
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = InitGetAssetStmt(sql, gid, hashKey, stmt);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    int index = 0;
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        for (const auto &field: assetFields) {
+            Type cloudValue;
+            errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, index++, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+            errCode = PutVBucketByType(assets, field, cloudValue);
+            if (errCode != E_OK) {
+                break;
+            }
+        }
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = -E_NOT_FOUND;
+    } else {
+        LOGE("step get asset stmt failed. %d", errCode);
+    }
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::InitGetAssetStmt(const std::string &sql, const std::string &gid,
+    const Bytes &hashKey, sqlite3_stmt *&stmt)
+{
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("Get asset statement failed, %d", errCode);
+        return errCode;
+    }
+    int index = 1;
+    if (!gid.empty()) {
+        errCode = SQLiteUtils::BindTextToStatement(stmt, index++, gid);
+        if (errCode != E_OK) {
+            LOGE("bind gid failed. %d", errCode);
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
+            return errCode;
+        }
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, index, hashKey);
+    if (errCode != E_OK) {
+        LOGE("bind hash failed. %d", errCode);
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::FillHandleWithOpType(const OpType opType, const CloudSyncData &data,
+    bool fillAsset, bool ignoreEmptyGid, const TableSchema &tableSchema)
+{
+    int errCode = E_OK;
+    if (opType == OpType::UPDATE_VERSION) {
+        errCode = FillCloudVersionForUpload(data);
+    } else if (opType == OpType::SET_UPLOADING) {
+        errCode = FillCloudAssetForUpload(opType, tableSchema, data.insData);
+        if (errCode != E_OK) {
+            LOGE("Failed to set uploading for ins data, %d.", errCode);
+            return errCode;
+        }
+        errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+    } else if (opType == OpType::INSERT) {
+        errCode = UpdateCloudLogGid(data, ignoreEmptyGid);
+        if (errCode != E_OK) {
+            LOGE("Failed to fill cloud log gid, %d.", errCode);
+            return errCode;
+        }
+        if (fillAsset) {
+            errCode = FillCloudAssetForUpload(opType, tableSchema, data.insData);
+        }
+    } else if (fillAsset) {
+        errCode = FillCloudAssetForUpload(opType, tableSchema, data.updData);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetDbAssets(const TableSchema &tableSchema,
+    const VBucket &vBucket, VBucket &dbAsset)
+{
+    std::string cloudGid;
+    (void)CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::GID_FIELD, vBucket, cloudGid);
+    Bytes hashKey;
+    (void)CloudStorageUtils::GetValueFromVBucket<Bytes>(HASH_KEY, vBucket, hashKey);
+    VBucket dbAssets;
+    return GetAssetsByGidOrHashKey(tableSchema, cloudGid, hashKey, dbAssets);
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByRowId(sqlite3_stmt *&selectStmt, Assets &assets)
+{
+    int errCode = SQLiteUtils::StepWithRetry(selectStmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
+        if (errCode != E_OK) {
+            LOGE("Get column blob value failed. %d", errCode);
+            return errCode;
+        }
+        errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
+        if (errCode != E_OK) {
+            LOGE("Transfer blob to assets failed. %d", errCode);
+        }
+        return errCode;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        return E_OK;
+    } else {
+        LOGE("Step select statement failed. %d", errCode);
+        return errCode;
+    }
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    assetLoader_ = loader;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::ExecuteFillDownloadAssetStatement(sqlite3_stmt *&stmt,
+    int beginIndex, const std::string &cloudGid)
+{
+    int errCode = SQLiteUtils::BindTextToStatement(stmt, beginIndex, cloudGid);
+    if (errCode != E_OK) {
+        LOGE("Bind cloud gid to statement failed. %d", errCode);
+        int ret = E_OK;
+        SQLiteUtils::ResetStatement(stmt, true, ret);
+        return errCode;
+    }
+    errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        errCode = E_OK;
+    } else {
+        LOGE("Fill cloud asset failed:%d", errCode);
+    }
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadChangedAssets(
+    const VBucket &vBucket, const AssetOperationUtils::RecordAssetOpType &assetOpType)
+{
+    if (assetLoader_ == nullptr) {
+        LOGE("assetLoader may be not set.");
+        return -E_NOT_SET;
+    }
+    std::vector<Asset> toDeleteAssets;
+    CloudStorageUtils::GetToBeRemoveAssets(vBucket, assetOpType, toDeleteAssets);
+    if (toDeleteAssets.empty()) {
+        return E_OK;
+    }
+    int ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
+    if (ret != E_OK) {
+        LOGE("remove local assets failed. %d", ret);
+    }
+    return E_OK;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAndBindFillUploadAssetStatement(const std::string &tableName,
+    const VBucket &assets, sqlite3_stmt *&statement)
+{
+    std::string sql = "UPDATE '" + tableName + "' SET ";
+    for (const auto &item: assets) {
+        sql += item.first + " = ?,";
+    }
+    sql.pop_back();
+    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = ? and (select 1 from '" +
+           DBCommon::GetLogTableName(tableName) + "' WHERE timestamp = ?);";
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    int bindIndex = 1;
+    for (const auto &item: assets) {
+        Field field = {
+            .colName = item.first, .type = static_cast<int32_t>(item.second.index())
+        };
+        errCode = bindCloudFieldFuncMap_[TYPE_INDEX<Assets>](bindIndex++, assets, field, statement);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::string &tableName,
+    const TableSchema &tableSchema, const VBucket &vBucket, int64_t dataKey, OpType opType)
+{
+    if (opType != OpType::ONLY_UPDATE_GID && opType != OpType::NOT_HANDLE) {
+        return E_OK;
+    }
+    if (tableSchema.sharedTableName.empty()) {
+        // this is shared table, not need to update asset id.
+        return E_OK;
+    }
+    std::string sql = "UPDATE " + tableName + " SET";
+    for (const auto &field : tableSchema.fields) {
+        int errCode = UpdateAssetId(tableName, field, dataKey, vBucket);
+        if (errCode != E_OK) {
+            LOGE("[Storage Executor] failed to update assetId on table, %d.", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetId(const VBucket &vBucket, const std::string &fieldName,
+    Asset &asset)
+{
+    for (const auto &[col, value] : vBucket) {
+        if (value.index() == TYPE_INDEX<Asset> && col == fieldName) {
+            Asset cloudAsset = std::get<Asset>(value);
+            if (cloudAsset.name == asset.name) {
+                asset.assetId = cloudAsset.assetId;
+            }
+        } else {
+            LOGD("[UpdateLocalAssetId] value type is not asset");
+        }
+    }
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsId(const VBucket &vBucket, const std::string &fieldName,
+    Assets &assets)
+{
+    for (const auto &[col, value] : vBucket) {
+        if (value.index() == TYPE_INDEX<Assets> && col == fieldName) {
+            Assets cloudAssets = std::get<Assets>(value);
+            UpdateLocalAssetsIdInner(cloudAssets, assets);
+        } else {
+            LOGD("[UpdateLocalAssetsId] value type is not assets");
+        }
+    }
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsIdInner(const Assets &cloudAssets, Assets &assets)
+{
+    for (const auto &cloudAsset : cloudAssets) {
+        for (auto &asset : assets) {
+            if (asset.name == cloudAsset.name) {
+                asset.assetId = cloudAsset.assetId;
+            }
+        }
+    }
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::BindAssetToBlobStatement(const Asset &asset, sqlite3_stmt *&stmt)
+{
+    std::vector<uint8_t> blobValue;
+    int errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, blobValue);
+    if (errCode != E_OK) {
+        LOGE("Transfer asset to blob failed, %d", errCode);
+        return errCode;
+    }
+    errCode = SQLiteUtils::BindBlobToStatement(stmt, 1, blobValue, false);
+    if (errCode != E_OK) {
+        LOGE("Bind asset blob to statement failed, %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetId(const std::string &tableName, const Field &field,
+    int64_t dataKey, const VBucket &vBucket)
+{
+    int errCode = E_OK;
+    if (field.type == TYPE_INDEX<Asset>) {
+        std::vector<int64_t> dataKeys = {dataKey};
+        Assets assets;
+        errCode = GetAssetOnTable(tableName, field.colName, dataKeys, assets);
+        if (errCode != E_OK) {
+            LOGE("[Storage Executor] failed to get asset on table, %d.", errCode);
+            return errCode;
+        }
+        errCode = UpdateAssetIdOnUserTable(tableName, field.colName, dataKeys, vBucket, assets);
+        if (errCode != E_OK) {
+            LOGE("[Storage Executor] failed to save asset id on table, %d.", errCode);
+            return errCode;
+        }
+    }
+    if (field.type == TYPE_INDEX<Assets>) {
+        std::vector<int64_t> dataKeys = {dataKey};
+        errCode = GetAssetsAndUpdateAssetsId(tableName, field.colName, dataKeys, vBucket);
+        if (errCode != E_OK) {
+            LOGE("[Storage Executor] failed to get and save assets on table, %d.", errCode);
+        }
+    }
     return errCode;
 }
 } // namespace DistributedDB

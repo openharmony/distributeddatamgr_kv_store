@@ -99,7 +99,6 @@ public:
     int EraseSyncData(const Key &hashKey);
 
     int RemoveDeviceData(const std::string &deviceName);
-
     int RemoveDeviceDataInCacheMode(const std::string &hashDev, bool isNeedNotify, uint64_t recordVersion) const;
 
     void InitCurrentMaxStamp(Timestamp &maxStamp);

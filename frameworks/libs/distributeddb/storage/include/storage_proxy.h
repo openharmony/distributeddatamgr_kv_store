@@ -22,6 +22,7 @@
 #include "cloud/cloud_store_types.h"
 #include "cloud/cloud_meta_data.h"
 #include "cloud/cloud_db_constant.h"
+#include "cloud/iAssetLoader.h"
 #include "cloud/schema_mgr.h"
 #include "data_transformer.h"
 #include "icloud_sync_storage_interface.h"
@@ -45,7 +46,7 @@ public:
     int GetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
 
     int SetCloudWaterMark(const std::string &tableName, std::string &cloudMark);
-    
+
     int StartTransaction(TransactType type = TransactType::DEFERRED);
 
     int Commit();
@@ -75,7 +76,7 @@ public:
 
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema, std::vector<Asset> &assets);
-    
+
     int CheckSchema(const TableName &tableName) const;
 
     int CheckSchema(std::vector<std::string> &tables);
@@ -102,12 +103,19 @@ public:
     int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
 
     int CreateTempSyncTrigger(const std::string &tableName);
+
     int ClearAllTempSyncTrigger();
+
     int IsSharedTable(const std::string &tableName, bool &isSharedTable);
 
     void FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data);
 
     void SetCloudTaskConfig(const CloudTaskConfig &config);
+
+    int GetAssetsByGidOrHashKey(const std::string &tableName, const std::string &gid, const Bytes &hashKey,
+        VBucket &assets);
+
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 protected:
     void Init();
 

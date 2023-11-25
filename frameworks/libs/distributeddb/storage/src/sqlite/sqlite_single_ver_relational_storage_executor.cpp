@@ -63,7 +63,8 @@ int PermitSelect(void *a, int b, const char *c, const char *d, const char *e, co
 }
 SQLiteSingleVerRelationalStorageExecutor::SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable,
     DistributedTableMode mode)
-    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false)
+    : SQLiteStorageExecutor(dbHandle, writable, false), mode_(mode), isLogicDelete_(false),
+      assetLoader_(nullptr)
 {
     bindCloudFieldFuncMap_[TYPE_INDEX<int64_t>] = &CloudStorageUtils::BindInt64;
     bindCloudFieldFuncMap_[TYPE_INDEX<bool>] = &CloudStorageUtils::BindBool;
@@ -568,7 +569,8 @@ bool IsAbnormalData(const VBucket &data)
     for (const auto &item : data) {
         const Asset *asset = std::get_if<TYPE_INDEX<Asset>>(&item.second);
         if (asset != nullptr) {
-            if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL)) {
+            if (asset->status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                (asset->status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
                 return true;
             }
             continue;
@@ -578,7 +580,8 @@ bool IsAbnormalData(const VBucket &data)
             continue;
         }
         for (const auto &oneAsset : *assets) {
-            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL)) {
+            if (oneAsset.status == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                (oneAsset.status & static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL)) != 0) {
                 return true;
             }
         }
@@ -599,37 +602,26 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         cloudSyncData.delData.record.push_back(data);
         cloudSyncData.delData.extend.push_back(log);
         cloudSyncData.delData.hashKey.push_back(*hashKey);
-    } else if (log.find(CloudDbConstant::GID_FIELD) == log.end()) {
+    } else {
+        bool isInsert = log.find(CloudDbConstant::GID_FIELD) == log.end();
         if (data.empty()) {
-            LOGE("The cloud data to be inserted is empty.");
+            LOGE("The cloud data is empty, isInsert:%d", isInsert);
             return -E_INVALID_DATA;
         }
         if (IsAbnormalData(data)) {
-            LOGW("This data is abnormal, ignore it when upload");
+            LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
             cloudSyncData.ignoredCount++;
             return E_OK;
         }
-        cloudSyncData.insData.record.push_back(data);
-        cloudSyncData.insData.rowid.push_back(*rowid);
+        CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
+        opData.record.push_back(data);
+        opData.rowid.push_back(*rowid);
         VBucket asset;
         CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
-        cloudSyncData.insData.timestamp.push_back(*timeStamp);
-        cloudSyncData.insData.assets.push_back(asset);
-        cloudSyncData.insData.extend.push_back(log);
-        cloudSyncData.insData.hashKey.push_back(*hashKey);
-    } else {
-        if (data.empty()) {
-            LOGE("The cloud data to be updated is empty.");
-            return -E_INVALID_DATA;
-        }
-        cloudSyncData.updData.record.push_back(data);
-        VBucket asset;
-        CloudStorageUtils::ObtainAssetFromVBucket(data, asset);
-        cloudSyncData.updData.assets.push_back(asset);
-        cloudSyncData.updData.rowid.push_back(*rowid);
-        cloudSyncData.updData.timestamp.push_back(*timeStamp);
-        cloudSyncData.updData.extend.push_back(log);
-        cloudSyncData.updData.hashKey.push_back(*hashKey);
+        opData.timestamp.push_back(*timeStamp);
+        opData.assets.push_back(asset);
+        opData.extend.push_back(log);
+        opData.hashKey.push_back(*hashKey);
     }
     return E_OK;
 }
@@ -2049,8 +2041,9 @@ int SQLiteSingleVerRelationalStorageExecutor::ExecutePutCloudData(const std::str
             case OpType::UPDATE_TIMESTAMP:
             case OpType::CLEAR_GID:
                 errCode = OnlyUpdateLogTable(vBucket, tableSchema, op);
-                break;
             case OpType::NOT_HANDLE:
+                errCode = errCode == E_OK ? OnlyUpdateAssetId(tableName, tableSchema, vBucket,
+                    GetLocalDataKey(index, downloadData), op) : errCode;
                 break;
             default:
                 errCode = -E_CLOUD_ERROR;
@@ -2129,8 +2122,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
     std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " + SET_FLAG_LOCAL + ", " +
-        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE " + CLOUD_GID_FIELD + " IS NOT NULL AND " +
-        CLOUD_GID_FIELD + " != '';";
+        DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
+        CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
     return SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
 }
 
@@ -2223,14 +2216,15 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogAndData(const std::vecto
     return errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetOnTable(const std::string &tableName,
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string &tableName,
     const std::string &fieldName, const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets)
 {
     int errCode = E_OK;
+    int ret = E_OK;
+    sqlite3_stmt *selectStmt = nullptr;
     for (const auto &rowId : dataKeys) {
         std::string queryAssetSql = "SELECT " + fieldName + " FROM '" + tableName +
             "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = " + std::to_string(rowId) + ";";
-        sqlite3_stmt *selectStmt = nullptr;
         errCode = SQLiteUtils::GetStatement(dbHandle_, queryAssetSql, selectStmt);
         if (errCode != E_OK) {
             LOGE("Get select asset statement failed, %d", errCode);
@@ -2241,20 +2235,25 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetOnTable(const std::st
             std::vector<uint8_t> blobValue;
             errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
             if (errCode != E_OK) {
-                SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-                return errCode;
+                LOGE("Get column blob value failed, %d", errCode);
+                goto END;
             }
             Asset asset;
             errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
             if (errCode != E_OK) {
-                SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-                return errCode;
+                LOGE("Transfer blob to asset failed, %d", errCode);
+                goto END;
             }
             assets.push_back(asset);
+        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
         }
-        SQLiteUtils::ResetStatement(selectStmt, true, errCode);
+        SQLiteUtils::ResetStatement(selectStmt, true, ret);
     }
-    return errCode;
+    return errCode != E_OK ? errCode : ret;
+END:
+    SQLiteUtils::ResetStatement(selectStmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssetsOnTable(const std::string &tableName,
@@ -2301,7 +2300,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudAssets(const std::string &
     int errCode = E_OK;
     for (const auto &fieldInfo: fieldInfos) {
         if (fieldInfo.IsAssetType()) {
-            errCode = GetCloudAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
+            errCode = GetAssetOnTable(tableName, fieldInfo.GetFieldName(), dataKeys, assets);
             if (errCode != E_OK) {
                 LOGE("[Storage Executor] failed to get cloud asset on table, %d.", errCode);
                 return errCode;

@@ -14,8 +14,9 @@
  */
 #ifdef RELATIONAL_STORE
 #include <gtest/gtest.h>
-#include "cloud_db_constant.h"
-#include "cloud_db_types.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_types.h"
+#include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "log_print.h"
 #include "relational_store_delegate.h"
@@ -155,6 +156,7 @@ protected:
     void SetForkQueryForCloudPrioritySyncTest008(std::atomic<int> &count);
     void InitLogicDeleteDataEnv(int64_t dataCount);
     void CheckLocalCount(int64_t expectCount);
+    void CheckLogCleaned(int64_t expectCount);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -397,7 +399,7 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest007(st
         if (count == 4) { // 4 means taskid2 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 2); // 2 is count of cloud records after last sync
         }
-        if (count == 6) { // 6 meanstaskid4 because CheckCloudTableCount will query then count++
+        if (count == 6) { // 6 means taskid4 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after last sync
         }
     });
@@ -447,6 +449,22 @@ void DistributedDBCloudCheckSyncTest::CheckLocalCount(int64_t expectCount)
         return E_OK;
     });
     EXPECT_EQ(dataCnt, expectCount);
+}
+
+void DistributedDBCloudCheckSyncTest::CheckLogCleaned(int64_t expectCount)
+{
+    std::string sql1 = "select count(*) from " + DBCommon::GetLogTableName(tableName_) +
+        " where device = 'cloud';";
+    EXPECT_EQ(sqlite3_exec(db_, sql1.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
+    std::string sql2 = "select count(*) from " + DBCommon::GetLogTableName(tableName_) + " where cloud_gid "
+        " is not null and cloud_gid != '';";
+    EXPECT_EQ(sqlite3_exec(db_, sql2.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
+    std::string sql3 = "select count(*) from " + DBCommon::GetLogTableName(tableName_) +
+        " where flag & 0x02 = 0;";
+    EXPECT_EQ(sqlite3_exec(db_, sql3.c_str(), QueryCountCallback,
+        reinterpret_cast<void *>(expectCount), nullptr), SQLITE_OK);
 }
 
 /**
@@ -1448,6 +1466,36 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest003, TestSize.Level
     EXPECT_EQ(delegate_->UnRegisterObserver(observer), OK);
     delete observer;
     observer = nullptr;
+}
+
+/**
+ * @tc.name: LogicDeleteSyncTest004
+ * @tc.desc: test removedevicedata in mode FLAG_ONLY when sync with logic delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set logic delete
+     * @tc.expected: step1. ok.
+     */
+    bool logicDelete = true;
+    auto data = static_cast<PragmaData>(&logicDelete);
+    delegate_->Pragma(LOGIC_DELETE_SYNC_DATA, data);
+
+    /**
+     * @tc.steps:step2. cloud delete data then sync, check removedevicedata
+     * @tc.expected: step2. ok.
+     */
+    int actualCount = 10;
+    InitLogicDeleteDataEnv(actualCount);
+    CheckLocalCount(actualCount);
+    std::string device = "";
+    ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+    CheckLocalCount(actualCount);
+    CheckLogCleaned(0);
 }
 }
 #endif

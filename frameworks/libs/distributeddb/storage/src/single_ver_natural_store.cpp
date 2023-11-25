@@ -53,9 +53,10 @@ int SingleVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
     GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE_SQLITE, storeDir, storeOnlyDir);
 
     const std::vector<std::pair<const std::string &, const std::string &>> dbDir {
-        {DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE},
-        {DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE},
-        {DBConstant::CACHEDB_DIR, DBConstant::SINGLE_VER_CACHE_STORE}};
+        { DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE },
+        { DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE },
+        { DBConstant::CACHEDB_DIR, DBConstant::SINGLE_VER_CACHE_STORE }
+    };
 
     bool isAllNotFound = true;
     for (const auto &item : dbDir) {
@@ -85,7 +86,7 @@ RegisterFuncType SingleVerNaturalStore::GetFuncType(int index, const TransPair *
     int32_t head = 0;
     int32_t end = len - 1;
     while (head <= end) {
-        int32_t mid = (head + end) / 2;
+        int32_t mid = head + (end - head) / 2;
         if (transMap[mid].index < index) {
             head = mid + 1;
             continue;

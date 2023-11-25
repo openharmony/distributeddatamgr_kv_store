@@ -16,13 +16,15 @@
 #include <gtest/gtest.h>
 
 #include "cloud/cloud_storage_utils.h"
-#include "cloud_db_constant.h"
-#include "cloud_db_types.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "relational_store_manager.h"
+#include "runtime_config.h"
+#include "time_helper.h"
 #include "sqlite_relational_utils.h"
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
@@ -78,6 +80,7 @@ namespace {
     DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
     RelationalStoreDelegate *g_delegate = nullptr;
     std::shared_ptr<VirtualCloudDb> g_virtualCloudDb = nullptr;
+    std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
     const std::vector<Field> g_cloudField1 = {
         {"id", TYPE_INDEX<int64_t>, true}, {"name", TYPE_INDEX<std::string>},
         {"height", TYPE_INDEX<double>}, {"married", TYPE_INDEX<bool>},
@@ -88,12 +91,22 @@ namespace {
         {"height", TYPE_INDEX<double>}, {"married", TYPE_INDEX<bool>},
         {"photo", TYPE_INDEX<Bytes>}, {"asset", TYPE_INDEX<Asset>}
     };
+    const std::vector<Field> g_cloudField3 = {
+        {"id", TYPE_INDEX<int64_t>, true}, {"name", TYPE_INDEX<std::string>},
+        {"height", TYPE_INDEX<double>}, {"married", TYPE_INDEX<bool>},
+        {"photo", TYPE_INDEX<Bytes>}, {"asset", TYPE_INDEX<Asset>},
+        {"age", TYPE_INDEX<int64_t>}
+    };
     const std::vector<Field> g_cloudField4 = {
         {"id", TYPE_INDEX<int64_t>, true}, {"name", TYPE_INDEX<std::string>},
         {"height", TYPE_INDEX<double>}, {"photo", TYPE_INDEX<Bytes>},
         {"assets", TYPE_INDEX<Assets>}, {"age", TYPE_INDEX<int64_t>}
     };
     const int64_t g_syncWaitTime = 60;
+    const Asset g_localAsset = {
+        .version = 1, .name = "Phone", .assetId = "", .subpath = "/local/sync", .uri = "/local/sync",
+        .modifyTime = "123456", .createTime = "", .size = "256", .hash = "ASE"
+    };
 
     class DistributedDBCloudInterfacesSetCloudSchemaTest : public testing::Test {
     public:
@@ -119,6 +132,8 @@ namespace {
         g_dbDir = g_testDir + "/";
         g_storePath = g_dbDir + STORE_ID + DB_SUFFIX;
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
+        g_virtualCloudDataTranslate = std::make_shared<VirtualCloudDataTranslate>();
+        RuntimeConfig::SetCloudTranslate(g_virtualCloudDataTranslate);
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::TearDownTestCase(void)
@@ -202,11 +217,17 @@ namespace {
         const std::string &tableName)
     {
         ASSERT_NE(db_, nullptr);
+        std::vector<uint8_t> assetBlob = g_virtualCloudDataTranslate->AssetToBlob(g_localAsset);
         for (int64_t i = begin; i < count; ++i) {
             string sql = "INSERT OR REPLACE INTO " + tableName +
-                " (cloud_owner, cloud_privilege, id, name, height, married, photo) VALUES ('A', 'true', '" +
-                std::to_string(i) + "', 'Local" + std::to_string(i) + "', '155.10', 'false', 'text');";
-            ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db_, sql), E_OK);
+                " (cloud_owner, cloud_privilege, id, name, height, married, photo, asset) VALUES ('A', 'true', '" +
+                std::to_string(i) + "', 'Local" + std::to_string(i) + "', '155.10', 'false', 'text', ?);";
+            sqlite3_stmt *stmt = nullptr;
+            ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+            EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+            int errCode;
+            SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
     }
 
@@ -220,7 +241,7 @@ namespace {
             for (const auto &item: process) {
                 if (item.second.process == DistributedDB::FINISHED) {
                     {
-                        ASSERT_EQ(item.second.errCode, errCode);
+                        EXPECT_EQ(item.second.errCode, errCode);
                         std::lock_guard<std::mutex> autoLock(dataMutex);
                         finish = true;
                     }
@@ -571,7 +592,7 @@ namespace {
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
-        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
         CheckSharedTable({g_sharedTableName2});
         CheckDistributedSharedTable({g_distributedSharedTableName2});
     }
@@ -816,14 +837,8 @@ namespace {
     HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest011, TestSize.Level0)
     {
         /**
-         * @tc.steps:step1. local create table worker1
-         * @tc.expected: step1. return OK
-         */
-        ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName1, CLOUD_COOPERATION), DBStatus::OK);
-
-        /**
-         * @tc.steps:step2. local exists worker1 then use SetCloudDbSchema
-         * @tc.expected: step2. return INVALID_ARGS
+         * @tc.steps:step1. local exists worker1 then use SetCloudDbSchema
+         * @tc.expected: step1. return INVALID_ARGS
          */
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
@@ -833,6 +848,36 @@ namespace {
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
+
+        /**
+         * @tc.steps:step2. SetCloudDbSchema
+         * @tc.expected: step2. return OK
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName1});
+        CheckDistributedSharedTable({g_distributedSharedTableName1});
+
+        /**
+         * @tc.steps:step3. add field and SetCloudDbSchema
+         * @tc.expected: step3. return OK
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName2,
+            .fields = g_cloudField3
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName2});
+        CheckDistributedSharedTable({g_distributedSharedTableName2});
     }
 
     /**
@@ -921,7 +966,6 @@ namespace {
         CheckSharedTable({g_sharedTableName1, g_sharedTableName2});
         CheckDistributedSharedTable({g_distributedSharedTableName1, g_distributedSharedTableName2});
 
-
         /**
          * @tc.steps:step2. close db and then open store
          * @tc.expected: step2. return OK
@@ -974,7 +1018,6 @@ namespace {
         };
         ASSERT_EQ(g_delegate->SetTrackerTable(trackerSchema), DBStatus::OK);
         ASSERT_EQ(g_delegate->CreateDistributedTable(g_tableName1, CLOUD_COOPERATION), DBStatus::OK);
-
 
         /**
          * @tc.steps:step2. use SetCloudDbSchema
@@ -1069,5 +1112,57 @@ namespace {
         });
         query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
+    }
+
+    /**
+     * @tc.name: SharedTableSync003
+     * @tc.desc: Test weather the shared table is fill assetId under nochange
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync003, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. insert local shared table records and sync
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1); // 10 is records num
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        BlockSync(query, g_delegate);
+
+        /**
+         * @tc.steps:step2. sync again, cloud data containing assetId will be query
+         * @tc.expected: step2. return OK
+         */
+        BlockSync(query, g_delegate);
+
+        /**
+         * @tc.steps:step3. check if the hash of assets in db is empty
+         * @tc.expected: step3. OK
+         */
+        std::string sql = "SELECT asset from " + g_sharedTableName1;
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+        while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+            Type cloudValue;
+            ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Asset>, 0, cloudValue), E_OK);
+            std::vector<uint8_t> assetBlob;
+            Asset asset;
+            ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetBlob), E_OK);
+            ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAsset(assetBlob, asset), E_OK);
+            EXPECT_EQ(asset.assetId, "");
+        }
+        int errCode;
+        SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 } // namespace

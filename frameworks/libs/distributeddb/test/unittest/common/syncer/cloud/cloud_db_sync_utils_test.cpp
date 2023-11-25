@@ -45,9 +45,9 @@ namespace DistributedDB {
         g_storePath = path;
     }
 
-    void CloudDBSyncUtilsTest::InitSyncUtils(std::vector<Field> cloudField, RelationalStoreObserverUnitTest *&observer,
-        std::shared_ptr<VirtualCloudDb> &virtualCloudDb, std::shared_ptr<VirtualAssetLoader> &virtualAssetLoader,
-        RelationalStoreDelegate *&delegate)
+    void CloudDBSyncUtilsTest::InitSyncUtils(const std::vector<Field> &cloudField,
+        RelationalStoreObserverUnitTest *&observer, std::shared_ptr<VirtualCloudDb> &virtualCloudDb,
+        std::shared_ptr<VirtualAssetLoader> &virtualAssetLoader, RelationalStoreDelegate *&delegate)
     {
         observer = new (std::nothrow) RelationalStoreObserverUnitTest();
         ASSERT_NE(observer, nullptr);
@@ -279,7 +279,8 @@ namespace DistributedDB {
         return 0;
     }
 
-    void CloudDBSyncUtilsTest::CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts, std::string keyStr)
+    void CloudDBSyncUtilsTest::CheckDownloadResult(sqlite3 *&db, std::vector<int64_t> expectCounts,
+        const std::string &keyStr)
     {
         for (size_t i = 0; i < g_tables.size(); ++i) {
             string queryDownload = "select count(*) from " + g_tables[i] + " where name " +
@@ -289,14 +290,14 @@ namespace DistributedDB {
         }
     }
 
-    void CloudDBSyncUtilsTest::CheckLocalRecordNum(sqlite3 *&db, std::string tableName, int count)
+    void CloudDBSyncUtilsTest::CheckLocalRecordNum(sqlite3 *&db, const std::string &tableName, int count)
     {
         std::string sql = "select count(*) from " + tableName + ";";
         EXPECT_EQ(sqlite3_exec(db, sql.c_str(), QueryCountCallback,
             reinterpret_cast<void *>(count), nullptr), SQLITE_OK);
     }
 
-    void CloudDBSyncUtilsTest::GetCloudDbSchema(std::string tableName, std::vector<Field> cloudField,
+    void CloudDBSyncUtilsTest::GetCloudDbSchema(const std::string &tableName, const std::vector<Field> &cloudField,
         DataBaseSchema &dataBaseSchema)
     {
         TableSchema tableSchema = {

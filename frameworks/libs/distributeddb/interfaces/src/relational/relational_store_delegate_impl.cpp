@@ -261,15 +261,12 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &sch
     if (conn_ == nullptr) {
         return DB_ERROR;
     }
+    // create shared table and set cloud db schema
     int errorCode = conn_->PrepareAndSetCloudDbSchema(cloudSchema);
     if (errorCode != E_OK) {
         LOGE("[RelationalStore Delegate] set cloud schema failed!");
-        if (errorCode == -E_INVALID_CONNECTION || errorCode == -E_INVALID_DB) {
-            return DB_ERROR;
-        }
-        return TransferDBErrno(errorCode);
     }
-    return OK;
+    return TransferDBErrno(errorCode);
 }
 
 DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
@@ -428,6 +425,21 @@ DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaDa
     int errCode = conn_->Pragma(cmd, pragmaData);
     if (errCode != E_OK) {
         LOGE("[RelationalStore Delegate] Pragma failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->UpsertData(status, tableName, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Upsert data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
     return OK;

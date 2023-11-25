@@ -15,7 +15,6 @@
 
 #include "single_ver_natural_store_connection.h"
 
-
 #include "db_errno.h"
 #include "log_print.h"
 #include "single_ver_natural_store.h"
@@ -41,15 +40,14 @@ int SingleVerNaturalStoreConnection::Put(const IOption &option, const Key &key, 
 int SingleVerNaturalStoreConnection::PutBatch(const IOption &option, const std::vector<Entry> &entries)
 {
     LOGD("[PutBatch] entries size is : %zu, dataType : %d", entries.size(), option.dataType);
-    if (option.dataType == IOption::SYNC_DATA) {
-        int errCode = CheckSyncEntriesValid(entries);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        return PutBatchInner(option, entries);
+    if (option.dataType != IOption::SYNC_DATA) {
+        return -E_NOT_SUPPORT;
     }
-
-    return -E_NOT_SUPPORT;
+    int errCode = CheckSyncEntriesValid(entries);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return PutBatchInner(option, entries);
 }
 
 bool SingleVerNaturalStoreConnection::IsExtendedCacheDBMode() const
@@ -92,7 +90,6 @@ int SingleVerNaturalStoreConnection::Get(const IOption &option, const Key &key, 
     return E_OK;
 }
 
-// Delete the value from the database
 int SingleVerNaturalStoreConnection::Delete(const IOption &option, const Key &key)
 {
     std::vector<Key> keys;
@@ -101,19 +98,17 @@ int SingleVerNaturalStoreConnection::Delete(const IOption &option, const Key &ke
     return DeleteBatch(option, keys);
 }
 
-// Delete the batch values from the database.
 int SingleVerNaturalStoreConnection::DeleteBatch(const IOption &option, const std::vector<Key> &keys)
 {
     LOGD("[DeleteBatch] keys size is : %zu, dataType : %d", keys.size(), option.dataType);
-    if (option.dataType == IOption::SYNC_DATA) {
-        int errCode = CheckSyncKeysValid(keys);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        return DeleteBatchInner(option, keys);
+    if (option.dataType != IOption::SYNC_DATA) {
+        return -E_NOT_SUPPORT;
     }
-
-    return -E_NOT_SUPPORT;
+    int errCode = CheckSyncKeysValid(keys);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return DeleteBatchInner(option, keys);
 }
 
 } // namespace DistributedDB

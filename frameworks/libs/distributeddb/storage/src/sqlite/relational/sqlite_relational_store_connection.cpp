@@ -377,7 +377,7 @@ int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::stri
 }
 
 int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema)
-{
+    {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
         LOGE("[RelationalConnection] store is null, get DB failed!");
@@ -428,6 +428,17 @@ int SQLiteRelationalStoreConnection::Pragma(PragmaCmd cmd, PragmaData &pragmaDat
         return -E_INVALID_CONNECTION;
     }
     return store->Pragma(cmd, pragmaData);
+}
+
+int SQLiteRelationalStoreConnection::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, upsert dara failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->UpsertData(status, tableName, records);
 }
 }
 #endif

@@ -641,7 +641,7 @@ HWTEST_F(DistributeddbNbAutolaunchTest, ClosedSyncPressure001, TestSize.Level0)
     manager = nullptr;
 }
 
-#ifndef RUNNING_ON_SIMULATED_ENV
+#ifndef DB_DEBUG_ENV
 /*
  * @tc.name: SyncCommErr 001
  * @tc.desc: Test Sync return Code, when Communicator get some error.

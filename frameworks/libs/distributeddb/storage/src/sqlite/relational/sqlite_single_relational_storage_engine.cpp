@@ -226,10 +226,9 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
-    const std::string &tableName, const std::string &sharedTableName, const std::string &identity,
-    TableSyncType tableSyncType)
+    const std::string &tableName, const std::string &sharedTableName, TableSyncType tableSyncType,
+    RelationalSchemaObject &schema)
 {
-    RelationalSchemaObject schema = GetSchema();
     TableInfo table;
     table.SetTableName(sharedTableName);
     table.SetOriginTableName(tableName);
@@ -241,7 +240,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedSharedTable(SQLiteSing
         return -E_NOT_SUPPORT;
     }
     bool isUpgraded = schema.GetTable(sharedTableName).GetTableName() == sharedTableName;
-    int errCode = CreateDistributedTable(handle, isUpgraded, identity, table, schema);
+    int errCode = CreateDistributedTable(handle, isUpgraded, "", table, schema);
     if (errCode != E_OK) {
         LOGE("create distributed table failed. %d", errCode);
         return errCode;
@@ -467,7 +466,7 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
 
     trackerSchema_ = tracker;
     ReleaseExecutor(handle);
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const TrackerSchema &schema, TableInfo &tableInfo)
@@ -584,6 +583,10 @@ static int CheckReference(const std::vector<TableReferenceProperty> &tableRefere
             LOGE("can't set reference for table which doesn't create distributed table with cloud mode.");
             return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
         }
+        if (sourceTableInfo.GetSharedTableMark() || targetTableInfo.GetSharedTableMark()) {
+            LOGE("can't set reference for shared table.");
+            return -E_NOT_SUPPORT;
+        }
 
         FieldInfoMap sourceFieldMap = sourceTableInfo.GetFields();
         FieldInfoMap targetFieldMap = targetTableInfo.GetFields();
@@ -655,7 +658,7 @@ int SQLiteSingleRelationalStorageEngine::CleanTrackerData(const std::string &tab
 }
 
 int SQLiteSingleRelationalStorageEngine::UpgradeSharedTable(const DataBaseSchema &cloudSchema,
-    const std::vector<std::string> &deleteTableNames, const std::vector<std::string> &notHandleTableNames,
+    const std::vector<std::string> &deleteTableNames, const std::map<std::string, std::vector<Field>> &updateTableNames,
     const std::map<std::string, std::string> &alterTableNames)
 {
     int errCode = E_OK;
@@ -669,91 +672,208 @@ int SQLiteSingleRelationalStorageEngine::UpgradeSharedTable(const DataBaseSchema
         ReleaseExecutor(handle);
         return errCode;
     }
-    std::vector<std::string> missingTables;
-    std::vector<std::vector<std::string>> deleteOrNotHandleTableNames = {deleteTableNames, notHandleTableNames};
-    errCode = OperateTableIfNeed(handle, deleteOrNotHandleTableNames, alterTableNames, cloudSchema, missingTables);
-    if (errCode != E_OK) {
-        handle->Rollback();
-        ReleaseExecutor(handle);
-        return errCode;
-    }
-    for (auto const &tableSchema : cloudSchema.tables) {
-        errCode = CreateDistributedSharedTable(handle, tableSchema.name, tableSchema.sharedTableName, "",
-            TableSyncType::CLOUD_COOPERATION);
-        if (errCode != E_OK) {
-            handle->Rollback();
-            ReleaseExecutor(handle);
-            return errCode;
-        }
-        auto it = std::find(missingTables.begin(), missingTables.end(), tableSchema.sharedTableName);
-        if (it != missingTables.end()) {
-            missingTables.erase(it);
-        }
-    }
-    std::lock_guard lock(schemaMutex_);
-    for (const auto &tableName : missingTables) {
-        schema_.RemoveRelationalTable(tableName);
-    }
-    errCode = SaveSchemaToMetaTable(handle, schema_);
+    RelationalSchemaObject schema = GetSchema();
+    errCode = UpgradeSharedTableInner(handle, cloudSchema, deleteTableNames, updateTableNames, alterTableNames);
     if (errCode != E_OK) {
         handle->Rollback();
         ReleaseExecutor(handle);
         return errCode;
     }
     errCode = handle->Commit();
+    if (errCode != E_OK) {
+        std::lock_guard lock(schemaMutex_);
+        schema_ = schema; // revert schema to the initial state
+    }
     ReleaseExecutor(handle);
     return errCode;
 }
 
-int SQLiteSingleRelationalStorageEngine::OperateTableIfNeed(SQLiteSingleVerRelationalStorageExecutor *&handle,
-    const std::vector<std::vector<std::string>> &deleteOrNotHandleTableNames,
-    const std::map<std::string, std::string> &alterTableNames,
-    const DataBaseSchema &cloudSchema, std::vector<std::string> &missingTables)
+int SQLiteSingleRelationalStorageEngine::UpgradeSharedTableInner(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,
+    const std::map<std::string, std::vector<Field>> &updateTableNames,
+    const std::map<std::string, std::string> &alterTableNames)
 {
-    int errCode = E_OK;
-    if (!deleteOrNotHandleTableNames[0].empty()) {
-        errCode = handle->DeleteTable(deleteOrNotHandleTableNames[0]);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] delete shared table failed. %d", errCode);
-            return errCode;
-        }
-        errCode = handle->CheckAndCleanDistributedTable(deleteOrNotHandleTableNames[0], missingTables);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] delete distributed shared table failed. %d", errCode);
-            return errCode;
-        }
-    }
-    errCode = handle->CheckIfExistUserTable(cloudSchema, alterTableNames, deleteOrNotHandleTableNames[1]);
+    RelationalSchemaObject schema = GetSchema();
+    int errCode = DoDeleteSharedTable(handle, deleteTableNames, schema);
     if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] delete shared table or distributed table failed. %d", errCode);
         return errCode;
     }
-    if (!alterTableNames.empty()) {
-        errCode = handle->AlterTableName(alterTableNames);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] alter shared table failed. %d", errCode);
-            return errCode;
-        }
-        std::map<std::string, std::string> distributedSharedTableNames;
-        for (const auto &tableName : alterTableNames) {
-            errCode = handle->DeleteTableTrigger(tableName.first);
-            if (errCode != E_OK) {
-                return errCode;
-            }
-            std::string oldDistributedName = DBCommon::GetLogTableName(tableName.first);
-            std::string newDistributedName = DBCommon::GetLogTableName(tableName.second);
-            distributedSharedTableNames[oldDistributedName] = newDistributedName;
-        }
-        errCode = handle->AlterTableName(distributedSharedTableNames);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] alter distributed shared table failed. %d", errCode);
-            return errCode;
-        }
-    }
-    errCode = handle->CreateSharedTable(cloudSchema);
+    errCode = DoUpdateSharedTable(handle, updateTableNames);
     if (errCode != E_OK) {
-        LOGE("[RelationalStorageEngine] create shared table failed. %d", errCode);
+        LOGE("[RelationalStorageEngine] update shared table or distributed table failed. %d", errCode);
+        return errCode;
+    }
+    errCode = CheckIfExistUserTable(handle, cloudSchema, alterTableNames, schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] check local user table failed. %d", errCode);
+        return errCode;
+    }
+    errCode = DoAlterSharedTableName(handle, alterTableNames, schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] alter shared table or distributed table failed. %d", errCode);
+        return errCode;
+    }
+    errCode = DoCreateSharedTable(handle, cloudSchema, schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] create shared table or distributed table failed. %d", errCode);
+        return errCode;
+    }
+    std::lock_guard lock(schemaMutex_);
+    schema_ = schema;
+    return E_OK;
+}
+
+int SQLiteSingleRelationalStorageEngine::DoDeleteSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const std::vector<std::string> &deleteTableNames, RelationalSchemaObject &schema)
+{
+    if (deleteTableNames.empty()) {
+        return E_OK;
+    }
+    int errCode = handle->DeleteTable(deleteTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] delete shared table failed. %d", errCode);
+        return errCode;
+    }
+    std::vector<Key> keys;
+    for (const auto &tableName : deleteTableNames) {
+        errCode = handle->CleanResourceForDroppedTable(tableName);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStorageEngine] delete shared distributed table failed. %d", errCode);
+            return errCode;
+        }
+        Key sharedTableKey = DBCommon::GetPrefixTableName(tableName);
+        if (sharedTableKey.empty() || sharedTableKey.size() > DBConstant::MAX_KEY_SIZE) {
+            LOGE("[RelationalStorageEngine] shared table key is invalid.");
+            return -E_INVALID_ARGS;
+        }
+        keys.push_back(sharedTableKey);
+        schema.RemoveRelationalTable(tableName);
+    }
+    errCode = handle->DeleteMetaData(keys);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] delete meta data failed. %d", errCode);
     }
     return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::DoUpdateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const std::map<std::string, std::vector<Field>> &updateTableNames)
+{
+    if (updateTableNames.empty()) {
+        return E_OK;
+    }
+    int errCode = handle->UpdateSharedTable(updateTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] update shared table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::DoAlterSharedTableName(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema)
+{
+    if (alterTableNames.empty()) {
+        return E_OK;
+    }
+    int errCode = handle->AlterTableName(alterTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] alter shared table failed. %d", errCode);
+        return errCode;
+    }
+    std::map<std::string, std::string> distributedSharedTableNames;
+    for (const auto &tableName : alterTableNames) {
+        errCode = handle->DeleteTableTrigger(tableName.first);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        std::string oldDistributedName = DBCommon::GetLogTableName(tableName.first);
+        std::string newDistributedName = DBCommon::GetLogTableName(tableName.second);
+        distributedSharedTableNames[oldDistributedName] = newDistributedName;
+    }
+    errCode = handle->AlterTableName(distributedSharedTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] alter distributed shared table failed. %d", errCode);
+        return errCode;
+    }
+    for (const auto &[oldTableName, newTableName] : alterTableNames) {
+        schema.GetTable(oldTableName).SetTableName(newTableName);
+    }
+    errCode = UpdateKvData(handle, alterTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] update kv data failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::DoCreateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const DataBaseSchema &cloudSchema, RelationalSchemaObject &schema)
+{
+    int errCode = handle->CreateSharedTable(cloudSchema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] create shared table failed. %d", errCode);
+        return errCode;
+    }
+    for (auto const &tableSchema : cloudSchema.tables) {
+        errCode = CreateDistributedSharedTable(handle, tableSchema.name, tableSchema.sharedTableName,
+            TableSyncType::CLOUD_COOPERATION, schema);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStorageEngine] create distributed shared table failed. %d", errCode);
+            return errCode;
+        }
+    }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::UpdateKvData(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const std::map<std::string, std::string> &alterTableNames)
+{
+    std::vector<Key> keys;
+    for (const auto &tableName : alterTableNames) {
+        Key oldKey = DBCommon::GetPrefixTableName(tableName.first);
+        Value value;
+        int ret = handle->GetKvData(oldKey, value);
+        if (ret == -E_NOT_FOUND) {
+            continue;
+        }
+        if (ret != E_OK) {
+            LOGE("[RelationalStorageEngine] get meta data failed. %d", ret);
+            return ret;
+        }
+        keys.push_back(oldKey);
+        Key newKey = DBCommon::GetPrefixTableName(tableName.second);
+        ret = handle->PutKvData(newKey, value);
+        if (ret != E_OK) {
+            LOGE("[RelationalStorageEngine] put meta data failed. %d", ret);
+            return ret;
+        }
+    }
+    int errCode = handle->DeleteMetaData(keys);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStorageEngine] delete meta data failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleRelationalStorageEngine::CheckIfExistUserTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
+    const DataBaseSchema &cloudSchema, const std::map<std::string, std::string> &alterTableNames,
+    const RelationalSchemaObject &schema)
+{
+    for (const auto &tableSchema : cloudSchema.tables) {
+        if (alterTableNames.find(tableSchema.sharedTableName) != alterTableNames.end()) {
+            continue;
+        }
+        TableInfo tableInfo = schema.GetTable(tableSchema.sharedTableName);
+        if (tableInfo.GetSharedTableMark()) {
+            continue;
+        }
+        int errCode = handle->CheckIfExistUserTable(tableSchema.sharedTableName);
+        if (errCode != E_OK) {
+            LOGE("[RelationalStorageEngine] local exists table. %d", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
 }
 
 std::pair<std::vector<std::string>, int> SQLiteSingleRelationalStorageEngine::CalTableRef(
@@ -822,6 +942,7 @@ std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorage
     std::map<std::string, std::map<std::string, bool>> reachableWithShared;
     for (const auto &[source, reach] : reachableReference) {
         bool sourceHasNoShared = tableToShared.find(source) == tableToShared.end();
+        const std::string &sourceSharedName = tableToShared.at(source);
         for (const auto &[target, isReach] : reach) {
             // merge two reachable reference
             reachableWithShared[source][target] = isReach;
@@ -829,7 +950,7 @@ std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorage
                 continue;
             }
             // record shared reachable reference
-            reachableWithShared[tableToShared.at(source)][tableToShared.at(target)] = isReach;
+            reachableWithShared[sourceSharedName][tableToShared.at(target)] = isReach;
         }
     }
     return reachableWithShared;
@@ -847,6 +968,12 @@ std::map<std::string, int> SQLiteSingleRelationalStorageEngine::GetTableWeightWi
         res[tableToShared.at(table)] = weight;
     }
     return res;
+}
+
+int SQLiteSingleRelationalStorageEngine::UpsertData([[gnu::unused]] RecordStatus status,
+    [[gnu::unused]] const std::string &tableName, [[gnu::unused]] const std::vector<VBucket> &records)
+{
+    return E_OK;
 }
 }
 #endif

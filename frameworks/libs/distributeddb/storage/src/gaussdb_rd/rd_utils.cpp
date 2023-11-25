@@ -50,8 +50,8 @@ namespace DistributedDB {
 
 std::string InitRdConfig()
 {
-    return R"("pageSize": 16, "redoFlushByTrx": 1, "redoPubBufSize": 1024, "maxConnNum": 100,
-        "bufferPoolSize": 1024, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
+    return R"("pageSize": 32, "redoFlushByTrx": 1, "redoPubBufSize": 2048, "maxConnNum": 100,
+        "bufferPoolSize": 2048, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
 }
 
 struct GrdErrnoPair {
@@ -61,18 +61,26 @@ struct GrdErrnoPair {
 
 const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_OK, E_OK },
-    { GRD_INNER_ERR, -E_INTERNAL_ERROR },
-    { GRD_OVER_LIMIT, -E_MAX_LIMITS },
-    { GRD_INVALID_FORMAT, -E_INVALID_FORMAT },
-    { GRD_DATA_CONFLICT, -E_INVALID_DATA },
-    { GRD_NO_DATA, -E_NOT_FOUND },
-    { GRD_RESOURCE_BUSY, -E_BUSY },
-    { GRD_INVALID_FILE_FORMAT, -E_INVALID_PASSWD_OR_CORRUPTED_DB },
-    { GRD_INVALID_ARGS, -E_INVALID_ARGS },
-    { GRD_PERMISSION_DENIED, -E_DENIED_SQL },
     { GRD_NOT_SUPPORT, -E_NOT_SUPPORT },
+    { GRD_OVER_LIMIT, -E_MAX_LIMITS },
+    { GRD_INVALID_ARGS, -E_INVALID_ARGS },
     { GRD_FAILED_FILE_OPERATION, -E_SYSTEM_API_FAIL },
+    { GRD_INVALID_FILE_FORMAT, -E_INVALID_PASSWD_OR_CORRUPTED_DB },
+    { GRD_INSUFFICIENT_SPACE, -E_INTERNAL_ERROR },
+    { GRD_INNER_ERR, -E_INTERNAL_ERROR },
+    { GRD_RESOURCE_BUSY, -E_BUSY },
+    { GRD_NO_DATA, -E_NOT_FOUND },
+    { GRD_FAILED_MEMORY_ALLOCATE, -E_OUT_OF_MEMORY },
+    { GRD_FAILED_MEMORY_RELEASE, -E_OUT_OF_MEMORY },
+    { GRD_DATA_CONFLICT, -E_INVALID_DATA },
+    { GRD_NOT_AVAILABLE, -E_NOT_FOUND },
+    { GRD_INVALID_FORMAT, -E_INVALID_FORMAT },
+    { GRD_TIME_OUT, -E_TIMEOUT },
+    { GRD_DB_INSTANCE_ABNORMAL, -E_INTERNAL_ERROR },
+    { GRD_DISK_SPACE_FULL, -E_INTERNAL_ERROR },
     { GRD_CRC_CHECK_DISABLED, -E_INVALID_ARGS },
+    { GRD_PERMISSION_DENIED, -E_DENIED_SQL },
+    { GRD_REBUILD_DATABASE, -E_REBUILD_DATABASE}, // rebuild database means ok
 };
 
 GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob)

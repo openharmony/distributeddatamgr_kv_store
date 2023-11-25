@@ -57,8 +57,22 @@ public:
     // >= 0: position, < 0: errCode
     int GetPosition() const override;
 
+    int Move(int offset) const override;
+
     // Move the read position to an absolute position value.
     int MoveTo(int position) const override;
+
+    int MoveToFirst() override;
+
+    int MoveToLast() override;
+
+    bool IsFirst() const override;
+
+    bool IsLast() const override;
+
+    bool IsBeforeFirst() const override;
+
+    bool IsAfterLast() const override;
 
     // Get the entry of current position.
     int GetEntry(Entry &entry) const override;

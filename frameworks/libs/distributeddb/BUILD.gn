@@ -24,6 +24,7 @@ config("distrdb_config") {
     "common/include",
     "common/include/cloud",
     "common/include/relational",
+    "common/src/cloud",
     "communicator/include",
     "storage/include",
     "storage/src",

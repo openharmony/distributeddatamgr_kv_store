@@ -80,13 +80,21 @@ public:
     void SetInsertFailed(int32_t count);
 
     void SetClearExtend(int32_t count);
+
+    void SetCloudNetworkError(bool cloudNetworkError);
 private:
     struct CloudData {
         VBucket record;
         VBucket extend;
     };
 
+    DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
+        std::vector<VBucket> &extend);
+
     DBStatus InnerUpdate(const std::string &tableName, std::vector<VBucket> &&record,
+        std::vector<VBucket> &extend, bool isDelete);
+
+    DBStatus InnerUpdateWithoutLock(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend, bool isDelete);
 
     DBStatus UpdateCloudData(const std::string &tableName, CloudData &&cloudData);
@@ -102,9 +110,10 @@ private:
 
     bool IsPrimaryKeyMatchingInner(const QueryNode &queryNode, VBucket &record);
 
-    void AddAssetIdForExtend(const VBucket &record, VBucket &extend);
+    void AddAssetIdForExtend(VBucket &record, VBucket &extend);
 
     std::atomic<bool> cloudError_ = false;
+    std::atomic<bool> cloudNetworkError_ = false;
     std::atomic<bool> heartbeatError_ = false;
     std::atomic<bool> lockStatus_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;

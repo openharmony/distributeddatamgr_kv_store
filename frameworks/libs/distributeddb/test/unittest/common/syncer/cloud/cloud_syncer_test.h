@@ -95,6 +95,8 @@ public:
     void CallClose()
     {
         currentContext_.currentTaskId = 0u;
+        currentContext_.strategy = nullptr;
+        currentContext_.notifier = nullptr;
         Close();
     }
     void SetTimeOut(TaskId taskId, int64_t timeout)

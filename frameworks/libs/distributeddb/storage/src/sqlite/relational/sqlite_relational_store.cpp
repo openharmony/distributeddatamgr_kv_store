@@ -934,81 +934,83 @@ int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
     return E_OK;
 }
 
-void SQLiteRelationalStore::GetLocalSchema(DataBaseSchema &schema)
+bool SQLiteRelationalStore::CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo,
+    std::vector<Field> &addFields)
 {
-    std::map<std::string, int32_t, CaseInsensitiveComparator> cloudFieldTypeMap;
-    cloudFieldTypeMap["NULL"] = TYPE_INDEX<Nil>;
-    cloudFieldTypeMap["INT"] = TYPE_INDEX<int64_t>;
-    cloudFieldTypeMap["REAL"] = TYPE_INDEX<double>;
-    cloudFieldTypeMap["TEXT"] = TYPE_INDEX<std::string>;
-    cloudFieldTypeMap["BOOLEAN"] = TYPE_INDEX<bool>;
-    cloudFieldTypeMap["BLOB"] = TYPE_INDEX<Bytes>;
-    cloudFieldTypeMap["ASSET"] = TYPE_INDEX<Asset>;
-    cloudFieldTypeMap["ASSETS"] = TYPE_INDEX<Assets>;
-    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
-    TableInfoMap tableList = localSchema.GetTables();
-    std::vector<TableSchema> tables;
-    for (const auto &tableInfo : tableList) {
-        if (!tableInfo.second.GetSharedTableMark()) {
+    std::vector<FieldInfo> oldFields = tableInfo.GetFieldInfos();
+    if (newFields.size() < oldFields.size()) {
+        return false;
+    }
+    for (size_t index = 0; index < newFields.size(); index++) {
+        if (index >= oldFields.size()) {
+            addFields.push_back(newFields[index]);
             continue;
         }
-        TableSchema tableSchema;
-        tableSchema.name = tableInfo.second.GetOriginTableName();
-        tableSchema.sharedTableName = tableInfo.second.GetTableName();
-        std::vector<FieldInfo> fieldInfos = tableInfo.second.GetFieldInfos();
-        std::vector<Field> fields;
-        for (const auto &fieldInfo : fieldInfos) {
-            if (fieldInfo.GetFieldName() == CloudDbConstant::CLOUD_OWNER ||
-                fieldInfo.GetFieldName() == CloudDbConstant::CLOUD_PRIVILEGE) {
-                continue;
-            }
-            Field field;
-            field.colName = fieldInfo.GetFieldName();
-            field.type = cloudFieldTypeMap[fieldInfo.GetDataType()];
-            field.nullable = !(fieldInfo.IsNotNull());
-            auto primaryKeyMap = tableInfo.second.GetPrimaryKey();
-            auto it = std::find_if(primaryKeyMap.begin(), primaryKeyMap.end(),
-                [&](const std::map<int, std::string>::value_type &pair) {
-                    return pair.second == field.colName;
-                });
-            if (it != primaryKeyMap.end()) {
-                field.primary = true;
-            }
-            fields.push_back(field);
+        int32_t type = newFields[index].type;
+        // Field type need to match storage type
+        if (type >= TYPE_INDEX<Nil> && type <= TYPE_INDEX<std::string>) {
+            type++; // storage type - field type = 1
+        } else if (type == TYPE_INDEX<bool>) {
+            type = 1; // storage type is STORAGE_TYPE_NULL
+        } else if (type >= TYPE_INDEX<Asset> && type <= TYPE_INDEX<Assets>) {
+            type = TYPE_INDEX<Bytes>; // storage type is STORAGE_TYPE_BLOB
         }
-        tableSchema.fields = fields;
-        tables.push_back(tableSchema);
+        auto primaryKeyMap = tableInfo.GetPrimaryKey();
+        auto it = std::find_if(primaryKeyMap.begin(), primaryKeyMap.end(),
+            [&](const std::map<int, std::string>::value_type &pair) {
+                return pair.second == newFields[index].colName;
+            });
+        if (newFields[index].colName != oldFields[index].GetFieldName() ||
+            type != static_cast<int32_t>(oldFields[index].GetStorageType()) ||
+            newFields[index].primary != (it != primaryKeyMap.end()) ||
+            newFields[index].nullable == oldFields[index].IsNotNull()) {
+            return false;
+        }
     }
-    schema.tables = tables;
+    return true;
 }
 
-void SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
-    std::vector<std::string> &notHandleTableNames, std::map<std::string, std::string> &alterTableNames)
+bool SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
+    std::map<std::string, std::vector<Field>> &updateTableNames, std::map<std::string, std::string> &alterTableNames)
 {
-    DataBaseSchema oldSchema;
-    GetLocalSchema(oldSchema);
     std::set<std::string> tableNames;
     std::map<std::string, std::string> sharedTableNamesMap;
     std::map<std::string, std::vector<Field>> fieldsMap;
     for (const auto &table : schema.tables) {
         tableNames.insert(table.name);
         sharedTableNamesMap[table.name] = table.sharedTableName;
-        fieldsMap[table.name] = table.fields;
+        std::vector<Field> fields = table.fields;
+        bool hasPrimaryKey = DBCommon::HasPrimaryKey(fields);
+        Field ownerField = {CloudDbConstant::CLOUD_OWNER, TYPE_INDEX<std::string>, hasPrimaryKey};
+        Field privilegeField = {CloudDbConstant::CLOUD_PRIVILEGE, TYPE_INDEX<std::string>};
+        fields.insert(fields.begin(), privilegeField);
+        fields.insert(fields.begin(), ownerField);
+        fieldsMap[table.name] = fields;
     }
-    for (const auto &oldTable : oldSchema.tables) {
-        if (oldTable.sharedTableName.empty()) {
+
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfoMap tableList = localSchema.GetTables();
+    for (const auto &tableInfo : tableList) {
+        if (!tableInfo.second.GetSharedTableMark()) {
             continue;
         }
-        if (tableNames.find(oldTable.name) == tableNames.end()) {
-            deleteTableNames.push_back(oldTable.sharedTableName);
-        } else if (oldTable.fields != fieldsMap[oldTable.name]) {
-            deleteTableNames.push_back(oldTable.sharedTableName);
-        } else if (oldTable.sharedTableName != sharedTableNamesMap[oldTable.name]) {
-            alterTableNames[oldTable.sharedTableName] = sharedTableNamesMap[oldTable.name];
+        std::string oldSharedTableName = tableInfo.second.GetTableName();
+        std::string oldOriginTableName = tableInfo.second.GetOriginTableName();
+        std::vector<Field> addFields;
+        if (tableNames.find(oldOriginTableName) == tableNames.end()) {
+            deleteTableNames.push_back(oldSharedTableName);
+        } else if (CheckFields(fieldsMap[oldOriginTableName], tableInfo.second, addFields)) {
+            if (!addFields.empty()) {
+                updateTableNames[oldSharedTableName] = addFields;
+            }
+            if (oldSharedTableName != sharedTableNamesMap[oldOriginTableName]) {
+                alterTableNames[oldSharedTableName] = sharedTableNamesMap[oldOriginTableName];
+            }
         } else {
-            notHandleTableNames.push_back(oldTable.sharedTableName);
+            return false;
         }
     }
+    return true;
 }
 
 int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &schema)
@@ -1017,7 +1019,8 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
         LOGE("[RelationalStore][PrepareAndSetCloudDbSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    int errCode = CreateSharedTable(schema);
+    // delete, update and create shared table and its distributed table
+    int errCode = ExecuteCreateSharedTable(schema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
         return errCode;
@@ -1123,20 +1126,18 @@ int SQLiteRelationalStore::CheckQueryValid(bool priorityTask, const Query &query
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = CheckObjectValid(priorityTask, object);
-    return errCode;
+    return CheckObjectValid(priorityTask, object);
 }
 
 int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object)
 {
-    int errCode = E_OK;
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     for (const auto &item : object) {
         if (priorityTask && !item.IsContainQueryNodes()) {
             LOGE("[RelationalStore] not support priority sync with full table");
             return -E_INVALID_ARGS;
         }
-        errCode = storageEngine_->CheckQueryValid(item);
+        int errCode = storageEngine_->CheckQueryValid(item);
         if (errCode != E_OK) {
             return errCode;
         }
@@ -1157,7 +1158,7 @@ int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector
             }
         }
     }
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteRelationalStore::CheckTableName(const std::vector<std::string> &tableNames)
@@ -1308,23 +1309,27 @@ int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_
     return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
 }
 
-int SQLiteRelationalStore::CreateSharedTable(const DataBaseSchema &schema)
+int SQLiteRelationalStore::ExecuteCreateSharedTable(const DataBaseSchema &schema)
 {
     if (sqliteStorageEngine_ == nullptr) {
-        LOGE("[RelationalStore][CreateSharedTable] sqliteStorageEngine was not initialized");
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
     std::vector<std::string> deleteTableNames;
-    std::vector<std::string> notHandleTableNames;
+    std::map<std::string, std::vector<Field>> updateTableNames;
     std::map<std::string, std::string> alterTableNames;
-    PrepareSharedTable(schema, deleteTableNames, notHandleTableNames, alterTableNames);
-    LOGI("[RelationalStore][CreateSharedTable] upgrade shared table start");
-    int errCode = sqliteStorageEngine_->UpgradeSharedTable(schema, deleteTableNames, notHandleTableNames,
+    if (!PrepareSharedTable(schema, deleteTableNames, updateTableNames, alterTableNames)) {
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] table fields are invalid.");
+        return -E_INVALID_ARGS;
+    }
+    LOGI("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table start");
+    // upgrade contains delete, alter, update and create
+    int errCode = sqliteStorageEngine_->UpgradeSharedTable(schema, deleteTableNames, updateTableNames,
         alterTableNames);
     if (errCode != E_OK) {
-        LOGE("[RelationalStore][CreateSharedTable] upgrade shared table failed. %d", errCode);
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table failed. %d", errCode);
     } else {
-        LOGI("[RelationalStore][CreateSharedTable] upgrade shared table end");
+        LOGI("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table end");
     }
     return errCode;
 }
@@ -1365,6 +1370,16 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
     }
     storageEngine_->SetLogicDelete(logicDelete);
     return E_OK;
+}
+
+int SQLiteRelationalStore::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    if (sqliteStorageEngine_  == nullptr) {
+        LOGE("[RelationalStore][UpsertData] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    return sqliteStorageEngine_ ->UpsertData(status, tableName, records);
 }
 }
 #endif

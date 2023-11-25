@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 #ifdef RELATIONAL_STORE
+#include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_storage_utils.h"
-#include "cloud_db_constant.h"
+#include "cloud/cloud_db_constant.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
 #include "mock_asset_loader.h"
@@ -46,25 +47,28 @@ const string DEVICE_CLOUD = "cloud_dev";
 const string COL_ID = "id";
 const string COL_NAME = "name";
 const string COL_HEIGHT = "height";
+const string COL_ASSET = "asset";
 const string COL_ASSETS = "assets";
 const string COL_AGE = "age";
 const int64_t SYNC_WAIT_TIME = 600;
 const std::vector<Field> CLOUD_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>, true}, {COL_NAME, TYPE_INDEX<std::string>},
-    {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>}, {COL_AGE, TYPE_INDEX<int64_t>}};
+    {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSET, TYPE_INDEX<Asset>}, {COL_ASSETS, TYPE_INDEX<Assets>},
+    {COL_AGE, TYPE_INDEX<int64_t>}};
 const std::vector<Field> NO_PRIMARY_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>}, {COL_NAME, TYPE_INDEX<std::string>},
-    {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>}, {COL_AGE, TYPE_INDEX<int64_t>}};
+    {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSET, TYPE_INDEX<Asset>}, {COL_ASSETS, TYPE_INDEX<Assets>},
+    {COL_AGE, TYPE_INDEX<int64_t>}};
 const std::vector<Field> COMPOUND_PRIMARY_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>, true},
-    {COL_NAME, TYPE_INDEX<std::string>}, {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>},
-    {COL_AGE, TYPE_INDEX<int64_t>, true}};
+    {COL_NAME, TYPE_INDEX<std::string>}, {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSET, TYPE_INDEX<Asset>},
+    {COL_ASSETS, TYPE_INDEX<Assets>}, {COL_AGE, TYPE_INDEX<int64_t>, true}};
 const string CREATE_SINGLE_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + ASSETS_TABLE_NAME + "(" + COL_ID +
-                                               " INTEGER PRIMARY KEY," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
-                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT);";
+    " INTEGER PRIMARY KEY," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," + COL_ASSET + " ASSET," +
+    COL_ASSETS + " ASSETS," + COL_AGE + " INT);";
 const string CREATE_NO_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + NO_PRIMARY_TABLE + "(" + COL_ID +
-                                               " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
-                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT);";
+    " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," + COL_ASSET + " ASSET," + COL_ASSETS +
+    " ASSETS," + COL_AGE + " INT);";
 const string CREATE_COMPOUND_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + COMPOUND_PRIMARY_TABLE + "(" + COL_ID +
-                                               " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
-                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT, PRIMARY KEY (id, age));";
+    " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," + COL_ASSET + " ASSET," + COL_ASSETS + " ASSETS," +
+    COL_AGE + " INT, PRIMARY KEY (id, age));";
 const Asset ASSET_COPY = {.version = 1,
     .name = "Phone",
     .assetId = "0",
@@ -75,7 +79,7 @@ const Asset ASSET_COPY = {.version = 1,
     .size = "256",
     .hash = "ASE"};
 const Asset ASSET_COPY2 = {.version = 1,
-    .name = "Phone2",
+    .name = "Phone_copy_2",
     .assetId = "0",
     .subpath = "/local/sync",
     .uri = "/local/sync",
@@ -83,6 +87,7 @@ const Asset ASSET_COPY2 = {.version = 1,
     .createTime = "",
     .size = "256",
     .hash = "ASE"};
+const Assets ASSETS_COPY1 = { ASSET_COPY, ASSET_COPY2 };
 
 string g_storePath;
 string g_testDir;
@@ -123,6 +128,8 @@ void GenerateDataRecords(
         Asset asset = ASSET_COPY;
         asset.name = ASSET_COPY.name + std::to_string(i);
         assets.emplace_back(asset);
+        asset.name = ASSET_COPY.name + std::to_string(i) + "_copy";
+        assets.emplace_back(asset);
         VBucket data;
         data.insert_or_assign(COL_ID, i);
         data.insert_or_assign(COL_NAME, "name" + std::to_string(i));
@@ -146,9 +153,9 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
     int errCode;
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
-    std::vector<uint8_t> assetBlob;
+    std::vector<uint8_t> assetsBlob;
     GenerateDataRecords(begin, count, 0, record, extend);
-    const string sql = "insert or replace into " + tableName + " values (?,?,?,?,?);";
+    const string sql = "insert or replace into " + tableName + " values (?,?,?,?,?,?);";
     for (VBucket vBucket : record) {
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
@@ -156,22 +163,19 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
         ASSERT_EQ(SQLiteUtils::BindTextToStatement(stmt, 2, std::get<string>(vBucket[COL_NAME])), E_OK); // 2 is name
         ASSERT_EQ(SQLiteUtils::MapSQLiteErrno(
             sqlite3_bind_double(stmt, 3, std::get<double>(vBucket[COL_HEIGHT]))), E_OK); // 3 is height
-        assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(std::get<Assets>(vBucket[COL_ASSETS]));
-        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob, false), E_OK); // 4 is assets
-        ASSERT_EQ(SQLiteUtils::BindInt64ToStatement(stmt, 5, std::get<int64_t>(vBucket[COL_AGE])), E_OK); // 5 is age
+        ASSERT_EQ(sqlite3_bind_null(stmt, 4), SQLITE_OK); // 4 is asset
+        std::vector<uint8_t> assetsBlob = g_virtualCloudDataTranslate->AssetsToBlob(
+            std::get<Assets>(vBucket[COL_ASSETS]));
+        ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 5, assetsBlob, false), E_OK); // 5 is assets
+        ASSERT_EQ(SQLiteUtils::BindInt64ToStatement(stmt, 6, std::get<int64_t>(vBucket[COL_AGE])), E_OK); // 6 is age
         EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
 }
 
-void UpdateLocalData(sqlite3 *&db, const std::string &tableName)
+void UpdateLocalData(sqlite3 *&db, const std::string &tableName, const Assets &assets)
 {
     int errCode;
-    Assets assets;
-    Asset asset = ASSET_COPY;
-    assets.emplace_back(asset);
-    Asset asset2 = ASSET_COPY2;
-    assets.emplace_back(asset2);
     std::vector<uint8_t> assetBlob;
     const string sql = "update " + tableName + " set assets=?;";
     sqlite3_stmt *stmt = nullptr;
@@ -180,6 +184,15 @@ void UpdateLocalData(sqlite3 *&db, const std::string &tableName)
     ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
     EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DeleteLocalRecord(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
+{
+    ASSERT_NE(db, nullptr);
+    for (int64_t i = begin; i < begin + count; i++) {
+        string sql = "DELETE FROM " + tableName + " WHERE id ='" + std::to_string(i) + "';";
+        ASSERT_EQ(SQLiteUtils::ExecuteRawSQL(db, sql), E_OK);
+    }
 }
 
 void DeleteCloudDBData(int64_t begin, int64_t count, const std::string &tableName)
@@ -217,8 +230,8 @@ void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatu
         ASSERT_EQ(process.begin()->first, DEVICE_CLOUD);
         g_syncProcess = std::move(process.begin()->second);
         if (g_syncProcess.process == FINISHED) {
-            ASSERT_EQ(g_syncProcess.errCode, errCode);
             g_processCondition.notify_one();
+            ASSERT_EQ(g_syncProcess.errCode, errCode);
         }
     };
     ASSERT_EQ(g_delegate->Sync({DEVICE_CLOUD}, mode, query, callback, SYNC_WAIT_TIME), dbStatus);
@@ -232,8 +245,8 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
 {
     for (auto &item : assets) {
         for (auto &asset : item.second) {
-            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::DOWNLOADING));
-            if (index > 2) { // 1, 2 is deleted; 3, 4 is inserted
+            EXPECT_EQ(AssetOperationUtils::EraseBitMask(asset.status), static_cast<uint32_t>(AssetStatus::DOWNLOADING));
+            if (index > 4) { // 1-4 is deleted; 5-8 is inserted
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::INSERT));
             } else {
                 EXPECT_EQ(asset.flag, static_cast<uint32_t>(AssetOpType::DELETE));
@@ -242,6 +255,29 @@ void CheckDownloadForTest001(int index, map<std::string, Assets> &assets)
                 index);
         }
     }
+}
+
+void CheckDownloadFailedForTest002(sqlite3 *&db)
+{
+    std::string sql = "SELECT assets from " + ASSETS_TABLE_NAME;
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        std::vector<uint8_t> assetsBlob;
+        Assets assets;
+        ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
+        ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
+        ASSERT_EQ(assets.size(), 2u); // 2 is asset num
+        for (size_t i = 0; i < assets.size(); ++i) {
+            EXPECT_EQ(assets[i].hash, "");
+            EXPECT_EQ(assets[i].status, AssetStatus::ABNORMAL);
+        }
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
 void CloseDb()
@@ -264,6 +300,7 @@ class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
   protected:
     void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
         const std::set<int> &failIndex);
+    void CheckLocalAssetIsEmpty(const std::string &tableName);
     sqlite3 *db = nullptr;
 };
 
@@ -329,16 +366,27 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocaLAssets(const std::str
         Type cloudValue;
         ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
         Assets assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(cloudValue));
-        index++;
-        if (failIndex.find(index) != failIndex.end()) {
-            for (const auto &asset : assets) {
+        for (const auto &asset : assets) {
+            index++;
+            if (failIndex.find(index) != failIndex.end()) {
                 EXPECT_EQ(asset.assetId, "0");
-            }
-        } else {
-            for (const auto &asset : assets) {
+            } else {
                 EXPECT_EQ(asset.assetId, expectAssetId);
             }
         }
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocalAssetIsEmpty(const std::string &tableName)
+{
+    std::string sql = "SELECT asset FROM " + tableName + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int index = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
     }
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -361,7 +409,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
     int index = 1;
     EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
-        .Times(4)
+        .Times(8)
         .WillRepeatedly(
             [&index](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s", gid.c_str());
@@ -399,7 +447,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 
@@ -407,8 +456,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, ASSETS_TABLE_NAME);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocalAssetIsEmpty(ASSETS_TABLE_NAME);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 
@@ -425,7 +475,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, NO_PRIMARY_TABLE);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, NO_PRIMARY_TABLE);
     CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
 
@@ -433,7 +484,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, NO_PRIMARY_TABLE);
+    UpdateLocalData(db, NO_PRIMARY_TABLE, ASSETS_COPY1);
     CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
 }
@@ -451,7 +502,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, COMPOUND_PRIMARY_TABLE);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, COMPOUND_PRIMARY_TABLE);
     CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
 
@@ -459,7 +511,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE);
+    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE, ASSETS_COPY1);
     CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
 }
@@ -477,7 +529,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 
@@ -485,7 +538,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, ASSETS_TABLE_NAME);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
@@ -503,7 +556,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, NO_PRIMARY_TABLE);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, NO_PRIMARY_TABLE);
     CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
 
@@ -511,7 +565,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, NO_PRIMARY_TABLE);
+    UpdateLocalData(db, NO_PRIMARY_TABLE, ASSETS_COPY1);
     CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
 }
@@ -529,7 +583,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, COMPOUND_PRIMARY_TABLE);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, COMPOUND_PRIMARY_TABLE);
     CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
 
@@ -537,7 +592,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
-    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE);
+    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE, ASSETS_COPY1);
     CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
     CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
 }
@@ -555,7 +610,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
         extend.erase("assets");
     });
@@ -566,6 +622,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
      * @tc.expected: step2. sync success.
      */
+    int addLocalCount = 10;
+    InsertLocalData(db, localCount, addLocalCount, ASSETS_TABLE_NAME);
     g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end()) {
             for (auto &asset : std::get<Assets>(extend["assets"])) {
@@ -574,7 +632,13 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Le
         }
     });
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
-    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+    int beginFailFillNum = 101;
+    int endFailFillNum = 120;
+    std::set<int> index;
+    for (int i = beginFailFillNum; i <= endFailFillNum; i++) {
+        index.insert(i);
+    }
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", index);
 
     /**
      * @tc.steps:step2. local update assets and sync ,check the local assetId.
@@ -598,7 +662,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end()) {
             for (auto &asset : std::get<Assets>(extend["assets"])) {
@@ -631,7 +696,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId009, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end()) {
             Asset asset = ASSET_COPY2;
@@ -656,20 +722,18 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 30, ASSETS_TABLE_NAME);
+    int localCount = 30;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     g_virtualCloudDb->SetInsertFailed(1);
     std::atomic<int> count = 0;
     g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
         if (extend.find("assets") != extend.end() && count == 0) {
-            extend["#_error"] = "";
+            extend["#_error"] = std::string("");
             count++;
         }
     });
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
-    int index = 1; // 1 is first record
-    std::set<int> failIndex;
-    failIndex.insert(index);
-    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", failIndex);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", { 1, 2 }); // 1st, 2nd asset do not fill
 }
 
 /**
@@ -685,7 +749,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Le
      * @tc.steps:step1. local insert assets and sync, check the local assetId.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 
@@ -697,7 +762,7 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Le
 
 /**
  * @tc.name: FillAssetId012
- * @tc.desc: Test if assetid is filled when extend is missing
+ * @tc.desc: Test if assetid is filled when extend size is not equal to record size
  * @tc.type: FUNC
  * @tc.require:
  * @tc.author: chenchaohao
@@ -708,7 +773,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Le
      * @tc.steps:step1. set extend size missing then sync, check the asseid.
      * @tc.expected: step1. return OK.
      */
-    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
     std::atomic<int> count = 1;
     g_virtualCloudDb->SetClearExtend(count);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
@@ -721,6 +787,315 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Le
     g_virtualCloudDb->SetClearExtend(0);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    /**
+     * @tc.steps:step3. set extend size large then sync, check the asseid.
+     * @tc.expected: step3. return OK.
+     */
+    count = -1; // -1 means extend push a empty vBucket
+    g_virtualCloudDb->SetClearExtend(count);
+    UpdateLocalData(db, ASSETS_TABLE_NAME, ASSETS_COPY1);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+}
+
+/**
+ * @tc.name: FillAssetId013
+ * @tc.desc: Test fill assetId and removedevicedata when data is delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId013, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert data and sync, then delete local data and insert new data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    int deleteLocalCount = 10;
+    DeleteLocalRecord(db, 0, deleteLocalCount, ASSETS_TABLE_NAME);
+    int addLocalCount = 30;
+    InsertLocalData(db, localCount, addLocalCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. RemoveDeviceData.
+     * @tc.expected: step2. return OK.
+     */
+    g_delegate->RemoveDeviceData("", FLAG_ONLY);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+}
+
+/**
+ * @tc.name: FillAssetId014
+ * @tc.desc: Test if asset status is reset when removedevicedata in FLAG_ONLY
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId014, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 50;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    /**
+     * @tc.steps:step2. RemoveDeviceData
+     * @tc.expected: step2. return OK.
+     */
+    Assets assets;
+    std::vector<AssetStatus> statusVec = {
+        AssetStatus::INSERT, AssetStatus::UPDATE, AssetStatus::DELETE, AssetStatus::NORMAL,
+        AssetStatus::ABNORMAL, AssetStatus::DOWNLOADING, AssetStatus::DOWNLOAD_WITH_NULL
+    };
+    for (auto &status : statusVec) {
+        Asset temp = ASSET_COPY;
+        temp.name += std::to_string(status);
+        temp.status = status | AssetStatus::UPLOADING;
+        assets.emplace_back(temp);
+    }
+    UpdateLocalData(db, ASSETS_TABLE_NAME, assets);
+    EXPECT_EQ(g_delegate->RemoveDeviceData("", FLAG_ONLY), OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+
+    /**
+     * @tc.steps:step3. check status
+     * @tc.expected: step3. return OK.
+     */
+    std::string sql = "SELECT assets FROM " + ASSETS_TABLE_NAME + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int index = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        Assets newAssets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(cloudValue));
+        for (const auto &ast : newAssets) {
+            EXPECT_EQ(ast.status, statusVec[index++ % statusVec.size()]);
+        }
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: FillAssetId015
+ * @tc.desc: Test if fill assetId when upload return cloud network error
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId015, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert data and fork batchinsert return CLOUD_NETWORK_ERROR, then sync
+     * @tc.expected: step1. return OK, errcode is CLOUD_NETWORK_ERROR.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->SetCloudNetworkError(true);
+    std::atomic<int> count = 0;
+    g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end() && count == 0) {
+            extend["#_error"] = std::string("");
+            count++;
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_NETWORK_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", { 1, 2 }); // 1st, 2nd asset do not fill
+    g_virtualCloudDb->SetCloudNetworkError(false);
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    /**
+     * @tc.steps:step2. local insert data and fork batchinsert return CLOUD_NETWORK_ERROR, then sync.
+     * @tc.expected: step2. return OK, errcode is CLOUD_ERROR.
+     */
+    int addLocalCount = 10;
+    InsertLocalData(db, localCount, addLocalCount, ASSETS_TABLE_NAME);
+    std::atomic<int> num = 0;
+    g_virtualCloudDb->ForkUpload([&num](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end() && num == 0) {
+            for (auto &asset : std::get<Assets>(extend["assets"])) {
+                asset.name = "pad";
+                break;
+            }
+            num++;
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {41}); // // 41th asset do not fill
+}
+
+/**
+ * @tc.name: FillAssetId016
+ * @tc.desc: Test fill assetId and removedevicedata when last data is delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert data and sync, then delete last local data
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    int deletLocalCount = 10;
+    DeleteLocalRecord(db, deletLocalCount, deletLocalCount, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. RemoveDeviceData.
+     * @tc.expected: step2. return OK.
+     */
+    g_delegate->RemoveDeviceData("", FLAG_ONLY);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+}
+
+/**
+ * @tc.name: DownloadAssetForDupDataTest002
+ * @tc.desc: Test download failed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
+     * @tc.expected: step1. return OK
+     */
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s, index:%d", gid.c_str(), ++index);
+                return DBStatus::CLOUD_ERROR;
+            });
+
+    /**
+     * @tc.steps:step2. Insert cloud data [0, 10), sync data
+     * @tc.expected: step2. sync success.
+     */
+    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+
+    /**
+     * @tc.steps:step3. check if the hash of assets in db is empty
+     * @tc.expected: step3. OK
+     */
+    CheckDownloadFailedForTest002(db);
+}
+
+/**
+ * @tc.name: DownloadAssetForDupDataTest003
+ * @tc.desc: Test download failed and flag was modified
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
+     * @tc.expected: step1. return OK
+     */
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s, index:%d", gid.c_str(), ++index);
+                for (auto &[key, value] : assets) {
+                    for (auto &asset : value) {
+                        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+                    }
+                }
+                return DBStatus::CLOUD_ERROR;
+            });
+
+    /**
+     * @tc.steps:step2. Insert cloud data [0, 10), sync data
+     * @tc.expected: step2. sync success.
+     */
+    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+
+    /**
+     * @tc.steps:step3. check if the hash of assets in db is empty
+     * @tc.expected: step3. OK
+     */
+    CheckDownloadFailedForTest002(db);
+}
+
+/**
+ * @tc.name: DownloadAssetForDupDataTest004
+ * @tc.desc: test sync with deleted assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Mock asset download return CLOUD_ERROR.
+     * @tc.expected: step1. return OK
+     */
+    std::shared_ptr<MockAssetLoader> assetLoader = make_shared<MockAssetLoader>();
+    ASSERT_EQ(g_delegate->SetIAssetLoader(assetLoader), DBStatus::OK);
+    int index = 0;
+    EXPECT_CALL(*assetLoader, Download(testing::_, testing::_, testing::_, testing::_))
+        .WillRepeatedly(
+            [&](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
+                LOGD("Download GID:%s, index:%d", gid.c_str(), ++index);
+                return DBStatus::OK;
+            });
+
+    /**
+     * @tc.steps:step2. insert local data, update assets status to delete, then insert cloud data
+     * @tc.expected: step2. return OK
+     */
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME);
+    Assets assets;
+    Asset asset = ASSET_COPY;
+    asset.name = ASSET_COPY.name + std::to_string(1);
+    asset.status = AssetStatus::DELETE;
+    assets.emplace_back(asset);
+    asset.name = ASSET_COPY.name + std::to_string(1) + "_copy";
+    assets.emplace_back(asset);
+    int errCode;
+    std::vector<uint8_t> assetBlob;
+    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = 1;";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME);
+
+    /**
+     * @tc.steps:step3. sync, check download num
+     * @tc.expected: step3. return OK
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    EXPECT_GE(index, 2); // 2 is download num
 }
 } // namespace
 #endif // RELATIONAL_STORE

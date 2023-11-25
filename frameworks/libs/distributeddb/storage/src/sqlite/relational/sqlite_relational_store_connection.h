@@ -62,6 +62,8 @@ public:
     int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
 
     int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
+
+    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

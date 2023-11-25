@@ -24,7 +24,7 @@ using namespace DistributedDBUnitTest;
 
 namespace {
     const int MAX_TEST_KEY_SIZE = 1024;     // 1K
-    const int MAX_TEST_VAL_SIZE = 4194304;  // 4M
+    const int MAX_TEST_VAL_SIZE = 4194304; // 4M
 
     // select result index for the item for sync database
     const int SYNC_RES_KEY_INDEX = 0;

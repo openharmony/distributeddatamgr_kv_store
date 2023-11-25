@@ -35,7 +35,11 @@ public:
         if (msg.empty()) {
             return;
         }
+#ifdef DB_DEBUG_ENV
+        const std::string format = "%s";
+#else
         const std::string format = "%{public}s";
+#endif
         OHOS::HiviewDFX::HiLogLabel label = { LOG_CORE, 0xD001630, tag.c_str() }; // log module id.
         switch (level) {
             case Level::LEVEL_DEBUG:
@@ -126,7 +130,11 @@ void Logger::PreparePrivateLog(const char *format, std::string &outStrFormat)
     outStrFormat = format;
     std::string::size_type pos = outStrFormat.find(PRIVATE_TAG);
     if (pos != std::string::npos) {
+#ifdef DB_DEBUG_ENV
+        outStrFormat.replace(pos, PRIVATE_TAG.size(), "s");
+#else
         outStrFormat.replace(pos, PRIVATE_TAG.size(), ".3s");
+#endif
     }
 }
 } // namespace DistributedDB

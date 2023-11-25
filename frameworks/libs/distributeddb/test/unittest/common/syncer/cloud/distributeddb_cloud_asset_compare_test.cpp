@@ -16,6 +16,7 @@
 
 #include <gtest/gtest.h>
 
+#include "cloud/asset_operation_utils.h"
 #include "cloud_syncer_test.h"
 #include "cloud_store_types.h"
 #include "db_errno.h"
@@ -237,10 +238,13 @@ namespace {
         std::map<std::string, Assets> &expected)
     {
         if (target[fieldName].size() != expected[fieldName].size()) {
+            LOGE("[CheckAssetDownloadList] size is not equal actual %zu expect %zu", target[fieldName].size(),
+                expected[fieldName].size());
             return false;
         }
         for (size_t i = 0; i < target[fieldName].size(); i++) {
             if (!IsAssetEq(target[fieldName][i], expected[fieldName][i])) {
+                LOGE("[CheckAssetDownloadList] asset not equal fieldName %s index %zu", fieldName.c_str(), i);
                 return false;
             }
         }
@@ -251,6 +255,11 @@ namespace {
     {
         asset.flag = static_cast<uint32_t>(flag);
         asset.status = static_cast<uint32_t>(status);
+    }
+
+    static AssetStatus GetDownloadWithNullStatus()
+    {
+        return static_cast<AssetStatus>(static_cast<uint32_t>(DOWNLOADING) | static_cast<uint32_t>(DOWNLOAD_WITH_NULL));
     }
 
     /**
@@ -264,10 +273,10 @@ namespace {
     {
         auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_BASELINE, DATA_EMPTY);
         std::map<std::string, Assets> expectedList;
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a1);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a2);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a3);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a1);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a2);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a3);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a4);
         expectedList[FIELD_HOUSE] = { a1 };
         expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
@@ -285,10 +294,10 @@ namespace {
     {
         auto assetList = g_cloudSyncer->TestTagAssetsInSingleRecord(DATA_BASELINE, DATA_EMPTY_ASSET);
         std::map<std::string, Assets> expectedList;
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a1);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a2);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a3);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a1);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a2);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a3);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a4);
         expectedList[FIELD_HOUSE] = { a1 };
         expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
@@ -382,7 +391,7 @@ namespace {
             DATA_BASELINE, DATA_ASSETS_DIFFERENT_FIELD);
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::DELETE, AssetStatus::DOWNLOADING, a5);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a4);
         expectedList[FIELD_HOUSE] = {};
         expectedList[FIELD_CARS] = { a2, a3, a5, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
@@ -403,7 +412,7 @@ namespace {
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::UPDATE, AssetStatus::DOWNLOADING, a3);
         TagAsset(AssetOpType::DELETE, AssetStatus::DOWNLOADING, a5);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a4);
         expectedList[FIELD_HOUSE] = {};
         expectedList[FIELD_CARS] = { a2, a3, a5, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
@@ -533,9 +542,9 @@ namespace {
             DATA_BASELINE, DATA_NULL_ASSETS);
         std::map<std::string, Assets> expectedList;
         TagAsset(AssetOpType::NO_CHANGE, AssetStatus::DOWNLOADING, a1);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a2);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a3);
-        TagAsset(AssetOpType::INSERT, AssetStatus::DOWNLOADING, a4);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a2);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a3);
+        TagAsset(AssetOpType::INSERT, GetDownloadWithNullStatus(), a4);
         expectedList[FIELD_HOUSE] = {};
         expectedList[FIELD_CARS] = { a2, a3, a4 };
         ASSERT_TRUE(CheckAssetDownloadList(FIELD_HOUSE, assetList, expectedList));
@@ -834,5 +843,156 @@ namespace {
         std::vector<Field> assetFields = { field1, field2 };
         ASSERT_TRUE(g_cloudSyncer->TestIsDataContainDuplicateAsset(assetFields, DATA_SAME_NAME_ASSETS));
         ASSERT_TRUE(g_cloudSyncer->TestIsDataContainDuplicateAsset(assetFields, DATA_BASELINE) == false);
+    }
+
+    /**
+     * @tc.name: AssetOperation001
+     * @tc.desc: Different opType with end download action and assets
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetOperation001, TestSize.Level0)
+    {
+        VBucket cacheAssets;
+        VBucket dbAssets;
+        Asset asset;
+        asset.status = AssetStatus::DOWNLOADING;
+        asset.name = "name";
+        cacheAssets["field"] = asset;
+        dbAssets["field"] = asset;
+        // check both downloading after download
+        auto res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_DOWNLOAD);
+        EXPECT_EQ(res["field"].size(), 1u);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+        // status mask download with null
+        asset.status = (static_cast<uint32_t>(AssetStatus::DOWNLOADING) |
+            static_cast<uint32_t>(AssetStatus::DOWNLOAD_WITH_NULL));
+        cacheAssets["field"] = asset;
+        dbAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_DOWNLOAD);
+        EXPECT_EQ(res["field"].size(), 1u);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+        // if status not equal, not handle
+        asset.status = AssetStatus::UPDATE;
+        dbAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_DOWNLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+        // if asset not exist, not handle
+        dbAssets.erase("field");
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_DOWNLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+    }
+
+    /**
+     * @tc.name: AssetOperation002
+     * @tc.desc: Different opType with start download action and assets
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetOperation002, TestSize.Level0)
+    {
+        VBucket cacheAssets;
+        VBucket dbAssets;
+        Asset asset;
+        asset.name = "name";
+        asset.status = AssetStatus::DOWNLOADING;
+        cacheAssets["field"] = asset;
+        dbAssets["field"] = asset;
+        // check both downloading before download
+        auto res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_DOWNLOAD);
+        EXPECT_EQ(res["field"].size(), 1u);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+        // if status not equal, not handle
+        asset.status = AssetStatus::UPDATE;
+        dbAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_DOWNLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+        // if db asset not exist, not handle
+        dbAssets.erase("field");
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_DOWNLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+        // if db asset not exist but cache is delete, handle
+        asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
+        cacheAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_DOWNLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+    }
+
+    /**
+     * @tc.name: AssetOperation003
+     * @tc.desc: Different opType with start upload action and assets
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetOperation003, TestSize.Level0)
+    {
+        Asset asset;
+        VBucket cacheAssets;
+        VBucket dbAssets;
+        asset.name = "name";
+        asset.status = AssetStatus::UPDATE;
+        cacheAssets["field"] = asset;
+        dbAssets["field"] = asset;
+        // check both update before upload
+        auto res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_UPLOAD);
+        EXPECT_EQ(res["field"].size(), 1u);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+        // if status not equal, not handle
+        asset.status = AssetStatus::DELETE;
+        dbAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_UPLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+        // if asset not exist, not handle
+        dbAssets.erase("field");
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::START_UPLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+    }
+
+    /**
+     * @tc.name: AssetOperation004
+     * @tc.desc: Different opType with start upload action and assets
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangqiquan
+     */
+    HWTEST_F(DistributedDBCloudAssetCompareTest, AssetOperation004, TestSize.Level0)
+    {
+        Asset asset;
+        VBucket cacheAssets;
+        VBucket dbAssets;
+        asset.name = "name";
+        asset.status = (static_cast<uint32_t>(AssetStatus::UPDATE) | static_cast<uint32_t>(AssetStatus::UPLOADING));
+        cacheAssets["field"] = asset;
+        dbAssets["field"] = asset;
+        // check both UPLOADING after upload
+        auto res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_UPLOAD);
+        EXPECT_EQ(res["field"].size(), 1u);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::HANDLE);
+        // if status not equal, not handle
+        asset.status = AssetStatus::DELETE;
+        dbAssets["field"] = asset;
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_UPLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
+        // if asset not exist, not handle
+        dbAssets.erase("field");
+        res = AssetOperationUtils::CalAssetOperation(cacheAssets, dbAssets,
+            AssetOperationUtils::CloudSyncAction::END_UPLOAD);
+        EXPECT_EQ(res["field"][asset.name], AssetOperationUtils::AssetOpType::NOT_HANDLE);
     }
 }

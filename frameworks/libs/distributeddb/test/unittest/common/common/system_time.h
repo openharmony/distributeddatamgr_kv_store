@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef SYSTEM_TIMER_H
-#define SYSTEM_TIMER_H
+#ifndef SYSTEM_TIME_H
+#define SYSTEM_TIME_H
 
 #include <cstdint>
 
@@ -23,4 +23,4 @@ namespace OS {
 void SetOffsetBySecond(int64_t inSecond);
 }
 }
-#endif // SYSTEM_TIMER_H
+#endif // SYSTEM_TIME_H

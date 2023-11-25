@@ -15,8 +15,8 @@
 
 #include "cloud_sync_log_table_manager.h"
 #include "cloud/cloud_db_constant.h"
-#include "db_common.h"
 #include "cloud/cloud_storage_utils.h"
+#include "db_common.h"
 
 namespace DistributedDB {
 std::string CloudSyncLogTableManager::CalcPrimaryKeyHash(const std::string &references, const TableInfo &table,
@@ -137,7 +137,7 @@ std::string CloudSyncLogTableManager::GetUpdateTrigger(const TableInfo &table, c
     if (!table.GetTrackerTable().GetTrackerColNames().empty()) {
         updateTrigger += table.GetTrackerTable().GetExtendAssignValSql();
     }
-    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else MAX(cursor) + 1 END ";
+    updateTrigger += ", cursor = (SELECT case when (MAX(cursor) is null) then 1 else (MAX(cursor) + 1) END ";
     updateTrigger += " from " + logTblName;
     updateTrigger += ") WHERE data_key = OLD." + std::string(DBConstant::SQLITE_INNER_ROWID) + ";\n";
     updateTrigger += CloudStorageUtils::GetTableRefUpdateSql(table, OpType::UPDATE);
