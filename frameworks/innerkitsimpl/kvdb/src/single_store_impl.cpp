@@ -790,9 +790,9 @@ Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<S
 
 Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {        
-    Status status = Status::SUCCESS;
+    Status cStatus = Status::SUCCESS;
     if (isClientSync_) {
-        status = DoClientSync(syncInfo, observer);
+        cStatus = DoClientSync(syncInfo, observer);
     }
 
     auto service = KVDBServiceClient::GetInstance();
@@ -808,12 +808,20 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     syncAgent->AddSyncCallback(observer, syncInfo.seqId);
-    status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
     }
 
-    return status;
+    if (!isClientSync_) {
+        return status
+    }
+    if (cStatus == SUCCESS || status == SUCCESS) {
+        return SUCCESS;
+    } else {
+        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
+        return ERROR;
+    }
 }
 
 void SingleStoreImpl::DoAutoSync()
