@@ -172,10 +172,7 @@ enum SubscribeType : uint32_t {
      * Both local changes and synced data changes.
     */
     SUBSCRIBE_TYPE_ALL = 3,
-    /**
-     * Synced data changes from remote devices in client.
-    */
-    SUBSCRIBE_TYPE_CLIENT_REMOTE = 4,
+
 };
 
 /**
@@ -434,10 +431,6 @@ struct Options {
                kvStoreType == KvStoreType::LOCAL_ONLY;
     }
     /**
-     * Whether the sync happend in client.
-    */
-    bool isClientSync = false;
-    /**
      * Get the databaseDir.
     */
     inline std::string GetDatabaseDir() const
@@ -462,6 +455,10 @@ struct Options {
      * Set database role.
     */
     RoleType role;
+    /**
+     * Whether the sync happend in client.
+    */
+    bool isClientSync = false;
 };
 
 /**

@@ -21,6 +21,7 @@
 #include "kv_store_delegate_manager.h"
 #include "security_manager.h"
 #include "single_store_impl.h"
+#include "end_point.h"
 namespace OHOS::DistributedKv {
 class StoreFactory {
 public:
@@ -29,7 +30,7 @@ public:
         Status &status, bool &isCreate);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
     Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
-    void SetUserId(const std::string &userId);
+    void SetEndPoint(std::shared_ptr<Endpoint> endpoint);
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
@@ -55,7 +56,7 @@ private:
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
-    std::string userId_ = "";
+    std::shared_ptr<Endpoint> endpoint_ = nullptr;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H

@@ -16,6 +16,8 @@
 #ifndef END_POINT_H
 #define END_POINT_H
 
+#include <tuple>
+#include <mutex>
 #include <functional>
 #include "types.h"
 
@@ -34,6 +36,8 @@ class API_EXPORT Endpoint {
 public:
 
     using RecvHandler = std::function<void(const std::string &identifier, const uint8_t *data, uint32_t length)>;
+
+    using SetHandler = std::function<void(const std::string &identifier, const std::vector<std::string> &tagretDev)>;
 
     /**
      * @brief Constructor.
@@ -101,13 +105,42 @@ public:
      * @param flag The direction of sync.
      * @return Return true for success, false for failure.
      */
-    virtual bool SyncPermissionCheck(const StoreBriefInfo &param, uint8_t flag) = 0;
+    virtual bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) = 0;
+    
+    /**
+     * @brief Set Identifier.
+     * @param tuples target device list storeId label.
+     * @return Return true for success, false for failure.
+     */
+    virtual bool SetIdentifier(std::tuple<std::string, std::string, std::vector<std::string>> &tuples)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto storeId = std::get<0>(tuples);
+        if (callbacks_.count(storeId) == 0) {
+            return false;
+        }
+        auto label = std::get<1>(tuples);
+        auto tagretDev = std::get<2>(tuples);
+        callbacks_[storeId](label, tagretDev);
+        return true;
+    }
 
     /**
-     * @brief Get userId.
-     * @return Return userId.
+     * @brief Set callback.
+     * @param storeId target device list.
+     * @param callback Callback to register data change..
      */
-    virtual std::string GetUserId() = 0;
+    virtual void SetCallback(const std::string storeId, SetHandler &callback)
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (callbacks_.count(storeId) == 0) {
+            callbacks_[storeId] = callbacks;
+        }
+    }
+private:
+    std::map<std::string, SetHandler> callbacks_;
+
+    std::mutex mutex_;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

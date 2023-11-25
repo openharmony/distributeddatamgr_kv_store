@@ -243,13 +243,13 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     }
 
     Status status = SUCCESS;
-    if ((realType & SUBSCRIBE_TYPE_CLIENT_REMOTE) == SUBSCRIBE_TYPE_CLIENT_REMOTE) {
-        auto dbStatus = dbStore_->RegisterObserver({}, DistributedDB::OBSERVER_CHANGES_FOREIGN, bridge.get());
-        status = StoreUtil::ConvertStatus(dbStatus);
+    unsigned int mode = DistributedDB::OBSERVER_CHANGES_NATIVE;
+    if (isClientSync_) {
+        mode |= DistributedDB::OBSERVER_CHANGES_FOREIGN;
     }
 
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
-        auto dbStatus = dbStore_->RegisterObserver({}, DistributedDB::OBSERVER_CHANGES_NATIVE, bridge.get());
+        auto dbStatus = dbStore_->RegisterObserver({}, mode, bridge.get());
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
@@ -287,10 +287,6 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
     }
 
     Status status = SUCCESS;
-    if ((realType & SUBSCRIBE_TYPE_CLIENT_REMOTE) == SUBSCRIBE_TYPE_CLIENT_REMOTE) {
-        auto dbStatus = dbStore_->UnRegisterObserver(bridge.get());
-        status = StoreUtil::ConvertStatus(dbStatus);
-    }
 
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
         auto dbStatus = dbStore_->UnRegisterObserver(bridge.get());
@@ -774,23 +770,29 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
     return status;
 }
 
-Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
-    Status cStatus = Status::SUCCESS;
-    if (isClientSync_) {
-        auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
-            std::map<std::string, Status> result;
-            for (auto &[key, dbStatus] : devicesMap) {
-                result[key] = StoreUtil::ConvertStatus(dbStatus);
-            }
-            observer->SyncCompleted(result);
-        };
-        
-        auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
-        cStatus = StoreUtil::ConvertStatus(dbStatus);
-        if (cStatus != Status::SUCCESS) {
-            ZLOGE("client Sync failed: %{public}d", cStatus);
+    auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {  
+        std::map<std::string, Status> result;
+        for (auto &[key, dbStatus] : devicesMap) {
+            result[key] = StoreUtil::ConvertStatus(dbStatus);
         }
+        observer->SyncCompleted(result);
+    };
+        
+    auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
+    Status status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != Status::SUCCESS) {
+        ZLOGE("client Sync failed: %{public}d", status);
+    }
+    return status;
+}
+
+Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+{        
+    Status status = Status::SUCCESS;
+    if (isClientSync_) {
+        status = DoClientSync(syncInfo, observer);
     }
 
     auto service = KVDBServiceClient::GetInstance();
@@ -806,20 +808,12 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     syncAgent->AddSyncCallback(observer, syncInfo.seqId);
-    auto status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
+    status = service->Sync({ appId_ }, { storeId_ }, syncInfo);
     if (status != Status::SUCCESS) {
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
     }
 
-    if (!isClientSync_) {
-        return status;
-    }
-    if (cStatus == SUCCESS || status == SUCCESS) {
-        return SUCCESS;
-    } else {
-        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
-        return ERROR;
-    }
+    return status;
 }
 
 void SingleStoreImpl::DoAutoSync()

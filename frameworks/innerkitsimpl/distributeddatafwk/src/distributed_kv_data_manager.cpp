@@ -33,7 +33,7 @@
 namespace OHOS {
 namespace DistributedKv {
 using namespace OHOS::DistributedDataDfx;
-std::atomic<bool> DistributedKvDataManager::isAlreadySet_{false};
+bool DistributedKvDataManager::isAlreadySet_ = false;
 DistributedKvDataManager::DistributedKvDataManager()
 {}
 
@@ -184,14 +184,15 @@ void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> execut
 
 Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (endpoint == nullptr) {
         ZLOGE("Endpoint is nullptr.");
-        return ERROR;
+        return INVALID_ARGUMENT;
     }
 
     if (isAlreadySet_) {
         ZLOGW("Endpoint already set");
-        return INVALID_ARGUMENT;
+        return SUCCESS;
     }
     
     auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
@@ -226,7 +227,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
             std::move(param.instanceId),
             std::move(param.extraConditions)
         };
-        return endpoint->SyncPermissionCheck(params, flag);
+        return endpoint->HasDataSyncPermission(params, flag);
     };
     
     dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);
@@ -235,7 +236,7 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
         ZLOGE("SetPermissionCheckCallback failed: %d", status);
         return status;
     }
-    StoreFactory::GetInstance().SetUserId(endpoint->GetUserId());
+    StoreFactory::GetInstance().SetEndPoint(endpoint);
     isAlreadySet_ = true;
     return status;
 }

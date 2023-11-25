@@ -118,6 +118,12 @@ bool ProcessCommunicationImpl::IsSameProcessLabelStartedOnPeerDevice(__attribute
 {
     return isCreateSessionServer_;
 }
+
+std::shared_ptr<DistributedDB::ExtendHeaderHandle> ProcessCommunicationImpl::GetExtendHeaderHandle(
+    __attribute__((unused)) const DistributedDB::ExtendInfo &paramInfo)
+{
+    return std::make_shared<DistributedDB::ExtendHeaderHandle>();
+}
 } // namespace AppDistributedKv
 } // namespace OHOS
 

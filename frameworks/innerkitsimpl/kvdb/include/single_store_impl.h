@@ -100,6 +100,7 @@ private:
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    Status DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
     void Register();
 
