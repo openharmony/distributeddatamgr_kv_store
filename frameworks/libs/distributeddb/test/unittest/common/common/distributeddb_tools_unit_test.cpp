@@ -1223,4 +1223,33 @@ END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return SQLiteUtils::MapSQLiteErrno(errCode);
 }
+
+void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
+    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect)
+{
+    ASSERT_NE(delegate, nullptr);
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [expect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                EXPECT_EQ(item.second.errCode, expect);
+                cv.notify_one();
+            }
+        }
+    };
+    ASSERT_EQ(delegate->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, DBConstant::MAX_TIMEOUT), expect);
+    if (expect != DistributedDB::DBStatus::OK) {
+        return;
+    }
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finish]() {
+        return finish;
+    });
+}
 } // namespace DistributedDBUnitTest

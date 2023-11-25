@@ -185,6 +185,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
      */
     TableSchema schema = {
         .name = TABLE_NAME,
+        .sharedTableName = "",
         .fields = GetFields()
     };
     std::vector<VBucket> expectRecords = CloudDBDataUtils::GenerateRecords(10, schema); // generate 10 records
@@ -227,6 +228,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
 {
     TableSchema schema = {
         .name = TABLE_NAME,
+        .sharedTableName = "",
         .fields = GetFields()
     };
     /**

@@ -1246,9 +1246,9 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType
     }
 
     errCode = kvDB_->TryToDisableConnection(OperatePerm::NORMAL_WRITE);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // on operate rekey or import
         ReleaseExecutor(handle);
-        LOGE("Start transaction failed, %d", errCode);
+        LOGE("Start transaction failed, %d perm not normal", errCode);
         return errCode;
     }
 

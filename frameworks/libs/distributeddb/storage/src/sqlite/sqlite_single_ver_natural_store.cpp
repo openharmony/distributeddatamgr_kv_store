@@ -546,6 +546,7 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
 
 int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
+    (void)isInTransaction;
     int errCode = SQLiteSingleVerNaturalStore::CheckDataStatus(key, value, false);
     if (errCode != E_OK) {
         return errCode;

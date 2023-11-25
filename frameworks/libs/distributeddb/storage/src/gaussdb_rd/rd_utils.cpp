@@ -48,16 +48,16 @@ namespace {
 
 namespace DistributedDB {
 
-struct GrdErrnoPair {
-    int32_t grdCode;
-    int kvDbCode;
-};
-
 std::string InitRdConfig()
 {
     return R"("pageSize": 16, "redoFlushByTrx": 1, "redoPubBufSize": 1024, "maxConnNum": 100,
         "bufferPoolSize": 1024, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
 }
+
+struct GrdErrnoPair {
+    int32_t grdCode;
+    int kvDbCode;
+};
 
 const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_OK, E_OK },

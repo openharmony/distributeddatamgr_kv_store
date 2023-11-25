@@ -17,7 +17,9 @@
 
 #include <climits>
 #include <cstdio>
+#include <queue>
 
+#include "cloud/cloud_db_constant.h"
 #include "db_errno.h"
 #include "platform_specific.h"
 #include "query_sync_object.h"
@@ -441,11 +443,9 @@ std::string DBCommon::ToUpperCase(const std::string &str)
     return res;
 }
 
-bool DBCommon::CaseInsensitiveCompare(std::string first, std::string second)
+bool DBCommon::CaseInsensitiveCompare(const std::string &first, const std::string &second)
 {
-    std::transform(first.begin(), first.end(), first.begin(), ::tolower);
-    std::transform(second.begin(), second.end(), second.begin(), ::tolower);
-    return first == second;
+    return (strcasecmp(first.c_str(), second.c_str()) == 0);
 }
 
 bool DBCommon::CheckIsAlnumOrUnderscore(const std::string &text)
@@ -460,13 +460,141 @@ bool DBCommon::CheckQueryWithoutMultiTable(const Query &query)
 {
     QuerySyncObject syncObject(query);
     if (!syncObject.GetRelationTableNames().empty()) {
-        LOGE("check query from tables failed!");
+        LOGE("check query table names from tables failed!");
         return false;
     }
     if (!QuerySyncObject::GetQuerySyncObject(query).empty()) {
-        LOGE("check query from table failed!");
+        LOGE("check query object from table failed!");
         return false;
     }
     return true;
+}
+
+/* this function us topology sorting algorithm to detect whether a ring exists in the dependency
+ * the algorithm main procedure as below:
+ * 1. select a point which in-degree is 0 in the graph and record it;
+ * 2. delete the point and all edges starting from this point;
+ * 3. repeat step 1 and 2, until the graph is empty or there is no point with a zero degree
+ * */
+bool DBCommon::IsCircularDependency(int size, const std::vector<std::vector<int>> &dependency)
+{
+    std::vector<int> inDegree(size, 0); // save in-degree of every point
+    std::vector<std::vector<int>> adjacencyList(size);
+    for (size_t i = 0; i < dependency.size(); i++) {
+        adjacencyList[dependency[i][0]].push_back(dependency[i][1]); // update adjacencyList
+        inDegree[dependency[i][1]]++;
+    }
+    std::queue<int> que;
+    for (size_t i = 0; i < inDegree.size(); i++) {
+        if (inDegree[i] == 0) {
+            que.push(i); // push all point which in-degree = 0
+        }
+    }
+
+    int zeroDegreeCnt = static_cast<int>(que.size());
+    while (!que.empty()) {
+        int index = que.front();
+        que.pop();
+        for (size_t i = 0; i < adjacencyList[index].size(); ++i) {
+            int j = adjacencyList[index][i]; // adjacencyList[index] save the point which is connected to index
+            inDegree[j]--;
+            if (inDegree[j] == 0) {
+                zeroDegreeCnt++;
+                que.push(j);
+            }
+        }
+    }
+    return zeroDegreeCnt != size;
+}
+
+int DBCommon::SerializeWaterMark(Timestamp localMark, const std::string &cloudMark, Value &blobMeta)
+{
+    uint64_t length = Parcel::GetUInt64Len() + Parcel::GetStringLen(cloudMark);
+    blobMeta.resize(length);
+    Parcel parcel(blobMeta.data(), blobMeta.size());
+    parcel.WriteUInt64(localMark);
+    parcel.WriteString(cloudMark);
+    if (parcel.IsError()) {
+        LOGE("[DBCommon] Parcel error while serializing cloud meta data.");
+        return -E_PARSE_FAIL;
+    }
+    return E_OK;
+}
+
+Key DBCommon::GetPrefixTableName(const TableName &tableName)
+{
+    TableName newName = CloudDbConstant::CLOUD_META_TABLE_PREFIX + tableName;
+    Key prefixedTableName(newName.begin(), newName.end());
+    return prefixedTableName;
+}
+
+void DBCommon::InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
+    const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,
+    std::list<std::string> &insertTarget)
+{
+    auto copyGraph = graph;
+    // insert all nodes into res
+    for (const auto &generateNode : generateNodes) {
+        auto iterator = insertTarget.begin();
+        for (; iterator != insertTarget.end(); iterator++) {
+            // don't compare two no reachable node
+            if (!copyGraph[*iterator][generateNode] && !copyGraph[generateNode][*iterator]) {
+                continue;
+            }
+            if (scoreGraph.find(*iterator) == scoreGraph.end() || scoreGraph.find(generateNode) == scoreGraph.end()) {
+                // should not happen
+                LOGW("[DBCommon] not find score in graph");
+                continue;
+            }
+            if (scoreGraph.at(*iterator) <= scoreGraph.at(generateNode)) {
+                break;
+            }
+        }
+        insertTarget.insert(iterator, generateNode);
+    }
+}
+
+std::list<std::string> DBCommon::GenerateNodesByNodeWeight(const std::vector<std::string> &nodes,
+    const std::map<std::string, std::map<std::string, bool>> &graph,
+    const std::map<std::string, int> &nodeWeight)
+{
+    std::list<std::string> res;
+    std::set<std::string> paramNodes;
+    std::set<std::string> visitNodes;
+    for (const auto &node : nodes) {
+        res.push_back(node);
+        paramNodes.insert(node);
+        visitNodes.insert(node);
+    }
+    // find all node which can be reached by param nodes
+    for (const auto &source : paramNodes) {
+        if (graph.find(source) == graph.end()) {
+            continue;
+        }
+        for (const auto &[target, reach] : graph.at(source)) {
+            if (reach) {
+                visitNodes.insert(target);
+            }
+        }
+    }
+    std::vector<std::string> generateNodes;
+    for (const auto &node : visitNodes) {
+        // ignore the node which is param
+        if (paramNodes.find(node) == paramNodes.end()) {
+            generateNodes.push_back(node);
+        }
+    }
+    InsertNodesByScore(graph, generateNodes, nodeWeight, res);
+    return res;
+}
+
+bool DBCommon::HasPrimaryKey(const std::vector<Field> &fields)
+{
+    for (const auto &field : fields) {
+        if (field.primary) {
+            return true;
+        }
+    }
+    return false;
 }
 } // namespace DistributedDB

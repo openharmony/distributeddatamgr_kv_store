@@ -26,6 +26,7 @@ struct CloudSyncBatch {
     std::vector<int64_t> rowid;
     std::vector<int64_t> timestamp;
     std::vector<VBucket> assets;
+    std::vector<Bytes> hashKey;
 };
 
 struct CloudSyncData {
@@ -34,6 +35,7 @@ struct CloudSyncData {
     CloudSyncBatch updData;
     CloudSyncBatch delData;
     bool isCloudForcePushStrategy = false;
+    bool isShared = false;
     int ignoredCount = 0;
     CloudSyncData() = default;
     CloudSyncData(const std::string &_tableName) : tableName(_tableName) {};

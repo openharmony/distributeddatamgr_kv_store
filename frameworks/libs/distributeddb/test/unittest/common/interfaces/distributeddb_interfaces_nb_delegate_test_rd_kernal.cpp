@@ -25,7 +25,9 @@
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
-#include "system_timer.h"
+#ifdef DB_DEBUG_ENV
+#include "system_time.h"
+#endif // DB_DEBUG_ENV
 #include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
@@ -218,7 +220,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, CombineTest001, TestSize.Level
      *
      */
     EXPECT_EQ(g_kvNbDelegatePtr->Put(key, value), OK);
-    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));    /**
+    std::this_thread::sleep_for(std::chrono::milliseconds(OBSERVER_SLEEP_TIME));
+    /**
      * @tc.steps:step4. Check the local data.
      * @tc.expected: step4. The get data is equal to the put data.
      */
@@ -1610,7 +1613,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, GetKeys001, TestSize.Level1)
     g_kvNbDelegatePtr = nullptr;
 }
 
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -1845,6 +1848,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, FreqGet001, TestSize.Level2)
 {
     ASSERT_NO_FATAL_FAILURE(FreqGet001());
 }
+
 /**
   * @tc.name: RdRangeQuery001
   * @tc.desc: Test GetEntries and the out of the parameter is entries.
@@ -2184,7 +2188,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Leve
 
     /**
      * @tc.steps: step2. Getentries by query, query is full-set;
-     * @tc.expected: step2. Getentries return OK;     */
+     * @tc.expected: step2. Getentries return OK;
+     */
     Query fullQuery3 = Query::Select().Range({'2'}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
@@ -2211,6 +2216,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Leve
         EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
     }
 }
-#endif // RUNNING_ON_SIMULATED_ENV
+#endif // DB_DEBUG_ENV
 }
 #endif // USE_RD_KERNEL

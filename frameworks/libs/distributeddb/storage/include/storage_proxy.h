@@ -58,8 +58,6 @@ public:
     int GetUploadCount(const QuerySyncObject &query, const Timestamp &localMark, bool isCloudForcePush,
         int64_t &count);
 
-    int FillCloudGid(const CloudSyncData &data);
-
     int GetCloudData(const std::string &tableName, const Timestamp &timeRange,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult);
 
@@ -93,14 +91,21 @@ public:
 
     int SetLogTriggerStatus(bool status);
 
-    int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data);
+    int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data);
 
     std::string GetIdentify() const;
 
     int CleanWaterMark(const TableName &tableName);
 
+    int CleanWaterMarkInMemory(const TableName &tableName);
+
+    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid);
+
     int CreateTempSyncTrigger(const std::string &tableName);
     int ClearAllTempSyncTrigger();
+    int IsSharedTable(const std::string &tableName, bool &isSharedTable);
+
+    void FillCloudGidIfSuccess(const OpType opType, const CloudSyncData &data);
 
     void SetCloudTaskConfig(const CloudTaskConfig &config);
 protected:

@@ -35,7 +35,8 @@ enum ClearMode {
     DEFAULT = 0,        // use for device to device sync
     FLAG_AND_DATA = 1,  // use for device to cloud sync
     FLAG_ONLY = 2,
-    BUTT = 3,
+    CLEAR_SHARED_TABLE = 3,
+    BUTT = 4,
 };
 
 enum class AssetOpType {
@@ -71,7 +72,8 @@ struct Asset {
 using Nil = std::monostate;
 using Assets = std::vector<Asset>;
 using Bytes = std::vector<uint8_t>;
-using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets>;
+using Entries = std::map<std::string, std::string>;
+using Type = std::variant<Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets, Entries>;
 using VBucket = std::map<std::string, Type>;
 
 struct Field {
@@ -79,10 +81,16 @@ struct Field {
     int32_t type; // get value from TYPE_INDEX;
     bool primary = false;
     bool nullable = true;
+    bool operator==(const Field &comparedField) const
+    {
+        return (colName == comparedField.colName) && (type == comparedField.type) &&
+            (primary == comparedField.primary) && (nullable == comparedField.nullable);
+    }
 };
 
 struct TableSchema {
     std::string name;
+    std::string sharedTableName;
     std::vector<Field> fields;
 };
 

@@ -20,6 +20,7 @@
 #include <map>
 #include <set>
 #include <string>
+
 #include "types_export.h"
 
 namespace DistributedDB {
@@ -77,6 +78,8 @@ enum DBStatus {
     CLOUD_FULL_RECORDS, // cloud's record is full
     CLOUD_LOCK_ERROR, // cloud failed to get sync lock
     CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud failed to download asset
+    PROPERTY_CHANGED, // reference property changed
+    CLOUD_VERSION_CONFLICT, // cloud failed to update version
 };
 
 struct KvStoreConfig {
@@ -185,6 +188,12 @@ struct TrackerSchema {
     std::string tableName;
     std::string extendColName;
     std::set<std::string> trackerColNames;
+};
+
+struct TableReferenceProperty {
+    std::string sourceTableName;
+    std::string targetTableName;
+    std::map<std::string, std::string> columns; // key is sourceTable column, value is targetTable column
 };
 
 static constexpr const char *GAUSSDB_RD = "gaussdb_rd";

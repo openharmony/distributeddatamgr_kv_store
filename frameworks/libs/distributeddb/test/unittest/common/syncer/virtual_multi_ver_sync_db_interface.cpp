@@ -59,9 +59,9 @@ int VirtualMultiVerSyncDBInterface::GetMetaData(const Key &key, Value &value) co
     return kvStore_->GetMetaData(key, value);
 }
 
-int VirtualMultiVerSyncDBInterface::PutMetaData(const Key &key, const Value &value)
+int VirtualMultiVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
-    return kvStore_->PutMetaData(key, value);
+    return kvStore_->PutMetaData(key, value, isInTransaction);
 }
 
 int VirtualMultiVerSyncDBInterface::DeleteMetaData(const std::vector<Key> &keys)

@@ -40,6 +40,7 @@ public:
 
     int CleanWaterMark(const TableName &tableName);
 
+    void CleanWaterMarkInMemory(const TableName &tableName);
 private:
     typedef struct CloudMetaValue {
         Timestamp localMark = 0u;
@@ -48,9 +49,7 @@ private:
 
     int ReadMarkFromMeta(const TableName &tableName);
     int WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark);
-    int SerializeMark(const Timestamp localMark, const std::string &cloudMark, Value &blobMeta);
     int DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue);
-    Key GetPrefixTableName(const TableName &tableName);
 
     mutable std::mutex cloudMetaMutex_;
     std::unordered_map<TableName, CloudMetaValue> cloudMetaVals_;

@@ -21,7 +21,6 @@
 #include <mutex>
 #include <memory>
 
-
 #include "auto_launch_export.h"
 #include "iprocess_communicator.h"
 #include "iprocess_system_api_adapter.h"

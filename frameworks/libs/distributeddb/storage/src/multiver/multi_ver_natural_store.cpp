@@ -535,6 +535,7 @@ int MultiVerNaturalStore::GetMetaData(const Key &key, Value &value) const
 // Put meta data as a key-value entry.
 int MultiVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
+    (void)isInTransaction;
     int errCode = E_OK;
     auto handle = GetHandle(true, errCode);
     if (handle == nullptr) {

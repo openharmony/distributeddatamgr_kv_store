@@ -54,6 +54,8 @@ public:
     int CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
         const RelationalSchemaObject &localSchema);
 
+    int CleanWaterMarkInMemory(const std::set<std::string> &tableNameList);
+
     int32_t GetCloudSyncTaskCount();
 
     void Close();
@@ -123,6 +125,9 @@ protected:
 
     int PreCheck(TaskId &taskId, const TableName &tableName);
 
+    int SaveUploadData(Info &insertInfo, Info &updateInfo, Info &deleteInfo, CloudSyncData &uploadData,
+        InnerProcessInfo &innerProcessInfo);
+
     int DoBatchUpload(CloudSyncData &uploadData, UploadParam &uploadParam, InnerProcessInfo &innerProcessInfo);
 
     int PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &innerProcessInfo,
@@ -184,6 +189,8 @@ protected:
 
     int SaveChangedData(SyncParam &param, size_t dataIndex, const DataInfo &dataInfo,
         std::vector<std::pair<Key, size_t>> &deletedList);
+
+    int DoDownloadAssets(bool skipSave, SyncParam &param);
 
     int SaveDataNotifyProcess(CloudSyncer::TaskId taskId, SyncParam &param);
 
@@ -294,6 +301,10 @@ protected:
     InnerProcessInfo GetInnerProcessInfo(const std::string &tableName, UploadParam &uploadParam);
 
     void NotifyUploadFailed(int errCode, InnerProcessInfo &info);
+
+    int BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
+
+    int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
     std::mutex dataLock_;
     TaskId lastTaskId_;

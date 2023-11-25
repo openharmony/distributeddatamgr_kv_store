@@ -374,6 +374,40 @@ HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest006, Tes
 }
 
 /*
+ * @tc.name: CloudSyncTest007
+ * @tc.desc: test sync when device delete
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudTableWithoutPrimaryKeySyncTest, CloudSyncTest007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. insert cloud asset and merge
+     * @tc.expected: step1. check the changeddata and return ok
+     */
+    int64_t cloudCount = 30; // 30 is random cloud count
+    int64_t paddingSize = 10; // 10 is padding size
+    CloudDBSyncUtilsTest::InsertCloudTableRecord(0, cloudCount, paddingSize, false, g_virtualCloudDb);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CloudDBSyncUtilsTest::CheckDownloadResult(db, {cloudCount}, CLOUD);
+    CloudDBSyncUtilsTest::CheckCloudTotalCount({cloudCount}, g_virtualCloudDb);
+
+    /**
+     * @tc.steps:step2. delete user data and update cloud data
+     * @tc.expected: step2. check sync reseult and return ok
+     */
+    int64_t deviceBegin = 20; // 20 is device begin
+    int64_t deviceCount = 10; // 10 is device delete
+    CloudDBSyncUtilsTest::DeleteUserTableRecord(db, 0, deviceCount);
+    CloudDBSyncUtilsTest::DeleteUserTableRecord(db, deviceBegin, deviceCount);
+    CloudDBSyncUtilsTest::UpdateCloudTableRecord(0, deviceCount, paddingSize, false, g_virtualCloudDb);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    CloudDBSyncUtilsTest::CheckLocalRecordNum(db, g_tableName, deviceBegin);
+    CloudDBSyncUtilsTest::CheckCloudTotalCount({deviceBegin}, g_virtualCloudDb);
+}
+
+/*
  * @tc.name: ChangeTrackerDataTest001
  * @tc.desc: test changed data on BRIEF type of sync
  * @tc.type: FUNC

@@ -212,7 +212,7 @@ int RdSingleVerStorageExecutor::MoveTo(const int position, GRD_ResultSet *result
         }
         errCode = CompareKeyAndStoreEntry(resultSet, keyEnd, true, entry_);
         if (errCode != E_OK) {
-            return -E_NOT_FOUND; // Current Key is bigger than End key, return no found.
+            return -E_NOT_FOUND; // Current Key is bigger than End Key, return no found.
         }
         currPosition++;
     }

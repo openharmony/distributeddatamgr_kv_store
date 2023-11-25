@@ -292,4 +292,74 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSiz
     delete iCloud;
     idb = nullptr;
 }
+
+/**
+ * @tc.name: SyncerMockCheck001
+ * @tc.desc: Test Syncer pause tasks
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMockCheck001, TestSize.Level0)
+{
+    auto *iCloud = new MockICloudSyncStorageInterface();
+    ASSERT_NE(iCloud, nullptr);
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    auto cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    ASSERT_NE(cloudSyncer, nullptr);
+
+    cloudSyncer->SetCurrentContext(2u); // 2 is taskId
+    cloudSyncer->SetLastTaskId(3u); // 3 is taskId
+    cloudSyncer->SetCurrentTaskPause();
+    cloudSyncer->SetAssetFields("test", {{}});
+    cloudSyncer->SetAssetDownloadList(1);
+    EXPECT_EQ(cloudSyncer->CallDownloadAssets(), -E_TASK_PAUSED);
+    cloudSyncer->SetCurrentContext(0);
+    cloudSyncer->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy.reset();
+    delete iCloud;
+}
+
+/**
+ * @tc.name: SyncerMockCheck002
+ * @tc.desc: Test Syncer get current query
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMockCheck002, TestSize.Level0)
+{
+    auto *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    ASSERT_NE(iCloud, nullptr);
+    EXPECT_CALL(*iCloud, GetIdentify).WillRepeatedly(Return(""));
+    auto cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    ASSERT_NE(cloudSyncer, nullptr);
+
+    // prepare current query and last query
+    // make them has diff sort type
+    const TaskId currentTask = 2u;
+    QuerySyncObject currentQuery;
+    currentQuery.SetTableName("current");
+    currentQuery.SetSortType(SortType::TIMESTAMP_ASC);
+    cloudSyncer->SetQuerySyncObject(currentTask, currentQuery);
+    const TaskId lastTask = 3u;
+    QuerySyncObject lastQuery;
+    lastQuery.SetTableName("last");
+    lastQuery.SetSortType(SortType::TIMESTAMP_DESC);
+    cloudSyncer->SetQuerySyncObject(lastTask, lastQuery);
+    cloudSyncer->SetCurrentContext(currentTask);
+    cloudSyncer->SetLastTaskId(lastTask);
+    // check get current query from syncer
+    QuerySyncObject actualQuery = cloudSyncer->CallGetQuerySyncObject(currentQuery.GetTableName());
+    EXPECT_EQ(actualQuery.GetSortType(), currentQuery.GetSortType());
+    EXPECT_NE(actualQuery.GetSortType(), lastQuery.GetSortType());
+
+    cloudSyncer->SetCurrentContext(0);
+    cloudSyncer->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy = nullptr;
+    delete iCloud;
+}
 }

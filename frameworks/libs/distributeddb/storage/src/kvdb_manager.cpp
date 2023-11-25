@@ -388,7 +388,7 @@ IKvDB *KvDBManager::CreateDataBase(const KvDBProperties &property, int &errCode)
         bool isReadOnly = property.GetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
         if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&
             databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL && isReadOnly) {
-            LOGI("readOnly process can ot remove database");
+            LOGI("readOnly process can not remove database");
             return kvDB;
         }
         if (errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB &&

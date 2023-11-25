@@ -84,7 +84,7 @@ public:
 
     void SetEqualIdentifierMap(const std::string &identifier, const std::vector<std::string> &targets) override;
 
-    void OfflineHandleByDevice(const std::string &deviceId);
+    void OfflineHandleByDevice(const std::string &deviceId, ISyncInterface *storage);
 
     void GetLocalSubscribeQueries(const std::string &device, std::vector<QuerySyncObject> &subscribeQueries);
 

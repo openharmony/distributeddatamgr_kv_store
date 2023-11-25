@@ -15,6 +15,7 @@
 
 #include "cloud/cloud_meta_data.h"
 #include "cloud/cloud_db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "parcel.h"
 
@@ -23,13 +24,6 @@ namespace DistributedDB {
 CloudMetaData::CloudMetaData(ICloudSyncStorageInterface *store)
     : store_(store)
 {
-}
-
-Key CloudMetaData::GetPrefixTableName(const TableName &tableName)
-{
-    TableName newName = CloudDbConstant::CLOUD_META_TABLE_PREFIX + tableName;
-    Key prefixedTableName(newName.begin(), newName.end());
-    return prefixedTableName;
 }
 
 int CloudMetaData::GetLocalWaterMark(const TableName &tableName, Timestamp &localMark)
@@ -108,7 +102,7 @@ int CloudMetaData::ReadMarkFromMeta(const TableName &tableName)
         return -E_INVALID_DB;
     }
     Value blobMetaVal;
-    int ret = store_->GetMetaData(GetPrefixTableName(tableName), blobMetaVal);
+    int ret = store_->GetMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal);
     if (ret != -E_NOT_FOUND && ret != E_OK) {
         return ret;
     }
@@ -124,28 +118,14 @@ int CloudMetaData::ReadMarkFromMeta(const TableName &tableName)
 int CloudMetaData::WriteMarkToMeta(const TableName &tableName, Timestamp localmark, std::string &cloudMark)
 {
     Value blobMetaVal;
-    int ret = SerializeMark(localmark, cloudMark, blobMetaVal);
+    int ret = DBCommon::SerializeWaterMark(localmark, cloudMark, blobMetaVal);
     if (ret != E_OK) {
         return ret;
     }
     if (store_ == nullptr) {
         return -E_INVALID_DB;
     }
-    return store_->PutMetaData(GetPrefixTableName(tableName), blobMetaVal);
-}
-
-int CloudMetaData::SerializeMark(const Timestamp localMark, const std::string &cloudMark, Value &blobMeta)
-{
-    uint64_t length = Parcel::GetUInt64Len() + Parcel::GetStringLen(cloudMark);
-    blobMeta.resize(length);
-    Parcel parcel(blobMeta.data(), blobMeta.size());
-    parcel.WriteUInt64(localMark);
-    parcel.WriteString(cloudMark);
-    if (parcel.IsError()) {
-        LOGE("[Meta] Parcel error while serializing cloud meta data.");
-        return -E_PARSE_FAIL;
-    }
-    return E_OK;
+    return store_->PutMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal);
 }
 
 int CloudMetaData::DeserializeMark(Value &blobMark, CloudMetaValue &cloudMetaValue)
@@ -176,5 +156,12 @@ int CloudMetaData::CleanWaterMark(const TableName &tableName)
     cloudMetaVals_[tableName] = {};
     LOGD("[Meta] clean cloud water mark");
     return E_OK;
+}
+
+void CloudMetaData::CleanWaterMarkInMemory(const TableName &tableName)
+{
+    std::lock_guard<std::mutex> lock(cloudMetaMutex_);
+    cloudMetaVals_[tableName] = {};
+    LOGD("[Meta] clean cloud water mark in memory");
 }
 } // namespace DistributedDB

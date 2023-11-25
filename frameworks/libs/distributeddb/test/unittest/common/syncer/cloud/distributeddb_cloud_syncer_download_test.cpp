@@ -28,6 +28,7 @@ using namespace DistributedDBUnitTest;
 namespace {
 static int64_t g_photoCount = 10;
 static double g_dataHeight = 166.0;
+static uint64_t g_invalidOptCount = 5u;
 class DistributedDBCloudSyncerDownloadTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -53,6 +54,7 @@ void DistributedDBCloudSyncerDownloadTest::SetUpTestCase(void)
 
 void DistributedDBCloudSyncerDownloadTest::TearDownTestCase(void)
 {
+    g_cloudSyncer->CallClose();
     RefObject::KillAndDecObjRef(g_cloudSyncer);
     g_cloudSyncer = nullptr;
     g_storageProxy = nullptr;
@@ -103,6 +105,7 @@ void GenerateTableSchema(TableSchema &tableSchema)
 {
     tableSchema = {
         "TestTable1",
+        "",
         {{"name", TYPE_INDEX<std::string>, true}}
     };
 }
@@ -368,7 +371,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidTypeCloudData(5, {.invalidCursor = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidCursor = false;
+            data = GetInvalidTypeCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -378,7 +383,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidTypeCloudData(5, {.invalidCursor = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidCursor = false;
+            data = GetInvalidTypeCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -389,7 +396,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest003, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidTypeCloudData(5, {.invalidDeleteField = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidDeleteField = false;
+            data = GetInvalidTypeCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -419,7 +428,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00302, TestS
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidTypeCloudData(5, {.invalidGID = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidGID = false;
+            data = GetInvalidTypeCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -429,7 +440,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00302, TestS
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidTypeCloudData(5, {.invalidModifyField = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidModifyField = false;
+            data = GetInvalidTypeCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -460,7 +473,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidCreateField = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidCreateField = false;
+            data = GetInvalidFieldCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -470,7 +485,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest004, TestSiz
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidCursor = false});
+            InvalidCloudDataOpt opt;
+            opt.invalidCursor = false;
+            data = GetInvalidFieldCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -500,7 +517,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidDeleteField = false}); // Generate 5 data
+            InvalidCloudDataOpt opt;
+            opt.invalidDeleteField = false;
+            data = GetInvalidFieldCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     int errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -510,7 +529,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidGID = false}); // Generate 5 data
+            InvalidCloudDataOpt opt;
+            opt.invalidGID = false;
+            data = GetInvalidFieldCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -520,7 +541,9 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockQueryTest00402, TestS
     g_cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
     EXPECT_CALL(*g_idb, Query(_, _, _))
         .WillOnce([](const std::string &, VBucket &, std::vector<VBucket> &data) {
-            data = GetInvalidFieldCloudData(5, {.invalidModifyField = false}); // Generate 5 data
+            InvalidCloudDataOpt opt;
+            opt.invalidModifyField = false;
+            data = GetInvalidFieldCloudData(g_invalidOptCount, opt);
             return QUERY_END;
         });
     errCode = g_cloudSyncer->CallDoDownload(taskId);
@@ -708,4 +731,29 @@ HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest007, TestSize.Lev
     EXPECT_EQ(errCode, E_OK);
 }
 
+/**
+ * @tc.name: DownloadMockTest008
+ * @tc.desc: Get sync param when task resume
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadTest, DownloadMockTest008, TestSize.Level0)
+{
+    TaskId taskId = 1u;
+    g_cloudSyncer->SetTaskResume(taskId, true);
+
+    std::string expectCloudWaterMark = "waterMark";
+    ICloudSyncer::SyncParam param;
+    param.cloudWaterMark = expectCloudWaterMark;
+    param.tableName = "table";
+    g_cloudSyncer->SetResumeSyncParam(taskId, param);
+    g_cloudSyncer->SetCloudWaterMarks(param.tableName, param.cloudWaterMark);
+    ICloudSyncer::SyncParam actualParam;
+    EXPECT_EQ(g_cloudSyncer->CallGetSyncParamForDownload(taskId, actualParam), E_OK);
+    EXPECT_EQ(actualParam.cloudWaterMark, expectCloudWaterMark);
+
+    g_cloudSyncer->SetTaskResume(taskId, false);
+    g_cloudSyncer->ClearResumeTaskInfo(taskId);
+}
 }

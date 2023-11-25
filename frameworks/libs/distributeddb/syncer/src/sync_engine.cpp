@@ -812,7 +812,7 @@ void SyncEngine::SetEqualIdentifierMap(const std::string &identifier, const std:
     }
 }
 
-void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
+void SyncEngine::OfflineHandleByDevice(const std::string &deviceId, ISyncInterface *storage)
 {
     RemoteExecutor *executor = GetAndIncRemoteExector();
     if (executor != nullptr) {
@@ -827,7 +827,7 @@ void SyncEngine::OfflineHandleByDevice(const std::string &deviceId)
     subManager_->ClearRemoteSubscribeQuery(deviceId);
     for (const auto &queryId: remoteQueryId) {
         if (!subManager_->IsQueryExistSubscribe(queryId)) {
-            static_cast<SingleVerKvDBSyncInterface *>(syncInterface_)->RemoveSubscribe(queryId);
+            static_cast<SingleVerKvDBSyncInterface *>(storage)->RemoveSubscribe(queryId);
         }
     }
     // get context and Inc context if context is not nullprt

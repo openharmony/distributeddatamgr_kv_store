@@ -40,6 +40,8 @@ namespace {
 const string STORE_ID = "Relational_Store_SYNC";
 const string DB_SUFFIX = ".db";
 const string ASSETS_TABLE_NAME = "student";
+const string NO_PRIMARY_TABLE = "teacher";
+const string COMPOUND_PRIMARY_TABLE = "worker1";
 const string DEVICE_CLOUD = "cloud_dev";
 const string COL_ID = "id";
 const string COL_NAME = "name";
@@ -49,12 +51,31 @@ const string COL_AGE = "age";
 const int64_t SYNC_WAIT_TIME = 600;
 const std::vector<Field> CLOUD_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>, true}, {COL_NAME, TYPE_INDEX<std::string>},
     {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>}, {COL_AGE, TYPE_INDEX<int64_t>}};
+const std::vector<Field> NO_PRIMARY_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>}, {COL_NAME, TYPE_INDEX<std::string>},
+    {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>}, {COL_AGE, TYPE_INDEX<int64_t>}};
+const std::vector<Field> COMPOUND_PRIMARY_FIELDS = {{COL_ID, TYPE_INDEX<int64_t>, true},
+    {COL_NAME, TYPE_INDEX<std::string>}, {COL_HEIGHT, TYPE_INDEX<double>}, {COL_ASSETS, TYPE_INDEX<Assets>},
+    {COL_AGE, TYPE_INDEX<int64_t>, true}};
 const string CREATE_SINGLE_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + ASSETS_TABLE_NAME + "(" + COL_ID +
                                                " INTEGER PRIMARY KEY," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
-                                               COL_ASSETS + " BLOB," + COL_AGE + " INT);";
-const string INSERT_SQL = "insert or replace into " + ASSETS_TABLE_NAME + " values (?,?,?,?,?);";
+                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT);";
+const string CREATE_NO_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + NO_PRIMARY_TABLE + "(" + COL_ID +
+                                               " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
+                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT);";
+const string CREATE_COMPOUND_PRIMARY_KEY_TABLE = "CREATE TABLE IF NOT EXISTS " + COMPOUND_PRIMARY_TABLE + "(" + COL_ID +
+                                               " INTEGER," + COL_NAME + " TEXT ," + COL_HEIGHT + " REAL ," +
+                                               COL_ASSETS + " ASSETS," + COL_AGE + " INT, PRIMARY KEY (id, age));";
 const Asset ASSET_COPY = {.version = 1,
     .name = "Phone",
+    .assetId = "0",
+    .subpath = "/local/sync",
+    .uri = "/local/sync",
+    .modifyTime = "123456",
+    .createTime = "",
+    .size = "256",
+    .hash = "ASE"};
+const Asset ASSET_COPY2 = {.version = 1,
+    .name = "Phone2",
     .assetId = "0",
     .subpath = "/local/sync",
     .uri = "/local/sync",
@@ -70,6 +91,7 @@ DistributedDB::RelationalStoreManager g_mgr(APP_ID, USER_ID);
 RelationalStoreDelegate *g_delegate = nullptr;
 std::shared_ptr<VirtualCloudDb> g_virtualCloudDb;
 std::shared_ptr<VirtualAssetLoader> g_virtualAssetLoader;
+std::shared_ptr<VirtualCloudDataTranslate> g_virtualCloudDataTranslate;
 SyncProcess g_syncProcess;
 std::condition_variable g_processCondition;
 std::mutex g_processMutex;
@@ -79,11 +101,17 @@ void InitDatabase(sqlite3 *&db)
 {
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, "PRAGMA journal_mode=WAL;"), SQLITE_OK);
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_SINGLE_PRIMARY_KEY_TABLE), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_NO_PRIMARY_KEY_TABLE), SQLITE_OK);
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db, CREATE_COMPOUND_PRIMARY_KEY_TABLE), SQLITE_OK);
 }
 
 void GetCloudDbSchema(DataBaseSchema &dataBaseSchema)
 {
-    TableSchema assetsTableSchema = {.name = ASSETS_TABLE_NAME, .fields = CLOUD_FIELDS};
+    TableSchema assetsTableSchema = {.name = ASSETS_TABLE_NAME, .sharedTableName = "", .fields = CLOUD_FIELDS};
+    dataBaseSchema.tables.push_back(assetsTableSchema);
+    assetsTableSchema = {.name = NO_PRIMARY_TABLE, .sharedTableName = "", .fields = NO_PRIMARY_FIELDS};
+    dataBaseSchema.tables.push_back(assetsTableSchema);
+    assetsTableSchema = {.name = COMPOUND_PRIMARY_TABLE, .sharedTableName = "", .fields = COMPOUND_PRIMARY_FIELDS};
     dataBaseSchema.tables.push_back(assetsTableSchema);
 }
 
@@ -113,44 +141,62 @@ void GenerateDataRecords(
     }
 }
 
-void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count)
+void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
 {
     int errCode;
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     std::vector<uint8_t> assetBlob;
     GenerateDataRecords(begin, count, 0, record, extend);
+    const string sql = "insert or replace into " + tableName + " values (?,?,?,?,?);";
     for (VBucket vBucket : record) {
         sqlite3_stmt *stmt = nullptr;
-        ASSERT_EQ(SQLiteUtils::GetStatement(db, INSERT_SQL, stmt), E_OK);
+        ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
         ASSERT_EQ(SQLiteUtils::BindInt64ToStatement(stmt, 1, std::get<int64_t>(vBucket[COL_ID])), E_OK); // 1 is id
         ASSERT_EQ(SQLiteUtils::BindTextToStatement(stmt, 2, std::get<string>(vBucket[COL_NAME])), E_OK); // 2 is name
         ASSERT_EQ(SQLiteUtils::MapSQLiteErrno(
             sqlite3_bind_double(stmt, 3, std::get<double>(vBucket[COL_HEIGHT]))), E_OK); // 3 is height
-        RuntimeContext::GetInstance()->AssetsToBlob(std::get<Assets>(vBucket[COL_ASSETS]), assetBlob);
+        assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(std::get<Assets>(vBucket[COL_ASSETS]));
         ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob, false), E_OK); // 4 is assets
         ASSERT_EQ(SQLiteUtils::BindInt64ToStatement(stmt, 5, std::get<int64_t>(vBucket[COL_AGE])), E_OK); // 5 is age
         EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
-    LOGD("insert into student table [primary key]:[%" PRId64 " - %" PRId64 ")", begin, begin + count);
 }
 
-void DeleteCloudDBData(int64_t begin, int64_t count)
+void UpdateLocalData(sqlite3 *&db, const std::string &tableName)
+{
+    int errCode;
+    Assets assets;
+    Asset asset = ASSET_COPY;
+    assets.emplace_back(asset);
+    Asset asset2 = ASSET_COPY2;
+    assets.emplace_back(asset2);
+    std::vector<uint8_t> assetBlob;
+    const string sql = "update " + tableName + " set assets=?;";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DeleteCloudDBData(int64_t begin, int64_t count, const std::string &tableName)
 {
     for (int64_t i = begin; i < begin + count; i++) {
         VBucket idMap;
         idMap.insert_or_assign("#_gid", std::to_string(i));
-        ASSERT_EQ(g_virtualCloudDb->DeleteByGid(ASSETS_TABLE_NAME, idMap), DBStatus::OK);
+        ASSERT_EQ(g_virtualCloudDb->DeleteByGid(tableName, idMap), DBStatus::OK);
     }
 }
 
-void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart)
+void InsertCloudDBData(int64_t begin, int64_t count, int64_t gidStart, const std::string &tableName)
 {
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     GenerateDataRecords(begin, count, gidStart, record, extend);
-    ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(ASSETS_TABLE_NAME, std::move(record), extend), DBStatus::OK);
+    ASSERT_EQ(g_virtualCloudDb->BatchInsertWithGid(tableName, std::move(record), extend), DBStatus::OK);
 }
 
 void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
@@ -162,15 +208,16 @@ void WaitForSyncFinish(SyncProcess &syncProcess, const int64_t &waitTime)
     LOGD("-------------------sync end--------------");
 }
 
-void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatus dbStatus)
+void CallSync(const std::vector<std::string> &tableNames, SyncMode mode, DBStatus dbStatus, DBStatus errCode = OK)
 {
     g_syncProcess = {};
     Query query = Query::Select().FromTable(tableNames);
     std::vector<SyncProcess> expectProcess;
-    CloudSyncStatusCallback callback = [](const std::map<std::string, SyncProcess> &process) {
+    CloudSyncStatusCallback callback = [&errCode](const std::map<std::string, SyncProcess> &process) {
         ASSERT_EQ(process.begin()->first, DEVICE_CLOUD);
         g_syncProcess = std::move(process.begin()->second);
         if (g_syncProcess.process == FINISHED) {
+            ASSERT_EQ(g_syncProcess.errCode, errCode);
             g_processCondition.notify_one();
         }
     };
@@ -215,6 +262,8 @@ class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
     void TearDown();
 
   protected:
+    void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
+        const std::set<int> &failIndex);
     sqlite3 *db = nullptr;
 };
 
@@ -223,7 +272,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::SetUpTestCase(void)
     DistributedDBToolsUnitTest::TestDirInit(g_testDir);
     g_storePath = g_testDir + "/" + STORE_ID + DB_SUFFIX;
     LOGI("The test db is:%s", g_storePath.c_str());
-    RuntimeConfig::SetCloudTranslate(std::make_shared<VirtualCloudDataTranslate>());
+    g_virtualCloudDataTranslate = std::make_shared<VirtualCloudDataTranslate>();
+    RuntimeConfig::SetCloudTranslate(g_virtualCloudDataTranslate);
 }
 
 void DistributedDBCloudSyncerDownloadAssetsTest::TearDownTestCase(void) {}
@@ -245,6 +295,8 @@ void DistributedDBCloudSyncerDownloadAssetsTest::SetUp(void)
         DBStatus::OK);
     ASSERT_NE(g_delegate, nullptr);
     ASSERT_EQ(g_delegate->CreateDistributedTable(ASSETS_TABLE_NAME, CLOUD_COOPERATION), DBStatus::OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(NO_PRIMARY_TABLE, CLOUD_COOPERATION), DBStatus::OK);
+    ASSERT_EQ(g_delegate->CreateDistributedTable(COMPOUND_PRIMARY_TABLE, CLOUD_COOPERATION), DBStatus::OK);
     g_virtualCloudDb = make_shared<VirtualCloudDb>();
     g_virtualAssetLoader = make_shared<VirtualAssetLoader>();
     g_syncProcess = {};
@@ -257,10 +309,39 @@ void DistributedDBCloudSyncerDownloadAssetsTest::SetUp(void)
 
 void DistributedDBCloudSyncerDownloadAssetsTest::TearDown(void)
 {
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CloseDb();
     EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error.");
     }
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocaLAssets(const std::string &tableName,
+    const std::string &expectAssetId, const std::set<int> &failIndex)
+{
+    std::string sql = "SELECT assets FROM " + tableName + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    int index = 0;
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        Assets assets = g_virtualCloudDataTranslate->BlobToAssets(std::get<Bytes>(cloudValue));
+        index++;
+        if (failIndex.find(index) != failIndex.end()) {
+            for (const auto &asset : assets) {
+                EXPECT_EQ(asset.assetId, "0");
+            }
+        } else {
+            for (const auto &asset : assets) {
+                EXPECT_EQ(asset.assetId, expectAssetId);
+            }
+        }
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
 /**
@@ -293,22 +374,353 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
      * @tc.steps:step2. Insert local data [0, 10), sync data
      * @tc.expected: step2. sync success.
      */
-    InsertLocalData(db, 0, 10);
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
 
     /**
      * @tc.steps:step3. delete cloud data [1, 2], then insert cloud data [1,2] with new gid. Finally sync data.
      * @tc.expected: step3. sync success.
      */
-    DeleteCloudDBData(1, 2);
-    InsertCloudDBData(1, 2, 10);
+    DeleteCloudDBData(1, 2, ASSETS_TABLE_NAME);
+    InsertCloudDBData(1, 2, 10, ASSETS_TABLE_NAME);
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+}
+
+/**
+ * @tc.name: FillAssetId001
+ * @tc.desc: Test if assetId is filled in single primary key table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 
     /**
-     * @tc.steps:step4. close db.
-     * @tc.expected: step4. close success.
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
      */
-    CloseDb();
+    UpdateLocalData(db, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId002
+ * @tc.desc: Test if assetId is filled in no primary key table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, NO_PRIMARY_TABLE);
+    CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    UpdateLocalData(db, NO_PRIMARY_TABLE);
+    CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId003
+ * @tc.desc: Test if assetId is filled in compound primary key table
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, COMPOUND_PRIMARY_TABLE);
+    CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE);
+    CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId004
+ * @tc.desc: Test if assetId is filled in single primary key table when CLOUD_FORCE_PUSH
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId004, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    UpdateLocalData(db, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId001
+ * @tc.desc: Test if assetId is filled in no primary key table when CLOUD_FORCE_PUSH
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, NO_PRIMARY_TABLE);
+    CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    UpdateLocalData(db, NO_PRIMARY_TABLE);
+    CallSync({NO_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(NO_PRIMARY_TABLE, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId006
+ * @tc.desc: Test if assetId is filled in compound primary key table when CLOUD_FORCE_PUSH
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId006, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, COMPOUND_PRIMARY_TABLE);
+    CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    UpdateLocalData(db, COMPOUND_PRIMARY_TABLE);
+    CallSync({COMPOUND_PRIMARY_TABLE}, SYNC_MODE_CLOUD_FORCE_PUSH, DBStatus::OK);
+    CheckLocaLAssets(COMPOUND_PRIMARY_TABLE, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId007
+ * @tc.desc: Test if assetId is filled when extend lack of assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        extend.erase("assets");
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end()) {
+            for (auto &asset : std::get<Assets>(extend["assets"])) {
+                asset.name = "pad";
+            }
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId008
+ * @tc.desc: Test if assetId is filled when extend lack of assetId
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId008, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end()) {
+            for (auto &asset : std::get<Assets>(extend["assets"])) {
+                asset.assetId = "";
+            }
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. local update assets and sync ,check the local assetId.
+     * @tc.expected: step2. sync success.
+     */
+    g_virtualCloudDb->ForkUpload(nullptr);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId009
+ * @tc.desc: Test if assetId is filled when extend exists useless assets
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId009, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end()) {
+            Asset asset = ASSET_COPY2;
+            Assets &assets = std::get<Assets>(extend["assets"]);
+            assets.push_back(asset);
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId010
+ * @tc.desc: Test if assetId is filled when some success and some fail
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId010, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 30, ASSETS_TABLE_NAME);
+    g_virtualCloudDb->SetInsertFailed(1);
+    std::atomic<int> count = 0;
+    g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end() && count == 0) {
+            extend["#_error"] = "";
+            count++;
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    int index = 1; // 1 is first record
+    std::set<int> failIndex;
+    failIndex.insert(index);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", failIndex);
+}
+
+/**
+ * @tc.name: FillAssetId011
+ * @tc.desc: Test if assetId is null when removedevicedata in FLAG_ONLY
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId011, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+
+    g_delegate->RemoveDeviceData("", FLAG_ONLY);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
+ * @tc.name: FillAssetId012
+ * @tc.desc: Test if assetid is filled when extend is missing
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId012, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set extend size missing then sync, check the asseid.
+     * @tc.expected: step1. return OK.
+     */
+    InsertLocalData(db, 0, 50, ASSETS_TABLE_NAME);
+    std::atomic<int> count = 1;
+    g_virtualCloudDb->SetClearExtend(count);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, DBStatus::CLOUD_ERROR);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "0", {});
+
+    /**
+     * @tc.steps:step2. set extend size normal then sync, check the asseid.
+     * @tc.expected: step2. return OK.
+     */
+    g_virtualCloudDb->SetClearExtend(0);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
 }
 } // namespace
 #endif // RELATIONAL_STORE

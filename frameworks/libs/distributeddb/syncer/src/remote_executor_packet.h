@@ -68,10 +68,10 @@ public:
     static void Release(RemoteExecutorRequestPacket *&packet);
 
     static constexpr uint32_t REQUEST_PACKET_VERSION_V1 = SOFTWARE_VERSION_RELEASE_6_0;
-    static constexpr uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1;
-    static constexpr uint32_t REQUEST_PACKET_VERSION_V3 = SOFTWARE_VERSION_RELEASE_6_0 + 2;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V2 = SOFTWARE_VERSION_RELEASE_6_0 + 1; // 1 is version 107
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V3 = SOFTWARE_VERSION_RELEASE_6_0 + 2; // 2 is version 108
     // abandon not set security label in v4
-    static constexpr uint32_t REQUEST_PACKET_VERSION_V4 = SOFTWARE_VERSION_RELEASE_6_0 + 3;
+    static constexpr uint32_t REQUEST_PACKET_VERSION_V4 = SOFTWARE_VERSION_RELEASE_6_0 + 3; // 3 is version 109
     static constexpr uint32_t REQUEST_PACKET_VERSION_CURRENT = REQUEST_PACKET_VERSION_V4;
 private:
     uint32_t version_ = 0u;

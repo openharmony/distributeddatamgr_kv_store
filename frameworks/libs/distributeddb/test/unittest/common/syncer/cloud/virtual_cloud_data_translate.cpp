@@ -22,6 +22,7 @@ uint32_t CalculateLens(const Asset &asset)
     uint32_t len = 0;
     len += Parcel::GetUInt32Len();
     len += Parcel::GetStringLen(asset.name);
+    len += Parcel::GetStringLen(asset.assetId);
     len += Parcel::GetStringLen(asset.uri);
     len += Parcel::GetStringLen(asset.modifyTime);
     len += Parcel::GetStringLen(asset.createTime);
@@ -45,6 +46,7 @@ void WriteAsset(Parcel &parcel, const Asset &asset)
 {
     parcel.WriteUInt32(asset.version);
     parcel.WriteString(asset.name);
+    parcel.WriteString(asset.assetId);
     parcel.WriteString(asset.uri);
     parcel.WriteString(asset.modifyTime);
     parcel.WriteString(asset.createTime);
@@ -58,6 +60,7 @@ void ReadAsset(Parcel &parcel, Asset &asset)
 {
     parcel.ReadUInt32(asset.version);
     parcel.ReadString(asset.name);
+    parcel.ReadString(asset.assetId);
     parcel.ReadString(asset.uri);
     parcel.ReadString(asset.modifyTime);
     parcel.ReadString(asset.createTime);

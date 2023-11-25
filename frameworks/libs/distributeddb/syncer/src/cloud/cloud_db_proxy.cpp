@@ -68,6 +68,7 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     context->MoveInRecordAndExtend(record, extend);
     int errCode = InnerAction(context, cloudDb, UPDATE);
     uploadInfo = context->GetInfo();
+    context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
@@ -84,6 +85,7 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, DELETE);
     uploadInfo = context->GetInfo();
+    context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
@@ -247,12 +249,12 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
         }
         case UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
-            // no need to MoveIn, only insert need extend for insert gid
+            context->MoveInExtend(extend);
             break;
         }
         case DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
-            // no need to MoveIn, only insert need extend for insert gid
+            context->MoveInExtend(extend);
             break;
         }
         default: {
@@ -342,6 +344,8 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_LOCK_ERROR;
         case CLOUD_ASSET_SPACE_INSUFFICIENT:
             return -E_CLOUD_ASSET_SPACE_INSUFFICIENT;
+        case CLOUD_VERSION_CONFLICT:
+            return -E_CLOUD_VERSION_CONFLICT;
         default:
             return -E_CLOUD_ERROR;
     }

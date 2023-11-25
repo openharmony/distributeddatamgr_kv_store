@@ -90,16 +90,20 @@ void SingleVerKVSyncer::LocalDataChanged(int notifyEvent)
         triggerSyncTask_ = true;
         return;
     }
-    RefObject::IncObjRef(syncEngine_);
+    ISyncEngine *engine = syncEngine_;
+    ISyncInterface *storage = syncInterface_;
+    RefObject::IncObjRef(engine);
+    storage->IncRefCount();
     // To avoid many task were produced and waiting in the queue. For example, put value in a loop.
     // It will consume thread pool resources, so other task will delay until these task finish.
     // In extreme situation, 10 thread run the localDataChanged task and 1 task waiting in queue.
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, devices] {
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, devices, engine, storage] {
         triggerSyncTask_ = true;
         if (!TryFullSync(devices)) {
             TriggerSubQuerySync(devices);
         }
-        RefObject::DecObjRef(syncEngine_);
+        RefObject::DecObjRef(engine);
+        storage->DecRefCount();
     });
     // if task schedule failed, but triggerSyncTask_ is not set to true, other thread may skip the schedule time
     // when task schedule failed, it means unormal status, it is unable to schedule next time probably
@@ -107,9 +111,9 @@ void SingleVerKVSyncer::LocalDataChanged(int notifyEvent)
     if (errCode != E_OK) {
         triggerSyncTask_ = true;
         LOGE("[TriggerSync] LocalDataChanged retCode:%d", errCode);
-        RefObject::DecObjRef(syncEngine_);
+        RefObject::DecObjRef(engine);
+        storage->DecRefCount();
     }
-    return;
 }
 
 // remote device online callback

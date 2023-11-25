@@ -768,5 +768,75 @@ HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCaseInsensitiveCompareTes
     EXPECT_EQ(table1.CompareWithTable(table2), -E_RELATIONAL_TABLE_EQUAL);
 
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+    db = nullptr;
+}
+
+namespace {
+int TableCompareTest(sqlite3 *db, const std::string &sql1, const std::string &sql2)
+{
+RelationalTestUtils::ExecSql(db, sql1);
+TableInfo table1;
+SQLiteUtils::AnalysisSchema(db, "student", table1);
+RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
+RelationalTestUtils::ExecSql(db, sql2);
+TableInfo table2;
+SQLiteUtils::AnalysisSchema(db, "student", table2);
+RelationalTestUtils::ExecSql(db, "DROP TABLE IF EXISTS student");
+return table1.CompareWithTable(table2);
+}
+}
+
+/**
+
+@tc.name: TableCompareTest001
+@tc.desc: Test table compare with default value
+@tc.type: FUNC
+@tc.require: AR000GK58I
+@tc.author: lianhuix
+*/
+HWTEST_F(DistributedDBRelationalSchemaObjectTest, TableCompareTest002, TestSize.Level1)
+{
+sqlite3 *db = RelationalTestUtils::CreateDataBase(g_dbDir + STORE_ID + DB_SUFFIX);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)"),
+-E_RELATIONAL_TABLE_EQUAL);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'XUE')",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'xue')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+-E_RELATIONAL_TABLE_EQUAL);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'NULL')",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT 'null')"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT NULL)"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT null)"),
+-E_RELATIONAL_TABLE_INCOMPATIBLE);
+EXPECT_EQ(TableCompareTest(db, "CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')",
+"CREATE TABLE student(id INTEGER PRIMARY KEY, name TEXT DEFAULT '')"),
+-E_RELATIONAL_TABLE_EQUAL);
+EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+db = nullptr;
 }
 #endif

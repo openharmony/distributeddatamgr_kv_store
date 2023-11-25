@@ -74,6 +74,7 @@ DataBaseSchema g_schema = {
     .tables = {
         {
             .name = TABLE_NAME_1,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -91,6 +92,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_2,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -108,6 +110,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_3,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -131,6 +134,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_4,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -159,6 +163,7 @@ DataBaseSchema g_schema2 = {
     .tables = {
         {
             .name = TABLE_NAME_2,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -176,6 +181,7 @@ DataBaseSchema g_schema2 = {
         },
         {
             .name = TABLE_NAME_3,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -193,6 +199,7 @@ DataBaseSchema g_schema2 = {
         },
         {
             .name = TABLE_NAME_4,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -215,6 +222,7 @@ DataBaseSchema g_schema3 = {
     .tables = {
         {
             .name = TABLE_NAME_1,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -232,6 +240,7 @@ DataBaseSchema g_schema3 = {
         },
         {
             .name = TABLE_NAME_2,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_4,

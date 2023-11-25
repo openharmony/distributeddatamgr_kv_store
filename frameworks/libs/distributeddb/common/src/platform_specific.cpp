@@ -625,7 +625,6 @@ int CloseFile(FileHandle *fileHandle)
         return -E_SYSTEM_API_FAIL;
     }
     delete fileHandle;
-    fileHandle = nullptr;
     return E_OK;
 }
 

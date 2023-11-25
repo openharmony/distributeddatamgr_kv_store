@@ -59,6 +59,7 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
         "cloud_gid   TEXT," + \
         "extend_field BLOB," + \
         "cursor INT DEFAULT 0," + \
+        "version TEXT DEFAULT ''," + \
         primaryKey + ");";
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);

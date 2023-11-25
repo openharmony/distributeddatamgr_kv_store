@@ -52,11 +52,18 @@ public:
     RelationalSchemaObject GetTrackerSchema() const;
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
 
+    int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty,
+        SQLiteSingleVerRelationalStorageExecutor *handle, std::set<std::string> &clearWaterMarkTables,
+        RelationalSchemaObject &schema);
+    int UpgradeSharedTable(const DataBaseSchema &cloudSchema, const std::vector<std::string> &deleteTableNames,
+        const std::vector<std::string> &notHandleTableNames,
+        const std::map<std::string, std::string> &alterTableNames);
+    std::pair<std::vector<std::string>, int> CalTableRef(const std::vector<std::string> &tableNames,
+        const std::map<std::string, std::string> &sharedTableOriginNames);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
-
 private:
     // For executor.
     int ReleaseExecutor(SQLiteSingleVerRelationalStorageExecutor *&handle);
@@ -65,13 +72,29 @@ private:
     int RegisterFunction(sqlite3 *db) const;
 
     int UpgradeDistributedTable(const std::string &tableName, bool &schemaChanged, TableSyncType syncType);
+    int CreateDistributedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, bool isUpgraded,
+        const std::string &identity, TableInfo &table, RelationalSchemaObject &schema);
     int CreateDistributedTable(const std::string &tableName, bool isUpgraded, const std::string &identity,
         RelationalSchemaObject &schema, TableSyncType tableSyncType);
+    int CreateDistributedSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const std::string &tableName,
+        const std::string &sharedTableName, const std::string &identity, TableSyncType syncType);
 
     int CreateRelationalMetaTable(sqlite3 *db);
 
+    int OperateTableIfNeed(SQLiteSingleVerRelationalStorageExecutor *&handle,
+        const std::vector<std::vector<std::string>> &deleteOrNotHandleTableNames,
+        const std::map<std::string, std::string> &alterTableNames,
+        const DataBaseSchema &cloudSchema, std::vector<std::string> &missingTables);
+
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
+
+    static std::map<std::string, std::map<std::string, bool>> GetReachableWithShared(
+        const std::map<std::string, std::map<std::string, bool>> &reachableReference,
+        const std::map<std::string, std::string> &tableToShared);
+
+    static std::map<std::string, int> GetTableWeightWithShared(const std::map<std::string, int> &tableWeight,
+        const std::map<std::string, std::string> &tableToShared);
 
     RelationalSchemaObject schema_;
     RelationalSchemaObject trackerSchema_;

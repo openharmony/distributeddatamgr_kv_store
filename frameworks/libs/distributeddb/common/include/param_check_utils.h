@@ -52,6 +52,12 @@ public:
     static uint8_t GetValidCompressionRate(uint8_t compressionRate);
 
     static bool CheckRelationalTableName(const std::string &tableName);
+
+    static bool CheckTableReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
+
+    static bool CheckSharedTableName(const DataBaseSchema &schema);
+
+    static void TransferSchemaToLower(DataBaseSchema &schema);
 };
 } // namespace DistributedDB
 #endif // PARAM_CHECK_UTILS_H

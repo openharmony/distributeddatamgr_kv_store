@@ -511,6 +511,7 @@ SortType QueryObject::GetSortType() const
 
 int QueryObject::CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const
 {
+    // 1 primary key and name is "rowid" means no user-defined rowid
     if (primaryKeyMap.size() == 1 && primaryKeyMap.begin()->second == "rowid") {
         return -E_NOT_SUPPORT;
     }

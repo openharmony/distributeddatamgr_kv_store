@@ -183,7 +183,10 @@ int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
     }
     if (hasDefaultValue_ && inField.HasDefaultValue()) {
         // lite schema only uses NULL as default value
-        return (isLite && defaultValue_ == "NULL") || defaultValue_ == inField.GetDefaultValue();
+        return (isLite && DBCommon::CaseInsensitiveCompare(defaultValue_, "NULL")) ||
+            (DBCommon::CaseInsensitiveCompare(defaultValue_, "NULL") &&
+            DBCommon::CaseInsensitiveCompare(inField.GetDefaultValue(), "NULL")) ||
+            (defaultValue_ == inField.GetDefaultValue());
     }
     return hasDefaultValue_ == inField.HasDefaultValue();
 }
@@ -216,6 +219,26 @@ const std::string &TableInfo::GetTableName() const
 void TableInfo::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;
+}
+
+const std::string &TableInfo::GetOriginTableName() const
+{
+    return originTableName_;
+}
+
+void TableInfo::SetOriginTableName(const std::string &originTableName)
+{
+    originTableName_ = originTableName;
+}
+
+void TableInfo::SetSharedTableMark(bool sharedTableMark)
+{
+    sharedTableMark_ = sharedTableMark;
+}
+
+bool TableInfo::GetSharedTableMark() const
+{
+    return sharedTableMark_;
 }
 
 void TableInfo::SetAutoIncrement(bool autoInc)
@@ -647,8 +670,15 @@ std::string TableInfo::ToTableInfoString(const std::string &schemaVersion) const
     attrStr += "{";
     attrStr += R"("NAME": ")" + tableName_ + "\",";
     AddFieldDefineString(attrStr);
+    attrStr += R"("ORIGINTABLENAME": ")" + originTableName_ + "\",";
     attrStr += R"("AUTOINCREMENT": )";
     if (autoInc_) {
+        attrStr += "true,";
+    } else {
+        attrStr += "false,";
+    }
+    attrStr += R"("SHAREDTABLEMARK": )";
+    if (sharedTableMark_) {
         attrStr += "true,";
     } else {
         attrStr += "false,";
@@ -748,5 +778,20 @@ int TableInfo::CheckTrackerTable()
 const TrackerTable &TableInfo::GetTrackerTable() const
 {
     return trackerTable_;
+}
+
+void TableInfo::AddTableReferenceProperty(const TableReferenceProperty &tableRefProperty)
+{
+    sourceTableReferenced_.push_back(tableRefProperty);
+}
+
+void TableInfo::SetSourceTableReference(const std::vector<TableReferenceProperty> &tableReference)
+{
+    sourceTableReferenced_ = tableReference;
+}
+
+const std::vector<TableReferenceProperty> &TableInfo::GetTableReference() const
+{
+    return sourceTableReferenced_;
 }
 } // namespace DistributeDB
