@@ -21,7 +21,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <map>
 #include "blob.h"
 #include "store_errno.h"
 #include "visibility.h"
@@ -475,7 +474,6 @@ struct UserInfo {
     */
     int32_t userType;
 };
-
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // DISTRIBUTED_KVSTORE_TYPES_H

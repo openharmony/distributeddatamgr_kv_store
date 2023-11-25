@@ -164,9 +164,7 @@ public:
     API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
 private:
     static bool isAlreadySet_;
-
     std::mutex mutex_;
-
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

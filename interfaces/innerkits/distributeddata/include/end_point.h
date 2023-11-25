@@ -108,38 +108,36 @@ public:
     virtual bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) = 0;
     
     /**
-     * @brief Set Identifier.
-     * @param tuples target device list storeId label.
+     * @brief Set SetStoreIdentifier.
+     * @param storeName store name.
+     * @param identifier database identifier.
+     * @param devices target device list.
      * @return Return true for success, false for failure.
      */
-    virtual bool SetIdentifier(std::tuple<std::string, std::string, std::vector<std::string>> &tuples)
+    virtual bool SetStoreIdentifier(const std::string &storeName, const std::string &identifier,
+        std::vector<std::string> &devices)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        auto storeId = std::get<0>(tuples);
-        if (callbacks_.count(storeId) == 0) {
+        if (callbacks_.count(storeName) == 0) {
             return false;
         }
-        auto label = std::get<1>(tuples);
-        auto tagretDev = std::get<2>(tuples);
-        callbacks_[storeId](label, tagretDev);
-        return true;
+        return callbacks_[storeName](identifier, tagretDev);
     }
 
     /**
-     * @brief Set callback.
-     * @param storeId target device list.
-     * @param callback Callback to register data change..
+     * @brief Set equal identifier callback.
+     * @param storeName store name.
+     * @param callback Callback to register data change.
      */
-    virtual void SetCallback(const std::string storeId, SetHandler &callback)
+    virtual void SetEqualIdentifierCallback(const std::string storeName, SetHandler callback)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (callbacks_.count(storeId) == 0) {
-            callbacks_[storeId] = callbacks;
+            callbacks_[storeName] = callback;
         }
     }
 private:
     std::map<std::string, SetHandler> callbacks_;
-
     std::mutex mutex_;
 };
 }  // namespace DistributedKv

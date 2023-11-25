@@ -100,14 +100,18 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
                 SetDbConfig(dbStore);
-                if (options.isClientSync) {
-                    if (endpoint_ !=nullptr) {
-                        endpoint_->SetCallback(storeId, [dbStore, appId, storeId](const std::string &label, const std::vector<std::string> &tagretDev) {
-                            auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(
-							    label, appId, storeId);
-                            dbStore->SetEqualIdentifier(syncIdentifier, tagretDev);
-                        });
-                    }
+                if (options.isClientSync && endpoint_ != nullptr) {
+                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, appId, storeId](const std::string &identifier, const std::vector<std::string> &tagretDev)->bool {
+                        if (std::count(identifier.begin(), identifier.end(),'-') != SPLIT_COUNT) {
+                            return false;
+                        }
+                        size_t start = 0;
+                        size_t end = identifier.find('-');
+                        std::string label = identifier.substr(start, end - start);
+                        auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(label, appId, storeId);
+                        dbStore->SetEqualIdentifier(syncIdentifier, tagretDev);
+                        return true;
+                    });
                 }
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
@@ -169,8 +173,7 @@ Status StoreFactory::Close(const AppId &appId, const StoreId &storeId, bool isFo
 std::shared_ptr<StoreFactory::DBManager> StoreFactory::GetDBManager(const std::string &path, const AppId &appId)
 {
     std::shared_ptr<DBManager> dbManager;
-    dbManagers_.Compute(path, [&dbManager, &appId](const auto &path,
-        std::shared_ptr<DBManager> &manager) {
+    dbManagers_.Compute(path, [&dbManager, &appId](const auto &path, std::shared_ptr<DBManager> &manager) {
         if (manager != nullptr) {
             dbManager = manager;
             return true;
@@ -190,7 +193,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
 {
     DBOption dbOption;
     dbOption.syncDualTupleMode =
-        ((options.kvStoreType == KvStoreType::LOCAL_ONLY) ? false : true); // tuple of (appid+storeid)
+        (options.kvStoreType == KvStoreType::LOCAL_ONLY ? false : true); // tuple of (appid+storeid)
     dbOption.createIfNecessary = (options.role == VISITOR ? false : options.createIfMissing);
     dbOption.isNeedRmCorruptedDb = (options.role == VISITOR ? false : options.rebuild);
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);

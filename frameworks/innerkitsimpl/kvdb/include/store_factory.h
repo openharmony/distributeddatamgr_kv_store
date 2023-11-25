@@ -41,7 +41,8 @@ private:
     static constexpr int REKEY_TIMES = 3;
     static constexpr const char *REKEY_NEW = ".new";
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
-
+    static constexpr int SPLIT_COUNT = 2;
+    
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
     DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
