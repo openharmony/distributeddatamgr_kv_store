@@ -242,7 +242,10 @@ public:
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status SetIdentifier(const std::string &accountId, const std::string &appId,
-        const std::string &storeId, const std::vector<std::string> &tagretDev);
+        const std::string &storeId, const std::vector<std::string> &tagretDev)
+    {
+        return Status::SUCCESS;
+    };
 };
 }  // namespace DistributedKv
 }  // namespace OHOS
