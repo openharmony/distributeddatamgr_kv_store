@@ -89,6 +89,8 @@ public:
         const std::vector<std::string> &remote) const override;
     Status SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
     Status UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
+    Status SetIdentifier(const std::string &accountId, const std::string &appId,
+        const std::string &storeId, const std::vector<std::string> &tagretDev) override;
 protected:
     std::shared_ptr<ObserverBridge> PutIn(uint32_t &realType, std::shared_ptr<Observer> observer);
     std::shared_ptr<ObserverBridge> TakeOut(uint32_t &realType, std::shared_ptr<Observer> observer);

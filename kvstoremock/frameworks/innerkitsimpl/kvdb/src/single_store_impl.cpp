@@ -459,4 +459,9 @@ Status SingleStoreImpl::UnsubscribeWithQuery(const std::vector<std::string> &dev
 {
     return SERVER_UNAVAILABLE;
 }
+Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::string &appId,
+    const std::string &storeId, const std::vector<std::string> &tagretDev)
+{
+    return SERVER_UNAVAILABLE;
+}
 } // namespace OHOS::DistributedKv
