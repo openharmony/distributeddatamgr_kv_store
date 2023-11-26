@@ -184,10 +184,10 @@ bool Marshalling(const std::map<K, V> &result, MessageParcel &parcel);
 template<class K, class V>
 bool Unmarshalling(std::map<K, V> &val, MessageParcel &parcel);
 
-template<class T>
-bool Marshalling(const std::tuple<int32_t, std::string, T> &result, MessageParcel &parcel);
-template<class T>
-bool Unmarshalling(std::tuple<int32_t, std::string, T> &val, MessageParcel &parcel);
+template<class F, class S, class T>
+bool Marshalling(const std::tuple<F, S, T> &result, MessageParcel &parcel);
+template<class F, class S, class T>
+bool Unmarshalling(std::tuple<F, S, T> &val, MessageParcel &parcel);
 
 template<class F, class S>
 bool Marshalling(const std::pair<F, S> &result, MessageParcel &parcel);
@@ -336,13 +336,13 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
     return true;
 }
 
-template<class T>
-bool ITypesUtil::Marshalling(const std::tuple<int32_t, std::string, T> &result, MessageParcel &parcel)
+template<class F, class S, class T>
+bool ITypesUtil::Marshalling(const std::tuple<F, S, T> &result, MessageParcel &parcel)
 {
-    if (!parcel.WriteInt32(std::get<0>(result))) {
+    if (!ITypesUtil::Marshalling(std::get<0>(result), parcel)) {
         return false;
     }
-    if (!parcel.WriteString(std::get<1>(result))) {
+    if (!ITypesUtil::Marshalling(std::get<1>(result), parcel)) {
         return false;
     }
     if (!ITypesUtil::Marshalling(std::get<2>(result), parcel)) {
@@ -351,23 +351,22 @@ bool ITypesUtil::Marshalling(const std::tuple<int32_t, std::string, T> &result, 
     return true;
 }
 
-template<class T>
-bool ITypesUtil::Unmarshalling(std::tuple<int32_t, std::string, T> &val, MessageParcel &parcel)
+template<class F, class S, class T>
+bool ITypesUtil::Unmarshalling(std::tuple<F, S, T> &val, MessageParcel &parcel)
 {
-    int32_t code;
-    if (!parcel.ReadInt32(code)) {
+    F first;
+    if (!ITypesUtil::Unmarshalling(first, parcel)) {
         return false;
     }
-    std::string des;
-    if (!parcel.ReadString(des)) {
+    S second;
+    if (!ITypesUtil::Unmarshalling(second, parcel)) {
         return false;
     }
-
-    T value;
-    if (!ITypesUtil::Unmarshalling(value, parcel)) {
+    T third;
+    if (!ITypesUtil::Unmarshalling(third, parcel)) {
         return false;
     }
-    val = { code, des, value };
+    val = { first, second, third };
     return true;
 }
 
