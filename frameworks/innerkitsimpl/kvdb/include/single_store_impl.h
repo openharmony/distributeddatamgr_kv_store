@@ -74,7 +74,7 @@ public:
     // normal function
     int32_t Close(bool isForce = false);
     int32_t AddRef();
-
+    Status SetStoreIdentifier(const std::string &identifier, const std::vector<std::string> &tagretDev);
     // IPC interface
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay) override;
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,

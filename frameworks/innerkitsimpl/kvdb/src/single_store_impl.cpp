@@ -871,4 +871,15 @@ void SingleStoreImpl::Register()
         taskId_ = 0;
     }
 }
+
+Status SingleStoreImpl::SetStoreIdentifier(const std::string &identifier, const std::vector<std::string> &tagretDev)
+{
+    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(identifier, appId_, storeId_);
+    auto dbStatus = dbStore_->SetEqualIdentifier(syncIdentifier, tagretDev);
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("status:0x%{public}x", status);
+    }
+    return status;
+}
 } // namespace OHOS::DistributedKv

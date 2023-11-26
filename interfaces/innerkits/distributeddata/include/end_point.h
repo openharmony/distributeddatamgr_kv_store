@@ -38,8 +38,6 @@ public:
 
     using RecvHandler = std::function<void(const std::string &identifier, const uint8_t *data, uint32_t length)>;
 
-    using SetHandler = std::function<bool(const std::string &identifier, const std::vector<std::string> &tagretDev)>;
-
     /**
      * @brief Constructor.
      */
@@ -107,40 +105,7 @@ public:
      * @return Return true for success, false for failure.
      */
     virtual bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) = 0;
-    
-    /**
-     * @brief Set store identifier.
-     * @param storeName store name.
-     * @param identifier database identifier.
-     * @param tagretDev target device list.
-     * @return Return true for success, false for failure.
-     */
-    virtual bool SetStoreIdentifier(const std::string &storeName, const std::string &identifier,
-        const std::vector<std::string> &tagretDev)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (callbacks_.count(storeName) == 0) {
-            return false;
-        }
-        return callbacks_[storeName](identifier, tagretDev);
-    }
-
-    /**
-     * @brief Set equal identifier callback.
-     * @param storeName store name.
-     * @param callback Callback to register data change.
-     */
-    virtual void SetEqualIdentifierCallback(const std::string storeName, SetHandler callback)
-    {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (callbacks_.count(storeName) == 0) {
-            callbacks_[storeName] = callback;
-        }
-    }
-private:
-    std::map<std::string, SetHandler> callbacks_;
-    std::mutex mutex_;
-};
+}
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // END_POINT_H

@@ -21,7 +21,6 @@
 #include "kv_store_delegate_manager.h"
 #include "security_manager.h"
 #include "single_store_impl.h"
-#include "end_point.h"
 namespace OHOS::DistributedKv {
 class StoreFactory {
 public:
@@ -30,7 +29,6 @@ public:
         Status &status, bool &isCreate);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
     Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
-    void SetEndPoint(std::shared_ptr<Endpoint> endpoint);
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
@@ -41,7 +39,6 @@ private:
     static constexpr int REKEY_TIMES = 3;
     static constexpr const char *REKEY_NEW = ".new";
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
-    static constexpr int SPLIT_COUNT = 2;
 
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
@@ -54,8 +51,6 @@ private:
     Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager, const Options &options,
         DBPassword &dbPassword);
     Status SetDbConfig(std::shared_ptr<DBStore> dbStore);
-    bool SetEqualIdentifier(const std::string &identifier, const std::vector<std::string> &tagretDev,
-        std::shared_ptr<DBStore> dbstore);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];

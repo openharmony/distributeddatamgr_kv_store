@@ -92,7 +92,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         }
         DBStatus dbStatus = DBStatus::DB_ERROR;
         dbManager->GetKvStore(storeId, GetDBOption(options, dbPassword),
-            [this, &dbManager, &kvStore, &appId, &dbStatus, &options, &storeId](auto status, auto *store) {
+            [this, &dbManager, &kvStore, &appId, &dbStatus, &options](auto status, auto *store) {
                 dbStatus = status;
                 if (store == nullptr) {
                     return;
@@ -100,12 +100,6 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 auto release = [dbManager](auto *store) { dbManager->CloseKvStore(store); };
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
                 SetDbConfig(dbStore);
-                if (options.isClientSync && endpoint_ != nullptr) {
-                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, this](
-                        const std::string &identifier, const std::vector<std::string> &tagretDev)->bool {
-                            return SetEqualIdentifier(identifier, tagretDev, dbStore);
-                    });
-                }
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
                 kvStore = std::make_shared<SingleStoreImpl>(dbStore, appId, options, convertor);
             });
@@ -121,34 +115,6 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
         return !stores.empty();
     });
     return kvStore;
-}
-
-bool StoreFactory::SetEqualIdentifier(const std::string &identifier,
-    const std::vector<std::string> &tagretDev, std::shared_ptr<DBStore> dbStore)
-{
-    if (std::count(identifier.begin(), identifier.end(), '-') != SPLIT_COUNT) {
-        return false;
-    }
-
-    std::vector<std::string> result;
-    std::size_t start = 0;
-    std::size_t end = identifier.find('-');
-    while (end != std::string::npos) {
-        result.push_back(identifier.substr(start, end - start));
-        start = end + 1;
-        end = identifier.find('-', start);
-    }
-    result.push_back(identifier.substr(start));
-    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(result[0], result[1], result[2]);
-    dbStore->SetEqualIdentifier(syncIdentifier, tagretDev);
-    return true;
-}
-
-void StoreFactory::SetEndPoint(std::shared_ptr<Endpoint> endpoint)
-{
-    if (endpoint_ == nullptr) {
-        endpoint_ = endpoint;
-    }
 }
 
 Status StoreFactory::Delete(const AppId &appId, const StoreId &storeId, const std::string &path)

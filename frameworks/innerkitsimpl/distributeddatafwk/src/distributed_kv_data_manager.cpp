@@ -232,7 +232,6 @@ Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
         ZLOGE("SetPermissionCheckCallback failed: %d", status);
         return status;
     }
-    StoreFactory::GetInstance().SetEndPoint(endpoint);
     isAlreadySet_ = true;
     return status;
 }
