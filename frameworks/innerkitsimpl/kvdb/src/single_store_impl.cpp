@@ -814,7 +814,7 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     }
 
     if (!isClientSync_) {
-        return status
+        return status;
     }
     if (cStatus == SUCCESS || status == SUCCESS) {
         return SUCCESS;
