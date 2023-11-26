@@ -37,7 +37,7 @@ public:
 
     using RecvHandler = std::function<void(const std::string &identifier, const uint8_t *data, uint32_t length)>;
 
-    using SetHandler = std::function<void(const std::string &identifier, const std::vector<std::string> &tagretDev)>;
+    using SetHandler = std::function<bool(const std::string &identifier, const std::vector<std::string> &tagretDev)>;
 
     /**
      * @brief Constructor.
@@ -108,7 +108,7 @@ public:
     virtual bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) = 0;
     
     /**
-     * @brief Set SetStoreIdentifier.
+     * @brief Set store identifier.
      * @param storeName store name.
      * @param identifier database identifier.
      * @param tagretDev target device list.
