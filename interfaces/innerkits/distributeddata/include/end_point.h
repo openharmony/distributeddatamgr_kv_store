@@ -17,6 +17,7 @@
 #define END_POINT_H
 
 #include <tuple>
+#include <map>
 #include <mutex>
 #include <functional>
 #include "types.h"
@@ -115,7 +116,7 @@ public:
      * @return Return true for success, false for failure.
      */
     virtual bool SetStoreIdentifier(const std::string &storeName, const std::string &identifier,
-        std::vector<std::string> &tagretDev)
+        const std::vector<std::string> &tagretDev)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (callbacks_.count(storeName) == 0) {

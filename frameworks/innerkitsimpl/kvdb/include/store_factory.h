@@ -42,7 +42,7 @@ private:
     static constexpr const char *REKEY_NEW = ".new";
     static constexpr uint64_t MAX_WAL_SIZE = 200 * 1024 * 1024; // the max size of WAL is 200MB
     static constexpr int SPLIT_COUNT = 2;
-    
+
     StoreFactory();
     std::shared_ptr<DBManager> GetDBManager(const std::string &path, const AppId &appId);
     DBOption GetDBOption(const Options &options, const DBPassword &dbPassword) const;
@@ -54,6 +54,8 @@ private:
     Status IsPwdValid(const std::string &storeId, std::shared_ptr<DBManager> dbManager, const Options &options,
         DBPassword &dbPassword);
     Status SetDbConfig(std::shared_ptr<DBStore> dbStore);
+    bool SetEqualIdentifier(const std::string &identifier, const AppId &appId,
+        const StoreId &storeId, const std::vector<std::string> &tagretDev, std::shared_ptr<DBStore> dbstore);
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
