@@ -105,7 +105,7 @@ public:
      * @return Return true for success, false for failure.
      */
     virtual bool HasDataSyncPermission(const StoreBriefInfo &param, uint8_t flag) = 0;
-}
+};
 }  // namespace DistributedKv
 }  // namespace OHOS
 #endif  // END_POINT_H
