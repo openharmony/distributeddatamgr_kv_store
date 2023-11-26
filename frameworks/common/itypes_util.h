@@ -184,6 +184,16 @@ bool Marshalling(const std::map<K, V> &result, MessageParcel &parcel);
 template<class K, class V>
 bool Unmarshalling(std::map<K, V> &val, MessageParcel &parcel);
 
+template<class F, class S, class T>
+bool Marshalling(const std::tuple<F, S, T> &result, MessageParcel &parcel);
+template<class F, class S, class T>
+bool Unmarshalling(std::tuple<F, S, T> &val, MessageParcel &parcel);
+
+template<class F, class S>
+bool Marshalling(const std::pair<F, S> &result, MessageParcel &parcel);
+template<class F, class S>
+bool Unmarshalling(std::pair<F, S> &val, MessageParcel &parcel);
+
 template<class T>
 bool Marshalling(const std::vector<T> &val, MessageParcel &parcel);
 template<class T>
@@ -323,6 +333,67 @@ bool ITypesUtil::Unmarshalling(std::map<K, V> &val, MessageParcel &parcel)
             return false;
         }
     }
+    return true;
+}
+
+template<class F, class S, class T>
+bool ITypesUtil::Marshalling(const std::tuple<F, S, T> &result, MessageParcel &parcel)
+{
+    if (!ITypesUtil::Marshalling(std::get<0>(result), parcel)) {
+        return false;
+    }
+    if (!ITypesUtil::Marshalling(std::get<1>(result), parcel)) {
+        return false;
+    }
+    if (!ITypesUtil::Marshalling(std::get<2>(result), parcel)) {
+        return false;
+    }
+    return true;
+}
+
+template<class F, class S, class T>
+bool ITypesUtil::Unmarshalling(std::tuple<F, S, T> &val, MessageParcel &parcel)
+{
+    F first;
+    if (!ITypesUtil::Unmarshalling(first, parcel)) {
+        return false;
+    }
+    S second;
+    if (!ITypesUtil::Unmarshalling(second, parcel)) {
+        return false;
+    }
+    T third;
+    if (!ITypesUtil::Unmarshalling(third, parcel)) {
+        return false;
+    }
+    val = { first, second, third };
+    return true;
+}
+
+template<class F, class S>
+bool ITypesUtil::Marshalling(const std::pair<F, S> &result, MessageParcel &parcel)
+{
+    if (!ITypesUtil::Marshalling(result.first, parcel)) {
+        return false;
+    }
+    if (!ITypesUtil::Marshalling(result.second, parcel)) {
+        return false;
+    }
+    return true;
+}
+
+template<class F, class S>
+bool ITypesUtil::Unmarshalling(std::pair<F, S> &val, MessageParcel &parcel)
+{
+    F first;
+    if (!ITypesUtil::Unmarshalling(first, parcel)) {
+        return false;
+    }
+    S second;
+    if (!ITypesUtil::Unmarshalling(second, parcel)) {
+        return false;
+    }
+    val = { first, second };
     return true;
 }
 
