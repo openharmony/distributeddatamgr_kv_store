@@ -772,7 +772,7 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
 
 Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
-    auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {  
+    auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
         std::map<std::string, Status> result;
         for (auto &[key, dbStatus] : devicesMap) {
             result[key] = StoreUtil::ConvertStatus(dbStatus);
@@ -789,7 +789,7 @@ Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<S
 }
 
 Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
-{        
+{
     Status cStatus = Status::SUCCESS;
     if (isClientSync_) {
         cStatus = DoClientSync(syncInfo, observer);

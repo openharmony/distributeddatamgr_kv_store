@@ -111,11 +111,11 @@ public:
      * @brief Set SetStoreIdentifier.
      * @param storeName store name.
      * @param identifier database identifier.
-     * @param devices target device list.
+     * @param tagretDev target device list.
      * @return Return true for success, false for failure.
      */
     virtual bool SetStoreIdentifier(const std::string &storeName, const std::string &identifier,
-        std::vector<std::string> &devices)
+        std::vector<std::string> &tagretDev)
     {
         std::lock_guard<std::mutex> lock(mutex_);
         if (callbacks_.count(storeName) == 0) {
@@ -132,7 +132,7 @@ public:
     virtual void SetEqualIdentifierCallback(const std::string storeName, SetHandler callback)
     {
         std::lock_guard<std::mutex> lock(mutex_);
-        if (callbacks_.count(storeId) == 0) {
+        if (callbacks_.count(storeName) == 0) {
             callbacks_[storeName] = callback;
         }
     }

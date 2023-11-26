@@ -101,14 +101,16 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
                 SetDbConfig(dbStore);
                 if (options.isClientSync && endpoint_ != nullptr) {
-                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, appId, storeId](const std::string &identifier, const std::vector<std::string> &tagretDev)->bool {
-                        if (std::count(identifier.begin(), identifier.end(),'-') != SPLIT_COUNT) {
+                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, appId, storeId](
+                        const std::string &identifier, const std::vector<std::string> &tagretDev)->bool {
+                        if (std::count(identifier.begin(), identifier.end(), '-') != SPLIT_COUNT) {
                             return false;
                         }
                         size_t start = 0;
                         size_t end = identifier.find('-');
                         std::string label = identifier.substr(start, end - start);
-                        auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(label, appId, storeId);
+                        auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(
+                            label, appId, storeId);
                         dbStore->SetEqualIdentifier(syncIdentifier, tagretDev);
                         return true;
                     });

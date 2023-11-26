@@ -44,7 +44,8 @@ public:
     DistributedDB::DeviceInfos GetLocalDeviceInfos() override;
     std::vector<DistributedDB::DeviceInfos> GetRemoteOnlineDeviceInfosList() override;
     bool IsSameProcessLabelStartedOnPeerDevice(const DistributedDB::DeviceInfos &peerDevInfo) override;
-    std::shared_ptr<DistributedDB::ExtendHeaderHandle> GetExtendHeaderHandle(const DistributedDB::ExtendInfo &paramInfo) override;
+    std::shared_ptr<DistributedDB::ExtendHeaderHandle> GetExtendHeaderHandle(
+        const DistributedDB::ExtendInfo &paramInfo) override;
 private:
     
     std::shared_ptr<Endpoint> endpoint_;
