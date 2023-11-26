@@ -126,7 +126,7 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
 bool StoreFactory::SetEqualIdentifier(const std::string &identifier, const AppId &appId,
     const StoreId &storeId, const std::vector<std::string> &tagretDev, std::shared_ptr<DBStore> dbStore)
 {
-    if (std::count(identifier.begin(), identifier.end(),'-') != SPLIT_COUNT_IN_KEY) {
+    if (std::count(identifier.begin(), identifier.end(), '-') != SPLIT_COUNT_IN_KEY) {
         return false;
     }
     size_t start = 0;
