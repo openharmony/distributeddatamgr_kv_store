@@ -101,9 +101,9 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
                 auto dbStore = std::shared_ptr<DBStore>(store, release);
                 SetDbConfig(dbStore);
                 if (options.isClientSync && endpoint_ != nullptr) {
-                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, appId, storeId, this](
+                    endpoint_->SetEqualIdentifierCallback(storeId, [dbStore, this](
                         const std::string &identifier, const std::vector<std::string> &tagretDev)->bool {
-                            return SetEqualIdentifier(identifier, appId, storeId, tagretDev, dbStore);
+                            return SetEqualIdentifier(identifier, tagretDev, dbStore);
                     });
                 }
                 const Convertor &convertor = *(convertors_[options.kvStoreType]);
@@ -123,16 +123,23 @@ std::shared_ptr<SingleKvStore> StoreFactory::GetOrOpenStore(const AppId &appId, 
     return kvStore;
 }
 
-bool StoreFactory::SetEqualIdentifier(const std::string &identifier, const AppId &appId,
-    const StoreId &storeId, const std::vector<std::string> &tagretDev, std::shared_ptr<DBStore> dbStore)
+bool StoreFactory::SetEqualIdentifier(const std::string &identifier,
+    const std::vector<std::string> &tagretDev, std::shared_ptr<DBStore> dbStore)
 {
     if (std::count(identifier.begin(), identifier.end(), '-') != SPLIT_COUNT_IN_KEY) {
         return false;
     }
-    size_t start = 0;
-    size_t end = identifier.find('-');
-    std::string label = identifier.substr(start, end - start);
-    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(label, appId, storeId);
+
+    std::vector<std::string> result;
+    std::size_t start = 0;
+    std::size_t end = identifier.find('-');
+    while (end != std::string::npos) {
+        result.push_back(identifier.substr(start, end - start));
+        start = end + 1;
+        end = identifier.find('-', start);
+    }
+    result.push_back(identifier.substr(start));
+    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(result[0], result[1], result[2]);
     dbStore->SetEqualIdentifier(syncIdentifier, tagretDev);
     return true;
 }
