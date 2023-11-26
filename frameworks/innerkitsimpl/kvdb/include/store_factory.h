@@ -29,6 +29,7 @@ public:
         Status &status, bool &isCreate);
     Status Delete(const AppId &appId, const StoreId &storeId, const std::string &path);
     Status Close(const AppId &appId, const StoreId &storeId, bool isForce = false);
+
 private:
     using DBManager = DistributedDB::KvStoreDelegateManager;
     using DBOption = DistributedDB::KvStoreNbDelegate::Option;
@@ -54,7 +55,6 @@ private:
     ConcurrentMap<std::string, std::shared_ptr<DBManager>> dbManagers_;
     ConcurrentMap<std::string, std::map<std::string, std::shared_ptr<SingleStoreImpl>>> stores_;
     Convertor *convertors_[INVALID_TYPE];
-    std::shared_ptr<Endpoint> endpoint_ = nullptr;
 };
 } // namespace OHOS::DistributedKv
 #endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_KVDB_STORE_FACTORY_H

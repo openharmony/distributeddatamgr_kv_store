@@ -232,6 +232,17 @@ public:
      * @return Return SUCCESS for success, others for failure.
     */
     virtual Status UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) = 0;
+
+    /**
+     * @brief Set identifier.
+     * @param accountId The accountId.
+     * @param appId The name of the application.
+     * @param storeId The name of kvstore.
+     * @param tagretDev target device list.
+     * @return Return SUCCESS for success, others for failure.
+    */
+    virtual Status SetIdentifier(const std::string &accountId, const std::string &appId,
+        const std::string &storeId, const std::vector<std::string> &tagretDev) = 0;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

@@ -872,13 +872,14 @@ void SingleStoreImpl::Register()
     }
 }
 
-Status SingleStoreImpl::SetStoreIdentifier(const std::string &identifier, const std::vector<std::string> &tagretDev)
+Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::string &appId,
+    const std::string &storeId, const std::vector<std::string> &tagretDev)
 {
-    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(identifier, appId_, storeId_);
+    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(accountId, appId, storeId);
     auto dbStatus = dbStore_->SetEqualIdentifier(syncIdentifier, tagretDev);
     auto status = StoreUtil::ConvertStatus(dbStatus);
     if (status != SUCCESS) {
-        ZLOGE("status:0x%{public}x", status);
+        ZLOGE("SetIdentifier failed, status:0x%{public}x", status);
     }
     return status;
 }

@@ -37,7 +37,7 @@ public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
 
-    static void RemoveAllStore(DistributedKvDataManager manager);
+    static void RemoveAllStore(DistributedKvDataManager &manager);
 
     void SetUp();
     void TearDown();
@@ -60,7 +60,7 @@ UserId DistributedKvDataManagerEncryptTest::userId;
 AppId DistributedKvDataManagerEncryptTest::appId;
 StoreId DistributedKvDataManagerEncryptTest::storeId;
 
-void DistributedKvDataManagerEncryptTest::RemoveAllStore(DistributedKvDataManager manager)
+void DistributedKvDataManagerEncryptTest::RemoveAllStore(DistributedKvDataManager &manager)
 {
     manager.CloseAllKvStore(appId);
     manager.DeleteKvStore(appId, storeId, createEnc.baseDir);

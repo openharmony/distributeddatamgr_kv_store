@@ -43,7 +43,7 @@ public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
 
-    static void RemoveAllStore(DistributedKvDataManager manager);
+    static void RemoveAllStore(DistributedKvDataManager &manager);
 
     void SetUp();
     void TearDown();
@@ -72,7 +72,7 @@ StoreId DistributedKvDataManagerTest::storeIdEmpty;
 Entry DistributedKvDataManagerTest::entryA;
 Entry DistributedKvDataManagerTest::entryB;
 
-void DistributedKvDataManagerTest::RemoveAllStore(DistributedKvDataManager manager)
+void DistributedKvDataManagerTest::RemoveAllStore(DistributedKvDataManager &manager)
 {
     manager.CloseAllKvStore(appId);
     manager.DeleteAllKvStore(appId, create.baseDir);
