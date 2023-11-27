@@ -1459,8 +1459,6 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetId(const VBucket 
             if (cloudAsset.name == asset.name) {
                 asset.assetId = cloudAsset.assetId;
             }
-        } else {
-            LOGD("[UpdateLocalAssetId] value type is not asset");
         }
     }
 }
@@ -1472,8 +1470,6 @@ void SQLiteSingleVerRelationalStorageExecutor::UpdateLocalAssetsId(const VBucket
         if (value.index() == TYPE_INDEX<Assets> && col == fieldName) {
             Assets cloudAssets = std::get<Assets>(value);
             UpdateLocalAssetsIdInner(cloudAssets, assets);
-        } else {
-            LOGD("[UpdateLocalAssetsId] value type is not assets");
         }
     }
 }
