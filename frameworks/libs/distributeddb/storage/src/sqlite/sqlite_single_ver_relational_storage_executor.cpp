@@ -1900,7 +1900,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
     int errCode = E_OK;
     TableInfo localTable = localSchema_.GetTable(tableSchema.name);
     // table name in cloud schema is in lower case
-    if (DBCommon::ToLowerCase(localTable.GetTableName()) != tableSchema.name) {
+    if (!DBCommon::CaseInsensitiveCompare(localTable.GetTableName(), tableSchema.name)) {
         LOGE("localSchema doesn't contain table from cloud");
         return -E_INTERNAL_ERROR;
     }

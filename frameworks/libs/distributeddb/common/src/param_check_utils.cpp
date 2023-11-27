@@ -246,9 +246,11 @@ bool ParamCheckUtils::CheckTableReference(const std::vector<TableReferenceProper
 
 bool ParamCheckUtils::CheckSharedTableName(const DataBaseSchema &schema)
 {
+    DataBaseSchema lowerSchema = schema;
+    TransferSchemaToLower(lowerSchema);
     std::set<std::string> tableNames;
     std::set<std::string> sharedTableNames;
-    for (const auto &tableSchema : schema.tables) {
+    for (const auto &tableSchema : lowerSchema.tables) {
         if (tableSchema.sharedTableName == tableSchema.name) {
             LOGE("[CheckSharedTableName] Shared table name and table name are same.");
             return false;
@@ -282,9 +284,6 @@ void ParamCheckUtils::TransferSchemaToLower(DataBaseSchema &schema)
 {
     for (auto &tableSchema : schema.tables) {
         std::transform(tableSchema.name.begin(), tableSchema.name.end(), tableSchema.name.begin(), tolower);
-        if (tableSchema.sharedTableName.empty()) {
-            tableSchema.sharedTableName = tableSchema.name + CloudDbConstant::SHARED;
-        }
         std::transform(tableSchema.sharedTableName.begin(), tableSchema.sharedTableName.end(),
             tableSchema.sharedTableName.begin(), tolower);
         for (auto &field : tableSchema.fields) {
