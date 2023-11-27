@@ -269,7 +269,6 @@ namespace {
     {
         DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir);
     }
-}
 
 void SetTrackerTableTest(const TrackerSchema &schema, DBStatus expect)
 {
@@ -1769,4 +1768,5 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027,
     schema.trackerColNames = {};
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     CloseStore();
+}
 }
