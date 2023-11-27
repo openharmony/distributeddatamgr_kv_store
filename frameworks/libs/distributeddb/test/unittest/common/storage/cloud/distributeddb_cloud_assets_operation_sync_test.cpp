@@ -25,6 +25,9 @@
 #include "virtual_asset_loader.h"
 #include "virtual_cloud_data_translate.h"
 #include "virtual_cloud_db.h"
+#include "sqlite_relational_utils.h"
+#include "cloud/cloud_storage_utils.h"
+
 namespace {
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -334,6 +337,51 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, T
 
     std::vector<size_t> expectCount = { 0 };
     CheckAssetsCount(expectCount);
+}
+
+/**
+ * @tc.name: SyncWithAssetOperation003
+ * @tc.desc: Delete Assets When Download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation003, TestSize.Level0)
+{
+    InsertUserTableRecord(tableName_, 0, 1, 10, false); // 1 is size, 10 is count
+    int uploadCount = 0;
+    virtualCloudDb_->ForkUpload([this, &uploadCount](const std::string &, VBucket &) {
+        if (uploadCount > 0) {
+            return;
+        }
+        SqlCondition condition;
+        condition.sql = "UPDATE " + tableName_ + " SET age = '666' WHERE id = 0;";
+        std::vector<VBucket> records;
+        EXPECT_EQ(delegate_->ExecuteSql(condition, records), OK);
+        uploadCount++;
+    });
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    virtualCloudDb_->ForkUpload(nullptr);
+
+    std::string sql = "SELECT assets from " + tableName_ + " where id = 0;";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        std::vector<uint8_t> assetsBlob;
+        Assets assets;
+        ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
+        ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
+        ASSERT_EQ(assets.size(), 2u); // 2 is asset num
+        for (size_t i = 0; i < assets.size(); ++i) {
+            EXPECT_EQ(assets[i].status, AssetStatus::NORMAL);
+        }
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 }
 #endif
