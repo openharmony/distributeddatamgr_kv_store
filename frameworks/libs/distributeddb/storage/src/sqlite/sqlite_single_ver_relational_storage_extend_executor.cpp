@@ -26,7 +26,6 @@
 
 namespace DistributedDB {
 static constexpr const int ROW_ID_INDEX = 1;
-static constexpr const int TIMESTAMP_INDEX = 2;
 static constexpr const char *HASH_KEY = "HASH_KEY";
 using PairStringVector = std::pair<std::vector<std::string>, std::vector<std::string>>;
 
@@ -294,12 +293,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
         return errCode;
     }
     int64_t rowid = data.rowid[index];
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + ROW_ID_INDEX, rowid);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    int64_t timeStamp = data.timestamp[index];
-    return SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + TIMESTAMP_INDEX, timeStamp);
+    return SQLiteUtils::BindInt64ToStatement(statement, dbAssets.size() + ROW_ID_INDEX, rowid);
 }
 
 bool SQLiteSingleVerRelationalStorageExecutor::IsGetCloudDataContinue(uint32_t curNum, uint32_t curSize,
@@ -1414,8 +1408,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAndBindFillUploadAssetStatement
         sql += item.first + " = ?,";
     }
     sql.pop_back();
-    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = ? and (select 1 from '" +
-           DBCommon::GetLogTableName(tableName) + "' WHERE timestamp = ?);";
+    sql += " WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " = ?;";
     int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, statement);
     if (errCode != E_OK) {
         return errCode;
