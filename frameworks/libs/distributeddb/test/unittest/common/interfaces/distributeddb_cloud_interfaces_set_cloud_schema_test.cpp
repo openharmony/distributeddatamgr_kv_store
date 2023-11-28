@@ -73,6 +73,7 @@ namespace {
     const string g_sharedTableName5 = "worker5_shared";
     const string g_distributedSharedTableName1 = "naturalbase_rdb_aux_worker1_shared_log";
     const string g_distributedSharedTableName2 = "naturalbase_rdb_aux_worker2_shared_log";
+    const string g_distributedSharedTableName3 = "naturalbase_rdb_aux_Worker1_Shared_log";
     const string g_distributedSharedTableName4 = "naturalbase_rdb_aux_worker4_shared_log";
     std::string g_testDir;
     std::string g_dbDir;
@@ -624,8 +625,8 @@ namespace {
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
-        CheckSharedTable({g_sharedTableName1, g_sharedTableName2});
-        CheckDistributedSharedTable({g_distributedSharedTableName1, g_distributedSharedTableName2});
+        CheckSharedTable({g_sharedTableName3, g_sharedTableName2});
+        CheckDistributedSharedTable({g_distributedSharedTableName3, g_distributedSharedTableName2});
     }
 
     /**
