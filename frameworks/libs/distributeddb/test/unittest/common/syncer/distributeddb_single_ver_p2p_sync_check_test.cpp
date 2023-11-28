@@ -63,7 +63,6 @@ namespace {
     const int VALUE_LEN = 4 * 1024 * 1024; // 4MB
     const int ENTRY_NUM = 2; // 16 entries
 #endif
-}
 
 class DistributedDBSingleVerP2PSyncCheckTest : public testing::Test {
 public:
@@ -1552,4 +1551,5 @@ HWTEST_F(DistributedDBSingleVerP2PSyncCheckTest, GetDataNotify002, TestSize.Leve
     EXPECT_EQ(result[DEVICE_B], OK);
     asyncThread.join();
     std::this_thread::sleep_for(std::chrono::seconds(TEN_SECONDS));
+}
 }
