@@ -703,9 +703,11 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
         EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
     }
     std::unique_lock<std::mutex> lock(g_mutex);
-    g_cv.wait(lock, []() {
-        return g_alreadyNotify;
+    bool isEqual = g_cv.wait_for(lock, std::chrono::seconds(1), [this, dataCounts]() { // 1 is wait time
+        return triggeredCount_ == dataCounts;
     });
+    EXPECT_EQ(isEqual, true);
+
     g_alreadyNotify = false;
     ASSERT_EQ(triggerTableData_.size(), 1u);
     EXPECT_EQ(triggerTableData_.begin()->first, tableName);
@@ -718,9 +720,10 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, TriggerObserverTest004, 
     triggeredCount_ = 0;
     sql = "insert or replace into " + tableName + " VALUES(1000, 'lisi');";
     EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), E_OK);
-    g_cv.wait(lock, []() {
-        return g_alreadyNotify;
+    isEqual = g_cv.wait_for(lock, std::chrono::seconds(1), [this]() { // 1 is wait time
+        return triggeredCount_ == 1;
     });
+    EXPECT_EQ(isEqual, true);
     g_alreadyNotify = false;
     EXPECT_EQ(triggeredCount_, 1); // 1 is trigger times, first delete then insert
     EXPECT_EQ(UnRegisterClientObserver(db), OK);
