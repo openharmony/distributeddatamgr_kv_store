@@ -128,6 +128,7 @@ int SQLiteRelationalUtils::GetCloudValueByType(sqlite3_stmt *statement, int type
         }
         default: {
             cloudValue = Nil();
+            break;
         }
     }
     return E_OK;
@@ -327,6 +328,7 @@ int SQLiteRelationalUtils::GetTypeValByStatement(sqlite3_stmt *stmt, int cid, Ty
         }
         default: {
             typeVal = Nil();
+            break;
         }
     }
     return errCode;
