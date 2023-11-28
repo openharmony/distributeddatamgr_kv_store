@@ -27,7 +27,8 @@ class PoolTest : public testing::Test {
 public:
     struct Node {
         int value;
-        bool operator==(Node &other) {
+        bool operator==(Node &other)
+        {
             return value == other.value;
         }
     };
@@ -37,11 +38,11 @@ public:
     void TearDown();
 
 protected:
-    static constexpr uint32_t CAPABILITY_ = 3; // capability
-    static constexpr uint32_t MIN_ = 1;    // min
+    static constexpr uint32_t CAPABILITY_TEST = 3; // capability
+    static constexpr uint32_t MIN_TEST = 1;    // min
     static Pool<PoolTest::Node> pool_;
 };
-Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_, MIN_);
+Pool<PoolTest::Node> PoolTest::pool_ = Pool<PoolTest::Node>(CAPABILITY_TEST, MIN_TEST);
 
 void PoolTest::SetUpTestCase(void)
 {}
