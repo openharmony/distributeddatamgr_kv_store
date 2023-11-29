@@ -48,11 +48,14 @@
     "hisysevent_config": [],
     "deps": {
       "third_party": [
+        "bounds_checking_function",
+        "cJSON",
         "jsoncpp",
         "libuv",
         "openssl",
         "sqlite",
-        "zlib"
+        "zlib",
+        "googletest"
       ],
       "kernel_special": {},
       "board_special": {},
@@ -81,7 +84,8 @@
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributeddata:build_module",
         "//foundation/distributeddatamgr/kv_store/interfaces/jskits/distributedkvstore:build_module",
-        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module"
+        "//foundation/distributeddatamgr/kv_store/kvstoremock/interfaces/jskits/distributedkvstore:build_module",
+        "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata:distributeddata_client_sync"
       ],
       "inner_kits": [
         {
@@ -100,7 +104,12 @@
               "types.h",
               "visibility.h",
               "data_query.h",
-              "store_errno.h"
+              "store_errno.h",
+              "executor.h",
+              "executor_pool.h",
+              "pool.h",
+              "priority_queue.h",
+              "end_point.h"
             ],
             "header_base": "//foundation/distributeddatamgr/kv_store/interfaces/innerkits/distributeddata/include"
           }
@@ -156,6 +165,7 @@
           "name": "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb:distributeddb",
           "header": {
             "header_files": [
+              "relational_store_client.h",
               "relational_store_delegate.h",
               "relational_store_manager.h",
               "relational_store_sqlite_ext.h"

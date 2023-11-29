@@ -34,6 +34,7 @@
 #include "platform_specific.h"
 #include "runtime_config.h"
 #include "single_ver_data_packet.h"
+#include "sqlite_relational_utils.h"
 #include "store_observer.h"
 #include "value_hash_calc.h"
 
@@ -99,7 +100,7 @@ int DistributedDBToolsUnitTest::CreateMockSingleDb(DatabaseInfo &dbInfo, OpenDbP
     }
 
     properties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
     if (properties.sqls.empty()) {
         std::vector<std::string> defaultCreateTableSqls = {
             CREATE_LOCAL_TABLE_SQL,
@@ -146,16 +147,16 @@ int DistributedDBToolsUnitTest::OpenMockMultiDb(DatabaseInfo &dbInfo, OpenDbProp
 
     OpenDbProperties commitProperties = properties;
     commitProperties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/commit_logs" + DBConstant::SQLITE_DB_EXTENSION;
+        "/commit_logs" + DBConstant::DB_EXTENSION;
 
     commitProperties.sqls = {CREATE_SQL};
 
     OpenDbProperties kvStorageProperties = commitProperties;
     kvStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_SUB_DIR + "/value_storage" + DBConstant::DB_EXTENSION;
     OpenDbProperties metaStorageProperties = commitProperties;
     metaStorageProperties.uri = dbInfo.dir + "/" + identifierName + "/" +
-        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::SQLITE_DB_EXTENSION;
+        DBConstant::MULTI_SUB_DIR + "/meta_storage" + DBConstant::DB_EXTENSION;
 
     // test code, Don't needpay too much attention to exception handling
     int errCode = CreatMockMultiDb(properties, dbInfo);
@@ -194,7 +195,7 @@ int DistributedDBToolsUnitTest::CreateMockMultiDb(DatabaseInfo &dbInfo, OpenDbPr
     }
 
     properties.uri = dbInfo.dir + "/" + identifierName + "/" + DBConstant::MULTI_SUB_DIR +
-        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+        "/" + DBConstant::MULTI_VER_DATA_STORE + DBConstant::DB_EXTENSION;
 
     if (properties.sqls.empty()) {
         properties.sqls = {CREATE_TABLE_SQL};
@@ -211,7 +212,9 @@ int DistributedDBToolsUnitTest::GetResourceDir(std::string& dir)
     if (errCode != E_OK) {
         return -E_INVALID_PATH;
     }
-
+#ifdef DB_DEBUG_ENV
+    dir = dir + "/resource/";
+#endif
     return E_OK;
 }
 
@@ -688,6 +691,13 @@ void DistributedDBToolsUnitTest::Dump()
     RuntimeConfig::Dump(0, params);
 }
 
+std::string DistributedDBToolsUnitTest::GetKvNbStoreDirectory(const std::string &identifier,
+    const std::string &dbFilePath, const std::string &dbDir)
+{
+    std::string identifierName = DBCommon::TransferStringToHex(identifier);
+    return dbDir + "/" + identifierName + "/" + dbFilePath;
+}
+
 KvStoreObserverUnitTest::KvStoreObserverUnitTest() : callCount_(0), isCleared_(false)
 {}
 
@@ -767,6 +777,16 @@ void RelationalStoreObserverUnitTest::OnChange(
     LOGD("cloud sync Onchangedata, tableName = %s", data.tableName.c_str());
 }
 
+uint32_t RelationalStoreObserverUnitTest::GetCallbackDetailsType() const
+{
+    return detailsType_;
+}
+
+void RelationalStoreObserverUnitTest::SetCallbackDetailsType(uint32_t type)
+{
+    detailsType_ = type;
+}
+
 void RelationalStoreObserverUnitTest::SetExpectedResult(const DistributedDB::ChangedData &changedData)
 {
     expectedChangedData_[changedData.tableName] = changedData;
@@ -842,6 +862,9 @@ static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::Ch
     if (input.tableName != expected.tableName) {
         return false;
     }
+    if (input.properties.isTrackedDataChange != expected.properties.isTrackedDataChange) {
+        return false;
+    }
     if (input.field.size() != expected.field.size()) {
         return false;
     }
@@ -882,7 +905,7 @@ void RelationalStoreObserverUnitTest::ResetToZero()
 
 void RelationalStoreObserverUnitTest::ResetCloudSyncToZero()
 {
-    cloudCallCount_ = 0;
+    cloudCallCount_ = 0u;
     savedChangedData_.clear();
 }
 
@@ -1209,5 +1232,90 @@ int RelationalTestUtils::SetMetaData(sqlite3 *db, const DistributedDB::Key &key,
 END:
     SQLiteUtils::ResetStatement(stmt, true, errCode);
     return SQLiteUtils::MapSQLiteErrno(errCode);
+}
+
+void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
+    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect)
+{
+    ASSERT_NE(delegate, nullptr);
+    std::mutex dataMutex;
+    std::condition_variable cv;
+    bool finish = false;
+    auto callback = [expect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+        for (const auto &item: process) {
+            if (item.second.process == DistributedDB::FINISHED) {
+                {
+                    std::lock_guard<std::mutex> autoLock(dataMutex);
+                    finish = true;
+                }
+                EXPECT_EQ(item.second.errCode, expect);
+                cv.notify_one();
+            }
+        }
+    };
+    ASSERT_EQ(delegate->Sync({ "CLOUD" }, SYNC_MODE_CLOUD_MERGE, query, callback, DBConstant::MAX_TIMEOUT), expect);
+    if (expect != DistributedDB::DBStatus::OK) {
+        return;
+    }
+    std::unique_lock<std::mutex> uniqueLock(dataMutex);
+    cv.wait(uniqueLock, [&finish]() {
+        return finish;
+    });
+}
+
+int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
+    std::vector<DistributedDB::VBucket> &data)
+{
+    LOGD("[RelationalTestUtils] Begin select data");
+    int errCode = E_OK;
+    std::string selectSql = "SELECT * FROM " + schema.name;
+    sqlite3_stmt *statement = nullptr;
+    errCode = SQLiteUtils::GetStatement(db, selectSql, statement);
+    if (errCode != E_OK) {
+        LOGE("[RelationalTestUtils] Prepare statement failed %d", errCode);
+        return errCode;
+    }
+    do {
+        errCode = SQLiteUtils::StepWithRetry(statement, false);
+        errCode = (errCode == -SQLITE_ROW) ? E_OK :
+            (errCode == -SQLITE_DONE) ? -E_FINISHED : errCode;
+        if (errCode != E_OK) {
+            break;
+        }
+        VBucket rowData;
+        for (size_t index = 0; index < schema.fields.size(); ++index) {
+            Type colValue;
+            int ret = SQLiteRelationalUtils::GetCloudValueByType(statement, schema.fields[index].type, index, colValue);
+            if (ret != E_OK) {
+                LOGE("[RelationalTestUtils] Get col value failed %d", ret);
+                break;
+            }
+            rowData[schema.fields[index].colName] = colValue;
+        }
+        data.push_back(rowData);
+    } while (errCode == E_OK);
+    if (errCode == -E_FINISHED) {
+        errCode = E_OK;
+    }
+    int err = E_OK;
+    SQLiteUtils::ResetStatement(statement, true, err);
+    LOGW("[RelationalTestUtils] Select data finished errCode %d", errCode);
+    return errCode != E_OK ? errCode : err;
+}
+
+DistributedDB::Assets RelationalTestUtils::GetAssets(const DistributedDB::Type &value,
+    const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate)
+{
+    DistributedDB::Assets assets;
+    if (value.index() == TYPE_INDEX<Assets>) {
+        auto tmp = std::get<Assets>(value);
+        assets.insert(assets.end(), tmp.begin(), tmp.end());
+    } else if (value.index() == TYPE_INDEX<Asset>) {
+        assets.push_back(std::get<Asset>(value));
+    } else if (value.index() == TYPE_INDEX<Bytes> && translate != nullptr) {
+        auto tmpAssets = translate->BlobToAssets(std::get<Bytes>(value));
+        assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+    }
+    return assets;
 }
 } // namespace DistributedDBUnitTest

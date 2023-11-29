@@ -22,6 +22,7 @@
 #include "log_print.h"
 #include "macro_utils.h"
 #include "sqlite_utils.h"
+#include "cloud/cloud_storage_utils.h"
 
 namespace DistributedDB {
 using namespace TriggerMode;
@@ -102,7 +103,7 @@ std::string GetSelectAndFromClauseForRDB(const std::string &tableName, const std
         sql.pop_back();
     }
     sql += " FROM '" + tableName + "' AS a INNER JOIN " + DBConstant::RELATIONAL_PREFIX + tableName + "_log AS b "
-        "ON a.rowid=b.data_key ";
+        "ON a." + std::string(DBConstant::SQLITE_INNER_ROWID) + "=b.data_key ";
     return sql;
 }
 
@@ -159,11 +160,13 @@ bool SqliteQueryHelper::FilterSymbolToAddBracketLink(std::string &querySql, bool
     bool isNeedEndBracket = false;
     for (const auto &iter : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(iter.operFlag);
-        if (symbolType == COMPARE_SYMBOL || symbolType == RELATIONAL_SYMBOL || symbolType == RANGE_SYMBOL) {
+        if (symbolType == SymbolType::COMPARE_SYMBOL || symbolType == SymbolType::RELATIONAL_SYMBOL ||
+            symbolType == SymbolType::RANGE_SYMBOL) {
             querySql += isNeedLink ? " AND (" : " (";
             isNeedEndBracket = true;
             break;
-        } else if (symbolType == LOGIC_SYMBOL || symbolType == PREFIXKEY_SYMBOL || symbolType == IN_KEYS_SYMBOL) {
+        } else if (symbolType == SymbolType::LOGIC_SYMBOL || symbolType == SymbolType::PREFIXKEY_SYMBOL ||
+            symbolType == SymbolType::IN_KEYS_SYMBOL) {
             continue;
         } else {
             break;
@@ -187,7 +190,7 @@ int SqliteQueryHelper::ParseQueryObjNodeToSQL(bool isQueryForSync)
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             querySql_ += ") ";
             isNeedEndBracket = false;
         }
@@ -253,7 +256,7 @@ int SqliteQueryHelper::ToGetCountSql()
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             countSql_ += ") ";
             isNeedEndBracket = false;
         }
@@ -495,7 +498,7 @@ int SqliteQueryHelper::GetCountSqlStatement(sqlite3 *dbHandle, sqlite3_stmt *&co
     }
 
     for (const QueryObjNode &objNode : queryObjNodes_) {
-        if (GetSymbolType(objNode.operFlag) == SPECIAL_SYMBOL) {
+        if (GetSymbolType(objNode.operFlag) == SymbolType::SPECIAL_SYMBOL) {
             continue;
         }
         errCode = BindFieldValue(countStmt, objNode, index);
@@ -636,7 +639,7 @@ std::string SqliteQueryHelper::MapRelationalSymbolToSql(const QueryObjNode &quer
         return "";
     };
     std::string sql = RELATIONAL_SYMBOL_TO_SQL.at(queryNode.operFlag) + MapValueToSql(queryNode, placeholder);
-    if (GetSymbolType(queryNode.operFlag) == RANGE_SYMBOL) {
+    if (GetSymbolType(queryNode.operFlag) == SymbolType::RANGE_SYMBOL) {
         sql += ")";
     }
     return sql;
@@ -718,7 +721,8 @@ std::string SqliteQueryHelper::MapCastFuncSql(const QueryObjNode &queryNode, con
 int SqliteQueryHelper::BindFieldValue(sqlite3_stmt *statement, const QueryObjNode &queryNode, int &index) const
 {
     SymbolType symbolType = GetSymbolType(queryNode.operFlag);
-    if (symbolType != COMPARE_SYMBOL && symbolType != RELATIONAL_SYMBOL && symbolType != RANGE_SYMBOL) {
+    if (symbolType != SymbolType::COMPARE_SYMBOL && symbolType != SymbolType::RELATIONAL_SYMBOL &&
+        symbolType != SymbolType::RANGE_SYMBOL) {
         return E_OK;
     }
 
@@ -760,15 +764,16 @@ int SqliteQueryHelper::ParseQueryExpression(const QueryObjNode &queryNode, std::
     const std::string &accessStr, bool placeholder)
 {
     SymbolType symbolType = GetSymbolType(queryNode.operFlag);
-    if (symbolType == RANGE_SYMBOL && queryNode.fieldValue.size() > MAX_CONDITIONS_SIZE) {
+    if (symbolType == SymbolType::RANGE_SYMBOL && queryNode.fieldValue.size() > MAX_CONDITIONS_SIZE) {
         LOGE("[Query][Parse][Expression] conditions is too many!");
         return -E_MAX_LIMITS;
     }
 
-    if (symbolType == COMPARE_SYMBOL || symbolType == RELATIONAL_SYMBOL || symbolType == RANGE_SYMBOL) {
+    if (symbolType == SymbolType::COMPARE_SYMBOL || symbolType == SymbolType::RELATIONAL_SYMBOL ||
+        symbolType == SymbolType::RANGE_SYMBOL) {
         querySql += GetFieldShape(queryNode, accessStr);
         querySql += MapRelationalSymbolToSql(queryNode, placeholder);
-    } else if (symbolType == LOGIC_SYMBOL || symbolType == LINK_SYMBOL) {
+    } else if (symbolType == SymbolType::LOGIC_SYMBOL || symbolType == SymbolType::LINK_SYMBOL) {
         querySql += MapLogicSymbolToSql(queryNode);
     } else {
         querySql += MapKeywordSymbolToSql(queryNode);
@@ -857,7 +862,7 @@ int SqliteQueryHelper::GetSubscribeCondition(const std::string &accessStr, std::
     int errCode = E_OK;
     for (const QueryObjNode &objNode : queryObjNodes_) {
         SymbolType symbolType = GetSymbolType(objNode.operFlag);
-        if (symbolType == SPECIAL_SYMBOL && isNeedEndBracket) {
+        if (symbolType == SymbolType::SPECIAL_SYMBOL && isNeedEndBracket) {
             conditionStr += ") ";
             isNeedEndBracket = false;
         }
@@ -1005,7 +1010,8 @@ std::string GetRelationalCloudSyncDataQueryHeader(const std::vector<Field> &fiel
         "b.wtimestamp,"
         "b.flag,"
         "b.hash_key,"
-        "b.cloud_gid,";
+        "b.cloud_gid,"
+        "b.version,";
     if (fields.empty()) {  // For query check. If column count changed, can be discovered.
         sql += "a.*";
     } else {
@@ -1032,7 +1038,7 @@ int SqliteQueryHelper::GetRelationalSyncDataQuerySqlWithLimit(const std::vector<
     sql = GetRelationalSyncDataQueryHeader(fieldNames);
     sql += " FROM '" + tableName_ + "' AS a INNER JOIN ";
     sql += DBConstant::RELATIONAL_PREFIX + tableName_ + "_log";
-    sql += " AS b ON (a.rowid = b.data_key)";
+    sql += " AS b ON (a." + std::string(DBConstant::SQLITE_INNER_ROWID) + " = b.data_key)";
     sql += " WHERE (b.flag&0x03=0x02)";
 
     querySql_.clear(); // clear local query sql format
@@ -1141,15 +1147,48 @@ int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint6
     const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement)
 {
     std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
-    sql += " FROM '" + DBCommon::GetLogTableName(tableName_) + "' AS b LEFT JOIN '";
-    sql += tableName_ + "' AS a ON (a.rowid = b.data_key)";
-    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)":
-        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
-    sql += " AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
-    sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+    AppendCloudQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(true, dbHandle, beginTime, sql, statement);
+}
 
+int SqliteQueryHelper::GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+    bool isCloudForcePush, sqlite3_stmt *&statement)
+{
+    std::string sql = "SELECT COUNT(*) ";
+    AppendCloudQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+}
+
+int SqliteQueryHelper::GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+    const std::vector<Field> &fields, bool isCloudForcePush, sqlite3_stmt *&statement)
+{
+    std::string sql = GetRelationalCloudSyncDataQueryHeader(fields);
+    AppendCloudGidQuery(isCloudForcePush, sql);
+    return GetCloudQueryStatement(false, dbHandle, beginTime, sql, statement);
+}
+
+void SqliteQueryHelper::AppendCloudQuery(bool isCloudForcePush, std::string &sql)
+{
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
+    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
+        " WHERE b.timestamp > ? AND (b.flag & 0x02 = 0x02)";
+    sql += " AND (b.flag & 0x08 != 0x08) AND (b.cloud_gid != '' or"; // actually, b.cloud_gid will not be null.
+    sql += " (b.cloud_gid == '' and (b.flag & 0x01 = 0))) ";
+}
+
+void SqliteQueryHelper::AppendCloudGidQuery(bool isCloudForcePush, std::string &sql)
+{
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableName_, false);
+    sql += isCloudForcePush ? " WHERE b.timestamp > ? AND (b.flag & 0x04 != 0x04)" :
+        " WHERE b.timestamp > ?";
+    sql += " AND (b.cloud_gid != '') "; // actually, b.cloud_gid will not be null.
+}
+
+int SqliteQueryHelper::GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime,
+    std::string &sql, sqlite3_stmt *&statement)
+{
     querySql_.clear(); // clear local query sql format
-    int errCode = ToQuerySyncSql(false, true);
+    int errCode = ToQuerySyncSql(false, useTimestampAlias);
     if (errCode != E_OK) {
         LOGE("To query sql fail! errCode[%d]", errCode);
         return errCode;
@@ -1160,9 +1199,24 @@ int SqliteQueryHelper::GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint6
         LOGE("[Query] Get statement fail!");
         return -E_INVALID_QUERY_FORMAT;
     }
-    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, beginTime);
+    errCode = SQLiteUtils::BindInt64ToStatement(statement, 1, static_cast<int64_t>(beginTime));
     if (errCode != E_OK) {
+        int resetRet = E_OK;
+        SQLiteUtils::ResetStatement(statement, true, resetRet);
+        if (resetRet != E_OK) {
+            LOGW("[Query] reset statement failed %d", resetRet);
+        }
+        return errCode;
+    }
+    int index = 2;
+    errCode = BindObjNodes(statement, index);
+    if (errCode != E_OK) {
+        LOGE("[Query] BindObjNodes failed %d", errCode);
+        int resetRet = E_OK;
         SQLiteUtils::ResetStatement(statement, true, errCode);
+        if (resetRet != E_OK) {
+            LOGW("[Query] reset statement failed %d", resetRet);
+        }
     }
     return errCode;
 }

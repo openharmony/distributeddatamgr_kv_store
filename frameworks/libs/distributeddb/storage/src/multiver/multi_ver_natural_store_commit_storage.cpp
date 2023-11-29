@@ -86,7 +86,7 @@ int MultiVerNaturalStoreCommitStorage::GetVersion(const IKvDBCommitStorage::Prop
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.path);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_COMMIT_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
 
     int errCode = localKvdb->GetVersion(dbProperties, version, isDbExisted);
@@ -117,7 +117,7 @@ int MultiVerNaturalStoreCommitStorage::Open(const IKvDBCommitStorage::Property &
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.path);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_COMMIT_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
 
     errCode = commitStorageDatabase_->Open(dbProperties);
@@ -891,7 +891,7 @@ int MultiVerNaturalStoreCommitStorage::BackupCurrentDatabase(const Property &pro
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.path);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_COMMIT_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
     int errCode = SQLiteLocalKvDB::BackupCurrentDatabase(dbProperties, dir);
     return errCode;
@@ -905,7 +905,7 @@ int MultiVerNaturalStoreCommitStorage::ImportDatabase(const Property &property, 
     dbProperties.SetStringProp(KvDBProperties::DATA_DIR, property.path);
     dbProperties.SetStringProp(KvDBProperties::FILE_NAME, DBConstant::MULTI_VER_COMMIT_STORE);
     dbProperties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, property.identifierName);
-    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
+    dbProperties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
     dbProperties.SetPassword(property.cipherType, property.passwd);
     int errCode = SQLiteLocalKvDB::ImportDatabase(dbProperties, dir, passwd);
     return errCode;

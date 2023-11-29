@@ -67,7 +67,9 @@ public:
     int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
 
-    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
+    int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+        const RelationalObserverAction &action);
+    int UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer);
     int RegisterLifeCycleCallback(const DatabaseLifeCycleNotifier &notifier);
 
     std::string GetStorePath() const override;
@@ -83,15 +85,25 @@ public:
 
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb);
 
-    int SetCloudDbSchema(const DataBaseSchema &schema);
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
 
     int ChkSchema(const TableName &tableName);
 
-    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime);
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess);
 
+    int SetTrackerTable(const TrackerSchema &trackerSchema);
+
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records);
+
+    int CleanTrackerData(const std::string &tableName, int64_t cursor);
+
+    int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty);
+
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData);
+
+    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 private:
     void ReleaseResources();
 
@@ -120,7 +132,7 @@ private:
 
     std::string GetDevTableName(const std::string &device, const std::string &hashDev) const;
 
-    SQLiteSingleVerRelationalStorageExecutor *GetHandleAndStartTransaction(int &errCode) const;
+    int GetHandleAndStartTransaction(SQLiteSingleVerRelationalStorageExecutor *&handle) const;
 
     int RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
         const std::string &tableName, bool isNeedHash);
@@ -128,6 +140,31 @@ private:
     int GetExistDevices(std::set<std::string> &hashDevices) const;
 
     std::vector<std::string> GetAllDistributedTableName();
+
+    int CheckBeforeSync(const CloudSyncOption &option);
+
+    int CheckQueryValid(bool priorityTask, const Query &query);
+
+    int CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object);
+
+    int CheckTableName(const std::vector<std::string> &tableNames);
+
+    void FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+        CloudSyncer::CloudTaskInfo &info);
+
+    int CleanWaterMark(std::set<std::string> &clearWaterMarkTable);
+
+    int InitTrackerSchemaFromMeta();
+
+    bool CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo, std::vector<Field> &addFields);
+
+    bool PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
+        std::map<std::string, std::vector<Field>> &updateTableNames,
+        std::map<std::string, std::string> &alterTableNames);
+
+    int ExecuteCreateSharedTable(const DataBaseSchema &schema);
+
+    static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function

@@ -30,7 +30,16 @@ namespace {
 
 constexpr auto TABLE_NAME_1 = "tableName1";
 constexpr auto CLOUD_WATER_MARK = "tableName1";
-
+const Asset ASSET_COPY = { .version = 1,
+    .name = "Phone",
+    .assetId = "0",
+    .subpath = "/local/sync",
+    .uri = "/local/sync",
+    .modifyTime = "123456",
+    .createTime = "",
+    .size = "256",
+    .hash = "ASE" };
+const int COUNT = 1000;
 
 static void CommonExpectCall(MockICloudSyncStorageInterface *iCloud)
 {
@@ -48,7 +57,6 @@ static void CommonExpectCall(MockICloudSyncStorageInterface *iCloud)
 static void BatchExpectCall(MockICloudSyncStorageInterface *iCloud)
 {
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
 }
 class DistributedDBCloudSyncerUploadTest : public testing::Test {
 public:
@@ -56,6 +64,11 @@ public:
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
+protected:
+    void PrepareRecord(VBucket &tmp, VBucket &assets);
+    void PrepareUploadDataInsData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
+    void PrepareUploadDataUpdData(const VBucket &tmp, const VBucket &assets, CloudSyncData &uploadData);
+    void PrepareUploadDataForUploadModeCheck012(CloudSyncData &uploadData);
 };
 
 void DistributedDBCloudSyncerUploadTest::SetUpTestCase(void)
@@ -73,6 +86,42 @@ void DistributedDBCloudSyncerUploadTest::SetUp(void)
 
 void DistributedDBCloudSyncerUploadTest::TearDown(void)
 {
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareRecord(VBucket &tmp, VBucket &assets)
+{
+    tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                    pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+    assets = { pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataInsData(const VBucket &tmp,
+    const VBucket &assets, CloudSyncData &uploadData)
+{
+    uploadData.insData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.assets = std::vector<VBucket>(COUNT, assets);
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataUpdData(const VBucket &tmp,
+    const VBucket &assets, CloudSyncData &uploadData)
+{
+    uploadData.updData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.updData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.updData.assets = std::vector<VBucket>(COUNT, assets);
+}
+
+void DistributedDBCloudSyncerUploadTest::PrepareUploadDataForUploadModeCheck012(CloudSyncData &uploadData)
+{
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
+    uploadData.insData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.extend = std::vector<VBucket>(COUNT, tmp);
+    uploadData.insData.assets = std::vector<VBucket>(COUNT, assets);
+    uploadData.delData.record = std::vector<VBucket>(COUNT, tmp);
+    uploadData.delData.extend = std::vector<VBucket>(COUNT, tmp);
 }
 
 /**
@@ -98,7 +147,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck001, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
 
     cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_PUSH_ONLY);
     int errCode = cloudSyncer->CallDoUpload(taskId);
@@ -155,7 +204,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck002, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
 
     //  1. The water level was read successfully
     cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_MERGE);
@@ -191,7 +240,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck003, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
 
     // 2. Failed to read water level
@@ -223,7 +272,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck004, TestSize.Level1
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(3u, SYNC_MODE_CLOUD_FORCE_PUSH);
-    
+
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
@@ -265,7 +314,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck005, TestSize.Level1
     EXPECT_CALL(*iCloud, Rollback()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(Return(E_OK));
 
     // 2. get total upload count ok
     cloudSyncer->InitCloudSyncer(10u, SYNC_MODE_CLOUD_FORCE_PUSH);
@@ -276,13 +325,14 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck005, TestSize.Level1
     // 3. get total upload count ok, which is 0
     cloudSyncer->InitCloudSyncer(11u, SYNC_MODE_CLOUD_FORCE_PUSH);
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillOnce([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillOnce([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 0;
         return E_OK;
     });
 
     errCode = cloudSyncer->CallDoUpload(11u);
     EXPECT_EQ(errCode, E_OK);
+    EXPECT_FALSE(cloudSyncer->IsResumeTaskUpload(11u));
 
     RuntimeContext::GetInstance()->StopTaskPool();
     cloudSyncer->CallClose();
@@ -319,11 +369,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck006, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 1000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
 
     VBucket tmp = {pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1)};
@@ -332,8 +381,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck006, TestSize.Level1
     // batch_1 CloudSyncData quantity > total count
     uploadData.insData.record = std::vector<VBucket>(1001, tmp);
     uploadData.insData.extend = std::vector<VBucket>(1001, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillOnce(
-        [&uploadData](const TableSchema &, const Timestamp &, ContinueToken &, CloudSyncData &cloudDataResult) {
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillOnce(
+        [&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
+            CloudSyncData &cloudDataResult) {
             cloudDataResult = uploadData;
             return E_OK;
     });
@@ -368,7 +418,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
     BatchExpectCall(iCloud);
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 1000;
         return E_OK;
     });
@@ -376,23 +426,23 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck007, TestSize.Level1
     // Batch_n CloudSyncData quantity > total count
     cloudSyncer->InitCloudSyncer(5u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1) };
-    uploadData2.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.extend = std::vector<VBucket>(1000, tmp);
-    
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
+    PrepareUploadDataInsData(tmp, assets, uploadData2);
+
     SyncTimeRange syncTimeRange = { .beginTime = 1u };
     QueryObject queryObject(Query::Select());
     queryObject.SetTableName(cloudSyncer->GetCurrentContextTableName());
     auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
     ContinueToken conStmtToken = static_cast<ContinueToken>(token);
     delete token;
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillOnce([&conStmtToken, &uploadData2](
-        const TableSchema &, const Timestamp &, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
-            continueStmtToken = conStmtToken;
-            cloudDataResult = uploadData2;
-            return -E_UNFINISHED;
-        });
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillOnce([&conStmtToken, &uploadData2](const TableSchema &,
+        const QuerySyncObject &, const Timestamp &, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
+        continueStmtToken = conStmtToken;
+        cloudDataResult = uploadData2;
+        return -E_UNFINISHED;
+    });
 
     CloudSyncData uploadData3(cloudSyncer->GetCurrentContextTableName());
     uploadData3.insData.record = std::vector<VBucket>(1001, tmp);
@@ -440,11 +490,10 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ReleaseCloudDataToken(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 1000;
         return E_OK;
     });
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
 
     // empty CloudSyncData
@@ -454,13 +503,13 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck008, TestSize.Level1
     cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
     uploadData2.insData.record = std::vector<VBucket>(100);
     uploadData2.insData.extend = std::vector<VBucket>(100);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData2](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData2](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData2;
         return -E_UNFINISHED;
     });
-    
+
     int errCode = cloudSyncer->CallDoUpload(taskId);
     EXPECT_EQ(errCode, -E_INTERNAL_ERROR);
 
@@ -490,25 +539,24 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
 
     TaskId taskId = 5u;
     cloudSyncer->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     CommonExpectCall(iCloud);
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 10000;
         return E_OK;
     });
 
     CloudSyncData uploadData(cloudSyncer->GetCurrentContextTableName());
-    uploadData.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData.insData.extend = std::vector<VBucket>(1000, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData](const TableSchema &, const Timestamp &,
+    PrepareUploadDataInsData(tmp, assets, uploadData);
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData;
         return E_OK;
@@ -520,8 +568,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck009, TestSize.Level1
     cloudSyncer->CallClearCloudSyncData(uploadData);
     uploadData.insData.record = std::vector<VBucket>(1000, tmp);
     uploadData.insData.extend = std::vector<VBucket>(999, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData;
         return E_OK;
@@ -561,9 +609,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck017, TestSize.Level1
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*idb, BatchDelete(_, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*idb, BatchUpdate(_, _, _)).WillRepeatedly(Return(OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 10000;
         return E_OK;
     });
@@ -572,8 +619,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck017, TestSize.Level1
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName() + "abc");
     uploadData2.insData.record = std::vector<VBucket>(1000, tmp);
     uploadData2.insData.extend = std::vector<VBucket>(1000, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData2](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData2](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData2;
         return E_OK;
@@ -609,8 +656,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
     CloudSyncData uploadData(cloudSyncer->GetCurrentContextTableName());
     cloudSyncer->initFullCloudSyncData(uploadData, 1000);
 
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData;
         return E_OK;
@@ -619,7 +666,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -632,7 +679,6 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck010, TestSize.Level1
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
 
     int errCode = cloudSyncer->CallDoUpload(taskId);
     EXPECT_EQ(errCode, E_OK);
@@ -662,15 +708,16 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -683,16 +730,14 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck011, TestSize.Level1
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
 
     // insert has no data, update and delete have data
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    uploadData2.updData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.updData.extend = std::vector<VBucket>(1000, tmp);
+    PrepareUploadDataUpdData(tmp, assets, uploadData2);
     uploadData2.delData.record = std::vector<VBucket>(1000, tmp);
     uploadData2.delData.extend = std::vector<VBucket>(1000, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData2](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([&uploadData2](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData2;
         return E_OK;
@@ -725,15 +770,13 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     TestCloudSyncer *cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1) };
     cloudSyncer->InitCloudSyncer(6u, SYNC_MODE_CLOUD_FORCE_PUSH);
 
     EXPECT_CALL(*iCloud, StartTransaction(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, ChkSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -746,25 +789,25 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck012, TestSize.Level1
     EXPECT_CALL(*iCloud, GetCloudDataNext(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudDbSchema(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
 
     // insert has data, update has no data, delete has data
     CloudSyncData uploadData3(cloudSyncer->GetCurrentContextTableName());
-    uploadData3.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData3.insData.extend = std::vector<VBucket>(1000, tmp);
-    uploadData3.delData.record = std::vector<VBucket>(1000, tmp);
-    uploadData3.delData.extend = std::vector<VBucket>(1000, tmp);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillOnce([&uploadData3](const TableSchema &, const Timestamp &,
+    PrepareUploadDataForUploadModeCheck012(uploadData3);
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillOnce([cloudSyncer, &uploadData3](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData3;
+        cloudSyncer->CallRecordWaterMark(6u, 1u); // task id is 6
         return E_OK;
     });
-    int errCode = cloudSyncer->CallDoUpload(6u);
+    int errCode = cloudSyncer->CallDoUpload(6u); // task id is 6
     std::this_thread::sleep_for(std::chrono::seconds(1));
     EXPECT_EQ(errCode, E_OK);
-    EXPECT_EQ(cloudSyncer->GetUploadSuccessCount(6u), 2000);
-    EXPECT_EQ(cloudSyncer->GetUploadFailCount(6u), 0);
+    uint64_t waterMark = 0u;
+    cloudSyncer->CallReloadWaterMarkIfNeed(6u, waterMark); // taskId is 6
+    EXPECT_EQ(waterMark, 0u);
+    EXPECT_EQ(cloudSyncer->GetUploadSuccessCount(6u), 2000); // task id is 6, success count is 2000
+    EXPECT_EQ(cloudSyncer->GetUploadFailCount(6u), 0); // task id is 6
 
     RuntimeContext::GetInstance()->StopTaskPool();
     cloudSyncer->CallClose();
@@ -796,14 +839,14 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck013, TestSize.Level1
 
     CloudSyncData uploadData(cloudSyncer->GetCurrentContextTableName());
     cloudSyncer->initFullCloudSyncData(uploadData, 1000);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillRepeatedly([&uploadData](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillRepeatedly([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData;
         return E_OK;
     });
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillOnce([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillOnce([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -837,6 +880,11 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck013, TestSize.Level1
     delete iCloud;
 }
 
+void MockMethod014(MockICloudSyncStorageInterface *iCloud)
+{
+    CommonExpectCall(iCloud);
+    EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
+}
 /**
  * @tc.name: UploadModeCheck014
  * @tc.desc: Test case2 about upload when batch api are partially successful.
@@ -853,20 +901,19 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck014, TestSize.Level1
     cloudSyncer2->SetMockICloudDB(idb2);
     TaskId taskId = 8u;
 
-    CommonExpectCall(iCloud);
-    EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
+    MockMethod014(iCloud);
 
     // batch api partially success
     cloudSyncer2->InitCloudSyncer(taskId, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData2(cloudSyncer2->GetCurrentContextTableName());
     cloudSyncer2->initFullCloudSyncData(uploadData2, 1000);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(
-        [&uploadData2](const TableSchema &, const Timestamp &, ContinueToken &, CloudSyncData &cloudDataResult) {
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillRepeatedly(
+        [&uploadData2](const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
+        CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData2; return E_OK;
     });
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -918,14 +965,14 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck015, TestSize.Level1
     cloudSyncer3->InitCloudSyncer(9u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData3(cloudSyncer3->GetCurrentContextTableName());
     cloudSyncer3->initFullCloudSyncData(uploadData3, 1000);
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-        .WillRepeatedly([&uploadData3](const TableSchema &, const Timestamp &, ContinueToken &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+        .WillRepeatedly([&uploadData3](const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &,
         CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData3;
         return E_OK;
     });
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillOnce([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillOnce([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -1002,7 +1049,7 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck016, TestSize.Level1
     CommonExpectCall(iCloud);
     // CheckSchema
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 3000;
         return E_OK;
     });
@@ -1010,9 +1057,8 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck016, TestSize.Level1
     CloudSyncData uploadData(cloudSyncer->GetCurrentContextTableName());
     cloudSyncer->initFullCloudSyncData(uploadData, 1000);
 
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _))
-    .WillRepeatedly([&uploadData](const TableSchema &, const Timestamp &,
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _))
+    .WillRepeatedly([&uploadData](const TableSchema &, const QuerySyncObject &, const Timestamp &,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
         cloudDataResult = uploadData;
         return E_OK;
@@ -1034,16 +1080,20 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck016, TestSize.Level1
 
 void MockCall(MockICloudSyncStorageInterface *iCloud, const std::shared_ptr<MockICloudDB> &idb)
 {
-    EXPECT_CALL(*iCloud, FillCloudGid(_)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
     EXPECT_CALL(*iCloud, PutMetaData(_, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _))
-        .WillRepeatedly([](const std::string &, const Timestamp &, const bool, int64_t & count) {
+        .WillRepeatedly([](const QuerySyncObject &, const Timestamp &, const bool, int64_t & count) {
         count = 2000; // total 2000
         return E_OK;
     });
 }
 
+void PrepareEnv018(MockICloudSyncStorageInterface *iCloud, const std::shared_ptr<MockICloudDB> &idb)
+{
+    CommonExpectCall(iCloud);
+    MockCall(iCloud, idb);
+}
 /**
  * @tc.name: UploadModeCheck018
  * @tc.desc: Test notify count when upload with two batch
@@ -1060,17 +1110,15 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
     auto idb = std::make_shared<MockICloudDB>();
     cloudSyncer->SetMockICloudDB(idb);
     cloudSyncer->InitCloudSyncer(5u, SYNC_MODE_CLOUD_FORCE_PUSH);
-
-    CommonExpectCall(iCloud);
-    MockCall(iCloud, idb);
+    PrepareEnv018(iCloud, idb);
 
     // Batch_n CloudSyncData quantity > total count
-    VBucket tmp = { pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                    pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1) };
+    VBucket tmp;
+    VBucket assets;
+    PrepareRecord(tmp, assets);
     cloudSyncer->InitCloudSyncer(5u, SYNC_MODE_CLOUD_FORCE_PUSH);
     CloudSyncData uploadData2(cloudSyncer->GetCurrentContextTableName());
-    uploadData2.insData.record = std::vector<VBucket>(1000, tmp);
-    uploadData2.insData.extend = std::vector<VBucket>(1000, tmp);
+    PrepareUploadDataInsData(tmp, assets, uploadData2);
 
     SyncTimeRange syncTimeRange = { .beginTime = 1u };
     QueryObject queryObject(Query::Select());
@@ -1078,8 +1126,9 @@ HWTEST_F(DistributedDBCloudSyncerUploadTest, UploadModeCheck018, TestSize.Level1
     auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
     auto conStmtToken = static_cast<ContinueToken>(token);
     delete token;
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillOnce([&conStmtToken, &uploadData2](
-        const TableSchema &, const Timestamp &, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) {
+    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _, _)).WillOnce([&conStmtToken, &uploadData2](
+        const TableSchema &, const QuerySyncObject &, const Timestamp &, ContinueToken &continueStmtToken,
+            CloudSyncData &cloudDataResult) {
             cloudDataResult = uploadData2;
             continueStmtToken = conStmtToken;
             return -E_UNFINISHED;

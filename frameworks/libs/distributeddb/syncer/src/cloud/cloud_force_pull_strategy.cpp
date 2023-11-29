@@ -16,7 +16,7 @@
 
 namespace DistributedDB {
 
-OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, LogInfo &localInfo, LogInfo &cloudInfo)
+OpType CloudForcePullStrategy::TagSyncDataStatus(bool existInLocal, const LogInfo &localInfo, const LogInfo &cloudInfo)
 {
     if (existInLocal) {
         if (!IsDelete(localInfo) && IsDelete(cloudInfo)) {

@@ -135,7 +135,7 @@ HWTEST_F(DistributeddbNbBackupTest, ExportTest001, TestSize.Level1)
      * @tc.steps: step3. call export interface to export data and the dir of filepath is no r,w right.
      * @tc.expected: step3. call failed return INVALID_ARGS.
      */
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
     const std::string noRightPath = "../noright";
     const int authRight = 0111;
     SetDir(noRightPath, authRight);
@@ -1472,7 +1472,7 @@ HWTEST_F(DistributeddbNbBackupTest, CorruptionHandler003, TestSize.Level2)
     manager = nullptr;
     RemoveDir(exportPath);
 }
-#ifndef RUNNING_ON_SIMULATED_ENV
+#ifndef DB_DEBUG_ENV
 /*
  * @tc.name: CompatibilityTest 001
  * @tc.desc: test that use RELEASE_VERSION11.0.0 can import the export file by RELEASE_VERSION10.1.0.

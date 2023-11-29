@@ -81,13 +81,14 @@ KvDBObserverHandle *GenericKvDBConnection::RegisterObserver(unsigned mode,
     }
 
     std::lock_guard<std::mutex> lockGuard(observerListLock_);
-    if (observerList_.size() >= MAX_OBSERVER_COUNT) {
+    if (observerList_.size() >= DBConstant::MAX_OBSERVER_COUNT) {
         errCode = -E_MAX_LIMITS;
         LOGE("The number of observers has been larger than 'MAX_OBSERVER_COUNT'!");
         return nullptr;
     }
     if (isExclusive_.load()) {
         errCode = -E_BUSY;
+        LOGE("Observer is exclusived %d", errCode);
         return nullptr;
     }
     auto observerHandle = new (std::nothrow) KvDBObserverHandle(mode);
@@ -180,9 +181,11 @@ int GenericKvDBConnection::Close()
     }
 
     if (isExclusive_.load()) {
+        LOGE("Current connection is occupied by other connection");
         return -E_BUSY;
     }
     if (kvDB_->IsDataMigrating()) {
+        LOGE("Data is migrating");
         return -E_BUSY;
     }
 

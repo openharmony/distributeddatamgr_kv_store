@@ -191,8 +191,8 @@ int RelationalSyncDataInserter::GetDeleteLogStmt(sqlite3 *db, sqlite3_stmt *&stm
 
 int RelationalSyncDataInserter::GetDeleteSyncDataStmt(sqlite3 *db, sqlite3_stmt *&stmt)
 {
-    std::string sql = "DELETE FROM '" + insertTableName_ + "' WHERE rowid IN ("
-        "SELECT data_key FROM " + DBConstant::RELATIONAL_PREFIX + localTable_.GetTableName() + "_log ";
+    std::string sql = "DELETE FROM '" + insertTableName_ + "' WHERE " + std::string(DBConstant::SQLITE_INNER_ROWID) +
+        " IN (SELECT data_key FROM " + DBConstant::RELATIONAL_PREFIX + localTable_.GetTableName() + "_log ";
     if (mode_ == DistributedTableMode::COLLABORATION) {
         sql += "WHERE hash_key=?);";
     } else {
@@ -235,12 +235,12 @@ int RelationalSyncDataInserter::PrepareStatement(sqlite3 *db, SaveSyncDataStmt &
 {
     int errCode = GetSaveLogStatement(db, stmt.saveLogStmt, stmt.queryStmt);
     if (errCode != E_OK) {
-        LOGE("Get statement failed. err=%d", errCode);
+        LOGE("Get save log statement failed. err=%d", errCode);
         return errCode;
     }
     errCode = GetInsertStatement(db, stmt.saveDataStmt);
     if (errCode != E_OK) {
-        LOGE("Get statement failed. err=%d", errCode);
+        LOGE("Get insert statement failed. err=%d", errCode);
     }
     return errCode;
 }

@@ -31,6 +31,7 @@ public:
 
     static constexpr size_t MAX_INKEYS_SIZE = 128;
     static constexpr size_t MAX_SQL_ARGS_COUNT = 100;
+    static constexpr size_t MAX_IN_COUNT = 100;
 
     static constexpr int DB_TYPE_LOCAL = 1;
     static constexpr int DB_TYPE_MULTI_VER = 2;
@@ -77,10 +78,13 @@ public:
     static const std::string SINGLE_VER_CACHE_STORE;
 
     static const std::string SQLITE_URL_PRE;
-    static const std::string SQLITE_DB_EXTENSION;
+    static const std::string DB_EXTENSION;
     static const std::string SQLITE_MEMDB_IDENTIFY;
     static const std::string SCHEMA_KEY;
     static const std::string RELATIONAL_SCHEMA_KEY;
+    static const std::string RELATIONAL_TRACKER_SCHEMA_KEY;
+
+    static const std::string RD_KV_COLLECTION_MODE;
 
     static const std::string PATH_POSTFIX_UNPACKED;
     static const std::string PATH_POSTFIX_IMPORT_BACKUP;
@@ -125,6 +129,8 @@ public:
 
     static constexpr uint32_t MIN_TIMEOUT = 5000; // 5s
     static constexpr uint32_t MAX_TIMEOUT = 60000; // 60s
+    static constexpr uint32_t MAX_SYNC_TIMEOUT = 300000; // 300s
+    static constexpr int INFINITE_WAIT = -1; // -1 is infinite waiting
 
     static constexpr uint8_t DEFAULT_COMPTRESS_RATE = 100;
 
@@ -142,6 +148,9 @@ public:
     static constexpr int RELATIONAL_LOG_TABLE_FIELD_NUM = 7; // field num is relational distributed log table
 
     static constexpr uint64_t IGNORE_CONNECTION_ID = 0;
+    // Soft limit of a connection observer count.
+    static constexpr int MAX_OBSERVER_COUNT = 8;
+
     // For relational
     static const std::string RELATIONAL_PREFIX;
     static const std::string TIMESTAMP_ALIAS;
@@ -151,6 +160,7 @@ public:
     static const std::string LOG_TABLE_VERSION_2;
     static constexpr const char *LOG_TABLE_VERSION_3 = "3.0";
     static constexpr const char *LOG_TABLE_VERSION_4 = "4.0";
+    static constexpr const char *LOG_TABLE_VERSION_5 = "5.0";
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;
@@ -164,6 +174,10 @@ public:
     static constexpr uint32_t REMOTE_QUERY_MAX_SQL_LEN = 1000000U;
 
     static constexpr int HASH_KEY_SIZE = 32; // size of SHA256_DIGEST_LENGTH
+
+    static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
+
+    static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H

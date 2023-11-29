@@ -64,6 +64,7 @@ void SetUpTestCase(void)
         .createIfMissing = true,
         .encrypt = false,
         .autoSync = true,
+        .securityLevel = S1,
         .kvStoreType = KvStoreType::DEVICE_COLLABORATION
     };
     options.area = EL1;

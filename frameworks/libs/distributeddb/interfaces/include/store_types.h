@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <map>
+#include <set>
 #include <string>
 
 #include "types_export.h"
@@ -77,6 +78,8 @@ enum DBStatus {
     CLOUD_FULL_RECORDS, // cloud's record is full
     CLOUD_LOCK_ERROR, // cloud failed to get sync lock
     CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud failed to download asset
+    PROPERTY_CHANGED, // reference property changed
+    CLOUD_VERSION_CONFLICT, // cloud failed to update version
 };
 
 struct KvStoreConfig {
@@ -102,6 +105,7 @@ enum PragmaCmd {
     SET_SYNC_RETRY,
     SET_MAX_LOG_LIMIT,
     EXEC_CHECKPOINT,
+    LOGIC_DELETE_SYNC_DATA,
 };
 
 enum ResolutionPolicyType {
@@ -179,5 +183,27 @@ struct RemoteCondition {
     std::vector<std::string> bindArgs;  // The bind args.
 };
 using UpdateKeyCallback = std::function<void (const Key &originKey, Key &newKey)>;
+
+struct TrackerSchema {
+    std::string tableName;
+    std::string extendColName;
+    std::set<std::string> trackerColNames;
+};
+
+struct TableReferenceProperty {
+    std::string sourceTableName;
+    std::string targetTableName;
+    std::map<std::string, std::string> columns; // key is sourceTable column, value is targetTable column
+};
+
+static constexpr const char *GAUSSDB_RD = "gaussdb_rd";
+static constexpr const char *SQLITE = "sqlite";
+struct ChangeProperties {
+    bool isTrackedDataChange = false;
+};
+
+struct Rdconfig {
+    bool readOnly = false;
+};
 } // namespace DistributedDB
 #endif // KV_STORE_TYPE_H

@@ -15,7 +15,6 @@
 #ifdef RELATIONAL_STORE
 #include "relational_store_delegate_impl.h"
 
-#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "cloud/cloud_db_constant.h"
@@ -48,20 +47,20 @@ DBStatus RelationalStoreDelegateImpl::RemoveDeviceDataInner(const std::string &d
         LOGE("Invalid mode for Remove device data, %d.", INVALID_ARGS);
         return INVALID_ARGS;
     }
-    if (mode == FLAG_ONLY || mode == FLAG_AND_DATA) {
-        if (conn_ == nullptr) {
-            LOGE("[RelationalStore Delegate] Invalid connection for operation!");
-            return DB_ERROR;
-        }
-
-        int errCode = conn_->DoClean(mode);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
-            return TransferDBErrno(errCode);
-        }
-        return OK;
+    if (mode == DEFAULT) {
+        return RemoveDeviceData(device, "");
     }
-    return RemoveDeviceData(device, "");
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+
+    int errCode = conn_->DoClean(mode);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] remove device cloud data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
 }
 
 int32_t RelationalStoreDelegateImpl::GetCloudSyncTaskCount()
@@ -115,6 +114,10 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
         return NOT_SUPPORT;
     }
 
+    if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
+        LOGE("not support query with tables");
+        return NOT_SUPPORT;
+    }
     RelationalStoreConnection::SyncInfo syncInfo{devices, mode,
         std::bind(&RelationalStoreDelegateImpl::OnSyncComplete, std::placeholders::_1, onComplete), query, wait};
     int errCode = conn_->SyncToDevice(syncInfo);
@@ -226,7 +229,12 @@ DBStatus RelationalStoreDelegateImpl::Sync(const std::vector<std::string> &devic
     if (conn_ == nullptr) {
         return DB_ERROR;
     }
-    int errCode = conn_->Sync(devices, mode, query, onProcess, waitTime);
+    CloudSyncOption option;
+    option.devices = devices;
+    option.mode = mode;
+    option.query = query;
+    option.waitTime = waitTime;
+    int errCode = conn_->Sync(option, onProcess);
     if (errCode != E_OK) {
         LOGW("[RelationalStore Delegate] cloud sync failed:%d", errCode);
         return TransferDBErrno(errCode);
@@ -244,14 +252,32 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb>
 
 DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
 {
-    if (conn_ == nullptr || conn_->SetCloudDbSchema(schema) != E_OK) {
+    DataBaseSchema cloudSchema = schema;
+    for (auto &tableSchema : cloudSchema.tables) {
+        if (tableSchema.sharedTableName.empty()) {
+            tableSchema.sharedTableName = tableSchema.name + CloudDbConstant::SHARED;
+        }
+    }
+    if (!ParamCheckUtils::CheckSharedTableName(cloudSchema)) {
+        LOGE("[RelationalStore Delegate] SharedTableName check failed!");
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
         return DB_ERROR;
     }
-    return OK;
+    // create shared table and set cloud db schema
+    int errorCode = conn_->PrepareAndSetCloudDbSchema(cloudSchema);
+    if (errorCode != E_OK) {
+        LOGE("[RelationalStore Delegate] set cloud schema failed!");
+    }
+    return TransferDBErrno(errorCode);
 }
 
 DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
 {
+    if (observer == nullptr) {
+        return INVALID_ARGS;
+    }
     if (conn_ == nullptr) {
         return DB_ERROR;
     }
@@ -262,8 +288,8 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
     if (errCode != E_OK) {
         return DB_ERROR;
     }
-    conn_->RegisterObserverAction([observer, userId, appId, storeId](const std::string &changedDevice,
-        ChangedData &&changedData, bool isChangedData) {
+    errCode = conn_->RegisterObserverAction(observer, [observer, userId, appId, storeId](
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData && observer != nullptr) {
             observer->OnChange(Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             LOGD("begin to observer on changed data");
@@ -276,7 +302,7 @@ DBStatus RelationalStoreDelegateImpl::RegisterObserver(StoreObserver *observer)
             observer->OnChange(data);
         }
     });
-    return OK;
+    return TransferDBErrno(errCode);
 }
 
 DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
@@ -289,7 +315,138 @@ DBStatus RelationalStoreDelegateImpl::SetIAssetLoader(const std::shared_ptr<IAss
 
 DBStatus RelationalStoreDelegateImpl::UnRegisterObserver()
 {
-    return RegisterObserver(nullptr);
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    // unregister all observer of this delegate
+    return TransferDBErrno(conn_->UnRegisterObserverAction(nullptr));
+}
+
+DBStatus RelationalStoreDelegateImpl::UnRegisterObserver(StoreObserver *observer)
+{
+    if (observer == nullptr) {
+        return INVALID_ARGS;
+    }
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    return TransferDBErrno(conn_->UnRegisterObserverAction(observer));
+}
+
+DBStatus RelationalStoreDelegateImpl::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (conn_ == nullptr) {
+        return DB_ERROR;
+    }
+    int errCode = conn_->Sync(option, onProcess);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] cloud sync failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetTrackerTable(const TrackerSchema &schema)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    if (schema.tableName.empty()) {
+        LOGE("[RelationalStore Delegate] tracker table is empty.");
+        return INVALID_ARGS;
+    }
+    if (!ParamCheckUtils::CheckRelationalTableName(schema.tableName)) {
+        LOGE("[RelationalStore Delegate] Invalid tracker table name.");
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Set Subscribe table failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->ExecuteSql(condition, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] execute sql failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore SetReference] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    if (!ParamCheckUtils::CheckTableReference(tableReferenceProperty)) {
+        return INVALID_ARGS;
+    }
+    int errCode = conn_->SetReference(tableReferenceProperty);
+    if (errCode != E_OK) {
+        if (errCode != -E_TABLE_REFERENCE_CHANGED) {
+            LOGE("[RelationalStore] SetReference failed:%d", errCode);
+        } else {
+            LOGI("[RelationalStore] reference changed");
+        }
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->CleanTrackerData(tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] clean tracker data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    if (cmd != PragmaCmd::LOGIC_DELETE_SYNC_DATA) {
+        return NOT_SUPPORT;
+    }
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->Pragma(cmd, pragmaData);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Pragma failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
+}
+
+DBStatus RelationalStoreDelegateImpl::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    if (conn_ == nullptr) {
+        LOGE("[RelationalStore Delegate] Invalid connection for operation!");
+        return DB_ERROR;
+    }
+    int errCode = conn_->UpsertData(status, tableName, records);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore Delegate] Upsert data failed:%d", errCode);
+        return TransferDBErrno(errCode);
+    }
+    return OK;
 }
 } // namespace DistributedDB
 #endif

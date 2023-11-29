@@ -159,6 +159,14 @@ HWTEST_F(DistributedDBCloudStrategyTest, TagOpTyeTest001, TestSize.Level0)
      */
     localInfo.cloudGid = "";
     EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::NOT_HANDLE);
+    /**
+     * @tc.steps: step11. cloud has same timestamp with local, and local has empty gid
+     * @tc.expected: step11 only update gid
+     */
+    cloudInfo.timestamp = localInfo.timestamp;
+    cloudInfo.flag = 0; // it means no delete
+    localInfo.flag = 0; // it means no delete
+    EXPECT_EQ(strategy->TagSyncDataStatus(true, localInfo, cloudInfo), OpType::ONLY_UPDATE_GID);
 }
 
 /**

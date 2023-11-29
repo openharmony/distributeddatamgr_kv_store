@@ -43,18 +43,27 @@ public:
     int RemoveDeviceData() override;
     int RemoveDeviceData(const std::string &device) override;
     int RemoveDeviceData(const std::string &device, const std::string &tableName) override;
-    void RegisterObserverAction(const RelationalObserverAction &action) override;
+    int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) override;
+    int UnRegisterObserverAction(const StoreObserver *observer) override;
     int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) override;
     int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) override;
-    int SetCloudDbSchema(const DataBaseSchema &schema) override;
+    int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) override;
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
-    int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) override;
+    int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) override;
 
     int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) override;
 
+    int SetTrackerTable(const TrackerSchema &schema) override;
+    int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) override;
+    int CleanTrackerData(const std::string &tableName, int64_t cursor) override;
+
+    int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) override;
+
+    int Pragma(PragmaCmd cmd, PragmaData &pragmaData) override;
+
+    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) override;
 protected:
 
     int Pragma(int cmd, void *parameter) override;

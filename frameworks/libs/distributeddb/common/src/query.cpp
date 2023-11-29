@@ -37,101 +37,99 @@ Query &Query::FromTable(const std::vector<std::string> &tableNames)
     return *this;
 }
 
+Query &Query::From(const std::string &tableName)
+{
+    queryExpression_.From(tableName);
+    return *this;
+}
+
 Query &Query::BeginGroup()
 {
     queryExpression_.BeginGroup();
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::EndGroup()
 {
     queryExpression_.EndGroup();
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::IsNotNull(const std::string &field)
 {
     queryExpression_.IsNotNull(field);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::PrefixKey(const std::vector<uint8_t> &key)
 {
     queryExpression_.QueryByPrefixKey(key);
-    queryExpression_.SetIsDeviceSyncQuery(true);
+    return *this;
+}
+
+Query &Query::Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd)
+{
+    queryExpression_.QueryByKeyRange(keyBegin, keyEnd);
     return *this;
 }
 
 Query &Query::SuggestIndex(const std::string &indexName)
 {
     queryExpression_.QueryBySuggestIndex(indexName);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::InKeys(const std::set<Key> &keys)
 {
     queryExpression_.InKeys(keys);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::OrderBy(const std::string &field, bool isAsc)
 {
     queryExpression_.OrderBy(field, isAsc);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::OrderByWriteTime(bool isAsc)
 {
     queryExpression_.SetSortType(isAsc);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::Limit(int number, int offset)
 {
     queryExpression_.Limit(number, offset);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::Like(const std::string &field, const std::string &value)
 {
     queryExpression_.Like(field, value);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::NotLike(const std::string &field, const std::string &value)
 {
     queryExpression_.NotLike(field, value);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::IsNull(const std::string &field)
 {
     queryExpression_.IsNull(field);
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::And()
 {
     queryExpression_.And();
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
 Query &Query::Or()
 {
     queryExpression_.Or();
-    queryExpression_.SetIsDeviceSyncQuery(true);
     return *this;
 }
 
@@ -175,10 +173,5 @@ void Query::ExecuteCompareOperation(QueryObjType operType, const std::string &fi
         default:
             return;
     }
-}
-
-void Query::SetIsDeviceSyncQuery(bool isDeviceSync)
-{
-    queryExpression_.SetIsDeviceSyncQuery(isDeviceSync);
 }
 }  // namespace DistributedDB

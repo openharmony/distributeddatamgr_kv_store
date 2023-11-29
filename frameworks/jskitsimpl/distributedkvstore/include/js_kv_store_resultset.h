@@ -20,7 +20,7 @@
 #include "kvstore_result_set.h"
 
 namespace OHOS::DistributedKVStore {
-class JsKVStoreResultSet : public JSProxy::JSEntity<DistributedKv::KvStoreResultSet, DataShare::ResultSetBridge>{
+class JsKVStoreResultSet : public JSProxy::JSEntity<DistributedKv::KvStoreResultSet, DataShare::ResultSetBridge> {
 public:
     JsKVStoreResultSet() = default;
     virtual ~JsKVStoreResultSet() = default;

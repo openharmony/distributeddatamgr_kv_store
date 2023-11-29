@@ -120,7 +120,7 @@ int EventLoopEpoll::WakeUp()
 
     while (true) {
         int nWrite = write(wakeUpFd_, &incValue, sizeof(incValue));
-        if (nWrite == sizeof(incValue)) {
+        if (nWrite == static_cast<int>(sizeof(incValue))) {
             break;
         }
 

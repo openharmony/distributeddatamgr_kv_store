@@ -27,7 +27,9 @@
 #include "runtime_context.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "storage_engine_manager.h"
-#include "system_timer.h"
+#ifdef DB_DEBUG_ENV
+#include "system_time.h"
+#endif // DB_DEBUG_ENV
 #include "kv_virtual_device.h"
 #include "virtual_communicator_aggregator.h"
 
@@ -171,7 +173,7 @@ namespace {
         std::string hashIdentifier = DBCommon::TransferHashString(identifier);
         std::string identifierName = DBCommon::TransferStringToHex(hashIdentifier);
         std::string storeDir = g_testDir + "/" + identifierName + "/" + DBConstant::SINGLE_SUB_DIR + "/" +
-            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::SQLITE_DB_EXTENSION;
+            DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE + DBConstant::DB_EXTENSION;
         sqlite3 *db = nullptr;
         EXPECT_EQ(sqlite3_open_v2(storeDir.c_str(), &db, SQLITE_OPEN_READWRITE, nullptr), SQLITE_OK);
         if (db == nullptr) {
@@ -224,9 +226,6 @@ void DistributedDBInterfacesNBDelegateTest::SetUpTestCase(void)
     g_communicatorAggregator = new (std::nothrow) VirtualCommunicatorAggregator();
     ASSERT_TRUE(g_communicatorAggregator != nullptr);
     RuntimeContext::GetInstance()->SetCommunicatorAggregator(g_communicatorAggregator);
-
-    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
-    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
 }
 
 void DistributedDBInterfacesNBDelegateTest::TearDownTestCase(void)
@@ -1210,6 +1209,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, SingleVerPutBatchObserver001, Te
      */
     Key key;
     EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_NATIVE, observer), OK);
+    // register same observer twice will return already_set
+    EXPECT_EQ(g_kvNbDelegatePtr->RegisterObserver(key, OBSERVER_CHANGES_NATIVE, observer), ALREADY_SET);
     /**
      * @tc.steps:step3. Put batch data.
      * @tc.expected: step3. Returns OK.
@@ -2246,7 +2247,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RemoveDeviceDataTest001, TestSiz
     FreeVirtualDevice(g_deviceD);
 }
 
-#ifdef RUNNING_ON_SIMULATED_ENV
+#ifdef DB_DEBUG_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -2372,7 +2373,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, TimeChangeWithCloseStoreTest003,
     g_kvNbDelegatePtr = nullptr;
     EXPECT_EQ(g_mgr.DeleteKvStore("TimeChangeWithCloseStoreTest003"), OK);
 }
-#endif // RUNNING_ON_SIMULATED_ENV
+#endif // DB_DEBUG_ENV
 
 /**
   * @tc.name: ResultSetLimitTest001
@@ -2804,6 +2805,8 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, BlockTimer001, TestSize.Level0)
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize.Level2)
 {
+    std::shared_ptr<ProcessSystemApiAdapterImpl> g_adapter = std::make_shared<ProcessSystemApiAdapterImpl>();
+    RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
     /**
      * @tc.steps:step1. Get the nb delegate.
      * @tc.expected: step1. Get results OK and non-null delegate.
@@ -2823,7 +2826,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
 
     std::string identifier = DBCommon::GenerateIdentifierId(storeId, APP_ID, USER_ID);
     property.SetStringProp(KvDBProperties::IDENTIFIER_DATA, DBCommon::TransferHashString(identifier));
-    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 
     int errCode;
     SQLiteSingleVerStorageEngine *storageEngine =
@@ -2838,7 +2841,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
      */
     std::string cacheDir =  g_testDir + "/" + DBCommon::TransferStringToHex(DBCommon::TransferHashString(identifier)) +
         "/" + DBConstant::SINGLE_SUB_DIR + "/" + DBConstant::CACHEDB_DIR;
-    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::SQLITE_DB_EXTENSION;
+    std::string cacheDB = cacheDir + "/" + DBConstant::SINGLE_VER_CACHE_STORE + DBConstant::DB_EXTENSION;
     EXPECT_EQ(OS::CreateFileByFileName(cacheDB), E_OK);
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
@@ -2852,5 +2855,34 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(g_testDir) != 0) {
         LOGE("rm test db files error!");
     }
+}
+
+/**
+  * @tc.name: RdRangeQueryInSqlite001
+  * @tc.desc: Test GetEntries with range query filter by sqlite
+  * @tc.type: FUNC
+  * @tc.require: AR000DPTTA
+  * @tc.author: mazhao
+  */
+HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
+{
+    /**
+     * @tc.steps:step1. Get the nb delegate.
+     * @tc.expected: step1. Get results OK and non-null delegate.
+     */
+    KvStoreNbDelegate::Option option;
+    g_mgr.GetKvStore("RdRangeQueryInSqlite001", option, g_kvNbDelegateCallback);
+    std::vector<Entry> entries;
+    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
+    EXPECT_TRUE(g_kvDelegateStatus == OK);
+
+    // /**
+    //  * @tc.steps: step2.
+    //  * @tc.expected: step2.
+    //  */
+    KvStoreResultSet *resultSet = nullptr;
+    Query inValidQuery = Query::Select().Range({}, {});
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
+    EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), NOT_SUPPORT);
 }
 }

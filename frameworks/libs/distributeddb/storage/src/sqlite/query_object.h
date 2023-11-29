@@ -45,6 +45,7 @@ public:
     void SetSchema(const SchemaObject &schema);
 
     bool IsQueryOnlyByKey() const;
+    bool IsQueryByRange() const;
     bool IsQueryForRelationalDB() const;
 
     void SetTableName(const std::string &tableName);
@@ -63,6 +64,8 @@ public:
 
     SortType GetSortType() const;
 
+    int CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const;
+
 #ifdef RELATIONAL_STORE
     int SetSchema(const RelationalSchemaObject &schemaObj);  // The interface can only be used in relational query.
 #endif
@@ -70,6 +73,8 @@ public:
     // For continue token, once sync may not get all sync data, use AddOffset to continue last query
     void SetLimit(int limit, int offset);
 protected:
+    explicit QueryObject(const QueryExpression &queryExpression);
+    static std::vector<QueryExpression> GetQueryExpressions(const Query &query);
     std::list<QueryObjNode> queryObjNodes_;
     std::vector<uint8_t> prefixKey_;
     std::string tableName_ = "sync_data";
@@ -81,7 +86,7 @@ protected:
     bool initialized_ = false; // use function need after init
     bool isTableNameSpecified_ = false;
     std::vector<std::string> tables_;
-    bool isWithDeviceSyncQuery_ = true;
+    int validStatus = E_OK;
 
 private:
     int Parse();

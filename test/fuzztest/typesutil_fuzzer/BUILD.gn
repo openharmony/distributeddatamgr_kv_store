@@ -17,7 +17,7 @@ import("//build/test.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("TypesUtilFuzzTest") {
-  module_out_path = "kv_store/distributeddata"
+  module_out_path = "kv_store/kv_store"
 
   include_dirs = [
     "../../../frameworks/common",

@@ -41,6 +41,7 @@ public:
     static const std::string KEYWORD_TYPE_LONG;
     static const std::string KEYWORD_TYPE_DOUBLE;
     static const std::string KEYWORD_TYPE_STRING;
+    static const std::string KEYWORD_TYPE_BOOLEAN;
 
     static const std::string KEYWORD_ATTR_NOT_NULL;
     static const std::string KEYWORD_ATTR_DEFAULT;
@@ -56,6 +57,13 @@ public:
     static const std::string SCHEMA_SUPPORT_VERSION_V2;
     static const std::string SCHEMA_SUPPORT_VERSION_V2_1;
     static const std::string SCHEMA_CURRENT_VERSION;
+
+    static constexpr const char *REFERENCE_PROPERTY = "REFERENCE_PROPERTY";
+    static constexpr const char *SOURCE_TABLE_NAME = "SOURCE_TABLE_NAME";
+    static constexpr const char *TARGET_TABLE_NAME = "TARGET_TABLE_NAME";
+    static constexpr const char *COLUMNS = "COLUMNS";
+    static constexpr const char *SOURCE_COL = "SOURCE_COL";
+    static constexpr const char *TARGET_COL = "TARGET_COL";
 
     static const uint32_t SCHEMA_META_FEILD_COUNT_MAX;
     static const uint32_t SCHEMA_META_FEILD_COUNT_MIN;

@@ -20,6 +20,14 @@
 #include "db_types.h"
 
 namespace DistributedDB {
+
+enum class ResultSetType : int {
+    KEYPREFIX = 0,
+    QUERY = 1,
+};
+
+constexpr int INIT_POSITION = -1;
+
 class IKvDBResultSet {
 public:
     IKvDBResultSet() = default;
@@ -38,14 +46,28 @@ public:
     // >= 0: position, < 0: errCode
     virtual int GetPosition() const = 0;
 
+    virtual int Move(int offset) const = 0;
+
     // Move the read position to an absolute position value.
     virtual int MoveTo(int position) const = 0;
+
+    virtual int MoveToFirst() = 0;
+
+    virtual int MoveToLast() = 0;
+
+    virtual bool IsFirst() const = 0;
+
+    virtual bool IsLast() const = 0;
+
+    virtual bool IsBeforeFirst() const = 0;
+
+    virtual bool IsAfterLast() const = 0;
 
     // Get the entry of current position.
     virtual int GetEntry(Entry &entry) const = 0;
 
     // Finalize logic
-    virtual void Close() = 0;
+    virtual int Close() = 0;
 };
 } // namespace DistributedDB
 

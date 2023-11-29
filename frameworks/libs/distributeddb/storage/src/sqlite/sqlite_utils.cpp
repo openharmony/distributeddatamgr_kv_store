@@ -34,6 +34,7 @@
 #include "schema_constant.h"
 #include "time_helper.h"
 #include "platform_specific.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
     std::mutex SQLiteUtils::logMutex_;
@@ -76,6 +77,8 @@ namespace {
         "type='table' AND tbl_name=?);";
 
     bool g_configLog = false;
+    std::mutex g_serverChangedDataMutex;
+    std::map<std::string, std::map<std::string, DistributedDB::ChangeProperties>> g_serverChangedDataMap;
 }
 
 namespace TriggerMode {
@@ -164,8 +167,6 @@ int SQLiteUtils::OpenDatabase(const OpenDbProperties &properties, sqlite3 *&db, 
         std::lock_guard<std::mutex> lock(logMutex_);
         if (!g_configLog) {
             sqlite3_config(SQLITE_CONFIG_LOG, &SqliteLogCallback, &properties.createIfNecessary);
-            sqlite3_config(SQLITE_CONFIG_LOOKASIDE, 0, 0);
-            LOGW("close look aside config");
             g_configLog = true;
         }
     }
@@ -426,8 +427,9 @@ int SQLiteUtils::ExecuteRawSQL(sqlite3 *db, const std::string &sql)
         }
     } while (true);
 
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    return errCode;
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode != E_OK ? errCode : ret;
 }
 
 int SQLiteUtils::SetKey(sqlite3 *db, CipherType type, const CipherPassword &passwd, bool setWal, uint32_t iterTimes)
@@ -658,9 +660,12 @@ int SQLiteUtils::CheckIntegrity(sqlite3 *db, const std::string &sql)
 #ifdef RELATIONAL_STORE
 
 namespace { // anonymous namespace for schema analysis
-int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table)
+int AnalysisSchemaSqlAndTrigger(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
-    std::string sql = "select type, sql from sqlite_master where tbl_name = ? COLLATE NOCASE";
+    std::string sql = "select type, sql from sqlite_master where tbl_name = ? ";
+    if (!caseSensitive) {
+        sql += "COLLATE NOCASE";
+    }
     sqlite3_stmt *statement = nullptr;
     int errCode = SQLiteUtils::GetStatement(db, sql, statement);
     if (errCode != E_OK) {
@@ -815,7 +820,7 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
 
     std::string tmpString;
     (void) SQLiteUtils::GetColumnTextValue(statement, 1, tmpString);  // 1 means column name index
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tmpString)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tmpString)) {
         LOGE("[AnalysisSchema] unsupported field name.");
         return -E_NOT_SUPPORT;
     }
@@ -875,18 +880,18 @@ int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableIn
 }
 } // end of anonymous namespace for schema analysis
 
-int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table)
+int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
     }
 
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
         LOGE("[AnalysisSchema] unsupported table name.");
         return -E_NOT_SUPPORT;
     }
 
-    int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table);
+    int errCode = AnalysisSchemaSqlAndTrigger(db, tableName, table, caseSensitive);
     if (errCode != E_OK) {
         LOGE("[AnalysisSchema] Analysis sql and trigger failed. errCode = [%d]", errCode);
         return errCode;
@@ -1398,10 +1403,57 @@ void SQLiteUtils::GetLastTime(sqlite3_context *ctx, int argc, sqlite3_value **ar
 
 void SQLiteUtils::CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 {
-    if (ctx == nullptr || argc != 3 || argv == nullptr) { // 3 is param counts
+    if (ctx == nullptr || argc != 4 || argv == nullptr) { // 4 is param counts
         return;
     }
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
+}
+
+void SQLiteUtils::CloudDataChangedServerObserver(sqlite3_context *ctx, int argc, sqlite3_value **argv)
+{
+    if (ctx == nullptr || argc != 2 || argv == nullptr) { // 2 is param counts
+        return;
+    }
+    sqlite3 *db = static_cast<sqlite3 *>(sqlite3_user_data(ctx));
+    std::string fileName;
+    if (!SQLiteRelationalUtils::GetDbFileName(db, fileName)) {
+        return;
+    }
+    auto tableNameChar = reinterpret_cast<const char *>(sqlite3_value_text(argv[0]));
+    if (tableNameChar == nullptr) {
+        return;
+    }
+    std::string tableName = static_cast<std::string>(tableNameChar);
+
+    uint64_t isTrackerChange = static_cast<uint64_t>(sqlite3_value_int(argv[1])); // 1 is param index
+    LOGD("Cloud data changed, server observer callback %u", isTrackerChange);
+    {
+        std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
+        auto itTable = g_serverChangedDataMap[fileName].find(tableName);
+        if (itTable != g_serverChangedDataMap[fileName].end()) {
+            itTable->second.isTrackedDataChange =
+                (static_cast<uint8_t>(itTable->second.isTrackedDataChange) | isTrackerChange) > 0;
+        } else {
+            DistributedDB::ChangeProperties properties = { .isTrackedDataChange = (isTrackerChange > 0) };
+            g_serverChangedDataMap[fileName].insert_or_assign(tableName, properties);
+        }
+    }
+    sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
+}
+
+void SQLiteUtils::GetAndResetServerObserverData(const std::string &dbName, const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    std::lock_guard<std::mutex> lock(g_serverChangedDataMutex);
+    auto itDb = g_serverChangedDataMap.find(dbName);
+    if (itDb != g_serverChangedDataMap.end() && !itDb->second.empty()) {
+        auto itTable = itDb->second.find(tableName);
+        if (itTable == itDb->second.end()) {
+            return;
+        }
+        changeProperties = itTable->second;
+        g_serverChangedDataMap[dbName].erase(itTable);
+    }
 }
 
 int SQLiteUtils::RegisterGetSysTime(sqlite3 *db)
@@ -1429,7 +1481,14 @@ int SQLiteUtils::RegisterCloudDataChangeObserver(sqlite3 *db)
 {
     TransactFunc func;
     func.xFunc = &CloudDataChangedObserver;
-    return RegisterFunction(db, "client_observer", 3, db, func); // 3 is param counts
+    return RegisterFunction(db, "client_observer", 4, db, func); // 4 is param counts
+}
+
+int SQLiteUtils::RegisterCloudDataChangeServerObserver(sqlite3 *db)
+{
+    TransactFunc func;
+    func.xFunc = &CloudDataChangedServerObserver;
+    return RegisterFunction(db, "server_observer", 2, db, func); // 2 is param counts
 }
 
 int SQLiteUtils::CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName)
@@ -2006,7 +2065,7 @@ void SQLiteUtils::CalcHash(sqlite3_context *ctx, int argc, sqlite3_value **argv)
 
 int SQLiteUtils::GetDbSize(const std::string &dir, const std::string &dbName, uint64_t &size)
 {
-    std::string dataDir = dir + "/" + dbName + DBConstant::SQLITE_DB_EXTENSION;
+    std::string dataDir = dir + "/" + dbName + DBConstant::DB_EXTENSION;
     uint64_t localDbSize = 0;
     int errCode = OS::CalFileSize(dataDir, localDbSize);
     if (errCode != E_OK) {

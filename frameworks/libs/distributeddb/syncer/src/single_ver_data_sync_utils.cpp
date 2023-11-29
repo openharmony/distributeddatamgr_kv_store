@@ -117,7 +117,7 @@ bool SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(const std::string &dev
     const SecurityOption &remoteSecOption, SyncGenericInterface *storage)
 {
     if (storage == nullptr) {
-        return -E_INVALID_ARGS;
+        return false;
     }
     SecurityOption localSecOption;
     if (remoteSecOption.securityLabel == NOT_SURPPORT_SEC_CLASSIFICATION) {
@@ -126,6 +126,14 @@ bool SingleVerDataSyncUtils::IsPermitRemoteDeviceRecvData(const std::string &dev
     int errCode = storage->GetSecurityOption(localSecOption);
     if (errCode == -E_NOT_SUPPORT) {
         return true;
+    }
+    if (errCode != E_OK) {
+        LOGE("[SingleVerDataSyncUtils] get security option error %d", errCode);
+        return false;
+    }
+    if (localSecOption.securityLabel == NOT_SET) {
+        LOGE("[SingleVerDataSyncUtils] local label is not set!");
+        return false;
     }
     return RuntimeContext::GetInstance()->CheckDeviceSecurityAbility(deviceId, localSecOption);
 }
@@ -213,7 +221,7 @@ bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskConte
     // it will send option with not set rather than not support when remote is memory db
     bool memory = storage->GetDbProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
     if (memory) {
-        LOGE("[DataSync] skip check receive data because local is memory db");
+        LOGI("[DataSync] skip check receive data because local is memory db");
         return true;
     }
     SecurityOption remoteSecOption = context->GetRemoteSeccurityOption();

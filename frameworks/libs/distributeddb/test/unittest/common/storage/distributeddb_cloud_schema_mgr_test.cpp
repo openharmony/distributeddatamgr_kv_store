@@ -40,6 +40,7 @@ namespace {
     constexpr auto FIELD_NAME_1 = "field_name_1";
     constexpr auto FIELD_NAME_2 = "field_name_2";
     constexpr auto FIELD_NAME_3 = "field_name_3";
+    constexpr auto FIELD_NAME_4 = "FIELD_name_4";
 
 std::unique_ptr<SchemaMgr> g_schemaMgr = nullptr;
 
@@ -73,6 +74,7 @@ DataBaseSchema g_schema = {
     .tables = {
         {
             .name = TABLE_NAME_1,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -90,6 +92,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_2,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -107,6 +110,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_3,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -130,6 +134,7 @@ DataBaseSchema g_schema = {
         },
         {
             .name = TABLE_NAME_4,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -158,6 +163,7 @@ DataBaseSchema g_schema2 = {
     .tables = {
         {
             .name = TABLE_NAME_2,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -175,6 +181,7 @@ DataBaseSchema g_schema2 = {
         },
         {
             .name = TABLE_NAME_3,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -192,6 +199,7 @@ DataBaseSchema g_schema2 = {
         },
         {
             .name = TABLE_NAME_4,
+            .sharedTableName = "",
             .fields = {
                 {
                     .colName = FIELD_NAME_1,
@@ -210,6 +218,40 @@ DataBaseSchema g_schema2 = {
     }
 };
 
+DataBaseSchema g_schema3 = {
+    .tables = {
+        {
+            .name = TABLE_NAME_1,
+            .sharedTableName = "",
+            .fields = {
+                {
+                    .colName = FIELD_NAME_1,
+                    .type = TYPE_INDEX<int64_t>,
+                    .primary = true,
+                    .nullable = true,
+                },
+                {
+                    .colName = FIELD_NAME_4,
+                    .type = TYPE_INDEX<int64_t>,
+                    .primary = false,
+                    .nullable = true,
+                }
+            }
+        },
+        {
+            .name = TABLE_NAME_2,
+            .sharedTableName = "",
+            .fields = {
+                {
+                    .colName = FIELD_NAME_4,
+                    .type = TYPE_INDEX<int64_t>,
+                    .primary = true,
+                    .nullable = true,
+                }
+            }
+        }
+    }
+};
 
 FieldInfo SetField(std::string fieldName, std::string dataType, bool nullable)
 {
@@ -585,5 +627,47 @@ HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest013, TestSize.Level0)
     RelationalSchemaObject localSchemaWithAssetPrimary;
     localSchemaWithAssetPrimary.AddRelationalTable(table);
     EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_4, localSchemaWithAssetPrimary), -E_SCHEMA_MISMATCH);
+}
+
+/**
+  * @tc.name: SchemaMgrTest014
+  * @tc.desc: test case insensitive when table 2 contain uppercase primary key, table 1 contain uppercase field.
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: chenchaohao
+  */
+HWTEST_F(DistributedDBCloudSchemaMgrTest, SchemaMgrTest014, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set local  field1 uppercase and field4 lowercase
+     * @tc.expected: step1. return ok.
+     */
+    FieldInfo field1 = SetField("FIELD_name_1", "int", true);
+    FieldInfo field4 = SetField("field_name_4", "int", true);
+
+    TableInfo table1;
+    table1.SetTableName(TABLE_NAME_1);
+    table1.AddField(field1);
+    table1.AddField(field4);
+    table1.SetPrimaryKey(FIELD_NAME_1, 1);
+    table1.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+
+    TableInfo table2;
+    table2.SetTableName(TABLE_NAME_2);
+    table2.AddField(field4);
+    table2.SetPrimaryKey(FIELD_NAME_4, 1);
+    table2.SetTableSyncType(TableSyncType::CLOUD_COOPERATION);
+
+    RelationalSchemaObject localSchema;
+    localSchema.AddRelationalTable(table1);
+    localSchema.AddRelationalTable(table2);
+
+    /**
+     * @tc.steps:step2. cloud schema's field1 is lowercase, field4 is uppercase
+     * @tc.expected: step2. return ok.
+     */
+    g_schemaMgr->SetCloudDbSchema(g_schema3);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_1, localSchema), E_OK);
+    EXPECT_EQ(g_schemaMgr->ChkSchema(TABLE_NAME_2, localSchema), E_OK);
 }
 }

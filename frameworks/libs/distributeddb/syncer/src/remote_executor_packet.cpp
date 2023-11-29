@@ -21,13 +21,6 @@ namespace {
     constexpr uint8_t ACK_FLAG_LAST_ACK = 1u;
     constexpr uint8_t ACK_FLAG_SECURITY_OPTION = 2u;
 }
-RemoteExecutorRequestPacket::RemoteExecutorRequestPacket()
-{
-}
-
-RemoteExecutorRequestPacket::~RemoteExecutorRequestPacket()
-{
-}
 
 uint32_t RemoteExecutorRequestPacket::GetVersion() const
 {
@@ -109,12 +102,14 @@ int RemoteExecutorRequestPacket::Serialization(Parcel &parcel) const
         return -E_INVALID_ARGS;
     }
     if (extraConditions_.size() > DBConstant::MAX_CONDITION_COUNT) {
+        LOGE("[RemoteExecutorRequestPacket] Serialization failed with too much condition");
         return -E_INVALID_ARGS;
     }
     parcel.WriteUInt32(static_cast<uint32_t>(extraConditions_.size()));
     for (const auto &entry : extraConditions_) {
         if (entry.first.length() > DBConstant::MAX_CONDITION_KEY_LEN ||
             entry.second.length() > DBConstant::MAX_CONDITION_VALUE_LEN) {
+            LOGE("[RemoteExecutorRequestPacket] Serialization failed with too long key or value");
             return -E_INVALID_ARGS;
         }
         parcel.WriteString(entry.first);
@@ -200,14 +195,6 @@ void RemoteExecutorRequestPacket::Release(RemoteExecutorRequestPacket *&packet)
 {
     delete packet;
     packet = nullptr;
-}
-
-RemoteExecutorAckPacket::RemoteExecutorAckPacket()
-{
-}
-
-RemoteExecutorAckPacket::~RemoteExecutorAckPacket()
-{
 }
 
 uint32_t RemoteExecutorAckPacket::GetVersion() const

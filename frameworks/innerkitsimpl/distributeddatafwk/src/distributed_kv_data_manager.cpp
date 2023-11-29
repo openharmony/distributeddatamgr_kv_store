@@ -22,10 +22,18 @@
 #include "log_print.h"
 #include "refbase.h"
 #include "store_manager.h"
+#include "task_executor.h"
+#include "store_util.h"
+#include "runtime_config.h"
+#include "kv_store_delegate_manager.h"
+#include "process_communication_impl.h"
+#include "process_system_api_adapter_impl.h"
+#include "store_factory.h"
 
 namespace OHOS {
 namespace DistributedKv {
 using namespace OHOS::DistributedDataDfx;
+bool DistributedKvDataManager::isAlreadySet_ = false;
 DistributedKvDataManager::DistributedKvDataManager()
 {}
 
@@ -39,12 +47,17 @@ Status DistributedKvDataManager::GetSingleKvStore(const Options &options, const 
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
 
     singleKvStore = nullptr;
+    if (options.securityLevel == INVALID_LABEL) {
+        ZLOGE("invalid security level, appId = %{private}s, storeId = %{private}s, kvStoreType = %{private}d",
+            appId.appId.c_str(), storeId.storeId.c_str(), options.kvStoreType);
+        return Status::INVALID_ARGUMENT;
+    }
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
     }
-    if (options.baseDir.empty()) {
-        ZLOGE("base dir empty.");
+    if (!options.IsPathValid()) {
+        ZLOGE("invalid path.");
         return Status::INVALID_ARGUMENT;
     }
     KvStoreServiceDeathNotifier::SetAppId(appId);
@@ -105,7 +118,6 @@ Status DistributedKvDataManager::DeleteKvStore(const AppId &appId, const StoreId
 {
     DdsTrace trace(std::string(LOG_TAG "::") + std::string(__FUNCTION__),
         TraceSwitch::BYTRACE_ON | TraceSwitch::TRACE_CHAIN_ON);
-
     if (!storeId.IsValid()) {
         ZLOGE("invalid storeId.");
         return Status::INVALID_ARGUMENT;
@@ -163,6 +175,65 @@ void DistributedKvDataManager::UnRegisterKvStoreServiceDeathRecipient(
         return;
     }
     KvStoreServiceDeathNotifier::RemoveServiceDeathWatcher(kvStoreDeathRecipient);
+}
+
+void DistributedKvDataManager::SetExecutors(std::shared_ptr<ExecutorPool> executors)
+{
+    TaskExecutor::GetInstance().SetExecutors(std::move(executors));
+}
+
+Status DistributedKvDataManager::SetEndpoint(std::shared_ptr<Endpoint> endpoint)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (endpoint == nullptr) {
+        ZLOGE("Endpoint is nullptr.");
+        return INVALID_ARGUMENT;
+    }
+
+    if (isAlreadySet_) {
+        ZLOGW("Endpoint already set");
+        return SUCCESS;
+    }
+    
+    auto dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessLabel("default", "default");
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetProcessLabel failed: %d", status);
+        return status;
+    }
+
+    auto communicator = std::make_shared<ProcessCommunicationImpl>(endpoint);
+    dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessCommunicator(communicator);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetProcessCommunicator failed: %d", status);
+        return status;
+    }
+
+    auto systemApi = std::make_shared<ProcessSystemApiAdapterImpl>(endpoint);
+    dbStatus = DistributedDB::KvStoreDelegateManager::SetProcessSystemAPIAdapter(systemApi);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetProcessSystemAPIAdapter failed: %d", status);
+        return status;
+    }
+
+    auto permissionCallback = [endpoint](const DistributedDB::PermissionCheckParam &param, uint8_t flag) -> bool {
+        StoreBriefInfo params = {
+            std::move(param.userId), std::move(param.appId), std::move(param.storeId), std::move(param.deviceId),
+            std::move(param.instanceId), std::move(param.extraConditions)
+        };
+        return endpoint->HasDataSyncPermission(params, flag);
+    };
+    
+    dbStatus = DistributedDB::RuntimeConfig::SetPermissionCheckCallback(permissionCallback);
+    status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetPermissionCheckCallback failed: %d", status);
+        return status;
+    }
+    isAlreadySet_ = true;
+    return status;
 }
 }  // namespace DistributedKv
 }  // namespace OHOS

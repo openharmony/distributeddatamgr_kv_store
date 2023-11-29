@@ -86,7 +86,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSecurityOption001, Te
      * @tc.expected: step1. function return E_NOT_SUPPORT
      */
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(nullptr);
-    int errCode = RuntimeContext::GetInstance()->SetSecurityOption(DATA_FILE_PATH, g_option);
+    int errCode = RuntimeContext::GetInstance()->SetSecurityOption(g_testDir, g_option);
     EXPECT_TRUE(errCode == -E_NOT_SUPPORT);
 
     /**
@@ -95,7 +95,7 @@ HWTEST_F(RuntimeContextProcessSystemApiAdapterImplTest, SetSecurityOption001, Te
      */
     EXPECT_TRUE(g_adapter != nullptr);
     RuntimeContext::GetInstance()->SetProcessSystemApiAdapter(g_adapter);
-    errCode = RuntimeContext::GetInstance()->SetSecurityOption(DATA_FILE_PATH, g_option);
+    errCode = RuntimeContext::GetInstance()->SetSecurityOption(g_testDir, g_option);
     EXPECT_EQ(errCode, E_OK);
 }
 

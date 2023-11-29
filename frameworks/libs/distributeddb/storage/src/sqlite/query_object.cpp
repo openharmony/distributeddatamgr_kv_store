@@ -51,15 +51,20 @@ void QueryObject::SetAttrWithQueryObjNodes()
             }
         } else if (iter.operFlag == QueryObjType::ORDERBY) {
             hasOrderBy_ = true;
-        } else if (symbolType == PREFIXKEY_SYMBOL) {
+        } else if (symbolType == SymbolType::PREFIXKEY_SYMBOL) {
             hasPrefixKey_ = true;
-        } else if (symbolType == IN_KEYS_SYMBOL) {
+        } else if (symbolType == SymbolType::IN_KEYS_SYMBOL) {
             hasInKeys_ = true;
         }
     }
 }
 
 QueryObject::QueryObject(const Query &query)
+    : QueryObject(GetQueryInfo::GetQueryExpression(query))
+{
+}
+
+QueryObject::QueryObject(const QueryExpression &queryExpression)
     : initialized_(false),
       limit_(INVALID_LIMIT),
       offset_(0),
@@ -69,7 +74,7 @@ QueryObject::QueryObject(const Query &query)
       hasInKeys_(false),
       orderByCounts_(0)
 {
-    QueryExpression queryExpressions = GetQueryInfo::GetQueryExpression(query);
+    QueryExpression queryExpressions = queryExpression;
     queryObjNodes_ = queryExpressions.GetQueryExpression();
     SetAttrWithQueryObjNodes();
     isValid_ = queryExpressions.GetErrFlag();
@@ -80,7 +85,7 @@ QueryObject::QueryObject(const Query &query)
     keys_ = queryExpressions.GetKeys();
     sortType_ = static_cast<SortType>(queryExpressions.GetSortType());
     tables_ = queryExpressions.GetTables();
-    isWithDeviceSyncQuery_ = queryExpressions.GetIsDeviceSyncQuery();
+    validStatus = queryExpressions.GetExpressionStatus();
 }
 
 QueryObject::QueryObject(const std::list<QueryObjNode> &queryObjNodes, const std::vector<uint8_t> &prefixKey,
@@ -219,13 +224,13 @@ int QueryObject::ParseNode(const std::list<QueryObjNode>::iterator &iter)
     }
 
     switch (SqliteQueryHelper::GetSymbolType(iter->operFlag)) {
-        case COMPARE_SYMBOL:
-        case RELATIONAL_SYMBOL:
-        case RANGE_SYMBOL:
+        case SymbolType::COMPARE_SYMBOL:
+        case SymbolType::RELATIONAL_SYMBOL:
+        case SymbolType::RANGE_SYMBOL:
             return CheckEqualFormat(iter);
-        case LINK_SYMBOL:
+        case SymbolType::LINK_SYMBOL:
             return CheckLinkerFormat(iter);
-        case PREFIXKEY_SYMBOL: {
+        case SymbolType::PREFIXKEY_SYMBOL: {
             if (hasPrefixKey_) {
                 LOGE("Only filter by prefix key once!!");
                 return -E_INVALID_QUERY_FORMAT;
@@ -236,9 +241,9 @@ int QueryObject::ParseNode(const std::list<QueryObjNode>::iterator &iter)
             }
             return E_OK;
         }
-        case SUGGEST_INDEX_SYMBOL:
+        case SymbolType::SUGGEST_INDEX_SYMBOL:
             return CheckSuggestIndexFormat(iter);
-        case IN_KEYS_SYMBOL: {
+        case SymbolType::IN_KEYS_SYMBOL: {
             if (hasInKeys_) {
                 LOGE("Only filter by keys in once!!");
                 return -E_INVALID_QUERY_FORMAT;
@@ -277,8 +282,9 @@ int QueryObject::CheckLinkerBefore(const std::list<QueryObjNode>::iterator &iter
 {
     auto preIter = std::prev(iter, 1);
     SymbolType symbolType = SqliteQueryHelper::GetSymbolType(preIter->operFlag);
-    if (symbolType != COMPARE_SYMBOL && symbolType != RELATIONAL_SYMBOL && symbolType != LOGIC_SYMBOL &&
-        symbolType != RANGE_SYMBOL && symbolType != PREFIXKEY_SYMBOL && symbolType != IN_KEYS_SYMBOL) {
+    if (symbolType != SymbolType::COMPARE_SYMBOL && symbolType != SymbolType::RELATIONAL_SYMBOL &&
+        symbolType != SymbolType::LOGIC_SYMBOL && symbolType != SymbolType::RANGE_SYMBOL &&
+        symbolType != SymbolType::PREFIXKEY_SYMBOL && symbolType != SymbolType::IN_KEYS_SYMBOL) {
         LOGE("Must be a comparison operation before the connective! operFlag = %s", VNAME(preIter->operFlag));
         return -E_INVALID_QUERY_FORMAT;
     }
@@ -310,7 +316,7 @@ int QueryObject::CheckEqualFormat(const std::list<QueryObjNode>::iterator &iter)
     }
 
     if (schemaFieldType == FieldType::LEAF_FIELD_BOOL &&
-        SqliteQueryHelper::GetSymbolType(iter->operFlag) == COMPARE_SYMBOL &&
+        SqliteQueryHelper::GetSymbolType(iter->operFlag) == SymbolType::COMPARE_SYMBOL &&
         iter->operFlag != QueryObjType::EQUALTO && iter->operFlag != QueryObjType::NOT_EQUALTO) { // bool can == or !=
         LOGE("Bool forbid compare!!!");
         return -E_INVALID_QUERY_FORMAT;
@@ -318,7 +324,8 @@ int QueryObject::CheckEqualFormat(const std::list<QueryObjNode>::iterator &iter)
     auto nextIter = std::next(iter, 1);
     if (nextIter != queryObjNodes_.end()) {
         SymbolType symbolType = SqliteQueryHelper::GetSymbolType(nextIter->operFlag);
-        if (symbolType == RELATIONAL_SYMBOL || symbolType == COMPARE_SYMBOL || symbolType == RANGE_SYMBOL) {
+        if (symbolType == SymbolType::RELATIONAL_SYMBOL || symbolType == SymbolType::COMPARE_SYMBOL ||
+            symbolType == SymbolType::RANGE_SYMBOL) {
             LOGE("After Compare you need, You need the conjunction like and or for connecting!");
             return -E_INVALID_QUERY_FORMAT;
         }
@@ -331,7 +338,7 @@ int QueryObject::CheckLinkerFormat(const std::list<QueryObjNode>::iterator &iter
     auto itPre = iter;
     for (; itPre != queryObjNodes_.begin(); itPre = std::prev(itPre, 1)) {
         SymbolType symbolType = SqliteQueryHelper::GetSymbolType(std::prev(itPre, 1)->operFlag);
-        if (symbolType != PREFIXKEY_SYMBOL && symbolType != IN_KEYS_SYMBOL) {
+        if (symbolType != SymbolType::PREFIXKEY_SYMBOL && symbolType != SymbolType::IN_KEYS_SYMBOL) {
             break;
         }
     }
@@ -345,7 +352,8 @@ int QueryObject::CheckLinkerFormat(const std::list<QueryObjNode>::iterator &iter
         return -E_INVALID_QUERY_FORMAT;
     }
     SymbolType symbolType = SqliteQueryHelper::GetSymbolType(nextIter->operFlag);
-    if (symbolType == INVALID_SYMBOL || symbolType == LINK_SYMBOL || symbolType == SPECIAL_SYMBOL) {
+    if (symbolType == SymbolType::INVALID_SYMBOL || symbolType == SymbolType::LINK_SYMBOL ||
+        symbolType == SymbolType::SPECIAL_SYMBOL) {
         LOGE("Must be followed by comparison operation! operflag[%u], symbolType[%u]",
             static_cast<unsigned>(nextIter->operFlag), static_cast<unsigned>(symbolType));
         return -E_INVALID_QUERY_FORMAT;
@@ -392,7 +400,8 @@ int QueryObject::CheckOrderByFormat(const std::list<QueryObjNode>::iterator &ite
 int QueryObject::CheckLimitFormat(const std::list<QueryObjNode>::iterator &iter) const
 {
     auto next = std::next(iter, 1);
-    if (next != queryObjNodes_.end() && SqliteQueryHelper::GetSymbolType(next->operFlag) != SUGGEST_INDEX_SYMBOL) {
+    if (next != queryObjNodes_.end() && SqliteQueryHelper::GetSymbolType(next->operFlag) !=
+        SymbolType::SUGGEST_INDEX_SYMBOL) {
         LOGE("Limit should be last node or just before suggest-index node!");
         return -E_INVALID_QUERY_FORMAT;
     }
@@ -404,6 +413,13 @@ bool QueryObject::IsQueryOnlyByKey() const
     return std::none_of(queryObjNodes_.begin(), queryObjNodes_.end(), [&](const QueryObjNode &node) {
         return node.operFlag != QueryObjType::LIMIT && node.operFlag != QueryObjType::QUERY_BY_KEY_PREFIX &&
             node.operFlag != QueryObjType::IN_KEYS;
+    });
+}
+
+bool QueryObject::IsQueryByRange() const
+{
+    return std::any_of(queryObjNodes_.begin(), queryObjNodes_.end(), [&](const QueryObjNode &node) {
+        return node.operFlag == QueryObjType::KEY_RANGE;
     });
 }
 
@@ -498,6 +514,47 @@ void QueryObject::SetSortType(SortType sortType)
 SortType QueryObject::GetSortType() const
 {
     return sortType_;
+}
+
+int QueryObject::CheckPrimaryKey(const std::map<int, FieldName> &primaryKeyMap) const
+{
+    // 1 primary key and name is "rowid" means no user-defined rowid
+    if (primaryKeyMap.size() == 1 && primaryKeyMap.begin()->second == "rowid") {
+        return -E_NOT_SUPPORT;
+    }
+    std::set<std::string> pkSet;
+    for (const auto &item : primaryKeyMap) {
+        std::string pk = item.second;
+        std::transform(pk.begin(), pk.end(), pk.begin(), ::tolower);
+        pkSet.insert(pk);
+    }
+    std::set<std::string> queryPkSet;
+    for (const auto &queryObjNode : queryObjNodes_) {
+        if (queryObjNode.operFlag != QueryObjType::IN && queryObjNode.operFlag != QueryObjType::EQUALTO) {
+            continue;
+        }
+        std::string field = queryObjNode.fieldName;
+        std::transform(field.begin(), field.end(), field.begin(), ::tolower);
+        if (pkSet.find(field) == pkSet.end()) {
+            LOGE("[Query] query without pk!");
+            return -E_NOT_SUPPORT;
+        }
+        if (queryObjNode.type == QueryValueType::VALUE_TYPE_DOUBLE) {
+            LOGE("[Query] query with pk double!");
+            return -E_NOT_SUPPORT;
+        }
+        queryPkSet.insert(field);
+    }
+    if (queryPkSet.size() != pkSet.size()) {
+        LOGE("[Query] pk count is different! query %zu schema %zu", queryPkSet.size(), pkSet.size());
+        return -E_NOT_SUPPORT;
+    }
+    return E_OK;
+}
+
+std::vector<QueryExpression> QueryObject::GetQueryExpressions(const Query &query)
+{
+    return GetQueryInfo::GetQueryExpression(query).GetQueryExpressions();
 }
 }
 

@@ -83,6 +83,13 @@ static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
     return { LOG_CORE, 0xD001654, "DOBJECT" };
 }
 } // end namespace DistributedObject
+
+namespace DataSearchable {
+static inline OHOS::HiviewDFX::HiLogLabel LogLabel()
+{
+    return { LOG_CORE, 0xD001656, "DSRCH" };
+}
+} // end namespace DataSearchable
 } // end namespace OHOS
 
 #define ZLOGD(fmt, ...)                                                                 \

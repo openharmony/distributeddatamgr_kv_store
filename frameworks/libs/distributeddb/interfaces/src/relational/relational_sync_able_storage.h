@@ -61,6 +61,8 @@ public:
     // Put meta data as a key-value entry.
     int PutMetaData(const Key &key, const Value &value) override;
 
+    int PutMetaData(const Key &key, const Value &value, bool isInTransaction) override;
+
     // Delete multiple meta data records in a transaction.
     int DeleteMetaData(const std::vector<Key> &keys) override;
 
@@ -102,7 +104,9 @@ public:
         const std::string &targetID) const override;
 
     int CheckAndInitQueryCondition(QueryObject &query) const override;
-    void RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action);
+    int RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+        const RelationalObserverAction &action);
+    int UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer);
     void TriggerObserverAction(const std::string &deviceName, ChangedData &&changedData, bool isChangedData) override;
 
     int CreateDistributedDeviceTable(const std::string &device, const RelationalSyncStrategy &syncStrategy) override;
@@ -126,21 +130,25 @@ public:
 
     void ReleaseRemoteQueryContinueToken(ContinueToken &token) const override;
 
+    // recycling the write handle
+    void SetReusedHandle(StorageExecutor *handle);
+
     int StartTransaction(TransactType type) override;
 
     int Commit() override;
 
     int Rollback() override;
 
-    int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+    int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) override;
 
-    int FillCloudGid(const CloudSyncData &data) override;
-
-    int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
 
     int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) override;
+
+    int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject, bool isCloudForcePush,
+        std::vector<std::string> &cloudGid) override;
 
     int ReleaseCloudDataToken(ContinueToken &continueStmtToken) override;
 
@@ -148,7 +156,7 @@ public:
 
     int SetCloudDbSchema(const DataBaseSchema &schema) override;
 
-    int GetCloudDbSchema(DataBaseSchema &cloudSchema) override;
+    int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) override;
 
     int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) override;
 
@@ -164,7 +172,7 @@ public:
 
     int SetLogTriggerStatus(bool status) override;
 
-    int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) override;
+    int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) override;
 
     void SetSyncAbleEngine(std::shared_ptr<SyncAbleEngine> syncAbleEngine);
 
@@ -173,6 +181,34 @@ public:
     void EraseDataChangeCallback(uint64_t connectionId);
 
     void ReleaseContinueToken(ContinueToken &continueStmtToken) const override;
+
+    int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime, std::vector<std::string> &gid) override;
+
+    int CheckQueryValid(const QuerySyncObject &query) override;
+
+    int CreateTempSyncTrigger(const std::string &tableName) override;
+    int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties) override;
+    int ClearAllTempSyncTrigger() override;
+    bool IsSharedTable(const std::string &tableName) override;
+
+    std::map<std::string, std::string> GetSharedTableOriginNames();
+
+    void SetLogicDelete(bool logicDelete);
+
+    void SetCloudTaskConfig(const CloudTaskConfig &config) override;
+
+    int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
+        VBucket &assets) override;
+
+    int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
+protected:
+    int FillReferenceData(CloudSyncData &syncData);
+
+    virtual int GetReferenceGid(const std::string &tableName, const CloudSyncBatch &syncBatch,
+        std::map<int64_t, Entries> &referenceGid);
+
+    static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
+        const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
 
 private:
     SQLiteSingleVerRelationalStorageExecutor *GetHandle(bool isWrite, int &errCode,
@@ -187,20 +223,31 @@ private:
     int GetRemoteQueryData(const PreparedStmt &prepStmt, size_t packetSize,
         std::vector<std::string> &colNames, std::vector<RelationalRowData *> &data) const;
 
+    int GetTableReference(const std::string &tableName,
+        std::map<std::string, std::vector<TableReferenceProperty>> &reference);
+
+    std::pair<std::string, int> GetSourceTableName(const std::string &tableName);
+
+    std::pair<std::string, int> GetSharedTargetTableName(const std::string &tableName);
     // put
     int PutSyncData(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
     int SaveSyncDataItems(const QueryObject &object, std::vector<DataItem> &dataItems, const std::string &deviceName);
+    void FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type);
+    StoreInfo GetStoreInfo() const;
 
+    bool IsCurrentLogicDelete() const;
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
     mutable std::mutex onSchemaChangedMutex_;
     std::mutex dataChangeDeviceMutex_;
-    std::map<uint64_t, RelationalObserverAction> dataChangeCallbackMap_;
+    std::map<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> dataChangeCallbackMap_;
     std::function<void()> heartBeatListener_;
     mutable std::mutex heartBeatMutex_;
 
     LruMap<std::string, std::string> remoteDeviceSchema_;
+    StorageExecutor *reusedHandle_;
+    mutable std::mutex reusedHandleMutex_;
 
     // cache securityOption
     mutable std::mutex securityOptionMutex_;
@@ -213,6 +260,9 @@ private:
     SchemaMgr schemaMgr_;
     mutable std::shared_mutex schemaMgrMutex_;
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr;
+
+    std::atomic<bool> logicDelete_ = false;
+    std::atomic<bool> allowLogicDelete_ = false;
 };
 }  // namespace DistributedDB
 #endif

@@ -97,7 +97,7 @@ void DistributedDBStorageDataConnectionTest::SetUp(void)
     DistributedDBToolsUnitTest::PrintTestCaseInfo();
     KvDBProperties properties;
     properties.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
-    properties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE);
+    properties.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
     properties.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     properties.SetStringProp(KvDBProperties::STORE_ID, "test");
     properties.SetStringProp(KvDBProperties::IDENTIFIER_DIR, "test");

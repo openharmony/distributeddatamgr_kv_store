@@ -13,11 +13,13 @@
  * limitations under the License.
  */
 
-#ifndef RELATIONAL_DB_CLOUD_INTERFACE_H
-#define RELATIONAL_DB_CLOUD_INTERFACE_H
+#ifndef ICLOUD_SYNC_STORAGE_INTERFACE_H
+#define ICLOUD_SYNC_STORAGE_INTERFACE_H
 
 #include "cloud/cloud_db_types.h"
+#include "cloud/iAssetLoader.h"
 #include "data_transformer.h"
+#include "query_sync_object.h"
 #include "sqlite_utils.h"
 #include "store_observer.h"
 
@@ -33,12 +35,15 @@ enum class OpType : uint8_t {
     SET_CLOUD_FORCE_PUSH_FLAG_ZERO,
     UPDATE_TIMESTAMP,
     CLEAR_GID,
+    UPDATE_VERSION,
+    SET_UPLOADING,
     NOT_HANDLE
 };
 
 typedef struct DownloadData {
     std::vector<VBucket> data;
     std::vector<OpType> opType;
+    std::vector<int64_t> existDataKey;
 } DownloadData;
 
 class ICloudSyncStorageInterface {
@@ -54,7 +59,7 @@ public:
 
     virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
 
-    virtual int GetCloudDbSchema(DataBaseSchema &cloudSchema) = 0;
+    virtual int GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema) = 0;
 
     virtual int GetCloudTableSchema(const TableName &tableName, TableSchema &tableSchema) = 0;
 
@@ -64,15 +69,16 @@ public:
 
     virtual int Rollback() = 0;
 
-    virtual int GetUploadCount(const std::string &tableName, const Timestamp &timestamp, const bool isCloudForcePush,
+    virtual int GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp, bool isCloudForcePush,
         int64_t &count) = 0;
 
-    virtual int FillCloudGid(const CloudSyncData &data) = 0;
-
-    virtual int GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
+    virtual int GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &object, const Timestamp &beginTime,
         ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
 
     virtual int GetCloudDataNext(ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult) = 0;
+
+    virtual int GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+        bool isCloudForcePush, std::vector<std::string> &cloudGid) = 0;
 
     virtual int ReleaseCloudDataToken(ContinueToken &continueStmtToken) = 0;
 
@@ -91,10 +97,47 @@ public:
 
     virtual int SetLogTriggerStatus(bool status) = 0;
 
-    virtual int FillCloudGidAndAsset(OpType opType, const CloudSyncData &data) = 0;
+    virtual int FillCloudLogAndAsset(OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid) = 0;
 
     virtual std::string GetIdentify() const = 0;
+
+    virtual int GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
+        std::vector<std::string> &gid) = 0;
+
+    virtual int CheckQueryValid(const QuerySyncObject &query) = 0;
+
+    virtual int CreateTempSyncTrigger(const std::string &tableName)
+    {
+        return E_OK;
+    }
+
+    virtual int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties)
+    {
+        return E_OK;
+    }
+
+    virtual int ClearAllTempSyncTrigger()
+    {
+        return E_OK;
+    }
+
+    virtual bool IsSharedTable(const std::string &tableName) = 0;
+
+    virtual void SetCloudTaskConfig([[gnu::unused]] const CloudTaskConfig &config)
+    {
+    }
+
+    virtual int GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid, const Bytes &hashKey,
+        VBucket &assets)
+    {
+        return E_OK;
+    }
+
+    virtual int SetIAssetLoader([[gnu::unused]] const std::shared_ptr<IAssetLoader> &loader)
+    {
+        return E_OK;
+    }
 };
 }
 
-#endif //RELATIONAL_DB_CLOUD_INTERFACE_H
+#endif // ICLOUD_SYNC_STORAGE_INTERFACE_H

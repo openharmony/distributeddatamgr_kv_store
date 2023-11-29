@@ -44,7 +44,7 @@ struct QueryObjInfo {
     SortType sortType_ = SortType::NONE;
 };
 
-enum SymbolType : uint32_t {
+enum class SymbolType : uint32_t {
     INVALID_SYMBOL = 0x0000,
     COMPARE_SYMBOL = 0x0100, // relation symbol use to compare
     RELATIONAL_SYMBOL = 0x0200,
@@ -103,6 +103,12 @@ public:
     int GetRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
         const std::vector<Field> &fields, const bool &isCloudForcePush, sqlite3_stmt *&statement);
 
+    int GetCountRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+        bool isCloudForcePush, sqlite3_stmt *&statement);
+
+    int GetGidRelationalCloudQueryStatement(sqlite3 *dbHandle, uint64_t beginTime,
+        const std::vector<Field> &fields, bool isCloudForcePush, sqlite3_stmt *&statement);
+
 private:
     int ToQuerySql();
     int ToQuerySyncSql(bool hasSubQuery, bool useTimestampAlias = false);
@@ -130,6 +136,13 @@ private:
     std::string MapKeysInSubCondition(const std::string &accessStr) const;  // For InKeys.
     // Return the left string of symbol in compare clause.
     std::string GetFieldShape(const QueryObjNode &queryNode, const std::string &accessStr = "");
+
+    void AppendCloudQuery(bool isCloudForcePush, std::string &sql);
+
+    void AppendCloudGidQuery(bool isCloudForcePush, std::string &sql);
+
+    int GetCloudQueryStatement(bool useTimestampAlias, sqlite3 *dbHandle, uint64_t beginTime, std::string &sql,
+        sqlite3_stmt *&statement);
 
     SchemaObject schema_;
     std::list<QueryObjNode> queryObjNodes_;

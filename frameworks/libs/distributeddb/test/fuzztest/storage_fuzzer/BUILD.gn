@@ -18,7 +18,7 @@ import("../../../distributeddb.gni")
 
 ##############################fuzztest##########################################
 ohos_fuzztest("StorageFuzzTest") {
-  module_out_path = "kv_store/distributeddb"
+  module_out_path = "kv_store/kv_store"
 
   include_dirs = [
     "../../../test/fuzztest/common",
@@ -35,6 +35,7 @@ ohos_fuzztest("StorageFuzzTest") {
     "../../../storage/include",
     "../../../storage/src",
     "../../../storage/src/cloud",
+    "../../../storage/src/gaussdb_rd",
     "../../../storage/src/multiver",
     "../../../storage/src/operation",
     "../../../storage/src/sqlite",

@@ -138,6 +138,7 @@ namespace {
 
     void DistributedDBCloudMetaDataTest::TearDown(void)
     {
+        RefObject::DecObjRef(g_store);
         if (g_delegate != nullptr) {
             EXPECT_EQ(g_mgr.CloseStore(g_delegate), DBStatus::OK);
             g_delegate = nullptr;
@@ -199,5 +200,4 @@ namespace {
         EXPECT_EQ(g_storageProxy->GetLocalWaterMark(TABLE_NAME_2, retLocalMark), E_OK);
         EXPECT_EQ(retLocalMark, 0u);
     }
-
 }

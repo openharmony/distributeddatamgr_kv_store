@@ -59,18 +59,27 @@ public:
     virtual int RemoveDeviceData(const std::string &device) = 0;
     virtual int RemoveDeviceData(const std::string &device, const std::string &tableName) = 0;
     virtual int DoClean(ClearMode mode) = 0;
-    virtual void RegisterObserverAction(const RelationalObserverAction &action) = 0;
+    virtual int RegisterObserverAction(const StoreObserver *observer, const RelationalObserverAction &action) = 0;
+    virtual int UnRegisterObserverAction(const StoreObserver *observer) = 0;
     virtual int RemoteQuery(const std::string &device, const RemoteCondition &condition, uint64_t timeout,
         std::shared_ptr<ResultSet> &result) = 0;
     virtual int SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb) = 0;
-    virtual int SetCloudDbSchema(const DataBaseSchema &schema) = 0;
+    virtual int PrepareAndSetCloudDbSchema(const DataBaseSchema &schema) = 0;
     virtual int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) = 0;
 
-    virtual int Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-        const SyncProcessCallback &onProcess, int64_t waitTime) = 0;
+    virtual int Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess) = 0;
 
     virtual int GetStoreInfo(std::string &userId, std::string &appId, std::string &storeId) = 0;
 
+    virtual int SetTrackerTable(const TrackerSchema &schema) = 0;
+    virtual int ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records) = 0;
+    virtual int CleanTrackerData(const std::string &tableName, int64_t cursor) = 0;
+
+    virtual int SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty) = 0;
+
+    virtual int Pragma(PragmaCmd cmd, PragmaData &pragmaData) = 0;
+
+    virtual int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records) = 0;
 protected:
     // Get the stashed 'RelationalDB_ pointer' without ref.
     template<typename DerivedDBType>

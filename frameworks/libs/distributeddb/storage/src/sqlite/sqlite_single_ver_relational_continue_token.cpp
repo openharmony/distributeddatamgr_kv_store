@@ -117,7 +117,7 @@ int SQLiteSingleVerRelationalContinueToken::GetDeletedDataStmt(sqlite3 *db, sqli
     const std::string sql = GetDeletedDataSQL();
     int errCode = SQLiteUtils::GetStatement(db, sql, stmt);
     if (errCode != E_OK) {
-        goto ERROR;
+        return errCode;
     }
 
     // bind stmt

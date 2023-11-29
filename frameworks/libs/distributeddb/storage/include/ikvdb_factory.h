@@ -27,12 +27,13 @@
 
 namespace DistributedDB {
 enum KvDBType {
-    LOCAL_KVDB = 0,
-    SINGER_VER_KVDB,
+    LOCAL_KVDB_SQLITE = 0,
+    SINGER_VER_KVDB_SQLITE,
+    SINGLE_VER_KVDB_RD,
 #ifndef OMIT_MULTI_VER
-    MULTI_VER_KVDB,
+    MULTI_VER_KVDB_SQLITE,
 #endif // OMIT_MULTI_VER
-    UNSUPPORT_KVDB_TYPE = 3,
+    UNSUPPORT_KVDB_TYPE = 4,
 };
 
 class IKvDBFactory {

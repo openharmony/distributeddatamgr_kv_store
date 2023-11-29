@@ -23,6 +23,7 @@
 #include "kvdb_observer_handle.h"
 #include "kvdb_pragma.h"
 #include "log_print.h"
+#include "single_ver_natural_store_connection.h"
 #include "sqlite_single_ver_natural_store.h"
 #include "sqlite_single_ver_result_set.h"
 #include "store_types.h"
@@ -39,7 +40,7 @@ namespace {
 }
 
 SQLiteSingleVerNaturalStoreConnection::SQLiteSingleVerNaturalStoreConnection(SQLiteSingleVerNaturalStore *kvDB)
-    : SyncAbleKvDBConnection(kvDB),
+    : SingleVerNaturalStoreConnection(kvDB),
       cacheMaxSizeForNewResultSet_(DEFAULT_RESULT_SET_CACHE_MAX_SIZE),
       conflictType_(0),
       transactionEntrySize_(0),
@@ -83,7 +84,7 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
 
     SingleVerDataType dataType;
     if (option.dataType == IOption::LOCAL_DATA) {
-        dataType = SingleVerDataType::LOCAL_TYPE;
+        dataType = SingleVerDataType::LOCAL_TYPE_SQLITE;
     } else if (option.dataType == IOption::SYNC_DATA) {
         dataType = SingleVerDataType::SYNC_TYPE;
     } else {
@@ -96,7 +97,7 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         // need to check if the transaction started
         std::lock_guard<std::mutex> lock(transactionMutex_);
@@ -120,23 +121,6 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTraceSQL();
     return errCode;
-}
-
-int SQLiteSingleVerNaturalStoreConnection::Put(const IOption &option, const Key &key, const Value &value)
-{
-    std::vector<Entry> entries;
-    Entry entry{key, value};
-    entries.emplace_back(std::move(entry));
-
-    return PutBatch(option, entries);
-}
-
-int SQLiteSingleVerNaturalStoreConnection::Delete(const IOption &option, const Key &key)
-{
-    std::vector<Key> keys;
-    keys.push_back(key);
-
-    return DeleteBatch(option, keys);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::Clear(const IOption &option)
@@ -166,8 +150,9 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         return errCode;
     }
     QueryObject queryObj(query);
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
-        LOGE("[GetEntries][query] timestamp sort only support prefixKey");
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey and not support Range search");
         return -E_NOT_SUPPORT;
     }
 
@@ -176,7 +161,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
@@ -215,7 +200,8 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         return -E_INVALID_DB;
     }
     QueryObject queryObj(query);
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
         LOGE("[GetCount] get count query invalid");
         return -E_NOT_SUPPORT;
     }
@@ -224,7 +210,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
@@ -257,21 +243,13 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatch(const IOption &option, const
         return PutBatchInner(option, entries);
     }
 
-    if (option.dataType == IOption::SYNC_DATA) {
-        int errCode = CheckSyncEntriesValid(entries);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        return PutBatchInner(option, entries);
-    }
-
-    return -E_NOT_SUPPORT;
+    return SingleVerNaturalStoreConnection::PutBatch(option, entries);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::DeleteBatch(const IOption &option, const std::vector<Key> &keys)
 {
-    LOGD("[DeleteBatch] keys size is : %zu, dataType : %d", keys.size(), option.dataType);
     if (option.dataType == IOption::LOCAL_DATA) {
+        LOGD("[DeleteBatch] keys size is : %zu, dataType : %d", keys.size(), option.dataType);
         int retCode = CheckLocalKeysValid(keys);
         if (retCode != E_OK) {
             return retCode;
@@ -279,15 +257,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatch(const IOption &option, co
         return DeleteBatchInner(option, keys);
     }
 
-    if (option.dataType == IOption::SYNC_DATA) {
-        int errCode = CheckSyncKeysValid(keys);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        return DeleteBatchInner(option, keys);
-    }
-
-    return -E_NOT_SUPPORT;
+    return SingleVerNaturalStoreConnection::DeleteBatch(option, keys);
 }
 
 int SQLiteSingleVerNaturalStoreConnection::GetSnapshot(IKvDBSnapshot *&snapshot) const
@@ -630,8 +600,9 @@ int SQLiteSingleVerNaturalStoreConnection::GetResultSet(const IOption &option, c
         const SchemaObject &schemaObjRef = naturalStore->GetSchemaObjectConstRef();
         queryObj.SetSchema(schemaObjRef);
     }
-    if ((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey()) {
-        LOGE("[GetResultSet][query] timestamp sort only support prefixKey");
+    if (((queryObj.GetSortType() != SortType::NONE) && !queryObj.IsQueryOnlyByKey())
+        || queryObj.IsQueryByRange()) {
+        LOGE("[GetEntries][query] timestamp sort only support prefixKey and not support Range search");
         return -E_NOT_SUPPORT;
     }
     bool isMemDb = naturalStore->GetMyProperties().GetBoolProp(KvDBProperties::MEMORY_MODE, false);
@@ -827,7 +798,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetDeviceIdentifier(PragmaEntryDevice
 
 int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, const std::vector<Entry> &entries)
 {
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -868,7 +839,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
 
 int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, const std::vector<Key> &keys)
 {
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     std::lock_guard<std::mutex> lock(transactionMutex_);
     bool isAuto = false;
     int errCode = E_OK;
@@ -1032,7 +1003,7 @@ int SQLiteSingleVerNaturalStoreConnection::SaveLocalItem(const LocalDataItem &da
 {
     int errCode = E_OK;
     if ((dataItem.flag & DataItem::DELETE_FLAG) == 0) {
-        errCode = writeHandle_->PutKvData(SingleVerDataType::LOCAL_TYPE, dataItem.key, dataItem.value,
+        errCode = writeHandle_->PutKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, dataItem.key, dataItem.value,
             dataItem.timestamp, localCommittedData_);
     } else {
         Value value;
@@ -1278,9 +1249,9 @@ int SQLiteSingleVerNaturalStoreConnection::StartTransactionNormally(TransactType
     }
 
     errCode = kvDB_->TryToDisableConnection(OperatePerm::NORMAL_WRITE);
-    if (errCode != E_OK) {
+    if (errCode != E_OK) { // on operate rekey or import
         ReleaseExecutor(handle);
-        LOGE("Start transaction failed, %d", errCode);
+        LOGE("Start transaction failed, %d perm not normal", errCode);
         return errCode;
     }
 
@@ -1650,7 +1621,7 @@ int SQLiteSingleVerNaturalStoreConnection::UnpublishOper(SingleVerNaturalStoreCo
         }
 
         Timestamp time = updateTimestamp ? naturalStore->GetCurrentTimestamp() : syncRecord.writeTimestamp;
-        errCode = writeHandle_->PutKvData(SingleVerDataType::LOCAL_TYPE, syncRecord.key, syncRecord.value, time,
+        errCode = writeHandle_->PutKvData(SingleVerDataType::LOCAL_TYPE_SQLITE, syncRecord.key, syncRecord.value, time,
             committedData);
     } else if (operType == static_cast<int>(LocalOperType::LOCAL_OPR_DEL)) {
         Timestamp localTimestamp = 0;
@@ -1809,7 +1780,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
 
     SingleVerDataType type;
     if (option.dataType == IOption::LOCAL_DATA) {
-        type = SingleVerDataType::LOCAL_TYPE;
+        type = SingleVerDataType::LOCAL_TYPE_SQLITE;
     } else if (option.dataType == IOption::SYNC_DATA) {
         type = SingleVerDataType::SYNC_TYPE;
     } else {
@@ -1822,11 +1793,11 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
-            LOGD("Transaction started already.");
+            LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
             DBDfxAdapter::FinishTraceSQL();
             return errCode;
@@ -1835,7 +1806,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
 
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
-        LOGE("[Connection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
+        LOGE("[SQLiteSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
         DBDfxAdapter::FinishTraceSQL();
         return errCode;
     }

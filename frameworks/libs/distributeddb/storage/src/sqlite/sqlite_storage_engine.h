@@ -34,23 +34,7 @@ public:
     int InitSQLiteStorageEngine(const StorageEngineAttr &poolSize, const OpenDbProperties &option,
         const std::string &identifier = std::string());
 
-    bool IsNeedTobeReleased() const override;
-
-    const std::string &GetIdentifier() const override;
-
-    EngineState GetEngineState() const override;
-
-    int ExecuteMigrate() override;
-
-    void SetEngineState(EngineState state) override;
-
-    virtual void IncreaseCacheRecordVersion();
-    virtual uint64_t GetCacheRecordVersion() const;
-    virtual uint64_t GetAndIncreaseCacheRecordVersion();
-
-    virtual bool IsEngineCorrupted() const;
-
-    void ClearEnginePasswd() override;
+    void ClearEnginePasswd();
 
     int CheckEngineOption(const KvDBProperties &kvDBProp) const override;
 
@@ -61,10 +45,6 @@ protected:
     virtual StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) = 0;
 
     int CreateNewExecutor(bool isWrite, StorageExecutor *&handle) override;
-
-    virtual int ReInit();
-
-    OpenDbProperties option_;
 };
 } // namespace DistributedDB
 #endif // SQLITE_STORAGE_ENGINE_H

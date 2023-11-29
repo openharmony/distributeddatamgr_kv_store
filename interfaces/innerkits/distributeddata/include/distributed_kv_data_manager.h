@@ -15,13 +15,15 @@
 
 #ifndef DISTRIBUTED_KV_DATA_MANAGER_H
 #define DISTRIBUTED_KV_DATA_MANAGER_H
-
+#include <mutex>
 #include <functional>
+#include "executor_pool.h"
 #include "kvstore.h"
 #include "kvstore_death_recipient.h"
 #include "kvstore_observer.h"
 #include "single_kvstore.h"
 #include "types.h"
+#include "end_point.h"
 
 namespace OHOS {
 namespace DistributedKv {
@@ -147,6 +149,22 @@ public:
      * @param deathRecipient The pointer of the observer.
     */
     API_EXPORT void UnRegisterKvStoreServiceDeathRecipient(std::shared_ptr<KvStoreDeathRecipient> deathRecipient);
+
+    /**
+     * @brief Set executors to kv client.
+     * @param executors The executors.
+    */
+    API_EXPORT void SetExecutors(std::shared_ptr<ExecutorPool> executors);
+
+    /**
+     * @brief set endpoint for client sync.
+     * @param endpoint The pointer of endpoint.
+     * @return Return SUCCESS for success, others for failure.
+     */
+    API_EXPORT Status SetEndpoint(std::shared_ptr<Endpoint> endpoint);
+private:
+    static bool isAlreadySet_;
+    std::mutex mutex_;
 };
 }  // namespace DistributedKv
 }  // namespace OHOS

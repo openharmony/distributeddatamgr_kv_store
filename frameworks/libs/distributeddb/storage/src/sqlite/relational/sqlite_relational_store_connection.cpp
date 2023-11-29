@@ -251,7 +251,9 @@ int SQLiteRelationalStoreConnection::SyncToDevice(SyncInfo &info)
     syncParam.isQuerySync = true;
     syncParam.relationOnComplete = info.onComplete;
     syncParam.syncQuery = QuerySyncObject(info.query);
-    syncParam.onFinalize =  [this]() { DecObjRef(this); };
+    syncParam.onFinalize =  [this]() {
+        DecObjRef(this);
+    };
     if (syncParam.syncQuery.GetSortType() != SortType::NONE) {
         LOGE("not support order by timestamp");
         DecObjRef(this);
@@ -276,9 +278,15 @@ int SQLiteRelationalStoreConnection::RegisterLifeCycleCallback(const DatabaseLif
     return store->RegisterLifeCycleCallback(notifier);
 }
 
-void SQLiteRelationalStoreConnection::RegisterObserverAction(const RelationalObserverAction &action)
+int SQLiteRelationalStoreConnection::RegisterObserverAction(const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
-    static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(GetConnectionId(), action);
+    return static_cast<SQLiteRelationalStore *>(store_)->RegisterObserverAction(GetConnectionId(), observer, action);
+}
+
+int SQLiteRelationalStoreConnection::UnRegisterObserverAction(const StoreObserver *observer)
+{
+    return static_cast<SQLiteRelationalStore *>(store_)->UnRegisterObserverAction(GetConnectionId(), observer);
 }
 
 int SQLiteRelationalStoreConnection::RemoteQuery(const std::string &device, const RemoteCondition &condition,
@@ -303,7 +311,7 @@ int SQLiteRelationalStoreConnection::SetCloudDB(const std::shared_ptr<ICloudDb> 
     return store->SetCloudDB(cloudDb);
 }
 
-int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &schema)
+int SQLiteRelationalStoreConnection::PrepareAndSetCloudDbSchema(const DataBaseSchema &schema)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -311,9 +319,9 @@ int SQLiteRelationalStoreConnection::SetCloudDbSchema(const DataBaseSchema &sche
         return -E_INVALID_CONNECTION;
     }
 
-    int ret = store->SetCloudDbSchema(schema);
+    int ret = store->PrepareAndSetCloudDbSchema(schema);
     if (ret != E_OK) {
-        LOGE("[RelationalConnection] SetCloudDbSchema failed. %d", ret);
+        LOGE("[RelationalConnection] PrepareAndSetCloudDbSchema failed. %d", ret);
     }
     return ret;
 }
@@ -330,11 +338,10 @@ int SQLiteRelationalStoreConnection::SetIAssetLoader(const std::shared_ptr<IAsse
     if (ret != E_OK) {
         LOGE("[RelationalConnection] Set asset loader failed. %d", ret);
     }
-    return E_OK;
+    return ret;
 }
 
-int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &devices, SyncMode mode, const Query &query,
-    const SyncProcessCallback &onProcess, int64_t waitTime)
+int SQLiteRelationalStoreConnection::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
 {
     auto *store = GetDB<SQLiteRelationalStore>();
     if (store == nullptr) {
@@ -350,7 +357,7 @@ int SQLiteRelationalStoreConnection::Sync(const std::vector<std::string> &device
         }
         IncObjRef(this);
     }
-    int errCode = store->Sync(devices, mode, query, onProcess, waitTime);
+    int errCode = store->Sync(option, onProcess);
     DecObjRef(this);
     return errCode;
 }
@@ -367,6 +374,71 @@ int SQLiteRelationalStoreConnection::GetStoreInfo(std::string &userId, std::stri
     appId = properties.GetStringProp(RelationalDBProperties::APP_ID, "");
     storeId = properties.GetStringProp(RelationalDBProperties::STORE_ID, "");
     return E_OK;
+}
+
+int SQLiteRelationalStoreConnection::SetTrackerTable(const TrackerSchema &schema)
+    {
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    int errCode = store->SetTrackerTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalConnection] set tracker table failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStoreConnection::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStoreConnection::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[SetReference] store is null, get DB failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->SetReference(tableReferenceProperty);
+}
+
+int SQLiteRelationalStoreConnection::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->CleanTrackerData(tableName, cursor);
+}
+
+int SQLiteRelationalStoreConnection::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, get executor failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->Pragma(cmd, pragmaData);
+}
+
+int SQLiteRelationalStoreConnection::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    auto *store = GetDB<SQLiteRelationalStore>();
+    if (store == nullptr) {
+        LOGE("[RelationalConnection] store is null, upsert dara failed!");
+        return -E_INVALID_CONNECTION;
+    }
+    return store->UpsertData(status, tableName, records);
 }
 }
 #endif

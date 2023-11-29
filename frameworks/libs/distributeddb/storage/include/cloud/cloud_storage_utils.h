@@ -16,7 +16,9 @@
 #ifndef CLOUD_STORAGE_UTILS_H
 #define CLOUD_STORAGE_UTILS_H
 
+#include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_store_types.h"
+#include "icloud_sync_storage_interface.h"
 #include "sqlite_utils.h"
 
 namespace DistributedDB {
@@ -46,12 +48,12 @@ public:
         std::vector<uint8_t> &value);
 
     static std::set<std::string> GetCloudPrimaryKey(const TableSchema &tableSchema);
-    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema);
+    static std::vector<Field> GetCloudPrimaryKeyField(const TableSchema &tableSchema, bool sortByName = false);
     static std::map<std::string, Field> GetCloudPrimaryKeyFieldMap(const TableSchema &tableSchema,
         bool sortByUpper = false);
     static bool IsContainsPrimaryKey(const TableSchema &tableSchema);
     static std::vector<Field> GetCloudAsset(const TableSchema &tableSchema);
-    static int GetAssetFieldsFromSchema(const TableSchema &tableSchema, VBucket &vBucket,
+    static int GetAssetFieldsFromSchema(const TableSchema &tableSchema, const VBucket &vBucket,
         std::vector<Field> &fields);
     static void ObtainAssetFromVBucket(const VBucket &vBucket, VBucket &asset);
     static AssetOpType StatusToFlag(AssetStatus status);
@@ -59,14 +61,29 @@ public:
     static void ChangeAssetsOnVBucketToAsset(VBucket &vBucket, std::vector<Field> &fields);
     static Type GetAssetFromAssets(Type &value);
     static void FillAssetBeforeDownload(Asset &asset);
-    static void FillAssetAfterDownloadFail(Asset &asset);
-    static int FillAssetAfterDownload(Asset &asset);
-    static void FillAssetsAfterDownload(Assets &assets);
-    static int FillAssetForUpload(Asset &asset);
-    static void FillAssetsForUpload(Assets &assets);
+    static int FillAssetAfterDownloadFail(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsAfterDownloadFail(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
+    static void MergeAssetWithFillFunc(Assets &assets, Assets &dbAssets, const std::map<std::string,
+        AssetOperationUtils::AssetOpType> &assetOpTypeMap,
+        std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset);
+    static int FillAssetAfterDownload(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsAfterDownload(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
+    static int FillAssetBeforeUpload(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsBeforeUpload(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
+    static int FillAssetForUpload(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsForUpload(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
+    static int FillAssetForUploadFailed(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
+    static void FillAssetsForUploadFailed(Assets &assets, Assets &dbAssets,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
     static void PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset);
-    static void FillAssetFromVBucketFinish(VBucket &vBucket, std::function<int(Asset &)> fillAsset,
-        std::function<void(Assets &)> fillAssets);
+    static void FillAssetFromVBucketFinish(const AssetOperationUtils::RecordAssetOpType &assetOpType, VBucket &vBucket,
+        VBucket &dbAssets, std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset,
+        std::function<void(Assets &, Assets &,
+        const std::map<std::string, AssetOperationUtils::AssetOpType> &)> fillAssets);
     static bool IsAsset(const Type &type);
     static bool IsAssets(const Type &type);
     static bool IsAssetsContainDuplicateAsset(Assets &assets);
@@ -78,6 +95,12 @@ public:
     static bool CheckAssetStatus(const Assets &assets);
 
     static int ConstraintsCheckForCloud(const TableInfo &table, const std::string &trimmedSql);
+    static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
+    static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
+
+    static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
+    static void GetToBeRemoveAssets(const VBucket &vBucket, const AssetOperationUtils::RecordAssetOpType &assetOpType,
+        std::vector<Asset> &removeAssets);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
@@ -95,7 +118,6 @@ public:
     static int GetValueFromVBucket(const std::string &fieldName, const VBucket &vBucket, T &outVal)
     {
         if (vBucket.find(fieldName) == vBucket.end()) {
-            LOGW("vbucket doesn't contains the field want to get");
             return -E_NOT_FOUND;
         }
         Type cloudValue = vBucket.at(fieldName);

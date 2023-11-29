@@ -13,17 +13,20 @@
 * limitations under the License.
 */
 
-#ifndef OHOS_RELATIONAL_STORE_JS_NAPI_COMMON_JS_PROXY_H
-#define OHOS_RELATIONAL_STORE_JS_NAPI_COMMON_JS_PROXY_H
+#ifndef OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_JS_PROXY_H
+#define OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_JS_PROXY_H
 #include <memory>
 namespace OHOS::JSProxy {
 template<typename T>
 class JSCreator {
 public:
-   virtual std::shared_ptr<T> Create() = 0;
+    // This method will be used to call different subclasses for implementation
+    virtual std::shared_ptr<T> Create() = 0;
+
 protected:
-   JSCreator() = default;
-   virtual ~JSCreator() = default;
+    // It is not allowed to directly use parent class objects for construction and destruction
+    JSCreator() = default;
+    ~JSCreator() = default;
 };
 
 template<typename T>
@@ -34,19 +37,15 @@ public:
         instance_ = std::move(instance);
     }
 
-    std::shared_ptr<T>& GetInstance()
-    {
-        return instance_;
-    }
-
     std::shared_ptr<T> GetInstance() const
     {
         return instance_;
     }
 
 protected:
+    // It is not allowed to directly use parent class objects for construction and destruction
     JSProxy() = default;
-    virtual ~JSProxy() = default;
+    ~JSProxy() = default;
 
 private:
     std::shared_ptr<T> instance_;
@@ -55,8 +54,9 @@ private:
 template<typename T, typename U = T>
 class JSEntity : public JSCreator<U>, public JSProxy<T> {
 protected:
-   JSEntity() = default;
-   virtual ~JSEntity() = default;
+    // It is not allowed to directly use parent class objects for construction and destruction
+    JSEntity() = default;
+    ~JSEntity() = default;
 };
-} // namespace OHOS::Proxy
-#endif // OHOS_RELATIONAL_STORE_JS_NAPI_COMMON_JS_PROXY_H
+} // namespace OHOS::JSProxy
+#endif // OHOS_DISTRIBUTED_DATA_FRAMEWORKS_COMMON_JS_PROXY_H

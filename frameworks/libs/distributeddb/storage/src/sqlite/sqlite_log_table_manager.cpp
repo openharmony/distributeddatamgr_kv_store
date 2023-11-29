@@ -19,8 +19,19 @@ namespace DistributedDB {
 int SqliteLogTableManager::AddRelationalLogTableTrigger(sqlite3 *db, const TableInfo &table,
     const std::string &identity)
 {
-    std::vector<std::string> sqls = { GetInsertTrigger(table, identity), GetUpdateTrigger(table, identity),
-        GetDeleteTrigger(table, identity) };
+    std::vector<std::string> sqls = GetDropTriggers(table);
+    std::string insertTrigger = GetInsertTrigger(table, identity);
+    if (!insertTrigger.empty()) {
+        sqls.emplace_back(insertTrigger);
+    }
+    std::string updateTrigger = GetUpdateTrigger(table, identity);
+    if (!updateTrigger.empty()) {
+        sqls.emplace_back(updateTrigger);
+    }
+    std::string deleteTrigger = GetDeleteTrigger(table, identity);
+    if (!deleteTrigger.empty()) {
+        sqls.emplace_back(deleteTrigger);
+    }
     // add insert,update,delete trigger
     for (const auto &sql : sqls) {
         int errCode = SQLiteUtils::ExecuteRawSQL(db, sql);
@@ -45,7 +56,10 @@ int SqliteLogTableManager::CreateRelationalLogTable(sqlite3 *db, const TableInfo
         "wtimestamp  INT  NOT NULL," \
         "flag        INT  NOT NULL," \
         "hash_key    BLOB NOT NULL," \
-        "cloud_gid   TEXT," +
+        "cloud_gid   TEXT," + \
+        "extend_field BLOB," + \
+        "cursor INT DEFAULT 0," + \
+        "version TEXT DEFAULT ''," + \
         primaryKey + ");";
     std::vector<std::string> logTableSchema;
     logTableSchema.emplace_back(createTableSql);

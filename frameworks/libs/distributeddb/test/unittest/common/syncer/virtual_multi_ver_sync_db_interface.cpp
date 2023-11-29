@@ -59,9 +59,9 @@ int VirtualMultiVerSyncDBInterface::GetMetaData(const Key &key, Value &value) co
     return kvStore_->GetMetaData(key, value);
 }
 
-int VirtualMultiVerSyncDBInterface::PutMetaData(const Key &key, const Value &value)
+int VirtualMultiVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
-    return kvStore_->PutMetaData(key, value);
+    return kvStore_->PutMetaData(key, value, isInTransaction);
 }
 
 int VirtualMultiVerSyncDBInterface::DeleteMetaData(const std::vector<Key> &keys)
@@ -153,7 +153,7 @@ int VirtualMultiVerSyncDBInterface::Initialize(const std::string &deviceId)
     std::string identifierDir = DBCommon::TransferStringToHex(identifier);
     prop.SetStringProp(KvDBProperties::IDENTIFIER_DIR, identifierDir);
     prop.SetStringProp(KvDBProperties::DATA_DIR, dir + "/commitstore");
-    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE);
+    prop.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::MULTI_VER_TYPE_SQLITE);
     prop.SetBoolProp(KvDBProperties::CREATE_IF_NECESSARY, true);
 
     int errCode = E_OK;

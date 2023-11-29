@@ -15,10 +15,14 @@
 
 #include <gtest/gtest.h>
 
+#include "cloud_db_types.h"
 #include "db_errno.h"
 #include "get_query_info.h"
 #include "log_print.h"
 #include "query_object.h"
+#include "query_sync_object.h"
+#include "relational_store_manager.h"
+#include "version.h"
 
 using namespace testing::ext;
 using namespace DistributedDB;
@@ -40,7 +44,7 @@ const std::string VALID_SCHEMA_FULL_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
   "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2.field_name6\"]}";
 const std::string TEST_FIELD_NAME = "$.field_name2.field_name6";
 
-static void GetQuerySql(const Query &query)
+void GetQuerySql(const Query &query)
 {
     QueryObject queryObj(query);
 
@@ -56,6 +60,26 @@ static void GetQuerySql(const Query &query)
     helper.GetQuerySql(sql, false);
     LOGD("[UNITTEST][sql] = [%s]", sql.c_str());
 }
+
+void CheckType(const Type &expectType, const Type &actualType)
+{
+    ASSERT_EQ(expectType.index(), actualType.index());
+    if (expectType.index() != TYPE_INDEX<std::string>) {
+        return;
+    }
+    std::string expectStr = std::get<std::string>(expectType);
+    std::string actualStr = std::get<std::string>(actualType);
+    EXPECT_EQ(expectStr, actualStr);
+}
+
+void CheckQueryNode(const QueryNode &expectNode, const QueryNode &actualNode)
+{
+    EXPECT_EQ(expectNode.type, actualNode.type);
+    EXPECT_EQ(expectNode.fieldName, actualNode.fieldName);
+    ASSERT_EQ(expectNode.fieldValue.size(), actualNode.fieldValue.size());
+    for (size_t i = 0; i < expectNode.fieldValue.size(); ++i) {
+        CheckType(expectNode.fieldValue[i], actualNode.fieldValue[i]);
+    }
 }
 
 class DistributedDBQueryObjectHelperTest : public testing::Test {
@@ -179,4 +203,111 @@ HWTEST_F(DistributedDBQueryObjectHelperTest, Query003, TestSize.Level1)
 
     Query query1 = Query::Select().GreaterThan(TEST_FIELD_NAME, 1).OrderBy(TEST_FIELD_NAME);
     GetQuerySql(query1);
+}
+
+std::vector<std::vector<QueryNode>> Query004GetExpectNode()
+{
+    std::vector<std::vector<QueryNode>> expectNode;
+    expectNode.push_back({
+        QueryNode {
+            .type = QueryNodeType::BEGIN_GROUP,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::EQUAL_TO,
+            .fieldName = "field1",
+            .fieldValue = {std::string("1")}
+        }, QueryNode {
+            .type = QueryNodeType::AND,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::EQUAL_TO,
+            .fieldName = "field2",
+            .fieldValue = {std::string("2")}
+        }, QueryNode {
+            .type = QueryNodeType::END_GROUP,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::OR,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::BEGIN_GROUP,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::EQUAL_TO,
+            .fieldName = "field1",
+            .fieldValue = {std::string("2")}
+        }, QueryNode {
+            .type = QueryNodeType::AND,
+            .fieldName = "",
+            .fieldValue = {}
+        }, QueryNode {
+            .type = QueryNodeType::EQUAL_TO,
+            .fieldName = "field2",
+            .fieldValue = {std::string("1")}
+        }, QueryNode {
+            .type = QueryNodeType::END_GROUP,
+            .fieldName = "",
+            .fieldValue = {}
+        }});
+    return expectNode;
+}
+
+std::vector<QueryNode> Query004GetTable2ExpectNode()
+{
+    return {
+        QueryNode {
+            .type = QueryNodeType::IN,
+            .fieldName = "field3",
+            .fieldValue = {std::string("1"), std::string("2"), std::string("3")}
+        }
+    };
+}
+
+/**
+  * @tc.name: Query004
+  * @tc.desc: Check query transform in serialize func
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: zhangqiquan
+  */
+HWTEST_F(DistributedDBQueryObjectHelperTest, Query004, TestSize.Level1)
+{
+    std::vector<std::string> inVal = {"1", "2", "3"};
+    Query query = Query::Select().From("table1").BeginGroup().
+        EqualTo("field1", "1").And().EqualTo("field2", "2").
+        EndGroup().Or().BeginGroup().EqualTo("field1", "2").And().EqualTo("field2", "1").EndGroup().
+        From("table2").In("field3", inVal);
+
+    std::vector<QuerySyncObject> objectList = QuerySyncObject::GetQuerySyncObject(query);
+    ASSERT_EQ(objectList.size(), 2u); // 2 tables
+
+    std::vector<std::vector<QueryNode>> expectNode = Query004GetExpectNode();
+    expectNode.emplace_back(Query004GetTable2ExpectNode());
+    std::vector<std::vector<QueryNode>> actualNode;
+    for (auto &object: objectList) {
+        ASSERT_TRUE(object.IsContainQueryNodes());
+        Bytes bytes;
+        bytes.resize(object.CalculateParcelLen(SOFTWARE_VERSION_CURRENT));
+        Parcel parcel(bytes.data(), bytes.size());
+        EXPECT_EQ(object.SerializeData(parcel, SOFTWARE_VERSION_CURRENT), E_OK);
+        DBStatus status;
+        auto nodeList = RelationalStoreManager::ParserQueryNodes(bytes, status);
+        EXPECT_EQ(status, OK);
+        actualNode.emplace_back(nodeList);
+    }
+
+    ASSERT_EQ(actualNode.size(), expectNode.size());
+    for (size_t i = 0; i < actualNode.size(); ++i) {
+        for (size_t j = 0; j < actualNode[i].size(); ++j) {
+            ASSERT_EQ(actualNode[i].size(), expectNode[i].size());
+            LOGD("check %zu table %zu node", i, j);
+            CheckQueryNode(expectNode[i][j], actualNode[i][j]);
+        }
+    }
+}
 }

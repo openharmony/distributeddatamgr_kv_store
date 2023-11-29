@@ -72,7 +72,7 @@ void DistributedDBDeviceIdentifierTest::SetUpTestCase(void)
     }
     g_property.SetStringProp(KvDBProperties::DATA_DIR, g_testDir);
     g_property.SetStringProp(KvDBProperties::STORE_ID, STORE_ID);
-    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    g_property.SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
 }
 
 void DistributedDBDeviceIdentifierTest::TearDownTestCase(void)
@@ -470,7 +470,7 @@ HWTEST_F(DistributedDBDeviceIdentifierTest, ErrDbTest004, TestSize.Level1)
      * @tc.expected: step5. Expect return -E_INVALID_DB
      */
     Value values;
-    EXPECT_EQ(errStore->PutMetaData(keys.front(), values), -E_INVALID_DB);
+    EXPECT_EQ(errStore->PutMetaData(keys.front(), values, false), -E_INVALID_DB);
 
     /**
      * @tc.steps: step6. Test remove device data

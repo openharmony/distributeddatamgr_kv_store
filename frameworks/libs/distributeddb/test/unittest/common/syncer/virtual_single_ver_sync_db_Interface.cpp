@@ -101,8 +101,9 @@ int VirtualSingleVerSyncDBInterface::GetMetaData(const Key &key, Value &value) c
     return -E_NOT_FOUND;
 }
 
-int VirtualSingleVerSyncDBInterface::PutMetaData(const Key &key, const Value &value)
+int VirtualSingleVerSyncDBInterface::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
+    (void)isInTransaction;
     if (busy_) {
         return -E_BUSY;
     }
@@ -364,6 +365,9 @@ int VirtualSingleVerSyncDBInterface::GetSecurityOption(SecurityOption &option) c
 {
     if (getSecurityOptionCallBack_) {
         return getSecurityOptionCallBack_(option);
+    }
+    if (secOption_.securityLabel == NOT_SET) {
+        return -E_NOT_SUPPORT;
     }
     option = secOption_;
     return E_OK;

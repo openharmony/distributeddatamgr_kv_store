@@ -15,7 +15,9 @@
 
 #include "param_check_utils.h"
 
+#include "cloud/cloud_db_constant.h"
 #include "db_common.h"
+#include "db_constant.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "platform_specific.h"
@@ -197,9 +199,96 @@ uint8_t ParamCheckUtils::GetValidCompressionRate(uint8_t compressionRate)
 
 bool ParamCheckUtils::CheckRelationalTableName(const std::string &tableName)
 {
-    if (!DBCommon::CheckIsAlnumAndUnderscore(tableName)) {
+    if (!DBCommon::CheckIsAlnumOrUnderscore(tableName)) {
         return false;
     }
     return tableName.compare(0, DBConstant::SYSTEM_TABLE_PREFIX.size(), DBConstant::SYSTEM_TABLE_PREFIX) != 0;
+}
+
+bool ParamCheckUtils::CheckTableReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    if (tableReferenceProperty.empty()) {
+        LOGI("[CheckTableReference] tableReferenceProperty is empty");
+        return true;
+    }
+
+    std::vector<std::vector<int>> dependency;
+    std::map<std::string, int, CaseInsensitiveComparator> tableName2Int;
+    int index = 0;
+    for (const auto &item : tableReferenceProperty) {
+        if (item.sourceTableName.empty() || item.targetTableName.empty() || item.columns.empty()) {
+            LOGE("[CheckTableReference] table name or column is empty");
+            return false;
+        }
+        std::vector<int> vec;
+        for (const auto &tableName : { item.sourceTableName, item.targetTableName }) {
+            if (tableName2Int.find(tableName) != tableName2Int.end()) {
+                vec.push_back(tableName2Int.at(tableName));
+            } else {
+                vec.push_back(index);
+                tableName2Int[tableName] = index;
+                index++;
+            }
+        }
+        if (std::find(dependency.begin(), dependency.end(), vec) != dependency.end()) {
+            LOGE("[CheckTableReference] set multiple reference for two tables is not support.");
+            return false;
+        }
+        dependency.emplace_back(vec);
+    }
+
+    if (DBCommon::IsCircularDependency(index, dependency)) {
+        LOGE("[CheckTableReference] circular reference is not support.");
+        return false;
+    }
+    return true;
+}
+
+bool ParamCheckUtils::CheckSharedTableName(const DataBaseSchema &schema)
+{
+    DataBaseSchema lowerSchema = schema;
+    TransferSchemaToLower(lowerSchema);
+    std::set<std::string> tableNames;
+    std::set<std::string> sharedTableNames;
+    for (const auto &tableSchema : lowerSchema.tables) {
+        if (tableSchema.sharedTableName == tableSchema.name) {
+            LOGE("[CheckSharedTableName] Shared table name and table name are same.");
+            return false;
+        }
+        if (sharedTableNames.find(tableSchema.sharedTableName) != sharedTableNames.end() ||
+            sharedTableNames.find(tableSchema.name) != sharedTableNames.end() ||
+            tableNames.find(tableSchema.sharedTableName) != tableNames.end() ||
+            tableNames.find(tableSchema.name) != tableNames.end()) {
+            LOGE("[CheckSharedTableName] Shared table names or table names are duplicate.");
+            return false;
+        }
+        if (!CheckRelationalTableName(tableSchema.sharedTableName)) {
+            return false;
+        }
+        tableNames.insert(tableSchema.name);
+        sharedTableNames.insert(tableSchema.sharedTableName);
+        std::set<std::string> fields;
+        for (const auto &field : tableSchema.fields) {
+            if (fields.find(field.colName) != fields.end() || field.colName == CloudDbConstant::CLOUD_OWNER ||
+                field.colName == CloudDbConstant::CLOUD_PRIVILEGE) {
+                LOGE("[CheckSharedTableName] fields are duplicate.");
+                return false;
+            }
+            fields.insert(field.colName);
+        }
+    }
+    return true;
+}
+
+void ParamCheckUtils::TransferSchemaToLower(DataBaseSchema &schema)
+{
+    for (auto &tableSchema : schema.tables) {
+        std::transform(tableSchema.name.begin(), tableSchema.name.end(), tableSchema.name.begin(), tolower);
+        std::transform(tableSchema.sharedTableName.begin(), tableSchema.sharedTableName.end(),
+            tableSchema.sharedTableName.begin(), tolower);
+        for (auto &field : tableSchema.fields) {
+            std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
+        }
+    }
 }
 } // namespace DistributedDB

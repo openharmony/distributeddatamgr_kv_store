@@ -92,6 +92,7 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
     }
     ICloudSyncer *syncer = syncer_;
     if (syncer == nullptr) {
+        LOGW("[ProcessNotifier] cancel notify because syncer is nullptr");
         return; // should not happen
     }
     RefObject::IncObjRef(syncer);
@@ -112,5 +113,23 @@ void ProcessNotifier::NotifyProcess(const ICloudSyncer::CloudTaskInfo &taskInfo,
 std::vector<std::string> ProcessNotifier::GetDevices() const
 {
     return devices_;
+}
+
+uint32_t ProcessNotifier::GetUploadBatchIndex(const std::string &tableName) const
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+        return 0u;
+    }
+    return syncProcess_.tableProcess.at(tableName).upLoadInfo.batchIndex;
+}
+
+uint32_t ProcessNotifier::GetLastUploadSuccessCount(const std::string &tableName) const
+{
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    if (syncProcess_.tableProcess.find(tableName) == syncProcess_.tableProcess.end()) {
+        return 0u;
+    }
+    return syncProcess_.tableProcess.at(tableName).upLoadInfo.successCount;
 }
 }

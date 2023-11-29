@@ -22,8 +22,14 @@ distrdb_Dir = [
   "${kv_store_distributeddb_path}common/include",
   "${kv_store_distributeddb_path}common/include/relational",
   "${kv_store_distributeddb_path}communicator/include",
+  "${kv_store_distributeddb_path}gaussdb_rd",
+  "${kv_store_distributeddb_path}gaussdb_rd/include",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_base",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_document",
+  "${kv_store_distributeddb_path}gaussdb_rd/include/grd_kv",
   "${kv_store_distributeddb_path}storage/include",
   "${kv_store_distributeddb_path}storage/src",
+  "${kv_store_distributeddb_path}storage/src/gaussdb_rd",
   "${kv_store_distributeddb_path}storage/src/multiver",
   "${kv_store_distributeddb_path}storage/src/operation",
   "${kv_store_distributeddb_path}storage/src/sqlite",
@@ -31,6 +37,13 @@ distrdb_Dir = [
   "${kv_store_distributeddb_path}storage/src/upgrader",
   "${kv_store_distributeddb_path}syncer/include",
   "${kv_store_distributeddb_path}syncer/src",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/common/include",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/executor/include",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/executor/document",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/oh_adapter/include",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/oh_adapter/src",
+  "${kv_store_distributeddb_path}gaussdb_rd/src/interface/include",
+
   "//third_party/openssl/include/",
   "//third_party/bounds_checking_function/include",
 ]
@@ -54,6 +67,9 @@ config("distrdb_public_config") {
     "${kv_store_distributeddb_path}interfaces/include",
     "${kv_store_distributeddb_path}interfaces/include/relational",
     "${kv_store_distributeddb_path}include",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_base",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_document",
+    "${kv_store_distributeddb_path}gaussdb_rd/include/grd_kv",
   ]
 }
 
@@ -80,6 +96,7 @@ config("distrdb_config") {
     "EVLOOP_TIMER_ONLY",
     "USING_PRINTF_LOGGER",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "OMIT_cJSON",
   ]
   if (use_platform_win) {
     defines += [ "OS_TYPE_WINDOWS" ]
@@ -91,6 +108,7 @@ config("distrdb_config") {
 ohos_shared_library("distributeddb_mock") {
   cflags_cc = [ "-std=c++17" ]
   sources = distrdb_sources
+  sources += distributeddb_src_rd
   configs = [ ":distrdb_config" ]
   public_configs = [ ":distrdb_public_config" ]
   ldflags = [ "-v" ]

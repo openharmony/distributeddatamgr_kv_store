@@ -12,8 +12,8 @@
 # limitations under the License.
 
 # any change to
-# frameworks/innerkitsimpl/distributeddatafwk/include/distributeddata_ipc_interface_code.h
+# frameworks/innerkitsimpl/distributeddatasvc/include/distributeddata_ipc_interface_code.h
 # frameworks/innerkitsimpl/kvdb/include/distributeddata_kvdb_ipc_interface_code.h
 # needs to be reviewed by @leonchan5
-frameworks/innerkitsimpl/distributeddatafwk/include/distributeddata_ipc_interface_code.h @leonchan5
+frameworks/innerkitsimpl/distributeddatasvc/include/distributeddata_ipc_interface_code.h @leonchan5
 frameworks/innerkitsimpl/kvdb/include/distributeddata_kvdb_ipc_interface_code.h @leonchan5

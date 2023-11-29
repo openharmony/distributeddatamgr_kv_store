@@ -687,7 +687,7 @@ namespace {
         }
         if (localOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET) ||
             remoteOption.securityLabel == static_cast<int>(SecurityLabel::NOT_SET)) {
-            return OK;
+            return SECURITY_OPTION_CHECK_ERROR;
         }
         if (localOption.securityLabel != remoteOption.securityLabel) {
             return SECURITY_OPTION_CHECK_ERROR;
@@ -726,6 +726,9 @@ namespace {
             condition.sql = "SELECT * FROM " + g_tableName;
             std::shared_ptr<ResultSet> result = nullptr;
             ASSERT_NE(g_rdbDelegatePtr, nullptr);
+            LOGW("local:label %d, flag %d, remote:label %d, flag %d, expect %d", localOption.securityLabel,
+                localOption.securityFlag, remoteOption.securityLabel, remoteOption.securityFlag,
+                static_cast<int>(resStatus));
             EXPECT_EQ(g_rdbDelegatePtr->RemoteQuery(DEVICE_B, condition, DBConstant::MIN_TIMEOUT, result), resStatus);
         } else {
             BlockSync(SYNC_MODE_PUSH_ONLY, resStatus, {DEVICE_B});
@@ -1739,9 +1742,10 @@ HWTEST_F(DistributedDBRelationalVerP2PSyncTest, Observer004, TestSize.Level0)
      * @tc.expected: step2. data change device is deviceB
      */
     EXPECT_EQ(observer->GetCallCount(), 1u);
-    EXPECT_EQ(g_observer->GetCallCount(), 0u);
+    EXPECT_EQ(g_observer->GetCallCount(), 1u); // support multi observer for one delegate
     EXPECT_EQ(observer->GetDataChangeDevice(), DEVICE_B);
     CheckIdentify(observer);
+    delete observer;
 }
 
 /*
@@ -1926,12 +1930,13 @@ void RegisterNewObserver(RelationalStoreDelegate *rdb1, RelationalStoreObserverU
     InsertDataToDeviceB(dataMap, g_tableName, g_fieldInfoList, 2); // 2 is watermark
     Query query = Query::Select(g_tableName);
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
-    EXPECT_EQ(observer1->GetCallCount(), 0u);
+    EXPECT_EQ(observer1->GetCallCount(), 1u); // one delegate can register 8 observer
     EXPECT_EQ(autoLaunchObserver->GetCallCount(), 2u); // 2 is auto_launch observer triggered times
     EXPECT_EQ(observer2->GetCallCount(), 1u);
 
     EXPECT_EQ(rdb1->UnRegisterObserver(), OK);
     observer2->ResetToZero();
+    observer1->ResetToZero();
     InsertDataToDeviceB(dataMap, g_tableName, g_fieldInfoList, 3); // 3 is watermark
     EXPECT_EQ(g_deviceB->GenericVirtualDevice::Sync(SYNC_MODE_PUSH_ONLY, query, true), E_OK);
     EXPECT_EQ(observer1->GetCallCount(), 0u);

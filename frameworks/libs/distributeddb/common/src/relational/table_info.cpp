@@ -23,6 +23,7 @@
 namespace DistributedDB {
 constexpr const char *ASSET = "asset";
 constexpr const char *ASSETS = "assets";
+constexpr const char *ROW_ID = "rowid";
 
 const std::string &FieldInfo::GetFieldName() const
 {
@@ -183,7 +184,10 @@ int FieldInfo::CompareWithField(const FieldInfo &inField, bool isLite) const
     }
     if (hasDefaultValue_ && inField.HasDefaultValue()) {
         // lite schema only uses NULL as default value
-        return (isLite && defaultValue_ == "NULL") || defaultValue_ == inField.GetDefaultValue();
+        return (isLite && DBCommon::CaseInsensitiveCompare(defaultValue_, "NULL")) ||
+            (DBCommon::CaseInsensitiveCompare(defaultValue_, "NULL") &&
+            DBCommon::CaseInsensitiveCompare(inField.GetDefaultValue(), "NULL")) ||
+            (defaultValue_ == inField.GetDefaultValue());
     }
     return hasDefaultValue_ == inField.HasDefaultValue();
 }
@@ -216,6 +220,26 @@ const std::string &TableInfo::GetTableName() const
 void TableInfo::SetTableName(const std::string &tableName)
 {
     tableName_ = tableName;
+}
+
+const std::string &TableInfo::GetOriginTableName() const
+{
+    return originTableName_;
+}
+
+void TableInfo::SetOriginTableName(const std::string &originTableName)
+{
+    originTableName_ = originTableName;
+}
+
+void TableInfo::SetSharedTableMark(bool sharedTableMark)
+{
+    sharedTableMark_ = sharedTableMark;
+}
+
+bool TableInfo::GetSharedTableMark() const
+{
+    return sharedTableMark_;
 }
 
 void TableInfo::SetAutoIncrement(bool autoInc)
@@ -326,7 +350,7 @@ const std::map<int, FieldName> &TableInfo::GetPrimaryKey() const
 
 CompositeFields TableInfo::GetIdentifyKey() const
 {
-    if (primaryKey_.size() == 1 && primaryKey_.at(0) == "rowid") {
+    if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
         if (!uniqueDefines_.empty()) {
             return uniqueDefines_.at(0);
         }
@@ -624,16 +648,16 @@ int TableInfo::CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) c
 
 int TableInfo::CompareWithLiteSchemaTable(const TableInfo &liteTableInfo) const
 {
-    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") &&
+    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) &&
         !CompareWithPrimaryKey(primaryKey_, liteTableInfo.GetPrimaryKey())) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == "rowid")) {
+    if (!liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) == ROW_ID)) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
-    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != "rowid") && !autoInc_)) {
+    if ((liteTableInfo.GetPrimaryKey().empty() && (primaryKey_.at(0) != ROW_ID) && !autoInc_)) {
         LOGE("[Relational][Compare] Table primary key is not same");
         return -E_RELATIONAL_TABLE_INCOMPATIBLE;
     }
@@ -647,8 +671,15 @@ std::string TableInfo::ToTableInfoString(const std::string &schemaVersion) const
     attrStr += "{";
     attrStr += R"("NAME": ")" + tableName_ + "\",";
     AddFieldDefineString(attrStr);
+    attrStr += R"("ORIGINTABLENAME": ")" + originTableName_ + "\",";
     attrStr += R"("AUTOINCREMENT": )";
     if (autoInc_) {
+        attrStr += "true,";
+    } else {
+        attrStr += "false,";
+    }
+    attrStr += R"("SHAREDTABLEMARK": )";
+    if (sharedTableMark_) {
         attrStr += "true,";
     } else {
         attrStr += "false,";
@@ -703,5 +734,65 @@ int TableInfo::GetTableId() const
 bool TableInfo::Empty() const
 {
     return tableName_.empty() || fields_.empty();
+}
+
+void TableInfo::SetTrackerTable(const TrackerTable &table)
+{
+    trackerTable_ = table;
+}
+
+int TableInfo::CheckTrackerTable()
+{
+    if (tableName_ != trackerTable_.GetTableName()) {
+        LOGE("the table name in schema is different from tracker table.");
+        return -E_NOT_FOUND;
+    }
+    if (trackerTable_.GetTrackerColNames().empty()) {
+        return E_OK;
+    }
+    for (const auto &colName: trackerTable_.GetTrackerColNames()) {
+        if (colName.empty()) {
+            LOGE("tracker col cannot be empty.");
+            return -E_INVALID_ARGS;
+        }
+        if (GetFields().find(colName) == GetFields().end()) {
+            LOGE("unable to match the tracker col from table schema.");
+            return -E_SCHEMA_MISMATCH;
+        }
+    }
+    if (trackerTable_.GetExtendName().empty()) {
+        return E_OK;
+    }
+    auto iter = GetFields().find(trackerTable_.GetExtendName());
+    if (iter == GetFields().end()) {
+        LOGE("unable to match the extend col from table schema.");
+        return -E_SCHEMA_MISMATCH;
+    } else {
+        if (iter->second.IsAssetType() || iter->second.IsAssetsType()) {
+            LOGE("extend col is not allowed to be set as an asset field.");
+            return -E_INVALID_ARGS;
+        }
+    }
+    return E_OK;
+}
+
+const TrackerTable &TableInfo::GetTrackerTable() const
+{
+    return trackerTable_;
+}
+
+void TableInfo::AddTableReferenceProperty(const TableReferenceProperty &tableRefProperty)
+{
+    sourceTableReferenced_.push_back(tableRefProperty);
+}
+
+void TableInfo::SetSourceTableReference(const std::vector<TableReferenceProperty> &tableReference)
+{
+    sourceTableReferenced_ = tableReference;
+}
+
+const std::vector<TableReferenceProperty> &TableInfo::GetTableReference() const
+{
+    return sourceTableReferenced_;
 }
 } // namespace DistributeDB

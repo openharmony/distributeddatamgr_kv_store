@@ -185,7 +185,7 @@ int RelationalSyncAbleStorage::GetMetaData(const Key &key, Value &value) const
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
-    auto *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+    auto handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
     }
@@ -213,6 +213,42 @@ int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value)
         TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
     }
     ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
+{
+    CHECK_STORAGE_ENGINE;
+    int errCode = E_OK;
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    std::unique_lock<std::mutex> handLock(reusedHandleMutex_, std::defer_lock);
+
+    // try to recycle using the handle
+    if (isInTransaction) {
+        handLock.lock();
+        if (reusedHandle_ != nullptr) {
+            handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(reusedHandle_);
+        } else {
+            isInTransaction = false;
+            handLock.unlock();
+        }
+    }
+
+    if (handle == nullptr) {
+        handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
+        if (handle == nullptr) {
+            return errCode;
+        }
+    }
+
+    errCode = handle->PutKvData(key, value);
+    if (errCode != E_OK) {
+        LOGE("Put kv data err:%d", errCode);
+        TriggerCloseAutoLaunchConn(storageEngine_->GetProperties());
+    }
+    if (!isInTransaction) {
+        ReleaseHandle(handle);
+    }
     return errCode;
 }
 
@@ -499,11 +535,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
-    StoreInfo info = {
-        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
-        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
-        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
-    };
+    StoreInfo info = GetStoreInfo();
     auto inserter = RelationalSyncDataInserter::CreateInserter(deviceName, query, storageEngine_->GetSchema(),
         remoteSchema.GetTable(query.GetTableName()).GetFieldInfos(), info);
     inserter.SetEntries(dataItems);
@@ -513,7 +545,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
         return errCode;
     }
 
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
 
     errCode = handle->SaveSyncItems(inserter);
 
@@ -632,11 +664,7 @@ int RelationalSyncAbleStorage::CreateDistributedDeviceTable(const std::string &d
         return errCode;
     }
 
-    StoreInfo info = {
-        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
-        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
-        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
-    };
+    StoreInfo info = GetStoreInfo();
     for (const auto &[table, strategy] : syncStrategy) {
         if (!strategy.permitSync) {
             continue;
@@ -681,10 +709,49 @@ int RelationalSyncAbleStorage::GetCompressionAlgo(std::set<CompressAlgorithm> &a
     return E_OK;
 }
 
-void RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
+int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
     std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-    dataChangeCallbackMap_[connectionId] = action;
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        if (it->second.find(observer) != it->second.end()) {
+            LOGE("obsever already registered");
+            return -E_ALREADY_SET;
+        }
+        if (it->second.size() >= DBConstant::MAX_OBSERVER_COUNT) {
+            LOGE("The number of relational observers has been over limit");
+            return -E_MAX_LIMITS;
+        }
+        it->second[observer] = action;
+    } else {
+        dataChangeCallbackMap_[connectionId][observer] = action;
+    }
+    LOGI("register relational observer ok");
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer)
+{
+    if (observer == nullptr) {
+        EraseDataChangeCallback(connectionId);
+        return E_OK;
+    }
+    std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
+    auto it = dataChangeCallbackMap_.find(connectionId);
+    if (it != dataChangeCallbackMap_.end()) {
+        auto action = it->second.find(observer);
+        if (action != it->second.end()) {
+            it->second.erase(action);
+            LOGI("unregister relational observer.");
+            if (it->second.empty()) {
+                dataChangeCallbackMap_.erase(it);
+                LOGI("observer for this delegate is zero now");
+            }
+            return E_OK;
+        }
+    }
+    return -E_NOT_FOUND;
 }
 
 void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
@@ -693,14 +760,23 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
     IncObjRef(this);
     int taskErrCode =
         RuntimeContext::GetInstance()->ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
+        LOGD("begin to trigger relational observer.");
+        int observerCnt = 0;
         std::lock_guard<std::mutex> lock(dataChangeDeviceMutex_);
-        LOGD("begin to trigger observer, size = %zu(include null observer)", dataChangeCallbackMap_.size());
         for (const auto &item : dataChangeCallbackMap_) {
-            if (item.second != nullptr) {
+            for (auto &action : item.second) {
+                if (action.second == nullptr) {
+                    continue;
+                }
+                observerCnt++;
                 ChangedData observerChangeData = changedData;
-                item.second(deviceName, std::move(observerChangeData), isChangedData);
+                if (action.first != nullptr) {
+                    FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
+                }
+                action.second(deviceName, std::move(observerChangeData), isChangedData);
             }
         }
+        LOGD("relational observer size = %d", observerCnt);
         DecObjRef(this);
     });
     if (taskErrCode != E_OK) {
@@ -880,12 +956,28 @@ int RelationalSyncAbleStorage::GetRemoteDeviceSchema(const std::string &deviceId
     return errCode;
 }
 
+void RelationalSyncAbleStorage::SetReusedHandle(StorageExecutor *handle)
+{
+    std::lock_guard<std::mutex> autoLock(reusedHandleMutex_);
+    reusedHandle_ = handle;
+}
+
 void RelationalSyncAbleStorage::ReleaseRemoteQueryContinueToken(ContinueToken &token) const
 {
     auto remoteToken = static_cast<RelationalRemoteQueryContinueToken *>(token);
     delete remoteToken;
     remoteToken = nullptr;
     token = nullptr;
+}
+
+StoreInfo RelationalSyncAbleStorage::GetStoreInfo() const
+{
+    StoreInfo info = {
+        storageEngine_->GetProperties().GetStringProp(DBProperties::USER_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::APP_ID, ""),
+        storageEngine_->GetProperties().GetStringProp(DBProperties::STORE_ID, "")
+    };
+    return info;
 }
 
 int RelationalSyncAbleStorage::StartTransaction(TransactType type)
@@ -941,59 +1033,34 @@ int RelationalSyncAbleStorage::Rollback()
     return errCode;
 }
 
-int RelationalSyncAbleStorage::GetUploadCount(const std::string &tableName, const Timestamp &timestamp,
-    const bool isCloudForcePush, int64_t &count)
+int RelationalSyncAbleStorage::GetUploadCount(const QuerySyncObject &query, const Timestamp &timestamp,
+    bool isCloudForcePush, int64_t &count)
 {
     int errCode = E_OK;
     auto *handle = GetHandleExpectTransaction(false, errCode);
     if (handle == nullptr) {
         return errCode;
     }
-    errCode = handle->GetUploadCount(tableName, timestamp, isCloudForcePush, count);
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    errCode = handle->GetUploadCount(timestamp, isCloudForcePush, queryObj, count);
     if (transactionHandle_ == nullptr) {
         ReleaseHandle(handle);
     }
     return errCode;
 }
 
-int RelationalSyncAbleStorage::FillCloudGid(const CloudSyncData &data)
-{
-    if (storageEngine_ == nullptr) {
-        return -E_INVALID_DB;
-    }
-    int errCode = E_OK;
-    auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
-        storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
-    if (writeHandle == nullptr) {
-        return errCode;
-    }
-    errCode = writeHandle->StartTransaction(TransactType::IMMEDIATE);
-    if (errCode != E_OK) {
-        ReleaseHandle(writeHandle);
-        return errCode;
-    }
-    errCode = writeHandle->UpdateCloudLogGid(data);
-    if (errCode != E_OK) {
-        writeHandle->Rollback();
-        ReleaseHandle(writeHandle);
-        return errCode;
-    }
-    errCode = writeHandle->Commit();
-    ReleaseHandle(writeHandle);
-    return errCode;
-}
-
-int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const Timestamp &beginTime,
-    ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
+int RelationalSyncAbleStorage::GetCloudData(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+    const Timestamp &beginTime, ContinueToken &continueStmtToken, CloudSyncData &cloudDataResult)
 {
     if (transactionHandle_ == nullptr) {
-        LOGE(" the transaction has not been started");
+        LOGE("the transaction has not been started");
         return -E_INVALID_DB;
     }
     SyncTimeRange syncTimeRange = { .beginTime = beginTime };
-    QueryObject queryObject;
-    queryObject.SetTableName(tableSchema.name);
-    auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, queryObject);
+    QuerySyncObject query = querySyncObject;
+    query.SetSchema(GetSchemaInfo());
+    auto token = new (std::nothrow) SQLiteSingleVerRelationalContinueToken(syncTimeRange, query);
     if (token == nullptr) {
         LOGE("[SingleVerNStore] Allocate continue token failed.");
         return -E_OUT_OF_MEMORY;
@@ -1018,12 +1085,37 @@ int RelationalSyncAbleStorage::GetCloudDataNext(ContinueToken &continueStmtToken
         ReleaseCloudDataToken(continueStmtToken);
         return -E_INVALID_DB;
     }
+    cloudDataResult.isShared = IsSharedTable(cloudDataResult.tableName);
     int errCode = transactionHandle_->GetSyncCloudData(cloudDataResult, CloudDbConstant::MAX_UPLOAD_SIZE, *token);
     if (errCode != -E_UNFINISHED) {
         delete token;
         token = nullptr;
     }
     continueStmtToken = static_cast<ContinueToken>(token);
+    if (errCode != E_OK && errCode != -E_UNFINISHED) {
+        return errCode;
+    }
+    int fillRefGidCode = FillReferenceData(cloudDataResult);
+    return fillRefGidCode == E_OK ? errCode : fillRefGidCode;
+}
+
+int RelationalSyncAbleStorage::GetCloudGid(const TableSchema &tableSchema, const QuerySyncObject &querySyncObject,
+    bool isCloudForcePush, std::vector<std::string> &cloudGid)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    Timestamp beginTime = 0u;
+    SyncTimeRange syncTimeRange = { .beginTime = beginTime };
+    QuerySyncObject query = querySyncObject;
+    query.SetSchema(GetSchemaInfo());
+    errCode = handle->GetSyncCloudGid(query, syncTimeRange, isCloudForcePush, cloudGid);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] GetCloudGid failed %d", errCode);
+    }
     return errCode;
 }
 
@@ -1053,13 +1145,6 @@ int RelationalSyncAbleStorage::SetCloudDbSchema(const DataBaseSchema &schema)
 {
     std::unique_lock<std::shared_mutex> writeLock(schemaMgrMutex_);
     schemaMgr_.SetCloudDbSchema(schema);
-    return E_OK;
-}
-
-int RelationalSyncAbleStorage::GetCloudDbSchema(DataBaseSchema &cloudSchema)
-{
-    std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
-    cloudSchema = *(schemaMgr_.GetCloudDbSchema());
     return E_OK;
 }
 
@@ -1097,7 +1182,18 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
     transactionHandle_->SetLocalSchema(localSchema);
-    return transactionHandle_->PutCloudSyncData(tableName, tableSchema, downloadData);
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    transactionHandle_->SetLogicDelete(false);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetCloudDbSchema(std::shared_ptr<DataBaseSchema> &cloudSchema)
+{
+    std::shared_lock<std::shared_mutex> readLock(schemaMgrMutex_);
+    cloudSchema = schemaMgr_.GetCloudDbSchema();
+    return E_OK;
 }
 
 int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<std::string> &tableNameList,
@@ -1107,7 +1203,6 @@ int RelationalSyncAbleStorage::CleanCloudData(ClearMode mode, const std::vector<
         LOGE("the transaction has not been started");
         return -E_INVALID_DB;
     }
-
     return transactionHandle_->DoCleanInner(mode, tableNameList, localSchema, assets);
 }
 
@@ -1154,13 +1249,19 @@ int RelationalSyncAbleStorage::SetLogTriggerStatus(bool status)
     return errCode;
 }
 
-int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType opType, const CloudSyncData &data)
+int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const CloudSyncData &data, bool fillAsset,
+    bool ignoreEmptyGid)
 {
     CHECK_STORAGE_ENGINE;
     if (opType == OpType::UPDATE && data.updData.assets.empty()) {
         return E_OK;
     }
-    int errCode = E_OK;
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(data.tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("get table schema failed when fill log and asset. %d", errCode);
+        return errCode;
+    }
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
@@ -1171,22 +1272,9 @@ int RelationalSyncAbleStorage::FillCloudGidAndAsset(const OpType opType, const C
         ReleaseHandle(writeHandle);
         return errCode;
     }
-    if (opType == OpType::INSERT) {
-        errCode = writeHandle->UpdateCloudLogGid(data);
-        if (errCode != E_OK) {
-            LOGE("Failed to fill cloud log gid, %d.", errCode);
-            writeHandle->Rollback();
-            ReleaseHandle(writeHandle);
-            return errCode;
-        }
-        if (!data.insData.assets.empty()) {
-            errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.insData);
-        }
-    } else {
-        errCode = writeHandle->FillCloudAssetForUpload(data.tableName, data.updData);
-    }
+    errCode = writeHandle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
     if (errCode != E_OK) {
-        LOGE("Failed to fill cloud asset, %d.", errCode);
+        LOGE("Failed to fill version or cloud asset, opType:%d ret:%d.", opType, errCode);
         writeHandle->Rollback();
         ReleaseHandle(writeHandle);
         return errCode;
@@ -1216,6 +1304,7 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
     auto it = dataChangeCallbackMap_.find(connectionId);
     if (it != dataChangeCallbackMap_.end()) {
         dataChangeCallbackMap_.erase(it);
+        LOGI("erase all observer for this delegate.");
     }
 }
 
@@ -1228,6 +1317,313 @@ void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmt
     }
     delete token;
     continueStmtToken = nullptr;
+}
+
+int RelationalSyncAbleStorage::GetCloudDataGid(const QuerySyncObject &query, Timestamp beginTime,
+    std::vector<std::string> &gid)
+{
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::CheckQueryValid(const QuerySyncObject &query)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->CheckQueryObjectLegal(query);
+    if (errCode != E_OK) {
+        ReleaseHandle(handle);
+        return errCode;
+    }
+    QuerySyncObject queryObj = query;
+    queryObj.SetSchema(GetSchemaInfo());
+    int64_t count = 0;
+    errCode = handle->GetUploadCount(UINT64_MAX, false, queryObj, count);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] CheckQueryValid failed %d", errCode);
+        return -E_INVALID_ARGS;
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableName)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        trackerTable.SetTableName(tableName);
+    }
+    errCode = handle->CreateTempSyncTrigger(trackerTable);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetAndResetServerObserverData(const std::string &tableName,
+    ChangeProperties &changeProperties)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetAndResetServerObserverData(tableName, changeProperties);
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get server observer data failed %d", errCode);
+    }
+    return errCode;
+}
+
+void RelationalSyncAbleStorage::FilterChangeDataByDetailsType(ChangedData &changedData, uint32_t type)
+{
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::DEFAULT)) == 0) {
+        changedData.field = {};
+        for (size_t i = ChangeType::OP_INSERT; i < ChangeType::OP_BUTT; ++i) {
+            changedData.primaryData[i].clear();
+        }
+    }
+    if ((type & static_cast<uint32_t>(CallbackDetailsType::BRIEF)) == 0) {
+        changedData.properties = {};
+    }
+}
+
+int RelationalSyncAbleStorage::ClearAllTempSyncTrigger()
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->ClearAllTempSyncTrigger();
+    ReleaseHandle(handle);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] clear all temp sync trigger failed %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::FillReferenceData(CloudSyncData &syncData)
+{
+    std::map<int64_t, Entries> referenceGid;
+    int errCode = GetReferenceGid(syncData.tableName, syncData.insData, referenceGid);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get insert reference data failed %d", errCode);
+        return errCode;
+    }
+    errCode = FillReferenceDataIntoExtend(syncData.insData.rowid, referenceGid, syncData.insData.extend);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    referenceGid.clear();
+    errCode = GetReferenceGid(syncData.tableName, syncData.updData, referenceGid);
+    if (errCode != E_OK) {
+        LOGE("[RelationalSyncAbleStorage] get update reference data failed %d", errCode);
+        return errCode;
+    }
+    return FillReferenceDataIntoExtend(syncData.updData.rowid, referenceGid, syncData.updData.extend);
+}
+
+int RelationalSyncAbleStorage::FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
+    const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend)
+{
+    if (referenceGid.empty()) {
+        return E_OK;
+    }
+    int ignoredCount = 0;
+    for (size_t index = 0u; index < rowid.size(); index++) {
+        if (index >= extend.size()) {
+            LOGE("[RelationalSyncAbleStorage] index out of range when fill reference gid into extend!");
+            return -E_UNEXPECTED_DATA;
+        }
+        int64_t rowId = rowid[index];
+        if (referenceGid.find(rowId) == referenceGid.end()) {
+            // current data miss match reference data, we ignored it
+            ignoredCount++;
+            continue;
+        }
+        extend[index].insert({ CloudDbConstant::REFERENCE_FIELD, referenceGid.at(rowId) });
+    }
+    if (ignoredCount != 0) {
+        LOGD("[RelationalSyncAbleStorage] ignored %d data when fill reference data", ignoredCount);
+    }
+    return E_OK;
+}
+
+bool RelationalSyncAbleStorage::IsSharedTable(const std::string &tableName)
+{
+    std::unique_lock<std::shared_mutex> writeLock(schemaMgrMutex_);
+    return schemaMgr_.IsSharedTable(tableName);
+}
+
+std::map<std::string, std::string> RelationalSyncAbleStorage::GetSharedTableOriginNames()
+{
+    std::unique_lock<std::shared_mutex> writeLock(schemaMgrMutex_);
+    return schemaMgr_.GetSharedTableOriginNames();
+}
+
+int RelationalSyncAbleStorage::GetReferenceGid(const std::string &tableName, const CloudSyncBatch &syncBatch,
+    std::map<int64_t, Entries> &referenceGid)
+{
+    std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+    int errCode = GetTableReference(tableName, tableReference);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (tableReference.empty()) {
+        LOGD("[RelationalSyncAbleStorage] currentTable not exist reference property");
+        return E_OK;
+    }
+    auto *handle = GetHandle(false, errCode);
+    if (handle == nullptr) {
+        return errCode;
+    }
+    errCode = handle->GetReferenceGid(tableName, syncBatch, tableReference, referenceGid);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetTableReference(const std::string &tableName,
+    std::map<std::string, std::vector<TableReferenceProperty>> &reference)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] storage is null when get reference gid");
+        return -E_INVALID_DB;
+    }
+    RelationalSchemaObject schema = storageEngine_->GetSchema();
+    auto referenceProperty = schema.GetReferenceProperty();
+    if (referenceProperty.empty()) {
+        return E_OK;
+    }
+    auto [sourceTableName, errCode] = GetSourceTableName(tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (const auto &property : referenceProperty) {
+        if (DBCommon::CaseInsensitiveCompare(property.sourceTableName, sourceTableName)) {
+            if (!IsSharedTable(tableName)) {
+                reference[property.targetTableName].push_back(property);
+                continue;
+            }
+            TableReferenceProperty tableReference;
+            tableReference.sourceTableName = tableName;
+            tableReference.columns = property.columns;
+            auto [sharedTargetTable, ret] = GetSharedTargetTableName(property.targetTableName);
+            if (ret != E_OK) {
+                return ret;
+            }
+            tableReference.targetTableName = sharedTargetTable;
+            reference[tableReference.targetTableName].push_back(tableReference);
+        }
+    }
+    return E_OK;
+}
+
+std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const std::string &tableName)
+{
+    std::pair<std::string, int> res = { "", E_OK };
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    (void) GetCloudDbSchema(cloudSchema);
+    if (cloudSchema == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] cloud schema is null when get source table");
+        return { "", -E_INTERNAL_ERROR };
+    }
+    for (const auto &table : cloudSchema->tables) {
+        if (table.sharedTableName.empty()) {
+            continue;
+        }
+        if (DBCommon::CaseInsensitiveCompare(table.name, tableName) ||
+            DBCommon::CaseInsensitiveCompare(table.sharedTableName, tableName)) {
+            res.first = table.name;
+            break;
+        }
+    }
+    if (res.first.empty()) {
+        LOGE("[RelationalSyncAbleStorage] not found table in cloud schema");
+        res.second = -E_SCHEMA_MISMATCH;
+    }
+    return res;
+}
+
+std::pair<std::string, int> RelationalSyncAbleStorage::GetSharedTargetTableName(const std::string &tableName)
+{
+    std::pair<std::string, int> res = { "", E_OK };
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    (void) GetCloudDbSchema(cloudSchema);
+    if (cloudSchema == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] cloud schema is null when get shared target table");
+        return { "", -E_INTERNAL_ERROR };
+    }
+    for (const auto &table : cloudSchema->tables) {
+        if (table.sharedTableName.empty()) {
+            continue;
+        }
+        if (DBCommon::CaseInsensitiveCompare(table.name, tableName)) {
+            res.first = table.sharedTableName;
+            break;
+        }
+    }
+    if (res.first.empty()) {
+        LOGE("[RelationalSyncAbleStorage] not found table in cloud schema");
+        res.second = -E_SCHEMA_MISMATCH;
+    }
+    return res;
+}
+
+void RelationalSyncAbleStorage::SetLogicDelete(bool logicDelete)
+{
+    logicDelete_ = logicDelete;
+    LOGI("[RelationalSyncAbleStorage] set logic delete %d", static_cast<int>(logicDelete));
+}
+
+void RelationalSyncAbleStorage::SetCloudTaskConfig(const CloudTaskConfig &config)
+{
+    allowLogicDelete_ = config.allowLogicDelete;
+    LOGD("[RelationalSyncAbleStorage] allow logic delete %d", static_cast<int>(config.allowLogicDelete));
+}
+
+bool RelationalSyncAbleStorage::IsCurrentLogicDelete() const
+{
+    return allowLogicDelete_ && logicDelete_;
+}
+
+int RelationalSyncAbleStorage::GetAssetsByGidOrHashKey(const TableSchema &tableSchema, const std::string &gid,
+    const Bytes &hashKey, VBucket &assets)
+{
+    if (gid.empty() && hashKey.empty()) {
+        LOGE("both gid and hashKey are empty.");
+        return -E_INVALID_ARGS;
+    }
+    if (transactionHandle_ == nullptr) {
+        LOGE("the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    int errCode = transactionHandle_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("get assets by gid or hashKey failed. %d", errCode);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
+{
+    int errCode = E_OK;
+    auto *wHandle = GetHandle(true, errCode);
+    if (wHandle == nullptr) {
+        return errCode;
+    }
+    wHandle->SetIAssetLoader(loader);
+    ReleaseHandle(wHandle);
+    return errCode;
 }
 }
 #endif

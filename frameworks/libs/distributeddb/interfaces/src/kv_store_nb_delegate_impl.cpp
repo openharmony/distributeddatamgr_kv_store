@@ -18,6 +18,7 @@
 #include <functional>
 #include <string>
 
+#include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
 #include "db_types.h"
@@ -386,7 +387,7 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     if (observerMap_.find(observer) != observerMap_.end()) {
         LOGE("[KvStoreNbDelegate] Observer has been already registered!");
-        return DB_ERROR;
+        return ALREADY_SET;
     }
 
     if (conn_ == nullptr) {
@@ -504,6 +505,10 @@ DBStatus KvStoreNbDelegateImpl::Sync(const std::vector<std::string> &devices, Sy
         return NOT_SUPPORT;
     }
 
+    if (!DBCommon::CheckQueryWithoutMultiTable(query)) {
+        LOGE("not support for invalid query");
+        return NOT_SUPPORT;
+    }
     QuerySyncObject querySyncObj(query);
     if (querySyncObj.GetSortType() != SortType::NONE) {
         LOGE("not support order by timestamp");

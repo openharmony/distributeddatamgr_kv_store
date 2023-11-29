@@ -80,14 +80,12 @@ DBStatus RuntimeConfig::SetProcessCommunicator(const std::shared_ptr<IProcessCom
 
 DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV2 &callback)
 {
-    int errCode = RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback);
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
 }
 
 DBStatus RuntimeConfig::SetPermissionCheckCallback(const PermissionCheckCallbackV3 &callback)
 {
-    int errCode = RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback);
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionCheckCallback(callback));
 }
 
 DBStatus RuntimeConfig::SetProcessSystemAPIAdapter(const std::shared_ptr<IProcessSystemApiAdapter> &adapter)
@@ -103,15 +101,13 @@ void RuntimeConfig::Dump(int fd, const std::vector<std::u16string> &args)
 DBStatus RuntimeConfig::SetSyncActivationCheckCallback(const SyncActivationCheckCallback &callback)
 {
     std::lock_guard<std::mutex> lock(multiUserMutex_);
-    int errCode = RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback);
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback));
 }
 
 DBStatus RuntimeConfig::NotifyUserChanged()
 {
     std::lock_guard<std::mutex> lock(multiUserMutex_);
-    int errCode = RuntimeContext::GetInstance()->NotifyUserChanged();
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->NotifyUserChanged());
 }
 
 bool RuntimeConfig::IsProcessSystemApiAdapterValid()
@@ -122,14 +118,12 @@ bool RuntimeConfig::IsProcessSystemApiAdapterValid()
 DBStatus RuntimeConfig::SetSyncActivationCheckCallback(const SyncActivationCheckCallbackV2 &callback)
 {
     std::lock_guard<std::mutex> lock(multiUserMutex_);
-    int errCode = RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback);
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetSyncActivationCheckCallback(callback));
 }
 
 DBStatus RuntimeConfig::SetPermissionConditionCallback(const PermissionConditionCallback &callback)
 {
-    int errCode = RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback);
-    return TransferDBErrno(errCode);
+    return TransferDBErrno(RuntimeContext::GetInstance()->SetPermissionConditionCallback(callback));
 }
 
 void RuntimeConfig::SetTranslateToDeviceIdCallback(const DistributedDB::TranslateToDeviceIdCallback &callback)

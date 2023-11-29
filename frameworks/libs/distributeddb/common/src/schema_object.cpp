@@ -749,8 +749,12 @@ int SchemaObject::CompareSchemaVersionMode(const SchemaObject &newSchema) const
 
     // Only Json-Schema need to compare mode
     if (schemaType_ == SchemaType::JSON && schemaMode_ != newSchema.schemaMode_) {
-        LOGE("[Schema][CompareVerMode] OldMode=%d mismatch newMode=%d.", static_cast<int>(schemaMode_),
-            static_cast<int>(newSchema.schemaMode_));
+        static std::map<SchemaMode, std::string> modeMapString = {
+            {SchemaMode::STRICT, "STRICT"},
+            {SchemaMode::COMPATIBLE, "COMPATIBLE"},
+        };
+        LOGE("[Schema][CompareVerMode] OldMode=%s mismatch newMode=%s.", modeMapString[schemaMode_].c_str(),
+            modeMapString[newSchema.schemaMode_].c_str());
         return -E_SCHEMA_UNEQUAL_INCOMPATIBLE;
     }
     // Do not return E_OK here, E_OK is ambiguous.

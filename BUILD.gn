@@ -27,6 +27,10 @@ group("build_native_test") {
     "frameworks/libs/distributeddb/test:unittest",
     "frameworks/libs/distributeddb/test/moduletest:moduletest",
   ]
+  if (!defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
+    deps +=
+        [ "frameworks/libs/distributeddb/gaussdb_rd/test/unittest:unittest" ]
+  }
 }
 
 ###############################################################################

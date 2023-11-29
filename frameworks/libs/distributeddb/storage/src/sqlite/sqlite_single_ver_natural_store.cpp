@@ -32,6 +32,7 @@
 #include "platform_specific.h"
 #include "schema_object.h"
 #include "single_ver_database_oper.h"
+#include "single_ver_utils.h"
 #include "storage_engine_manager.h"
 #include "sqlite_single_ver_natural_store_connection.h"
 #include "value_hash_calc.h"
@@ -182,19 +183,6 @@ SQLiteSingleVerNaturalStore::~SQLiteSingleVerNaturalStore()
     ReleaseResources();
 }
 
-std::string SQLiteSingleVerNaturalStore::GetDatabasePath(const KvDBProperties &kvDBProp)
-{
-    return GetSubDirPath(kvDBProp) + "/" + DBConstant::MAINDB_DIR + "/" + DBConstant::SINGLE_VER_DATA_STORE +
-        DBConstant::SQLITE_DB_EXTENSION;
-}
-
-std::string SQLiteSingleVerNaturalStore::GetSubDirPath(const KvDBProperties &kvDBProp)
-{
-    std::string dataDir = kvDBProp.GetStringProp(KvDBProperties::DATA_DIR, "");
-    std::string identifierDir = kvDBProp.GetStringProp(KvDBProperties::IDENTIFIER_DIR, "");
-    return dataDir + "/" + identifierDir + "/" + DBConstant::SINGLE_SUB_DIR;
-}
-
 int SQLiteSingleVerNaturalStore::SetUserVer(const KvDBProperties &kvDBProp, int version)
 {
     OpenDbProperties properties;
@@ -277,7 +265,10 @@ int SQLiteSingleVerNaturalStore::GetSecurityOption(SecurityOption &option) const
         option = SecurityOption();
         return -E_NOT_SUPPORT;
     }
-
+    if (!RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
+        LOGI("[GetSecurityOption] Not set api adapter");
+        return -E_NOT_SUPPORT;
+    }
     option.securityLabel = GetDbProperties().GetSecLabel();
     option.securityFlag = GetDbProperties().GetSecFlag();
 
@@ -351,19 +342,6 @@ int SQLiteSingleVerNaturalStore::CheckValueAndAmendIfNeed(ValueSource sourceType
     return -E_INVALID_FORMAT;
 }
 
-int SQLiteSingleVerNaturalStore::ClearIncompleteDatabase(const KvDBProperties &kvDBPro) const
-{
-    std::string dbSubDir = SQLiteSingleVerNaturalStore::GetSubDirPath(kvDBPro);
-    if (OS::CheckPathExistence(dbSubDir + DBConstant::PATH_POSTFIX_DB_INCOMPLETE)) {
-        int errCode = DBCommon::RemoveAllFilesOfDirectory(dbSubDir);
-        if (errCode != E_OK) {
-            LOGE("Remove the incomplete database dir failed!");
-            return -E_REMOVE_FILE;
-        }
-    }
-    return E_OK;
-}
-
 int SQLiteSingleVerNaturalStore::CheckDatabaseRecovery(const KvDBProperties &kvDBProp)
 {
     if (kvDBProp.GetBoolProp(KvDBProperties::MEMORY_MODE, false)) { // memory status not need recovery
@@ -415,7 +393,7 @@ int SQLiteSingleVerNaturalStore::GetAndInitStorageEngine(const KvDBProperties &k
     }
 
     if (storageEngine_->IsEngineCorrupted()) {
-        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid passwd, stop open!");
+        LOGE("[SqlSinStore][GetAndInitStorageEngine] database engine is corrupted or invalid key, stop open!");
         return -E_INVALID_PASSWD_OR_CORRUPTED_DB;
     }
 
@@ -566,8 +544,9 @@ int SQLiteSingleVerNaturalStore::GetMetaData(const Key &key, Value &value) const
     return errCode;
 }
 
-int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value)
+int SQLiteSingleVerNaturalStore::PutMetaData(const Key &key, const Value &value, bool isInTransaction)
 {
+    (void)isInTransaction;
     int errCode = SQLiteSingleVerNaturalStore::CheckDataStatus(key, value, false);
     if (errCode != E_OK) {
         return errCode;
@@ -630,27 +609,6 @@ int SQLiteSingleVerNaturalStore::GetAllMetaKeys(std::vector<Key> &keys) const
     errCode = handle->GetAllMetaKeys(keys);
     ReleaseHandle(handle);
     return errCode;
-}
-
-void SQLiteSingleVerNaturalStore::CommitAndReleaseNotifyData(SingleVerNaturalStoreCommitNotifyData *&committedData,
-    bool isNeedCommit, int eventType)
-{
-    if (isNeedCommit) {
-        if (committedData != nullptr) {
-            if (!committedData->IsChangedDataEmpty()) {
-                CommitNotify(eventType, committedData);
-            }
-            if (!committedData->IsConflictedDataEmpty()) {
-                CommitNotify(static_cast<int>(SQLiteGeneralNSNotificationEventType::SQLITE_GENERAL_CONFLICT_EVENT),
-                    committedData);
-            }
-        }
-    }
-
-    if (committedData != nullptr) {
-        committedData->DecObjRef(committedData);
-        committedData = nullptr;
-    }
 }
 
 int SQLiteSingleVerNaturalStore::GetSyncData(Timestamp begin, Timestamp end, std::vector<SingleVerKvEntry *> &entries,
@@ -1095,7 +1053,7 @@ SQLiteSingleVerStorageExecutor *SQLiteSingleVerNaturalStore::GetHandle(bool isWr
         CorruptNotify();
         errCode = -E_INVALID_PASSWD_OR_CORRUPTED_DB;
         engineMutex_.unlock_shared(); // unlock when get handle failed.
-        LOGI("Handle is corrupted or invalid passwd, can not to get! errCode = [%d]", errCode);
+        LOGI("Handle is corrupted or invalid key, can not to get! errCode = [%d]", errCode);
         return nullptr;
     }
 
@@ -1286,7 +1244,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncItems(const QueryObject &query, std::ve
     if (handle == nullptr) {
         return errCode;
     }
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         ReleaseHandle(handle);
@@ -1339,7 +1297,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     }
 
     Timestamp maxTimestamp = 0;
-    DBDfxAdapter::StartTraceSQL();
+    DBDfxAdapter::StartTracing();
     errCode = SaveSyncItemsInCacheMode(handle, query, dataItems, deviceInfo, maxTimestamp);
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Failed to save sync data in cache mode, err : %d", errCode);
@@ -1447,9 +1405,10 @@ int SQLiteSingleVerNaturalStore::Export(const std::string &filePath, const Ciphe
 
     // Exclusively write resources
     std::string localDev;
-    int errCode = GetAndResizeLocalIdentity(localDev);
+    GetAndResizeLocalIdentity(localDev);
 
     // The write handle is applied to prevent writing data during the export process.
+    int errCode =  E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode, OperatePerm::NORMAL_PERM);
     if (handle == nullptr) {
         return errCode;
@@ -1663,25 +1622,6 @@ int SQLiteSingleVerNaturalStore::TransConflictTypeToRegisterFunctionType(
     return E_OK;
 }
 
-RegisterFuncType SQLiteSingleVerNaturalStore::GetFuncType(int index, const TransPair *transMap, int32_t len)
-{
-    int32_t head = 0;
-    int32_t end = len - 1;
-    while (head <= end) {
-        int32_t mid = (head + end) / 2;
-        if (transMap[mid].index < index) {
-            head = mid + 1;
-            continue;
-        }
-        if (transMap[mid].index > index) {
-            end = mid - 1;
-            continue;
-        }
-        return transMap[mid].funcType;
-    }
-    return RegisterFuncType::REGISTER_FUNC_TYPE_MAX;
-}
-
 int SQLiteSingleVerNaturalStore::GetSchema(SchemaObject &schema) const
 {
     int errCode = E_OK;
@@ -1752,50 +1692,12 @@ const KvDBProperties &SQLiteSingleVerNaturalStore::GetDbProperties() const
     return GetMyProperties();
 }
 
-int SQLiteSingleVerNaturalStore::RemoveKvDB(const KvDBProperties &properties)
-{
-    // To avoid leakage, the engine resources are forced to be released
-    const std::string identifier = properties.GetStringProp(KvDBProperties::IDENTIFIER_DATA, "");
-    (void)StorageEngineManager::ForceReleaseStorageEngine(identifier);
-
-    // Only care the data directory and the db name.
-    std::string storeOnlyDir;
-    std::string storeDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE, storeDir, storeOnlyDir);
-
-    const std::vector<std::pair<const std::string &, const std::string &>> dbDir {
-        {DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE},
-        {DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE},
-        {DBConstant::CACHEDB_DIR, DBConstant::SINGLE_VER_CACHE_STORE}};
-
-    bool isAllNotFound = true;
-    for (const auto &item : dbDir) {
-        std::string currentDir = storeDir + item.first + "/";
-        std::string currentOnlyDir = storeOnlyDir + item.first + "/";
-        int errCode = KvDBUtils::RemoveKvDB(currentDir, currentOnlyDir, item.second);
-        if (errCode != -E_NOT_FOUND) {
-            if (errCode != E_OK) {
-                return errCode;
-            }
-            isAllNotFound = false;
-        }
-    };
-    if (isAllNotFound) {
-        return -E_NOT_FOUND;
-    }
-
-    int errCode = DBCommon::RemoveAllFilesOfDirectory(storeDir, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    return DBCommon::RemoveAllFilesOfDirectory(storeOnlyDir, true);
-}
-
 int SQLiteSingleVerNaturalStore::GetKvDBSize(const KvDBProperties &properties, uint64_t &size) const
 {
     std::string storeOnlyIdentDir;
     std::string storeIdentDir;
-    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE, storeIdentDir, storeOnlyIdentDir);
+    GenericKvDB::GetStoreDirectory(properties, KvDBProperties::SINGLE_VER_TYPE_SQLITE, storeIdentDir,
+        storeOnlyIdentDir);
     const std::vector<std::pair<const std::string &, const std::string &>> dbDir {
         {DBConstant::MAINDB_DIR, DBConstant::SINGLE_VER_DATA_STORE},
         {DBConstant::METADB_DIR, DBConstant::SINGLE_VER_META_STORE},
@@ -2157,7 +2059,7 @@ int SQLiteSingleVerNaturalStore::SaveCreateDBTime()
         return -E_PARSE_FAIL;
     }
 
-    int errCode = PutMetaData(key, value);
+    int errCode = PutMetaData(key, value, false);
     if (errCode != E_OK) {
         LOGE("SaveCreateDBTime failed, errCode = %d", errCode);
         return errCode;
@@ -2498,7 +2400,7 @@ int SQLiteSingleVerNaturalStore::TryHandle() const
     return E_OK;
 }
 
-int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
+void SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarget) const
 {
     int errCode = GetLocalIdentity(outTarget);
     if (errCode == -E_NOT_INIT) {
@@ -2507,7 +2409,6 @@ int SQLiteSingleVerNaturalStore::GetAndResizeLocalIdentity(std::string &outTarge
         LOGE("Get local dev id err:%d", errCode);
         outTarget.resize(0);
     }
-    return errCode;
 }
 DEFINE_OBJECT_TAG_FACILITIES(SQLiteSingleVerNaturalStore)
 }

@@ -17,6 +17,8 @@
 #define STORAGE_EXECUTOR_H
 
 #include "macro_utils.h"
+#include "single_ver_natural_store_commit_notify_data.h"
+#include "types_export.h"
 
 namespace DistributedDB {
 enum class EngineState {
@@ -26,6 +28,76 @@ enum class EngineState {
     MIGRATING, // began to Migrate data
     MAINDB,
     ENGINE_BUSY, // In order to change handle during the migration process, it is temporarily unavailable
+};
+
+enum class SingleVerDataType {
+    META_TYPE,
+    LOCAL_TYPE_SQLITE,
+    SYNC_TYPE,
+};
+
+enum class DataStatus {
+    NOEXISTED,
+    DELETED,
+    EXISTED,
+};
+
+enum class ExecutorState {
+    INVALID = -1,
+    MAINDB,
+    CACHEDB,
+    MAIN_ATTACH_CACHE, // After process crash and cacheDb existed
+    CACHE_ATTACH_MAIN, // while cacheDb migrating to mainDb
+};
+
+struct DataOperStatus {
+    DataStatus preStatus = DataStatus::NOEXISTED;
+    bool isDeleted = false;
+    bool isDefeated = false; // whether the put data is defeated.
+};
+
+struct SingleVerRecord {
+    Key key;
+    Value value;
+    Timestamp timestamp = 0;
+    uint64_t flag = 0;
+    std::string device;
+    std::string origDevice;
+    Key hashKey;
+    Timestamp writeTimestamp = 0;
+};
+
+struct DeviceInfo {
+    bool isLocal = false;
+    std::string deviceName;
+};
+
+struct LocalDataItem {
+    Key key;
+    Value value;
+    Timestamp timestamp = 0;
+    Key hashKey;
+    uint64_t flag = 0;
+};
+
+struct NotifyConflictAndObserverData {
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    DataItem getData;
+    Key hashKey;
+    DataOperStatus dataStatus;
+};
+
+struct NotifyMigrateSyncData {
+    bool isRemote = false;
+    bool isRemoveDeviceData = false;
+    bool isPermitForceWrite = true;
+    SingleVerNaturalStoreCommitNotifyData *committedData = nullptr;
+    std::vector<Entry> entries{};
+};
+
+struct SyncDataDevices {
+    std::string origDev;
+    std::string dev;
 };
 
 class StorageExecutor {

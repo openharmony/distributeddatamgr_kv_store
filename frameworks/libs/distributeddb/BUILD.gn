@@ -24,11 +24,13 @@ config("distrdb_config") {
     "common/include",
     "common/include/cloud",
     "common/include/relational",
+    "common/src/cloud",
     "communicator/include",
     "storage/include",
     "storage/src",
     "storage/src/multiver",
     "storage/src/operation",
+    "storage/src/gaussdb_rd",
     "storage/src/sqlite",
     "storage/src/sqlite/relational",
     "storage/src/upgrader",
@@ -68,6 +70,10 @@ config("distrdb_public_config") {
     "interfaces/include",
     "interfaces/include/relational",
     "include",
+    "gaussdb_rd/include",
+    "gaussdb_rd/include/grd_base",
+    "gaussdb_rd/include/grd_document",
+    "gaussdb_rd/include/grd_kv",
   ]
 }
 
@@ -87,9 +93,9 @@ ohos_shared_library("distributeddb") {
   ]
 
   configs += [ "//third_party/jsoncpp:jsoncpp_config" ]
-  ldflags = [ "-Wl,--exclude-libs,ALL" ]
   cflags_cc = [ "-fvisibility=hidden" ]
   deps += [
+    "gaussdb_rd:gaussdb_rd",
     "//third_party/jsoncpp:jsoncpp",
     "//third_party/openssl:libcrypto_shared",
   ]

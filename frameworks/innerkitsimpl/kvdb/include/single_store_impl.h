@@ -27,6 +27,7 @@
 #include "single_kvstore.h"
 #include "sync_observer.h"
 #include "task_executor.h"
+#include "kvstore_sync_callback_client.h"
 
 namespace OHOS::DistributedKv {
 class SingleStoreImpl : public SingleKvStore,
@@ -73,7 +74,8 @@ public:
     // normal function
     int32_t Close(bool isForce = false);
     int32_t AddRef();
-
+    Status SetIdentifier(const std::string &accountId, const std::string &appId,
+        const std::string &storeId, const std::vector<std::string> &tagretDev) override;
     // IPC interface
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, uint32_t delay) override;
     Status Sync(const std::vector<std::string> &devices, SyncMode mode, const DataQuery &query,
@@ -87,7 +89,6 @@ public:
         const std::vector<std::string> &remote) const override;
     Status SubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
     Status UnsubscribeWithQuery(const std::vector<std::string> &devices, const DataQuery &query) override;
-
 protected:
     std::shared_ptr<ObserverBridge> PutIn(uint32_t &realType, std::shared_ptr<Observer> observer);
     std::shared_ptr<ObserverBridge> TakeOut(uint32_t &realType, std::shared_ptr<Observer> observer);
@@ -100,15 +101,18 @@ private:
     Status RetryWithCheckPoint(std::function<DistributedDB::DBStatus()> lambda);
     std::function<void(ObserverBridge *)> BridgeReleaser();
     Status DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
+    Status DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer);
     void DoAutoSync();
     void Register();
 
     bool autoSync_ = false;
+    bool isClientSync_ = false;
     int32_t ref_ = 1;
     mutable std::shared_mutex rwMutex_;
     const Convertor &convertor_;
     std::string appId_;
     std::string storeId_;
+    uint32_t roleType_ = 0;
     std::shared_ptr<DBStore> dbStore_ = nullptr;
     std::shared_ptr<SyncObserver> syncObserver_ = nullptr;
     ConcurrentMap<uintptr_t, std::pair<uint32_t, std::shared_ptr<ObserverBridge>>> observers_;

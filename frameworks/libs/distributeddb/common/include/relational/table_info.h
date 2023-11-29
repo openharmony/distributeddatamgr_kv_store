@@ -20,10 +20,11 @@
 #include <vector>
 
 #include "cloud/cloud_store_types.h"
-#include "db_types.h"
-#include "schema_constant.h"
 #include "data_value.h"
+#include "db_types.h"
 #include "ischema.h"
+#include "schema_constant.h"
+#include "tracker_table.h"
 
 namespace DistributedDB {
 using CompositeFields = std::vector<FieldName>;
@@ -74,6 +75,8 @@ using IndexInfoMap = std::map<std::string, CompositeFields, CaseInsensitiveCompa
 class TableInfo {
 public:
     const std::string &GetTableName() const;
+    const std::string &GetOriginTableName() const;
+    bool GetSharedTableMark() const;
     bool GetAutoIncrement() const;
     TableSyncType GetTableSyncType() const;
     const std::string &GetCreateTableSql() const;
@@ -83,6 +86,8 @@ public:
     const std::vector<CompositeFields> &GetUniqueDefine() const;
 
     void SetTableName(const std::string &tableName);
+    void SetOriginTableName(const std::string &originTableName);
+    void SetSharedTableMark(bool sharedTableMark);
     void SetAutoIncrement(bool autoInc);
     void SetTableSyncType(TableSyncType tableSyncType);
     void SetCreateTableSql(const std::string &sql); // set 'autoInc_' flag when set sql
@@ -91,6 +96,12 @@ public:
     void SetPrimaryKey(const std::map<int, FieldName> &key);
     void SetPrimaryKey(const FieldName &fieldName, int keyIndex);
     std::string ToTableInfoString(const std::string &schemaVersion) const;
+    void SetTrackerTable(const TrackerTable &table);
+    int CheckTrackerTable();
+    const TrackerTable &GetTrackerTable() const;
+    void AddTableReferenceProperty(const TableReferenceProperty &tableRefProperty);
+    void SetSourceTableReference(const std::vector<TableReferenceProperty> &tableReference);
+    const std::vector<TableReferenceProperty> &GetTableReference() const;
 
     void SetUniqueDefine(const std::vector<CompositeFields> &uniqueDefine);
 
@@ -128,6 +139,8 @@ private:
     int CompareWithLiteTableFields(const FieldInfoMap &liteTableFields) const;
 
     std::string tableName_;
+    std::string originTableName_ = "";
+    bool sharedTableMark_ = false;
     bool autoInc_ = false; // only 'INTEGER PRIMARY KEY' could be defined as 'AUTOINCREMENT'
     TableSyncType tableSyncType_ = DEVICE_COOPERATION;
     std::string sql_;
@@ -138,6 +151,11 @@ private:
 
     std::vector<CompositeFields> uniqueDefines_;
     int id_ = -1;
+    TrackerTable trackerTable_;
+    //     a
+    //  b     c
+    // d  e  f    ,table_info[a] = {b,c}  [b] = {d, e}  [c] = {f}
+    std::vector<TableReferenceProperty> sourceTableReferenced_;
 };
 } // namespace DistributedDB
 #endif // TABLE_INFO_H

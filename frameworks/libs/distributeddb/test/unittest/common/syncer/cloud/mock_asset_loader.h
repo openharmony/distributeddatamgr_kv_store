@@ -16,7 +16,7 @@
 #ifndef MOCK_ASSET_LOADER_H
 #define MOCK_ASSET_LOADER_H
 #include <gmock/gmock.h>
-#include "iAssetLoader.h"
+#include "cloud/iAssetLoader.h"
 
 namespace DistributedDB {
 class MockAssetLoader : public IAssetLoader {

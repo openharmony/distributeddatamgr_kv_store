@@ -161,7 +161,7 @@ public:
     virtual int AssetToBlob(const Asset &asset, std::vector<uint8_t> &blob) = 0;
     virtual int AssetsToBlob(const Assets &assets, std::vector<uint8_t> &blob) = 0;
     virtual int BlobToAsset(const std::vector<uint8_t> &blob, Asset &asset) = 0;
-    virtual int BlobToAssets(std::vector<uint8_t> &blob, Assets &assets) = 0;
+    virtual int BlobToAssets(const std::vector<uint8_t> &blob, Assets &assets) = 0;
 protected:
     RuntimeContext() = default;
     virtual ~RuntimeContext() {}

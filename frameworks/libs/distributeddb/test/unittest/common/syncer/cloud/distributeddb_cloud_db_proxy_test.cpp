@@ -15,10 +15,10 @@
 #include <gtest/gtest.h>
 
 #include <utility>
-#include "cloud_db_constant.h"
-#include "cloud_db_data_utils.h"
-#include "cloud_db_types.h"
-#include "cloud_db_proxy.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_data_utils.h"
+#include "cloud/cloud_db_types.h"
+#include "cloud/cloud_db_proxy.h"
 #include "distributeddb_tools_unit_test.h"
 #include "kv_store_errno.h"
 #include "mock_icloud_sync_storage_interface.h"
@@ -185,6 +185,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest002, TestSize.Level0)
      */
     TableSchema schema = {
         .name = TABLE_NAME,
+        .sharedTableName = "",
         .fields = GetFields()
     };
     std::vector<VBucket> expectRecords = CloudDBDataUtils::GenerateRecords(10, schema); // generate 10 records
@@ -227,6 +228,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest003, TestSize.Level0)
 {
     TableSchema schema = {
         .name = TABLE_NAME,
+        .sharedTableName = "",
         .fields = GetFields()
     };
     /**
@@ -659,6 +661,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudSyncQueue001, TestSize.Level2)
     EXPECT_EQ(Sync(cloudSyncer, callCount), OK);
     RuntimeContext::GetInstance()->StopTaskPool();
     EXPECT_EQ(callCount, 1);
+    RefObject::KillAndDecObjRef(cloudSyncer);
 }
 
 /**

@@ -68,6 +68,7 @@ int CloudDBProxy::BatchUpdate(const std::string &tableName, std::vector<VBucket>
     context->MoveInRecordAndExtend(record, extend);
     int errCode = InnerAction(context, cloudDb, UPDATE);
     uploadInfo = context->GetInfo();
+    context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
@@ -84,6 +85,7 @@ int CloudDBProxy::BatchDelete(const std::string &tableName, std::vector<VBucket>
     context->SetTableName(tableName);
     int errCode = InnerAction(context, cloudDb, DELETE);
     uploadInfo = context->GetInfo();
+    context->MoveOutRecordAndExtend(record, extend);
     return errCode;
 }
 
@@ -247,12 +249,12 @@ DBStatus CloudDBProxy::DMLActionTask(const std::shared_ptr<CloudActionContext> &
         }
         case UPDATE: {
             status = cloudDb->BatchUpdate(context->GetTableName(), std::move(record), extend);
-            // no need to MoveIn, only insert need extend for insert gid
+            context->MoveInExtend(extend);
             break;
         }
         case DELETE: {
             status = cloudDb->BatchDelete(context->GetTableName(), extend);
-            // no need to MoveIn, only insert need extend for insert gid
+            context->MoveInExtend(extend);
             break;
         }
         default: {
@@ -282,22 +284,15 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
             status = DMLActionTask(context, cloudDb, action);
             break;
         case QUERY: {
-            VBucket queryExtend;
-            std::vector<VBucket> data;
-            context->MoveOutQueryExtendAndData(queryExtend, data);
-            status = cloudDb->Query(context->GetTableName(), queryExtend, data);
-            context->MoveInQueryExtendAndData(queryExtend, data);
-
+            status = QueryAction(context, cloudDb);
             if (status == QUERY_END) {
                 setResAlready = true;
-                context->SetActionRes(-E_QUERY_END);
             }
             break;
         }
-        case LOCK: {
+        case LOCK:
             status = InnerActionLock(context, cloudDb);
             break;
-        }
         case UNLOCK:
             status = cloudDb->UnLock();
             break;
@@ -314,11 +309,7 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
     }
 
     context->FinishAndNotify();
-    {
-        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
-        asyncTaskCount_--;
-    }
-    asyncTaskCv_.notify_all();
+    DecAsyncTaskCount();
 }
 
 DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
@@ -353,9 +344,34 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_LOCK_ERROR;
         case CLOUD_ASSET_SPACE_INSUFFICIENT:
             return -E_CLOUD_ASSET_SPACE_INSUFFICIENT;
+        case CLOUD_VERSION_CONFLICT:
+            return -E_CLOUD_VERSION_CONFLICT;
         default:
             return -E_CLOUD_ERROR;
     }
+}
+
+DBStatus CloudDBProxy::QueryAction(const std::shared_ptr<CloudActionContext> &context,
+    const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    VBucket queryExtend;
+    std::vector<VBucket> data;
+    context->MoveOutQueryExtendAndData(queryExtend, data);
+    DBStatus status = cloudDb->Query(context->GetTableName(), queryExtend, data);
+    context->MoveInQueryExtendAndData(queryExtend, data);
+    if (status == QUERY_END) {
+        context->SetActionRes(-E_QUERY_END);
+    }
+    return status;
+}
+
+void CloudDBProxy::DecAsyncTaskCount()
+{
+    {
+        std::lock_guard<std::mutex> uniqueLock(asyncTaskMutex_);
+        asyncTaskCount_--;
+    }
+    asyncTaskCv_.notify_all();
 }
 
 CloudDBProxy::CloudActionContext::CloudActionContext()
@@ -460,8 +476,8 @@ Info CloudDBProxy::CloudActionContext::GetInfo()
     return info;
 }
 
-void CloudDBProxy::CloudActionContext::SetInfo(const uint32_t &totalCount,
-    const uint32_t &successCount, const uint32_t &failedCount)
+void CloudDBProxy::CloudActionContext::SetInfo(uint32_t totalCount,
+    uint32_t successCount, uint32_t failedCount)
 {
     totalCount_ = totalCount;
     successCount_ = successCount;

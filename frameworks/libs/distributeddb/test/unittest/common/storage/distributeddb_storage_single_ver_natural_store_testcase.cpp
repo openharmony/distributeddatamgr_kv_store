@@ -1571,7 +1571,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
      * @tc.steps:step1. Run the PutMetaData command to insert a non-empty key1 non-empty value1 data record.
      * @tc.expected: step1. Return OK.
      */
-    EXPECT_EQ(store->PutMetaData(key1, value1), E_OK);
+    EXPECT_EQ(store->PutMetaData(key1, value1, false), E_OK);
 
     /**
      * @tc.steps:step2. Run the PutMetaData command to insert a non-empty key1 non-empty value1 data record.
@@ -1588,7 +1588,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
      *  and the value of value2 is different from the value of value1 through the PutMetaData interface.
      * @tc.expected: step3. Return OK.
      */
-    EXPECT_EQ(store->PutMetaData(key1, value2), E_OK);
+    EXPECT_EQ(store->PutMetaData(key1, value2, false), E_OK);
 
     /**
      * @tc.steps:step4. Run the GetMetaData command to obtain the value of key1
@@ -1602,7 +1602,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
      * @tc.steps:step5. Use PutMetaData to insert a record whose key is empty and value is not empty.
      * @tc.expected: step5. Return E_INVALID_ARGS.
      */
-    EXPECT_EQ(store->PutMetaData(emptyKey, value1), -E_INVALID_ARGS);
+    EXPECT_EQ(store->PutMetaData(emptyKey, value1, false), -E_INVALID_ARGS);
 
     /**
      * @tc.steps:step6. Use PutMetaData in NaturalStore to insert data whose key2(!=key1)
@@ -1611,7 +1611,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
      */
     Key key2;
     DistributedDBToolsUnitTest::GetRandomKeyValue(key2, static_cast<int>(key1.size() + 1));
-    EXPECT_EQ(store->PutMetaData(key2, emptyValue), E_OK);
+    EXPECT_EQ(store->PutMetaData(key2, emptyValue, false), E_OK);
 
     /**
      * @tc.steps:step7. Obtain the value of key2 and check whether the value is empty.
@@ -1629,7 +1629,7 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
     Value sizeValue;
     DistributedDBToolsUnitTest::GetRandomKeyValue(sizeKey, MAX_TEST_KEY_SIZE);
     DistributedDBToolsUnitTest::GetRandomKeyValue(sizeValue, MAX_TEST_VAL_SIZE);
-    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue), E_OK);
+    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue, false), E_OK);
     EXPECT_EQ(store->GetMetaData(sizeKey, valueRead), E_OK);
     EXPECT_EQ(DistributedDBToolsUnitTest::IsValueEqual(valueRead, sizeValue), true);
 
@@ -1639,10 +1639,10 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataPutAndGet(SQ
      * @tc.expected: step9/10. Return E_INVALID_ARGS.
      */
     sizeKey.push_back(249); // 249 as random size
-    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue), -E_INVALID_ARGS);
+    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue, false), -E_INVALID_ARGS);
     sizeKey.pop_back();
     sizeValue.push_back(174); // 174 as random size
-    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue), -E_INVALID_ARGS);
+    EXPECT_EQ(store->PutMetaData(sizeKey, sizeValue, false), -E_INVALID_ARGS);
 
     /**
      * @tc.steps:step11. Delete key1 and key2 successfully.
@@ -1853,10 +1853,10 @@ void DistributedDBStorageSingleVerNaturalStoreTestCase::TestMetaDataDeleteByPref
      * @tc.steps:step1. Put a1, b1, a2, b2.
      * @tc.expected: step1. Return OK.
      */
-    ASSERT_EQ(store->PutMetaData(Key {'a', '1'}, Value {'a', '1'}), E_OK);
-    ASSERT_EQ(store->PutMetaData(Key {'b', '1'}, Value {'b', '1'}), E_OK);
-    ASSERT_EQ(store->PutMetaData(Key {'a', '2'}, Value {'a', '2'}), E_OK);
-    ASSERT_EQ(store->PutMetaData(Key {'b', '2'}, Value {'b', '2'}), E_OK);
+    ASSERT_EQ(store->PutMetaData(Key {'a', '1'}, Value {'a', '1'}, false), E_OK);
+    ASSERT_EQ(store->PutMetaData(Key {'b', '1'}, Value {'b', '1'}, false), E_OK);
+    ASSERT_EQ(store->PutMetaData(Key {'a', '2'}, Value {'a', '2'}, false), E_OK);
+    ASSERT_EQ(store->PutMetaData(Key {'b', '2'}, Value {'b', '2'}, false), E_OK);
 
     /**
      * @tc.steps:step2. Delete meta data with prefix key 'b'.

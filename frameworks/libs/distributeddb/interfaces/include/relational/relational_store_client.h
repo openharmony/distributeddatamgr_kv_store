@@ -19,13 +19,14 @@
 #include <cstdint>
 #include <functional>
 #include <string>
-
-#include "sqlite3.h"
+#include <set>
 
 #include "store_types.h"
 
+typedef struct sqlite3 sqlite3;
+
 struct ClientChangedData {
-    std::string tableName;
+    std::map<std::string, DistributedDB::ChangeProperties> tableData;
 };
 
 using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>;
@@ -33,5 +34,7 @@ using ClientObserver = std::function<void(ClientChangedData &clientChangedData)>
 DB_API DistributedDB::DBStatus RegisterClientObserver(sqlite3 *db, const ClientObserver &clientObserver);
 
 DB_API DistributedDB::DBStatus UnRegisterClientObserver(sqlite3 *db);
+
+DB_API DistributedDB::DBStatus DropLogicDeletedData(sqlite3 *db, const std::string &tableName, uint64_t cursor);
 
 #endif // RELATIONAL_STORE_CLIENT_H

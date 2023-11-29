@@ -43,15 +43,13 @@ int KvStoreResultSetImpl::GetPosition() const
 
 bool KvStoreResultSetImpl::Move(int offset)
 {
-    int64_t position = GetPosition();
-    int64_t aimPos = position + offset;
-    if (aimPos > INT_MAX) {
-        return MoveToPosition(INT_MAX);
+    if (resultSet_ == nullptr) {
+        return false;
     }
-    if (aimPos < INIT_POSITION) {
-        return MoveToPosition(INIT_POSITION);
+    if (resultSet_->Move(offset) == E_OK) {
+        return true;
     }
-    return MoveToPosition(aimPos);
+    return false;
 }
 
 bool KvStoreResultSetImpl::MoveToPosition(int position)
@@ -67,12 +65,24 @@ bool KvStoreResultSetImpl::MoveToPosition(int position)
 
 bool KvStoreResultSetImpl::MoveToFirst()
 {
-    return MoveToPosition(0);
+    if (resultSet_ == nullptr) {
+        return false;
+    }
+    if (resultSet_->MoveToFirst() == E_OK) {
+        return true;
+    }
+    return false;
 }
 
 bool KvStoreResultSetImpl::MoveToLast()
 {
-    return MoveToPosition(GetCount() - 1);
+    if (resultSet_ == nullptr) {
+        return false;
+    }
+    if (resultSet_->MoveToLast() == E_OK) {
+        return true;
+    }
+    return false;
 }
 
 bool KvStoreResultSetImpl::MoveToNext()
@@ -92,14 +102,7 @@ bool KvStoreResultSetImpl::IsFirst() const
     if (resultSet_ == nullptr) {
         return false;
     }
-    int position = resultSet_->GetPosition();
-    if (GetCount() == 0) {
-        return false;
-    }
-    if (position == 0) {
-        return true;
-    }
-    return false;
+    return resultSet_->IsFirst();
 }
 
 bool KvStoreResultSetImpl::IsLast() const
@@ -107,15 +110,7 @@ bool KvStoreResultSetImpl::IsLast() const
     if (resultSet_ == nullptr) {
         return false;
     }
-    int position = resultSet_->GetPosition();
-    int count = GetCount();
-    if (count == 0) {
-        return false;
-    }
-    if (position == (count - 1)) {
-        return true;
-    }
-    return false;
+    return resultSet_->IsLast();
 }
 
 bool KvStoreResultSetImpl::IsBeforeFirst() const
@@ -123,15 +118,7 @@ bool KvStoreResultSetImpl::IsBeforeFirst() const
     if (resultSet_ == nullptr) {
         return false;
     }
-    int position = resultSet_->GetPosition();
-
-    if (GetCount() == 0) {
-        return true;
-    }
-    if (position <= INIT_POSITION) {
-        return true;
-    }
-    return false;
+    return resultSet_->IsBeforeFirst();
 }
 
 bool KvStoreResultSetImpl::IsAfterLast() const
@@ -139,24 +126,13 @@ bool KvStoreResultSetImpl::IsAfterLast() const
     if (resultSet_ == nullptr) {
         return false;
     }
-    int position = resultSet_->GetPosition();
-    int count = GetCount();
-    if (count == 0) {
-        return true;
-    }
-    if (position >= count) {
-        return true;
-    }
-    return false;
+    return resultSet_->IsAfterLast();
 }
 
 DBStatus KvStoreResultSetImpl::GetEntry(Entry &entry) const
 {
     if (resultSet_ == nullptr) {
         return DB_ERROR;
-    }
-    if (GetCount() == 0) {
-        return NOT_FOUND;
     }
 
     if (resultSet_->GetEntry(entry) == E_OK) {

@@ -66,28 +66,65 @@ public:
     void SetActionStatus(DBStatus status);
 
     DBStatus GetDataStatus(const std::string &gid, bool &deleteStatus);
+
+    void ClearAllData();
+
+    void ForkQuery(const std::function<void(const std::string &, VBucket &)> &forkFunc);
+
+    void ForkUpload(const std::function<void(const std::string &, VBucket &)> &forkUploadFunc);
+
+    int32_t GetLockCount();
+
+    void Reset();
+
+    void SetInsertFailed(int32_t count);
+
+    void SetClearExtend(int32_t count);
+
+    void SetCloudNetworkError(bool cloudNetworkError);
 private:
     struct CloudData {
         VBucket record;
         VBucket extend;
     };
 
+    DBStatus InnerBatchInsert(const std::string &tableName, std::vector<VBucket> &&record,
+        std::vector<VBucket> &extend);
+
     DBStatus InnerUpdate(const std::string &tableName, std::vector<VBucket> &&record,
+        std::vector<VBucket> &extend, bool isDelete);
+
+    DBStatus InnerUpdateWithoutLock(const std::string &tableName, std::vector<VBucket> &&record,
         std::vector<VBucket> &extend, bool isDelete);
 
     DBStatus UpdateCloudData(const std::string &tableName, CloudData &&cloudData);
 
     void GetCloudData(const std::string &cursor, bool isIncreCursor, std::vector<CloudData> allData,
-        std::vector<VBucket> &data);
+        std::vector<VBucket> &data, VBucket &extend);
+
+    bool IsCloudGidMatching(const std::vector<QueryNode> &queryNodes, VBucket &extend);
+
+    bool IsCloudGidMatchingInner(const QueryNode &queryNode, VBucket &extend);
+
+    bool IsPrimaryKeyMatching(const std::vector<QueryNode> &queryNodes, VBucket &record);
+
+    bool IsPrimaryKeyMatchingInner(const QueryNode &queryNode, VBucket &record);
+
+    void AddAssetIdForExtend(VBucket &record, VBucket &extend);
 
     std::atomic<bool> cloudError_ = false;
+    std::atomic<bool> cloudNetworkError_ = false;
     std::atomic<bool> heartbeatError_ = false;
     std::atomic<bool> lockStatus_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;
     std::atomic<int64_t> currentGid_ = 0;
     std::atomic<int64_t> currentCursor_ = 1;
+    std::atomic<int64_t> currentVersion_ = 0;
     std::atomic<int32_t> queryLimit_ = 100;
     std::atomic<int32_t> heartbeatCount_ = 0;
+    std::atomic<int32_t> lockCount_ = 0;
+    std::atomic<int32_t> insertFailedCount_ = 0;
+    std::atomic<int32_t> missingExtendCount_ = 0;
     std::mutex cloudDataMutex_;
     std::map<std::string, std::vector<CloudData>> cloudData_;
     std::map<std::string, std::vector<CloudData>> incrementCloudData_;
@@ -95,6 +132,8 @@ private:
     std::string increPrefix_ = "increPrefix_";
     std::map<std::string, uint32_t> queryTimes_;
     DBStatus actionStatus_ = OK;
+    std::function<void(const std::string &, VBucket &)> forkFunc_;
+    std::function<void(const std::string &, VBucket &)> forkUploadFunc_;
 };
 }
 #endif // VIRTUAL_CLOUD_DB_H

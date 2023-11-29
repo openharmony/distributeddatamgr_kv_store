@@ -31,12 +31,15 @@ SingleStoreImpl::SingleStoreImpl(
     std::shared_ptr<DBStore> dbStore, const AppId &appId, const Options &options, const Convertor &cvt)
     : convertor_(cvt), dbStore_(std::move(dbStore))
 {
+    std::string path = options.GetDatabaseDir();
     appId_ = appId.appId;
     storeId_ = dbStore_->GetStoreId();
     autoSync_ = options.autoSync;
+    isClientSync_ = options.isClientSync;
     syncObserver_ = std::make_shared<SyncObserver>();
+    roleType_ = options.role;
     if (options.backup) {
-        BackupManager::GetInstance().Prepare(options.baseDir, storeId_);
+        BackupManager::GetInstance().Prepare(path, storeId_);
     }
 }
 
@@ -240,8 +243,13 @@ Status SingleStoreImpl::SubscribeKvStore(SubscribeType type, std::shared_ptr<Obs
     }
 
     Status status = SUCCESS;
+    unsigned int mode = DistributedDB::OBSERVER_CHANGES_NATIVE;
+    if (isClientSync_) {
+        mode |= DistributedDB::OBSERVER_CHANGES_FOREIGN;
+    }
+
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
-        auto dbStatus = dbStore_->RegisterObserver({}, DistributedDB::OBSERVER_CHANGES_NATIVE, bridge.get());
+        auto dbStatus = dbStore_->RegisterObserver({}, mode, bridge.get());
         status = StoreUtil::ConvertStatus(dbStatus);
     }
 
@@ -279,6 +287,7 @@ Status SingleStoreImpl::UnSubscribeKvStore(SubscribeType type, std::shared_ptr<O
     }
 
     Status status = SUCCESS;
+
     if ((realType & SUBSCRIBE_TYPE_LOCAL) == SUBSCRIBE_TYPE_LOCAL) {
         auto dbStatus = dbStore_->UnRegisterObserver(bridge.get());
         status = StoreUtil::ConvertStatus(dbStatus);
@@ -662,6 +671,7 @@ std::function<void(ObserverBridge *)> SingleStoreImpl::BridgeReleaser()
                 status = StoreUtil::ConvertStatus(dbStatus);
             }
         }
+
         Status remote = obj->UnregisterRemoteObserver();
         if (status != SUCCESS || remote != SUCCESS) {
             ZLOGE("status:0x%{public}x remote:0x%{public}x observer:0x%{public}x", status, remote,
@@ -760,8 +770,31 @@ Status SingleStoreImpl::GetEntries(const DBQuery &query, std::vector<Entry> &ent
     return status;
 }
 
+Status SingleStoreImpl::DoClientSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
+{
+    auto complete = [observer](const std::map<std::string, DistributedDB::DBStatus> &devicesMap) {
+        std::map<std::string, Status> result;
+        for (auto &[key, dbStatus] : devicesMap) {
+            result[key] = StoreUtil::ConvertStatus(dbStatus);
+        }
+        observer->SyncCompleted(result);
+    };
+        
+    auto dbStatus = dbStore_->Sync(syncInfo.devices, StoreUtil::GetDBMode(SyncMode(syncInfo.mode)), complete);
+    Status status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != Status::SUCCESS) {
+        ZLOGE("client Sync failed: %{public}d", status);
+    }
+    return status;
+}
+
 Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCallback> observer)
 {
+    Status cStatus = Status::SUCCESS;
+    if (isClientSync_) {
+        cStatus = DoClientSync(syncInfo, observer);
+    }
+
     auto service = KVDBServiceClient::GetInstance();
     if (service == nullptr) {
         return SERVER_UNAVAILABLE;
@@ -779,7 +812,16 @@ Status SingleStoreImpl::DoSync(const SyncInfo &syncInfo, std::shared_ptr<SyncCal
     if (status != Status::SUCCESS) {
         syncAgent->DeleteSyncCallback(syncInfo.seqId);
     }
-    return status;
+
+    if (!isClientSync_) {
+        return status;
+    }
+    if (cStatus == SUCCESS || status == SUCCESS) {
+        return SUCCESS;
+    } else {
+        ZLOGE("sync failed!: %{public}d, %{public}d", cStatus, status);
+        return ERROR;
+    }
 }
 
 void SingleStoreImpl::DoAutoSync()
@@ -828,5 +870,17 @@ void SingleStoreImpl::Register()
     } else {
         taskId_ = 0;
     }
+}
+
+Status SingleStoreImpl::SetIdentifier(const std::string &accountId, const std::string &appId,
+    const std::string &storeId, const std::vector<std::string> &tagretDev)
+{
+    auto syncIdentifier = DistributedDB::KvStoreDelegateManager::GetKvStoreIdentifier(accountId, appId, storeId);
+    auto dbStatus = dbStore_->SetEqualIdentifier(syncIdentifier, tagretDev);
+    auto status = StoreUtil::ConvertStatus(dbStatus);
+    if (status != SUCCESS) {
+        ZLOGE("SetIdentifier failed, status:0x%{public}x", status);
+    }
+    return status;
 }
 } // namespace OHOS::DistributedKv

@@ -18,9 +18,20 @@
 #include "cloud_merge_strategy.h"
 #include "cloud_syncer.h"
 #include "cloud_syncer_test.h"
+#include "cloud_sync_utils.h"
 #include "mock_iclouddb.h"
 
 namespace DistributedDB {
+
+const Asset ASSET_COPY = { .version = 1,
+    .name = "Phone",
+    .assetId = "0",
+    .subpath = "/local/sync",
+    .uri = "/local/sync",
+    .modifyTime = "123456",
+    .createTime = "",
+    .size = "256",
+    .hash = "ASE" };
 
 class TestStorageProxy : public StorageProxy {
 public:
@@ -84,6 +95,8 @@ public:
     void CallClose()
     {
         currentContext_.currentTaskId = 0u;
+        currentContext_.strategy = nullptr;
+        currentContext_.notifier = nullptr;
         Close();
     }
     void SetTimeOut(TaskId taskId, int64_t timeout)
@@ -94,13 +107,13 @@ public:
     void InitCloudSyncerForSync()
     {
         this->closed_ = false;
-        this->cloudTaskInfos_[this->currentTaskId_].callback = [this](
+        this->cloudTaskInfos_[this->lastTaskId_].callback = [this](
             const std::map<std::string, SyncProcess> &process) {
             if (process.size() == 1u) {
-                process_[this->currentTaskId_] = process.begin()->second;
+                process_[this->lastTaskId_] = process.begin()->second;
             } else {
                 SyncProcess tmpProcess;
-                process_[this->currentTaskId_] = tmpProcess;
+                process_[this->lastTaskId_] = tmpProcess;
             }
         };
     }
@@ -145,7 +158,7 @@ public:
 
     void CallClearCloudSyncData(CloudSyncData& uploadData)
     {
-        this->ClearCloudSyncData(uploadData);
+        CloudSyncUtils::ClearCloudSyncData(uploadData);
     }
 
     int32_t GetUploadSuccessCount(TaskId taskId)
@@ -167,11 +180,6 @@ public:
     {
         this->cloudDB_.SetCloudDB(icloudDB);
     }
-
-    void CallDoFinished(TaskId taskId, int errCode, const InnerProcessInfo &processInfo)
-    {
-        DoFinished(taskId,  errCode,  processInfo);
-    }
     
     CloudTaskInfo SetAndGetCloudTaskInfo(SyncMode mode, std::vector<std::string> table,
         SyncProcessCallback callback, int64_t timeout)
@@ -186,12 +194,16 @@ public:
 
     void initFullCloudSyncData(CloudSyncData &uploadData, int size)
     {
-        VBucket tmp = {std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
-                       std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1)};
+        VBucket tmp = { std::pair<std::string, int64_t>(CloudDbConstant::MODIFY_FIELD, 1),
+                        std::pair<std::string, int64_t>(CloudDbConstant::CREATE_FIELD, 1),
+                        std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
+        VBucket asset = { std::pair<std::string, Asset>(CloudDbConstant::ASSET, ASSET_COPY) };
         uploadData.insData.record = std::vector<VBucket>(size, tmp);
         uploadData.insData.extend = std::vector<VBucket>(size, tmp);
+        uploadData.insData.assets = std::vector<VBucket>(size, asset);
         uploadData.updData.record = std::vector<VBucket>(size, tmp);
         uploadData.updData.extend = std::vector<VBucket>(size, tmp);
+        uploadData.updData.assets = std::vector<VBucket>(size, asset);
         uploadData.delData.record = std::vector<VBucket>(size, tmp);
         uploadData.delData.extend = std::vector<VBucket>(size, tmp);
     }
@@ -241,6 +253,84 @@ public:
         currentContext_.cloudWaterMarks[tableName] = mark;
     }
 
+    int CallDownloadAssets()
+    {
+        InnerProcessInfo info;
+        std::vector<std::string> pKColNames;
+        std::set<Key> dupHashKeySet;
+        ChangedData changedAssets;
+        return CloudSyncer::DownloadAssets(info, pKColNames, dupHashKeySet, changedAssets);
+    }
+
+    void SetCurrentContext(TaskId taskId)
+    {
+        currentContext_.currentTaskId = taskId;
+    }
+
+    void SetLastTaskId(TaskId taskId)
+    {
+        lastTaskId_ = taskId;
+    }
+
+    void SetCurrentTaskPause()
+    {
+        cloudTaskInfos_[currentContext_.currentTaskId].pause = true;
+    }
+
+    void SetAssetDownloadList(int downloadCount)
+    {
+        for (int i = 0; i < downloadCount; ++i) {
+            currentContext_.assetDownloadList.push_back({});
+        }
+    }
+
+    void SetQuerySyncObject(TaskId taskId, const QuerySyncObject &query)
+    {
+        std::vector<QuerySyncObject> queryList;
+        queryList.push_back(query);
+        cloudTaskInfos_[taskId].queryList = queryList;
+    }
+
+    QuerySyncObject CallGetQuerySyncObject(const std::string &tableName)
+    {
+        return CloudSyncer::GetQuerySyncObject(tableName);
+    }
+
+    void CallReloadWaterMarkIfNeed(TaskId taskId, WaterMark &waterMark)
+    {
+        CloudSyncer::ReloadWaterMarkIfNeed(taskId, waterMark);
+    }
+
+    void CallRecordWaterMark(TaskId taskId, Timestamp waterMark)
+    {
+        CloudSyncer::RecordWaterMark(taskId, waterMark);
+    }
+
+    void SetResumeSyncParam(TaskId taskId, const SyncParam &syncParam)
+    {
+        resumeTaskInfos_[taskId].syncParam = syncParam;
+        resumeTaskInfos_[taskId].context.tableName = syncParam.tableName;
+    }
+
+    void ClearResumeTaskInfo(TaskId taskId)
+    {
+        resumeTaskInfos_.erase(taskId);
+    }
+
+    void SetTaskResume(TaskId taskId, bool resume)
+    {
+        cloudTaskInfos_[taskId].resume = resume;
+    }
+
+    int CallGetSyncParamForDownload(TaskId taskId, SyncParam &param)
+    {
+        return CloudSyncer::GetSyncParamForDownload(taskId, param);
+    }
+
+    bool IsResumeTaskUpload(TaskId taskId)
+    {
+        return resumeTaskInfos_[taskId].upload;
+    }
     CloudTaskInfo taskInfo_;
 private:
     std::map<TaskId, SyncProcess> process_;

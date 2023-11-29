@@ -35,13 +35,14 @@ public:
 
     DB_API Query &FromTable(const std::vector<std::string> &tableNames);
 
+    DB_API Query &From(const std::string &tableName);
+
     template<typename T>
     DB_API Query &EqualTo(const std::string &field, const T &value)
     {
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::EQUALTO, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -51,7 +52,6 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::NOT_EQUALTO, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -61,7 +61,6 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::GREATER_THAN, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -71,7 +70,6 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::LESS_THAN, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -81,7 +79,6 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::GREATER_THAN_OR_EQUALTO, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -91,7 +88,6 @@ public:
         FieldValue fieldValue;
         QueryValueType type = GetFieldTypeAndValue(value, fieldValue);
         ExecuteCompareOperation(QueryObjType::LESS_THAN_OR_EQUALTO, field, type, fieldValue);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -117,7 +113,6 @@ public:
         }
 
         ExecuteCompareOperation(QueryObjType::IN, field, type, fieldValues);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -133,7 +128,6 @@ public:
         }
 
         ExecuteCompareOperation(QueryObjType::NOT_IN, field, type, fieldValues);
-        SetIsDeviceSyncQuery(true);
         return *this;
     }
 
@@ -155,6 +149,8 @@ public:
 
     DB_API Query &InKeys(const std::set<Key> &keys);
 
+    DB_API Query &Range(const std::vector<uint8_t> &keyBegin, const std::vector<uint8_t> &keyEnd);
+
     friend class GetQueryInfo;
     DB_API ~Query() = default;
     DB_API Query() = default;
@@ -165,8 +161,6 @@ private:
         const QueryValueType type, const FieldValue &fieldValue);
     DB_SYMBOL void ExecuteCompareOperation(QueryObjType operType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &fieldValue);
-
-    DB_SYMBOL void SetIsDeviceSyncQuery(bool isDeviceSync);
 
     template<typename T>
     QueryValueType GetFieldTypeAndValue(const T &queryValue, FieldValue &fieldValue)

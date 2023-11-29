@@ -993,7 +993,7 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
     propertiesPtr->SetBoolProp(KvDBProperties::CREATE_DIR_BY_STORE_ID_ONLY, param.option.createDirByStoreIdOnly);
     propertiesPtr->SetBoolProp(KvDBProperties::MEMORY_MODE, false);
     propertiesPtr->SetBoolProp(KvDBProperties::ENCRYPTED_MODE, param.option.isEncryptedDb);
-    propertiesPtr->SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE);
+    propertiesPtr->SetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::SINGLE_VER_TYPE_SQLITE);
     propertiesPtr->SetSchema(schemaObject);
     if (RuntimeContext::GetInstance()->IsProcessSystemApiAdapterValid()) {
         propertiesPtr->SetIntProp(KvDBProperties::SECURITY_LABEL, param.option.secOption.securityLabel);
@@ -1005,6 +1005,8 @@ int AutoLaunch::GetAutoLaunchKVProperties(const AutoLaunchParam &param,
             ParamCheckUtils::GetValidCompressionRate(param.option.compressionRate));
     }
     propertiesPtr->SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, param.option.syncDualTupleMode);
+    propertiesPtr->SetBoolProp(KvDBProperties::READ_ONLY_MODE, false);
+    propertiesPtr->SetBoolProp(KvDBProperties::SHARED_MODE, false);
     DBCommon::SetDatabaseIds(*propertiesPtr, param.appId, param.userId, param.storeId);
     return E_OK;
 }
@@ -1251,8 +1253,8 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
         return E_OK;
     }
     RelationalStoreConnection *conn = static_cast<RelationalStoreConnection *>(autoLaunchItem.conn);
-    conn->RegisterObserverAction([this, autoLaunchItem, identifier](const std::string &changedDevice,
-        ChangedData &&changedData, bool isChangedData) {
+    (void)conn->RegisterObserverAction(autoLaunchItem.storeObserver, [this, autoLaunchItem, identifier](
+        const std::string &changedDevice, ChangedData &&changedData, bool isChangedData) {
         if (isChangedData && autoLaunchItem.storeObserver) {
             LOGD("begin to observer on changed data");
             autoLaunchItem.storeObserver->OnChange(

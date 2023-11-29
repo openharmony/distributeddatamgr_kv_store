@@ -171,6 +171,11 @@ int SQLiteRelationalStore::CheckProperties(RelationalDBProperties properties)
         LOGE("Get relational schema from meta failed. errcode=%d", errCode);
         return errCode;
     }
+    int ret = InitTrackerSchemaFromMeta();
+    if (ret != E_OK) {
+        LOGE("Init tracker schema from meta failed. errcode=%d", ret);
+        return ret;
+    }
     properties.SetSchema(schema);
 
     // Empty schema means no distributed table has been used, we may set DB to any table mode
@@ -469,6 +474,10 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
     TableInfoMap tables = localSchema.GetTables();
     std::vector<std::string> cloudTableNameList;
     for (const auto &tableInfo : tables) {
+        bool isSharedTable = tableInfo.second.GetSharedTableMark();
+        if ((mode == CLEAR_SHARED_TABLE && !isSharedTable) || (mode != CLEAR_SHARED_TABLE && isSharedTable)) {
+            continue;
+        }
         if (tableInfo.second.GetTableSyncType() == CLOUD_COOPERATION) {
             cloudTableNameList.push_back(tableInfo.first);
         }
@@ -477,7 +486,6 @@ int SQLiteRelationalStore::CleanCloudData(ClearMode mode)
         LOGI("[RelationalStore] device doesn't has cloud table, clean cloud data finished.");
         return E_OK;
     }
-
     if (cloudSyncer_ == nullptr) {
         LOGE("[RelationalStore] cloudSyncer was not initialized when clean cloud data");
         return -E_INVALID_DB;
@@ -506,9 +514,11 @@ int SQLiteRelationalStore::RemoveDeviceData()
     // erase watermark first
     int errCode = EraseAllDeviceWatermark(tableNameList);
     if (errCode != E_OK) {
+        LOGE("remove watermark failed %d", errCode);
         return errCode;
     }
-    auto *handle = GetHandleAndStartTransaction(errCode);
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    errCode = GetHandleAndStartTransaction(handle);
     if (handle == nullptr) {
         return errCode;
     }
@@ -555,7 +565,7 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
         return -E_DISTRIBUTED_SCHEMA_NOT_FOUND;
     }
     // cloud mode is not permit
-    if (iter->second.GetTableSyncType() == CLOUD_COOPERATION) {
+    if (iter != tables.end() && iter->second.GetTableSyncType() == CLOUD_COOPERATION) {
         LOGE("Remove device data with cloud sync table name.");
         return -E_NOT_SUPPORT;
     }
@@ -585,9 +595,15 @@ int SQLiteRelationalStore::RemoveDeviceData(const std::string &device, const std
     return RemoveDeviceDataInner(hashDeviceId, device, tableName, isNeedHash);
 }
 
-void SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const RelationalObserverAction &action)
+int SQLiteRelationalStore::RegisterObserverAction(uint64_t connectionId, const StoreObserver *observer,
+    const RelationalObserverAction &action)
 {
-    storageEngine_->RegisterObserverAction(connectionId, action);
+    return storageEngine_->RegisterObserverAction(connectionId, observer, action);
+}
+
+int SQLiteRelationalStore::UnRegisterObserverAction(uint64_t connectionId, const StoreObserver *observer)
+{
+    return storageEngine_->UnRegisterObserverAction(connectionId, observer);
 }
 
 int SQLiteRelationalStore::StopLifeCycleTimer()
@@ -788,7 +804,7 @@ int SQLiteRelationalStore::EraseAllDeviceWatermark(const std::vector<std::string
             }
         }
     }
-    return errCode;
+    return E_OK;
 }
 
 std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, const std::string &hashDev) const
@@ -805,19 +821,21 @@ std::string SQLiteRelationalStore::GetDevTableName(const std::string &device, co
     return devTableName;
 }
 
-SQLiteSingleVerRelationalStorageExecutor *SQLiteRelationalStore::GetHandleAndStartTransaction(int &errCode) const
+int SQLiteRelationalStore::GetHandleAndStartTransaction(SQLiteSingleVerRelationalStorageExecutor *&handle) const
 {
-    auto *handle = GetHandle(true, errCode);
+    int errCode = E_OK;
+    handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        return nullptr;
+        LOGE("get handle failed %d", errCode);
+        return errCode;
     }
 
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
+        LOGE("start transaction failed %d", errCode);
         ReleaseHandle(handle);
-        return nullptr;
     }
-    return handle;
+    return errCode;
 }
 
 int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, const std::string &device,
@@ -840,9 +858,11 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
     // erase watermark first
     int errCode = syncAbleEngine_->EraseDeviceWaterMark(hashDev, false, tableName);
     if (errCode != E_OK) {
+        LOGE("erase watermark failed %d", errCode);
         return errCode;
     }
-    auto *handle = GetHandleAndStartTransaction(errCode);
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    errCode = GetHandleAndStartTransaction(handle);
     if (handle == nullptr) {
         return errCode;
     }
@@ -851,7 +871,7 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     if (errCode != E_OK) {
         LOGE("delete device data failed. %d", errCode);
-        goto END;
+        tables.clear();
     }
 
     for (const auto &it : tables) {
@@ -864,7 +884,6 @@ int SQLiteRelationalStore::RemoveDeviceDataInner(const std::string &mappingDev, 
         }
     }
 
-END:
     if (errCode != E_OK) {
         (void)handle->Rollback();
         ReleaseHandle(handle);
@@ -897,6 +916,9 @@ std::vector<std::string> SQLiteRelationalStore::GetAllDistributedTableName()
     TableInfoMap tables = sqliteStorageEngine_->GetSchema().GetTables(); // TableInfoMap
     std::vector<std::string> tableNames;
     for (const auto &table: tables) {
+        if (table.second.GetTableSyncType() == TableSyncType::CLOUD_COOPERATION) {
+            continue;
+        }
         tableNames.push_back(table.second.GetTableName());
     }
     return tableNames;
@@ -912,11 +934,96 @@ int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
     return E_OK;
 }
 
-int SQLiteRelationalStore::SetCloudDbSchema(const DataBaseSchema &schema)
+bool SQLiteRelationalStore::CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo,
+    std::vector<Field> &addFields)
+{
+    std::vector<FieldInfo> oldFields = tableInfo.GetFieldInfos();
+    if (newFields.size() < oldFields.size()) {
+        return false;
+    }
+    for (size_t index = 0; index < newFields.size(); index++) {
+        if (index >= oldFields.size()) {
+            addFields.push_back(newFields[index]);
+            continue;
+        }
+        int32_t type = newFields[index].type;
+        // Field type need to match storage type
+        if (type >= TYPE_INDEX<Nil> && type <= TYPE_INDEX<std::string>) {
+            type++; // storage type - field type = 1
+        } else if (type == TYPE_INDEX<bool>) {
+            type = 1; // storage type is STORAGE_TYPE_NULL
+        } else if (type >= TYPE_INDEX<Asset> && type <= TYPE_INDEX<Assets>) {
+            type = TYPE_INDEX<Bytes>; // storage type is STORAGE_TYPE_BLOB
+        }
+        auto primaryKeyMap = tableInfo.GetPrimaryKey();
+        auto it = std::find_if(primaryKeyMap.begin(), primaryKeyMap.end(),
+            [&](const std::map<int, std::string>::value_type &pair) {
+                return pair.second == newFields[index].colName;
+            });
+        if (newFields[index].colName != oldFields[index].GetFieldName() ||
+            type != static_cast<int32_t>(oldFields[index].GetStorageType()) ||
+            newFields[index].primary != (it != primaryKeyMap.end()) ||
+            newFields[index].nullable == oldFields[index].IsNotNull()) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
+    std::map<std::string, std::vector<Field>> &updateTableNames, std::map<std::string, std::string> &alterTableNames)
+{
+    std::set<std::string> tableNames;
+    std::map<std::string, std::string> sharedTableNamesMap;
+    std::map<std::string, std::vector<Field>> fieldsMap;
+    for (const auto &table : schema.tables) {
+        tableNames.insert(table.name);
+        sharedTableNamesMap[table.name] = table.sharedTableName;
+        std::vector<Field> fields = table.fields;
+        bool hasPrimaryKey = DBCommon::HasPrimaryKey(fields);
+        Field ownerField = {CloudDbConstant::CLOUD_OWNER, TYPE_INDEX<std::string>, hasPrimaryKey};
+        Field privilegeField = {CloudDbConstant::CLOUD_PRIVILEGE, TYPE_INDEX<std::string>};
+        fields.insert(fields.begin(), privilegeField);
+        fields.insert(fields.begin(), ownerField);
+        fieldsMap[table.name] = fields;
+    }
+
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfoMap tableList = localSchema.GetTables();
+    for (const auto &tableInfo : tableList) {
+        if (!tableInfo.second.GetSharedTableMark()) {
+            continue;
+        }
+        std::string oldSharedTableName = tableInfo.second.GetTableName();
+        std::string oldOriginTableName = tableInfo.second.GetOriginTableName();
+        std::vector<Field> addFields;
+        if (tableNames.find(oldOriginTableName) == tableNames.end()) {
+            deleteTableNames.push_back(oldSharedTableName);
+        } else if (CheckFields(fieldsMap[oldOriginTableName], tableInfo.second, addFields)) {
+            if (!addFields.empty()) {
+                updateTableNames[oldSharedTableName] = addFields;
+            }
+            if (oldSharedTableName != sharedTableNamesMap[oldOriginTableName]) {
+                alterTableNames[oldSharedTableName] = sharedTableNamesMap[oldOriginTableName];
+            }
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &schema)
 {
     if (storageEngine_ == nullptr) {
-        LOGE("[RelationalStore][SetCloudDbSchema] storageEngine was not initialized");
+        LOGE("[RelationalStore][PrepareAndSetCloudDbSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
+    }
+    // delete, update and create shared table and its distributed table
+    int errCode = ExecuteCreateSharedTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
+        return errCode;
     }
     return storageEngine_->SetCloudDbSchema(schema);
 }
@@ -940,47 +1047,339 @@ int SQLiteRelationalStore::ChkSchema(const TableName &tableName)
     return storageEngine_->ChkSchema(tableName);
 }
 
-int SQLiteRelationalStore::Sync(const std::vector<std::string> &devices, SyncMode mode,
-    const Query &query, const SyncProcessCallback &onProcess, int64_t waitTime)
+int SQLiteRelationalStore::Sync(const CloudSyncOption &option, const SyncProcessCallback &onProcess)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][Sync] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    int errCode = CheckBeforeSync(option);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    CloudSyncer::CloudTaskInfo info;
+    FillSyncInfo(option, onProcess, info);
+    auto [table, ret] = sqliteStorageEngine_->CalTableRef(info.table, storageEngine_->GetSharedTableOriginNames());
+    if (ret != E_OK) {
+        return ret;
+    }
+    ret = ReFillSyncInfoTable(table, info);
+    if (ret != E_OK) {
+        return ret;
+    }
+    return cloudSyncer_->Sync(info);
+}
+
+int SQLiteRelationalStore::CheckBeforeSync(const CloudSyncOption &option)
 {
     if (cloudSyncer_ == nullptr) {
         LOGE("[RelationalStore] cloudSyncer was not initialized when sync");
         return -E_INVALID_DB;
     }
-    QuerySyncObject querySyncObject(query);
-    if (querySyncObject.GetIsDeviceSyncQuery()) {
-        LOGE("[RelationalStore] cloudSyncer was not support other query");
+    if (option.waitTime > DBConstant::MAX_SYNC_TIMEOUT || option.waitTime < DBConstant::INFINITE_WAIT) {
+        return -E_INVALID_ARGS;
+    }
+    int errCode = CheckQueryValid(option.priorityTask, option.query);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    SecurityOption securityOption;
+    errCode = storageEngine_->GetSecurityOption(securityOption);
+    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    if (errCode == E_OK && securityOption.securityLabel == S4) {
+        return -E_SECURITY_OPTION_CHECK_ERROR;
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CheckQueryValid(bool priorityTask, const Query &query)
+{
+    QuerySyncObject syncObject(query);
+    int errCode = syncObject.GetValidStatus();
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] query is invalid or not support %d", errCode);
+        return errCode;
+    }
+    std::vector<QuerySyncObject> object = QuerySyncObject::GetQuerySyncObject(query);
+    if (!priorityTask && !object.empty()) {
+        LOGE("[RelationalStore] not support normal sync with query");
         return -E_NOT_SUPPORT;
     }
-    const auto tableNames = querySyncObject.GetRelationTableNames();
+    const auto tableNames = syncObject.GetRelationTableNames();
+    if (priorityTask && !tableNames.empty()) {
+        LOGE("[RelationalStore] not support priority sync with from tables");
+        return -E_NOT_SUPPORT;
+    }
+    for (const auto &tableName : tableNames) {
+        QuerySyncObject querySyncObject;
+        querySyncObject.SetTableName(tableName);
+        object.push_back(querySyncObject);
+    }
+    std::vector<std::string> syncTableNames;
+    for (const auto &item : object) {
+        std::string tableName = item.GetRelationTableName();
+        syncTableNames.emplace_back(tableName);
+    }
+    errCode = CheckTableName(syncTableNames);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return CheckObjectValid(priorityTask, object);
+}
+
+int SQLiteRelationalStore::CheckObjectValid(bool priorityTask, const std::vector<QuerySyncObject> &object)
+{
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    for (const auto &item : object) {
+        if (priorityTask && !item.IsContainQueryNodes()) {
+            LOGE("[RelationalStore] not support priority sync with full table");
+            return -E_INVALID_ARGS;
+        }
+        int errCode = storageEngine_->CheckQueryValid(item);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!priorityTask) {
+            continue;
+        }
+        if (!item.IsInValueOutOfLimit()) {
+            LOGE("[RelationalStore] not support priority sync in count out of limit");
+            return -E_MAX_LIMITS;
+        }
+        std::string tableName = item.GetRelationTableName();
+        TableInfo tableInfo = localSchema.GetTable(tableName);
+        if (!tableInfo.Empty()) {
+            const std::map<int, FieldName>& primaryKeyMap = tableInfo.GetPrimaryKey();
+            errCode = item.CheckPrimaryKey(primaryKeyMap);
+            if (errCode != E_OK) {
+                return errCode;
+            }
+        }
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CheckTableName(const std::vector<std::string> &tableNames)
+{
     if (tableNames.empty()) {
         LOGE("[RelationalStore] sync with empty table");
         return -E_INVALID_ARGS;
     }
-    SecurityOption option;
-    int errCode = storageEngine_->GetSecurityOption(option);
-    if (errCode != E_OK && errCode != -E_NOT_SUPPORT) {
-        return -E_SECURITY_OPTION_CHECK_ERROR;
-    }
-    if (errCode == E_OK && option.securityLabel == S4) {
-        return -E_SECURITY_OPTION_CHECK_ERROR;
-    }
     for (const auto &table: tableNames) {
-        errCode = ChkSchema(table);
+        int errCode = ChkSchema(table);
         if (errCode != E_OK) {
             LOGE("[RelationalStore] schema check failed when sync");
             return errCode;
         }
     }
-    std::vector<std::string> syncTable;
-    std::set<std::string> addTable;
-    for (const auto &table: tableNames) {
-        if (addTable.find(table) == addTable.end()) {
-            addTable.insert(table);
-            syncTable.push_back(table);
+    return E_OK;
+}
+
+void SQLiteRelationalStore::FillSyncInfo(const CloudSyncOption &option, const SyncProcessCallback &onProcess,
+    CloudSyncer::CloudTaskInfo &info)
+{
+    auto syncObject = QuerySyncObject::GetQuerySyncObject(option.query);
+    if (syncObject.empty()) {
+        QuerySyncObject querySyncObject(option.query);
+        info.table = querySyncObject.GetRelationTableNames();
+        for (const auto &item: info.table) {
+            QuerySyncObject object(Query::Select());
+            object.SetTableName(item);
+            info.queryList.push_back(object);
+        }
+    } else {
+        for (auto &item: syncObject) {
+            info.table.push_back(item.GetRelationTableName());
+            info.queryList.push_back(std::move(item));
         }
     }
-    return cloudSyncer_->Sync(devices, mode, syncTable, onProcess, waitTime);
+    info.devices = option.devices;
+    info.mode = option.mode;
+    info.callback = onProcess;
+    info.timeout = option.waitTime;
+    info.priorityTask = option.priorityTask;
+}
+
+int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
+{
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfo tableInfo = localSchema.GetTable(trackerSchema.tableName);
+    if (tableInfo.Empty()) {
+        return sqliteStorageEngine_->SetTrackerTable(trackerSchema);
+    }
+    int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType());
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return sqliteStorageEngine_->SaveTrackerSchema();
+}
+
+int SQLiteRelationalStore::ExecuteSql(const SqlCondition &condition, std::vector<VBucket> &records)
+{
+    if (condition.sql.empty()) {
+        LOGE("[RelationalStore] execute sql is empty.");
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->ExecuteSql(condition, records);
+}
+
+int SQLiteRelationalStore::CleanWaterMark(std::set<std::string> &clearWaterMarkTable)
+{
+    int errCode = E_OK;
+    for (const auto &tableName : clearWaterMarkTable) {
+        std::string cloudWaterMark;
+        Value blobMetaVal;
+        errCode = DBCommon::SerializeWaterMark(0, cloudWaterMark, blobMetaVal);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRelationalStore] SerializeWaterMark failed, errCode = %d", errCode);
+            return errCode;
+        }
+        errCode = storageEngine_->PutMetaData(DBCommon::GetPrefixTableName(tableName), blobMetaVal, true);
+        if (errCode != E_OK) {
+            LOGE("[SQLiteRelationalStore] put meta data failed, errCode = %d", errCode);
+            return errCode;
+        }
+    }
+    errCode = cloudSyncer_->CleanWaterMarkInMemory(clearWaterMarkTable);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore] CleanWaterMarkInMemory failed, errCode = %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStore::SetReference(const std::vector<TableReferenceProperty> &tableReferenceProperty)
+{
+    SQLiteSingleVerRelationalStorageExecutor *handle = nullptr;
+    int errCode = GetHandleAndStartTransaction(handle);
+    if (errCode != E_OK) {
+        LOGE("[SQLiteRelationalStore] SetReference start transaction failed, errCode = %d", errCode);
+        return errCode;
+    }
+    std::set<std::string> clearWaterMarkTables;
+    RelationalSchemaObject schema;
+    errCode = sqliteStorageEngine_->SetReference(tableReferenceProperty, handle, clearWaterMarkTables, schema);
+    if (errCode != E_OK && errCode != -E_TABLE_REFERENCE_CHANGED) {
+        LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", errCode);
+        (void)handle->Rollback();
+        ReleaseHandle(handle);
+        return errCode;
+    }
+
+    if (!clearWaterMarkTables.empty()) {
+        storageEngine_->SetReusedHandle(handle);
+        int ret = CleanWaterMark(clearWaterMarkTables);
+        if (ret != E_OK) {
+            LOGE("[SQLiteRelationalStore] SetReference failed, errCode = %d", ret);
+            storageEngine_->SetReusedHandle(nullptr);
+            (void)handle->Rollback();
+            ReleaseHandle(handle);
+            return ret;
+        }
+        storageEngine_->SetReusedHandle(nullptr);
+        LOGI("[SQLiteRelationalStore] SetReference clear water mark success");
+    }
+
+    int ret = handle->Commit();
+    ReleaseHandle(handle);
+    if (ret == E_OK) {
+        sqliteStorageEngine_->SetSchema(schema);
+        return errCode;
+    }
+    LOGE("[SQLiteRelationalStore] SetReference commit transaction failed, errCode = %d", ret);
+    return ret;
+}
+
+int SQLiteRelationalStore::InitTrackerSchemaFromMeta()
+{
+    int errCode = sqliteStorageEngine_->GetOrInitTrackerSchemaFromMeta();
+    return errCode == -E_NOT_FOUND ? E_OK : errCode;
+}
+
+int SQLiteRelationalStore::CleanTrackerData(const std::string &tableName, int64_t cursor)
+{
+    if (tableName.empty()) {
+        return -E_INVALID_ARGS;
+    }
+    return sqliteStorageEngine_->CleanTrackerData(tableName, cursor);
+}
+
+int SQLiteRelationalStore::ExecuteCreateSharedTable(const DataBaseSchema &schema)
+{
+    if (sqliteStorageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    std::vector<std::string> deleteTableNames;
+    std::map<std::string, std::vector<Field>> updateTableNames;
+    std::map<std::string, std::string> alterTableNames;
+    if (!PrepareSharedTable(schema, deleteTableNames, updateTableNames, alterTableNames)) {
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] table fields are invalid.");
+        return -E_INVALID_ARGS;
+    }
+    LOGI("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table start");
+    // upgrade contains delete, alter, update and create
+    int errCode = sqliteStorageEngine_->UpgradeSharedTable(schema, deleteTableNames, updateTableNames,
+        alterTableNames);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table failed. %d", errCode);
+    } else {
+        LOGI("[RelationalStore][ExecuteCreateSharedTable] upgrade shared table end");
+    }
+    return errCode;
+}
+
+int SQLiteRelationalStore::ReFillSyncInfoTable(const std::vector<std::string> &actualTable,
+    CloudSyncer::CloudTaskInfo &info)
+{
+    if (info.priorityTask && actualTable.size() != info.table.size()) {
+        LOGE("[RelationalStore] Not support regenerate table with priority task");
+        return -E_NOT_SUPPORT;
+    }
+    if (actualTable.size() == info.table.size()) {
+        return E_OK;
+    }
+    LOGD("[RelationalStore] Fill tables from %zu to %zu", info.table.size(), actualTable.size());
+    info.table = actualTable;
+    info.queryList.clear();
+    for (const auto &item: info.table) {
+        QuerySyncObject object(Query::Select());
+        object.SetTableName(item);
+        info.queryList.push_back(object);
+    }
+    return E_OK;
+}
+
+int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
+{
+    if (cmd != LOGIC_DELETE_SYNC_DATA) {
+        return -E_NOT_SUPPORT;
+    }
+    if (pragmaData == nullptr) {
+        return -E_INVALID_ARGS;
+    }
+    auto logicDelete = *(static_cast<bool *>(pragmaData));
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][ChkSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    storageEngine_->SetLogicDelete(logicDelete);
+    return E_OK;
+}
+
+int SQLiteRelationalStore::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    if (sqliteStorageEngine_  == nullptr) {
+        LOGE("[RelationalStore][UpsertData] sqliteStorageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    return sqliteStorageEngine_ ->UpsertData(status, tableName, records);
 }
 }
 #endif

@@ -88,7 +88,7 @@ protected:
 
         Info GetInfo();
 
-        void SetInfo(const uint32_t &totalCount, const uint32_t &successCount, const uint32_t &failedCount);
+        void SetInfo(uint32_t totalCount, uint32_t successCount, uint32_t failedCount);
 
         void SetTableName(const std::string &tableName);
 
@@ -133,6 +133,11 @@ protected:
         const std::shared_ptr<ICloudDb> &cloudDb);
 
     static int GetInnerErrorCode(DBStatus status);
+
+    static DBStatus QueryAction(const std::shared_ptr<CloudActionContext> &context,
+        const std::shared_ptr<ICloudDb> &cloudDb);
+
+    void DecAsyncTaskCount();
 
     mutable std::shared_mutex cloudMutex_;
     mutable std::shared_mutex assetLoaderMutex_;

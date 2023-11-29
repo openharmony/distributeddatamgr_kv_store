@@ -68,7 +68,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
     cloudSyncer.SetMockICloudDB(idb);
     std::vector<DeviceID> devices = {"cloud"};
     std::vector<std::string> tables = {"TestTableA", "TestTableB" };
-    
+
     // check different sync mode
     cloudSyncer.InitCloudSyncerForSync();
 
@@ -84,7 +84,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck001, TestSiz
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 
     SyncProcess res;
     int errCode = cloudSyncer.Sync(devices, SYNC_MODE_CLOUD_FORCE_PUSH, tables, [&res](
@@ -126,7 +126,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSiz
     TestCloudSyncer cloudSyncer3(storageProxy);
     cloudSyncer3.SetMockICloudDB(idb);
     cloudSyncer3.InitCloudSyncerForSync();
-    
+
     std::vector<DeviceID> devices = {"cloud"};
     std::vector<std::string> tables = {"TestTableA", "TestTableB" };
     EXPECT_CALL(*idb, Query(_, _, _)).WillRepeatedly(Return(QUERY_END));
@@ -141,7 +141,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck002, TestSiz
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 
     SyncProcess res;
     int errCode = cloudSyncer3.Sync(devices, SYNC_MODE_CLOUD_MERGE, tables, [&res](
@@ -184,7 +184,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
     std::shared_ptr<MockICloudDB> idb = std::make_shared<MockICloudDB>();
     cloudSyncer5.SetMockICloudDB(idb);
     cloudSyncer5.InitCloudSyncerForSync();
-    
+
     std::vector<std::string> tables = {"TestTableA", "TestTableB" };
     EXPECT_CALL(*idb, Query(_, _, _)).WillRepeatedly(Return(QUERY_END));
     EXPECT_CALL(*idb, BatchInsert(_, _, _)).WillRepeatedly(Return(OK));
@@ -198,7 +198,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck003, TestSiz
     EXPECT_CALL(*iCloud, Commit()).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetUploadCount(_, _, _, _)).WillRepeatedly(Return(E_OK));
     EXPECT_CALL(*iCloud, GetCloudTableSchema(_, _)).WillRepeatedly(Return(E_OK));
-    EXPECT_CALL(*iCloud, GetCloudData(_, _, _, _)).WillRepeatedly(Return(E_OK));
+    EXPECT_CALL(*iCloud, GetCloudData).WillRepeatedly(Return(E_OK));
 
     SyncProcess res;
     // check if device is empty
@@ -244,7 +244,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck004, TestSiz
     cloudSyncer.taskInfo_ = cloudSyncer.SetAndGetCloudTaskInfo(SYNC_MODE_CLOUD_FORCE_PUSH, tables, onProcess, 5000);
     int errCode = cloudSyncer.CallTryToAddSyncTask(std::move(cloudSyncer.taskInfo_));
     EXPECT_EQ(errCode, -E_BUSY);
-    
+
     cloudSyncer.PopTaskQueue();
     cloudSyncer.PopTaskQueue();
 
@@ -277,7 +277,7 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSiz
 
     std::vector<string> devices = {"cloud"};
     std::vector<std::string> tables = {"TestTableA", "TestTableB" };
-    
+
     cloudSyncer.InitCloudSyncer(0u, SYNC_MODE_CLOUD_FORCE_PUSH);
     int errCode = cloudSyncer.CreateCloudTaskInfoAndCallTryToAddSync(SYNC_MODE_CLOUD_FORCE_PUSH, tables, {}, 5000);
     errCode = cloudSyncer.CallPrepareSync(1u);
@@ -291,5 +291,75 @@ HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMgrCheck005, TestSiz
     storageProxy.reset();
     delete iCloud;
     idb = nullptr;
+}
+
+/**
+ * @tc.name: SyncerMockCheck001
+ * @tc.desc: Test Syncer pause tasks
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMockCheck001, TestSize.Level0)
+{
+    auto *iCloud = new MockICloudSyncStorageInterface();
+    ASSERT_NE(iCloud, nullptr);
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    auto cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    ASSERT_NE(cloudSyncer, nullptr);
+
+    cloudSyncer->SetCurrentContext(2u); // 2 is taskId
+    cloudSyncer->SetLastTaskId(3u); // 3 is taskId
+    cloudSyncer->SetCurrentTaskPause();
+    cloudSyncer->SetAssetFields("test", {{}});
+    cloudSyncer->SetAssetDownloadList(1);
+    EXPECT_EQ(cloudSyncer->CallDownloadAssets(), -E_TASK_PAUSED);
+    cloudSyncer->SetCurrentContext(0);
+    cloudSyncer->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy.reset();
+    delete iCloud;
+}
+
+/**
+ * @tc.name: SyncerMockCheck002
+ * @tc.desc: Test Syncer get current query
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudSyncerProgressManagerTest, SyncerMockCheck002, TestSize.Level0)
+{
+    auto *iCloud = new MockICloudSyncStorageInterface();
+    std::shared_ptr<TestStorageProxy> storageProxy = std::make_shared<TestStorageProxy>(iCloud);
+    ASSERT_NE(iCloud, nullptr);
+    EXPECT_CALL(*iCloud, GetIdentify).WillRepeatedly(Return(""));
+    auto cloudSyncer = new(std::nothrow) TestCloudSyncer(storageProxy);
+    ASSERT_NE(cloudSyncer, nullptr);
+
+    // prepare current query and last query
+    // make them has diff sort type
+    const TaskId currentTask = 2u;
+    QuerySyncObject currentQuery;
+    currentQuery.SetTableName("current");
+    currentQuery.SetSortType(SortType::TIMESTAMP_ASC);
+    cloudSyncer->SetQuerySyncObject(currentTask, currentQuery);
+    const TaskId lastTask = 3u;
+    QuerySyncObject lastQuery;
+    lastQuery.SetTableName("last");
+    lastQuery.SetSortType(SortType::TIMESTAMP_DESC);
+    cloudSyncer->SetQuerySyncObject(lastTask, lastQuery);
+    cloudSyncer->SetCurrentContext(currentTask);
+    cloudSyncer->SetLastTaskId(lastTask);
+    // check get current query from syncer
+    QuerySyncObject actualQuery = cloudSyncer->CallGetQuerySyncObject(currentQuery.GetTableName());
+    EXPECT_EQ(actualQuery.GetSortType(), currentQuery.GetSortType());
+    EXPECT_NE(actualQuery.GetSortType(), lastQuery.GetSortType());
+
+    cloudSyncer->SetCurrentContext(0);
+    cloudSyncer->Close();
+    RefObject::KillAndDecObjRef(cloudSyncer);
+    storageProxy = nullptr;
+    delete iCloud;
 }
 }

@@ -44,7 +44,7 @@ std::string SplitDeviceLogTableManager::GetInsertTrigger(const TableInfo &table,
     insertTrigger += "BEGIN\n";
     insertTrigger += "\t INSERT OR REPLACE INTO " + logTblName;
     insertTrigger += " (data_key, device, ori_device, timestamp, wtimestamp, flag, hash_key)";
-    insertTrigger += " VALUES (new.rowid, '', '',";
+    insertTrigger += " VALUES (new." + std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '',";
     insertTrigger += " get_sys_time(0), get_last_time(),";
     insertTrigger += " CASE WHEN (SELECT count(*)<>0 FROM " + logTblName + " WHERE hash_key=" +
         CalcPrimaryKeyHash("NEW.", table, identity) + " AND flag&0x02=0x02) THEN 0x22 ELSE 0x02 END,";
@@ -73,10 +73,11 @@ std::string SplitDeviceLogTableManager::GetUpdateTrigger(const TableInfo &table,
         updateTrigger += "\t UPDATE " + logTblName;
         updateTrigger += " SET data_key=-1,timestamp=get_sys_time(0), device='', flag=0x03";
         updateTrigger += " WHERE hash_key=" + CalcPrimaryKeyHash("OLD.", table, identity) + " AND flag&0x02=0x02;\n";
-        updateTrigger += "\t INSERT OR REPLACE INTO " + logTblName + " VALUES (NEW.rowid, '', '', get_sys_time(0), "
+        updateTrigger += "\t INSERT OR REPLACE INTO " + logTblName + " VALUES (NEW." +
+            std::string(DBConstant::SQLITE_INNER_ROWID) + ", '', '', get_sys_time(0), "
             "get_last_time(), CASE WHEN (" + CalcPrimaryKeyHash("NEW.", table, identity) + " != " +
             CalcPrimaryKeyHash("NEW.", table, identity) + ") THEN 0x02 ELSE 0x22 END, " +
-            CalcPrimaryKeyHash("NEW.", table, identity) + ", '');\n";
+            CalcPrimaryKeyHash("NEW.", table, identity) + ", '', '', '', '');\n";
     }
     updateTrigger += "END;";
     return updateTrigger;
@@ -99,5 +100,18 @@ std::string SplitDeviceLogTableManager::GetDeleteTrigger(const TableInfo &table,
 std::string SplitDeviceLogTableManager::GetPrimaryKeySql(const TableInfo &table)
 {
     return "PRIMARY KEY(device, hash_key)";
+}
+
+std::vector<std::string> SplitDeviceLogTableManager::GetDropTriggers(const TableInfo &table)
+{
+    std::vector<std::string> dropTriggers;
+    std::string tableName = table.GetTableName();
+    std::string insertTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_INSERT; ";
+    std::string updateTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_UPDATE; ";
+    std::string deleteTrigger = "DROP TRIGGER IF EXISTS naturalbase_rdb_" + tableName + "_ON_DELETE; ";
+    dropTriggers.emplace_back(insertTrigger);
+    dropTriggers.emplace_back(updateTrigger);
+    dropTriggers.emplace_back(deleteTrigger);
+    return dropTriggers;
 }
 }
