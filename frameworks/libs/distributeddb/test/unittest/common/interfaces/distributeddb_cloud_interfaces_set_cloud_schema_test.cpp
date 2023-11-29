@@ -1166,4 +1166,46 @@ namespace {
         int errCode;
         SQLiteUtils::ResetStatement(stmt, true, errCode);
     }
+
+    /**
+     * @tc.name: SharedTableSync004
+     * @tc.desc: Test sharedtable sync when alter shared table name
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync004, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use set shared table
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName1});
+
+        /**
+         * @tc.steps:step2. insert local shared table records and alter shared table name then sync
+         * @tc.expected: step2. return OK
+         */
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1);
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName5,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName5});
+        Query query = Query::Select().FromTable({ g_sharedTableName5 });
+        BlockSync(query, g_delegate);
+        CheckCloudTableCount(g_sharedTableName5, 10);
+    }
 } // namespace

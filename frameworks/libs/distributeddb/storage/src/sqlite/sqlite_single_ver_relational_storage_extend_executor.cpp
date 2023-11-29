@@ -583,7 +583,7 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanTrackerData(const std::string
     return errCode == E_OK ? ret : errCode;
 }
 
-int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const DataBaseSchema &schema)
+int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const TableSchema &tableSchema)
 {
     std::map<int32_t, std::string> cloudFieldTypeMap;
     cloudFieldTypeMap[TYPE_INDEX<Nil>] = "NULL";
@@ -595,35 +595,32 @@ int SQLiteSingleVerRelationalStorageExecutor::CreateSharedTable(const DataBaseSc
     cloudFieldTypeMap[TYPE_INDEX<Asset>] = "ASSET";
     cloudFieldTypeMap[TYPE_INDEX<Assets>] = "ASSETS";
 
-    for (const auto &table : schema.tables) {
-        std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + table.sharedTableName + "(";
-        std::string primaryKey = ", PRIMARY KEY (";
-        createTableSql += CloudDbConstant::CLOUD_OWNER;
-        createTableSql += " TEXT, ";
-        createTableSql += CloudDbConstant::CLOUD_PRIVILEGE;
-        createTableSql += " TEXT";
-        primaryKey += CloudDbConstant::CLOUD_OWNER;
-        bool hasPrimaryKey = false;
-        for (const auto &field : table.fields) {
-            createTableSql += ", " + field.colName + " ";
-            createTableSql += cloudFieldTypeMap[field.type];
-            createTableSql += field.nullable ? "" : " NOT NULL";
-            if (field.primary) {
-                primaryKey += ", " + field.colName;
-                hasPrimaryKey = true;
-            }
-        }
-        if (hasPrimaryKey) {
-            createTableSql += primaryKey + ")";
-        }
-        createTableSql += ");";
-        int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, createTableSql);
-        if (errCode != E_OK) {
-            LOGE("Create shared table failed, %d", errCode);
-            return errCode;
+    std::string createTableSql = "CREATE TABLE IF NOT EXISTS " + tableSchema.sharedTableName + "(";
+    std::string primaryKey = ", PRIMARY KEY (";
+    createTableSql += CloudDbConstant::CLOUD_OWNER;
+    createTableSql += " TEXT, ";
+    createTableSql += CloudDbConstant::CLOUD_PRIVILEGE;
+    createTableSql += " TEXT";
+    primaryKey += CloudDbConstant::CLOUD_OWNER;
+    bool hasPrimaryKey = false;
+    for (const auto &field : tableSchema.fields) {
+        createTableSql += ", " + field.colName + " ";
+        createTableSql += cloudFieldTypeMap[field.type];
+        createTableSql += field.nullable ? "" : " NOT NULL";
+        if (field.primary) {
+            primaryKey += ", " + field.colName;
+            hasPrimaryKey = true;
         }
     }
-    return E_OK;
+    if (hasPrimaryKey) {
+        createTableSql += primaryKey + ")";
+    }
+    createTableSql += ");";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, createTableSql);
+    if (errCode != E_OK) {
+        LOGE("Create shared table failed, %d", errCode);
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::DeleteTable(const std::vector<std::string> &tableNames)

@@ -144,7 +144,7 @@ public:
     int GetAndResetServerObserverData(const std::string &tableName, ChangeProperties &changeProperties);
     int ClearAllTempSyncTrigger();
     int CleanTrackerData(const std::string &tableName, int64_t cursor);
-    int CreateSharedTable(const DataBaseSchema &schema);
+    int CreateSharedTable(const TableSchema &schema);
     int DeleteTable(const std::vector<std::string> &tableNames);
     int UpdateSharedTable(const std::map<std::string, std::vector<Field>> &updateTableNames);
     int AlterTableName(const std::map<std::string, std::string> &tableNames);
