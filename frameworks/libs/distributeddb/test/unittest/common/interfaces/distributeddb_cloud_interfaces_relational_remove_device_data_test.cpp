@@ -227,6 +227,21 @@ namespace {
         std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
+    void DeleteUserTableRecord(sqlite3 *&db, int64_t begin, int64_t count)
+    {
+        for (size_t i = 0; i < g_tables.size(); i++) {
+            string updateAge = "Delete from " + g_tables[i] + " where " + g_tablesPKey[i] + " in (";
+            for (int64_t j = begin; j < count; ++j) {
+                updateAge += "'" + g_prefix[i] + std::to_string(j) + "',";
+            }
+            updateAge.pop_back();
+            updateAge += ");";
+            ASSERT_EQ(RelationalTestUtils::ExecSql(db, updateAge), SQLITE_OK);
+        }
+        LOGD("delete local record worker1[primary key]:[local%" PRId64 " - local%" PRId64
+            ") , worker2[primary key]:[%" PRId64 "- %" PRId64")", begin, count, begin, count);
+    }
+
     void DeleteCloudTableRecordByGid(int64_t begin, int64_t count)
     {
         for (int64_t i = begin; i < begin + count; ++i) {
@@ -982,6 +997,41 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
     g_delegate->RemoveDeviceData();
     CheckLocalLogCount(db, { g_tableName1 }, { localCount });
+    CloseDb();
+}
+
+/*
+ * @tc.name: CleanCloudDataTest010
+ * @tc.desc: Test if log is delete when removedevicedata after sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudDataTest010, TestSize.Level0)
+{
+    /**
+     * @tc.steps: step1. make data: 10 records on local
+     */
+    int64_t paddingSize = 10;
+    int localCount = 10;
+    InsertUserTableRecord(db, 0, localCount, paddingSize, false);
+    /**
+     * @tc.steps: step2. call Sync with cloud merge strategy, and after that, local will has 10 records.
+     */
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    LOGW("check 10-10");
+    CheckCloudTotalCount(g_tables, {10, 10}); // 10 is cloud data num in table2
+    /**
+     * @tc.steps: step3. remove cloud and sync again
+     * @tc.expected: OK.
+     */
+    int deleteCount = 5;
+    DeleteCloudTableRecordByGid(0, deleteCount);
+    DeleteUserTableRecord(db, deleteCount, localCount);
+    CloudDBSyncUtilsTest::callSync(g_tables, SYNC_MODE_CLOUD_MERGE, DBStatus::OK, g_delegate);
+    std::string device;
+    ASSERT_EQ(g_delegate->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
+    CheckLocalLogCount(db, { g_tableName1 }, { deleteCount });
     CloseDb();
 }
 }
