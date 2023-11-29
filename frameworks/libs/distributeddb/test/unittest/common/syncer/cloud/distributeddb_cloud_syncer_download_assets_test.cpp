@@ -148,12 +148,11 @@ void GenerateDataRecords(
     }
 }
 
-void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
+void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName, bool isAssetNull = true)
 {
     int errCode;
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
-    std::vector<uint8_t> assetsBlob;
     GenerateDataRecords(begin, count, 0, record, extend);
     const string sql = "insert or replace into " + tableName + " values (?,?,?,?,?,?);";
     for (VBucket vBucket : record) {
@@ -163,7 +162,12 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
         ASSERT_EQ(SQLiteUtils::BindTextToStatement(stmt, 2, std::get<string>(vBucket[COL_NAME])), E_OK); // 2 is name
         ASSERT_EQ(SQLiteUtils::MapSQLiteErrno(
             sqlite3_bind_double(stmt, 3, std::get<double>(vBucket[COL_HEIGHT]))), E_OK); // 3 is height
-        ASSERT_EQ(sqlite3_bind_null(stmt, 4), SQLITE_OK); // 4 is asset
+        if (isAssetNull) {
+            ASSERT_EQ(sqlite3_bind_null(stmt, 4), SQLITE_OK); // 4 is asset
+        } else {
+            std::vector<uint8_t> assetBlob = g_virtualCloudDataTranslate->AssetToBlob(ASSET_COPY);
+            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob, false), E_OK); // 4 is asset
+        }
         std::vector<uint8_t> assetsBlob = g_virtualCloudDataTranslate->AssetsToBlob(
             std::get<Assets>(vBucket[COL_ASSETS]));
         ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 5, assetsBlob, false), E_OK); // 5 is assets
@@ -301,6 +305,7 @@ class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
     void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
         const std::set<int> &failIndex);
     void CheckLocalAssetIsEmpty(const std::string &tableName);
+    void CheckCursorData(const std::string &tableName, int begin);
     sqlite3 *db = nullptr;
 };
 
@@ -386,6 +391,23 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocalAssetIsEmpty(const st
     ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::CheckCursorData(const std::string &tableName, int begin)
+{
+    std::string logTableName = DBCommon::GetLogTableName(tableName);
+    std::string sql = "SELECT cursor FROM " + logTableName + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_INTEGER);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        EXPECT_EQ(std::get<int64_t>(cloudValue), begin);
+        begin++;
     }
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -962,6 +984,32 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Le
      */
     g_delegate->RemoveDeviceData("", FLAG_ONLY);
     CheckLocaLAssets(ASSETS_TABLE_NAME, "", {});
+}
+
+/**
+ * @tc.name: FillAssetId017
+ * @tc.desc: Test cursor when download not change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert data and sync,check cursor.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckCursorData(ASSETS_TABLE_NAME, 0);
+
+    /**
+     * @tc.steps:step2. sync again and optype is not change, check cursor.
+     * @tc.expected: step2. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckCursorData(ASSETS_TABLE_NAME, localCount);
 }
 
 /**

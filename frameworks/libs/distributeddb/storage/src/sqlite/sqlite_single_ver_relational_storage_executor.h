@@ -350,10 +350,10 @@ private:
         const std::vector<int64_t> &dataKeys);
 
     int UpdateAssetIdOnUserTable(const std::string &tableName, const std::string &fieldName,
-        const std::vector<int64_t> &dataKeys, const VBucket &vBucket, std::vector<Asset> &assets);
+        const std::vector<int64_t> &dataKeys, std::vector<Asset> &assets);
 
     int GetAssetsAndUpdateAssetsId(const std::string &tableName, const std::string &fieldName,
-        const std::vector<int64_t> &dataKeys, const VBucket &vBucket);
+        const std::vector<int64_t> &dataKeys);
 
     int CleanAssetsIdOnUserTable(const std::string &tableName, const std::string &fieldName, const int64_t rowId,
         const std::vector<uint8_t> assetsValue);
@@ -379,9 +379,23 @@ private:
 
     void UpdateLocalAssetsIdInner(const Assets &cloudAssets, Assets &assets);
 
-    int BindAssetToBlobStatement(const Asset &asset, sqlite3_stmt *&stmt);
+    int BindAssetToBlobStatement(const Asset &asset, int index, sqlite3_stmt *&stmt);
 
-    int UpdateAssetId(const std::string &tableName, const Field &field, int64_t dataKey, const VBucket &vBucket);
+    int BindAssetsToBlobStatement(const Assets &assets, int index, sqlite3_stmt *&stmt);
+
+    int GetAssetOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
+        Asset &asset);
+
+    int GetAssetsOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
+        Assets &assets);
+
+    int BindAssetFiledToBlobStatement(const TableSchema &tableSchema, const std::vector<Asset> &assetOfOneRecord,
+        const std::vector<Assets> &assetsOfOneRecord, sqlite3_stmt *&stmt);
+
+    int UpdateAssetsIdForOneRecord(const TableSchema &tableSchema, const std::string &sql,
+        const std::vector<Asset> &assetOfOneRecord, const std::vector<Assets> &assetsOfOneRecord);
+
+    int UpdateAssetId(const TableSchema &tableSchema, int64_t dataKey, const VBucket &vBucket);
 
     int64_t GetDataFlag();
 
