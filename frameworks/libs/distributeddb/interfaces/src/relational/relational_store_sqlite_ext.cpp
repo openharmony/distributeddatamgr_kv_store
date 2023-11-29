@@ -652,9 +652,8 @@ void CloudDataChangedObserver(sqlite3_context *ctx, int argc, sqlite3_value **ar
     sqlite3_result_int64(ctx, static_cast<sqlite3_int64>(1));
 }
 
-int CommitHookCallback(void *data)
+int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
 {
-    sqlite3 *db = static_cast<sqlite3 *>(data);
     std::string fileName;
     if (!GetDbFileName(db, fileName)) {
         return 0;
@@ -736,7 +735,7 @@ int RegisterCloudDataChangeObserver(sqlite3 *db)
 
 void RegisterCommitAndRollbackHook(sqlite3 *db)
 {
-    sqlite3_commit_hook(db, CommitHookCallback, db);
+    sqlite3_wal_hook(db, LogCommitHookCallback, db);
     sqlite3_rollback_hook(db, RollbackHookCallback, db);
 }
 
