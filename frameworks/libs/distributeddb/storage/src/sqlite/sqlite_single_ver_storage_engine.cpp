@@ -752,6 +752,8 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
     // Should update the security in the import or rekey scene(inner) or exist is not set.
     if (IsUseExistedSecOption(existedSecOpt, option_.securityOpt)) {
         option_.securityOpt = existedSecOpt;
+    } else {
+        isNeedUpdateSecOpt_ = true;
     }
 
     errCode = CreateNewDirsAndSetSecOpt();
