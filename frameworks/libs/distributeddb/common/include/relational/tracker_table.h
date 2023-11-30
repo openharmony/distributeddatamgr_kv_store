@@ -44,7 +44,7 @@ public:
     void SetExtendName(const std::string &colName);
     void SetTrackerNames(const std::set<std::string> &trackerNames);
     bool IsEmpty() const;
-    bool IsChange(const TrackerSchema &schema);
+    bool IsChanging(const TrackerSchema &schema);
 
 private:
     std::string tableName_;

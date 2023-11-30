@@ -447,7 +447,7 @@ int SQLiteSingleRelationalStorageEngine::SetTrackerTable(const TrackerSchema &sc
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChange(schema)) {
+    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema)) {
         (void)handle->Rollback();
         ReleaseExecutor(handle);
         LOGW("tracker schema is no change.");
@@ -495,7 +495,7 @@ int SQLiteSingleRelationalStorageEngine::CheckAndCacheTrackerSchema(const Tracke
         return errCode;
     }
     RelationalSchemaObject tracker = trackerSchema_;
-    if (!tracker.GetTrackerTable(schema.tableName).IsChange(schema)) {
+    if (!tracker.GetTrackerTable(schema.tableName).IsChanging(schema)) {
         ReleaseExecutor(handle);
         LOGW("tracker schema is no change for distributed table.");
         return -E_IGNORE_DATA;

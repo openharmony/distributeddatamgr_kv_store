@@ -192,7 +192,7 @@ bool TrackerTable::IsEmpty() const
     return trackerColNames_.empty();
 }
 
-bool TrackerTable::IsChange(const TrackerSchema &schema)
+bool TrackerTable::IsChanging(const TrackerSchema &schema)
 {
     if (tableName_ != schema.tableName || extendColName_ != schema.extendColName) {
         return true;
