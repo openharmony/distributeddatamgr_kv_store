@@ -62,6 +62,9 @@ config("distrdb_config") {
   if (is_debug) {
     defines += [ "TRACE_SQLITE_EXECUTE" ]
   }
+  if (is_ohos) {
+    defines += [ "USE_FFRT" ]
+  }
 }
 
 config("distrdb_public_config") {
@@ -102,6 +105,7 @@ ohos_shared_library("distributeddb") {
 
   external_deps = [
     "c_utils:utils",
+    "ffrt:libffrt",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",

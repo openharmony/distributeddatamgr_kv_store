@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include <gtest/gtest.h>
 
+#include "concurrent_adapter.h"
 #include "db_common.h"
 #include "distributeddb_data_generate_unit_test.h"
 #include "distributeddb_tools_unit_test.h"
@@ -1043,5 +1044,125 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, DropDeleteData001, TestS
     EXPECT_EQ(DropLogicDeletedData(db, tableName, cursor), OK);
     CheckLogicDeleteData(db, tableName, cursor - num);
     EXPECT_EQ(sqlite3_close_v2(db), E_OK);
+}
+
+/**
+ * @tc.name: FfrtTest001
+ * @tc.desc: Test ffrt concurrency
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Level0)
+{
+    std::map<int, int> ans;
+    std::mutex mutex;
+    size_t num = 1000;
+
+    /**
+     * @tc.steps:step1. submit insert map task
+     * @tc.expected: step1. return ok.
+     */
+    TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        for (size_t j = 0; j < num; j++) {
+            ADAPTER_AUTO_LOCK(lock, mutex)
+            for (size_t i = 0; i < num; i++) {
+                ans.insert_or_assign(i, i);
+            }
+        }
+    }, {}, {&ans});
+
+    /**
+     * @tc.steps:step2. submit erase map task
+     * @tc.expected: step2. return ok.
+     */
+    TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        for (size_t i = 0; i < num; i++) {
+            ADAPTER_AUTO_LOCK(lock, mutex)
+            for (auto it = ans.begin(); it != ans.end();) {
+                it = ans.erase(it);
+            }
+        }
+    }, {}, {&ans});
+
+    /**
+     * @tc.steps:step3. submit get from map task
+     * @tc.expected: step3. return ok.
+     */
+    TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        for (size_t i = 0; i < num; i++) {
+            ADAPTER_AUTO_LOCK(lock, mutex)
+            for (auto it = ans.begin(); it != ans.end(); it++) {
+                int j = it->first;
+            }
+        }
+    }, {&ans}, {});
+    ADAPTER_WAIT({h1})
+    ADAPTER_WAIT({h2})
+    ADAPTER_WAIT({h3})
+    ASSERT_TRUE(ans.empty());
+}
+
+/**
+ * @tc.name: FfrtTest002
+ * @tc.desc: Test ffrt concurrency
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Level0)
+{
+    std::map<int, int> ans;
+    std::mutex mutex;
+    size_t num = 1000;
+
+    /**
+     * @tc.steps:step1. subtask submit insert map task
+     * @tc.expected: step1. return ok.
+     */
+    TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        TaskHandle hh1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+            for (size_t j = 0; j < num; j++) {
+                ADAPTER_AUTO_LOCK(lock, mutex)
+                for (size_t i = 0; i < num; i++) {
+                    ans.insert_or_assign(i, i);
+                }
+            }
+        }, {}, {&ans});
+        ADAPTER_WAIT({hh1})
+    });
+
+    /**
+     * @tc.steps:step2. subtask submit erase map task
+     * @tc.expected: step2. return ok.
+     */
+    TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        TaskHandle hh2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+            for (size_t i = 0; i < num; i++) {
+                ADAPTER_AUTO_LOCK(lock, mutex)
+                for (auto it = ans.begin(); it != ans.end();) {
+                    it = ans.erase(it);
+                }
+            }
+        }, {}, {&ans});
+        ADAPTER_WAIT({hh2})
+    });
+
+    /**
+     * @tc.steps:step3. subtask submit get from map task
+     * @tc.expected: step3. return ok.
+     */
+    TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+        TaskHandle hh3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
+            for (size_t i = 0; i < num; i++) {
+                ADAPTER_AUTO_LOCK(lock, mutex)
+                for (auto it = ans.begin(); it != ans.end(); it++) {
+                    int j = it->first;
+                }
+            }
+        }, {&ans}, {});
+        ADAPTER_WAIT({hh3})
+    });
+    ADAPTER_WAIT()
 }
 }
