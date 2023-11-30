@@ -89,6 +89,8 @@ private:
     int CleanTrackerDeviceTable(const std::vector<std::string> &tableNames, RelationalSchemaObject &trackerSchemaObj,
         SQLiteSingleVerRelationalStorageExecutor *&handle);
 
+    int UpgradeTrackerTableLog(const std::string &tableName, RelationalSchemaObject &schema);
+
     static std::map<std::string, std::map<std::string, bool>> GetReachableWithShared(
         const std::map<std::string, std::map<std::string, bool>> &reachableReference,
         const std::map<std::string, std::string> &tableToShared);

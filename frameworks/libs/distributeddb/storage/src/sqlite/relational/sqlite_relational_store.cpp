@@ -1211,7 +1211,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     }
     int errCode = sqliteStorageEngine_->CheckAndCacheTrackerSchema(trackerSchema, tableInfo);
     if (errCode != E_OK) {
-        return errCode;
+        return errCode == -E_IGNORE_DATA ? E_OK : errCode;
     }
     errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType());
     if (errCode != E_OK) {

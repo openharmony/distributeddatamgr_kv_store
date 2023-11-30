@@ -191,5 +191,21 @@ bool TrackerTable::IsEmpty() const
 {
     return trackerColNames_.empty();
 }
+
+bool TrackerTable::IsChanging(const TrackerSchema &schema)
+{
+    if (tableName_ != schema.tableName || extendColName_ != schema.extendColName) {
+        return true;
+    }
+    if (trackerColNames_.size() != schema.trackerColNames.size()) {
+        return true;
+    }
+    for (const auto &col: trackerColNames_) {
+        if (schema.trackerColNames.find(col) == schema.trackerColNames.end()) {
+            return true;
+        }
+    }
+    return false;
+}
 }
 #endif
