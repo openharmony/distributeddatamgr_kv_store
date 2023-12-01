@@ -866,6 +866,17 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest015,
      */
     TrackerSchema schema = g_normalSchema1;
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    string querySql = "select extend_field from " + DBConstant::RELATIONAL_PREFIX + TABLE_NAME2 + "_log" +
+        " where data_key = 15;";
+    sqlite3_stmt *stmt = nullptr;
+    EXPECT_EQ(SQLiteUtils::GetStatement(g_db, querySql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::string extendVal;
+        EXPECT_EQ(SQLiteUtils::GetColumnTextValue(stmt, 0, extendVal), E_OK);
+        EXPECT_EQ(extendVal, "Local4");
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 
     /**
      * @tc.steps:step4. operator data

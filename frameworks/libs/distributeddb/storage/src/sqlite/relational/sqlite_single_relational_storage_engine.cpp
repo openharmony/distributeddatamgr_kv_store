@@ -197,7 +197,7 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
 }
 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName,
-    const std::string &identity, bool &schemaChanged, TableSyncType syncType)
+    const std::string &identity, bool &schemaChanged, TableSyncType syncType, bool trackerSchemaChanged)
 {
     std::lock_guard lock(schemaMutex_);
     RelationalSchemaObject schema = schema_;
@@ -226,7 +226,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     if (errCode != E_OK) {
         return errCode;
     }
-    if (isUpgraded && schemaChanged) {
+    if (isUpgraded && (schemaChanged || trackerSchemaChanged)) {
         // Used for upgrading the stock data of the trackerTable
         errCode = UpgradeTrackerTableLog(tableName, schema);
     }

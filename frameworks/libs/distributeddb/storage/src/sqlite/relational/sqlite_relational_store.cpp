@@ -426,7 +426,8 @@ void SQLiteRelationalStore::WakeUpSyncer()
     syncAbleEngine_->WakeUpSyncer();
 }
 
-int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType)
+int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType,
+    bool trackerSchemaChanged)
 {
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
@@ -442,7 +443,7 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
 
     bool schemaChanged = false;
     int errCode = sqliteStorageEngine_->CreateDistributedTable(tableName, DBCommon::TransferStringToHex(localIdentity),
-        schemaChanged, syncType);
+        schemaChanged, syncType, trackerSchemaChanged);
     if (errCode != E_OK) {
         LOGE("Create distributed table failed. %d", errCode);
     }
@@ -1213,7 +1214,7 @@ int SQLiteRelationalStore::SetTrackerTable(const TrackerSchema &trackerSchema)
     if (errCode != E_OK) {
         return errCode == -E_IGNORE_DATA ? E_OK : errCode;
     }
-    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType());
+    errCode = CreateDistributedTable(trackerSchema.tableName, tableInfo.GetTableSyncType(), true);
     if (errCode != E_OK) {
         return errCode;
     }
