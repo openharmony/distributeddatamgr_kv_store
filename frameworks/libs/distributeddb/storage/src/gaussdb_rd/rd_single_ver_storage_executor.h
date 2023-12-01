@@ -26,10 +26,10 @@
 
 namespace DistributedDB {
 struct QueryParam {
-    GRD_KvScanModeE kvScanMode_;
-    std::vector<uint8_t> beginKey_;
-    std::vector<uint8_t> endKey_;
-    Key keyPrefix_;
+    GRD_KvScanModeE kvScanMode;
+    std::vector<uint8_t> beginKey;
+    std::vector<uint8_t> endKey;
+    Key keyPrefix;
 };
 
 int GetQueryParam(const Query &query, QueryParam &queryParam);
@@ -77,7 +77,9 @@ public:
 
     int GetEntries(QueryParam &queryParam, SingleVerDataType type, std::vector<Entry> &entries) const;
 
-    int GetCount(const Key &key, int &count, GRD_KvScanModeE kvScanMode, const Key &keyEnd);
+    int GetCount(const Key &key, int &count, GRD_KvScanModeE kvScanMode);
+
+    int GetCount(const Key &beginKey, const Key &endKey, int &count, GRD_KvScanModeE kvScanMode);
 
     // Get all the meta keys.
     int GetAllMetaKeys(std::vector<Key> &keys) const;
@@ -115,10 +117,11 @@ public:
 
     int OpenResultSet(const Key &key, GRD_KvScanModeE mode, GRD_ResultSet **resultSet);
 
+    int OpenResultSet(const Key &beginKey, const Key &endKey, GRD_ResultSet **resultSet);
+
     int CloseResultSet(GRD_ResultSet *resultSet);
 
-    int MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition,
-        Entry &entry_, const Key &keyEnd);
+    int MoveTo(const int position, GRD_ResultSet *resultSet, int &currPosition);
 
     int MoveToNext(GRD_ResultSet *resultSet);
 
@@ -205,9 +208,6 @@ public:
     int GetExistsDevicesFromMeta(std::set<std::string> &devices);
 
     int UpdateKey(const UpdateKeyCallback &callback);
-
-    static bool CompareKeyWithEndKey(const Key &key, const Key &keyEnd);
-
 protected:
     int SaveKvData(SingleVerDataType type, const Key &key, const Value &value);
 
@@ -235,8 +235,7 @@ private:
     static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam,
         std::vector<Entry> &entries, GRD_ResultSet **resultSet);
     
-    int CompareKeyAndStoreEntry(GRD_ResultSet *resultSet, const Key &keyEnd,
-        bool isNeedStore, Entry &entry_);
+    int GetCountInner(GRD_ResultSet *tmpResultSet, int &count);
 };
 } // namespace DistributedDB
 #endif // RD_SINGLE_VER_STORAGE_EXECUTOR_H

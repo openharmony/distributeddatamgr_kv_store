@@ -31,6 +31,13 @@ int32_t GRD_KVDelInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT
 int32_t GRD_KVScanInner(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, GRD_KvScanModeE mode,
     GRD_ResultSet **resultSet);
 
+int32_t GRD_KVFilterInner(GRD_DB *db, const char *collectionName, const GRD_FilterOptionT *scanParams,
+    GRD_ResultSet **resultSet);
+
+int32_t GRD_KVGetSizeInner(GRD_ResultSet *resultSet, uint32_t *keyLen, uint32_t *valueLen);
+
+int32_t GRD_GetItemInner(GRD_ResultSet *resultSet, void *key, void *value);
+
 int32_t GRD_KVFreeItemInner(GRD_KVItemT *item);
 
 int32_t GRD_KVBatchPrepareInner(uint16_t itemNum, GRD_KVBatchT **batch);

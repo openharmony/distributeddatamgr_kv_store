@@ -22,19 +22,14 @@
 
 namespace DistributedDB {
 RdSingleVerResultSet::RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &key)
-    : type_(ResultSetType::KEYPREFIX), key_(key), kvDB_(kvDB)
+    : key_(key), kvDB_(kvDB)
 {
     kvScanMode_ = KV_SCAN_PREFIX;
 }
 
 RdSingleVerResultSet::RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &beginKey,
-    const Key &endKey, GRD_KvScanModeE kvScanMode, const ResultSetType &ResultSetType)
-    : type_(ResultSetType), beginKey_(beginKey), endKey_(endKey), kvScanMode_(kvScanMode), kvDB_(kvDB)
-{
-    if (!endKey.empty() && !beginKey.empty()) {
-        isGetValueFromEntry_ = true;
-    } // Get data from entry_ that stored in resultSet;
-}
+    const Key &endKey, GRD_KvScanModeE kvScanMode)
+    : beginKey_(beginKey), endKey_(endKey), kvScanMode_(kvScanMode), kvDB_(kvDB) {}
 
 RdSingleVerResultSet::~RdSingleVerResultSet()
 {
@@ -55,8 +50,8 @@ int RdSingleVerResultSet::Open(bool isMemDb)
     if (kvDB_ == nullptr) { // Unlikely
         return -E_INVALID_ARGS;
     }
-    if (type_ != ResultSetType::KEYPREFIX && type_ != ResultSetType::QUERY) {
-        LOGE("[RdSinResSet] Open result set only support prefix and query mode for now.");
+    if (kvScanMode_ >= KV_SCAN_BUTT) {
+        LOGE("[RdSinResSet] Open result scan mode is invalid.");
         return -E_INVALID_ARGS;
     }
     int errCode = E_OK;
@@ -70,12 +65,8 @@ int RdSingleVerResultSet::Open(bool isMemDb)
             errCode = handle_->OpenResultSet(key_, kvScanMode_, &resultSet_);
             break;
         }
-        case KV_SCAN_EQUAL_OR_GREATER_KEY: {
-            errCode = handle_->OpenResultSet(beginKey_, kvScanMode_, &resultSet_);
-            break;
-        }
-        case KV_SCAN_EQUAL_OR_LESS_KEY: {
-            errCode = handle_->OpenResultSet(endKey_, kvScanMode_, &resultSet_);
+        case KV_SCAN_RANGE: {
+            errCode = handle_->OpenResultSet(beginKey_, endKey_, &resultSet_);
             break;
         }
         default:
@@ -137,15 +128,11 @@ int RdSingleVerResultSet::GetCount() const
     int count = 0;
     switch (kvScanMode_) {
         case KV_SCAN_PREFIX: {
-            errCode = handle_->GetCount(key_, count, kvScanMode_, endKey_);
+            errCode = handle_->GetCount(key_, count, kvScanMode_);
             break;
         }
-        case KV_SCAN_EQUAL_OR_GREATER_KEY: {
-            errCode = handle_->GetCount(beginKey_, count, kvScanMode_, endKey_);
-            break;
-        }
-        case KV_SCAN_EQUAL_OR_LESS_KEY: {
-            errCode = handle_->GetCount(endKey_, count, kvScanMode_, endKey_);
+        case KV_SCAN_RANGE: {
+            errCode = handle_->GetCount(beginKey_, endKey_, count, kvScanMode_);
             break;
         }
         default:
@@ -236,15 +223,6 @@ int RdSingleVerResultSet::MoveToNext() const
             endPosition_ = position_ + 1;
         }
     }
-
-    if (isGetValueFromEntry_) {
-        errCode = CmpKeyAndStoreEntry(true);
-        if (errCode != E_OK) {
-            endPosition_ = position_;
-            LOGE("[RdSinResSet] CmpKeyAndStoreEntry failed");
-            return errCode;
-        }
-    }
     return errCode;
 }
 
@@ -275,31 +253,8 @@ int RdSingleVerResultSet::MoveToPrev() const
         } else {
             --position_;
         }
-
-        if (isGetValueFromEntry_) {
-            errCode = CmpKeyAndStoreEntry(false);
-            if (errCode != E_OK) {
-                LOGE("[RdSinResSet] store entry faild");
-                return errCode;
-            }
-        }
     }
     return errCode;
-}
-
-int RdSingleVerResultSet::CmpKeyAndStoreEntry(bool isCmpKey) const
-{
-    Entry tmpEntry;
-    int ret = GetEntry(tmpEntry, false);
-    if (ret != E_OK) {
-        return -E_NOT_FOUND;
-    }
-    if (isCmpKey && RdSingleVerStorageExecutor::CompareKeyWithEndKey(tmpEntry.key, endKey_)) {
-        (void)MoveToPrev(); // whether MoveToPrev successfully or not,return NOT_FOUND.
-        return -E_NOT_FOUND;
-    }
-    entry_ = tmpEntry;
-    return E_OK;
 }
 
 int RdSingleVerResultSet::MoveTo(int position) const
@@ -422,36 +377,10 @@ int RdSingleVerResultSet::GetEntry(Entry &entry) const
     if (position_ == INIT_POSITION || (position_ == endPosition_ && endPosition_ != INIT_POSITION)) {
         return -E_NO_SUCH_ENTRY;
     }
-
-    if (!isGetValueFromEntry_) {
-        errCode = handle_->GetEntry(resultSet_, entry);
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-            LOGE("[RdSinResSet][GetEntry] failed to get entry form result set.");
-        }
-    } else {
-        if (position_ >= endPosition_ && endPosition_ != INIT_POSITION) {
-            return -E_NOT_FOUND;
-        }
-        entry = entry_;
+    errCode = handle_->GetEntry(resultSet_, entry);
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[RdSinResSet][GetEntry] failed to get entry form result set.");
     }
     return errCode == -E_NOT_FOUND ? -E_NO_SUCH_ENTRY : errCode;
 }
-
-int RdSingleVerResultSet::GetEntry(Entry &entry, bool isGetValueFromEntry) const
-{
-    int errCode = PreCheckResultSet();
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (!isGetValueFromEntry) {
-        errCode = handle_->GetEntry(resultSet_, entry);
-        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-            LOGE("[RdSinResSet][GetEntry] failed to get entry form result set.");
-        }
-    } else {
-        entry = entry_;
-    }
-    return errCode == -E_NOT_FOUND ? -E_NO_SUCH_ENTRY : errCode;
-}
-
 } // namespace DistributedDB

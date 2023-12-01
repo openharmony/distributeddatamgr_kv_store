@@ -14,8 +14,8 @@
 */
 #include "document_key.h"
 
-#include <time.h>
-#include <stdio.h>
+#include <ctime>
+#include <cstdio>
 
 #include "doc_errno.h"
 #include "rd_log_print.h"

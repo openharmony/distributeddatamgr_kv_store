@@ -43,7 +43,7 @@ public:
     static void FinishTrace();
 
     static void StartTracing();
-    static void FinishTraceSQL();
+    static void FinishTracing();
 
     static void StartAsyncTrace(const std::string &action, int32_t taskId);
     static void FinishAsyncTrace(const std::string &action, int32_t taskId);

@@ -25,15 +25,6 @@ using namespace DistributedDBUnitTest;
 namespace {
     const int MAX_TEST_KEY_SIZE = 1024;     // 1K
     const int MAX_TEST_VAL_SIZE = 4194304; // 4M
-
-    // select result index for the item for sync database
-    const int SYNC_RES_KEY_INDEX = 0;
-    const int SYNC_RES_VAL_INDEX = 1;
-    const int SYNC_RES_TIME_INDEX = 2;
-    const int SYNC_RES_FLAG_INDEX = 3;
-    const int SYNC_RES_HASH_KEY_INDEX = 6;
-
-    const std::string SYNC_DATA_DEFAULT_SQL = "select * from SYNC_DATA;";
 }
 
 /**

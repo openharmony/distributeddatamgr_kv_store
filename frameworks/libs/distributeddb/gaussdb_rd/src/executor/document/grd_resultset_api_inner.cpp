@@ -12,10 +12,11 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
+#include "grd_resultset_api_inner.h"
+
 #include "doc_errno.h"
 #include "grd_api_manager.h"
 #include "grd_base/grd_error.h"
-#include "grd_resultset_api_inner.h"
 #include "grd_resultset_inner.h"
 #include "rd_log_print.h"
 
@@ -67,11 +68,11 @@ int32_t GRD_FreeResultSetInner(GRD_ResultSet *resultSet)
 
 int32_t GRD_PrevInner(GRD_ResultSet *resultSet)
 {
-    return GRD_NOT_SUPPORT; // No support;
+    return GRD_NOT_SUPPORT;
 }
 
 int32_t GRD_FetchInner(GRD_ResultSet *resultSet, GRD_KVItemT *key, GRD_KVItemT *value)
 {
-    return GRD_NOT_SUPPORT; // No support;
+    return GRD_NOT_SUPPORT;
 }
 } // namespace DocumentDB

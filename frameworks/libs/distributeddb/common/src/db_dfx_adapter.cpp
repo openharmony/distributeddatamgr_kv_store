@@ -102,7 +102,7 @@ void DBDfxAdapter::StartTracing()
 #endif
 }
 
-void DBDfxAdapter::FinishTraceSQL()
+void DBDfxAdapter::FinishTracing()
 {
 #ifdef TRACE_SQLITE_EXECUTE
     ::FinishTrace(HITRACE_LABEL);
@@ -153,7 +153,7 @@ void DBDfxAdapter::StartTracing()
 {
 }
 
-void DBDfxAdapter::FinishTraceSQL()
+void DBDfxAdapter::FinishTracing()
 {
 }
 #endif

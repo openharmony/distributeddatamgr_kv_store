@@ -899,7 +899,7 @@ DBStatus KvStoreNbDelegateImpl::SubscribeRemoteQuery(const std::vector<std::stri
     }
 
     QuerySyncObject querySyncObj(query);
-    if (querySyncObj.GetSortType() != SortType::NONE) {
+    if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
         LOGE("not support order by timestamp");
         return NOT_SUPPORT;
     }
@@ -923,7 +923,7 @@ DBStatus KvStoreNbDelegateImpl::UnSubscribeRemoteQuery(const std::vector<std::st
     }
 
     QuerySyncObject querySyncObj(query);
-    if (querySyncObj.GetSortType() != SortType::NONE) {
+    if (querySyncObj.GetSortType() != SortType::NONE || querySyncObj.IsQueryByRange()) {
         LOGE("not support order by timestamp");
         return NOT_SUPPORT;
     }

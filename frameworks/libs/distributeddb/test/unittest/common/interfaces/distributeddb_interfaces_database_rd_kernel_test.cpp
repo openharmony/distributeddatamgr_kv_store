@@ -177,6 +177,9 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore003, TestSize.Le
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
+    string retStoreId = g_kvNbDelegatePtr->GetStoreId();
+    EXPECT_TRUE(retStoreId.compare("distributed_getkvstore_003") == 0);
+
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(kvNbDelegatePtr1), OK);
     g_kvNbDelegatePtr = nullptr;

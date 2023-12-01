@@ -75,7 +75,7 @@ int32_t GRD_FlushInner(GRD_DB *db, uint32_t flags)
 
 int32_t GRD_IndexPreloadInner(GRD_DB *db, const char *collectionName)
 {
-    return GRD_OK; // No support;
+    return GRD_OK;
 }
 
 int32_t GRD_CrcCheckInner(const char *dbFile)

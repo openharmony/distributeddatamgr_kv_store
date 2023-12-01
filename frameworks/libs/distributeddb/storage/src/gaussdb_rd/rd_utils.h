@@ -32,8 +32,6 @@ const std::string SYNC_COLLECTION_NAME =
 
 std::string InitRdConfig();
 
-GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob);
-
 int TransferGrdErrno(int err);
 
 std::vector<uint8_t> KvItemToBlob(GRD_KVItemT &item);
@@ -47,6 +45,9 @@ int RdKVGet(GRD_DB *db, const char *collectionName, const Key &key, Value &value
 int RdKVDel(GRD_DB *db, const char *collectionName, const Key &key);
 
 int RdKVScan(GRD_DB *db, const char *collectionName, const Key &key, GRD_KvScanModeE mode,
+    GRD_ResultSet **resultSet);
+
+int RdKVRangeScan(GRD_DB *db, const char *collectionName, const Key &beginKey, const Key &endKey,
     GRD_ResultSet **resultSet);
 
 int RdKvFetch(GRD_ResultSet *resultSet, Key &key, Value &value);

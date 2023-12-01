@@ -77,6 +77,7 @@ config("module_private_config") {
     "TRACE_SQLITE_EXECUTE",
     "SQLITE_ENABLE_DROPTABLE_CALLBACK",
     "OPENSSL_SUPPRESS_DEPRECATED",
+    "USE_RD_KERNEL",
   ]
 }
 
@@ -703,6 +704,48 @@ distributeddb_unittest("DistributedDBCloudAssetsOperationSyncTest") {
 }
 
 ###############################################################################
+# testcase using rd kernel
+
+distributeddb_unittest(
+    "DistributedDBStorageMemoryRdSingleVerNaturalStoreTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_storage_memory_rd_single_ver_naturall_store_test.cpp",
+    "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp",
+  ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdRegisterObserverTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_register_observer_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdResultAndJsonOptimizeTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_resultset_and_json_optimize.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdSingleVerNaturalExecutorTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_executor_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdSingleVerNaturalStoreTest") {
+  sources = [
+    "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_test.cpp",
+    "unittest/common/storage/distributeddb_storage_rd_single_ver_natural_store_testcase.cpp",
+  ]
+}
+
+distributeddb_unittest("DistributedDBStorageRdSingleVerStorageEngineTest") {
+  sources = [ "unittest/common/storage/distributeddb_storage_rd_single_ver_storage_engine_test.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesNBDelegateRdTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_nb_delegate_test_rd_kernal.cpp" ]
+}
+
+distributeddb_unittest("DistributedDBInterfacesDatabaseRdKernelTest") {
+  sources = [ "unittest/common/interfaces/distributeddb_interfaces_database_rd_kernel_test.cpp" ]
+}
+
+###############################################################################
 group("unittest") {
   testonly = true
   deps = [ "//third_party/googletest:gmock" ]
@@ -812,10 +855,22 @@ group("unittest") {
     ":DistributedInterfacesRelationalTest",
     ":RuntimeContextProcessSystemApiAdapterImplTest",
   ]
+
+  if (defined(global_parts_info.distributeddatamgr_kv_store_lite)) {
+    deps += [
+      ":DistributedDBInterfacesDatabaseRdKernelTest",
+      ":DistributedDBInterfacesNBDelegateRdTest",
+      ":DistributedDBStorageMemoryRdSingleVerNaturalStoreTest",
+      ":DistributedDBStorageRdRegisterObserverTest",
+      ":DistributedDBStorageRdResultAndJsonOptimizeTest",
+      ":DistributedDBStorageRdSingleVerNaturalExecutorTest",
+      ":DistributedDBStorageRdSingleVerNaturalStoreTest",
+      ":DistributedDBStorageRdSingleVerStorageEngineTest",
+    ]
+  }
 }
 
 ###############################################################################
-
 group("distributeddatamgr_fuzztest") {
   testonly = true
   deps = []

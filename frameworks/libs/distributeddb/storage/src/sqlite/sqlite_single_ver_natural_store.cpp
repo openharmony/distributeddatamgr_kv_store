@@ -1248,7 +1248,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncItems(const QueryObject &query, std::ve
     errCode = handle->StartTransaction(TransactType::IMMEDIATE);
     if (errCode != E_OK) {
         ReleaseHandle(handle);
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
     bool isPermitForceWrite = !(GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, false));
@@ -1282,7 +1282,7 @@ END:
     } else {
         (void)handle->Rollback(); // Keep the error code of the first scene
     }
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     ReleaseHandle(handle);
     return errCode;
 }
@@ -1304,7 +1304,7 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     } else {
         SetMaxTimestamp(maxTimestamp);
     }
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     ReleaseHandle(handle);
     return errCode;
 }

@@ -1213,3 +1213,28 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, SubscribeSync014, TestSize.
     }
     LOGD("END PUT");
 }
+
+/**
+ * @tc.name: subscribeSync015
+ * @tc.desc: test subscribe query with range
+ * @tc.type: FUNC
+ * @tc.require: DTS2023112110763
+ * @tc.author: mazhao
+ */
+HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync015, TestSize.Level1)
+{
+    /**
+     * @tc.steps: step1. InitSchemaDb
+    */
+    LOGI("============step 1============");
+    InitSubSchemaDb();
+    std::vector<std::string> devices = {"DEVICE_B"};
+
+    /**
+     * @tc.steps: step2. deviceA subscribe query by Range.
+     * * @tc.expected: step2. interface return not support
+    */
+    Query query = Query::Select().Range({}, {});
+    EXPECT_EQ(g_schemaKvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query, true), NOT_SUPPORT);
+    EXPECT_EQ(g_schemaKvDelegatePtr->UnSubscribeRemoteQuery(devices, nullptr, query, true), NOT_SUPPORT);
+}

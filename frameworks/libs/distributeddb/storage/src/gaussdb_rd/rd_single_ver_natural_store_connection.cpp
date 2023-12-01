@@ -75,20 +75,20 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IO
         if (writeHandle_ != nullptr) {
             LOGD("[RdSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
     RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
         LOGE("[RdSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     errCode = handle->GetEntries(isGetValue, type, keyPrefix, entries);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -146,7 +146,7 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option,
         return errCode;
     }
     RdSingleVerResultSet *tmpResultSet = new (std::nothrow) RdSingleVerResultSet(naturalStore,
-        queryParam.beginKey_, queryParam.endKey_, queryParam.kvScanMode_, ResultSetType::QUERY);
+        queryParam.beginKey, queryParam.endKey, queryParam.kvScanMode);
     if (tmpResultSet == nullptr) {
         LOGE("Create single version result set failed.");
         return -E_OUT_OF_MEMORY;
@@ -263,20 +263,20 @@ int RdSingleVerNaturalStoreConnection::Get(const IOption &option, const Key &key
         if (writeHandle_ != nullptr) {
             Timestamp recordTimestamp;
             errCode = writeHandle_->GetKvData(dataType, key, value, recordTimestamp);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
     RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     Timestamp timestamp;
     errCode = handle->GetKvData(dataType, key, value, timestamp);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -307,20 +307,20 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
         if (writeHandle_ != nullptr) {
             LOGD("[RdSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(queryParam, type, entries);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
     RdSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
         LOGE("[RdSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     errCode = handle->GetEntries(queryParam, type, entries);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
@@ -651,7 +651,7 @@ int RdSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, c
     int errCode = E_OK;
     if (option.dataType != IOption::SYNC_DATA) {
         LOGE("LOCAL_DATA TYPE NOT SUPPORT in RD executor");
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return -E_NOT_SUPPORT;
     }
     std::lock_guard<std::mutex> lock(transactionMutex_);
@@ -659,7 +659,7 @@ int RdSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, c
         isAuto = true;
         errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
@@ -674,7 +674,7 @@ int RdSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &option, c
             errCode = (innerCode != E_OK) ? innerCode : errCode;
         }
     }
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 

@@ -457,4 +457,21 @@ void QueryExpression::SetNotSupportIfNeed(QueryObjType type)
         }
     }
 }
+
+int QueryExpression::IsRangeValid() const
+{
+    if (queryInfo_.size() > 1) { // Only Support one query filter.
+        return -E_INVALID_ARGS;
+    }
+    for (const auto &queryObjNode : queryInfo_) {
+        if (queryObjNode.operFlag != QueryObjType::KEY_RANGE) {
+            return -E_INVALID_ARGS;
+        }
+    }
+    if (this->beginKey_.size() > DBConstant::MAX_KEY_SIZE ||
+        this->endKey_.size() > DBConstant::MAX_KEY_SIZE) {
+        return -E_INVALID_ARGS;
+    }
+    return E_OK;
+}
 } // namespace DistributedDB

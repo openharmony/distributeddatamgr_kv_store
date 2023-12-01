@@ -549,7 +549,7 @@ int RelationalSyncAbleStorage::SaveSyncDataItems(const QueryObject &object, std:
 
     errCode = handle->SaveSyncItems(inserter);
 
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     if (errCode == E_OK) {
         // dataItems size > 0 now because already check before
         // all dataItems will write into db now, so need to observer notify here

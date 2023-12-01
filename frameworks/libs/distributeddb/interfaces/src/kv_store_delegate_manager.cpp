@@ -113,7 +113,8 @@ namespace {
         properties.SetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE, option.syncDualTupleMode);
         properties.SetBoolProp(KvDBProperties::LOCAL_ONLY, option.localOnly);
         properties.SetBoolProp(KvDBProperties::READ_ONLY_MODE, option.rdconfig.readOnly);
-        properties.SetBoolProp(KvDBProperties::SHARED_MODE, false);
+        bool sharedMode = (option.storageEngineType == GAUSSDB_RD);
+        properties.SetBoolProp(KvDBProperties::SHARED_MODE, sharedMode);
     }
 
     bool CheckObserverConflictParam(const KvStoreNbDelegate::Option &option)

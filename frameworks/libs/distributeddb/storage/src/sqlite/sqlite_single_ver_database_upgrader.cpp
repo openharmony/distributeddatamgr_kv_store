@@ -83,10 +83,6 @@ SQLiteSingleVerDatabaseUpgrader::~SQLiteSingleVerDatabaseUpgrader()
     db_ = nullptr;
 }
 
-// NOTE: 先看upgradeLockFile是否存在，存在就把parentDir目录下的，移动到parentDir/main_db目录下
-// 如果文件锁不存在，那么看dbFilePath-的数据库文件是否存在，如果存在，就
-// GetDbVersion, 先开库获得版本之， 然后如果版本值是0， 就移除原来的。
-// 如果版本值不是0， 就创建文件锁， 再把parentDir目录下的，移动到parentDir/main_db目录下
 int SQLiteSingleVerDatabaseUpgrader::TransferDatabasePath(const std::string &parentDir,
     const OpenDbProperties &option)
 {
