@@ -2507,7 +2507,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     std::string version;
     if (putDataMode_ == PutDataMode::SYNC && tableSchema.sharedTableName.empty()) {
         errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
-        if (errCode != E_OK) {
+        if (errCode != E_OK || version.empty()) {
             LOGE("get version for insert log statement failed, %d", errCode);
             return -E_CLOUD_ERROR;
         }
