@@ -22,7 +22,7 @@
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::DistributedData {
-void JsKVStoreResultSet::SetNative(std::shared_ptr<KvStoreResultSet>& resultSet)
+void JsKVStoreResultSet::SetNative(std::shared_ptr<KvStoreResultSet> resultSet)
 {
     SetInstance(resultSet);
 }

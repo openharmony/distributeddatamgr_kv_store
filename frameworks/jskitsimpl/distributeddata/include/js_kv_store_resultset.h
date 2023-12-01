@@ -25,7 +25,7 @@ public:
     JsKVStoreResultSet() = default;
     virtual ~JsKVStoreResultSet() = default;
 
-    void SetNative(std::shared_ptr<DistributedKv::KvStoreResultSet>& resultSet);
+    void SetNative(std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet);
     void SetSchema(bool isSchema);
     std::shared_ptr<DistributedKv::KvStoreResultSet> GetNative();
 

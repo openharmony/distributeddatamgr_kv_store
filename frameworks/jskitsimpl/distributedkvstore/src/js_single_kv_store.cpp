@@ -1050,6 +1050,7 @@ napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
         auto resultSet = ctxt->resultSet->GetKvStoreResultSetPtr();
         Status status = kvStore->CloseResultSet(resultSet);
+        ctxt->resultSet->SetKvStoreResultSetPtr(nullptr);
         ZLOGD("kvStore->CloseResultSet return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
