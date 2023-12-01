@@ -749,9 +749,11 @@ int SQLiteSingleVerStorageEngine::PreCreateExecutor(bool isWrite)
     }
 
     // Judge whether need update the security option of the engine.
-    // Should update the security in the import or rekey scene(inner).
-    if (!isNeedUpdateSecOpt_) {
+    // Should update the security in the import or rekey scene(inner) or exist is not set.
+    if (IsUseExistedSecOption(existedSecOpt, option_.securityOpt)) {
         option_.securityOpt = existedSecOpt;
+    } else {
+        isNeedUpdateSecOpt_ = true;
     }
 
     errCode = CreateNewDirsAndSetSecOpt();
@@ -1101,5 +1103,18 @@ void SQLiteSingleVerStorageEngine::CacheSubscribe(const std::string &subscribeId
 {
     std::lock_guard<std::mutex> lock(subscribeMutex_);
     subscribeQuery_[subscribeId] = query;
+}
+
+bool SQLiteSingleVerStorageEngine::IsUseExistedSecOption(const SecurityOption &existedSecOpt,
+    const SecurityOption &openSecOpt)
+{
+    if (isNeedUpdateSecOpt_) {
+        return false;
+    }
+    if (existedSecOpt.securityLabel != openSecOpt.securityLabel &&
+        existedSecOpt.securityLabel == SecurityLabel::NOT_SET) {
+        return false;
+    }
+    return true;
 }
 }

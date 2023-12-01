@@ -223,8 +223,9 @@ namespace {
         SecurityOption checkSecOpt;
         SecurityOption currentMetaSecOpt {SecurityLabel::S2, SecurityFlag::ECE};
         int errCode = RuntimeContext::GetInstance()->GetSecurityOption(g_maindbPath, checkSecOpt);
-        EXPECT_TRUE(currentSecOpt == checkSecOpt);
-        EXPECT_TRUE(errCode == E_OK);
+        EXPECT_EQ(currentSecOpt.securityLabel, checkSecOpt.securityLabel);
+        EXPECT_EQ(currentSecOpt.securityFlag, checkSecOpt.securityFlag);
+        EXPECT_EQ(errCode, E_OK);
         if (OS::CheckPathExistence(g_cachedbPath)) {
             errCode = RuntimeContext::GetInstance()->GetSecurityOption(g_cachedbPath, checkSecOpt);
             EXPECT_TRUE(currentSecOpt == checkSecOpt);
@@ -346,7 +347,8 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Leve
      */
     KvStoreNbDelegate::Option option = {true, false, false};
     option.secOption = secopt;
-    GetKvStoreProcess(option, true, true, SecurityOption());
+    // check sec option update to s3
+    GetKvStoreProcess(option, true, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;
@@ -359,7 +361,8 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest001, TestSize.Leve
      */
     CheckLocalDataV1ToV2(db);
     CheckSyncDataV1ToV2(db);
-    CheckDirectoryV2ToV3(true, false);
+    // sec option update to s3, create cache db
+    CheckDirectoryV2ToV3(true, true);
     CheckVersionV3(db);
     (void)sqlite3_close_v2(db);
     EXPECT_EQ(g_mgr.DeleteKvStore("TestUpgradeNb"), OK);
@@ -389,7 +392,8 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest002, TestSize.Leve
      */
     KvStoreNbDelegate::Option option = {true, false, false};
     option.secOption = secopt;
-    GetKvStoreProcess(option, true, true, SecurityOption());
+    // check sec option update to s3
+    GetKvStoreProcess(option, true, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;
@@ -400,10 +404,12 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest002, TestSize.Leve
      * @tc.steps:step3. check result is ok.
      * @tc.expected: dir is ok,version is ok.
      */
-    CheckDirectoryV2ToV3(true, false);
+    // sec option update to s3, create cache db
+    CheckDirectoryV2ToV3(true, true);
     CheckVersionV3(db);
     (void)sqlite3_close_v2(db);
-    GetKvStoreProcess(option, false, true, SecurityOption());
+    // check sec option update to s3
+    GetKvStoreProcess(option, false, true, secopt);
     EXPECT_EQ(g_mgr.DeleteKvStore("TestUpgradeNb"), OK);
 }
 #ifndef OMIT_JSON
@@ -450,7 +456,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest003, TestSize.Leve
                         "}"
                     "},"
                     "\"SCHEMA_INDEXES\":[\"$.field_name1\", \"$.field_name2.field_name6\"]}";
-    GetKvStoreProcess(option, false, true, SecurityOption());
+    GetKvStoreProcess(option, false, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;
@@ -461,11 +467,11 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest003, TestSize.Leve
      * @tc.steps:step3. check result is ok.
      * @tc.expected: dir is ok,version is ok.
      */
-    CheckDirectoryV2ToV3(true, false);
+    CheckDirectoryV2ToV3(true, true);
     CheckVersionV3(db);
     (void)sqlite3_close_v2(db);
 
-    GetKvStoreProcess(option, false, true, SecurityOption());
+    GetKvStoreProcess(option, false, true, secopt);
     EXPECT_EQ(g_mgr.DeleteKvStore("TestUpgradeNb"), OK);
 }
 #endif
@@ -498,7 +504,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest004, TestSize.Leve
     EXPECT_TRUE(checkSecOpt.securityLabel == NOT_SET);
 
     option.secOption = secopt;
-    GetKvStoreProcess(option, true, true, SecurityOption());
+    GetKvStoreProcess(option, true, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;
@@ -509,7 +515,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest004, TestSize.Leve
      * @tc.steps:step3. check result is ok.
      * @tc.expected: dir is ok,version is ok.
      */
-    CheckDirectoryV2ToV3(true, false);
+    CheckDirectoryV2ToV3(true, true);
     CheckVersionV3(db);
     (void)sqlite3_close_v2(db);
 
@@ -534,7 +540,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest005, TestSize.Leve
      */
     KvStoreNbDelegate::Option option = {true, false, false};
     option.secOption = secopt;
-    GetKvStoreProcess(option, true, true, SecurityOption());
+    GetKvStoreProcess(option, true, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;
@@ -569,7 +575,7 @@ HWTEST_F(DistributedDBStorageSingleVerUpgradeTest, UpgradeTest006, TestSize.Leve
      */
     KvStoreNbDelegate::Option option = {true, false, false};
     option.secOption = secopt;
-    GetKvStoreProcess(option, true, true, SecurityOption());
+    GetKvStoreProcess(option, true, true, secopt);
 
     sqlite3 *db = nullptr;
     dbPath = g_testDir + g_newDatabaseName;

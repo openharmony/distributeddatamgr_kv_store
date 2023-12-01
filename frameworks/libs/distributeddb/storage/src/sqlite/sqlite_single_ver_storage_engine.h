@@ -119,6 +119,8 @@ private:
     // For subscribe
     int AddSubscribeToMainDBInMigrate();
 
+    bool IsUseExistedSecOption(const SecurityOption &existedSecOpt, const SecurityOption &openSecOpt);
+
     mutable std::mutex migrateLock_;
     std::atomic<uint64_t> cacheRecordVersion_;
     bool isCorrupted_;
