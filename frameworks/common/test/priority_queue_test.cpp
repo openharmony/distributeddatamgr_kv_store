@@ -309,7 +309,7 @@ HWTEST_F(PriorityQueueTest, Find_002, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_001, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{false, Time()};};
+    auto updater = [](TestTask &) { return std::pair{false, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -317,7 +317,7 @@ HWTEST_F(PriorityQueueTest, Update_001, TestSize.Level1)
     testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, false);
-    auto retUpdate = priorityqueue_.Update(id, updater_);
+    auto retUpdate = priorityqueue_.Update(id, updater);
     EXPECT_EQ(retUpdate, false);
 }
 
@@ -330,7 +330,7 @@ HWTEST_F(PriorityQueueTest, Update_001, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_002, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{false, Time()};};
+    auto updater = [](TestTask &) { return std::pair{false, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -338,7 +338,7 @@ HWTEST_F(PriorityQueueTest, Update_002, TestSize.Level1)
     testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
-    auto retUpdate = priorityqueue_.Update(id, updater_);
+    auto retUpdate = priorityqueue_.Update(id, updater);
     EXPECT_EQ(retUpdate, true);
 }
 
@@ -351,7 +351,7 @@ HWTEST_F(PriorityQueueTest, Update_002, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_003, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{false, Time()};};
+    auto updater = [](TestTask &) { return std::pair{false, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -360,7 +360,7 @@ HWTEST_F(PriorityQueueTest, Update_003, TestSize.Level1)
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
-    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater_);
+    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater);
     EXPECT_EQ(retUpdate, false);
 }
 
@@ -373,7 +373,7 @@ HWTEST_F(PriorityQueueTest, Update_003, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_004, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{true, Time()};};
+    auto updater = [](TestTask &) { return std::pair{true, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -382,7 +382,7 @@ HWTEST_F(PriorityQueueTest, Update_004, TestSize.Level1)
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
-    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater_);
+    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater);
     EXPECT_EQ(retUpdate, true);
 }
 
@@ -395,7 +395,7 @@ HWTEST_F(PriorityQueueTest, Update_004, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_005, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{false, Time()};};
+    auto updater = [](TestTask &) { return std::pair{false, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -405,7 +405,7 @@ HWTEST_F(PriorityQueueTest, Update_005, TestSize.Level1)
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
     priorityqueue_.Finish(id);
-    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater_);
+    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater);
     EXPECT_EQ(retUpdate, false);
 }
 
@@ -418,7 +418,7 @@ HWTEST_F(PriorityQueueTest, Update_005, TestSize.Level1)
 */
 HWTEST_F(PriorityQueueTest, Update_006, TestSize.Level1)
 {
-    auto updater_ = [](TestTask &) { return std::pair{true, Time()};};
+    auto updater = [](TestTask &) { return std::pair{true, Time()};};
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
     TestTask testTask;
     testTask.times = 3;
@@ -428,7 +428,7 @@ HWTEST_F(PriorityQueueTest, Update_006, TestSize.Level1)
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
     priorityqueue_.Finish(id);
-    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater_);
+    auto retUpdate = priorityqueue_.Update(retPop.taskId, updater);
     EXPECT_EQ(retUpdate, false);
 }
 
