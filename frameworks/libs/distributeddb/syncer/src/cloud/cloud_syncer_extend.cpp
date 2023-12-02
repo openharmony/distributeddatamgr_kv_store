@@ -353,4 +353,21 @@ void CloudSyncer::GenerateCompensatedSync()
     Sync(taskInfo);
     LOGD("[CloudSyncer] Generate compensated sync finished");
 }
+
+void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam)
+{
+    if (uploadData.ignoredCount == 0) {
+        return;
+    }
+    info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
+    if (info.upLoadInfo.successCount + info.upLoadInfo.failCount != info.upLoadInfo.total) {
+        return;
+    }
+    if (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+        return;
+    }
+    info.tableStatus = ProcessStatus::FINISHED;
+    info.upLoadInfo.batchIndex++;
+    NotifyInBatchUpload(uploadParam, info, true);
+}
 }

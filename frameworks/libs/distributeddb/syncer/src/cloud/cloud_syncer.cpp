@@ -1347,7 +1347,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
             LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
             break;
         }
-        info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
+        ChkIgnoredProcess(info, uploadData, uploadParam);
     }
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused

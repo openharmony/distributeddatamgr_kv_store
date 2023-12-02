@@ -613,7 +613,7 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         if (IsAbnormalData(data)) {
             LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
             cloudSyncData.ignoredCount++;
-            return E_OK;
+            return -E_IGNORE_DATA;
         }
         CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
         opData.record.push_back(data);
@@ -1655,7 +1655,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         return errCode;
     }
     uint32_t totalSize = 0;
-    uint32_t stepNum = 0;
+    uint32_t stepNum = -1;
     do {
         if (isStepNext) {
             errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
@@ -1665,7 +1665,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
             }
         }
         isStepNext = true;
-        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, stepNum++, totalSize, maxSize);
+        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize, maxSize);
     } while (errCode == E_OK);
     LOGD("Get cloud sync data, insData:%u, upData:%u, delLog:%u", cloudDataResult.insData.record.size(),
         cloudDataResult.updData.record.size(), cloudDataResult.delData.extend.size());
@@ -1704,10 +1704,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t stepNum, uint32_t &totalSize, const uint32_t &maxSize)
+    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize, const uint32_t &maxSize)
 {
     VBucket log;
     VBucket extraLog;
+    uint32_t preSize = totalSize;
     GetCloudLog(statement, log, totalSize, cloudDataResult.isShared);
     GetCloudExtraLog(statement, extraLog);
 
@@ -1737,6 +1738,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         errCode = IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
+    }
+    if (errCode == -E_IGNORE_DATA) {
+        errCode = E_OK;
+        totalSize = preSize;
+        stepNum--;
     }
     return errCode;
 }

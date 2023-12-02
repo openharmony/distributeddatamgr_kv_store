@@ -237,7 +237,7 @@ private:
         TableInfo &tableInfo);
     int CleanExtendAndCursorForDeleteData(sqlite3 *db, const std::string &tableName);
 
-    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t stepNum,
+    int GetCloudDataForSync(sqlite3_stmt *statement, CloudSyncData &cloudDataResult, uint32_t &stepNum,
         uint32_t &totalSize, const uint32_t &maxSize);
 
     int PutVBucketByType(VBucket &vBucket, const Field &field, Type &cloudValue);

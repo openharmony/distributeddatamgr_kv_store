@@ -1612,5 +1612,40 @@ HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, getAsset002, TestSize.
     EXPECT_EQ(assets.size(), 0u);
     EXPECT_EQ(g_storageProxy->Commit(), E_OK);
 }
+
+/**
+ * @tc.name: GetCloudData007
+ * @tc.desc: Test get cloud data which contains abnormal status asset
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBRelationalCloudSyncableStorageTest, GetCloudData007, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Init data and set asset status to abnormal
+     * @tc.expected: step1. return ok.
+     */
+    CreateLogTable();
+    int64_t insCount = 10;
+    int64_t photoSize = 1024 * 100;
+    InitLogData(insCount * 3, insCount * 3, 1, insCount); // 3 is multiple
+    CreateAndInitUserTable(insCount, photoSize, g_localAsset); // 2 is insert,update type data
+    Asset asset = g_localAsset;
+    asset.status = static_cast<uint32_t>(AssetStatus::ABNORMAL);
+    insCount = 50;
+    CreateAndInitUserTable(insCount, photoSize, asset);
+    SetDbSchema(g_tableSchema);
+
+    /**
+     * @tc.steps:step2. Get all cloud data at once
+     * @tc.expected: step2. return E_OK.
+     */
+    ContinueToken token = nullptr;
+    CloudSyncData cloudSyncData;
+    EXPECT_EQ(g_storageProxy->StartTransaction(TransactType::IMMEDIATE), E_OK);
+    ASSERT_EQ(g_storageProxy->GetCloudData(g_tableName, g_startTime, token, cloudSyncData), E_OK);
+    EXPECT_EQ(g_storageProxy->Rollback(), E_OK);
+}
 }
 #endif // RELATIONAL_STORE
