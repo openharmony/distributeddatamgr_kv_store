@@ -164,6 +164,10 @@ private:
 
     int ExecuteCreateSharedTable(const DataBaseSchema &schema);
 
+    int CheckParamForUpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
+
+    int CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records);
+
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
     // use for sync Interactive

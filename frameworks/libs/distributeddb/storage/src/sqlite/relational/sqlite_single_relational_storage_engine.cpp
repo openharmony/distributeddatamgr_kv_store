@@ -1015,11 +1015,5 @@ std::map<std::string, int> SQLiteSingleRelationalStorageEngine::GetTableWeightWi
     }
     return res;
 }
-
-int SQLiteSingleRelationalStorageEngine::UpsertData([[gnu::unused]] RecordStatus status,
-    [[gnu::unused]] const std::string &tableName, [[gnu::unused]] const std::vector<VBucket> &records)
-{
-    return E_OK;
-}
 }
 #endif

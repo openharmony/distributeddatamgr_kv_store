@@ -14,6 +14,7 @@
  */
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
+#include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
 #include "cloud/cloud_sync_utils.h"
@@ -144,7 +145,8 @@ bool CloudSyncUtils::NeedSaveData(const LogInfo &localLogInfo, const LogInfo &cl
     // But we won't notify the datum
     bool isSame = localLogInfo.timestamp == cloudLogInfo.timestamp &&
         EqualInMsLevel(localLogInfo.wTimestamp, cloudLogInfo.wTimestamp) &&
-        localLogInfo.cloudGid == cloudLogInfo.cloudGid;
+        localLogInfo.cloudGid == cloudLogInfo.cloudGid &&
+        (localLogInfo.flag & static_cast<uint64_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC)) == 0;
     return !isSame;
 }
 
@@ -443,8 +445,11 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data)
         if (data.assets[i].empty()) {
             continue;
         }
-        if (data.extend[i].find(CloudDbConstant::ERROR_FIELD) != data.extend[i].end()) {
+        if (DBCommon::IsRecordError(data.extend[i])) {
             errCode = -E_CLOUD_ERROR;
+            continue;
+        }
+        if (DBCommon::IsRecordIgnored(data.extend[i])) {
             continue;
         }
         for (auto &[col, value] : data.assets[i]) {

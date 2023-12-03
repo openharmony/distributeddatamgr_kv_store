@@ -1156,6 +1156,12 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
         return -E_INVALID_DB;
     }
 
+    return GetInfoByPrimaryKeyOrGidInner(transactionHandle_, tableName, vBucket, dataInfoWithLog, assetInfo);
+}
+
+int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo)
+{
     TableSchema tableSchema;
     int errCode = GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
@@ -1163,8 +1169,8 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGid(const std::string &table
         return errCode;
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
-    transactionHandle_->SetLocalSchema(localSchema);
-    return transactionHandle_->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
+    handle->SetLocalSchema(localSchema);
+    return handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
 }
 
 int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, DownloadData &downloadData)
@@ -1173,7 +1179,12 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
         LOGE(" the transaction has not been started");
         return -E_INVALID_DB;
     }
+    return PutCloudSyncDataInner(transactionHandle_, tableName, downloadData);
+}
 
+int RelationalSyncAbleStorage::PutCloudSyncDataInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, DownloadData &downloadData)
+{
     TableSchema tableSchema;
     int errCode = GetCloudTableSchema(tableName, tableSchema);
     if (errCode != E_OK) {
@@ -1181,11 +1192,11 @@ int RelationalSyncAbleStorage::PutCloudSyncData(const std::string &tableName, Do
         return errCode;
     }
     RelationalSchemaObject localSchema = GetSchemaInfo();
-    transactionHandle_->SetLocalSchema(localSchema);
+    handle->SetLocalSchema(localSchema);
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
-    transactionHandle_->SetLogicDelete(IsCurrentLogicDelete());
-    errCode = transactionHandle_->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
-    transactionHandle_->SetLogicDelete(false);
+    handle->SetLogicDelete(IsCurrentLogicDelete());
+    errCode = handle->PutCloudSyncData(tableName, tableSchema, trackerTable, downloadData);
+    handle->SetLogicDelete(false);
     return errCode;
 }
 
@@ -1624,6 +1635,78 @@ int RelationalSyncAbleStorage::SetIAssetLoader(const std::shared_ptr<IAssetLoade
     wHandle->SetIAssetLoader(loader);
     ReleaseHandle(wHandle);
     return errCode;
+}
+
+int RelationalSyncAbleStorage::UpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    int errCode = E_OK;
+    auto *handle = GetHandle(true, errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    handle->SetPutDataMode(SQLiteSingleVerRelationalStorageExecutor::PutDataMode::USER);
+    handle->SetMarkFlagOption(SQLiteSingleVerRelationalStorageExecutor::MarkFlagOption::SET_WAIT_COMPENSATED_SYNC);
+    errCode = UpsertDataInner(handle, tableName, records);
+    handle->SetPutDataMode(SQLiteSingleVerRelationalStorageExecutor::PutDataMode::SYNC);
+    handle->SetMarkFlagOption(SQLiteSingleVerRelationalStorageExecutor::MarkFlagOption::DEFAULT);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::UpsertDataInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, const std::vector<VBucket> &records)
+{
+    int errCode = E_OK;
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = UpsertDataInTransaction(handle, tableName, records);
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[RDBStorageEngine] commit failed %d when upsert data", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGW("[RDBStorageEngine] rollback failed %d when upsert data", ret);
+        }
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, const std::vector<VBucket> &records)
+{
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when save cloud data, %d", errCode);
+        return errCode;
+    }
+    DownloadData downloadData;
+    for (const auto &record : records) {
+        DataInfoWithLog dataInfoWithLog;
+        VBucket assetInfo;
+        errCode = GetInfoByPrimaryKeyOrGidInner(handle, tableName, record, dataInfoWithLog, assetInfo);
+        if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+            return errCode;
+        }
+        VBucket recordCopy = record;
+        if (errCode == -E_NOT_FOUND) {
+            downloadData.opType.push_back(OpType::INSERT);
+        } else {
+            downloadData.opType.push_back(OpType::UPDATE);
+            recordCopy[CloudDbConstant::GID_FIELD] = dataInfoWithLog.logInfo.cloudGid;
+            recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(dataInfoWithLog.logInfo.timestamp);
+            recordCopy[CloudDbConstant::CREATE_FIELD] = static_cast<int64_t>(dataInfoWithLog.logInfo.wTimestamp);
+        }
+        downloadData.existDataKey.push_back(dataInfoWithLog.logInfo.dataKey);
+        downloadData.data.push_back(std::move(recordCopy));
+    }
+    return PutCloudSyncDataInner(handle, tableName, downloadData);
 }
 }
 #endif

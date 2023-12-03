@@ -104,6 +104,10 @@ public:
         const std::map<std::string, int> &nodeWeight);
 
     static bool HasPrimaryKey(const std::vector<Field> &fields);
+
+    static bool IsRecordError(const VBucket &record);
+
+    static bool IsRecordIgnored(const VBucket &record);
 private:
     static void InsertNodesByScore(const std::map<std::string, std::map<std::string, bool>> &graph,
         const std::vector<std::string> &generateNodes, const std::map<std::string, int> &scoreGraph,

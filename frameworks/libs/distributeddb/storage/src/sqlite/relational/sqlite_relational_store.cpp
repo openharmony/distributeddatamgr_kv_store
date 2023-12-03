@@ -1375,11 +1375,67 @@ int SQLiteRelationalStore::Pragma(PragmaCmd cmd, PragmaData &pragmaData)
 int SQLiteRelationalStore::UpsertData(RecordStatus status, const std::string &tableName,
     const std::vector<VBucket> &records)
 {
-    if (sqliteStorageEngine_  == nullptr) {
+    if (storageEngine_ == nullptr) {
         LOGE("[RelationalStore][UpsertData] sqliteStorageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    return sqliteStorageEngine_ ->UpsertData(status, tableName, records);
+    int errCode = CheckParamForUpsertData(status, tableName, records);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    return storageEngine_->UpsertData(status, tableName, records);
+}
+
+int SQLiteRelationalStore::CheckParamForUpsertData(RecordStatus status, const std::string &tableName,
+    const std::vector<VBucket> &records)
+{
+    if (status != RecordStatus::WAIT_COMPENSATED_SYNC) {
+        LOGE("[RelationalStore][CheckParamForUpsertData] invalid status %" PRId64, static_cast<int64_t>(status));
+        return -E_INVALID_ARGS;
+    }
+    if (records.empty()) {
+        LOGE("[RelationalStore][CheckParamForUpsertData] records is empty");
+        return -E_INVALID_ARGS;
+    }
+    size_t recordSize = records.size();
+    if (recordSize > DBConstant::MAX_BATCH_SIZE) {
+        LOGE("[RelationalStore][CheckParamForUpsertData] records size over limit, size %zu", recordSize);
+        return -E_MAX_LIMITS;
+    }
+    return CheckSchemaForUpsertData(tableName, records);
+}
+
+int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records)
+{
+    int errCode = ChkSchema(tableName);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    auto schema = storageEngine_->GetSchemaInfo();
+    auto table = schema.GetTable(tableName);
+    if (table.IsNoPkTable()) {
+        LOGE("[RelationalStore][CheckSchemaForUpsertData] not support table without pk");
+        return -E_NOT_SUPPORT;
+    }
+    std::set<std::string> dbPkFields;
+    for (auto &field : table.GetIdentifyKey()) {
+        dbPkFields.insert(field);
+    }
+    for (const auto &record : records) {
+        std::set<std::string> recordPkFields;
+        for (const auto &item : record) {
+            if (dbPkFields.find(item.first) == dbPkFields.end()) {
+                continue;
+            }
+            recordPkFields.insert(item.first);
+        }
+        if (recordPkFields.size() != dbPkFields.size()) {
+            LOGE("[RelationalStore][CheckSchemaForUpsertData] pk size not equal param %zu schema %zu",
+                recordPkFields.size(), dbPkFields.size());
+            return -E_INVALID_ARGS;
+        }
+    }
+    return errCode;
 }
 }
 #endif

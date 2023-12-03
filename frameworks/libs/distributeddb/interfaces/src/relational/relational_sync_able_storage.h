@@ -201,8 +201,16 @@ public:
         VBucket &assets) override;
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
+
+    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 protected:
     int FillReferenceData(CloudSyncData &syncData);
+
+    int GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        const VBucket &vBucket, DataInfoWithLog &dataInfoWithLog, VBucket &assetInfo);
+
+    int PutCloudSyncDataInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        DownloadData &downloadData);
 
     virtual int GetReferenceGid(const std::string &tableName, const CloudSyncBatch &syncBatch,
         std::map<int64_t, Entries> &referenceGid);
@@ -236,6 +244,12 @@ private:
     StoreInfo GetStoreInfo() const;
 
     bool IsCurrentLogicDelete() const;
+
+    int UpsertDataInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        const std::vector<VBucket> &records);
+
+    int UpsertDataInTransaction(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        const std::vector<VBucket> &records);
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;

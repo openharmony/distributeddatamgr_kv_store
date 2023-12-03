@@ -193,6 +193,7 @@ void DistributedDBCloudAssetsOperationSyncTest::InsertUserTableRecord(const std:
         RuntimeContext::GetInstance()->AssetToBlob(asset, assetBlob);
         std::vector<Asset> assets;
         asset.name = name + "_1";
+        asset.status = static_cast<uint32_t>(AssetStatus::INSERT);
         assets.push_back(asset);
         asset.name = name + "_2";
         assets.push_back(asset);
@@ -264,6 +265,10 @@ void DistributedDBCloudAssetsOperationSyncTest::CheckAssetsCount(const std::vect
         auto assets = RelationalTestUtils::GetAssets(colValue, translate);
         LOGI("[DistributedDBCloudAssetsOperationSyncTest] Check data index %d", index);
         EXPECT_EQ(assets.size(), expectCount[index]);
+        for (const auto &item : assets) {
+            LOGI("[DistributedDBCloudAssetsOperationSyncTest] Asset name %s status %" PRIu32, item.name.c_str(),
+                item.status);
+        }
         index++;
     }
 }
@@ -382,6 +387,71 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation003, T
     }
     int errCode;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+/**
+ * @tc.name: IgnoreRecord001
+ * @tc.desc: Download Assets When local assets was removed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Level0)
+{
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    std::vector<size_t> expectCount = { 2 };
+    CheckAssetsCount(expectCount);
+
+    VBucket record;
+    record["id"] = std::to_string(0);
+    record["assets"] = Assets();
+    EXPECT_EQ(delegate_->UpsertData(tableName_, { record }), OK);
+    expectCount = { 0 };
+    CheckAssetsCount(expectCount);
+}
+
+/**
+ * @tc.name: IgnoreRecord002
+ * @tc.desc: Ignore Assets When Download
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord002, TestSize.Level0)
+{
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    Query query = Query::Select().FromTable({ tableName_ });
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    UpdateCloudTableRecord(0, actualCount, false);
+
+    virtualAssetLoader_->SetDownloadStatus(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    virtualAssetLoader_->SetDownloadStatus(DBStatus::OK);
+    std::vector<size_t> expectCount = { 2 };
+    CheckAssetsCount(expectCount);
+}
+
+/**
+ * @tc.name: IgnoreRecord003
+ * @tc.desc: Ignore Assets When Upload
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Level0)
+{
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    Query query = Query::Select().FromTable({ tableName_ });
+    virtualCloudDb_->SetConflictInUpload(true);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    virtualCloudDb_->SetConflictInUpload(false);
+    std::vector<size_t> expectCount = { 2 };
+    CheckAssetsCount(expectCount);
 }
 }
 #endif

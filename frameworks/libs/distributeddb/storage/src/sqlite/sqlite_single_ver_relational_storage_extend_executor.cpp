@@ -37,7 +37,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string 
     }
     std::string gid;
     int errCode = CloudStorageUtils::GetValueFromVBucket(CloudDbConstant::GID_FIELD, vBucket, gid);
-    if (errCode != E_OK) {
+    if (putDataMode_ == PutDataMode::SYNC && errCode != E_OK) {
         LOGE("Get cloud gid fail when query log table.");
         return errCode;
     }
@@ -150,6 +150,9 @@ int SQLiteSingleVerRelationalStorageExecutor::FillCloudAssetForUpload(OpType opT
     sqlite3_stmt *stmt = nullptr;
     for (size_t i = 0; i < data.assets.size(); ++i) {
         if (data.assets.at(i).empty()) {
+            continue;
+        }
+        if (DBCommon::IsRecordIgnored(data.extend[i])) {
             continue;
         }
         errCode = InitFillUploadAssetStatement(opType, tableSchema, data, i, stmt);
@@ -906,8 +909,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
             LOGE("[RDBExecutor] Extend not contain gid");
             break;
         }
-        bool containError = cloudDataResult.insData.extend[i].find(CloudDbConstant::ERROR_FIELD) !=
-            cloudDataResult.insData.extend[i].end();
+        bool containError = DBCommon::IsRecordError(cloudDataResult.insData.extend[i]);
         if (!ignoreEmptyGid && containError) {
             LOGE("[RDBExecutor] Fill gid back but got error");
             errCode = -E_CLOUD_ERROR;
@@ -1527,6 +1529,70 @@ int SQLiteSingleVerRelationalStorageExecutor::UpdateAssetId(const std::string &t
         }
     }
     return errCode;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetPutDataMode(PutDataMode mode)
+{
+    putDataMode_ = mode;
+}
+
+void SQLiteSingleVerRelationalStorageExecutor::SetMarkFlagOption(MarkFlagOption option)
+{
+    markFlagOption_ = option;
+}
+
+int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag(int64_t oriFlag)
+{
+    if (putDataMode_ != PutDataMode::USER) {
+        return oriFlag;
+    }
+    if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
+        oriFlag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
+    }
+    return oriFlag;
+}
+
+std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql()
+{
+    if (putDataMode_ == PutDataMode::SYNC) {
+        return UPDATE_FLAG_CLOUD;
+    }
+    if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
+        return UPDATE_FLAG_WAIT_COMPENSATED_SYNC;
+    }
+    return UPDATE_FLAG_CLOUD;
+}
+
+std::string SQLiteSingleVerRelationalStorageExecutor::GetDev()
+{
+    return putDataMode_ == PutDataMode::SYNC ? "cloud" : "";
+}
+
+std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetUpdateField(const VBucket &vBucket,
+    const TableSchema &tableSchema)
+{
+    std::set<std::string> useFields;
+    std::vector<Field> fields;
+    if (putDataMode_ == PutDataMode::SYNC) {
+        for (const auto &field : tableSchema.fields) {
+            useFields.insert(field.colName);
+        }
+        fields = tableSchema.fields;
+    } else {
+        for (const auto &field : vBucket) {
+            if (field.first.empty() || field.first[0] == '#') {
+                continue;
+            }
+            useFields.insert(field.first);
+        }
+        for (const auto &field : tableSchema.fields) {
+            if (useFields.find(field.colName) == useFields.end()) {
+                continue;
+            }
+            fields.push_back(field);
+        }
+    }
+    return fields;
 }
 } // namespace DistributedDB
 #endif

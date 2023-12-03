@@ -36,6 +36,14 @@
 namespace DistributedDB {
 class SQLiteSingleVerRelationalStorageExecutor : public SQLiteStorageExecutor {
 public:
+    enum class PutDataMode {
+        SYNC,
+        USER
+    };
+    enum class MarkFlagOption {
+        DEFAULT,
+        SET_WAIT_COMPENSATED_SYNC
+    };
     SQLiteSingleVerRelationalStorageExecutor(sqlite3 *dbHandle, bool writable, DistributedTableMode mode);
     ~SQLiteSingleVerRelationalStorageExecutor() override = default;
 
@@ -164,6 +172,10 @@ public:
     int CleanResourceForDroppedTable(const std::string &tableName);
 
     int UpgradedLogForExistedData(TableInfo &tableInfo);
+
+    void SetPutDataMode(PutDataMode mode);
+
+    void SetMarkFlagOption(MarkFlagOption option);
 private:
     int DoCleanLogs(const std::vector<std::string> &tableNameList, const RelationalSchemaObject &localSchema);
 
@@ -271,8 +283,8 @@ private:
     std::string GetWhereConditionForDataTable(const std::string &gidStr, const std::set<std::string> &pkSet,
         const std::string &tableName, bool queryByPk = true);
 
-    int GetUpdateSqlForCloudSync(const TableSchema &tableSchema, const std::string &gidStr,
-        const std::set<std::string> &pkSet, std::string &updateSql);
+    int GetUpdateSqlForCloudSync(const std::vector<Field> &updateFields, const TableSchema &tableSchema,
+        const std::string &gidStr, const std::set<std::string> &pkSet, std::string &updateSql);
 
     int GetUpdateDataTableStatement(const VBucket &vBucket, const TableSchema &tableSchema, sqlite3_stmt *&updateStmt);
 
@@ -366,6 +378,17 @@ private:
 
     int UpdateAssetId(const std::string &tableName, const Field &field, int64_t dataKey, const VBucket &vBucket);
 
+    int64_t GetDataFlag(int64_t oriFlag);
+
+    std::string GetUpdateDataFlagSql();
+
+    std::string GetDev();
+
+    std::vector<Field> GetUpdateField(const VBucket &vBucket, const TableSchema &tableSchema);
+
+    static constexpr const char *UPDATE_FLAG_CLOUD = "flag = 0";
+    static constexpr const char *UPDATE_FLAG_WAIT_COMPENSATED_SYNC = "flag = flag | 0x10";
+
     std::string baseTblName_;
     TableInfo table_;  // Always operating table, user table when get, device table when put.
     TableSchema tableSchema_; // for cloud table
@@ -378,6 +401,9 @@ private:
 
     std::atomic<bool> isLogicDelete_;
     std::shared_ptr<IAssetLoader> assetLoader_;
+
+    PutDataMode putDataMode_;
+    MarkFlagOption markFlagOption_;
 };
 } // namespace DistributedDB
 #endif
