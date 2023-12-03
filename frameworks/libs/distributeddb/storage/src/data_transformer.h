@@ -39,7 +39,8 @@ struct LogInfo {
 
 enum class LogInfoFlag : uint32_t {
     FLAG_DELETE = 0x1,
-    FLAG_LOGIC_DELETE = 0x8
+    FLAG_LOGIC_DELETE = 0x8,
+    FLAG_WAIT_COMPENSATED_SYNC = 0x10,
 };
 
 struct RowDataWithLog {

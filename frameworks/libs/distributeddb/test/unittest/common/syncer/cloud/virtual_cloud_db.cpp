@@ -74,6 +74,9 @@ DBStatus VirtualCloudDb::InnerBatchInsert(const std::string &tableName, std::vec
             LOGE("[VirtualCloudDb] Insert data should not have gid");
             return DB_ERROR;
         }
+        if (conflictInUpload_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+        }
         extend[i][g_gidField] = std::to_string(currentGid_++);
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][g_deleteField] = false;
@@ -380,6 +383,9 @@ DBStatus VirtualCloudDb::InnerUpdateWithoutLock(const std::string &tableName, st
             LOGE("[VirtualCloudDb] Update data should have gid");
             return DB_ERROR;
         }
+        if (conflictInUpload_) {
+            extend[i][CloudDbConstant::ERROR_FIELD] = static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
+        }
         extend[i][g_cursorField] = std::to_string(currentCursor_++);
         extend[i][CloudDbConstant::VERSION_FIELD] = std::to_string(currentVersion_++);
         AddAssetIdForExtend(record[i], extend[i]);
@@ -564,5 +570,10 @@ void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
         }
         extend[recordData.first] = assets;
     }
+}
+
+void VirtualCloudDb::SetConflictInUpload(bool conflict)
+{
+    conflictInUpload_ = conflict;
 }
 }

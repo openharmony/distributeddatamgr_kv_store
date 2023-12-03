@@ -125,6 +125,8 @@ public:
 
     bool Empty() const;
 
+    bool IsNoPkTable() const;
+
 private:
     void AddFieldDefineString(std::string &attrStr) const;
     void AddIndexDefineString(std::string &attrStr) const;

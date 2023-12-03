@@ -795,4 +795,12 @@ const std::vector<TableReferenceProperty> &TableInfo::GetTableReference() const
 {
     return sourceTableReferenced_;
 }
+
+bool TableInfo::IsNoPkTable() const
+{
+    if (primaryKey_.size() == 1 && primaryKey_.at(0) == ROW_ID) {
+        return true;
+    }
+    return false;
+}
 } // namespace DistributeDB

@@ -138,6 +138,7 @@ constexpr int E_CLOUD_ASSET_SPACE_INSUFFICIENT = (E_BASE + 117); // cloud failed
 constexpr int E_CLOUD_INVALID_ASSET = (E_BASE + 118); // the asset is invalid
 constexpr int E_TASK_PAUSED = (E_BASE + 119); // the task was paused, don't finished it
 constexpr int E_CLOUD_VERSION_CONFLICT = (E_BASE + 120); // cloud failed to update version
+constexpr int E_CLOUD_RECORD_EXIST_CONFLICT = (E_BASE + 121); // record conflict when upload/download
 // Num 150+ is reserved for schema related errno, since it may be added regularly
 constexpr int E_JSON_PARSE_FAIL = (E_BASE + 150); // Parse json fail in grammatical level
 constexpr int E_JSON_INSERT_PATH_EXIST = (E_BASE + 151); // Path already exist before insert

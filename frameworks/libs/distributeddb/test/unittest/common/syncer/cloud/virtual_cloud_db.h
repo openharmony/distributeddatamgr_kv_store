@@ -82,6 +82,8 @@ public:
     void SetClearExtend(int32_t count);
 
     void SetCloudNetworkError(bool cloudNetworkError);
+
+    void SetConflictInUpload(bool conflict);
 private:
     struct CloudData {
         VBucket record;
@@ -116,6 +118,7 @@ private:
     std::atomic<bool> cloudNetworkError_ = false;
     std::atomic<bool> heartbeatError_ = false;
     std::atomic<bool> lockStatus_ = false;
+    std::atomic<bool> conflictInUpload_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;
     std::atomic<int64_t> currentGid_ = 0;
     std::atomic<int64_t> currentCursor_ = 1;

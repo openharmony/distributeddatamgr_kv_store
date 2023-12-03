@@ -80,6 +80,7 @@ enum DBStatus {
     CLOUD_ASSET_SPACE_INSUFFICIENT, // cloud failed to download asset
     PROPERTY_CHANGED, // reference property changed
     CLOUD_VERSION_CONFLICT, // cloud failed to update version
+    CLOUD_RECORD_EXIST_CONFLICT, // this error happen in Download/BatchInsert/BatchUpdate
 };
 
 struct KvStoreConfig {

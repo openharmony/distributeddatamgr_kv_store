@@ -183,7 +183,7 @@ int CloudDBProxy::Download(const std::string &tableName, const std::string &gid,
     }
     DBStatus status = iAssetLoader_->Download(tableName, gid, prefix, assets);
     if (status != OK) {
-        LOGE("[CloudDBProxy] download asset failed %d", static_cast<int>(status));
+        LOGW("[CloudDBProxy] download asset failed %d", static_cast<int>(status));
     }
     return GetInnerErrorCode(status);
 }
@@ -346,6 +346,8 @@ int CloudDBProxy::GetInnerErrorCode(DBStatus status)
             return -E_CLOUD_ASSET_SPACE_INSUFFICIENT;
         case CLOUD_VERSION_CONFLICT:
             return -E_CLOUD_VERSION_CONFLICT;
+        case CLOUD_RECORD_EXIST_CONFLICT:
+            return -E_CLOUD_RECORD_EXIST_CONFLICT;
         default:
             return -E_CLOUD_ERROR;
     }

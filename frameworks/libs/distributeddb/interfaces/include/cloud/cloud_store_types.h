@@ -43,8 +43,7 @@ enum class AssetOpType {
     NO_CHANGE = 0,
     INSERT,
     DELETE,
-    UPDATE,
-    IGNORE // mark it ignore when not handle asset in (download, batchInsert, batchUpdate)
+    UPDATE
 };
 
 enum AssetStatus : uint32_t {
@@ -137,8 +136,7 @@ struct SqlCondition {
 };
 
 enum class RecordStatus {
-    MIGRATING,
-    MIGRATE_FINISH
+    WAIT_COMPENSATED_SYNC
 };
 } // namespace DistributedDB
 #endif // CLOUD_STORE_TYPE_H

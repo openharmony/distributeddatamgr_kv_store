@@ -434,8 +434,8 @@ DBStatus RelationalStoreDelegateImpl::Pragma(PragmaCmd cmd, PragmaData &pragmaDa
     return OK;
 }
 
-DBStatus RelationalStoreDelegateImpl::UpsertData(RecordStatus status, const std::string &tableName,
-    const std::vector<VBucket> &records)
+DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, const std::vector<VBucket> &records,
+    RecordStatus status)
 {
     if (conn_ == nullptr) {
         LOGE("[RelationalStore Delegate] Invalid connection for operation!");

@@ -60,8 +60,6 @@ public:
         const std::map<std::string, std::string> &alterTableNames);
     std::pair<std::vector<std::string>, int> CalTableRef(const std::vector<std::string> &tableNames,
         const std::map<std::string, std::string> &sharedTableOriginNames);
-
-    int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
 protected:
     StorageExecutor *NewSQLiteStorageExecutor(sqlite3 *dbHandle, bool isWrite, bool isMemDb) override;
     int Upgrade(sqlite3 *db) override;
