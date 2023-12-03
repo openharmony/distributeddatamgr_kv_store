@@ -275,6 +275,9 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
                 LOGD("[CloudSyncer] skip download asset...");
                 continue;
             }
+            if (tmpCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
+                continue;
+            }
             errCode = (errCode != E_OK) ? errCode : tmpCode;
             if (tmpCode == -E_NOT_SET) {
                 break;
