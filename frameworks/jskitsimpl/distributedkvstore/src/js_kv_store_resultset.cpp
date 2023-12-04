@@ -24,15 +24,6 @@
 using namespace OHOS::DistributedKv;
 using namespace OHOS::DataShare;
 namespace OHOS::DistributedKVStore {
-void JsKVStoreResultSet::SetKvStoreResultSetPtr(std::shared_ptr<KvStoreResultSet> resultSet)
-{
-    SetInstance(resultSet);
-}
-
-std::shared_ptr<KvStoreResultSet> JsKVStoreResultSet::GetKvStoreResultSetPtr()
-{
-    return GetInstance();
-}
 
 napi_value JsKVStoreResultSet::Constructor(napi_env env)
 {
