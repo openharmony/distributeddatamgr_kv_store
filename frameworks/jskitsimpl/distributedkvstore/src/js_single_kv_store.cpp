@@ -1008,7 +1008,7 @@ napi_value JsSingleKVStore::GetResultSet(napi_env env, napi_callback_info info)
 
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?
             napi_ok : napi_generic_failure;
-        ctxt->resultSet->SetKvStoreResultSetPtr(kvResultSet);
+        ctxt->resultSet->SetInstance(kvResultSet);
         bool isSchema = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->IsSchemaStore();
         ctxt->resultSet->SetSchema(isSchema);
     };
@@ -1048,7 +1048,8 @@ napi_value JsSingleKVStore::CloseResultSet(napi_env env, napi_callback_info info
 
     auto execute = [ctxt]() {
         auto kvStore = reinterpret_cast<JsSingleKVStore*>(ctxt->native)->GetKvStorePtr();
-        auto resultSet = ctxt->resultSet->GetKvStoreResultSetPtr();
+        auto resultSet = ctxt->resultSet->GetInstance();
+        ctxt->resultSet->SetInstance(nullptr);
         Status status = kvStore->CloseResultSet(resultSet);
         ZLOGD("kvStore->CloseResultSet return %{public}d", status);
         ctxt->status = (GenerateNapiError(status, ctxt->jsCode, ctxt->error) == Status::SUCCESS) ?

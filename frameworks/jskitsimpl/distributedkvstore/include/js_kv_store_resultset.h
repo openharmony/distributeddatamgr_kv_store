@@ -15,18 +15,17 @@
 #ifndef OHOS_KV_STORE_RESELTSET_H
 #define OHOS_KV_STORE_RESELTSET_H
 #include "napi_queue.h"
+#include "js_proxy.h"
 #include "result_set_bridge.h"
 #include "kvstore_result_set.h"
 
 namespace OHOS::DistributedKVStore {
-class JsKVStoreResultSet : public DataShare::ResultSetBridge::Creator {
+class JsKVStoreResultSet : public JSProxy::JSEntity<DistributedKv::KvStoreResultSet, DataShare::ResultSetBridge> {
 public:
     JsKVStoreResultSet() = default;
     virtual ~JsKVStoreResultSet() = default;
 
-    void SetKvStoreResultSetPtr(std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet);
     void SetSchema(bool isSchema);
-    std::shared_ptr<DistributedKv::KvStoreResultSet> GetKvStoreResultSetPtr();
 
     static napi_value Constructor(napi_env env);
     static napi_value New(napi_env env, napi_callback_info info);
@@ -48,7 +47,6 @@ private:
     static napi_value IsAfterLast(napi_env env, napi_callback_info info);
     static napi_value GetEntry(napi_env env, napi_callback_info info);
 
-    std::shared_ptr<DistributedKv::KvStoreResultSet> resultSet_ = nullptr;
     bool isSchema_ = false;
 };
 } // namespace OHOS::DistributedKVStore

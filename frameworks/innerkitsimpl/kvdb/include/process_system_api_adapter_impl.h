@@ -15,6 +15,7 @@
 
 #ifndef PROCESS_SYSTEM_API_ADAPTER_IMPL_H
 #define PROCESS_SYSTEM_API_ADAPTER_IMPL_H
+#include <memory>
 #include "iprocess_system_api_adapter.h"
 #include "end_point.h"
 
