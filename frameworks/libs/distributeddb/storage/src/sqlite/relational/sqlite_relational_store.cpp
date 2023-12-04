@@ -429,6 +429,16 @@ void SQLiteRelationalStore::WakeUpSyncer()
 int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, TableSyncType syncType,
     bool trackerSchemaChanged)
 {
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    TableInfo tableInfo = localSchema.GetTable(tableName);
+    if (!tableInfo.Empty()) {
+        bool isSharedTable = tableInfo.GetSharedTableMark();
+        if (isSharedTable) {
+            LOGI("[RelationalStore] shared table do not need use CreateDistributedTable.");
+            return E_OK; // shared table will create distributed table when use SetCloudDbSchema
+        }
+    }
+
     auto mode = static_cast<DistributedTableMode>(sqliteStorageEngine_->GetProperties().GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
 
