@@ -1541,15 +1541,16 @@ void SQLiteSingleVerRelationalStorageExecutor::SetMarkFlagOption(MarkFlagOption 
     markFlagOption_ = option;
 }
 
-int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag(int64_t oriFlag)
+int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
 {
     if (putDataMode_ != PutDataMode::USER) {
-        return oriFlag;
+        return static_cast<int64_t>(LogInfoFlag::FLAG_CLOUD);
     }
+    auto flag = static_cast<int64_t>(LogInfoFlag::FLAG_LOCAL);
     if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
-        oriFlag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
+        flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
-    return oriFlag;
+    return flag;
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql()

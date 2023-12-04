@@ -2559,7 +2559,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindValueToInsertLogStatement(VBuc
         return errCode;
     }
 
-    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_int(insertLogStmt, 6, GetDataFlag(0))); // 6 is flag
+    errCode = SQLiteUtils::MapSQLiteErrno(sqlite3_bind_int(insertLogStmt, 6, GetDataFlag())); // 6 is flag
     if (errCode != E_OK) {
         LOGE("Bind flag to insert log statement failed, %d", errCode);
         return errCode;

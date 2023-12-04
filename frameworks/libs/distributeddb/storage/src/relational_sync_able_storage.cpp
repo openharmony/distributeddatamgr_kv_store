@@ -27,6 +27,7 @@
 #include "relational_sync_data_inserter.h"
 #include "res_finalizer.h"
 #include "runtime_context.h"
+#include "time_helper.h"
 
 namespace DistributedDB {
 namespace {
@@ -1697,6 +1698,9 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
         VBucket recordCopy = record;
         if (errCode == -E_NOT_FOUND) {
             downloadData.opType.push_back(OpType::INSERT);
+            auto currentTime = TimeHelper::GetSysCurrentTime();
+            recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(currentTime);
+            recordCopy[CloudDbConstant::CREATE_FIELD] = static_cast<int64_t>(currentTime);
         } else {
             downloadData.opType.push_back(OpType::UPDATE);
             recordCopy[CloudDbConstant::GID_FIELD] = dataInfoWithLog.logInfo.cloudGid;
