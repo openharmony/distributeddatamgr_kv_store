@@ -138,6 +138,16 @@ static inline bool Unmarshalling(std::string &output, MessageParcel &data)
     return data.ReadString(output);
 }
 
+static inline bool Marshalling(const std::u16string &input, MessageParcel &data)
+{
+    return data.WriteString16(input);
+}
+
+static inline bool Unmarshalling(std::u16string &output, MessageParcel &data)
+{
+    return data.ReadString16(output);
+}
+
 static inline bool Marshalling(const std::vector<uint8_t> &input, MessageParcel &data)
 {
     return data.WriteUInt8Vector(input);
