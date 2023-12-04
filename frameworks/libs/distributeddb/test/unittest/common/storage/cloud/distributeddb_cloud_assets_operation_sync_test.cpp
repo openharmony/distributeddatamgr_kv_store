@@ -409,7 +409,9 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Le
     record["id"] = std::to_string(0);
     record["assets"] = Assets();
     EXPECT_EQ(delegate_->UpsertData(tableName_, { record }), OK);
-    expectCount = { 0 };
+    record["id"] = std::to_string(1);
+    EXPECT_EQ(delegate_->UpsertData(tableName_, { record }), OK);
+    expectCount = { 0, 0 };
     CheckAssetsCount(expectCount);
 }
 

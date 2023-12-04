@@ -378,7 +378,7 @@ private:
 
     int UpdateAssetId(const std::string &tableName, const Field &field, int64_t dataKey, const VBucket &vBucket);
 
-    int64_t GetDataFlag(int64_t oriFlag);
+    int64_t GetDataFlag();
 
     std::string GetUpdateDataFlagSql();
 
