@@ -66,8 +66,15 @@ typedef enum KvScanMode {
     KV_SCAN_PREFIX = 0,
     KV_SCAN_EQUAL_OR_LESS_KEY = 1,
     KV_SCAN_EQUAL_OR_GREATER_KEY = 2,
+    KV_SCAN_RANGE = 3,
     KV_SCAN_BUTT
 } GRD_KvScanModeE;
+
+typedef struct GRD_FilterOption {
+    GRD_KvScanModeE mode;
+    GRD_KVItem begin;
+    GRD_KVItem end;
+} GRD_FilterOptionT;
 
 typedef struct GRD_ResultSet GRD_ResultSet;
 typedef struct GRD_DB GRD_DB;

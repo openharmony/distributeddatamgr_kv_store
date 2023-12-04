@@ -25,7 +25,7 @@ class RdSingleVerResultSet : public IKvDBResultSet {
 public:
     RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &key);
     RdSingleVerResultSet(RdSingleVerNaturalStore *kvDB, const Key &beginKey,
-        const Key &endKey, GRD_KvScanModeE kvScanMode, const ResultSetType &ResultSetType);
+        const Key &endKey, GRD_KvScanModeE kvScanMode);
     ~RdSingleVerResultSet() override;
 
     // Initialize logic
@@ -61,17 +61,12 @@ public:
 
     // Get the entry of current position.
     int GetEntry(Entry &entry) const override;
-
-    int GetEntry(Entry &entry, bool isGetValueFromEntry) const;
-
 private:
     int PreCheckResultSet() const;
 
     int MoveToNext() const;
 
     int MoveToPrev() const;
-
-    int CmpKeyAndStoreEntry(bool isCmpKey = true) const;
 
     mutable std::mutex mutex_;
 
@@ -83,9 +78,6 @@ private:
 
     mutable bool isMovedBefore_ = false;
 
-    // For KeyPrefix Type Or Query Type.
-    ResultSetType type_ = ResultSetType::KEYPREFIX;
-
     Key key_;
 
     Key beginKey_;
@@ -93,8 +85,6 @@ private:
     Key endKey_;
 
     GRD_KvScanModeE kvScanMode_ = KV_SCAN_PREFIX;
-
-    mutable bool isGetValueFromEntry_ = false;
 
     mutable Entry entry_;
 

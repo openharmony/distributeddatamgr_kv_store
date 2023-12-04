@@ -36,7 +36,6 @@ namespace {
     RdSingleVerNaturalStore *g_singleVerNaturaStore = nullptr;
     IKvDBConnection *g_singleVerNaturaStoreConnection = nullptr;
     bool g_createFactory = false;
-    const int OBSERVER_SLEEP_TIME = 80;
 
     Key g_emptyKey;
     string g_keyStr1 = "key_1";

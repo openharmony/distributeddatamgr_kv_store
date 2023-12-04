@@ -82,15 +82,6 @@ const GrdErrnoPair GRD_ERRNO_MAP[] = {
     { GRD_PERMISSION_DENIED, -E_DENIED_SQL },
     { GRD_REBUILD_DATABASE, -E_REBUILD_DATABASE}, // rebuild database means ok
 };
-
-GRD_KVItemT BlobToKvItem(const std::vector<uint8_t> &blob)
-{
-    return {
-        .data = (void *)&blob[0],
-        .dataLen = (uint32_t)blob.size()
-    };
-}
-
 int TransferGrdErrno(int err)
 {
     if (err > 0) {
@@ -128,8 +119,8 @@ int RdKVPut(GRD_DB *db, const char *collectionName, const Key &key, const Value 
         LOGE("[rdUtils][RdKvPut] invalid db");
         return -E_INVALID_DB;
     }
-    GRD_KVItemT innerKey = BlobToKvItem(key);
-    GRD_KVItemT innerVal = BlobToKvItem(value);
+    GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
+    GRD_KVItemT innerVal{(void *)&value[0], (uint32_t)value.size()};
     int ret = TransferGrdErrno(GRD_KVPut(db, collectionName, &innerKey, &innerVal));
     if (ret != E_OK) {
         LOGE("[rdUtils][RdKvPut] ERROR:%d", ret);
@@ -143,7 +134,7 @@ int RdKVGet(GRD_DB *db, const char *collectionName, const Key &key, Value &value
         LOGE("[rdUtils][RdKvGet] invalid db");
         return -E_INVALID_DB;
     }
-    GRD_KVItemT innerKey = BlobToKvItem(key);
+    GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
     GRD_KVItemT innerVal = { 0 };
     int ret = TransferGrdErrno(GRD_KVGet(db, collectionName, &innerKey, &innerVal));
     if (ret != E_OK) {
@@ -161,7 +152,7 @@ int RdKVDel(GRD_DB *db, const char *collectionName, const Key &key)
         LOGE("[rdUtils][RdKvDel] invalid db");
         return -E_INVALID_DB;
     }
-    GRD_KVItemT innerKey = BlobToKvItem(key);
+    GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
     int ret = TransferGrdErrno(GRD_KVDel(db, collectionName, &innerKey));
     if (ret < 0) {
         LOGE("[rdUtils][RdKvDel] failed:%d", ret);
@@ -179,23 +170,35 @@ int RdKVScan(GRD_DB *db, const char *collectionName, const Key &key, GRD_KvScanM
     if (key.empty()) {
         return TransferGrdErrno(GRD_KVScan(db, collectionName, NULL, mode, resultSet));
     }
-    GRD_KVItemT innerKey = BlobToKvItem(key);
+    GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
     return TransferGrdErrno(GRD_KVScan(db, collectionName, &innerKey, mode, resultSet));
+}
+
+int RdKVRangeScan(GRD_DB *db, const char *collectionName, const Key &beginKey, const Key &endKey,
+    GRD_ResultSet **resultSet)
+{
+    if (db == nullptr) {
+        LOGE("[rdUtils][RdKVScan] invalid db");
+        return -E_INVALID_DB;
+    }
+    GRD_KVItemT beginInnerKey{(void *)&beginKey[0], (uint32_t)beginKey.size()};
+    GRD_KVItemT endInnerKey{(void *)&endKey[0], (uint32_t)endKey.size()};
+    GRD_FilterOption filterOpt{KV_SCAN_RANGE, beginInnerKey, endInnerKey};
+    return TransferGrdErrno(GRD_KVFilter(db, collectionName, &filterOpt, resultSet));
 }
 
 int RdKvFetch(GRD_ResultSet *resultSet, Key &key, Value &value)
 {
-    GRD_KVItemT innerKey = { nullptr, 0 };
-    GRD_KVItemT innerValue = { nullptr, 0 };
-    int errCode = TransferGrdErrno(GRD_Fetch(resultSet, &innerKey, &innerValue));
+    uint32_t keyLen;
+    uint32_t valueLen;
+    int errCode = TransferGrdErrno(GRD_KVGetSize(resultSet, &keyLen, &valueLen));
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
+        LOGE("[rdUtils][RdKvFetch] Can not Get value lens size from resultSet");
         return errCode;
     }
-    key = KvItemToBlob(innerKey);
-    value = KvItemToBlob(innerValue);
-    (void)GRD_KVFreeItem(&innerKey);
-    (void)GRD_KVFreeItem(&innerValue);
-    return errCode;
+    key.resize(keyLen);
+    value.resize(valueLen);
+    return TransferGrdErrno(GRD_GetItem(resultSet, key.data(), value.data()));
 }
 
 int RdDBClose(GRD_DB *db, uint32_t flags)
@@ -215,8 +218,8 @@ int RdKVBatchPrepare(uint16_t itemNum, GRD_KVBatchT **batch)
 
 int RdKVBatchPushback(GRD_KVBatchT *batch, const Key &key, const Value &value)
 {
-    GRD_KVItemT innerKey = BlobToKvItem(key);
-    GRD_KVItemT innerVal = BlobToKvItem(value);
+    GRD_KVItemT innerKey{(void *)&key[0], (uint32_t)key.size()};
+    GRD_KVItemT innerVal{(void *)&value[0], (uint32_t)value.size()};
     int ret = TransferGrdErrno(
         GRD_KVBatchPushback(innerKey.data, innerKey.dataLen, innerVal.data, innerVal.dataLen, batch));
     if (ret != E_OK) {

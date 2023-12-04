@@ -15,7 +15,7 @@
 #include "os_api.h"
 
 #include <climits>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -40,17 +40,17 @@ bool IsPathExist(const std::string &filePath)
 
 int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
 {
-    const unsigned int MAX_PATH_LENGTH = PATH_MAX;
-    if (inOriPath.length() > MAX_PATH_LENGTH) { // max limit is 64K(0x10000).
+    const unsigned int maxPathLength = PATH_MAX;
+    if (inOriPath.length() > maxPathLength) { // max limit is 64K(0x10000).
         GLOGE("[OS_API] OriPath too long.");
         return -E_INVALID_ARGS;
     }
 
-    char *realPath = new (std::nothrow) char[MAX_PATH_LENGTH + 1];
+    char *realPath = new (std::nothrow) char[maxPathLength + 1];
     if (realPath == nullptr) {
         return -E_OUT_OF_MEMORY;
     }
-    if (memset_s(realPath, MAX_PATH_LENGTH + 1, 0, MAX_PATH_LENGTH + 1) != EOK) {
+    if (memset_s(realPath, maxPathLength + 1, 0, maxPathLength + 1) != EOK) {
         delete[] realPath;
         return -E_SECUREC_ERROR;
     }
@@ -61,11 +61,11 @@ int GetRealPath(const std::string &inOriPath, std::string &outRealPath)
         return -E_SYSTEM_API_FAIL;
     }
 #else
-    if (_fullpath(realPath, inOriPath.c_str(), MAX_PATH_LENGTH) == nullptr) {
+    if (_fullpath(realPath, inOriPath.c_str(), maxPathLength) == nullptr) {
         GLOGE("[OS] Realpath error:%d.", errno);
         delete [] realPath;
         return -E_SYSTEM_API_FAIL;
-    }  
+    }
 #endif
     outRealPath = std::string(realPath);
     delete[] realPath;

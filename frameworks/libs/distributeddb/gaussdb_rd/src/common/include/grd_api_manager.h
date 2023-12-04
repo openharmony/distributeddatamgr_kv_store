@@ -44,6 +44,10 @@ typedef int32_t (*KVGet)(GRD_DB *db, const char *collectionName, const GRD_KVIte
 typedef int32_t (*KVDel)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key);
 typedef int32_t (*KVScan)(GRD_DB *db, const char *collectionName, const GRD_KVItemT *key, GRD_KvScanModeE mode,
     GRD_ResultSet **resultSet);
+typedef int32_t (*KVFilter)(GRD_DB *db, const char *collectionName, const GRD_FilterOptionT *scanParams,
+    GRD_ResultSet **resultSet);
+typedef int32_t (*KVGetSize)(GRD_ResultSet *resultSet, uint32_t *keyLen, uint32_t *valueLen);
+typedef int32_t (*GetItem)(GRD_ResultSet *resultSet, void *key, void *value);
 typedef int32_t (*KVFreeItem)(GRD_KVItemT *item);
 typedef int32_t (*KVBatchPrepare)(uint16_t itemNum, GRD_KVBatchT **batch);
 typedef int32_t (*KVBatchPushback)(const void *key, uint32_t keyLen, const void *data, uint32_t dataLen,
@@ -75,6 +79,9 @@ struct GRD_APIInfo {
     KVGet KVGetApi = nullptr;
     KVDel KVDelApi = nullptr;
     KVScan KVScanApi = nullptr;
+    KVFilter KVFilterApi = nullptr;
+    KVGetSize KVGetSizeApi = nullptr;
+    GetItem GetItemApi = nullptr;
     KVFreeItem KVFreeItemApi = nullptr;
     KVBatchPrepare KVBatchPrepareApi = nullptr;
     KVBatchPushback KVBatchPushbackApi = nullptr;

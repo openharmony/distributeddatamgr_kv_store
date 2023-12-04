@@ -59,6 +59,9 @@ void GRD_DBApiInitCommon(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVGetApi = GRD_KVGetInner;
     GRD_DBApiInfo.KVDelApi = GRD_KVDelInner;
     GRD_DBApiInfo.KVScanApi = GRD_KVScanInner;
+    GRD_DBApiInfo.KVFilterApi = GRD_KVFilterInner;
+    GRD_DBApiInfo.KVGetSizeApi = GRD_KVGetSizeInner;
+    GRD_DBApiInfo.GetItemApi = GRD_GetItemInner;
     GRD_DBApiInfo.KVFreeItemApi = GRD_KVFreeItemInner;
     GRD_DBApiInfo.KVBatchPrepareApi = GRD_KVBatchPrepareInner;
     GRD_DBApiInfo.KVBatchPushbackApi = GRD_KVBatchPushbackInner;
@@ -92,6 +95,9 @@ void GRD_DBApiInitEnhance(GRD_APIInfo &GRD_DBApiInfo)
     GRD_DBApiInfo.KVGetApi = (KVGet)dlsym(g_library, "GRD_KVGet");
     GRD_DBApiInfo.KVDelApi = (KVDel)dlsym(g_library, "GRD_KVDel");
     GRD_DBApiInfo.KVScanApi = (KVScan)dlsym(g_library, "GRD_KVScan");
+    GRD_DBApiInfo.KVFilterApi = (KVFilter)dlsym(g_library, "GRD_KVFilter");
+    GRD_DBApiInfo.KVGetSizeApi = (KVGetSize)dlsym(g_library, "GRD_KVGetSize");
+    GRD_DBApiInfo.GetItemApi = (GetItem)dlsym(g_library, "GRD_GetItem");
     GRD_DBApiInfo.KVFreeItemApi = (KVFreeItem)dlsym(g_library, "GRD_KVFreeItem");
     GRD_DBApiInfo.KVBatchPrepareApi = (KVBatchPrepare)dlsym(g_library, "GRD_KVBatchPrepare");
     GRD_DBApiInfo.KVBatchPushbackApi = (KVBatchPushback)dlsym(g_library, "GRD_KVBatchPushback");

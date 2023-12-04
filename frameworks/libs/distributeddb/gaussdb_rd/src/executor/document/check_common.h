@@ -34,7 +34,6 @@ public:
     static int CheckDocument(JsonObject &documentObj, bool &isIdExist);
     static int CheckUpdata(JsonObject &updataObj);
     static int CheckProjection(JsonObject &projectionObj, std::vector<std::vector<std::string>> &path);
-    static bool checkIsApiInit();
 };
 using Key = std::vector<uint8_t>;
 using Value = std::vector<uint8_t>;

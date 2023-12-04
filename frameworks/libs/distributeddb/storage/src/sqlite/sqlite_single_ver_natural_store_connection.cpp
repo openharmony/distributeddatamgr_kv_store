@@ -105,21 +105,21 @@ int SQLiteSingleVerNaturalStoreConnection::Get(const IOption &option, const Key 
             LOGD("Transaction started already.");
             Timestamp recordTimestamp;
             errCode = writeHandle_->GetKvData(dataType, key, value, recordTimestamp);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
 
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     Timestamp timestamp;
     errCode = handle->GetKvData(dataType, key, value, timestamp);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -167,20 +167,20 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntries(const IOption &option, con
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");
             errCode = writeHandle_->GetEntries(queryObj, entries);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
 
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     errCode = handle->GetEntries(queryObj, entries);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -216,19 +216,19 @@ int SQLiteSingleVerNaturalStoreConnection::GetCount(const IOption &option, const
         if (writeHandle_ != nullptr) {
             LOGD("Transaction started already.");
             errCode = writeHandle_->GetCount(queryObj, count);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
 
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
     errCode = handle->GetCount(queryObj, count);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -806,13 +806,13 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
         isAuto = true;
         errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
 
     if ((transactionEntrySize_ + entries.size()) > DBConstant::MAX_TRANSACTION_ENTRY_SIZE) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return -E_MAX_LIMITS;
     }
 
@@ -833,7 +833,7 @@ int SQLiteSingleVerNaturalStoreConnection::PutBatchInner(const IOption &option, 
             errCode = (innerCode != E_OK) ? innerCode : errCode;
         }
     }
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -848,13 +848,13 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
         isAuto = true;
         errCode = StartTransactionInner(TransactType::IMMEDIATE);
         if (errCode != E_OK) {
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
 
     if ((transactionEntrySize_ + keys.size()) > DBConstant::MAX_TRANSACTION_ENTRY_SIZE) {
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return -E_MAX_LIMITS;
     }
 
@@ -875,7 +875,7 @@ int SQLiteSingleVerNaturalStoreConnection::DeleteBatchInner(const IOption &optio
             errCode = (innerCode != E_OK) ? innerCode : errCode;
         }
     }
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 
@@ -1799,7 +1799,7 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
         if (writeHandle_ != nullptr) {
             LOGD("[SQLiteSingleVerNaturalStoreConnection] Transaction started already.");
             errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
-            DBDfxAdapter::FinishTraceSQL();
+            DBDfxAdapter::FinishTracing();
             return errCode;
         }
     }
@@ -1807,13 +1807,13 @@ int SQLiteSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, cons
     SQLiteSingleVerStorageExecutor *handle = GetExecutor(false, errCode);
     if (handle == nullptr) {
         LOGE("[SQLiteSingleVerNaturalStoreConnection]::[GetEntries] Get executor failed, errCode = [%d]", errCode);
-        DBDfxAdapter::FinishTraceSQL();
+        DBDfxAdapter::FinishTracing();
         return errCode;
     }
 
     errCode = handle->GetEntries(isGetValue, type, keyPrefix, entries);
     ReleaseExecutor(handle);
-    DBDfxAdapter::FinishTraceSQL();
+    DBDfxAdapter::FinishTracing();
     return errCode;
 }
 

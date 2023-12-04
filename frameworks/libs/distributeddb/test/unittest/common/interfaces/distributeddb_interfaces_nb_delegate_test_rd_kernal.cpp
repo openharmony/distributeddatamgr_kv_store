@@ -25,9 +25,7 @@
 #include "platform_specific.h"
 #include "process_system_api_adapter_impl.h"
 #include "runtime_context.h"
-#ifdef DB_DEBUG_ENV
 #include "system_time.h"
-#endif // DB_DEBUG_ENV
 #include "virtual_communicator_aggregator.h"
 
 using namespace testing::ext;
@@ -1613,7 +1611,6 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, GetKeys001, TestSize.Level1)
     g_kvNbDelegatePtr = nullptr;
 }
 
-#ifdef DB_DEBUG_ENV
 /**
   * @tc.name: TimeChangeWithCloseStoreTest001
   * @tc.desc: Test close store with time changed
@@ -2284,6 +2281,5 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Leve
         EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
     }
 }
-#endif // DB_DEBUG_ENV
 }
 #endif // USE_RD_KERNEL

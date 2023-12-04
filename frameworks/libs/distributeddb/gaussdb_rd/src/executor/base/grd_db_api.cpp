@@ -30,6 +30,10 @@ GRD_API int32_t GRD_DBOpen(const char *dbPath, const char *configStr, uint32_t f
     if (GRD_DBApiInfo.DBOpenApi == nullptr) {
         GRD_DBApiInfo = GetApiInfoInstance();
     }
+    if (GRD_DBApiInfo.DBOpenApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
+    }
     return GRD_DBApiInfo.DBOpenApi(dbPath, configStr, flags, db);
 }
 
@@ -37,6 +41,10 @@ GRD_API int32_t GRD_DBClose(GRD_DB *db, uint32_t flags)
 {
     if (GRD_DBApiInfo.DBCloseApi == nullptr) {
         GRD_DBApiInfo = GetApiInfoInstance();
+    }
+    if (GRD_DBApiInfo.DBCloseApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
     }
     return GRD_DBApiInfo.DBCloseApi(db, flags);
 }
@@ -46,6 +54,10 @@ GRD_API int32_t GRD_Flush(GRD_DB *db, uint32_t flags)
     if (GRD_DBApiInfo.FlushApi == nullptr) {
         GRD_DBApiInfo = GetApiInfoInstance();
     }
+    if (GRD_DBApiInfo.FlushApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
+    }
     return GRD_DBApiInfo.FlushApi(db, flags);
 }
 
@@ -54,6 +66,10 @@ GRD_API int32_t GRD_IndexPreload(GRD_DB *db, const char *collectionName)
     if (GRD_DBApiInfo.IndexPreloadApi == nullptr) {
         GRD_DBApiInfo = GetApiInfoInstance();
     }
+    if (GRD_DBApiInfo.IndexPreloadApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
+    }
     return GRD_DBApiInfo.IndexPreloadApi(db, collectionName);
 }
 
@@ -61,6 +77,10 @@ GRD_API int32_t GRD_CrcCheck(const char *dbFile)
 {
     if (GRD_DBApiInfo.CrcCheckApi == nullptr) {
         GRD_DBApiInfo = GetApiInfoInstance();
+    }
+    if (GRD_DBApiInfo.CrcCheckApi == nullptr) {
+        GLOGE("Fail to dlysm RD api symbol");
+        return GRD_INNER_ERR;
     }
     return GRD_DBApiInfo.CrcCheckApi(dbFile);
 }
