@@ -442,7 +442,8 @@ IKvDB *KvDBManager::GetDataBase(const KvDBProperties &property, int &errCode, bo
     // Taking into account the compatibility of version delivery,
     // temporarily use isNeedIntegrityCheck this field to avoid multi-process concurrency
     bool isNeedIntegrityCheck = property.GetBoolProp(KvDBProperties::CHECK_INTEGRITY, false);
-    if (isNeedIntegrityCheck) {
+    int databaseType = property.GetIntProp(KvDBProperties::DATABASE_TYPE, KvDBProperties::LOCAL_TYPE_SQLITE);
+    if (isNeedIntegrityCheck || databaseType == KvDBProperties::SINGLE_VER_TYPE_RD_KERNAL) {
         LOGI("db need lock, need check integrity is [%d]", isNeedIntegrityCheck);
         errCode = KvDBManager::TryLockDB(property, 10);  // default 10 times retry
         if (errCode != E_OK) {
