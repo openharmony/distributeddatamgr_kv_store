@@ -1094,12 +1094,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
             ADAPTER_AUTO_LOCK(lock, mutex)
             for (auto it = ans.begin(); it != ans.end(); it++) {
                 int j = it->first;
+                EXPECT_GE(j, 0);
             }
         }
     }, {&ans}, {});
-    ADAPTER_WAIT({h1})
-    ADAPTER_WAIT({h2})
-    ADAPTER_WAIT({h3})
+    ADAPTER_WAIT(h1)
+    ADAPTER_WAIT(h2)
+    ADAPTER_WAIT(h3)
     ASSERT_TRUE(ans.empty());
 }
 
@@ -1129,7 +1130,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                 }
             }
         }, {}, {&ans});
-        ADAPTER_WAIT({hh1})
+        ADAPTER_WAIT(hh1)
     });
 
     /**
@@ -1145,7 +1146,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                 }
             }
         }, {}, {&ans});
-        ADAPTER_WAIT({hh2})
+        ADAPTER_WAIT(hh2)
     });
 
     /**
@@ -1158,11 +1159,14 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                 ADAPTER_AUTO_LOCK(lock, mutex)
                 for (auto it = ans.begin(); it != ans.end(); it++) {
                     int j = it->first;
+                    EXPECT_GE(j, 0);
                 }
             }
         }, {&ans}, {});
-        ADAPTER_WAIT({hh3})
+        ADAPTER_WAIT(hh3)
     });
-    ADAPTER_WAIT()
+    ADAPTER_WAIT(h1)
+    ADAPTER_WAIT(h2)
+    ADAPTER_WAIT(h3)
 }
 }

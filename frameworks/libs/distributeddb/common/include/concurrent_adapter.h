@@ -24,11 +24,11 @@
 namespace DistributedDB {
 #ifdef USE_FFRT
 #define ADAPTER_AUTO_LOCK(n, m)
-#define ADAPTER_WAIT(x) ffrt::wait(x);
+#define ADAPTER_WAIT(x) ffrt::wait({x});
 using DependenceList = std::initializer_list<ffrt::dependence>;
 #else
 #define ADAPTER_AUTO_LOCK(n, m) std::lock_guard<std::mutex> n(m);
-#define ADAPTER_WAIT(x)
+#define ADAPTER_WAIT(x) (void)x;
 using DependenceList = std::initializer_list<void *>;
 #endif
 using TaskHandle = void *;

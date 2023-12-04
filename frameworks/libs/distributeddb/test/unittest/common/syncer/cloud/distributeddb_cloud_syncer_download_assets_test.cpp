@@ -384,7 +384,6 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocalAssetIsEmpty(const st
     std::string sql = "SELECT asset FROM " + tableName + ";";
     sqlite3_stmt *stmt = nullptr;
     ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    int index = 0;
     while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
     }

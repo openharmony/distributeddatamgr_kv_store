@@ -735,7 +735,7 @@ int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, con
         }
         LOGI("register relational observer ok");
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT({handle})
+    ADAPTER_WAIT(handle)
     return errCode;
 }
 
@@ -762,7 +762,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
             }
         }
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT({handle})
+    ADAPTER_WAIT(handle)
     return errCode;
 }
 
@@ -1331,7 +1331,7 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
             LOGI("erase all observer for this delegate.");
         }
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT({handle})
+    ADAPTER_WAIT(handle)
 }
 
 void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmtToken) const
