@@ -362,8 +362,8 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore007, TestSize.Le
     option.storageEngineType = GAUSSDB_RD;
     option.rdconfig.readOnly = true;
     g_mgr.GetKvStore("distributed_getkvstore_007", option, g_kvNbDelegateCallback);
-    EXPECT_TRUE(g_kvDelegateStatus == BUSY);
-    ASSERT_TRUE(g_kvNbDelegatePtr == nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, INVALID_ARGS);
+    ASSERT_EQ(g_kvNbDelegatePtr, nullptr);
 }
 
 /**
