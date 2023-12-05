@@ -1150,5 +1150,48 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
     EXPECT_GE(index, 4); // 4 is download num
 }
+
+/**
+ * @tc.name: DownloadAssetForDupDataTest005
+ * @tc.desc: test DOWNLOADING status of asset after uploading
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return OK
+     */
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME); // 10 is num
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    UpdateAssetsForLocal(db, 6,  AssetStatus::DOWNLOADING); // 6 is id
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. check asset status
+     * @tc.expected: step2. return OK
+     */
+    std::string sql = "SELECT assets from " + ASSETS_TABLE_NAME + " where id = 6;";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        std::vector<uint8_t> assetsBlob;
+        Assets assets;
+        ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
+        ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
+        ASSERT_EQ(assets.size(), 2u); // 2 is asset num
+        for (size_t i = 0; i < assets.size(); ++i) {
+            EXPECT_EQ(assets[i].hash, ASSET_COPY.hash);
+            EXPECT_EQ(assets[i].status, AssetStatus::NORMAL);
+        }
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
 } // namespace
 #endif // RELATIONAL_STORE

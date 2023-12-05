@@ -488,7 +488,8 @@ int CloudStorageUtils::FillAssetForUpload(Asset &asset, Asset &dbAsset, AssetOpe
     dbAsset = asset;
     switch (StatusToFlag(status)) {
         case AssetOpType::INSERT:
-        case AssetOpType::UPDATE: {
+        case AssetOpType::UPDATE:
+        case AssetOpType::NO_CHANGE: {
             dbAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
             break;
         }
