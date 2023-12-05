@@ -1271,7 +1271,12 @@ int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchem
 {
     LOGD("[RelationalTestUtils] Begin select data");
     int errCode = E_OK;
-    std::string selectSql = "SELECT * FROM " + schema.name;
+    std::string selectSql = "SELECT ";
+    for (const auto &field : schema.fields) {
+        selectSql += field.colName + ",";
+    }
+    selectSql.pop_back();
+    selectSql += " FROM " + schema.name;
     sqlite3_stmt *statement = nullptr;
     errCode = SQLiteUtils::GetStatement(db, selectSql, statement);
     if (errCode != E_OK) {
@@ -1392,5 +1397,24 @@ std::vector<DistributedDB::Assets> RelationalTestUtils::GetAllAssets(sqlite3 *db
         res.push_back(assets);
     }
     return res;
+}
+
+int RelationalTestUtils::GetRecordLog(sqlite3 *db, const std::string &tableName,
+    std::vector<DistributedDB::VBucket> &records)
+{
+    DistributedDB::TableSchema schema;
+    schema.name = DBCommon::GetLogTableName(tableName);
+    Field field;
+    field.type = TYPE_INDEX<int64_t>;
+    field.colName = "data_key";
+    schema.fields.push_back(field);
+    field.colName = "flag";
+    schema.fields.push_back(field);
+    field.colName = "cursor";
+    schema.fields.push_back(field);
+    field.colName = "cloud_gid";
+    field.type = TYPE_INDEX<std::string>;
+    schema.fields.push_back(field);
+    return SelectData(db, schema, records);
 }
 } // namespace DistributedDBUnitTest

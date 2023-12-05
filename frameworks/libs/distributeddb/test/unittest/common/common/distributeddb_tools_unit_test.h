@@ -347,6 +347,7 @@ public:
         const std::shared_ptr<DistributedDB::VirtualCloudDb> &cloudDbPtr, int32_t assetCount = 1);
     static std::vector<DistributedDB::Assets> GetAllAssets(sqlite3 *db, const DistributedDB::TableSchema &schema,
         const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate);
+    static int GetRecordLog(sqlite3 *db, const std::string &tableName, std::vector<DistributedDB::VBucket> &records);
 };
 } // namespace DistributedDBUnitTest
 

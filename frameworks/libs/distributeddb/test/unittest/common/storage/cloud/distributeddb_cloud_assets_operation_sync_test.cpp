@@ -448,6 +448,13 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord001, TestSize.Le
     EXPECT_EQ(delegate_->UpsertData(tableName_, { record }), OK);
     expectCount = { 0, 0 };
     CheckAssetsCount(expectCount);
+
+    std::vector<VBucket> logs;
+    EXPECT_EQ(RelationalTestUtils::GetRecordLog(db_, tableName_, logs), E_OK);
+    for (const auto &log : logs) {
+        int64_t cursor = std::get<int64_t>(log.at("cursor"));
+        EXPECT_GE(cursor, 0);
+    }
 }
 
 /**
@@ -490,6 +497,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Le
     virtualCloudDb_->SetConflictInUpload(false);
     std::vector<size_t> expectCount = { 2 };
     CheckAssetsCount(expectCount);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
 }
 
 /**
