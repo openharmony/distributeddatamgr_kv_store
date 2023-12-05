@@ -92,7 +92,7 @@ protected:
         bool assetIsNull);
     void CheckAssetsCount(const std::vector<size_t> &expectCount);
     void UpdateCloudTableRecord(int64_t begin, int64_t count, bool assetIsNull);
-    void ForkDownloadAndRemoveAsset(int &downLoadCount, int &removeCount);
+    void ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount, int &removeCount);
     std::string testDir_;
     std::string storePath_;
     sqlite3 *db_ = nullptr;
@@ -274,7 +274,8 @@ void DistributedDBCloudAssetsOperationSyncTest::CheckAssetsCount(const std::vect
     }
 }
 
-void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(int &downLoadCount, int &removeCount)
+void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(DBStatus removeStatus, int &downLoadCount,
+    int &removeCount)
 {
     virtualAssetLoader_->ForkDownload([this, &downLoadCount](std::map<std::string, Assets> &assets) {
         downLoadCount++;
@@ -283,10 +284,10 @@ void DistributedDBCloudAssetsOperationSyncTest::ForkDownloadAndRemoveAsset(int &
             ASSERT_EQ(RelationalTestUtils::ExecSql(db_, sql), SQLITE_OK);
         }
     });
-    virtualAssetLoader_->ForkRemoveLocalAssets([&removeCount](const std::vector<Asset> &assets) {
+    virtualAssetLoader_->ForkRemoveLocalAssets([removeStatus, &removeCount](const std::vector<Asset> &assets) {
         EXPECT_EQ(assets.size(), 2u); // one record has 2 asset
         removeCount++;
-        return OK;
+        return removeStatus;
     });
 }
 
@@ -339,7 +340,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, T
     BlockSync(query, delegate_);
     int downLoadCount = 0;
     int removeCount = 0;
-    ForkDownloadAndRemoveAsset(downLoadCount, removeCount);
+    ForkDownloadAndRemoveAsset(OK, downLoadCount, removeCount);
     UpdateCloudTableRecord(0, actualCount, false);
     RelationalTestUtils::CloudBlockSync(query, delegate_);
     EXPECT_EQ(downLoadCount, 3); // local asset was removed should download 3 times
@@ -411,7 +412,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation004, T
     BlockSync(query, delegate_);
     int downLoadCount = 0;
     int removeCount = 0;
-    ForkDownloadAndRemoveAsset(downLoadCount, removeCount);
+    ForkDownloadAndRemoveAsset(DB_ERROR, downLoadCount, removeCount);
     UpdateCloudTableRecord(0, actualCount, false);
     RelationalTestUtils::CloudBlockSync(query, delegate_, DBStatus::OK, DBStatus::REMOTE_ASSETS_FAIL);
     EXPECT_EQ(downLoadCount, 15); // local asset was removed should download 5 * 3 = 15 times
