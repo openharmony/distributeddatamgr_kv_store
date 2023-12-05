@@ -805,26 +805,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
             return;
         }
     }
-    bool abort = false;
-    do {
-        int errCode = CheckAutoLaunchRealPath(autoLaunchItem);
-        if (errCode != E_OK) {
-            abort = true;
-            break;
-        }
-        errCode = OpenOneConnection(autoLaunchItem);
-        LOGI("[AutoLaunch] AutoLaunchExtTask GetOneConnection errCode:%d", errCode);
-        if (autoLaunchItem.conn == nullptr) {
-            abort = true;
-            break;
-        }
-        errCode = RegisterObserverAndLifeCycleCallback(autoLaunchItem, identifier, true);
-        if (errCode != E_OK) {
-            LOGE("[AutoLaunch] AutoLaunchExtTask RegisterObserverAndLifeCycleCallback failed");
-            TryCloseConnection(autoLaunchItem); // if here failed, do nothing
-            abort = true;
-        }
-    } while (false);
+    bool abort = ChkAutoLaunchAbort(identifier, autoLaunchItem);
     if (abort) {
         TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId] () mutable {
             ADAPTER_AUTO_LOCK(autoLock, extLock_)
@@ -894,15 +875,7 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
         }
     }
 
-    std::string appId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::APP_ID, "");
-    std::string storeId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::STORE_ID, "");
-    int retCode = RuntimeContext::GetInstance()->ScheduleTask([notifier, userId, appId, storeId] {
-        LOGI("[AutoLaunch] ExtObserverFunc do user notifier WRITE_OPENED");
-        notifier(userId, appId, storeId, AutoLaunchStatus::WRITE_OPENED);
-    });
-    if (retCode != E_OK) {
-        LOGE("[AutoLaunch] ExtObserverFunc notifier ScheduleTask retCode:%d", retCode);
-    }
+    NotifyAutoLaunch(userId, autoLaunchItem, notifier);
 }
 
 void AutoLaunch::ExtConnectionLifeCycleCallback(const std::string &identifier, const std::string &userId)
@@ -1313,20 +1286,10 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
                 Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             return;
         }
-        RelationalStoreChangedDataImpl data(changedDevice);
         std::string userId;
         std::string appId;
         std::string storeId;
-        if (autoLaunchItem.propertiesPtr != nullptr) {
-            userId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::USER_ID, "");
-            appId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::APP_ID, "");
-            storeId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::STORE_ID, "");
-            data.SetStoreProperty({ userId, appId, storeId });
-        }
-        if (autoLaunchItem.storeObserver) {
-            LOGD("begin to observer onchange, changedDevice=%s", STR_MASK(changedDevice));
-            autoLaunchItem.storeObserver->OnChange(data);
-        }
+        AutoLaunchOnChange(changedDevice, userId, appId, storeId, autoLaunchItem);
         bool isWriteOpenNotified = false;
         AutoLaunchNotifier notifier = nullptr;
         {
@@ -1436,5 +1399,60 @@ std::string AutoLaunch::GetAutoLaunchItemUid(const std::string &identifier, cons
         }
     }
     return userId;
+}
+
+bool AutoLaunch::ChkAutoLaunchAbort(const std::string &identifier, AutoLaunchItem &autoLaunchItem)
+{
+    bool abort = false;
+    do {
+        int errCode = CheckAutoLaunchRealPath(autoLaunchItem);
+        if (errCode != E_OK) {
+            abort = true;
+            break;
+        }
+        errCode = OpenOneConnection(autoLaunchItem);
+        LOGI("[AutoLaunch] AutoLaunchExtTask GetOneConnection errCode:%d", errCode);
+        if (autoLaunchItem.conn == nullptr) {
+            abort = true;
+            break;
+        }
+        errCode = RegisterObserverAndLifeCycleCallback(autoLaunchItem, identifier, true);
+        if (errCode != E_OK) {
+            LOGE("[AutoLaunch] AutoLaunchExtTask RegisterObserverAndLifeCycleCallback failed");
+            TryCloseConnection(autoLaunchItem); // if here failed, do nothing
+            abort = true;
+        }
+    } while (false);
+    return abort;
+}
+
+void AutoLaunch::NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &autoLaunchItem,
+    AutoLaunchNotifier &notifier)
+{
+    std::string appId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::APP_ID, "");
+    std::string storeId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::STORE_ID, "");
+    int retCode = RuntimeContext::GetInstance()->ScheduleTask([notifier, userId, appId, storeId] {
+        LOGI("[AutoLaunch] ExtObserverFunc do user notifier WRITE_OPENED");
+        notifier(userId, appId, storeId, AutoLaunchStatus::WRITE_OPENED);
+    });
+    if (retCode != E_OK) {
+        LOGE("[AutoLaunch] ExtObserverFunc notifier ScheduleTask retCode:%d", retCode);
+    }
+}
+
+void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
+    std::string storeId, AutoLaunchItem autoLaunchItem)
+{
+    RelationalStoreChangedDataImpl data(changedDevice);
+    if (autoLaunchItem.propertiesPtr != nullptr) {
+        userId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::USER_ID, "");
+        appId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::APP_ID, "");
+        storeId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::STORE_ID, "");
+        data.SetStoreProperty({ userId, appId, storeId });
+    }
+    if (autoLaunchItem.storeObserver) {
+        LOGD("begin to observer onchange, changedDevice=%s", STR_MASK(changedDevice));
+        autoLaunchItem.storeObserver->OnChange(data);
+    }
 }
 } // namespace DistributedDB
