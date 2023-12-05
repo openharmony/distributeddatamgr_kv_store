@@ -524,9 +524,10 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
         commitList.push_back(std::make_tuple(downloadItem.gid, std::move(downloadItem.assets), errorCode == E_OK));
         downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
         int ret = CommitDownloadResult(downloadItem.recordConflict, info, commitList);
-        if (ret != E_OK) {
+        if (ret != E_OK && ret != -E_REMOVE_ASSETS_FAILED) {
             return ret;
         }
+        downloadStatus = downloadStatus == E_OK ? ret : downloadStatus;
     }
     LOGD("Download status is %d", downloadStatus);
     return errorCode == E_OK ? downloadStatus : errorCode;
