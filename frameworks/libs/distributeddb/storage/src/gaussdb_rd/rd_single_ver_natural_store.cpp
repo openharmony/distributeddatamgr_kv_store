@@ -403,6 +403,11 @@ void RdSingleVerNaturalStore::WakeUpSyncer()
     return;
 }
 
+void RdSingleVerNaturalStore::CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data)
+{
+    GenericKvDB::CommitNotify(notifyEvent, data);
+}
+
 void RdSingleVerNaturalStore::InitDataBaseOption(const KvDBProperties &kvDBProp, OpenDbProperties &option)
 {
     option.uri = GetDatabasePath(kvDBProp);

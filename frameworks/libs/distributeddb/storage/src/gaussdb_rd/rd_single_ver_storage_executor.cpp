@@ -59,7 +59,6 @@ RDStorageExecutor::~RDStorageExecutor()
 
 int RDStorageExecutor::Reset()
 {
-    LOGW("[RdSingleVerStorageExecutor] Not support Reset rd single ver storage executor");
     return -E_NOT_SUPPORT;
 }
 
