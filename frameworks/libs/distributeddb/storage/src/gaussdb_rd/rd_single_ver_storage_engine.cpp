@@ -127,23 +127,10 @@ int RdSingleVerStorageEngine::TryToOpenMainDatabase(bool isWrite, GRD_DB *&db)
     if (!isWrite) {
         optionTemp.createIfNecessary = false;
     }
-    int errCode = E_OK;
-    bool isNeedUpdateCrcCheck = true;
-    if (OS::CheckPathExistence(optionTemp.uri)) {
-        errCode = CrcCheckIfNeed(optionTemp);
-        if (errCode != E_OK) {
-            LOGE("crc check failed [%d]", errCode);
-            return errCode;
-        }
-        isNeedUpdateCrcCheck = false;
-    }
-    errCode = OpenGrdDb(optionTemp, db);
+    int errCode = OpenGrdDb(optionTemp, db);
     if (errCode != E_OK) {
         LOGE("Failed to open the main database [%d]", errCode);
         return errCode;
-    }
-    if (isNeedUpdateCrcCheck) {
-        crcCheck_ = true;
     }
 
     // Set the engine state to main status for that the main database is valid.
@@ -191,9 +178,6 @@ int RdSingleVerStorageEngine::OpenGrdDb(const OpenDbProperties &option, GRD_DB *
     uint32_t flag = GRD_DB_OPEN_ONLY;
     if (option.createIfNecessary && !option.readOnly) {
         flag |= GRD_DB_OPEN_CREATE;
-    }
-    if (!option.readOnly && (option.isNeedIntegrityCheck || option.isNeedRmCorruptedDb)) {
-        flag |= GRD_DB_OPEN_CHECK;
     }
     if (option.readOnly) {
         flag |= GRD_DB_OPEN_SHARED_READ_ONLY;

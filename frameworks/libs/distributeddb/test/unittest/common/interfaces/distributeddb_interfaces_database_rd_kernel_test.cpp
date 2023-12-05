@@ -452,34 +452,6 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore010, TestSize.Le
 }
 
 /**
-  * @tc.name: GetKvStore012
-  * @tc.desc: Get kv store parameters and call CheckIntegity
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: zhuwentao
-  */
-HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore012, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. open db and readOnly is false
-     * @tc.expected: step1. open ok
-     */
-    KvStoreNbDelegate::Option option;
-    option.storageEngineType = GAUSSDB_RD;
-    option.rdconfig.readOnly = false;
-    g_mgr.GetKvStore("distributed_getkvstore_012", option, g_kvNbDelegateCallback);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-
-    /**
-     * @tc.steps: step2. check db and write db handle close
-     * @tc.expected: step2. close ok
-     */
-    EXPECT_TRUE(g_kvNbDelegatePtr->CheckIntegrity() == OK);
-    EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
-}
-
-/**
   * @tc.name: GetKvStore013
   * @tc.desc: Get kv store parameters in readOnly mode and RmCorruptedDb is true
   * @tc.type: FUNC

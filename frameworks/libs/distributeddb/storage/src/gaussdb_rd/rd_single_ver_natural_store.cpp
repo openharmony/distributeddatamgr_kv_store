@@ -369,9 +369,7 @@ uint64_t RdSingleVerNaturalStore::GetAndIncreaseCacheRecordVersion() const
 
 int RdSingleVerNaturalStore::CheckIntegrity() const
 {
-    KvDBProperties dbProp = GetDbProperties();
-    std::string uri = GetDatabasePath(dbProp);
-    return RdCrcCheck(uri.c_str());
+    return -E_NOT_SUPPORT;
 }
 
 int RdSingleVerNaturalStore::GetCompressionAlgo(std::set<CompressAlgorithm> &algorithmSet) const
