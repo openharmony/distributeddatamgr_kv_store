@@ -1089,8 +1089,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
         .WillRepeatedly(
             [&](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s, index:%d", gid.c_str(), ++index);
-                for (auto &[key, value] : assets) {
-                    for (auto &asset : value) {
+                for (auto &item : assets) {
+                    for (auto &asset : item.second) {
                         asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
                     }
                 }
