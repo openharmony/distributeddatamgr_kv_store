@@ -139,6 +139,8 @@ public:
 
     void WakeUpSyncer() override;
 
+    void CommitNotify(int notifyEvent, KvDBCommitNotifyFilterAbleData *data) override;
+
 private:
 
     int GetAndInitStorageEngine(const KvDBProperties &kvDBProp);

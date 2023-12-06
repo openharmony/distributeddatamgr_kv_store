@@ -51,7 +51,7 @@ namespace DistributedDB {
 std::string InitRdConfig()
 {
     return R"("pageSize": 32, "redoFlushByTrx": 1, "redoPubBufSize": 2048, "maxConnNum": 100,
-        "bufferPoolSize": 2048, "crcCheckEnable": 1, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
+        "bufferPoolSize": 2048, "crcCheckEnable": 0, "bufferPoolPolicy": "BUF_PRIORITY_INDEX")";
 }
 
 struct GrdErrnoPair {
@@ -138,7 +138,7 @@ int RdKVGet(GRD_DB *db, const char *collectionName, const Key &key, Value &value
     GRD_KVItemT innerVal = { 0 };
     int ret = TransferGrdErrno(GRD_KVGet(db, collectionName, &innerKey, &innerVal));
     if (ret != E_OK) {
-        LOGI("[rdUtils][GetKvData] Cannot get the data %d", ret);
+        // log print on caller
         return ret;
     }
     value = KvItemToBlob(innerVal);
