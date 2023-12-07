@@ -523,7 +523,7 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
         // Process result of each asset
         commitList.push_back(std::make_tuple(downloadItem.gid, std::move(downloadItem.assets), errorCode == E_OK));
         downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
-        int ret = CommitDownloadResult(downloadItem.recordConflict, info, commitList);
+        int ret = CommitDownloadResult(downloadItem.recordConflict, info, commitList, errorCode);
         if (ret != E_OK && ret != -E_REMOVE_ASSETS_FAILED) {
             return ret;
         }
@@ -1716,15 +1716,18 @@ void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
     }
 }
 
-int CloudSyncer::CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList)
+int CloudSyncer::CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList,
+    int errCode)
 {
     if (commitList.empty()) {
         return E_OK;
     }
     uint32_t successCount = 0u;
     int ret = HandleDownloadResult(recordConflict, info.tableName, commitList, successCount);
-    info.downLoadInfo.failCount += (commitList.size() - successCount);
-    info.downLoadInfo.successCount -= (commitList.size() - successCount);
+    if (errCode == E_OK) {
+        info.downLoadInfo.failCount += (commitList.size() - successCount);
+        info.downLoadInfo.successCount -= (commitList.size() - successCount);
+    }
     if (ret != E_OK) {
         LOGE("Commit download result failed.%d", ret);
     }

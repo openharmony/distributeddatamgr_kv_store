@@ -249,7 +249,7 @@ protected:
 
     int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
 
-    int CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList);
+    int CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList, int errCode);
 
     void ModifyFieldNameToLower(VBucket &data);
 
