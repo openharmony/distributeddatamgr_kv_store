@@ -36,7 +36,7 @@ public:
     RelationalSchemaObject GetSchema() const;
 
     int CreateDistributedTable(const std::string &tableName, const std::string &identity, bool &schemaChanged,
-        TableSyncType syncType);
+        TableSyncType syncType, bool trackerSchemaChanged);
 
     int CleanDistributedDeviceTable(std::vector<std::string> &missingTables);
 

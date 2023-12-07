@@ -62,7 +62,7 @@ public:
         return storageEngine_;
     }
 
-    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType);
+    int CreateDistributedTable(const std::string &tableName, TableSyncType syncType, bool trackerSchemaChanged = false);
 
     int RemoveDeviceData();
     int RemoveDeviceData(const std::string &device, const std::string &tableName);
