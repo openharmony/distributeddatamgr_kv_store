@@ -519,9 +519,9 @@ int CloudStorageUtils::FillAssetBeforeUpload(Asset &asset, Asset &dbAsset, Asset
         case AssetOpType::INSERT:
         case AssetOpType::UPDATE:
         case AssetOpType::DELETE:
+        case AssetOpType::NO_CHANGE:
             dbAsset.status |= static_cast<uint32_t>(AssetStatus::UPLOADING);
             break;
-        case AssetOpType::NO_CHANGE:
         default:
             break;
     }
