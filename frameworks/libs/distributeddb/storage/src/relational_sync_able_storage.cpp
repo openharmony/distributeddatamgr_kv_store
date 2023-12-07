@@ -1691,7 +1691,8 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
             return errCode;
         }
         VBucket recordCopy = record;
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND ||
+            (dataInfoWithLog.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) != 0) {
             downloadData.opType.push_back(OpType::INSERT);
             auto currentTime = TimeHelper::GetSysCurrentTime();
             recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(currentTime);
