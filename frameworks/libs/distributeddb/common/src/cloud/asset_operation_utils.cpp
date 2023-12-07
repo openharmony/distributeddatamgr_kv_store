@@ -129,7 +129,12 @@ AssetOperationUtils::AssetOpType AssetOperationUtils::CheckWithDownload(bool bef
         return AssetOpType::NOT_HANDLE;
     }
     if (before) {
-        return cacheAsset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE) ?
+        if (cacheAsset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL) ||
+            EraseBitMask(cacheAsset.status) == AssetStatus::ABNORMAL) {
+            return AssetOpType::NOT_HANDLE;
+        }
+        return (cacheAsset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::DELETE) &&
+            EraseBitMask(cacheAsset.status) != AssetStatus::DELETE) ?
             AssetOpType::HANDLE : AssetOpType::NOT_HANDLE;
     }
     return AssetOpType::NOT_HANDLE;

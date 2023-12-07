@@ -27,6 +27,8 @@
 namespace DistributedDB {
 static constexpr const int ROW_ID_INDEX = 1;
 static constexpr const char *HASH_KEY = "HASH_KEY";
+static constexpr const char *FLAG_NOT_LOGIC_DELETE = "FLAG & 0x08 = 0"; // see if 3th bit of a flag is not logic delete
+
 using PairStringVector = std::pair<std::vector<std::string>, std::vector<std::string>>;
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryInfoSql(const std::string &tableName, const VBucket &vBucket,
@@ -1225,11 +1227,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsByGidOrHashKey(const Tabl
         return -E_NOT_FOUND;
     }
     sql.pop_back();
-    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE ";
+    sql += CloudStorageUtils::GetLeftJoinLogSql(tableSchema.name) + " WHERE (a." + FLAG_NOT_LOGIC_DELETE + ") AND (";
     if (!gid.empty()) {
         sql += " a.cloud_gid = ? or ";
     }
-    sql += " a.hash_key = ?;";
+    sql += " a.hash_key = ?);";
     sqlite3_stmt *stmt = nullptr;
     int errCode = InitGetAssetStmt(sql, gid, hashKey, stmt);
     if (errCode != E_OK) {

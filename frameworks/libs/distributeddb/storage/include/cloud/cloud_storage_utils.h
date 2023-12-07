@@ -60,7 +60,7 @@ public:
     static AssetStatus FlagToStatus(AssetOpType opType);
     static void ChangeAssetsOnVBucketToAsset(VBucket &vBucket, std::vector<Field> &fields);
     static Type GetAssetFromAssets(Type &value);
-    static void FillAssetBeforeDownload(Asset &asset);
+    static int FillAssetBeforeDownload(Asset &asset);
     static int FillAssetAfterDownloadFail(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
     static void FillAssetsAfterDownloadFail(Assets &assets, Assets &dbAssets,
         const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
@@ -79,7 +79,7 @@ public:
     static int FillAssetForUploadFailed(Asset &asset, Asset &dbAsset, AssetOperationUtils::AssetOpType assetOpType);
     static void FillAssetsForUploadFailed(Assets &assets, Assets &dbAssets,
         const std::map<std::string, AssetOperationUtils::AssetOpType> &assetOpTypeMap);
-    static void PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset);
+    static void PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<int(Asset &)> fillAsset);
     static void FillAssetFromVBucketFinish(const AssetOperationUtils::RecordAssetOpType &assetOpType, VBucket &vBucket,
         VBucket &dbAssets, std::function<int(Asset &, Asset &, AssetOperationUtils::AssetOpType)> fillAsset,
         std::function<void(Assets &, Assets &,
