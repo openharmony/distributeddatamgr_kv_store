@@ -716,7 +716,7 @@ int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, con
 {
     int errCode = E_OK;
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, action, &errCode] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_)
+        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             if (it->second.find(observer) != it->second.end()) {
@@ -735,7 +735,7 @@ int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, con
         }
         LOGI("register relational observer ok");
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT(handle)
+    ADAPTER_WAIT(handle);
     return errCode;
 }
 
@@ -747,7 +747,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
     }
     int errCode = -E_NOT_FOUND;
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, &errCode] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_)
+        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             auto action = it->second.find(observer);
@@ -762,7 +762,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
             }
         }
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT(handle)
+    ADAPTER_WAIT(handle);
     return errCode;
 }
 
@@ -774,7 +774,7 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
         ConcurrentAdapter::ScheduleTask([this, deviceName, changedData, isChangedData] () mutable {
             LOGD("begin to trigger relational observer.");
             int observerCnt = 0;
-            ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_)
+            ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
             for (const auto &item : dataChangeCallbackMap_) {
                 for (auto &action : item.second) {
                     if (action.second == nullptr) {
@@ -1324,14 +1324,14 @@ std::string RelationalSyncAbleStorage::GetIdentify() const
 void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
 {
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId] () mutable {
-        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_)
+        ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
         auto it = dataChangeCallbackMap_.find(connectionId);
         if (it != dataChangeCallbackMap_.end()) {
             dataChangeCallbackMap_.erase(it);
             LOGI("erase all observer for this delegate.");
         }
     }, {}, {&dataChangeCallbackMap_});
-    ADAPTER_WAIT(handle)
+    ADAPTER_WAIT(handle);
 }
 
 void RelationalSyncAbleStorage::ReleaseContinueToken(ContinueToken &continueStmtToken) const

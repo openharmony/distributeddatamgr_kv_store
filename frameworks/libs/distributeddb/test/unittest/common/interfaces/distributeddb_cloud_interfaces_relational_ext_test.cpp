@@ -1065,7 +1065,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t j = 0; j < num; j++) {
-            ADAPTER_AUTO_LOCK(lock, mutex)
+            ADAPTER_AUTO_LOCK(lock, mutex);
             for (size_t i = 0; i < num; i++) {
                 ans.insert_or_assign(i, i);
             }
@@ -1078,7 +1078,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t i = 0; i < num; i++) {
-            ADAPTER_AUTO_LOCK(lock, mutex)
+            ADAPTER_AUTO_LOCK(lock, mutex);
             for (auto it = ans.begin(); it != ans.end();) {
                 it = ans.erase(it);
             }
@@ -1091,16 +1091,16 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
      */
     TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         for (size_t i = 0; i < num; i++) {
-            ADAPTER_AUTO_LOCK(lock, mutex)
+            ADAPTER_AUTO_LOCK(lock, mutex);
             for (auto it = ans.begin(); it != ans.end(); it++) {
                 int j = it->first;
                 EXPECT_GE(j, 0);
             }
         }
     }, {&ans}, {});
-    ADAPTER_WAIT(h1)
-    ADAPTER_WAIT(h2)
-    ADAPTER_WAIT(h3)
+    ADAPTER_WAIT(h1);
+    ADAPTER_WAIT(h2);
+    ADAPTER_WAIT(h3);
     ASSERT_TRUE(ans.empty());
 }
 
@@ -1124,13 +1124,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh1 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t j = 0; j < num; j++) {
-                ADAPTER_AUTO_LOCK(lock, mutex)
+                ADAPTER_AUTO_LOCK(lock, mutex);
                 for (size_t i = 0; i < num; i++) {
                     ans.insert_or_assign(i, i);
                 }
             }
         }, {}, {&ans});
-        ADAPTER_WAIT(hh1)
+        ADAPTER_WAIT(hh1);
     });
 
     /**
@@ -1140,13 +1140,13 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh2 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t i = 0; i < num; i++) {
-                ADAPTER_AUTO_LOCK(lock, mutex)
+                ADAPTER_AUTO_LOCK(lock, mutex);
                 for (auto it = ans.begin(); it != ans.end();) {
                     it = ans.erase(it);
                 }
             }
         }, {}, {&ans});
-        ADAPTER_WAIT(hh2)
+        ADAPTER_WAIT(hh2);
     });
 
     /**
@@ -1156,17 +1156,17 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
     TaskHandle h3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
         TaskHandle hh3 = ConcurrentAdapter::ScheduleTaskH([this, &ans, &mutex, num]() {
             for (size_t i = 0; i < num; i++) {
-                ADAPTER_AUTO_LOCK(lock, mutex)
+                ADAPTER_AUTO_LOCK(lock, mutex);
                 for (auto it = ans.begin(); it != ans.end(); it++) {
                     int j = it->first;
                     EXPECT_GE(j, 0);
                 }
             }
         }, {&ans}, {});
-        ADAPTER_WAIT(hh3)
+        ADAPTER_WAIT(hh3);
     });
-    ADAPTER_WAIT(h1)
-    ADAPTER_WAIT(h2)
-    ADAPTER_WAIT(h3)
+    ADAPTER_WAIT(h1);
+    ADAPTER_WAIT(h2);
+    ADAPTER_WAIT(h3);
 }
 }
