@@ -211,6 +211,8 @@ private:
 
     void ControlAckRecvErrCodeHandle(int errCode);
 
+    int AbilitySyncResponseRecv(const Message *inMsg);
+
     DISABLE_COPY_ASSIGN_MOVE(SingleVerSyncStateMachine);
 
     static std::mutex stateSwitchTableLock_;

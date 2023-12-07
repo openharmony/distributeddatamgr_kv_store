@@ -1066,7 +1066,8 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     }
     LOGI("[AbilitySync][RequestRecv] remote dev=%s,ver=%u,schemaCompatible=%d", STR_MASK(deviceId_),
         remoteSoftwareVersion, isCompatible);
-    return SendAck(message, ackCode, false, ackPacket);
+    int errCode = SendAck(message, ackCode, false, ackPacket);
+    return ackCode != E_OK ? ackCode : errCode;
 }
 
 int AbilitySync::SendAck(const Message *message, int ackCode, bool isAckNotify, AbilitySyncAckPacket &ackPacket)

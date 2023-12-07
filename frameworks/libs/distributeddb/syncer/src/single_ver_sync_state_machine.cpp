@@ -582,9 +582,19 @@ Event SingleVerSyncStateMachine::DoInnerErr()
 int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
 {
     if (inMsg->GetMessageType() == TYPE_REQUEST) {
-        return abilitySync_->RequestRecv(inMsg, context_);
+        int errCode = abilitySync_->RequestRecv(inMsg, context_);
+        if (errCode != E_OK && inMsg->GetSessionId() == context_->GetResponseSessionId()) {
+            context_->SetTaskErrCode(errCode);
+            std::lock_guard<std::mutex> lock(stateMachineLock_);
+            SwitchStateAndStep(Event::INNER_ERR_EVENT);
+        }
+        return E_OK;
     }
+    return AbilitySyncResponseRecv(inMsg);
+}
 
+int SingleVerSyncStateMachine::AbilitySyncResponseRecv(const Message *inMsg)
+{
     if (inMsg->GetMessageType() == TYPE_RESPONSE && AbilityMsgSessionIdCheck(inMsg)) {
         std::lock_guard<std::mutex> lock(stateMachineLock_);
         int errCode = abilitySync_->AckRecv(inMsg, context_);
@@ -629,7 +639,6 @@ int SingleVerSyncStateMachine::AbilitySyncRecv(const Message *inMsg)
         }
         return E_OK;
     }
-
     LOGE("[StateMachine][AbilitySyncRecv] msg type invalid");
     return -E_NOT_SUPPORT;
 }
