@@ -159,23 +159,26 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
     }
 
     for (const auto &item : schemaObject.GetTables()) {
-        std::string addColumnSql;
+        std::vector<std::string> addColSqlVec;
         if (logTableVersion < DBConstant::LOG_TABLE_VERSION_3) {
-            addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add cloud_gid text after hash_key;";
+            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+                "_log add cloud_gid text;");
         }
         if (logTableVersion < DBConstant::LOG_TABLE_VERSION_5) {
-            addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add extend_field blob after cloud_gid;";
-            addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add cursor int after extend_field;";
-            addColumnSql += "alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add version int after cursor;";
+            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+                "_log add extend_field blob;");
+            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+                "_log add cursor int;");
+            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
+                "_log add version int;");
         }
-        errCode = SQLiteUtils::ExecuteRawSQL(db_, addColumnSql);
-        if (errCode != E_OK) {
-            LOGE("[Relational][UpgradeLogTable] add column failed.", errCode);
-            return errCode;
+        for (size_t i = 0; i < addColSqlVec.size(); ++i) {
+            errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);
+            if (errCode != E_OK) {
+                LOGE("[Relational][UpgradeLogTable] add column failed. err:%d, index:%u, curVer:%s, maxVer:%s", errCode,
+                    i, logTableVersion.c_str(), DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+                return errCode;
+            }
         }
     }
     return E_OK;
