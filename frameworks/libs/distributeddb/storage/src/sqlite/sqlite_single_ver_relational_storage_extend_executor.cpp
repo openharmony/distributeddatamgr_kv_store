@@ -821,7 +821,10 @@ std::string SQLiteSingleVerRelationalStorageExecutor::GetReferenceGidSql(const s
     sql += " AND " + logSourceTable + ".flag&0x08=0x00) source_a";
     sql += " WHERE ";
     for (size_t i = 0u; i < sourceFields.size(); ++i) {
-        sql += targetTable + "." + targetFields[i] + " = source_a." + sourceFields[i] + " ";
+        if (i != 0u) {
+            sql += " AND ";
+        }
+        sql += targetTable + "." + targetFields[i] + " = source_a." + sourceFields[i];
     }
     sql += ") temp_table ";
     sql += "WHERE " + logTargetTable + ".data_key = temp_table.rowid_b";

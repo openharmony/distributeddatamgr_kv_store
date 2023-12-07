@@ -1534,6 +1534,7 @@ int RelationalSyncAbleStorage::GetTableReference(const std::string &tableName,
             TableReferenceProperty tableReference;
             tableReference.sourceTableName = tableName;
             tableReference.columns = property.columns;
+            tableReference.columns[CloudDbConstant::CLOUD_OWNER] = CloudDbConstant::CLOUD_OWNER;
             auto [sharedTargetTable, ret] = GetSharedTargetTableName(property.targetTableName);
             if (ret != E_OK) {
                 return ret;
