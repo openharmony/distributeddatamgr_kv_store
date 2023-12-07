@@ -84,6 +84,8 @@ public:
     void SetCloudNetworkError(bool cloudNetworkError);
 
     void SetConflictInUpload(bool conflict);
+
+    void SetHeartbeatBlockTime(int32_t blockTime);
 private:
     struct CloudData {
         VBucket record;
@@ -120,6 +122,7 @@ private:
     std::atomic<bool> lockStatus_ = false;
     std::atomic<bool> conflictInUpload_ = false;
     std::atomic<int32_t> blockTimeMs_ = 0;
+    std::atomic<int32_t> heartbeatBlockTimeMs_ = 0;
     std::atomic<int64_t> currentGid_ = 0;
     std::atomic<int64_t> currentCursor_ = 1;
     std::atomic<int64_t> currentVersion_ = 0;

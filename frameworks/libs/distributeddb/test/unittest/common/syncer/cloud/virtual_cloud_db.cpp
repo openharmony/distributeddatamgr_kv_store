@@ -175,6 +175,9 @@ DBStatus VirtualCloudDb::HeartBeat()
     if (cloudError_) {
         return DB_ERROR;
     }
+    if (heartbeatBlockTimeMs_ != 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(heartbeatBlockTimeMs_));
+    }
     if (heartbeatError_) {
         return DB_ERROR;
     }
@@ -549,6 +552,11 @@ void VirtualCloudDb::SetCloudNetworkError(bool cloudNetworkError)
     cloudNetworkError_ = cloudNetworkError;
 }
 
+void VirtualCloudDb::SetConflictInUpload(bool conflict)
+{
+    conflictInUpload_ = conflict;
+}
+
 void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
 {
     for (auto &recordData : record) {
@@ -559,21 +567,20 @@ void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
             }
             extend[recordData.first] = asset;
         }
-        if (recordData.second.index() != TYPE_INDEX<Assets>) {
-            continue;
-        }
-        auto &assets = std::get<Assets>(recordData.second);
-        for (auto &asset : assets) {
-            if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
-                asset.assetId = "10";
+        if (recordData.second.index() == TYPE_INDEX<Assets>) {
+            auto &assets = std::get<Assets>(recordData.second);
+            for (auto &asset : assets) {
+                if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
+                    asset.assetId = "10";
+                }
             }
+            extend[recordData.first] = assets;
         }
-        extend[recordData.first] = assets;
     }
 }
 
-void VirtualCloudDb::SetConflictInUpload(bool conflict)
+void VirtualCloudDb::SetHeartbeatBlockTime(int32_t blockTime)
 {
-    conflictInUpload_ = conflict;
+    heartbeatBlockTimeMs_ = blockTime;
 }
 }
