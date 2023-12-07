@@ -284,6 +284,26 @@ void CheckDownloadFailedForTest002(sqlite3 *&db)
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
+void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
+{
+    Assets assets;
+    Asset asset = ASSET_COPY;
+    asset.name = ASSET_COPY.name + std::to_string(id);
+    asset.status = status;
+    assets.emplace_back(asset);
+    asset.name = ASSET_COPY.name + std::to_string(id) + "_copy";
+    assets.emplace_back(asset);
+    int errCode;
+    std::vector<uint8_t> assetBlob;
+    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = " + std::to_string(id);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
 void CloseDb()
 {
     delete g_observer;
@@ -1118,31 +1138,17 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
      * @tc.steps:step2. insert local data, update assets status to delete, then insert cloud data
      * @tc.expected: step2. return OK
      */
-    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME);
-    Assets assets;
-    Asset asset = ASSET_COPY;
-    asset.name = ASSET_COPY.name + std::to_string(1);
-    asset.status = AssetStatus::DELETE;
-    assets.emplace_back(asset);
-    asset.name = ASSET_COPY.name + std::to_string(1) + "_copy";
-    assets.emplace_back(asset);
-    int errCode;
-    std::vector<uint8_t> assetBlob;
-    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = 1;";
-    sqlite3_stmt *stmt = nullptr;
-    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
-    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME);
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME); // 10 is num
+    UpdateAssetsForLocal(db, 1, AssetStatus::DELETE); // 1 is id
+    UpdateAssetsForLocal(db, 2, AssetStatus::DELETE | AssetStatus::UPLOADING); // 2 is id
+    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME); // 10 is num
 
     /**
      * @tc.steps:step3. sync, check download num
      * @tc.expected: step3. return OK
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    EXPECT_GE(index, 2); // 2 is download num
+    EXPECT_GE(index, 4); // 4 is download num
 }
 } // namespace
 #endif // RELATIONAL_STORE

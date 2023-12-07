@@ -119,8 +119,8 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
-            TagAssetWithNormalStatus(setNormalStatus, beCoveredAsset.status == AssetStatus::DELETE ?
-                AssetOpType::UPDATE : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
+            TagAssetWithNormalStatus(setNormalStatus, AssetOperationUtils::EraseBitMask(beCoveredAsset.status) ==
+                AssetStatus::DELETE ? AssetOpType::UPDATE : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
         }
         // Erase element which has been handled, remaining element will be set to Insert
         coveredAssetsIndexMap.erase(it);
