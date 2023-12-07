@@ -504,4 +504,22 @@ int StorageProxy::SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader)
     }
     return store_->SetIAssetLoader(loader);
 }
+
+int StorageProxy::UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return E_INVALID_DB;
+    }
+    return store_->UpdateRecordFlag(tableName, gid, recordConflict);
+}
+
+int StorageProxy::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+{
+    std::shared_lock<std::shared_mutex> readLock(storeMutex_);
+    if (store_ == nullptr) {
+        return E_INVALID_DB;
+    }
+    return store_->GetCompensatedSyncQuery(syncQuery);
+}
 }

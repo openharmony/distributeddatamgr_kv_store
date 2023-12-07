@@ -1235,20 +1235,21 @@ END:
 }
 
 void RelationalTestUtils::CloudBlockSync(const DistributedDB::Query &query,
-    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect)
+    DistributedDB::RelationalStoreDelegate *delegate, DistributedDB::DBStatus expect,
+    DistributedDB::DBStatus callbackExpect)
 {
     ASSERT_NE(delegate, nullptr);
     std::mutex dataMutex;
     std::condition_variable cv;
     bool finish = false;
-    auto callback = [expect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
+    auto callback = [callbackExpect, &cv, &dataMutex, &finish](const std::map<std::string, SyncProcess> &process) {
         for (const auto &item: process) {
             if (item.second.process == DistributedDB::FINISHED) {
                 {
                     std::lock_guard<std::mutex> autoLock(dataMutex);
                     finish = true;
                 }
-                EXPECT_EQ(item.second.errCode, expect);
+                EXPECT_EQ(item.second.errCode, callbackExpect);
                 cv.notify_one();
             }
         }

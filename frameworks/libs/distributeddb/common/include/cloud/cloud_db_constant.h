@@ -39,10 +39,12 @@ public:
     static constexpr const char *SHARED = "_shared";
     static constexpr const char *CLOUD_OWNER = "cloud_owner";
     static constexpr const char *CLOUD_PRIVILEGE = "cloud_privilege";
+    static constexpr const char *DEFAULT_CLOUD_DEV = "cloud";
     static constexpr uint32_t MAX_UPLOAD_SIZE = 1024 * 512 * 3; // 1.5M
     // cloud data timestamp is utc ms precision
     // used for 100ns to ms when handle cloud data timestamp
     static constexpr uint32_t TEN_THOUSAND = 10000;
+    static constexpr int64_t CLOUD_DEFAULT_TIMEOUT = -1;
 };
 } // namespace DistributedDB
 #endif // CLOUD_DB_CONSTANT_H

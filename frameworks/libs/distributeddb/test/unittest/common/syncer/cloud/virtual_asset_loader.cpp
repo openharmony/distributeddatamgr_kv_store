@@ -41,7 +41,7 @@ DBStatus VirtualAssetLoader::Download(const std::string &tableName, const std::s
 DBStatus VirtualAssetLoader::RemoveLocalAssets(const std::vector<Asset> &assets)
 {
     if (removeAssetsCallBack_) {
-        removeAssetsCallBack_(assets);
+        return removeAssetsCallBack_(assets);
     }
     return DBStatus::OK;
 }

@@ -336,7 +336,8 @@ public:
     static int GetMetaData(sqlite3 *db, const DistributedDB::Key &key, DistributedDB::Value &value);
     static int SetMetaData(sqlite3 *db, const DistributedDB::Key &key, const DistributedDB::Value &value);
     static void CloudBlockSync(const DistributedDB::Query &query, DistributedDB::RelationalStoreDelegate *delegate,
-        DistributedDB::DBStatus expect = DistributedDB::DBStatus::OK);
+        DistributedDB::DBStatus expect = DistributedDB::DBStatus::OK,
+        DistributedDB::DBStatus callbackExpect = DistributedDB::DBStatus::OK);
     static int SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
         std::vector<DistributedDB::VBucket> &data);
     static DistributedDB::Assets GetAssets(const DistributedDB::Type &value,

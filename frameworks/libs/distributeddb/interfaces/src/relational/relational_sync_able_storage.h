@@ -203,6 +203,10 @@ public:
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader) override;
 
     int UpsertData(RecordStatus status, const std::string &tableName, const std::vector<VBucket> &records);
+
+    int UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict) override;
+
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery) override;
 protected:
     int FillReferenceData(CloudSyncData &syncData);
 
@@ -214,6 +218,12 @@ protected:
 
     virtual int GetReferenceGid(const std::string &tableName, const CloudSyncBatch &syncBatch,
         std::map<int64_t, Entries> &referenceGid);
+
+    int FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle, OpType opType,
+        const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid);
+
+    int UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
+        const CloudSyncBatch &updateData);
 
     static int FillReferenceDataIntoExtend(const std::vector<int64_t> &rowid,
         const std::map<int64_t, Entries> &referenceGid, std::vector<VBucket> &extend);
@@ -250,6 +260,16 @@ private:
 
     int UpsertDataInTransaction(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName,
         const std::vector<VBucket> &records);
+
+    int GetCloudTableWithoutShared(std::vector<TableSchema> &tables);
+
+    int GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+        const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery);
+
+    int GetSyncQueryByPk(const std::string &tableName, const std::vector<VBucket> &data,
+        QuerySyncObject &querySyncObject);
+
+    void FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType, Query &query);
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;
