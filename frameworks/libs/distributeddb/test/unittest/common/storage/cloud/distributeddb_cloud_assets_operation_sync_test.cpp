@@ -457,5 +457,32 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Le
     std::vector<size_t> expectCount = { 2 };
     CheckAssetsCount(expectCount);
 }
+
+/**
+ * @tc.name: SyncWithAssetConflict001
+ * @tc.desc: Upload with asset no change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetConflict001, TestSize.Level0)
+{
+    // cloud and local insert same data
+    const int actualCount = 1;
+    RelationalTestUtils::InsertCloudRecord(0, actualCount, tableName_, virtualCloudDb_);
+    std::this_thread::sleep_for(std::chrono::seconds(1)); // sleep 1s for data conflict
+    InsertUserTableRecord(tableName_, 0, actualCount, 1, false);
+    // sync and local asset's status are normal
+    Query query = Query::Select().FromTable({ tableName_ });
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+    auto dbSchema = GetSchema();
+    ASSERT_GT(dbSchema.tables.size(), 0u);
+    auto assets = RelationalTestUtils::GetAllAssets(db_, dbSchema.tables[0], virtualTranslator_);
+    for (const auto &oneRow : assets) {
+        for (const auto &asset : oneRow) {
+            EXPECT_EQ(asset.status, static_cast<uint32_t>(AssetStatus::NORMAL));
+        }
+    }
+}
 }
 #endif
