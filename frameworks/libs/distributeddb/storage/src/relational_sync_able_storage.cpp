@@ -1377,11 +1377,7 @@ int RelationalSyncAbleStorage::CreateTempSyncTrigger(const std::string &tableNam
     if (handle == nullptr) {
         return errCode;
     }
-    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
-    if (trackerTable.IsEmpty()) {
-        trackerTable.SetTableName(tableName);
-    }
-    errCode = handle->CreateTempSyncTrigger(trackerTable);
+    errCode = CreateTempSyncTriggerInner(handle, tableName);
     ReleaseHandle(handle);
     if (errCode != E_OK) {
         LOGE("[RelationalSyncAbleStorage] Create temp sync trigger failed %d", errCode);
@@ -1672,7 +1668,11 @@ int RelationalSyncAbleStorage::UpsertDataInner(SQLiteSingleVerRelationalStorageE
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = UpsertDataInTransaction(handle, tableName, records);
+    errCode = CreateTempSyncTriggerInner(handle, tableName);
+    if (errCode == E_OK) {
+        errCode = UpsertDataInTransaction(handle, tableName, records);
+        (void) handle->ClearAllTempSyncTrigger();
+    }
     if (errCode == E_OK) {
         errCode = handle->Commit();
         if (errCode != E_OK) {
@@ -1932,6 +1932,16 @@ void RelationalSyncAbleStorage::FillQueryInKeys(const std::string &col, const st
         default:
             break;
     }
+}
+
+int RelationalSyncAbleStorage::CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName)
+{
+    TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
+    if (trackerTable.IsEmpty()) {
+        trackerTable.SetTableName(tableName);
+    }
+    return handle->CreateTempSyncTrigger(trackerTable);
 }
 }
 #endif
