@@ -180,6 +180,8 @@ private:
         }
         return WriteVariant<_InTp, _Rest...>(step + 1, input, data);
     }
+    inline static constexpr size_t MAX_COUNT = 100000;
+    inline static constexpr size_t MAX_SIZE = 1 * 1024 * 1024 * 1024; //1G
 };
 
 template<class T>
@@ -232,7 +234,7 @@ bool ITypesUtil::Unmarshalling(std::vector<T> &val, MessageParcel &parcel)
 template<typename T>
 bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
 {
-    if (!data.WriteInt32(size)) {
+    if (size < 0 || static_cast<size_t>(size) > MAX_SIZE || !data.WriteInt32(size)) {
         return false;
     }
     if (size == 0) {
@@ -254,7 +256,7 @@ bool ITypesUtil::MarshalToBuffer(const T &input, int size, MessageParcel &data)
 template<typename T>
 bool ITypesUtil::MarshalToBuffer(const std::vector<T> &input, int size, MessageParcel &data)
 {
-    if (!data.WriteInt32(size)) {
+    if (size < 0 || static_cast<size_t>(size) > MAX_SIZE || input.size() > MAX_COUNT || !data.WriteInt32(size)) {
         return false;
     }
     if (size == 0) {
@@ -286,6 +288,9 @@ bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, T &output)
     if (size == 0) {
         return true;
     }
+    if (size < 0 || static_cast<size_t>(size) > MAX_SIZE) {
+        return false;
+    }
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
     if (buffer == nullptr) {
         return false;
@@ -300,10 +305,12 @@ bool ITypesUtil::UnmarshalFromBuffer(MessageParcel &data, std::vector<T> &output
     if (size == 0) {
         return true;
     }
-
+    if (size < 0 || static_cast<size_t>(size) > MAX_SIZE) {
+        return false;
+    }
     int count = data.ReadInt32();
     const uint8_t *buffer = reinterpret_cast<const uint8_t *>(data.ReadRawData(size));
-    if (count < 0 || buffer == nullptr) {
+    if (count < 0 || static_cast<size_t>(count) > MAX_COUNT || buffer == nullptr) {
         return false;
     }
 
