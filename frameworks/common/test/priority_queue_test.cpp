@@ -24,8 +24,6 @@
 #include <set>
 #include <shared_mutex>
 #include "priority_queue.h"
-#include "executor_pool.h"
-#include "executor.h"
 
 namespace OHOS::Test {
 using namespace testing::ext;
