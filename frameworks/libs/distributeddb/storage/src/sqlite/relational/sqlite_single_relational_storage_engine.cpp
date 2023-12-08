@@ -202,7 +202,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     std::lock_guard lock(schemaMutex_);
     RelationalSchemaObject schema = schema_;
     bool isUpgraded = false;
-    if (schema.GetTable(tableName).GetTableName() == tableName) {
+    if (DBCommon::CaseInsensitiveCompare(schema.GetTable(tableName).GetTableName(), tableName)) {
         LOGI("distributed table bas been created.");
         if (schema.GetTable(tableName).GetTableSyncType() != syncType) {
             LOGE("table sync type mismatch.");
