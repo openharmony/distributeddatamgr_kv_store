@@ -181,7 +181,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, GetKvStore003, TestSize.Le
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
     string retStoreId = g_kvNbDelegatePtr->GetStoreId();
-    EXPECT_TRUE(retStoreId.compare("distributed_getkvstore_003") == 0);
+    EXPECT_TRUE(retStoreId == "distributed_getkvstore_003");
 
     EXPECT_EQ(g_mgr.CloseKvStore(g_kvNbDelegatePtr), OK);
     EXPECT_EQ(g_mgr.CloseKvStore(kvNbDelegatePtr1), OK);
@@ -946,7 +946,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, MultiProcessOpenDb001, Tes
      */
     DBStatus result;
     KvStoreNbDelegate::Option writeOption = GetWriteOption();
-    pit_t pid = fork();
+    pid_t pid = fork();
     ASSERT_GE(pid, 0);
     if (pid == 0) {
         (*step)++;
@@ -966,7 +966,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, MultiProcessOpenDb001, Tes
         (*step)++;
         WaitCondition(step, 3);
         if (delegate1 != nullptr) {
-            EXPECT_EQ(mg1.CloseKvStore(delegate1), OK);
+            EXPECT_EQ(mgr1.CloseKvStore(delegate1), OK);
             delegate1 = nullptr;
         }
         // quit the child process
@@ -977,7 +977,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, MultiProcessOpenDb001, Tes
         KvStoreDelegateManager mgr2(APP_ID, USER_ID);
         KvStoreNbDelegate *delegate2 = nullptr;
         mgr2.SetKvStoreConfig(g_config);
-        auto delegateCallback1 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
+        auto delegateCallback2 = bind(&DistributedDBToolsUnitTest::KvStoreNbDelegateCallback,
         placeholders::_1, placeholders::_2, std::ref(result), std::ref(delegate2));
         mgr2.GetKvStore("multiprocess_getkvstore_001", writeOption, delegateCallback2);
 
@@ -987,7 +987,7 @@ HWTEST_F(DistributedDBInterfacesDatabaseRdKernelTest, MultiProcessOpenDb001, Tes
         (*step)++;
         WaitCondition(step, 3);
         if (delegate2 != nullptr) {
-            EXPECT_EQ(mg2.CloseKvStore(delegate2), OK);
+            EXPECT_EQ(mgr2.CloseKvStore(delegate2), OK);
             delegate2 = nullptr;
         }
     }

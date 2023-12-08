@@ -25,17 +25,6 @@
 #include "single_ver_natural_store_commit_notify_data.h"
 
 namespace DistributedDB {
-struct QueryParam {
-    GRD_KvScanModeE kvScanMode;
-    std::vector<uint8_t> beginKey;
-    std::vector<uint8_t> endKey;
-    Key keyPrefix;
-};
-
-int GetQueryParam(const Query &query, QueryParam &queryParam);
-
-int GetQueryParam(const Key &keyPrefix, QueryParam &queryParam);
-
 class RDStorageExecutor : public StorageExecutor {
 public:
     RDStorageExecutor(GRD_DB *db, bool isWrite);
@@ -70,12 +59,8 @@ public:
     virtual int PutKvData(SingleVerDataType type, const Key &key, const Value &value,
         Timestamp timestamp, SingleVerNaturalStoreCommitNotifyData *committedData);
 
-    virtual int GetEntries(bool isGetValue, SingleVerDataType type, const Key &keyPrefix,
+    int GetEntries(const GRD_KvScanModeE mode, const std::pair<Key, Key> &pairKey,
         std::vector<Entry> &entries) const;
-
-    int GetEntries(QueryObject &queryObj, std::vector<Entry> &entries) const;
-
-    int GetEntries(QueryParam &queryParam, SingleVerDataType type, std::vector<Entry> &entries) const;
 
     int GetCount(const Key &key, int &count, GRD_KvScanModeE kvScanMode);
 
@@ -228,11 +213,8 @@ private:
     int InnerMoveToHead(const int position, GRD_ResultSet *resultSet, int &currPosition);
 
     static int ClearEntriesAndFreeResultSet(std::vector<Entry> &entries, GRD_ResultSet *resultSet);
-
-    static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const Key &keyPrefix, std::vector<Entry> &entries,
-        GRD_ResultSet **resultSet);
-
-    static int GetEntriesPrepare(GRD_DB *db, SingleVerDataType type, const QueryParam &queryParam,
+    
+    static int GetEntriesPrepare(GRD_DB *db, const GRD_KvScanModeE mode, const std::pair<Key, Key> &pairKey,
         std::vector<Entry> &entries, GRD_ResultSet **resultSet);
     
     int GetCountInner(GRD_ResultSet *tmpResultSet, int &count);

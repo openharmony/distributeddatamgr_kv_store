@@ -154,7 +154,7 @@ public:
     void From(const std::string &tableName);
     int GetExpressionStatus() const;
     std::vector<QueryExpression> GetQueryExpressions() const;
-    int IsRangeValid() const;
+    int RangeParamCheck() const;
 private:
     void AssemblyQueryInfo(const QueryObjType queryOperType, const std::string &field,
         const QueryValueType type, const std::vector<FieldValue> &value, bool isNeedFieldPath);

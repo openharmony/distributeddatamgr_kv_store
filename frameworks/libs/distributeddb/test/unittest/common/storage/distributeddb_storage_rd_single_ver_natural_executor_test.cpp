@@ -166,36 +166,6 @@ HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam002, Te
 }
 
 /**
-  * @tc.name: InvalidParam003
-  * @tc.desc: Get entries with Invalid condition
-  * @tc.type: FUNC
-  * @tc.require:
-  * @tc.author: bty
-  */
-HWTEST_F(DistributedDBStorageRdSingleVerNaturalExecutorTest, InvalidParam003, TestSize.Level1)
-{
-    /**
-     * @tc.steps: step1. The Data type is invalid
-     * @tc.expected: step1. Expect -E_INVALID_ARGS
-     */
-    vector<Entry> entries;
-    EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::META_TYPE, KEY_1, entries), -E_INVALID_ARGS);
-    EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::LOCAL_TYPE_SQLITE, KEY_1, entries), -E_INVALID_ARGS);
-    /**
-     * @tc.steps: step2. The db is null
-     * @tc.expected: step2.. Expect -E_INVALID_DB
-     */
-    EXPECT_EQ(g_nullHandle->GetEntries(false, SingleVerDataType::SYNC_TYPE, KEY_1, entries), -E_INVALID_DB);
-
-    /**
-     * @tc.steps: step3. This key does not exist
-     * @tc.expected: step3. Expect -E_NOT_FOUND
-     */
-    Key key;
-    EXPECT_EQ(g_handle->GetEntries(false, SingleVerDataType::SYNC_TYPE, KEY_1, entries), -E_NOT_FOUND);
-}
-
-/**
   * @tc.name: InvalidParam005
   * @tc.desc: Test timestamp with Invalid condition (rd not support timestamp)
   * @tc.type: FUNC

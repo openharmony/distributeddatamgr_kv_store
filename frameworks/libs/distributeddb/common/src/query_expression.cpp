@@ -458,7 +458,7 @@ void QueryExpression::SetNotSupportIfNeed(QueryObjType type)
     }
 }
 
-int QueryExpression::IsRangeValid() const
+int QueryExpression::RangeParamCheck() const
 {
     if (queryInfo_.size() > 1) { // Only Support one query filter.
         return -E_INVALID_ARGS;
