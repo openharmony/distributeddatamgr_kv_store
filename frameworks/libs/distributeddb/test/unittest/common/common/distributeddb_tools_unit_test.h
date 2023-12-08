@@ -348,6 +348,8 @@ public:
     static std::vector<DistributedDB::Assets> GetAllAssets(sqlite3 *db, const DistributedDB::TableSchema &schema,
         const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate);
     static int GetRecordLog(sqlite3 *db, const std::string &tableName, std::vector<DistributedDB::VBucket> &records);
+    static int DeleteRecord(sqlite3 *db, const std::string &tableName,
+        const std::vector<std::map<std::string, std::string>> &conditions);
 };
 } // namespace DistributedDBUnitTest
 
