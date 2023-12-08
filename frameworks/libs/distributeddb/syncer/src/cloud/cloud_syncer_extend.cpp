@@ -253,7 +253,7 @@ int CloudSyncer::GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, c
 }
 
 int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
-    const DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
+    DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
 {
     int errCode = E_OK;
     for (auto &[col, assets] : downloadAssets) {

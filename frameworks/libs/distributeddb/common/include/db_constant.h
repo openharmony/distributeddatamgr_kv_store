@@ -178,7 +178,7 @@ public:
     static constexpr const char *TABLE_IS_DROPPED = "table_is_dropped_";
 
     static constexpr const char *SQLITE_INNER_ROWID = "_rowid_";
-    static constexpr uint32_t DEFAULT_ROW_ID = -1;
+    static constexpr int32_t DEFAULT_ROW_ID = -1;
 };
 } // namespace DistributedDB
 #endif // DISTRIBUTEDDB_CONSTANT_H
