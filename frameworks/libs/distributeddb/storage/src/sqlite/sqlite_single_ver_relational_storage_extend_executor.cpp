@@ -912,11 +912,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
             break;
         }
         bool containError = DBCommon::IsRecordError(cloudDataResult.insData.extend[i]);
-        if (!ignoreEmptyGid && containError) {
-            LOGE("[RDBExecutor] Fill gid back but got error");
-            errCode = -E_CLOUD_ERROR;
-            break;
-        }
         if (ignoreEmptyGid && containError) {
             continue;
         }

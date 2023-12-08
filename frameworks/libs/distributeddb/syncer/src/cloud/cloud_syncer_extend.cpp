@@ -142,7 +142,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode);
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
@@ -176,7 +176,7 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode);
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);

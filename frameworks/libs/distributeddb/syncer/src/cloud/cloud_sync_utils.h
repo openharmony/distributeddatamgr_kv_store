@@ -86,7 +86,7 @@ public:
 
     static void ClearWithoutData(ICloudSyncer::SyncParam &param);
 
-    static int FillAssetIdToAssets(CloudSyncBatch &data);
+    static int FillAssetIdToAssets(CloudSyncBatch &data, int errorCode);
 
     static int FillAssetIdToAssetData(const Type &extend, Type &assetData);
 
