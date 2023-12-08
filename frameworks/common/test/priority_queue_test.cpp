@@ -24,10 +24,12 @@
 #include <set>
 #include <shared_mutex>
 #include "priority_queue.h"
+#include "executor_pool.h"
+#include "executor.h"
 
+namespace OHOS::Test {
 using namespace testing::ext;
 using namespace OHOS;
-namespace OHOS::Test {
 using TaskId = uint64_t;
 using Task = std::function<void()>;
 using Duration = std::chrono::steady_clock::duration;
@@ -83,7 +85,7 @@ void PriorityQueueTest::TearDown(void)
 
 /**
 * @tc.name: PQMatrix_001
-* @tc.desc: test the priority_queue _Tsk Pop() function.
+* @tc.desc: test the PQMatrix(_Tsk task, _Tid id) function.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -96,177 +98,141 @@ HWTEST_F(PriorityQueueTest, PQMatrix_001, TestSize.Level1)
 }
 
 /**
-* @tc.name: Pop_001
-* @tc.desc: test the priority_queue _Tsk Pop() function.
+* @tc.name: PushPopSize_001
+* @tc.desc: Invalid test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
 */
-HWTEST_F(PriorityQueueTest, Pop_001, TestSize.Level1)
+HWTEST_F(PriorityQueueTest, PushPopSize_001, TestSize.Level1)
 {
     TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
+    auto id = testTask.taskId;
+    auto timely = std::chrono::seconds(0);
+    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
+    EXPECT_EQ(ret, false);
     auto retSize = priorityqueue_.Size();
-    EXPECT_EQ(retSize, 1u);
-    priorityqueue_.Pop();
+    EXPECT_EQ(retSize, 0u);
+    auto retPop = priorityqueue_.Pop();
+    EXPECT_EQ(retPop.taskId, INVALID_TASK_ID);
     retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 0u);
 }
 
 /**
-* @tc.name: Pop_002
-* @tc.desc: test the priority_queue _Tsk Pop() function.
+* @tc.name: PushPopSize_002
+* @tc.desc: Testing a single task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
 */
-HWTEST_F(PriorityQueueTest, Pop_002, TestSize.Level1)
+HWTEST_F(PriorityQueueTest, PushPopSize_002, TestSize.Level1)
 {
     TestTask testTask;
     auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
+    auto timely = std::chrono::seconds(0);
+    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
     EXPECT_EQ(ret, true);
-    auto retPop = priorityqueue_.Pop();
-    EXPECT_EQ(retPop.taskId, id);
-}
-
-/**
-* @tc.name: Pop_003
-* @tc.desc: test the priority_queue _Tsk Pop() function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
-HWTEST_F(PriorityQueueTest, Pop_003, TestSize.Level1)
-{
-    TestTask testTask;
-    auto id = testTask.taskId;
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, false);
-    auto retPop = priorityqueue_.Pop();
-    EXPECT_EQ(retPop.taskId, id);
     auto retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 1u);
+    auto retPop = priorityqueue_.Pop();
+    EXPECT_EQ(retPop.taskId, id);
+    retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 0u);
 }
 
 /**
-* @tc.name: Push_001
-* @tc.desc: test the priority_queue bool Push(_Tsk tsk, _Tid id, _Tme tme) function.
+* @tc.name: PushPopSize_003
+* @tc.desc: Testing multiple tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
 */
-HWTEST_F(PriorityQueueTest, Push_001, TestSize.Level1)
+HWTEST_F(PriorityQueueTest, PushPopSize_003, TestSize.Level1)
 {
     TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-}
-
-/**
-* @tc.name: Push_002
-* @tc.desc: test the priority_queue bool Push(_Tsk tsk, _Tid id, _Tme tme) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
-HWTEST_F(PriorityQueueTest, Push_002, TestSize.Level1)
-{
-    TestTask testTask;
-    auto id = testTask.taskId;
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, false);
-}
-
-/**
-* @tc.name: Push_003
-* @tc.desc: test the priority_queue bool Push(_Tsk tsk, _Tid id, _Tme tme) function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
-HWTEST_F(PriorityQueueTest, Push_003, TestSize.Level1)
-{
-    TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-    id = ++(testTask.taskId);
-    delay = std::chrono::milliseconds(SHORT_INTERVAL * 2);
-    ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-}
-
-/**
-* @tc.name: Size_001
-* @tc.desc: test the priority_queue size_t Size() function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
-HWTEST_F(PriorityQueueTest, Size_001, TestSize.Level1)
-{
-    TestTask testTask;
-    auto id = testTask.taskId;
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, false);
+    for (int i = 0; i < 10; ++i) {
+        auto timely = std::chrono::seconds(0);
+        auto id = ++(testTask.taskId);
+        auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
+        EXPECT_EQ(ret, true);
+    }
     auto retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 10u);
+    auto retPop = priorityqueue_.Pop();
+    EXPECT_EQ(retPop.taskId, 1);
+    retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 9u);
+}
+
+/**
+* @tc.name: PushPopSize_004
+* @tc.desc: Test the delay task.
+* @tc.type: FUNC
+* @tc.require:
+* @tc.author: suoqilong
+*/
+HWTEST_F(PriorityQueueTest, PushPopSize_004, TestSize.Level1)
+{
+    TestTask testTask;
+    testTask.times = 1;
+    for (int i = 0; i < 5; ++i) {
+        auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
+        auto id = ++(testTask.taskId);
+        auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
+        EXPECT_EQ(ret, true);
+    }
+    for (int i = 0; i < 5; ++i) {
+        auto timely = std::chrono::seconds(0);
+        auto id = ++(testTask.taskId);
+        auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
+        EXPECT_EQ(ret, true);
+    }
+    auto retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 10u);
+    for (int i = 0; i < 5; ++i) {
+        auto retPop = priorityqueue_.Pop();
+        EXPECT_EQ(retPop.taskId, i+6);
+    }
+    for (int i = 0; i < 5; ++i) {
+        auto retPop = priorityqueue_.Pop();
+        EXPECT_EQ(retPop.taskId, i+1);
+    }
+    retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 0u);
 }
 
 /**
-* @tc.name: Size_002
-* @tc.desc: test the priority_queue size_t Size() function.
+* @tc.name: PushPopSize_005
+* @tc.desc: Test the delay task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
 */
-HWTEST_F(PriorityQueueTest, Size_002, TestSize.Level1)
+HWTEST_F(PriorityQueueTest, PushPopSize_005, TestSize.Level1)
 {
     TestTask testTask;
-    auto id = ++(testTask.taskId);
+    testTask.times = 1;
     auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
+    auto id = ++(testTask.taskId);
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 1u);
-}
-
-/**
-* @tc.name: Size_003
-* @tc.desc: test the priority_queue size_t Size() function.
-* @tc.type: FUNC
-* @tc.require:
-* @tc.author: suoqilong
-*/
-HWTEST_F(PriorityQueueTest, Size_003, TestSize.Level1)
-{
-    TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-    id = ++(testTask.taskId);
-    delay = std::chrono::milliseconds(SHORT_INTERVAL * 2);
-    ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-    auto retSize = priorityqueue_.Size();
-    EXPECT_EQ(retSize, 2u);
+    auto delayA = std::chrono::steady_clock::now();
+    auto retPop = priorityqueue_.Pop();
+    EXPECT_EQ(retPop.taskId, id);
+    auto delayB = std::chrono::steady_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(delayB - delayA).count();
+    auto delayms = std::chrono::duration_cast<std::chrono::milliseconds>(delay).count();
+    EXPECT_EQ(delayms, diff);
+    retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 0u);
 }
 
 /**
 * @tc.name: Find_001
-* @tc.desc: test the priority_queue _Tsk Find(_Tid id) function.
+* @tc.desc: Invalid test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -275,11 +241,11 @@ HWTEST_F(PriorityQueueTest, Find_001, TestSize.Level1)
 {
     TestTask testTask;
     auto id = testTask.taskId;
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
+    auto timely = std::chrono::seconds(0);
+    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
     EXPECT_EQ(ret, false);
     auto retFind = priorityqueue_.Find(id);
-    EXPECT_EQ(retFind.taskId, id);
+    EXPECT_EQ(retFind.taskId, INVALID_TASK_ID);
 }
 
 /**
@@ -292,17 +258,23 @@ HWTEST_F(PriorityQueueTest, Find_001, TestSize.Level1)
 HWTEST_F(PriorityQueueTest, Find_002, TestSize.Level1)
 {
     TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-    auto retFind = priorityqueue_.Find(id);
-    EXPECT_EQ(retFind.taskId, id);
+    for (int i = 0; i < 10; ++i) {
+        auto timely = std::chrono::seconds(0);
+        auto id = ++(testTask.taskId);
+        auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
+        EXPECT_EQ(ret, true);
+    }
+    auto retSize = priorityqueue_.Size();
+    EXPECT_EQ(retSize, 10u);
+    auto retFind = priorityqueue_.Find(5);
+    EXPECT_EQ(retFind.taskId, 5);
+    retFind = priorityqueue_.Find(20);
+    EXPECT_EQ(retFind.taskId, INVALID_TASK_ID);
 }
 
 /**
 * @tc.name: Update_001
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Invalid test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -314,7 +286,6 @@ HWTEST_F(PriorityQueueTest, Update_001, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = testTask.taskId;
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, false);
     auto retUpdate = priorityqueue_.Update(id, updater);
@@ -323,7 +294,7 @@ HWTEST_F(PriorityQueueTest, Update_001, TestSize.Level1)
 
 /**
 * @tc.name: Update_002
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Test normal tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -335,7 +306,6 @@ HWTEST_F(PriorityQueueTest, Update_002, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = ++(testTask.taskId);
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retUpdate = priorityqueue_.Update(id, updater);
@@ -344,7 +314,7 @@ HWTEST_F(PriorityQueueTest, Update_002, TestSize.Level1)
 
 /**
 * @tc.name: Update_003
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Test the running tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -356,7 +326,6 @@ HWTEST_F(PriorityQueueTest, Update_003, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = ++(testTask.taskId);
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
@@ -366,7 +335,7 @@ HWTEST_F(PriorityQueueTest, Update_003, TestSize.Level1)
 
 /**
 * @tc.name: Update_004
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Test the running tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -378,7 +347,6 @@ HWTEST_F(PriorityQueueTest, Update_004, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = ++(testTask.taskId);
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
@@ -388,7 +356,7 @@ HWTEST_F(PriorityQueueTest, Update_004, TestSize.Level1)
 
 /**
 * @tc.name: Update_005
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Test the running and finish tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -400,7 +368,6 @@ HWTEST_F(PriorityQueueTest, Update_005, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = ++(testTask.taskId);
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
@@ -411,7 +378,7 @@ HWTEST_F(PriorityQueueTest, Update_005, TestSize.Level1)
 
 /**
 * @tc.name: Update_006
-* @tc.desc: test the priority_queue bool Update(_Tid id, TskUpdater updater) function.
+* @tc.desc: Test the running and finish tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -423,7 +390,6 @@ HWTEST_F(PriorityQueueTest, Update_006, TestSize.Level1)
     TestTask testTask;
     testTask.times = 3;
     auto id = ++(testTask.taskId);
-    testTask.interval = delay * 2;
     auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
     EXPECT_EQ(ret, true);
     auto retPop = priorityqueue_.Pop();
@@ -434,7 +400,7 @@ HWTEST_F(PriorityQueueTest, Update_006, TestSize.Level1)
 
 /**
 * @tc.name: Remove_001
-* @tc.desc: test the priority_queue bool Remove(_Tid id, bool wait) function.
+* @tc.desc: Invalid test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -454,7 +420,7 @@ HWTEST_F(PriorityQueueTest, Remove_001, TestSize.Level1)
 
 /**
 * @tc.name: Remove_002
-* @tc.desc: test the priority_queue bool Remove(_Tid id, bool wait) function.
+* @tc.desc: Single and don't wait test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -476,7 +442,7 @@ HWTEST_F(PriorityQueueTest, Remove_002, TestSize.Level1)
 
 /**
 * @tc.name: Remove_003
-* @tc.desc: test the priority_queue bool Remove(_Tid id, bool wait) function.
+* @tc.desc: Single and wait test task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -499,7 +465,7 @@ HWTEST_F(PriorityQueueTest, Remove_003, TestSize.Level1)
 
 /**
 * @tc.name: Clean_001
-* @tc.desc: test the priority_queue void Clean() function.
+* @tc.desc: Testing a single task.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -507,9 +473,9 @@ HWTEST_F(PriorityQueueTest, Remove_003, TestSize.Level1)
 HWTEST_F(PriorityQueueTest, Clean_001, TestSize.Level1)
 {
     TestTask testTask;
+    auto timely = std::chrono::seconds(0);
     auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
+    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
     EXPECT_EQ(ret, true);
     auto retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 1u);
@@ -520,7 +486,7 @@ HWTEST_F(PriorityQueueTest, Clean_001, TestSize.Level1)
 
 /**
 * @tc.name: Clean_002
-* @tc.desc: test the priority_queue void Clean() function.
+* @tc.desc: Testing multiple tasks.
 * @tc.type: FUNC
 * @tc.require:
 * @tc.author: suoqilong
@@ -528,16 +494,14 @@ HWTEST_F(PriorityQueueTest, Clean_001, TestSize.Level1)
 HWTEST_F(PriorityQueueTest, Clean_002, TestSize.Level1)
 {
     TestTask testTask;
-    auto id = ++(testTask.taskId);
-    auto delay = std::chrono::milliseconds(SHORT_INTERVAL);
-    auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
-    id = ++(testTask.taskId);
-    delay = std::chrono::milliseconds(SHORT_INTERVAL * 2);
-    ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + delay);
-    EXPECT_EQ(ret, true);
+    for (int i = 0; i < 10; ++i) {
+        auto timely = std::chrono::seconds(0);
+        auto id = ++(testTask.taskId);
+        auto ret = priorityqueue_.Push(testTask, id, std::chrono::steady_clock::now() + timely);
+        EXPECT_EQ(ret, true);
+    }
     auto retSize = priorityqueue_.Size();
-    EXPECT_EQ(retSize, 2u);
+    EXPECT_EQ(retSize, 10u);
     priorityqueue_.Clean();
     retSize = priorityqueue_.Size();
     EXPECT_EQ(retSize, 0u);
