@@ -180,8 +180,8 @@ private:
         }
         return WriteVariant<_InTp, _Rest...>(step + 1, input, data);
     }
-    inline constexpr size_t MAX_COUNT = 100000;
-    inline constexpr size_t MAX_SIZE = 1 * 1024 * 1024 * 1024; //1G
+    inline static constexpr size_t MAX_COUNT = 100000;
+    inline static constexpr size_t MAX_SIZE = 1 * 1024 * 1024 * 1024; //1G
 };
 
 template<class T>
