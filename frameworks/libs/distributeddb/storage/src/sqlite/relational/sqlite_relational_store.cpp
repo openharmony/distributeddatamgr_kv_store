@@ -935,6 +935,16 @@ int SQLiteRelationalStore::SetCloudDB(const std::shared_ptr<ICloudDb> &cloudDb)
     return E_OK;
 }
 
+void SQLiteRelationalStore::AddFields(const std::vector<Field> &newFields, const std::set<std::string> &equalFields,
+    std::vector<Field> &addFields)
+{
+    for (const auto &newField : newFields) {
+        if (equalFields.find(newField.colName) == equalFields.end()) {
+            addFields.push_back(newField);
+        }
+    }
+}
+
 bool SQLiteRelationalStore::CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo,
     std::vector<Field> &addFields)
 {
@@ -942,32 +952,41 @@ bool SQLiteRelationalStore::CheckFields(const std::vector<Field> &newFields, con
     if (newFields.size() < oldFields.size()) {
         return false;
     }
-    for (size_t index = 0; index < newFields.size(); index++) {
-        if (index >= oldFields.size()) {
-            addFields.push_back(newFields[index]);
-            continue;
+    std::set<std::string> equalFields;
+    for (const auto &oldField : oldFields) {
+        bool isFieldExist = false;
+        for (const auto &newField : newFields) {
+            if (newField.colName != oldField.GetFieldName()) {
+                continue;
+            }
+            isFieldExist = true;
+            int32_t type = newField.type;
+            // Field type need to match storage type
+            // Field type : Nil, int64_t, double, std::string, bool, Bytes, Asset, Assets
+            // Storage type : NONE, NULL, INTEGER, REAL, TEXT, BLOB
+            if (type >= TYPE_INDEX<Nil> && type <= TYPE_INDEX<std::string>) {
+                type++; // storage type - field type = 1
+            } else if (type == TYPE_INDEX<bool>) {
+                type = static_cast<int32_t>(StorageType::STORAGE_TYPE_NULL);
+            } else if (type >= TYPE_INDEX<Asset> && type <= TYPE_INDEX<Assets>) {
+                type = static_cast<int32_t>(StorageType::STORAGE_TYPE_BLOB);
+            }
+            auto primaryKeyMap = tableInfo.GetPrimaryKey();
+            auto it = std::find_if(primaryKeyMap.begin(), primaryKeyMap.end(),
+                [&newField](const std::map<int, std::string>::value_type &pair) {
+                    return pair.second == newField.colName;
+                });
+            if (type != static_cast<int32_t>(oldField.GetStorageType()) ||
+                newField.primary != (it != primaryKeyMap.end()) || newField.nullable == oldField.IsNotNull()) {
+                return false;
+            }
+            equalFields.insert(newField.colName);
         }
-        int32_t type = newFields[index].type;
-        // Field type need to match storage type
-        if (type >= TYPE_INDEX<Nil> && type <= TYPE_INDEX<std::string>) {
-            type++; // storage type - field type = 1
-        } else if (type == TYPE_INDEX<bool>) {
-            type = 1; // storage type is STORAGE_TYPE_NULL
-        } else if (type >= TYPE_INDEX<Asset> && type <= TYPE_INDEX<Assets>) {
-            type = TYPE_INDEX<Bytes>; // storage type is STORAGE_TYPE_BLOB
-        }
-        auto primaryKeyMap = tableInfo.GetPrimaryKey();
-        auto it = std::find_if(primaryKeyMap.begin(), primaryKeyMap.end(),
-            [&](const std::map<int, std::string>::value_type &pair) {
-                return pair.second == newFields[index].colName;
-            });
-        if (newFields[index].colName != oldFields[index].GetFieldName() ||
-            type != static_cast<int32_t>(oldFields[index].GetStorageType()) ||
-            newFields[index].primary != (it != primaryKeyMap.end()) ||
-            newFields[index].nullable == oldFields[index].IsNotNull()) {
+        if (!isFieldExist) {
             return false;
         }
     }
+    AddFields(newFields, equalFields, addFields);
     return true;
 }
 

@@ -95,8 +95,8 @@ namespace {
     const std::vector<Field> g_cloudField3 = {
         {"id", TYPE_INDEX<int64_t>, true}, {"name", TYPE_INDEX<std::string>},
         {"height", TYPE_INDEX<double>}, {"married", TYPE_INDEX<bool>},
-        {"photo", TYPE_INDEX<Bytes>}, {"asset", TYPE_INDEX<Asset>},
-        {"age", TYPE_INDEX<int64_t>}
+        {"photo", TYPE_INDEX<Bytes>}, {"age", TYPE_INDEX<int64_t>},
+        {"asset", TYPE_INDEX<Asset>}
     };
     const std::vector<Field> g_cloudField4 = {
         {"id", TYPE_INDEX<int64_t>, true}, {"name", TYPE_INDEX<std::string>},
