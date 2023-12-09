@@ -25,6 +25,7 @@
 #include "relational_store_client.h"
 #include "runtime_context.h"
 #include "sqlite_utils.h"
+#include "concurrent_adapter.h"
 
 // using the "sqlite3sym.h" in OHOS
 #ifndef USE_SQLITE_SYMBOLS
@@ -677,7 +678,7 @@ int LogCommitHookCallback(void *data, sqlite3 *db, const char *zDb, int size)
     auto it = g_clientChangedDataMap.find(hashFileName);
     if (it != g_clientChangedDataMap.end() && !it->second.tableData.empty()) {
         ClientChangedData clientChangedData = g_clientChangedDataMap[hashFileName];
-        (void)DistributedDB::RuntimeContext::GetInstance()->ScheduleTask([clientObserver, clientChangedData] {
+        ConcurrentAdapter::ScheduleTask([clientObserver, clientChangedData] {
             ClientChangedData taskClientChangedData = clientChangedData;
             clientObserver(taskClientChangedData);
         });

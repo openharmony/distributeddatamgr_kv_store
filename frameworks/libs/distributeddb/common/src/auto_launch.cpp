@@ -31,6 +31,7 @@
 #include "runtime_context.h"
 #include "semaphore_utils.h"
 #include "sync_able_kvdb_connection.h"
+#include "concurrent_adapter.h"
 
 namespace DistributedDB {
 namespace {
@@ -734,12 +735,15 @@ EXT:
 void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &callback, DBTypeInner type)
 {
     LOGI("[AutoLaunch] SetAutoLaunchRequestCallback type[%d]", static_cast<int>(type));
-    std::lock_guard<std::mutex> lock(extLock_);
-    if (callback) {
-        autoLaunchRequestCallbackMap_[type] = callback;
-    } else {
-        autoLaunchRequestCallbackMap_.erase(type);
-    }
+    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, callback, type] () mutable {
+        ADAPTER_AUTO_LOCK(lock, extLock_);
+        if (callback) {
+            autoLaunchRequestCallbackMap_[type] = callback;
+        } else {
+            autoLaunchRequestCallbackMap_.erase(type);
+        }
+    }, {}, {&autoLaunchRequestCallbackMap_});
+    ADAPTER_WAIT(handle);
 }
 
 int AutoLaunch::AutoLaunchExt(const std::string &identifier, const std::string &userId)
@@ -785,45 +789,41 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
     AutoLaunchItem &autoLaunchItem)
 {
     {
-        std::lock_guard<std::mutex> autoLock(extLock_);
-        if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0) {
-            LOGE("[AutoLaunch] extItemMap has this identifier");
+        bool isReturn = false;
+        TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
+            &autoLaunchItem, &isReturn] () mutable {
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
+            if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0) {
+                LOGE("[AutoLaunch] extItemMap has this identifier");
+                isReturn = true;
+                return;
+            }
+            extItemMap_[identifier][userId] = autoLaunchItem;
+        }, {}, {&extItemMap_});
+        ADAPTER_WAIT(handle);
+        if (isReturn) {
             return;
         }
-        extItemMap_[identifier][userId] = autoLaunchItem;
     }
-    bool abort = false;
-    do {
-        int errCode = CheckAutoLaunchRealPath(autoLaunchItem);
-        if (errCode != E_OK) {
-            abort = true;
-            break;
-        }
-        errCode = OpenOneConnection(autoLaunchItem);
-        LOGI("[AutoLaunch] AutoLaunchExtTask GetOneConnection errCode:%d", errCode);
-        if (autoLaunchItem.conn == nullptr) {
-            abort = true;
-            break;
-        }
-        errCode = RegisterObserverAndLifeCycleCallback(autoLaunchItem, identifier, true);
-        if (errCode != E_OK) {
-            LOGE("[AutoLaunch] AutoLaunchExtTask RegisterObserverAndLifeCycleCallback failed");
-            TryCloseConnection(autoLaunchItem); // if here failed, do nothing
-            abort = true;
-        }
-    } while (false);
+    bool abort = ChkAutoLaunchAbort(identifier, autoLaunchItem);
     if (abort) {
-        std::lock_guard<std::mutex> autoLock(extLock_);
-        extItemMap_[identifier].erase(userId);
-        if (extItemMap_[identifier].size() == 0) {
-            extItemMap_.erase(identifier);
-        }
+        TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId] () mutable {
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
+            extItemMap_[identifier].erase(userId);
+            if (extItemMap_[identifier].size() == 0) {
+                extItemMap_.erase(identifier);
+            }
+        }, {}, {&extItemMap_});
+        ADAPTER_WAIT(handle);
         return;
     }
-    std::lock_guard<std::mutex> autoLock(extLock_);
-    extItemMap_[identifier][userId] = autoLaunchItem; // Reassign item to prevent it from being erased
-    extItemMap_[identifier][userId].isWriteOpenNotified = false;
-    LOGI("[AutoLaunch] AutoLaunchExtTask ok");
+    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId, &autoLaunchItem] () mutable {
+        ADAPTER_AUTO_LOCK(autoLock, extLock_);
+        extItemMap_[identifier][userId] = autoLaunchItem; // Reassign item to prevent it from being erased
+        extItemMap_[identifier][userId].isWriteOpenNotified = false;
+        LOGI("[AutoLaunch] AutoLaunchExtTask ok");
+    }, {}, {&extItemMap_});
+    ADAPTER_WAIT(handle);
 }
 
 void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const std::string &identifier,
@@ -833,12 +833,21 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
     AutoLaunchItem autoLaunchItem;
     AutoLaunchNotifier notifier;
     {
-        std::lock_guard<std::mutex> autoLock(extLock_);
-        if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
-            LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
+        bool isReturn = false;
+        TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
+            &autoLaunchItem, &isReturn] () mutable {
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
+            if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
+                LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
+                isReturn = true;
+                return;
+            }
+            autoLaunchItem = extItemMap_[identifier][userId];
+        }, {&extItemMap_}, {});
+        ADAPTER_WAIT(handle);
+        if (isReturn) {
             return;
         }
-        autoLaunchItem = extItemMap_[identifier][userId];
     }
     if (autoLaunchItem.observer != nullptr) {
         LOGD("[AutoLaunch] do user observer");
@@ -847,26 +856,26 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
     }
 
     {
-        std::lock_guard<std::mutex> autoLock(extLock_);
-        if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0 &&
-            !extItemMap_[identifier][userId].isWriteOpenNotified &&
-            autoLaunchItem.notifier != nullptr) {
-            extItemMap_[identifier][userId].isWriteOpenNotified = true;
-            notifier = autoLaunchItem.notifier;
-        } else {
+        bool isReturn = false;
+        TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId, &autoLaunchItem,
+            &notifier, &isReturn] () mutable {
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
+            if (extItemMap_.count(identifier) != 0 && extItemMap_[identifier].count(userId) != 0 &&
+                !extItemMap_[identifier][userId].isWriteOpenNotified &&
+                autoLaunchItem.notifier != nullptr) {
+                extItemMap_[identifier][userId].isWriteOpenNotified = true;
+                notifier = autoLaunchItem.notifier;
+            } else {
+                isReturn = true;
+            }
+        }, {}, {&extItemMap_});
+        ADAPTER_WAIT(handle);
+        if (isReturn) {
             return;
         }
     }
 
-    std::string appId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::APP_ID, "");
-    std::string storeId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::STORE_ID, "");
-    int retCode = RuntimeContext::GetInstance()->ScheduleTask([notifier, userId, appId, storeId] {
-        LOGI("[AutoLaunch] ExtObserverFunc do user notifier WRITE_OPENED");
-        notifier(userId, appId, storeId, AutoLaunchStatus::WRITE_OPENED);
-    });
-    if (retCode != E_OK) {
-        LOGE("[AutoLaunch] ExtObserverFunc notifier ScheduleTask retCode:%d", retCode);
-    }
+    NotifyAutoLaunch(userId, autoLaunchItem, notifier);
 }
 
 void AutoLaunch::ExtConnectionLifeCycleCallback(const std::string &identifier, const std::string &userId)
@@ -884,15 +893,24 @@ void AutoLaunch::ExtConnectionLifeCycleCallbackTask(const std::string &identifie
     LOGI("[AutoLaunch] ExtConnectionLifeCycleCallbackTask identifier=%.6s", STR_TO_HEX(identifier));
     AutoLaunchItem autoLaunchItem;
     {
-        std::lock_guard<std::mutex> autoLock(extLock_);
-        if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
-            LOGE("[AutoLaunch] ExtConnectionLifeCycleCallbackTask identifier is not exist!");
+        bool isReturn = false;
+        TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
+            &autoLaunchItem, &isReturn] () mutable {
+            ADAPTER_AUTO_LOCK(autoLock, extLock_);
+            if (extItemMap_.count(identifier) == 0 || extItemMap_[identifier].count(userId) == 0) {
+                LOGE("[AutoLaunch] ExtConnectionLifeCycleCallbackTask identifier is not exist!");
+                isReturn = true;
+                return;
+            }
+            autoLaunchItem = extItemMap_[identifier][userId];
+            extItemMap_[identifier].erase(userId);
+            if (extItemMap_[identifier].size() == 0) {
+                extItemMap_.erase(identifier);
+            }
+        }, {}, {&extItemMap_});
+        ADAPTER_WAIT(handle);
+        if (isReturn) {
             return;
-        }
-        autoLaunchItem = extItemMap_[identifier][userId];
-        extItemMap_[identifier].erase(userId);
-        if (extItemMap_[identifier].size() == 0) {
-            extItemMap_.erase(identifier);
         }
     }
     LOGI("[AutoLaunch] ExtConnectionLifeCycleCallbackTask do CloseConnection");
@@ -1034,26 +1052,33 @@ int AutoLaunch::GetAutoLaunchRelationProperties(const AutoLaunchParam &param,
 int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, AutoLaunchParam &param,
     DBTypeInner &openType)
 {
-    std::lock_guard<std::mutex> lock(extLock_);
-    if (autoLaunchRequestCallbackMap_.empty()) {
-        LOGI("[AutoLaunch] autoLaunchRequestCallbackMap_ is empty");
-        return -E_NOT_FOUND; // not E_OK is ok for communicator
-    }
-
-    bool needOpen = false;
-    for (const auto &[type, callBack] : autoLaunchRequestCallbackMap_) {
-        needOpen = callBack(identifier, param);
-        if (needOpen) {
-            openType = type;
-            break;
+    int errCode = E_OK;
+    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &param, &errCode, &openType] () mutable {
+        ADAPTER_AUTO_LOCK(autoLock, extLock_);
+        if (autoLaunchRequestCallbackMap_.empty()) {
+            LOGI("[AutoLaunch] autoLaunchRequestCallbackMap_ is empty");
+            errCode = -E_NOT_FOUND; // not E_OK is ok for communicator
+            return errCode;
         }
-    }
 
-    if (!needOpen) {
-        LOGI("[AutoLaunch] autoLaunchRequestCallback is not need open");
-        return -E_NOT_FOUND; // not E_OK is ok for communicator
-    }
-    return E_OK;
+        bool needOpen = false;
+        for (const auto &[type, callBack] : autoLaunchRequestCallbackMap_) {
+            needOpen = callBack(identifier, param);
+            if (needOpen) {
+                openType = type;
+                break;
+            }
+        }
+
+        if (!needOpen) {
+            LOGI("[AutoLaunch] autoLaunchRequestCallback is not need open");
+            errCode = -E_NOT_FOUND; // not E_OK is ok for communicator
+            return errCode;
+        }
+        return E_OK;
+    }, {&autoLaunchRequestCallbackMap_}, {});
+    ADAPTER_WAIT(handle);
+    return errCode;
 }
 
 int AutoLaunch::OpenKvConnection(AutoLaunchItem &autoLaunchItem)
@@ -1261,32 +1286,31 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
                 Origin::ORIGIN_CLOUD, changedDevice, std::move(changedData));
             return;
         }
-        RelationalStoreChangedDataImpl data(changedDevice);
         std::string userId;
         std::string appId;
         std::string storeId;
-        if (autoLaunchItem.propertiesPtr != nullptr) {
-            userId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::USER_ID, "");
-            appId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::APP_ID, "");
-            storeId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::STORE_ID, "");
-            data.SetStoreProperty({ userId, appId, storeId });
-        }
-        if (autoLaunchItem.storeObserver) {
-            LOGD("begin to observer onchange, changedDevice=%s", STR_MASK(changedDevice));
-            autoLaunchItem.storeObserver->OnChange(data);
-        }
+        AutoLaunchOnChange(changedDevice, userId, appId, storeId, autoLaunchItem);
         bool isWriteOpenNotified = false;
         AutoLaunchNotifier notifier = nullptr;
         {
-            std::lock_guard<std::mutex> autoLock(extLock_);
-            if (extItemMap_.find(identifier) == extItemMap_.end() ||
-                extItemMap_[identifier].find(userId) == extItemMap_[identifier].end()) {
-                LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
+            bool isReturn = false;
+            TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &userId,
+                &notifier, &isWriteOpenNotified, &isReturn] () mutable {
+                ADAPTER_AUTO_LOCK(autoLock, extLock_);
+                if (extItemMap_.find(identifier) == extItemMap_.end() ||
+                    extItemMap_[identifier].find(userId) == extItemMap_[identifier].end()) {
+                    LOGE("[AutoLaunch] ExtObserverFunc this identifier not in map");
+                    isReturn = true;
+                    return;
+                }
+                notifier = extItemMap_[identifier][userId].notifier;
+                isWriteOpenNotified = extItemMap_[identifier][userId].isWriteOpenNotified;
+                extItemMap_[identifier][userId].isWriteOpenNotified = true;
+            }, {}, {&extItemMap_});
+            ADAPTER_WAIT(handle);
+            if (isReturn) {
                 return;
             }
-            notifier = extItemMap_[identifier][userId].notifier;
-            isWriteOpenNotified = extItemMap_[identifier][userId].isWriteOpenNotified;
-            extItemMap_[identifier][userId].isWriteOpenNotified = true;
         }
         if (!isWriteOpenNotified && notifier != nullptr) {
             notifier(userId, appId, storeId, WRITE_OPENED);
@@ -1299,46 +1323,50 @@ void AutoLaunch::CloseConnection(DBTypeInner type, const DBProperties &propertie
 {
     std::string identifier = properties.GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     int closeId = properties.GetIntProp(DBProperties::AUTO_LAUNCH_ID, 0);
-    std::lock_guard<std::mutex> lock(extLock_);
-    auto itemMapIter = extItemMap_.find(identifier);
-    if (itemMapIter == extItemMap_.end()) {
-        std::string dualIdentifier = properties.GetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
-        itemMapIter = extItemMap_.find(dualIdentifier); // Try find conn in dual tuple mode
+    TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, &identifier, &properties,
+        closeId, type] () mutable {
+        ADAPTER_AUTO_LOCK(lock, extLock_);
+        auto itemMapIter = extItemMap_.find(identifier);
         if (itemMapIter == extItemMap_.end()) {
-            LOGD("[AutoLaunch] Abort close because not found id");
+            std::string dualIdentifier = properties.GetStringProp(DBProperties::DUAL_TUPLE_IDENTIFIER_DATA, "");
+            itemMapIter = extItemMap_.find(dualIdentifier); // Try find conn in dual tuple mode
+            if (itemMapIter == extItemMap_.end()) {
+                LOGD("[AutoLaunch] Abort close because not found id");
+                return;
+            }
+            identifier = dualIdentifier;
+        }
+        std::string userId = properties.GetStringProp(DBProperties::USER_ID, "");
+        auto itemIter = itemMapIter->second.find(userId);
+        if (itemIter == itemMapIter->second.end()) {
+            LOGD("[AutoLaunch] Abort close because not found user id");
             return;
         }
-        identifier = dualIdentifier;
-    }
-    std::string userId = properties.GetStringProp(DBProperties::USER_ID, "");
-    auto itemIter = itemMapIter->second.find(userId);
-    if (itemIter == itemMapIter->second.end()) {
-        LOGD("[AutoLaunch] Abort close because not found user id");
-        return;
-    }
-    if (itemIter->second.propertiesPtr == nullptr) {
-        LOGD("[AutoLaunch] Abort close because properties is invalid");
-        return;
-    }
-    int targetId = itemIter->second.propertiesPtr->GetIntProp(DBProperties::AUTO_LAUNCH_ID, 0);
-    if (closeId != 0 && closeId != targetId) {
-        LOGD("[AutoLaunch] Abort close because connection has been closed");
-        return;
-    }
-    if (itemIter->second.type != type) {
-        LOGE("[AutoLaunch] Not same DB type for close connection");
-        return;
-    }
-    LOGI("[AutoLaunch] Force close connection");
-    TryCloseConnection(itemIter->second);
-    if (itemIter->second.isWriteOpenNotified) {
-        CloseNotifier(itemIter->second);
-    }
-    LOGI("[AutoLaunch] Force close connection finished");
-    extItemMap_[identifier].erase(userId);
-    if (extItemMap_[identifier].size() == 0) {
-        extItemMap_.erase(identifier);
-    }
+        if (itemIter->second.propertiesPtr == nullptr) {
+            LOGD("[AutoLaunch] Abort close because properties is invalid");
+            return;
+        }
+        int targetId = itemIter->second.propertiesPtr->GetIntProp(DBProperties::AUTO_LAUNCH_ID, 0);
+        if (closeId != 0 && closeId != targetId) {
+            LOGD("[AutoLaunch] Abort close because connection has been closed");
+            return;
+        }
+        if (itemIter->second.type != type) {
+            LOGE("[AutoLaunch] Not same DB type for close connection");
+            return;
+        }
+        LOGI("[AutoLaunch] Force close connection");
+        TryCloseConnection(itemIter->second);
+        if (itemIter->second.isWriteOpenNotified) {
+            CloseNotifier(itemIter->second);
+        }
+        LOGI("[AutoLaunch] Force close connection finished");
+        extItemMap_[identifier].erase(userId);
+        if (extItemMap_[identifier].size() == 0) {
+            extItemMap_.erase(identifier);
+        }
+    }, {}, {&extItemMap_});
+    ADAPTER_WAIT(handle);
 }
 
 std::string AutoLaunch::GetAutoLaunchItemUid(const std::string &identifier, const std::string &originalUserId,
@@ -1371,5 +1399,60 @@ std::string AutoLaunch::GetAutoLaunchItemUid(const std::string &identifier, cons
         }
     }
     return userId;
+}
+
+bool AutoLaunch::ChkAutoLaunchAbort(const std::string &identifier, AutoLaunchItem &autoLaunchItem)
+{
+    bool abort = false;
+    do {
+        int errCode = CheckAutoLaunchRealPath(autoLaunchItem);
+        if (errCode != E_OK) {
+            abort = true;
+            break;
+        }
+        errCode = OpenOneConnection(autoLaunchItem);
+        LOGI("[AutoLaunch] AutoLaunchExtTask GetOneConnection errCode:%d", errCode);
+        if (autoLaunchItem.conn == nullptr) {
+            abort = true;
+            break;
+        }
+        errCode = RegisterObserverAndLifeCycleCallback(autoLaunchItem, identifier, true);
+        if (errCode != E_OK) {
+            LOGE("[AutoLaunch] AutoLaunchExtTask RegisterObserverAndLifeCycleCallback failed");
+            TryCloseConnection(autoLaunchItem); // if here failed, do nothing
+            abort = true;
+        }
+    } while (false);
+    return abort;
+}
+
+void AutoLaunch::NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &autoLaunchItem,
+    AutoLaunchNotifier &notifier)
+{
+    std::string appId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::APP_ID, "");
+    std::string storeId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::STORE_ID, "");
+    int retCode = RuntimeContext::GetInstance()->ScheduleTask([notifier, userId, appId, storeId] {
+        LOGI("[AutoLaunch] ExtObserverFunc do user notifier WRITE_OPENED");
+        notifier(userId, appId, storeId, AutoLaunchStatus::WRITE_OPENED);
+    });
+    if (retCode != E_OK) {
+        LOGE("[AutoLaunch] ExtObserverFunc notifier ScheduleTask retCode:%d", retCode);
+    }
+}
+
+void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
+    std::string storeId, AutoLaunchItem autoLaunchItem)
+{
+    RelationalStoreChangedDataImpl data(changedDevice);
+    if (autoLaunchItem.propertiesPtr != nullptr) {
+        userId = autoLaunchItem.propertiesPtr->GetStringProp(KvDBProperties::USER_ID, "");
+        appId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::APP_ID, "");
+        storeId = autoLaunchItem.propertiesPtr->GetStringProp(DBProperties::STORE_ID, "");
+        data.SetStoreProperty({ userId, appId, storeId });
+    }
+    if (autoLaunchItem.storeObserver) {
+        LOGD("begin to observer onchange, changedDevice=%s", STR_MASK(changedDevice));
+        autoLaunchItem.storeObserver->OnChange(data);
+    }
 }
 } // namespace DistributedDB

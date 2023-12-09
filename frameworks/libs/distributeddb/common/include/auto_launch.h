@@ -177,6 +177,13 @@ protected:
     std::string GetAutoLaunchItemUid(const std::string &identifier, const std::string &originalUserId,
         bool &handleByCallback);
 
+    bool ChkAutoLaunchAbort(const std::string &identifier, AutoLaunchItem &autoLaunchItem);
+
+    void NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &autoLaunchItem, AutoLaunchNotifier &notifier);
+
+    void AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
+        std::string storeId, AutoLaunchItem autoLaunchItem);
+
     mutable std::mutex dataLock_;
     mutable std::mutex communicatorLock_;
     std::set<std::string> onlineDevices_;

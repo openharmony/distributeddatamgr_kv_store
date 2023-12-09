@@ -79,6 +79,9 @@ config("module_private_config") {
     "OPENSSL_SUPPRESS_DEPRECATED",
     "USE_RD_KERNEL",
   ]
+  if (is_ohos) {
+    defines += [ "USE_FFRT" ]
+  }
 }
 
 ###############################################################################
@@ -126,6 +129,7 @@ ohos_source_set("src_file") {
   ]
   external_deps = [
     "c_utils:utils",
+    "ffrt:libffrt",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "hitrace:hitrace_meter",
@@ -160,6 +164,7 @@ template("distributeddb_unittest") {
     ]
     external_deps = [
       "c_utils:utils",
+      "ffrt:libffrt",
       "hilog:libhilog",
       "hisysevent:libhisysevent",
       "hitrace:hitrace_meter",
