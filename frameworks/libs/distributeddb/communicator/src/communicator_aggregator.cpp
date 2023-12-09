@@ -999,7 +999,7 @@ void CommunicatorAggregator::RetrySendTask(const std::string &target)
 bool CommunicatorAggregator::IsRetryOutOfLimit(const std::string &target)
 {
     std::lock_guard<std::mutex> autoLock(retryCountMutex_);
-    return retryCount_[target] > MAX_SEND_RETRY;
+    return retryCount_[target] >= MAX_SEND_RETRY;
 }
 
 int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, int32_t currentRetryCount)
