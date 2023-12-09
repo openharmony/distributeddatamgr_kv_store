@@ -156,6 +156,9 @@ private:
 
     int InitTrackerSchemaFromMeta();
 
+    void AddFields(const std::vector<Field> &newFields, const std::set<std::string> &equalFields,
+        std::vector<Field> &addFields);
+
     bool CheckFields(const std::vector<Field> &newFields, const TableInfo &tableInfo, std::vector<Field> &addFields);
 
     bool PrepareSharedTable(const DataBaseSchema &schema, std::vector<std::string> &deleteTableNames,
