@@ -969,6 +969,8 @@ void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target)
     if (IsRetryOutOfLimit(target)) {
         LOGD("[CommAggr] Retry send task is out of limit! target is %s{private}", target.c_str());
         scheduler_.InvalidSendTask(target);
+        std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+        retryCount_[target] = 0;
     } else {
         scheduler_.DelayTaskByTarget(target);
         RetrySendTask(target);
