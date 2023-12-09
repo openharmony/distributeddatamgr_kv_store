@@ -511,7 +511,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Leve
 {
     // insert id 0 to local
     const int actualCount = 1;
-    InsertUserTableRecord(tableName_, 0, actualCount, 10, false);
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false); // 10 is phone size
     std::vector<std::map<std::string, std::string>> conditions;
     std::map<std::string, std::string> entries;
     entries["id"] = "0";
