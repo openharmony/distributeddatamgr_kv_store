@@ -396,7 +396,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         RetrySendTaskIfNeed(inTask.dstTarget);
     }
     if (taskNeedFinalize) {
-        TaskFinalizer(inTask, errCode);
+        TaskFinalizer(inTask, !inTask.isValid ? -E_PERIPHERAL_INTERFACE_FAIL : errCode);
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         sendRecord_.erase(inTask.frameId);
     }
