@@ -38,6 +38,7 @@ struct SendTask {
     std::string dstTarget;
     OnSendEnd onEnd;
     uint32_t frameId = 0u;
+    bool isValid = true;
 };
 
 struct SendTaskInfo {
@@ -75,6 +76,8 @@ public:
 
     uint32_t GetTotalTaskCount() const;
     uint32_t GetNoDelayTaskCount() const;
+
+    void InvalidSendTask(const std::string &target);
 
 private:
     int ScheduleDelayTask(SendTask &outTask, SendTaskInfo &outTaskInfo);
