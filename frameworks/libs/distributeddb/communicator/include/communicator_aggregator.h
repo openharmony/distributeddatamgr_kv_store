@@ -143,6 +143,14 @@ private:
 
     void ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu);
 
+    void RetrySendTaskIfNeed(const std::string &target);
+
+    void RetrySendTask(const std::string &target);
+
+    bool IsRetryOutOfLimit(const std::string &target);
+
+    int32_t GetNextRetryInterval(const std::string &target, int32_t currentRetryCount);
+
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
     static std::atomic<bool> isCommunicatorNotFoundFeedbackEnable_;
@@ -195,6 +203,9 @@ private:
     };
     std::mutex sendRecordMutex_;
     std::map<uint32_t, FrameSendRecord> sendRecord_;
+
+    std::mutex retryCountMutex_;
+    std::map<std::string, int32_t> retryCount_;
 };
 } // namespace DistributedDB
 

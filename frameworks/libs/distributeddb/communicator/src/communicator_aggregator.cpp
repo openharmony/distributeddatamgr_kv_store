@@ -26,6 +26,8 @@
 
 namespace DistributedDB {
 namespace {
+constexpr int MAX_SEND_RETRY = 2;
+constexpr int RETRY_TIME_SPLITS = 4;
 inline std::string GetThreadId()
 {
     std::stringstream stream;
@@ -311,7 +313,7 @@ int CommunicatorAggregator::ScheduleSendTask(const std::string &dstTarget, Seria
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         sendRecord_[info.frameId] = {};
     }
-    SendTask task{inBuff, dstTarget, onEnd, info.frameId};
+    SendTask task{inBuff, dstTarget, onEnd, info.frameId, true};
     if (inConfig.nonBlock) {
         errCode = scheduler_.AddSendTaskIntoSchedule(task, inConfig.prio);
     } else {
@@ -368,7 +370,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         startIndex = sendRecord_[inTask.frameId].sendIndex;
     }
-    for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()); ++index) {
+    for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()) && inTask.isValid; ++index) {
         auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
             ", packetLength=%" PRIu32 ".", inTask.dstTarget.c_str(), entry.second.first, entry.second.second);
@@ -380,24 +382,18 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         }
         if (errCode == -E_WAIT_RETRY) {
             LOGE("[CommAggr][SendPackets] SendBytes temporally fail.");
-            scheduler_.DelayTaskByTarget(inTask.dstTarget);
             taskNeedFinalize = false;
             break;
         } else if (errCode != E_OK) {
             LOGE("[CommAggr][SendPackets] SendBytes totally fail, errCode=%d.", errCode);
             break;
+        } else {
+            std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+            retryCount_[inTask.dstTarget] = 0;
         }
     }
     if (errCode == -E_WAIT_RETRY) {
-        const int RETRY_INTERVAL = 1000; // 1000ms
-        TimerId timerId = 0u;
-        const std::string target = inTask.dstTarget;
-        RefObject::IncObjRef(this);
-        errCode = RuntimeContext::GetInstance()->SetTimer(RETRY_INTERVAL, [this, target](TimerId id) {
-            OnSendable(target);
-            RefObject::DecObjRef(this);
-            return -E_END_TIMER;
-        }, nullptr, timerId);
+        RetrySendTaskIfNeed(inTask.dstTarget);
     }
     if (taskNeedFinalize) {
         TaskFinalizer(inTask, errCode);
@@ -966,6 +962,53 @@ void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, cons
         sendRecord_[frameId].splitMtu = mtu;
         sendRecord_[frameId].sendIndex = 0u;
     }
+}
+
+void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target)
+{
+    if (IsRetryOutOfLimit(target)) {
+        LOGD("[CommAggr] Retry send task is out of limit! target is %s{private}", target.c_str());
+        scheduler_.InvalidSendTask(target);
+        std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+        retryCount_[target] = 0;
+    } else {
+        scheduler_.DelayTaskByTarget(target);
+        RetrySendTask(target);
+    }
+}
+
+void CommunicatorAggregator::RetrySendTask(const std::string &target)
+{
+    int32_t currentRetryCount = 0;
+    {
+        std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+        retryCount_[target]++;
+        currentRetryCount = retryCount_[target];
+        LOGD("[CommAggr] Target %s{private} retry count is %" PRId32, target.c_str(), currentRetryCount);
+    }
+    TimerId timerId = 0u;
+    RefObject::IncObjRef(this);
+    (void)RuntimeContext::GetInstance()->SetTimer(GetNextRetryInterval(target, currentRetryCount),
+        [this, target](TimerId id) {
+        OnSendable(target);
+        RefObject::DecObjRef(this);
+        return -E_END_TIMER;
+    }, nullptr, timerId);
+}
+
+bool CommunicatorAggregator::IsRetryOutOfLimit(const std::string &target)
+{
+    std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+    return retryCount_[target] >= MAX_SEND_RETRY;
+}
+
+int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, int32_t currentRetryCount)
+{
+    uint32_t timeout = DBConstant::MIN_TIMEOUT;
+    if (adapterHandle_ != nullptr) {
+        timeout = adapterHandle_->GetTimeout(target);
+    }
+    return static_cast<int32_t>(timeout) * currentRetryCount / RETRY_TIME_SPLITS;
 }
 
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)

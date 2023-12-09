@@ -288,4 +288,19 @@ int SendTaskScheduler::ScheduleNoDelayTask(SendTask &outTask, SendTaskInfo &outT
     LOGE("[Scheduler][ScheduleNoDelay] INTERNAL ERROR : NO TASK.");
     return -E_INTERNAL_ERROR;
 }
+
+void SendTaskScheduler::InvalidSendTask(const std::string &target)
+{
+    std::lock_guard<std::mutex> overallLockGuard(overallMutex_);
+    for (const auto &priority : priorityOrder_) {
+        if (taskCountByPrio_[priority] == 0) {
+            // No task of this priority
+            continue;
+        }
+        for (auto &sendTask : taskGroupByPrio_[priority][target]) {
+            sendTask.isValid = false;
+            LOGI("[Scheduler][InvalidSendTask] invalid frameId=%" PRIu32, sendTask.frameId);
+        }
+    }
+}
 }
