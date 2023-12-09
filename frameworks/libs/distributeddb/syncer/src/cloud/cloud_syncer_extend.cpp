@@ -198,7 +198,7 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
     return E_OK;
 }
 
-int CloudSyncer::DownloadAssetsOneByOne(const InnerProcessInfo &info, const DownloadItem &downloadItem,
+int CloudSyncer::DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadItem &downloadItem,
     std::map<std::string, Assets> &downloadAssets)
 {
     bool isSharedTable = false;
@@ -253,7 +253,7 @@ int CloudSyncer::GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, c
 }
 
 int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info,
-    const DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
+    DownloadItem &downloadItem, std::map<std::string, Assets> &downloadAssets)
 {
     int errCode = E_OK;
     for (auto &[col, assets] : downloadAssets) {
@@ -276,6 +276,7 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
                 continue;
             }
             if (tmpCode == -E_CLOUD_RECORD_EXIST_CONFLICT) {
+                downloadItem.recordConflict = true;
                 continue;
             }
             errCode = (errCode != E_OK) ? errCode : tmpCode;
@@ -292,5 +293,64 @@ int CloudSyncer::DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProc
         assets = callDownloadAssets;
     }
     return errCode;
+}
+
+int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
+    uint32_t &successCount)
+{
+    int errCode = storageProxy_->SetLogTriggerStatus(false);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (auto &item : commitList) {
+        std::string gid = std::get<0>(item); // 0 means gid is the first element in assetsInfo
+        // 1 means assetsMap info [colName, assets] is the forth element in downloadList[i]
+        std::map<std::string, Assets> assetsMap = std::get<1>(item);
+        bool setAllNormal = std::get<2>(item); // 2 means whether the download return is E_OK
+        VBucket normalAssets;
+        VBucket failedAssets;
+        normalAssets[CloudDbConstant::GID_FIELD] = gid;
+        failedAssets[CloudDbConstant::GID_FIELD] = gid;
+        VBucket &assets = setAllNormal ? normalAssets : failedAssets;
+        for (auto &[key, asset] : assetsMap) {
+            assets[key] = std::move(asset);
+        }
+        errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        errCode = storageProxy_->UpdateRecordFlag(tableName, gid, recordConflict);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        successCount++;
+    }
+    return storageProxy_->SetLogTriggerStatus(true);
+}
+
+void CloudSyncer::GenerateCompensatedSync()
+{
+    std::vector<QuerySyncObject> syncQuery;
+    int errCode = storageProxy_->GetCompensatedSyncQuery(syncQuery);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] Generate compensated sync failed by get query! errCode = %d", errCode);
+        return;
+    }
+    if (syncQuery.empty()) {
+        LOGD("[CloudSyncer] Not need generate compensated sync");
+        return;
+    }
+    CloudTaskInfo taskInfo;
+    taskInfo.priorityTask = true;
+    taskInfo.timeout = CloudDbConstant::CLOUD_DEFAULT_TIMEOUT;
+    taskInfo.devices.push_back(CloudDbConstant::DEFAULT_CLOUD_DEV);
+    taskInfo.callback = nullptr;
+    taskInfo.mode = SyncMode::SYNC_MODE_CLOUD_MERGE;
+    for (const auto &query : syncQuery) {
+        taskInfo.table.push_back(query.GetRelationTableName());
+        taskInfo.queryList.push_back(query);
+    }
+    Sync(taskInfo);
+    LOGD("[CloudSyncer] Generate compensated sync finished");
 }
 }

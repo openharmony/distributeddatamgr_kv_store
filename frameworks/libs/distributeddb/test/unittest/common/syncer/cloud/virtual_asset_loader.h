@@ -20,7 +20,7 @@
 
 namespace DistributedDB {
 using DownloadCallBack = std::function<void (std::map<std::string, Assets> &assets)>;
-using RemoveAssetsCallBack = std::function<void (const std::vector<Asset> &assets)>;
+using RemoveAssetsCallBack = std::function<DBStatus (const std::vector<Asset> &assets)>;
 class VirtualAssetLoader : public IAssetLoader {
 public:
     VirtualAssetLoader() = default;

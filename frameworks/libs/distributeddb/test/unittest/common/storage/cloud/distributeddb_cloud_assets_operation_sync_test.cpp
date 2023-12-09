@@ -332,9 +332,10 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetOperation002, T
     virtualAssetLoader_->ForkRemoveLocalAssets([&removeCount](const std::vector<Asset> &assets) {
         EXPECT_EQ(assets.size(), 2u);
         removeCount++;
+        return OK;
     });
     UpdateCloudTableRecord(0, actualCount, false);
-    BlockSync(query, delegate_);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
     EXPECT_EQ(downLoadCount, 3); // local asset was removed should download 3 times
     EXPECT_EQ(removeCount, 1);
     virtualAssetLoader_->ForkDownload(nullptr);
@@ -435,6 +436,7 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord002, TestSize.Le
     virtualAssetLoader_->SetDownloadStatus(DBStatus::OK);
     std::vector<size_t> expectCount = { 2 };
     CheckAssetsCount(expectCount);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
 }
 
 /**

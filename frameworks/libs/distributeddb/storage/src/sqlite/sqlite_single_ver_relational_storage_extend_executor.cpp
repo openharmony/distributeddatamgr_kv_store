@@ -1396,8 +1396,9 @@ int SQLiteSingleVerRelationalStorageExecutor::CleanDownloadChangedAssets(
         return E_OK;
     }
     int ret = assetLoader_->RemoveLocalAssets(toDeleteAssets);
-    if (ret != E_OK) {
+    if (ret != OK) {
         LOGE("remove local assets failed. %d", ret);
+        return -E_REMOVE_ASSETS_FAILED;
     }
     return E_OK;
 }
@@ -1594,6 +1595,103 @@ std::vector<Field> SQLiteSingleVerRelationalStorageExecutor::GetUpdateField(cons
         }
     }
     return fields;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::UpdateRecordFlag(const std::string &tableName, bool recordConflict,
+    const std::string &gid, int64_t dataKey)
+{
+    if (gid.empty() && dataKey == DBConstant::DEFAULT_ROW_ID) {
+        LOGE("[RDBExecutor] Update record flag failed with invalid args!");
+        return -E_INVALID_ARGS;
+    }
+    std::string sql = "UPDATE " + DBCommon::GetLogTableName(tableName) + " SET flag = ";
+    if (recordConflict) {
+        sql += "flag | " + std::to_string(static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
+    } else {
+        sql += "flag & " + std::to_string(~static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC));
+    }
+    sql += " WHERE ";
+    if (!gid.empty()) {
+        sql += " cloud_gid = '" + gid + "'";
+    }
+    if (dataKey != DBConstant::DEFAULT_ROW_ID) {
+        if (!gid.empty()) {
+            sql += " OR ";
+        }
+        sql += " data_key = '" + std::to_string(dataKey) + "'";
+    }
+    sql += ";";
+    int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, sql);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Update record flag failed! errCode = %d", errCode);
+    }
+    return errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetWaitCompensatedSyncDataPk(const TableSchema &table,
+    std::vector<VBucket> &data)
+{
+    std::string sql = "SELECT ";
+    std::vector<Field> pkFields;
+    for (const auto &field : table.fields) {
+        if (!field.primary) {
+            continue;
+        }
+        sql += "b." + field.colName + ",";
+        pkFields.push_back(field);
+    }
+    if (pkFields.empty()) {
+        // ignore no pk table
+        return E_OK;
+    }
+    sql.pop_back();
+    sql += CloudStorageUtils::GetLeftJoinLogSql(table.name) + " WHERE a." + FLAG_IS_WAIT_COMPENSATED_SYNC;
+    sqlite3_stmt *stmt = nullptr;
+    int errCode = SQLiteUtils::GetStatement(dbHandle_, sql, stmt);
+    if (errCode != E_OK) {
+        LOGE("[RDBExecutor] Get stmt failed when get wait compensated sync pk! errCode = %d", errCode);
+        return errCode;
+    }
+    do {
+        errCode = SQLiteUtils::StepWithRetry(stmt);
+        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+            VBucket pkData;
+            errCode = GetRecordFromStmt(stmt, pkFields, 0, pkData);
+            if (errCode != E_OK) {
+                LOGE("[RDBExecutor] Get record failed when get wait compensated sync pk! errCode = %d", errCode);
+                break;
+            }
+            data.push_back(pkData);
+        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+            errCode = E_OK;
+            break;
+        } else {
+            LOGE("[RDBExecutor] Step failed when get wait compensated sync pk! errCode = %d", errCode);
+            break;
+        }
+    } while (errCode == E_OK);
+    int ret = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, ret);
+    return errCode == E_OK ? ret : errCode;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetRecordFromStmt(sqlite3_stmt *stmt, const std::vector<Field> fields,
+    int startIndex, VBucket &record)
+{
+    int errCode = E_OK;
+    for (const auto &field : fields) {
+        Type cloudValue;
+        errCode = SQLiteRelationalUtils::GetCloudValueByType(stmt, field.type, startIndex, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+        errCode = PutVBucketByType(record, field, cloudValue);
+        if (errCode != E_OK) {
+            break;
+        }
+        startIndex++;
+    }
+    return errCode;
 }
 } // namespace DistributedDB
 #endif

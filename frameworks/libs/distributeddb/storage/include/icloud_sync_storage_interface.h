@@ -137,6 +137,17 @@ public:
     {
         return E_OK;
     }
+
+    virtual int UpdateRecordFlag([[gnu::unused]] const std::string &tableName, [[gnu::unused]] const std::string &gid,
+        [[gnu::unused]] bool recordConflict)
+    {
+        return E_OK;
+    }
+
+    virtual int GetCompensatedSyncQuery([[gnu::unused]] std::vector<QuerySyncObject> &syncQuery)
+    {
+        return E_OK;
+    }
 };
 }
 

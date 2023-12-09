@@ -92,6 +92,7 @@ protected:
         std::map<std::string, Assets> assets;
         Key hashKey;
         std::vector<Type> primaryKeyValList;
+        bool recordConflict = false;
     };
     struct ResumeTaskInfo {
         TaskContext context;
@@ -215,9 +216,11 @@ protected:
 
     int TagUploadAssets(CloudSyncData &uploadData);
 
-    int FillCloudAssets(const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets);
+    int FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
+        VBucket &failedAssets);
 
-    int HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList, uint32_t &successCount);
+    int HandleDownloadResult(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
+        uint32_t &successCount);
 
     int FillDownloadExtend(TaskId taskId, const std::string &tableName, const std::string &cloudWaterMark,
         VBucket &extend);
@@ -246,9 +249,7 @@ protected:
 
     int TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &dataInfo, OpType &strategyOpResult);
 
-    int CommitDownloadResult(InnerProcessInfo &info, DownloadCommitList &commitList);
-
-    void ClearWithoutData(SyncParam &param);
+    int CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList);
 
     void ModifyFieldNameToLower(VBucket &data);
 
@@ -306,14 +307,19 @@ protected:
 
     int BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerProcessInfo &innerProcessInfo);
 
-    int DownloadAssetsOneByOne(const InnerProcessInfo &info, const DownloadItem &downloadItem,
+    int DownloadAssetsOneByOne(const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
 
     int GetDBAssets(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
         VBucket &dbAssets);
 
-    int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, const DownloadItem &downloadItem,
+    int DownloadAssetsOneByOneInner(bool isSharedTable, const InnerProcessInfo &info, DownloadItem &downloadItem,
         std::map<std::string, Assets> &downloadAssets);
+
+    int CommitDownloadAssets(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
+        uint32_t &successCount);
+
+    void GenerateCompensatedSync();
 
     std::mutex dataLock_;
     TaskId lastTaskId_;

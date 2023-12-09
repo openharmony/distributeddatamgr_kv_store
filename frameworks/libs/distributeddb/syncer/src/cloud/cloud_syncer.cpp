@@ -445,8 +445,8 @@ std::map<std::string, Assets> CloudSyncer::TagAssetsInSingleRecord(VBucket &cove
     return res;
 }
 
-int CloudSyncer::FillCloudAssets(
-    const std::string &tableName, VBucket &normalAssets, VBucket &failedAssets)
+int CloudSyncer::FillCloudAssets(const std::string &tableName, VBucket &normalAssets,
+    VBucket &failedAssets)
 {
     int ret = E_OK;
     if (normalAssets.size() > 1) {
@@ -466,7 +466,7 @@ int CloudSyncer::FillCloudAssets(
     return E_OK;
 }
 
-int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadCommitList &commitList,
+int CloudSyncer::HandleDownloadResult(bool recordConflict, const std::string &tableName, DownloadCommitList &commitList,
     uint32_t &successCount)
 {
     successCount = 0;
@@ -475,44 +475,17 @@ int CloudSyncer::HandleDownloadResult(const std::string &tableName, DownloadComm
         LOGE("[CloudSyncer] start transaction Failed before handle download.");
         return errCode;
     }
-    errCode = storageProxy_->SetLogTriggerStatus(false);
+    errCode = CommitDownloadAssets(recordConflict, tableName, commitList, successCount);
     if (errCode != E_OK) {
-        (void)storageProxy_->Rollback();
-        return errCode;
-    }
-    for (size_t i = 0; i < commitList.size(); i++) {
-        std::string gid = std::get<0>(commitList[i]); // 0 means gid is the first element in assetsInfo
-        // 1 means assetsMap info [colName, assets] is the forth element in downloadList[i]
-        std::map<std::string, Assets> assetsMap = std::get<1>(commitList[i]);
-        bool setAllNormal = std::get<2>(commitList[i]); // 2 means whether the download return is E_OK
-        VBucket normalAssets;
-        VBucket failedAssets;
-        normalAssets[CloudDbConstant::GID_FIELD] = gid;
-        failedAssets[CloudDbConstant::GID_FIELD] = gid;
-        for (auto &assetKvPair : assetsMap) {
-            Assets &assets = assetKvPair.second;
-            if (setAllNormal) {
-                normalAssets[assetKvPair.first] = std::move(assets);
-            } else {
-                failedAssets[assetKvPair.first] = std::move(assets);
-            }
-        }
-        errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
-        if (errCode != E_OK) {
-            break;
-        }
-        successCount++;
-    }
-    errCode = storageProxy_->SetLogTriggerStatus(true);
-    if (errCode != E_OK) {
-        LOGE("Set log trigger true failed when handle download.%d", errCode);
+        LOGE("[CloudSyncer] commit download assets failed %d", errCode);
         successCount = 0;
-        storageProxy_->Rollback();
+        (void)storageProxy_->Rollback();
         return errCode;
     }
     errCode = storageProxy_->Commit();
     if (errCode != E_OK) {
         successCount = 0;
+        LOGE("[CloudSyncer] commit failed %d", errCode);
     }
     return errCode;
 }
@@ -550,7 +523,7 @@ int CloudSyncer::CloudDbDownloadAssets(TaskId taskId, InnerProcessInfo &info, co
         // Process result of each asset
         commitList.push_back(std::make_tuple(downloadItem.gid, std::move(downloadItem.assets), errorCode == E_OK));
         downloadStatus = downloadStatus == E_OK ? errorCode : downloadStatus;
-        int ret = CommitDownloadResult(info, commitList);
+        int ret = CommitDownloadResult(downloadItem.recordConflict, info, commitList);
         if (ret != E_OK) {
             return ret;
         }
@@ -1742,13 +1715,13 @@ void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
     }
 }
 
-int CloudSyncer::CommitDownloadResult(InnerProcessInfo &info, DownloadCommitList &commitList)
+int CloudSyncer::CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList)
 {
     if (commitList.empty()) {
         return E_OK;
     }
     uint32_t successCount = 0u;
-    int ret = HandleDownloadResult(info.tableName, commitList, successCount);
+    int ret = HandleDownloadResult(recordConflict, info.tableName, commitList, successCount);
     info.downLoadInfo.failCount += (commitList.size() - successCount);
     info.downLoadInfo.successCount -= (commitList.size() - successCount);
     if (ret != E_OK) {
@@ -1931,6 +1904,10 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     info.status = ProcessStatus::FINISHED;
     if (notifier != nullptr) {
         notifier->NotifyProcess(info, {}, true);
+    }
+    // generate compensated sync
+    if (!info.priorityTask) {
+        GenerateCompensatedSync();
     }
 }
 

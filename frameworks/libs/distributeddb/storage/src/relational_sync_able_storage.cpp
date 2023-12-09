@@ -1268,12 +1268,7 @@ int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const C
     if (opType == OpType::UPDATE && data.updData.assets.empty()) {
         return E_OK;
     }
-    TableSchema tableSchema;
-    int errCode = GetCloudTableSchema(data.tableName, tableSchema);
-    if (errCode != E_OK) {
-        LOGE("get table schema failed when fill log and asset. %d", errCode);
-        return errCode;
-    }
+    int errCode = E_OK;
     auto writeHandle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(
         storageEngine_->FindExecutor(true, OperatePerm::NORMAL_PERM, errCode));
     if (writeHandle == nullptr) {
@@ -1284,7 +1279,7 @@ int RelationalSyncAbleStorage::FillCloudLogAndAsset(const OpType opType, const C
         ReleaseHandle(writeHandle);
         return errCode;
     }
-    errCode = writeHandle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
+    errCode = FillCloudLogAndAssetInner(writeHandle, opType, data, fillAsset, ignoreEmptyGid);
     if (errCode != E_OK) {
         LOGE("Failed to fill version or cloud asset, opType:%d ret:%d.", opType, errCode);
         writeHandle->Rollback();
@@ -1696,7 +1691,8 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
             return errCode;
         }
         VBucket recordCopy = record;
-        if (errCode == -E_NOT_FOUND) {
+        if (errCode == -E_NOT_FOUND ||
+            (dataInfoWithLog.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) != 0) {
             downloadData.opType.push_back(OpType::INSERT);
             auto currentTime = TimeHelper::GetSysCurrentTime();
             recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(currentTime);
@@ -1711,6 +1707,217 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
         downloadData.data.push_back(std::move(recordCopy));
     }
     return PutCloudSyncDataInner(handle, tableName, downloadData);
+}
+
+int RelationalSyncAbleStorage::UpdateRecordFlag(const std::string &tableName, const std::string &gid,
+    bool recordConflict)
+{
+    if (transactionHandle_ == nullptr) {
+        LOGE("[RelationalSyncAbleStorage] the transaction has not been started");
+        return -E_INVALID_DB;
+    }
+    if (gid.empty()) {
+        LOGE("[RelationalSyncAbleStorage] gid is empty.");
+        return -E_INVALID_ARGS;
+    }
+    return transactionHandle_->UpdateRecordFlag(tableName, recordConflict, gid);
+}
+
+int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    OpType opType, const CloudSyncData &data, bool fillAsset, bool ignoreEmptyGid)
+{
+    TableSchema tableSchema;
+    int errCode = GetCloudTableSchema(data.tableName, tableSchema);
+    if (errCode != E_OK) {
+        LOGE("get table schema failed when fill log and asset. %d", errCode);
+        return errCode;
+    }
+    errCode = handle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (opType == OpType::INSERT) {
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.insData);
+    } else if (opType == OpType::UPDATE) {
+        errCode = UpdateRecordFlagAfterUpload(handle, data.tableName, data.updData);
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::UpdateRecordFlagAfterUpload(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::string &tableName, const CloudSyncBatch &updateData)
+{
+    for (size_t i = 0; i < updateData.extend.size(); ++i) {
+        const auto &record = updateData.extend[i];
+        if (DBCommon::IsRecordError(record)) {
+            continue;
+        }
+        const auto &rowId = updateData.rowid[i];
+        int errCode = handle->UpdateRecordFlag(tableName, DBCommon::IsRecordIgnored(record), "", rowId);
+        if (errCode != E_OK) {
+            LOGE("[RDBStorage] Update record flag failed in index %zu", i);
+            return errCode;
+        }
+    }
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery)
+{
+    std::vector<TableSchema> tables;
+    int errCode = GetCloudTableWithoutShared(tables);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (tables.empty()) {
+        LOGD("[RDBStorage] Table is empty, no need to compensated sync");
+        return E_OK;
+    }
+    auto *handle = GetHandle(true, errCode);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    errCode = GetCompensatedSyncQueryInner(handle, tables, syncQuery);
+    ReleaseHandle(handle);
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetCloudTableWithoutShared(std::vector<TableSchema> &tables)
+{
+    const auto tableInfos = GetSchemaInfo().GetTables();
+    for (const auto &[tableName, info] : tableInfos) {
+        if (info.GetSharedTableMark()) {
+            continue;
+        }
+        TableSchema schema;
+        int errCode = GetCloudTableSchema(tableName, schema);
+        if (errCode == -E_NOT_FOUND) {
+            continue;
+        }
+        if (errCode != E_OK) {
+            LOGW("[RDBStorage] Get cloud table failed %d", errCode);
+            return errCode;
+        }
+        tables.push_back(schema);
+    }
+    return E_OK;
+}
+
+int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelationalStorageExecutor *handle,
+    const std::vector<TableSchema> &tables, std::vector<QuerySyncObject> &syncQuery)
+{
+    int errCode = E_OK;
+    errCode = handle->StartTransaction(TransactType::IMMEDIATE);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    for (const auto &table : tables) {
+        std::vector<VBucket> syncDataPk;
+        errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
+        if (errCode != E_OK) {
+            LOGE("[RDBStorageEngine] Get wait compensated sync data failed! errCode = %d", errCode);
+            break;
+        }
+        if (syncDataPk.empty()) {
+            // no data need to compensated sync
+            continue;
+        }
+        QuerySyncObject syncObject;
+        errCode = GetSyncQueryByPk(table.name, syncDataPk, syncObject);
+        if (errCode != E_OK) {
+            LOGW("[RDBStorageEngine] Get compensated sync query happen error, ignore it! errCode = %d", errCode);
+            errCode = E_OK;
+            continue;
+        }
+        syncQuery.push_back(syncObject);
+    }
+    if (errCode == E_OK) {
+        errCode = handle->Commit();
+        if (errCode != E_OK) {
+            LOGE("[RDBStorageEngine] commit failed %d when get compensated sync query", errCode);
+        }
+    } else {
+        int ret = handle->Rollback();
+        if (ret != E_OK) {
+            LOGW("[RDBStorageEngine] rollback failed %d when get compensated sync query", ret);
+        }
+    }
+    return errCode;
+}
+
+int RelationalSyncAbleStorage::GetSyncQueryByPk(const std::string &tableName,
+    const std::vector<VBucket> &data, QuerySyncObject &querySyncObject)
+{
+    std::map<std::string, size_t> dataIndex;
+    std::map<std::string, std::vector<Type>> syncPk;
+    int ignoreCount = 0;
+    for (const auto &oneRow : data) {
+        if (oneRow.size() >= 2u) { // mean this data has more than 2 pk
+            LOGW("[RDBStorageEngine] Not support compensated sync with composite primary key now");
+            return -E_NOT_SUPPORT;
+        }
+        for (const auto &[col, value] : oneRow) {
+            if (dataIndex.find(col) == dataIndex.end()) {
+                dataIndex[col] = value.index();
+            } else if (dataIndex[col] != value.index()) {
+                ignoreCount++;
+                continue;
+            }
+            syncPk[col].push_back(value);
+        }
+    }
+    LOGD("[RDBStorageEngine] match %zu data for compensated sync, ignore %d", data.size(), ignoreCount);
+    Query query = Query::Select().From(tableName);
+    for (const auto &[col, pkList] : syncPk) {
+        FillQueryInKeys(col, pkList, dataIndex[col], query);
+    }
+    auto objectList = QuerySyncObject::GetQuerySyncObject(query);
+    if (objectList.size() != 1u) {
+        return -E_INTERNAL_ERROR;
+    }
+    querySyncObject = objectList[0];
+    return E_OK;
+}
+
+void RelationalSyncAbleStorage::FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType,
+    Query &query)
+{
+    switch (valueType) {
+        case TYPE_INDEX<int64_t>: {
+            std::vector<int64_t> pkList;
+            for (const auto &pk : data) {
+                pkList.push_back(std::get<int64_t>(pk));
+            }
+            query.In(col, pkList);
+            break;
+        }
+        case TYPE_INDEX<std::string>: {
+            std::vector<std::string> pkList;
+            for (const auto &pk : data) {
+                pkList.push_back(std::get<std::string>(pk));
+            }
+            query.In(col, pkList);
+            break;
+        }
+        case TYPE_INDEX<double>: {
+            std::vector<double> pkList;
+            for (const auto &pk : data) {
+                pkList.push_back(std::get<double>(pk));
+            }
+            query.In(col, pkList);
+            break;
+        }
+        case TYPE_INDEX<bool>: {
+            std::vector<bool> pkList;
+            for (const auto &pk : data) {
+                pkList.push_back(std::get<bool>(pk));
+            }
+            query.In(col, pkList);
+            break;
+        }
+        default:
+            break;
+    }
 }
 }
 #endif

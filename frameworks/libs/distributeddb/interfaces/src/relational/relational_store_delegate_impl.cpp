@@ -446,6 +446,7 @@ DBStatus RelationalStoreDelegateImpl::UpsertData(const std::string &tableName, c
         LOGE("[RelationalStore Delegate] Upsert data failed:%d", errCode);
         return TransferDBErrno(errCode);
     }
+    LOGI("[RelationalStore Delegate] Upsert data success");
     return OK;
 }
 } // namespace DistributedDB

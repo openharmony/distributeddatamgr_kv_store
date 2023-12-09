@@ -198,8 +198,9 @@ int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
     DBStatus status = iAssetLoader_->RemoveLocalAssets(assets);
     if (status != OK) {
         LOGE("[CloudDBProxy] remove local asset failed %d", static_cast<int>(status));
+        return -E_REMOVE_ASSETS_FAILED;
     }
-    return GetInnerErrorCode(status);
+    return E_OK;
 }
 
 int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context,

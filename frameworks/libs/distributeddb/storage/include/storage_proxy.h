@@ -116,6 +116,10 @@ public:
         VBucket &assets);
 
     int SetIAssetLoader(const std::shared_ptr<IAssetLoader> &loader);
+
+    int UpdateRecordFlag(const std::string &tableName, const std::string &gid, bool recordConflict);
+
+    int GetCompensatedSyncQuery(std::vector<QuerySyncObject> &syncQuery);
 protected:
     void Init();
 
