@@ -387,13 +387,16 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         } else if (errCode != E_OK) {
             LOGE("[CommAggr][SendPackets] SendBytes totally fail, errCode=%d.", errCode);
             break;
+        } else {
+            std::lock_guard<std::mutex> autoLock(retryCountMutex_);
+            retryCount_[inTask.dstTarget] = 0;
         }
     }
     if (errCode == -E_WAIT_RETRY) {
         RetrySendTaskIfNeed(inTask.dstTarget);
     }
     if (taskNeedFinalize) {
-        TaskFinalizer(inTask, errCode);
+        TaskFinalizer(inTask, !inTask.isValid ? -E_PERIPHERAL_INTERFACE_FAIL : errCode);
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         sendRecord_.erase(inTask.frameId);
     }
