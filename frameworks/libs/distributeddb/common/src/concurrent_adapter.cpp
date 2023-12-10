@@ -20,7 +20,7 @@ int ConcurrentAdapter::ScheduleTask(const TaskAction &action, DependenceList inD
     DependenceList outDeps)
 {
 #ifdef USE_FFRT
-    ffrt::submit(action, inDeps, outDeps);
+    ffrt::submit(action, { inDeps.begin(), inDeps.end() }, { outDeps.begin(), outDeps.end() });
     return E_OK;
 #else
     return RuntimeContext::GetInstance()->ScheduleTask(action);
@@ -31,7 +31,7 @@ TaskHandle ConcurrentAdapter::ScheduleTaskH(const TaskAction &action, Dependence
     DependenceList outDeps)
 {
 #ifdef USE_FFRT
-    return ffrt::submit_h(action, inDeps, outDeps);
+    return ffrt::submit_h(action, { inDeps.begin(), inDeps.end() }, { outDeps.begin(), outDeps.end() });
 #else
     (void)action();
     return 0;

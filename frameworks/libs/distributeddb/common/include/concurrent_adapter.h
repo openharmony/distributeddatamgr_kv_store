@@ -25,13 +25,12 @@ namespace DistributedDB {
 #ifdef USE_FFRT
 #define ADAPTER_AUTO_LOCK(n, m)
 #define ADAPTER_WAIT(x) ffrt::wait({x})
-using DependenceList = std::initializer_list<ffrt::dependence>;
 #else
 #define ADAPTER_AUTO_LOCK(n, m) std::lock_guard<decltype(m)> n(m)
 #define ADAPTER_WAIT(x) (void)(x)
-using DependenceList = std::initializer_list<void *>;
 #endif
 using TaskHandle = void *;
+using DependenceList = std::initializer_list<void *>;
 class ConcurrentAdapter {
 public:
     static int ScheduleTask(const TaskAction &action, DependenceList inDeps = {},
