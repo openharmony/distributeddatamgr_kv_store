@@ -166,6 +166,7 @@ protected:
     std::shared_ptr<RelationalStoreManager> mgr_ = nullptr;
     std::string tableName_ = "DistributedDBCloudCheckSyncTest";
     std::string tableWithoutPrimaryName_ = "NonPrimaryKeyTable";
+    std::string lowerTableName_ = "distributeddbCloudCheckSyncTest";
 };
 
 void DistributedDBCloudCheckSyncTest::SetUpTestCase()
@@ -1496,6 +1497,23 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicDeleteSyncTest004, TestSize.Level
     ASSERT_EQ(delegate_->RemoveDeviceData(device, DistributedDB::FLAG_ONLY), DBStatus::OK);
     CheckLocalCount(actualCount);
     CheckLogCleaned(0);
+}
+
+/**
+ * @tc.name: LogicCreateRepeatedTableNameTest001
+ * @tc.desc: test create repeated table name with different cases
+ * @tc.type: FUNC
+ * @tc.require:DTS2023120705927
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. CreateDistributedTable with same name but different cases.
+     * @tc.expected: step1. operate successfully.
+     */
+    DBStatus createStatus = delegate_->CreateDistributedTable(lowerTableName_, CLOUD_COOPERATION);
+    ASSERT_EQ(createStatus, DBStatus::OK);
 }
 }
 #endif
