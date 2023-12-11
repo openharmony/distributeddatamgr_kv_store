@@ -1827,6 +1827,17 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         return errCode;
     }
     for (const auto &table : tables) {
+        // check whether reference exist
+        std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
+        errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (!tableReference.empty()) {
+            LOGD("[RelationalSyncAbleStorage] current table exist reference property");
+            continue;
+        }
+
         std::vector<VBucket> syncDataPk;
         errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
         if (errCode != E_OK) {
