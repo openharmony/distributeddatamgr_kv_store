@@ -15,6 +15,7 @@
 
 #include "storage_proxy.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "cloud/schema_mgr.h"
 #include "store_types.h"
 
@@ -188,6 +189,7 @@ int StorageProxy::GetCloudData(const QuerySyncObject &querySyncObject, const Tim
     if (errCode != E_OK) {
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     return store_->GetCloudData(tableSchema, querySyncObject, timeRange, continueStmtToken, cloudDataResult);
 }
 
@@ -216,6 +218,7 @@ int StorageProxy::GetCloudGid(const QuerySyncObject &querySyncObject, bool isClo
     if (errCode != E_OK) {
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     return store_->GetCloudGid(tableSchema, querySyncObject, isCloudForcePush, cloudGid);
 }
 
@@ -321,6 +324,7 @@ int StorageProxy::GetPrimaryColNamesWithAssetsFields(const TableName &tableName,
         LOGE("Cannot get cloud table schema: %d", ret);
         return ret;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     for (const auto &field : tableSchema.fields) {
         if (field.primary) {
             colNames.push_back(field.colName);
@@ -493,6 +497,7 @@ int StorageProxy::GetAssetsByGidOrHashKey(const std::string &tableName, const st
         LOGE("get cloud table schema failed: %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     return store_->GetAssetsByGidOrHashKey(tableSchema, gid, hashKey, assets);
 }
 
