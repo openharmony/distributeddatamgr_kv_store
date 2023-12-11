@@ -181,8 +181,8 @@ protected:
 
     void NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &autoLaunchItem, AutoLaunchNotifier &notifier);
 
-    void AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
-        std::string storeId, AutoLaunchItem autoLaunchItem);
+    void AutoLaunchOnChange(const std::string &changedDevice, std::string &userId, std::string &appId,
+        std::string &storeId, AutoLaunchItem autoLaunchItem);
 
     mutable std::mutex dataLock_;
     mutable std::mutex communicatorLock_;

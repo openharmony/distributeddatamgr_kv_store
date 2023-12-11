@@ -1440,8 +1440,8 @@ void AutoLaunch::NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &aut
     }
 }
 
-void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
-    std::string storeId, AutoLaunchItem autoLaunchItem)
+void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string &userId, std::string &appId,
+    std::string &storeId, AutoLaunchItem autoLaunchItem)
 {
     RelationalStoreChangedDataImpl data(changedDevice);
     if (autoLaunchItem.propertiesPtr != nullptr) {
