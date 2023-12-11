@@ -1181,6 +1181,7 @@ int RelationalSyncAbleStorage::GetInfoByPrimaryKeyOrGidInner(SQLiteSingleVerRela
         LOGE("Get cloud schema failed when query log for cloud sync, %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     RelationalSchemaObject localSchema = GetSchemaInfo();
     handle->SetLocalSchema(localSchema);
     return handle->GetInfoByPrimaryKeyOrGid(tableSchema, vBucket, dataInfoWithLog, assetInfo);
@@ -1204,6 +1205,7 @@ int RelationalSyncAbleStorage::PutCloudSyncDataInner(SQLiteSingleVerRelationalSt
         LOGE("Get cloud schema failed when save cloud data, %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     RelationalSchemaObject localSchema = GetSchemaInfo();
     handle->SetLocalSchema(localSchema);
     TrackerTable trackerTable = storageEngine_->GetTrackerSchema().GetTrackerTable(tableName);
@@ -1252,6 +1254,7 @@ int RelationalSyncAbleStorage::FillCloudAssetForDownload(const std::string &tabl
         LOGE("Get cloud schema failed when fill cloud asset, %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     errCode = transactionHandle_->FillCloudAssetForDownload(tableSchema, asset, isDownloadSuccess);
     if (errCode != E_OK) {
         LOGE("fill cloud asset for download failed.%d", errCode);
@@ -1698,6 +1701,7 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
         LOGE("Get cloud schema failed when save cloud data, %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     TableInfo localTable = GetSchemaInfo().GetTable(tableName); // for upsert, the table must exist in local
     std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema, true);
     std::set<std::vector<uint8_t>> primaryKeys;
@@ -1758,6 +1762,7 @@ int RelationalSyncAbleStorage::FillCloudLogAndAssetInner(SQLiteSingleVerRelation
         LOGE("get table schema failed when fill log and asset. %d", errCode);
         return errCode;
     }
+    CloudStorageUtils::TransferSchemaFieldToLower(tableSchema);
     errCode = handle->FillHandleWithOpType(opType, data, fillAsset, ignoreEmptyGid, tableSchema);
     if (errCode != E_OK) {
         return errCode;
@@ -1824,6 +1829,7 @@ int RelationalSyncAbleStorage::GetCloudTableWithoutShared(std::vector<TableSchem
             LOGW("[RDBStorage] Get cloud table failed %d", errCode);
             return errCode;
         }
+        CloudStorageUtils::TransferSchemaFieldToLower(schema);
         tables.push_back(schema);
     }
     return E_OK;

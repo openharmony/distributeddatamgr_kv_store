@@ -996,4 +996,11 @@ std::pair<int, std::vector<uint8_t>> CloudStorageUtils::GetHashValueWithPrimaryK
     }
     return { errCode, hashValue };
 }
+
+void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)
+{
+    for (auto &field : tableSchema.fields) {
+        std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
+    }
+}
 }
