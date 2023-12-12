@@ -311,13 +311,9 @@ int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &ta
         VBucket failedAssets;
         normalAssets[CloudDbConstant::GID_FIELD] = gid;
         failedAssets[CloudDbConstant::GID_FIELD] = gid;
-        for (auto &assetKvPair : assetsMap) {
-            Assets &assets = assetKvPair.second;
-            if (setAllNormal) {
-                normalAssets[assetKvPair.first] = std::move(assets);
-            } else {
-                failedAssets[assetKvPair.first] = std::move(assets);
-            }
+        VBucket &assets = setAllNormal ? normalAssets : failedAssets;
+        for (auto &[key, asset] : assetsMap) {
+            assets[key] = std::move(asset);
         }
         errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
         if (errCode != E_OK) {
