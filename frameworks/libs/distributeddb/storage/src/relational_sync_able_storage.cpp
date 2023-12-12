@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "concurrent_adapter.h"
 #include "data_compression.h"
 #include "db_common.h"
@@ -1697,21 +1698,31 @@ int RelationalSyncAbleStorage::UpsertDataInTransaction(SQLiteSingleVerRelational
         LOGE("Get cloud schema failed when save cloud data, %d", errCode);
         return errCode;
     }
+    TableInfo localTable = GetSchemaInfo().GetTable(tableName); // for upsert, the table must exist in local
+    std::map<std::string, Field> pkMap = CloudStorageUtils::GetCloudPrimaryKeyFieldMap(tableSchema, true);
+    std::set<std::vector<uint8_t>> primaryKeys;
     DownloadData downloadData;
     for (const auto &record : records) {
         DataInfoWithLog dataInfoWithLog;
         VBucket assetInfo;
+        auto [errorCode, hashValue] = CloudStorageUtils::GetHashValueWithPrimaryKeyMap(record,
+            tableSchema, localTable, pkMap, false);
+        if (errorCode != E_OK) {
+            return errorCode;
+        }
         errCode = GetInfoByPrimaryKeyOrGidInner(handle, tableName, record, dataInfoWithLog, assetInfo);
         if (errCode != E_OK && errCode != -E_NOT_FOUND) {
             return errCode;
         }
         VBucket recordCopy = record;
-        if (errCode == -E_NOT_FOUND ||
-            (dataInfoWithLog.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) != 0) {
+        if ((errCode == -E_NOT_FOUND ||
+            (dataInfoWithLog.logInfo.flag & static_cast<uint32_t>(LogInfoFlag::FLAG_DELETE)) != 0) &&
+            primaryKeys.find(hashValue) == primaryKeys.end()) {
             downloadData.opType.push_back(OpType::INSERT);
             auto currentTime = TimeHelper::GetSysCurrentTime();
             recordCopy[CloudDbConstant::MODIFY_FIELD] = static_cast<int64_t>(currentTime);
             recordCopy[CloudDbConstant::CREATE_FIELD] = static_cast<int64_t>(currentTime);
+            primaryKeys.insert(hashValue);
         } else {
             downloadData.opType.push_back(OpType::UPDATE);
             recordCopy[CloudDbConstant::GID_FIELD] = dataInfoWithLog.logInfo.cloudGid;

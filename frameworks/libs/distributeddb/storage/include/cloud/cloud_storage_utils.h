@@ -101,6 +101,9 @@ public:
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
     static void GetToBeRemoveAssets(const VBucket &vBucket, const AssetOperationUtils::RecordAssetOpType &assetOpType,
         std::vector<Asset> &removeAssets);
+    static std::pair<int, std::vector<uint8_t>> GetHashValueWithPrimaryKeyMap(const VBucket &vBucket,
+        const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
+        bool allowEmpty);
 
     template<typename T>
     static int GetValueFromOneField(Type &cloudValue, T &outVal)
