@@ -116,6 +116,8 @@ private:
 
     void AddAssetIdForExtend(VBucket &record, VBucket &extend);
 
+    void AddAssetsIdInner(Assets &assets);
+
     std::atomic<bool> cloudError_ = false;
     std::atomic<bool> cloudNetworkError_ = false;
     std::atomic<bool> heartbeatError_ = false;

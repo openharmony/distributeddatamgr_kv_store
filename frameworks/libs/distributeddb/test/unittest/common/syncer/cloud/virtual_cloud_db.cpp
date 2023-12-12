@@ -569,12 +569,17 @@ void VirtualCloudDb::AddAssetIdForExtend(VBucket &record, VBucket &extend)
         }
         if (recordData.second.index() == TYPE_INDEX<Assets>) {
             auto &assets = std::get<Assets>(recordData.second);
-            for (auto &asset : assets) {
-                if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
-                    asset.assetId = "10";
-                }
-            }
+            AddAssetsIdInner(assets);
             extend[recordData.first] = assets;
+        }
+    }
+}
+
+void VirtualCloudDb::AddAssetsIdInner(Assets &assets)
+{
+    for (auto &asset : assets) {
+        if (asset.flag == static_cast<uint32_t>(DistributedDB::AssetOpType::INSERT)) {
+            asset.assetId = "10";
         }
     }
 }
