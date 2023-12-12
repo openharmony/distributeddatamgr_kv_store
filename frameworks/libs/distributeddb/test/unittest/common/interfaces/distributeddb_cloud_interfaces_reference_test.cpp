@@ -845,4 +845,43 @@ namespace {
         tableReferenceProperty.targetTableName = "t3";
         EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), OK);
     }
+
+    /**
+     * @tc.name: SetReferenceTest017
+     * @tc.desc: Test log table is case insensitive in set reference interface
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: zhangshjie
+     */
+    HWTEST_F(DistributedDBCloudInterfacesReferenceTest, SetReferenceTest017, TestSize.Level1)
+    {
+        /**
+         * @tc.steps:step1. prepare table and distributed table
+         * @tc.expected: step1. ok.
+         */
+        std::string sourceTableName = "sourceTable";
+        std::string targetTableName = "targetTable";
+        sqlite3 *db = RelationalTestUtils::CreateDataBase(g_storePath);
+        ASSERT_NE(db, nullptr);
+        std::string sql = "create table " + sourceTableName + "(id int, value text);create table " +
+            targetTableName + "(id int, value text);";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable(sourceTableName, DistributedDB::CLOUD_COOPERATION), OK);
+        EXPECT_EQ(g_delegate->CreateDistributedTable(targetTableName, DistributedDB::CLOUD_COOPERATION), OK);
+        sql = "insert into " + sourceTableName + " values(1, 'zhangsan');";
+        EXPECT_EQ(RelationalTestUtils::ExecSql(db, sql), SQLITE_OK);
+        EXPECT_EQ(sqlite3_close_v2(db), SQLITE_OK);
+
+        /**
+         * @tc.steps:step2. set reference with same table name, but case mismatch
+         * @tc.expected: step2. Return PROPERTY_CHANGED.
+         */
+        TableReferenceProperty tableReferenceProperty;
+        tableReferenceProperty.sourceTableName = "SourceTable";
+        tableReferenceProperty.targetTableName = targetTableName;
+        std::map<std::string, std::string> columns;
+        columns["id"] = "id";
+        tableReferenceProperty.columns = columns;
+        EXPECT_EQ(g_delegate->SetReference({tableReferenceProperty}), PROPERTY_CHANGED);
+    }
 }
