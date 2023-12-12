@@ -1070,7 +1070,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
                 ans.insert_or_assign(i, i);
             }
         }
-    }, {}, {&ans});
+    }, nullptr, &ans);
 
     /**
      * @tc.steps:step2. submit erase map task
@@ -1083,7 +1083,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
                 it = ans.erase(it);
             }
         }
-    }, {}, {&ans});
+    }, nullptr, &ans);
 
     /**
      * @tc.steps:step3. submit get from map task
@@ -1097,7 +1097,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest001, TestSize.Le
                 EXPECT_GE(j, 0);
             }
         }
-    }, {&ans}, {});
+    }, &ans, nullptr);
     ADAPTER_WAIT(h1);
     ADAPTER_WAIT(h2);
     ADAPTER_WAIT(h3);
@@ -1129,7 +1129,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                     ans.insert_or_assign(i, i);
                 }
             }
-        }, {}, {&ans});
+        }, nullptr, &ans);
         ADAPTER_WAIT(hh1);
     });
 
@@ -1145,7 +1145,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                     it = ans.erase(it);
                 }
             }
-        }, {}, {&ans});
+        }, nullptr, &ans);
         ADAPTER_WAIT(hh2);
     });
 
@@ -1162,11 +1162,51 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest002, TestSize.Le
                     EXPECT_GE(j, 0);
                 }
             }
-        }, {&ans}, {});
+        }, &ans, nullptr);
         ADAPTER_WAIT(hh3);
     });
     ADAPTER_WAIT(h1);
     ADAPTER_WAIT(h2);
     ADAPTER_WAIT(h3);
+}
+
+/**
+ * @tc.name: FfrtTest003
+ * @tc.desc: Test ffrt concurrency
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author:
+ */
+HWTEST_F(DistributedDBCloudInterfacesRelationalExtTest, FfrtTest003, TestSize.Level0)
+{
+    size_t count = 0;
+    size_t num = 3000;
+    std::vector<TaskHandle> waitVec;
+
+    /**
+     * @tc.steps:step1. submit increase task
+     * @tc.expected: step1. return ok.
+     */
+    for (size_t j = 0; j < num; j++) {
+        TaskHandle h1 = ConcurrentAdapter::ScheduleTaskH([this, &count, num]() {
+            for (size_t i = 0; i < num; i++) {
+                count++;
+            }
+        }, nullptr, nullptr);
+        waitVec.push_back(h1);
+    }
+    for (const auto &item : waitVec) {
+        ADAPTER_WAIT(item);
+    }
+
+    /**
+     * @tc.steps:step2. check count
+     * @tc.expected: step2. return ok.
+     */
+#ifdef USE_FFRT
+    EXPECT_NE(count, num * num);
+#else
+    EXPECT_EQ(count, num * num);
+#endif
 }
 }
