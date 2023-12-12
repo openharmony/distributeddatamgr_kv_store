@@ -1848,7 +1848,9 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
         errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
         if (errCode != E_OK) {
-            return errCode;
+            LOGW("[RDBStorageEngine] Get wait compensated sync data failed, continue next! errCode = %d", errCode);
+            errCode = E_OK;
+            continue;
         }
         if (!tableReference.empty()) {
             LOGD("[RelationalSyncAbleStorage] current table exist reference property");
