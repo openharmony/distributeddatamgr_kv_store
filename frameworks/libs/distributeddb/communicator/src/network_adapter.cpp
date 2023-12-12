@@ -210,10 +210,12 @@ int NetworkAdapter::SendBytes(const std::string &dstTarget, const uint8_t *bytes
     if (bytes == nullptr || length == 0) {
         return -E_INVALID_ARGS;
     }
-    LOGI("[NAdapt][SendBytes] Enter, to=%s{private}, length=%u", dstTarget.c_str(), length);
+    LOGI("[NAdapt][SendBytes] Enter, to=%s{private}, length=%u, totalLength=%u", dstTarget.c_str(), length,
+        totalLength);
     DeviceInfos dstDevInfo;
     dstDevInfo.identifier = dstTarget;
-    DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length, totalLength);
+    DBStatus errCode = processCommunicator_->SendData(dstDevInfo, bytes, length,
+        totalLength > length ? totalLength : length);
     if (errCode == DBStatus::RATE_LIMIT) {
         LOGD("[NAdapt][SendBytes] rate limit!");
         return -E_WAIT_RETRY;
