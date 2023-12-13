@@ -434,7 +434,6 @@ int SQLiteRelationalStore::CreateDistributedTable(const std::string &tableName, 
     if (!tableInfo.Empty()) {
         bool isSharedTable = tableInfo.GetSharedTableMark();
         if (isSharedTable) {
-            LOGI("[RelationalStore] shared table do not need use CreateDistributedTable.");
             return E_OK; // shared table will create distributed table when use SetCloudDbSchema
         }
     }

@@ -848,13 +848,11 @@ int SQLiteSingleRelationalStorageEngine::DoCreateSharedTable(SQLiteSingleVerRela
         }
         int errCode = handle->CreateSharedTable(tableSchema);
         if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] create shared table failed. %d", errCode);
             return errCode;
         }
         errCode = CreateDistributedSharedTable(handle, tableSchema.name, tableSchema.sharedTableName,
             TableSyncType::CLOUD_COOPERATION, schema);
         if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] create distributed shared table failed. %d", errCode);
             return errCode;
         }
     }
