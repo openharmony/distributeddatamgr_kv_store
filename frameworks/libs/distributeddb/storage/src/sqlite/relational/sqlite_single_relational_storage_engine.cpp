@@ -313,6 +313,9 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
     }
 
     schema.SetTableMode(mode);
+    std::string tableName = table.GetTableName();
+    // update table if tableName changed
+    schema.RemoveRelationalTable(tableName);
     schema.AddRelationalTable(table);
     errCode = SaveSchemaToMetaTable(handle, schema);
     if (errCode != E_OK) {
@@ -320,7 +323,6 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(SQLiteSingleVerR
         return errCode;
     }
 
-    std::string tableName = table.GetTableName();
     errCode = SaveSyncTableTypeAndDropFlagToMeta(handle, tableName, tableSyncType);
     if (errCode != E_OK) {
         LOGE("Save sync table type or drop flag to meta table failed. %d", errCode);

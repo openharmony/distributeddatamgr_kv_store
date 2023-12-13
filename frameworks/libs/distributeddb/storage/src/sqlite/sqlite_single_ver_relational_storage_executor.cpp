@@ -256,6 +256,9 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std:
         return -E_SCHEMA_MISMATCH;
     } else if (errCode == -E_RELATIONAL_TABLE_EQUAL) {
         LOGD("[UpgradeDistributedTable] schema has not changed.");
+        // update table if tableName changed
+        schema.RemoveRelationalTable(tableName);
+        schema.AddRelationalTable(newTableInfo);
         return E_OK;
     }
 
