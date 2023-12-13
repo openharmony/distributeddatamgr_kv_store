@@ -988,7 +988,6 @@ std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorage
     std::map<std::string, std::map<std::string, bool>> reachableWithShared;
     for (const auto &[source, reach] : reachableReference) {
         bool sourceHasNoShared = tableToShared.find(source) == tableToShared.end();
-        const std::string &sourceSharedName = tableToShared.at(source);
         for (const auto &[target, isReach] : reach) {
             // merge two reachable reference
             reachableWithShared[source][target] = isReach;
@@ -996,7 +995,7 @@ std::map<std::string, std::map<std::string, bool>> SQLiteSingleRelationalStorage
                 continue;
             }
             // record shared reachable reference
-            reachableWithShared[sourceSharedName][tableToShared.at(target)] = isReach;
+            reachableWithShared[tableToShared.at(source)][tableToShared.at(target)] = isReach;
         }
     }
     return reachableWithShared;
