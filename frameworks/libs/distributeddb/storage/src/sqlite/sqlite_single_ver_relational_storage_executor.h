@@ -383,8 +383,12 @@ private:
 
     int BindAssetsToBlobStatement(const Assets &assets, int index, sqlite3_stmt *&stmt);
 
+    int GetAssetOnTableInner(sqlite3_stmt *&stmt, Asset &asset);
+
     int GetAssetOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
         Asset &asset);
+
+    int GetAssetsOnTableInner(sqlite3_stmt *&stmt, Assets &assets);
 
     int GetAssetsOnTable(const std::string &tableName, const std::string &fieldName, const int64_t dataKey,
         Assets &assets);

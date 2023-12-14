@@ -1506,6 +1506,29 @@ int SQLiteSingleVerRelationalStorageExecutor::BindAssetsToBlobStatement(const As
     return errCode;
 }
 
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTableInner(sqlite3_stmt *&stmt, Asset &asset)
+{
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
+            return errCode;
+        }
+        errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor] Transfer blob to asset failed, %d", errCode);
+        }
+        return errCode;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        return E_OK;
+    } else {
+        LOGE("[RDBExecutor] Step failed when get asset from table, errCode = %d", errCode);
+    }
+    return errCode;
+}
+
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string &tableName,
     const std::string &fieldName, const int64_t dataKey, Asset &asset)
 {
@@ -1517,31 +1540,33 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetOnTable(const std::string 
         LOGE("Get select asset statement failed, %d", errCode);
         return errCode;
     }
-    do {
-        errCode = SQLiteUtils::StepWithRetry(selectStmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            std::vector<uint8_t> blobValue;
-            errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
-            if (errCode != E_OK) {
-                LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
-                break;
-            }
-            errCode = RuntimeContext::GetInstance()->BlobToAsset(blobValue, asset);
-            if (errCode != E_OK) {
-                LOGE("[RDBExecutor] Transfer blob to asset failed, %d", errCode);
-                break;
-            }
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d", errCode);
-            break;
-        }
-    } while (errCode == E_OK);
+    errCode = GetAssetOnTableInner(selectStmt, asset);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;
+}
+
+int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTableInner(sqlite3_stmt *&stmt, Assets &assets)
+{
+    int errCode = SQLiteUtils::StepWithRetry(stmt);
+    if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        std::vector<uint8_t> blobValue;
+        errCode = SQLiteUtils::GetColumnBlobValue(stmt, 0, blobValue);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
+            return errCode;
+        }
+        errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
+        if (errCode != E_OK) {
+            LOGE("[RDBExecutor] Transfer blob to assets failed, %d", errCode);
+        }
+        return errCode;
+    } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        return E_OK;
+    } else {
+        LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d", errCode);
+    }
+    return errCode;
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string &tableName,
@@ -1555,28 +1580,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string
         LOGE("Get select assets statement failed, %d", errCode);
         return errCode;
     }
-    do {
-        errCode = SQLiteUtils::StepWithRetry(selectStmt);
-        if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
-            std::vector<uint8_t> blobValue;
-            errCode = SQLiteUtils::GetColumnBlobValue(selectStmt, 0, blobValue);
-            if (errCode != E_OK) {
-                LOGE("[RDBExecutor] Get column blob value failed, %d", errCode);
-                break;
-            }
-            errCode = RuntimeContext::GetInstance()->BlobToAssets(blobValue, assets);
-            if (errCode != E_OK) {
-                LOGE("[RDBExecutor] Transfer blob to assets failed, %d", errCode);
-                break;
-            }
-        } else if (errCode == SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
-            errCode = E_OK;
-            break;
-        } else {
-            LOGE("[RDBExecutor] Step failed when get assets from table, errCode = %d", errCode);
-            break;
-        }
-    } while (errCode == E_OK);
+    GetAssetsOnTableInner(selectStmt, assets);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;
