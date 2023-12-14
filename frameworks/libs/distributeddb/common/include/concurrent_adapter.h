@@ -30,13 +30,13 @@ namespace DistributedDB {
 #define ADAPTER_WAIT(x) (void)(x)
 #endif
 using TaskHandle = void *;
-using DependenceList = std::initializer_list<void *>;
+using Dependence = void *;
 class ConcurrentAdapter {
 public:
-    static int ScheduleTask(const TaskAction &action, DependenceList inDeps = {},
-        DependenceList outDeps = {});
-    static TaskHandle ScheduleTaskH(const TaskAction &action, DependenceList inDeps = {},
-        DependenceList outDeps = {});
+    static int ScheduleTask(const TaskAction &action, Dependence inDeps = nullptr,
+        Dependence outDeps = nullptr);
+    static TaskHandle ScheduleTaskH(const TaskAction &action, Dependence inDeps = nullptr,
+        Dependence outDeps = nullptr);
 };
 }
 

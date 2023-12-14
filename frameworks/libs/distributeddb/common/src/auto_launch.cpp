@@ -742,7 +742,7 @@ void AutoLaunch::SetAutoLaunchRequestCallback(const AutoLaunchRequestCallback &c
         } else {
             autoLaunchRequestCallbackMap_.erase(type);
         }
-    }, {}, {&autoLaunchRequestCallbackMap_});
+    }, nullptr, &autoLaunchRequestCallbackMap_);
     ADAPTER_WAIT(handle);
 }
 
@@ -799,7 +799,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
                 return;
             }
             extItemMap_[identifier][userId] = autoLaunchItem;
-        }, {}, {&extItemMap_});
+        }, nullptr, &extItemMap_);
         ADAPTER_WAIT(handle);
         if (isReturn) {
             return;
@@ -813,7 +813,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
             if (extItemMap_[identifier].size() == 0) {
                 extItemMap_.erase(identifier);
             }
-        }, {}, {&extItemMap_});
+        }, nullptr, &extItemMap_);
         ADAPTER_WAIT(handle);
         return;
     }
@@ -822,7 +822,7 @@ void AutoLaunch::AutoLaunchExtTask(const std::string &identifier, const std::str
         extItemMap_[identifier][userId] = autoLaunchItem; // Reassign item to prevent it from being erased
         extItemMap_[identifier][userId].isWriteOpenNotified = false;
         LOGI("[AutoLaunch] AutoLaunchExtTask ok");
-    }, {}, {&extItemMap_});
+    }, nullptr, &extItemMap_);
     ADAPTER_WAIT(handle);
 }
 
@@ -843,7 +843,7 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
                 return;
             }
             autoLaunchItem = extItemMap_[identifier][userId];
-        }, {&extItemMap_}, {});
+        }, &extItemMap_, nullptr);
         ADAPTER_WAIT(handle);
         if (isReturn) {
             return;
@@ -868,7 +868,7 @@ void AutoLaunch::ExtObserverFunc(const KvDBCommitNotifyData &notifyData, const s
             } else {
                 isReturn = true;
             }
-        }, {}, {&extItemMap_});
+        }, nullptr, &extItemMap_);
         ADAPTER_WAIT(handle);
         if (isReturn) {
             return;
@@ -907,7 +907,7 @@ void AutoLaunch::ExtConnectionLifeCycleCallbackTask(const std::string &identifie
             if (extItemMap_[identifier].size() == 0) {
                 extItemMap_.erase(identifier);
             }
-        }, {}, {&extItemMap_});
+        }, nullptr, &extItemMap_);
         ADAPTER_WAIT(handle);
         if (isReturn) {
             return;
@@ -1076,7 +1076,7 @@ int AutoLaunch::ExtAutoLaunchRequestCallBack(const std::string &identifier, Auto
             return errCode;
         }
         return E_OK;
-    }, {&autoLaunchRequestCallbackMap_}, {});
+    }, &autoLaunchRequestCallbackMap_);
     ADAPTER_WAIT(handle);
     return errCode;
 }
@@ -1306,7 +1306,7 @@ int AutoLaunch::RegisterRelationalObserver(AutoLaunchItem &autoLaunchItem, const
                 notifier = extItemMap_[identifier][userId].notifier;
                 isWriteOpenNotified = extItemMap_[identifier][userId].isWriteOpenNotified;
                 extItemMap_[identifier][userId].isWriteOpenNotified = true;
-            }, {}, {&extItemMap_});
+            }, nullptr, &extItemMap_);
             ADAPTER_WAIT(handle);
             if (isReturn) {
                 return;
@@ -1365,7 +1365,7 @@ void AutoLaunch::CloseConnection(DBTypeInner type, const DBProperties &propertie
         if (extItemMap_[identifier].size() == 0) {
             extItemMap_.erase(identifier);
         }
-    }, {}, {&extItemMap_});
+    }, nullptr, &extItemMap_);
     ADAPTER_WAIT(handle);
 }
 
@@ -1440,8 +1440,8 @@ void AutoLaunch::NotifyAutoLaunch(const std::string &userId, AutoLaunchItem &aut
     }
 }
 
-void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string userId, std::string appId,
-    std::string storeId, AutoLaunchItem autoLaunchItem)
+void AutoLaunch::AutoLaunchOnChange(const std::string &changedDevice, std::string &userId, std::string &appId,
+    std::string &storeId, AutoLaunchItem autoLaunchItem)
 {
     RelationalStoreChangedDataImpl data(changedDevice);
     if (autoLaunchItem.propertiesPtr != nullptr) {

@@ -734,7 +734,7 @@ int RelationalSyncAbleStorage::RegisterObserverAction(uint64_t connectionId, con
             dataChangeCallbackMap_[connectionId][observer] = action;
         }
         LOGI("register relational observer ok");
-    }, {}, {&dataChangeCallbackMap_});
+    }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);
     return errCode;
 }
@@ -761,7 +761,7 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
                 errCode = E_OK;
             }
         }
-    }, {}, {&dataChangeCallbackMap_});
+    }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);
     return errCode;
 }
@@ -790,7 +790,7 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
             }
             LOGD("relational observer size = %d", observerCnt);
             DecObjRef(this);
-        }, {&dataChangeCallbackMap_});
+        }, &dataChangeCallbackMap_);
     if (taskErrCode != E_OK) {
         LOGE("TriggerObserverAction scheduletask retCode=%d", taskErrCode);
         DecObjRef(this);
@@ -1325,7 +1325,7 @@ void RelationalSyncAbleStorage::EraseDataChangeCallback(uint64_t connectionId)
             dataChangeCallbackMap_.erase(it);
             LOGI("erase all observer for this delegate.");
         }
-    }, {}, {&dataChangeCallbackMap_});
+    }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);
 }
 

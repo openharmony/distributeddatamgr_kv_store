@@ -16,22 +16,36 @@
 #include "concurrent_adapter.h"
 
 namespace DistributedDB {
-int ConcurrentAdapter::ScheduleTask(const TaskAction &action, DependenceList inDeps,
-    DependenceList outDeps)
+int ConcurrentAdapter::ScheduleTask(const TaskAction &action, Dependence inDeps, Dependence outDeps)
 {
 #ifdef USE_FFRT
-    ffrt::submit(action, { inDeps.begin(), inDeps.end() }, { outDeps.begin(), outDeps.end() });
+    if (inDeps == nullptr && outDeps == nullptr) {
+        ffrt::submit(action);
+    } else if (inDeps == nullptr) {
+        ffrt::submit(action, {}, { outDeps });
+    } else if (outDeps == nullptr) {
+        ffrt::submit(action, { inDeps }, {});
+    } else {
+        ffrt::submit(action, { inDeps }, { outDeps });
+    }
     return E_OK;
 #else
     return RuntimeContext::GetInstance()->ScheduleTask(action);
 #endif
 }
 
-TaskHandle ConcurrentAdapter::ScheduleTaskH(const TaskAction &action, DependenceList inDeps,
-    DependenceList outDeps)
+TaskHandle ConcurrentAdapter::ScheduleTaskH(const TaskAction &action, Dependence inDeps, Dependence outDeps)
 {
 #ifdef USE_FFRT
-    return ffrt::submit_h(action, { inDeps.begin(), inDeps.end() }, { outDeps.begin(), outDeps.end() });
+    if (inDeps == nullptr && outDeps == nullptr) {
+        return ffrt::submit_h(action);
+    } else if (inDeps == nullptr) {
+        return ffrt::submit_h(action, {}, { outDeps });
+    } else if (outDeps == nullptr) {
+        return ffrt::submit_h(action, { inDeps }, {});
+    } else {
+        return ffrt::submit_h(action, { inDeps }, { outDeps });
+    }
 #else
     (void)action();
     return 0;
