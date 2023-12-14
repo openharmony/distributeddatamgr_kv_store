@@ -327,7 +327,7 @@ namespace {
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
             .name = g_tableName1,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName1 + "_shared",
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
@@ -389,7 +389,7 @@ namespace {
         DataBaseSchema dataBaseSchema;
         TableSchema tableSchema = {
             .name = g_tableName1,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName1 + "_shared",
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
@@ -1271,5 +1271,36 @@ namespace {
         InsertCloudTableRecord(0, cloudCount);
         Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
+    }
+    /**
+     * @tc.name: SetCloudDbSchemaTest015
+     * @tc.desc: Test SetCloudDbSchema sharedTableName is ""
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: wangxiangdong
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest015, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. set sharedTableName ""
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = "",
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        /**
+         * @tc.steps:step2. check sharedTable not exist
+         * @tc.expected: step2. return OK
+         */
+         std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
+            "name LIKE 'worker%_shared';";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+        ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
     }
 } // namespace

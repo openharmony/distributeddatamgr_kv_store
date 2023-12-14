@@ -98,6 +98,7 @@ public:
     static std::string GetTableRefUpdateSql(const TableInfo &table, OpType opType);
     static std::string GetLeftJoinLogSql(const std::string &tableName, bool logAsTableA = true);
 
+    static bool IsSharedTable(const TableSchema &tableSchema);
     static bool ChkFillCloudAssetParam(const CloudSyncBatch &data, int errCode);
     static void GetToBeRemoveAssets(const VBucket &vBucket, const AssetOperationUtils::RecordAssetOpType &assetOpType,
         std::vector<Asset> &removeAssets);
