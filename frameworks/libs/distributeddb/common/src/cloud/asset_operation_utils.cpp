@@ -100,16 +100,19 @@ void AssetOperationUtils::FilterDeleteAsset(VBucket &record)
                 item.second = Nil();
                 filterCount++;
             }
-        } else if (item.second.index() == TYPE_INDEX<Assets>) {
-            auto &assets = std::get<Assets>(item.second);
-            auto it = assets.begin();
-            while (it != assets.end()) {
-                if (EraseBitMask(it->status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
-                    it = assets.erase(it);
-                    filterCount++;
-                }
-                it++;
+            continue;
+        }
+        if (item.second.index() != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        auto &assets = std::get<Assets>(item.second);
+        auto it = assets.begin();
+        while (it != assets.end()) {
+            if (EraseBitMask(it->status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+                it = assets.erase(it);
+                filterCount++;
             }
+            it++;
         }
     }
     if (filterCount > 0) {
