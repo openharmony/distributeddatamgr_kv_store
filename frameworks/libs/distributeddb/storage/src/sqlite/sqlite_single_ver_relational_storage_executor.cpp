@@ -40,7 +40,8 @@ static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *HASH_KEY = "HASH_KEY";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
-static constexpr const char *SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
+// set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
+static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(FLAG | 0x02) & (~0x10)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
@@ -2096,7 +2097,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
-    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " + SET_FLAG_LOCAL + ", " +
+    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " +
+        SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
         DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);
