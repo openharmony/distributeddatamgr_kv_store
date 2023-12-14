@@ -285,7 +285,7 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetBeforeUpload, CloudStorageUtils::FillAssetsBeforeUpload);
     } else {
-        if (data.extend.at(index).find(CloudDbConstant::ERROR_FIELD) != data.extend.at(index).end()) {
+        if (DBCommon::IsRecordError(data.extend.at(index))) {
             CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
                 CloudStorageUtils::FillAssetForUploadFailed, CloudStorageUtils::FillAssetsForUploadFailed);
         } else {
