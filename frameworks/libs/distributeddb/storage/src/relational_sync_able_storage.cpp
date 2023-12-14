@@ -1848,7 +1848,7 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         std::map<std::string, std::vector<TableReferenceProperty>> tableReference;
         errCode = RelationalSyncAbleStorage::GetTableReference(table.name, tableReference);
         if (errCode != E_OK) {
-            LOGW("[RDBStorageEngine] Get wait compensated sync data failed, continue next! errCode = %d", errCode);
+            LOGW("[RelationalSyncAbleStorage] Get table reference failed, continue next! errCode = %d", errCode);
             errCode = E_OK;
             continue;
         }
@@ -1860,8 +1860,9 @@ int RelationalSyncAbleStorage::GetCompensatedSyncQueryInner(SQLiteSingleVerRelat
         std::vector<VBucket> syncDataPk;
         errCode = handle->GetWaitCompensatedSyncDataPk(table, syncDataPk);
         if (errCode != E_OK) {
-            LOGE("[RDBStorageEngine] Get wait compensated sync data failed! errCode = %d", errCode);
-            break;
+            LOGW("[GetWaitCompensatedSyncDataPk] Get wait compensated sync date failed, continue! errCode=%d", errCode);
+            errCode = E_OK;
+            continue;
         }
         if (syncDataPk.empty()) {
             // no data need to compensated sync
