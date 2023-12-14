@@ -441,7 +441,8 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
     AssetStatus status = static_cast<AssetStatus>(asset.status);
     switch (flag) {
         case AssetOpType::DELETE: {
-            if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+            if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE) ||
+                AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::ABNORMAL)) {
                 return -E_NOT_FOUND;
             }
             break;

@@ -22,8 +22,7 @@ void TagSingleAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets &
 {
     uint32_t newStatus = static_cast<uint32_t>(status);
     if (flag == AssetOpType::DELETE && status == AssetStatus::DOWNLOADING &&
-        (AssetOperationUtils::EraseBitMask(asset.status) == AssetStatus::ABNORMAL ||
-        asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
+        (asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
         asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
         res.push_back(asset);
         return;
