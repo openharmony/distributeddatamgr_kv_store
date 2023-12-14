@@ -199,8 +199,8 @@ int SaveSyncTableTypeAndDropFlagToMeta(SQLiteSingleVerRelationalStorageExecutor 
 int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::string &tableName,
     const std::string &identity, bool &schemaChanged, TableSyncType syncType, bool trackerSchemaChanged)
 {
-    std::lock_guard lock(schemaMutex_);
-    RelationalSchemaObject schema = schema_;
+    std::lock_guard<std::mutex> autoLock(createDistributedTableMutex_);
+    RelationalSchemaObject schema = GetSchema();
     bool isUpgraded = false;
     if (DBCommon::CaseInsensitiveCompare(schema.GetTable(tableName).GetTableName(), tableName)) {
         LOGI("distributed table bas been created.");
@@ -278,7 +278,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     TableInfo table;
     table.SetTableName(tableName);
     table.SetTableSyncType(tableSyncType);
-    table.SetTrackerTable(trackerSchema_.GetTrackerTable(tableName));
+    table.SetTrackerTable(GetTrackerSchema().GetTrackerTable(tableName));
     if (isUpgraded) {
         table.SetSourceTableReference(schema.GetTable(tableName).GetTableReference());
     }
@@ -295,7 +295,7 @@ int SQLiteSingleRelationalStorageEngine::CreateDistributedTable(const std::strin
     }
     errCode = handle->Commit();
     if (errCode == E_OK) {
-        schema_ = schema;
+        SetSchema(schema);
     }
     return errCode;
 }
@@ -334,7 +334,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
     TableSyncType syncType)
 {
     LOGD("Upgrade distributed table.");
-    RelationalSchemaObject schema = schema_;
+    RelationalSchemaObject schema = GetSchema();
     int errCode = E_OK;
     auto *handle = static_cast<SQLiteSingleVerRelationalStorageExecutor *>(FindExecutor(true, OperatePerm::NORMAL_PERM,
         errCode));
@@ -368,7 +368,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeDistributedTable(const std::stri
 
     errCode = handle->Commit();
     if (errCode == E_OK) {
-        schema_ = schema;
+        SetSchema(schema);
     }
     ReleaseExecutor(handle);
     return errCode;
