@@ -1820,10 +1820,10 @@ int SQLiteSingleVerNaturalStore::TriggerToMigrateData() const
     SQLiteSingleVerStorageEngine *storageEngine = nullptr;
     {
         std::lock_guard<std::shared_mutex> autoLock(engineMutex_);
-        storageEngine = storageEngine_;
-        if (storageEngine == nullptr) {
+        if (storageEngine_ == nullptr) {
             return E_OK;
         }
+        storageEngine = storageEngine_;
         RefObject::IncObjRef(storageEngine);
     }
     RefObject::IncObjRef(this);
