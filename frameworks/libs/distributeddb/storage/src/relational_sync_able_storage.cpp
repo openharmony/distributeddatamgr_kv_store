@@ -1560,7 +1560,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const 
         return { "", -E_INTERNAL_ERROR };
     }
     for (const auto &table : cloudSchema->tables) {
-        if (table.sharedTableName.empty()) {
+        if (CloudStorageUtils::IsSharedTable(table)) {
             continue;
         }
         if (DBCommon::CaseInsensitiveCompare(table.name, tableName) ||
@@ -1586,7 +1586,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSharedTargetTableName(
         return { "", -E_INTERNAL_ERROR };
     }
     for (const auto &table : cloudSchema->tables) {
-        if (table.sharedTableName.empty()) {
+        if (CloudStorageUtils::IsSharedTable(table)) {
             continue;
         }
         if (DBCommon::CaseInsensitiveCompare(table.name, tableName)) {

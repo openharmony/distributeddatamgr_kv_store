@@ -165,7 +165,9 @@ protected:
     std::shared_ptr<VirtualAssetLoader> virtualAssetLoader_ = nullptr;
     std::shared_ptr<RelationalStoreManager> mgr_ = nullptr;
     std::string tableName_ = "DistributedDBCloudCheckSyncTest";
+    std::string tableNameShared_ = "DistributedDBCloudCheckSyncTest_shared";
     std::string tableWithoutPrimaryName_ = "NonPrimaryKeyTable";
+    std::string tableWithoutPrimaryNameShared_ = "NonPrimaryKeyTable_shared";
     std::string lowerTableName_ = "distributeddbCloudCheckSyncTest";
 };
 
@@ -228,12 +230,14 @@ DataBaseSchema DistributedDBCloudCheckSyncTest::GetSchema()
     DataBaseSchema schema;
     TableSchema tableSchema;
     tableSchema.name = tableName_;
+    tableSchema.sharedTableName = tableName_ + "_shared";
     tableSchema.fields = {
         {"id", TYPE_INDEX<std::string>, true}, {"name", TYPE_INDEX<std::string>}, {"height", TYPE_INDEX<double>},
         {"photo", TYPE_INDEX<Bytes>}, {"age", TYPE_INDEX<int64_t>}
     };
     TableSchema tableWithoutPrimaryKeySchema;
     tableWithoutPrimaryKeySchema.name = tableWithoutPrimaryName_;
+    tableWithoutPrimaryKeySchema.sharedTableName = tableWithoutPrimaryNameShared_;
     tableWithoutPrimaryKeySchema.fields = {
         {"id", TYPE_INDEX<std::string>}, {"name", TYPE_INDEX<std::string>}, {"height", TYPE_INDEX<double>},
         {"photo", TYPE_INDEX<Bytes>}, {"age", TYPE_INDEX<int64_t>}

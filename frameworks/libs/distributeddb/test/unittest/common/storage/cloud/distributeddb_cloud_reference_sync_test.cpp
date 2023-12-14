@@ -160,6 +160,7 @@ DataBaseSchema DistributedDBCloudReferenceSyncTest::GetSchema(const std::vector<
     for (const auto &table : tableNames) {
         TableSchema tableSchema;
         tableSchema.name = table;
+        tableSchema.sharedTableName = table + "_shared";
         tableSchema.fields = {
             {"id", TYPE_INDEX<std::string>, true}, {"name", TYPE_INDEX<std::string>}, {"height", TYPE_INDEX<double>},
             {"photo", TYPE_INDEX<Bytes>}, {"age", TYPE_INDEX<int64_t>}

@@ -16,6 +16,7 @@
 #include "param_check_utils.h"
 
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
@@ -251,7 +252,10 @@ bool ParamCheckUtils::CheckSharedTableName(const DataBaseSchema &schema)
     std::set<std::string> tableNames;
     std::set<std::string> sharedTableNames;
     for (const auto &tableSchema : lowerSchema.tables) {
-        if (tableSchema.sharedTableName == tableSchema.name) {
+        if (tableSchema.sharedTableName.empty()) {
+            continue;
+        }
+        if (CloudStorageUtils::IsSharedTable(tableSchema)) {
             LOGE("[CheckSharedTableName] Shared table name and table name are same.");
             return false;
         }

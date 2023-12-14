@@ -2490,7 +2490,7 @@ int SQLiteSingleVerRelationalStorageExecutor::BindHashKeyAndGidToInsertLogStatem
     }
 
     std::string version;
-    if (putDataMode_ == PutDataMode::SYNC && tableSchema.sharedTableName.empty()) {
+    if (putDataMode_ == PutDataMode::SYNC && CloudStorageUtils::IsSharedTable(tableSchema)) {
         errCode = CloudStorageUtils::GetValueFromVBucket<std::string>(CloudDbConstant::VERSION_FIELD, vBucket, version);
         if (errCode != E_OK || version.empty()) {
             LOGE("get version for insert log statement failed, %d", errCode);
@@ -2708,7 +2708,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     }
     // only share table need to set version
-    if (tableSchema.sharedTableName.empty() && opType != OpType::DELETE &&
+    if (CloudStorageUtils::IsSharedTable(tableSchema) && opType != OpType::DELETE &&
         opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
         updateLogSql += ", version = ?";
         updateColName.push_back(CloudDbConstant::VERSION_FIELD);

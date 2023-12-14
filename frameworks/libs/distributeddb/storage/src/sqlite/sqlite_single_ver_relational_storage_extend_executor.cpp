@@ -1424,7 +1424,7 @@ int SQLiteSingleVerRelationalStorageExecutor::OnlyUpdateAssetId(const std::strin
     if (opType != OpType::ONLY_UPDATE_GID && opType != OpType::NOT_HANDLE) {
         return E_OK;
     }
-    if (tableSchema.sharedTableName.empty()) {
+    if (CloudStorageUtils::IsSharedTable(tableSchema)) {
         // this is shared table, not need to update asset id.
         return E_OK;
     }

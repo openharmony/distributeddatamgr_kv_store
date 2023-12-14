@@ -93,10 +93,10 @@ namespace {
         } else {
             field5 = { "image", TYPE_INDEX<Bytes>, false, true };
         }
-        tableSchema = { g_tableName, "", { field1, field2, field3, field4, field5} };
+        tableSchema = { g_tableName, g_tableName + "_shared", { field1, field2, field3, field4, field5} };
         DataBaseSchema dbSchema;
         dbSchema.tables.push_back(tableSchema);
-        tableSchema = { g_assetTableName, "", { field1, field2, field3, field4, field5} };
+        tableSchema = { g_assetTableName, g_assetTableName + "_shared", { field1, field2, field3, field4, field5} };
         dbSchema.tables.push_back(tableSchema);
 
         g_delegate->SetCloudDbSchema(dbSchema);
@@ -498,7 +498,7 @@ namespace {
         TableSchema tableSchema;
         Field field1 = { "name", TYPE_INDEX<std::string>, true, false };
         Field field2 = { "age", TYPE_INDEX<std::string>, ageIsPrimaryKey, false };
-        tableSchema = { g_tableName, "", { field1, field2 } };
+        tableSchema = { g_tableName, g_tableName + "_shared", { field1, field2 } };
 
         DataBaseSchema dbSchema;
         dbSchema.tables = { tableSchema };

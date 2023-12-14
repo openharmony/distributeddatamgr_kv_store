@@ -302,7 +302,7 @@ namespace DistributedDB {
     {
         TableSchema tableSchema = {
             .name = tableName,
-            .sharedTableName = "",
+            .sharedTableName = tableName + "_shared",
             .fields = cloudField
         };
         dataBaseSchema.tables.push_back(tableSchema);
