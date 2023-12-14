@@ -163,7 +163,6 @@ namespace {
 
 SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
     : currentMaxTimestamp_(0),
-      migrateCount_(0),
       storageEngine_(nullptr),
       notificationEventsRegistered_(false),
       notificationConflictEventsRegistered_(false),
@@ -1128,13 +1127,6 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
     }
 
     {
-        std::unique_lock<std::mutex> migrateLock(migrateMutex_);
-        migrateCv_.wait(migrateLock, [this] {
-            return migrateCount_ <= 0;
-        });
-    }
-
-    {
         std::unique_lock<std::shared_mutex> lock(engineMutex_);
         if (storageEngine_ != nullptr) {
             storageEngine_->ClearEnginePasswd();
@@ -1825,20 +1817,22 @@ void SQLiteSingleVerNaturalStore::SetConnectionFlag(bool isExisted) const
 
 int SQLiteSingleVerNaturalStore::TriggerToMigrateData() const
 {
-    RefObject::IncObjRef(this);
+    SQLiteSingleVerStorageEngine *storageEngine = nullptr;
     {
-        std::unique_lock<std::mutex> lock(migrateMutex_);
-        migrateCount_++;
-    }
-    int errCode = RuntimeContext::GetInstance()->ScheduleTask(
-        std::bind(&SQLiteSingleVerNaturalStore::AsyncDataMigration, this));
-    if (errCode != E_OK) {
-        {
-            std::unique_lock<std::mutex> lock(migrateMutex_);
-            migrateCount_--;
+        std::lock_guard<std::shared_mutex> autoLock(engineMutex_);
+        storageEngine = storageEngine_;
+        if (storageEngine == nullptr) {
+            return E_OK;
         }
-        migrateCv_.notify_all();
+        RefObject::IncObjRef(storageEngine);
+    }
+    RefObject::IncObjRef(this);
+    int errCode = RuntimeContext::GetInstance()->ScheduleTask([this, storageEngine]() {
+        AsyncDataMigration(storageEngine);
+    });
+    if (errCode != E_OK) {
         RefObject::DecObjRef(this);
+        RefObject::DecObjRef(storageEngine);
         LOGE("[SingleVerNStore] Trigger to migrate data failed : %d.", errCode);
     }
     return errCode;
@@ -1902,7 +1896,7 @@ uint64_t SQLiteSingleVerNaturalStore::GetAndIncreaseCacheRecordVersion() const
     return storageEngine_->GetAndIncreaseCacheRecordVersion();
 }
 
-void SQLiteSingleVerNaturalStore::AsyncDataMigration() const
+void SQLiteSingleVerNaturalStore::AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const
 {
     // Delay a little time to ensure the completion of the delegate callback
     std::this_thread::sleep_for(std::chrono::milliseconds(WAIT_DELEGATE_CALLBACK_TIME));
@@ -1911,15 +1905,10 @@ void SQLiteSingleVerNaturalStore::AsyncDataMigration() const
         LOGI("Begin to migrate cache data to manDb asynchronously!");
         // we can't use engineMutex_ here, because ExecuteMigration will call GetHandle, it will lead to crash at
         // engineMutex_.lock_shared
-        (void)StorageEngineManager::ExecuteMigration(storageEngine_);
+        (void)StorageEngineManager::ExecuteMigration(storageEngine);
     }
 
-    {
-        std::unique_lock<std::mutex> lock(migrateMutex_);
-        migrateCount_--;
-    }
-    migrateCv_.notify_all();
-
+    RefObject::DecObjRef(storageEngine);
     RefObject::DecObjRef(this);
 }
 

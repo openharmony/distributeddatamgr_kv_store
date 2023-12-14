@@ -23,7 +23,7 @@ class MockSqliteSingleVerNaturalStore : public SQLiteSingleVerNaturalStore {
 public:
     void CallAsyncDataMigration() const
     {
-        SQLiteSingleVerNaturalStore::AsyncDataMigration();
+        SQLiteSingleVerNaturalStore::AsyncDataMigration(nullptr);
     }
 
     void CallReleaseResources()
