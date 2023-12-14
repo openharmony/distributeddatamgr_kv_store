@@ -21,6 +21,7 @@
 #include "db_constant.h"
 #include "db_dfx_adapter.h"
 #include "db_errno.h"
+#include "get_query_info.h"
 #include "kvdb_observer_handle.h"
 #include "kvdb_pragma.h"
 #include "log_print.h"
@@ -42,6 +43,10 @@ RdSingleVerNaturalStoreConnection::~RdSingleVerNaturalStoreConnection()
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Key &keyPrefix,
     std::vector<Entry> &entries) const
 {
+    if (option.dataType != IOption::SYNC_DATA) {
+        LOGE("[RdSingleVerStorageExecutor][GetEntries] IOption only support SYNC_DATA type.");
+        return -E_NOT_SUPPORT;
+    }
     return GetEntriesInner(true, option, keyPrefix, entries);
 }
 
@@ -74,7 +79,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IO
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[RdSingleVerNaturalStoreConnection] Transaction started already.");
-            errCode = writeHandle_->GetEntries(isGetValue, type, keyPrefix, entries);
+            errCode = writeHandle_->GetEntries(KV_SCAN_PREFIX, std::pair<Key, Key>(keyPrefix, {}), entries);
             DBDfxAdapter::FinishTracing();
             return errCode;
         }
@@ -85,8 +90,7 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(bool isGetValue, const IO
         DBDfxAdapter::FinishTracing();
         return errCode;
     }
-
-    errCode = handle->GetEntries(isGetValue, type, keyPrefix, entries);
+    errCode = handle->GetEntries(KV_SCAN_PREFIX, std::pair<Key, Key>(keyPrefix, {}), entries);
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTracing();
     return errCode;
@@ -139,14 +143,13 @@ int RdSingleVerNaturalStoreConnection::GetResultSet(const IOption &option,
     if (naturalStore == nullptr) {
         return -E_INVALID_DB;
     }
-    QueryParam queryParam;
-    int errCode = GetQueryParam(query, queryParam);
+    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
+    int errCode = GetQueryInfo::GetQueryExpression(query).RangeParamCheck();
     if (errCode != E_OK) {
-        LOGE("[RdSingleVerNaturalStoreConnection] GetQueryParam faild");
         return errCode;
     }
     RdSingleVerResultSet *tmpResultSet = new (std::nothrow) RdSingleVerResultSet(naturalStore,
-        queryParam.beginKey, queryParam.endKey, queryParam.kvScanMode);
+        queryExpression.GetBeginKey(), queryExpression.GetEndKey(), KV_SCAN_RANGE);
     if (tmpResultSet == nullptr) {
         LOGE("Create single version result set failed.");
         return -E_OUT_OF_MEMORY;
@@ -295,24 +298,18 @@ int RdSingleVerNaturalStoreConnection::Clear(const IOption &option)
 int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, const Query &query,
     std::vector<Entry> &entries) const
 {
-    QueryParam queryParam;
-    int errCode = GetQueryParam(query, queryParam);
-    if (errCode != E_OK) {
-        LOGE("[RdSingleVerNaturalStoreConnection] GetQueryParam faild");
-        return errCode;
-    }
-    SingleVerDataType type;
-    errCode = CheckOption(option, type);
+    QueryExpression queryExpression = GetQueryInfo::GetQueryExpression(query);
+    int errCode = GetQueryInfo::GetQueryExpression(query).RangeParamCheck();
     if (errCode != E_OK) {
         return errCode;
     }
-
     DBDfxAdapter::StartTracing();
     {
         std::lock_guard<std::mutex> lock(transactionMutex_);
         if (writeHandle_ != nullptr) {
             LOGD("[RdSingleVerNaturalStoreConnection] Transaction started already.");
-            errCode = writeHandle_->GetEntries(queryParam, type, entries);
+            errCode = writeHandle_->GetEntries(KV_SCAN_RANGE, std::pair<Key, Key>(queryExpression.GetBeginKey(),
+                queryExpression.GetEndKey()), entries);
             DBDfxAdapter::FinishTracing();
             return errCode;
         }
@@ -324,7 +321,8 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
         return errCode;
     }
 
-    errCode = handle->GetEntries(queryParam, type, entries);
+    errCode = handle->GetEntries(KV_SCAN_RANGE, std::pair<Key, Key>(queryExpression.GetBeginKey(),
+        queryExpression.GetEndKey()), entries);
     ReleaseExecutor(handle);
     DBDfxAdapter::FinishTracing();
     return errCode;
@@ -332,6 +330,10 @@ int RdSingleVerNaturalStoreConnection::GetEntriesInner(const IOption &option, co
 int RdSingleVerNaturalStoreConnection::GetEntries(const IOption &option, const Query &query,
     std::vector<Entry> &entries) const
 {
+    if (option.dataType != IOption::SYNC_DATA) {
+        LOGE("[RdSingleVerStorageExecutor][GetEntries]unsupported data type");
+        return -E_INVALID_ARGS;
+    }
     return GetEntriesInner(option, query, entries);
 }
 
@@ -340,37 +342,31 @@ int RdSingleVerNaturalStoreConnection::GetCount(const IOption &option, const Que
     return -E_NOT_SUPPORT;
 }
 
-// Get the snapshot
 int RdSingleVerNaturalStoreConnection::GetSnapshot(IKvDBSnapshot *&snapshot) const
 {
     return -E_NOT_SUPPORT;
 }
 
-// Release the created snapshot
 void RdSingleVerNaturalStoreConnection::ReleaseSnapshot(IKvDBSnapshot *&snapshot)
 {
     return;
 }
 
-// Start the transaction
 int RdSingleVerNaturalStoreConnection::StartTransaction()
 {
     return -E_NOT_SUPPORT;
 }
 
-// Commit the transaction
 int RdSingleVerNaturalStoreConnection::Commit()
 {
     return -E_NOT_SUPPORT;
 }
 
-// Roll back the transaction
 int RdSingleVerNaturalStoreConnection::RollBack()
 {
     return -E_NOT_SUPPORT;
 }
 
-// Check if the transaction already started manually
 bool RdSingleVerNaturalStoreConnection::IsTransactionStarted() const
 {
     return false;
