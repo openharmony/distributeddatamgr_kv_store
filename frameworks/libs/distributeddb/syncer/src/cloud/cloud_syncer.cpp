@@ -664,6 +664,7 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
         LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
         return -E_INTERNAL_ERROR;
     }
+    AssetOperationUtils::FilterDeleteAsset(param.downloadData.data[idx]);
     std::map<std::string, Assets> assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo,
         false, ret);
     if (ret != E_OK) {

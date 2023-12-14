@@ -38,6 +38,7 @@ public:
         const VBucket &dbAssets, const CloudSyncAction &action);
     static uint32_t EraseBitMask(uint32_t status);
     static void UpdateAssetsFlag(std::vector<VBucket> &from, std::vector<VBucket> &target);
+    static void FilterDeleteAsset(VBucket &record);
 private:
     static void Init();
     static AssetOperationUtils::AssetOpType DefaultOperation(const Asset &, const Assets &);
