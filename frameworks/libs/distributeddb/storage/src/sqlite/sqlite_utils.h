@@ -164,7 +164,8 @@ public:
     static int CreateSameStuTable(sqlite3 *db, const TableInfo &baseTbl, const std::string &newTableName);
     static int CloneIndexes(sqlite3 *db, const std::string &oriTableName, const std::string &newTableName);
 
-    static int GetRelationalSchema(sqlite3 *db, std::string &schema);
+    static int GetRelationalSchema(sqlite3 *db, std::string &schema,
+        const std::string &key = DBConstant::RELATIONAL_SCHEMA_KEY);
 
     static int GetLogTableVersion(sqlite3 *db, std::string &version);
 #endif
@@ -197,6 +198,8 @@ public:
         ChangeProperties &changeProperties);
 
     static int CheckTableExists(sqlite3 *db, const std::string &tableName, bool &isCreated);
+
+    static int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table);
 
 private:
 

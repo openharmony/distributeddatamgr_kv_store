@@ -399,4 +399,17 @@ int SQLiteRelationalUtils::SelectServerObserver(sqlite3 *db, const std::string &
     }
     return ret == E_OK ? E_OK : ret;
 }
+
+void SQLiteRelationalUtils::AddUpgradeSqlToList(const TableInfo &tableInfo,
+    const std::vector<std::pair<std::string, std::string>> &fieldList, std::vector<std::string> &sqlList)
+{
+    for (const auto &[colName, colType] : fieldList) {
+        auto it = tableInfo.GetFields().find(colName);
+        if (it != tableInfo.GetFields().end()) {
+            continue;
+        }
+        sqlList.push_back("alter table " + tableInfo.GetTableName() + " add " + colName +
+            " " + colType + ";");
+    }
+}
 } // namespace DistributedDB

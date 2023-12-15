@@ -844,8 +844,9 @@ int SetFieldInfo(sqlite3_stmt *statement, TableInfo &table)
     table.AddField(field);
     return E_OK;
 }
+} // end of anonymous namespace for schema analysis
 
-int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table)
+int SQLiteUtils::AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableInfo &table)
 {
     std::string sql = "pragma table_info('" + tableName + "')";
     sqlite3_stmt *statement = nullptr;
@@ -878,7 +879,6 @@ int AnalysisSchemaFieldDefine(sqlite3 *db, const std::string &tableName, TableIn
     SQLiteUtils::ResetStatement(statement, true, errCode);
     return errCode;
 }
-} // end of anonymous namespace for schema analysis
 
 int SQLiteUtils::AnalysisSchema(sqlite3 *db, const std::string &tableName, TableInfo &table, bool caseSensitive)
 {
@@ -1575,7 +1575,7 @@ int SQLiteUtils::CloneIndexes(sqlite3 *db, const std::string &oriTableName, cons
     return errCode;
 }
 
-int SQLiteUtils::GetRelationalSchema(sqlite3 *db, std::string &schema)
+int SQLiteUtils::GetRelationalSchema(sqlite3 *db, std::string &schema, const std::string &key)
 {
     if (db == nullptr) {
         return -E_INVALID_DB;
@@ -1589,7 +1589,7 @@ int SQLiteUtils::GetRelationalSchema(sqlite3 *db, std::string &schema)
     }
 
     Key schemakey;
-    DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, schemakey);
+    DBCommon::StringToVector(key, schemakey);
     errCode = BindBlobToStatement(statement, 1, schemakey, false);
     if (errCode != E_OK) {
         ResetStatement(statement, true, errCode);
