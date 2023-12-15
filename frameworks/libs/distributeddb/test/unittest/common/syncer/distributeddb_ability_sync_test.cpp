@@ -462,7 +462,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
      *     IsSchemaCompatible true
      *
      */
-    EXPECT_EQ(async.RequestRecv(&msg1, context), OK);
+    EXPECT_EQ(async.RequestRecv(&msg1, context), -E_SECURITY_OPTION_CHECK_ERROR);
     EXPECT_TRUE(context->GetRemoteSoftwareVersion() == SOFTWARE_VERSION_CURRENT);
     EXPECT_TRUE(context->GetTaskErrCode() != -E_SCHEMA_MISMATCH);
 
@@ -481,7 +481,7 @@ HWTEST_F(DistributedDBAbilitySyncTest, RequestReceiveTest001, TestSize.Level0)
     packet1.SetSchema("");
     packet1.SetSendCode(E_OK);
     msg1.SetCopiedObject(packet1);
-    EXPECT_EQ(async.RequestRecv(&msg1, context), E_OK);
+    EXPECT_EQ(async.RequestRecv(&msg1, context), -E_SECURITY_OPTION_CHECK_ERROR);
     EXPECT_FALSE(context->GetTaskErrCode() != -E_SCHEMA_MISMATCH);
     RefObject::KillAndDecObjRef(context);
 }

@@ -937,6 +937,32 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck005, TestSize
 }
 
 /**
+ * @tc.name: ComplexReferenceCheck006
+ * @tc.desc: sync with upper table reference
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck006, TestSize.Level1)
+{
+    auto tableName = InitMultiTable(2); // 2 table is alphabet count
+    ASSERT_EQ(delegate_->SetCloudDbSchema(GetSchema(tableName)), DBStatus::OK);
+    std::vector<TableReferenceProperty> tableReferenceProperty;
+    TableReferenceProperty property;
+    property.columns["name"] = "name";
+    for (size_t i = 0; i < tableName.size() - 1; ++i) {
+        property.sourceTableName = tableName[i];
+        property.targetTableName = DBCommon::ToUpperCase(tableName[i + 1]);
+        tableReferenceProperty.push_back(property);
+    }
+    delegate_->SetReference(tableReferenceProperty);
+
+    std::vector<std::string> tableNames = { "table_a" };
+    Query query = Query::Select().FromTable(tableNames);
+    RelationalTestUtils::CloudBlockSync(query, delegate_);
+}
+
+/**
  * @tc.name: SetSharedReference001
  * @tc.desc: test set shared table
  * @tc.type: FUNC

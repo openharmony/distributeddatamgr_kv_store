@@ -408,6 +408,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
         return E_OK;
     });
     virtualCloudDb_->SetHeartbeatError(true);
+    virtualCloudDb_->SetHeartbeatBlockTime(10 * 1000); // 10s * 1000ms
     /**
      * @tc.steps: step2. call sync and wait sync finish
      * @tc.expected: step2. sync failed by heartbeat error
@@ -415,7 +416,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     int callCount = 0;
     EXPECT_EQ(Sync(cloudSyncer, callCount), CLOUD_ERROR);
     RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(callCount, 1);
+    EXPECT_EQ(callCount, 2);
     /**
      * @tc.steps: step3. get cloud lock status and heartbeat count
      * @tc.expected: step3. cloud is unlock and twice heartbeat

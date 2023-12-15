@@ -27,7 +27,8 @@
 #include <set>
 #include <sys/types.h>
 
-#include "cloud_db_types.h"
+#include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "generic_single_ver_kv_entry.h"
@@ -36,6 +37,7 @@
 #include "single_ver_data_packet.h"
 #include "sqlite_relational_utils.h"
 #include "store_observer.h"
+#include "time_helper.h"
 #include "value_hash_calc.h"
 
 using namespace DistributedDB;
@@ -1269,7 +1271,12 @@ int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchem
 {
     LOGD("[RelationalTestUtils] Begin select data");
     int errCode = E_OK;
-    std::string selectSql = "SELECT * FROM " + schema.name;
+    std::string selectSql = "SELECT ";
+    for (const auto &field : schema.fields) {
+        selectSql += field.colName + ",";
+    }
+    selectSql.pop_back();
+    selectSql += " FROM " + schema.name;
     sqlite3_stmt *statement = nullptr;
     errCode = SQLiteUtils::GetStatement(db, selectSql, statement);
     if (errCode != E_OK) {
@@ -1305,7 +1312,7 @@ int RelationalTestUtils::SelectData(sqlite3 *db, const DistributedDB::TableSchem
 }
 
 DistributedDB::Assets RelationalTestUtils::GetAssets(const DistributedDB::Type &value,
-    const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate)
+    const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate, bool isAsset)
 {
     DistributedDB::Assets assets;
     if (value.index() == TYPE_INDEX<Assets>) {
@@ -1314,9 +1321,100 @@ DistributedDB::Assets RelationalTestUtils::GetAssets(const DistributedDB::Type &
     } else if (value.index() == TYPE_INDEX<Asset>) {
         assets.push_back(std::get<Asset>(value));
     } else if (value.index() == TYPE_INDEX<Bytes> && translate != nullptr) {
-        auto tmpAssets = translate->BlobToAssets(std::get<Bytes>(value));
-        assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+        if (isAsset) {
+            auto tmpAsset = translate->BlobToAsset(std::get<Bytes>(value));
+            assets.push_back(tmpAsset);
+        } else {
+            auto tmpAssets = translate->BlobToAssets(std::get<Bytes>(value));
+            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+        }
     }
     return assets;
+}
+
+DistributedDB::DBStatus RelationalTestUtils::InsertCloudRecord(int64_t begin, int64_t count,
+    const std::string &tableName, const std::shared_ptr<DistributedDB::VirtualCloudDb> &cloudDbPtr, int32_t assetCount)
+{
+    if (cloudDbPtr == nullptr) {
+        LOGE("[RelationalTestUtils] Not support insert cloud with null");
+        return DistributedDB::DBStatus::DB_ERROR;
+    }
+    std::vector<VBucket> record;
+    std::vector<VBucket> extend;
+    Timestamp now = DistributedDB::TimeHelper::GetSysCurrentTime();
+    for (int64_t i = begin; i < (begin + count); ++i) {
+        VBucket data;
+        data.insert_or_assign("id", std::to_string(i));
+        data.insert_or_assign("name", "Cloud" + std::to_string(i));
+        Assets assets;
+        std::string assetNameBegin = "Phone" + std::to_string(i);
+        for (int j = 1; j <= assetCount; ++j) {
+            Asset asset;
+            asset.name = assetNameBegin + "_" + std::to_string(j);
+            asset.status = AssetStatus::INSERT;
+            asset.hash = "DEC";
+            assets.push_back(asset);
+        }
+        data.insert_or_assign("assets", assets);
+        record.push_back(data);
+        VBucket log;
+        log.insert_or_assign(DistributedDB::CloudDbConstant::CREATE_FIELD, static_cast<int64_t>(
+            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
+        log.insert_or_assign(DistributedDB::CloudDbConstant::MODIFY_FIELD, static_cast<int64_t>(
+            now / DistributedDB::CloudDbConstant::TEN_THOUSAND));
+        log.insert_or_assign(DistributedDB::CloudDbConstant::DELETE_FIELD, false);
+        extend.push_back(log);
+    }
+    return cloudDbPtr->BatchInsert(tableName, std::move(record), extend);
+}
+
+std::vector<DistributedDB::Assets> RelationalTestUtils::GetAllAssets(sqlite3 *db,
+    const DistributedDB::TableSchema &schema, const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate)
+{
+    std::vector<DistributedDB::Assets> res;
+    if (db == nullptr || translate == nullptr) {
+        LOGW("[RelationalTestUtils] DB or translate is null");
+        return res;
+    }
+    std::vector<VBucket> allData;
+    EXPECT_EQ(RelationalTestUtils::SelectData(db, schema, allData), E_OK);
+    std::map<std::string, int32_t> assetFields;
+    for (const auto &field : schema.fields) {
+        if (field.type != TYPE_INDEX<Asset> && field.type != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        assetFields[field.colName] = field.type;
+    }
+    for (const auto &oneRow : allData) {
+        Assets assets;
+        for (const auto &[col, data] : oneRow) {
+            if (assetFields.find(col) == assetFields.end()) {
+                continue;
+            }
+            auto tmpAssets = GetAssets(data, translate, (assetFields[col] == TYPE_INDEX<Asset>));
+            assets.insert(assets.end(), tmpAssets.begin(), tmpAssets.end());
+        }
+        res.push_back(assets);
+    }
+    return res;
+}
+
+int RelationalTestUtils::GetRecordLog(sqlite3 *db, const std::string &tableName,
+    std::vector<DistributedDB::VBucket> &records)
+{
+    DistributedDB::TableSchema schema;
+    schema.name = DBCommon::GetLogTableName(tableName);
+    Field field;
+    field.type = TYPE_INDEX<int64_t>;
+    field.colName = "data_key";
+    schema.fields.push_back(field);
+    field.colName = "flag";
+    schema.fields.push_back(field);
+    field.colName = "cursor";
+    schema.fields.push_back(field);
+    field.colName = "cloud_gid";
+    field.type = TYPE_INDEX<std::string>;
+    schema.fields.push_back(field);
+    return SelectData(db, schema, records);
 }
 } // namespace DistributedDBUnitTest

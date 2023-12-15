@@ -110,8 +110,9 @@ private:
     int DoAlterSharedTableName(SQLiteSingleVerRelationalStorageExecutor *&handle,
         const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema);
 
-    int DoCreateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle, const DataBaseSchema &cloudSchema,
-        RelationalSchemaObject &schema);
+    int DoCreateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
+        const DataBaseSchema &cloudSchema, const std::map<std::string, std::vector<Field>> &updateTableNames,
+        const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema);
 
     int UpdateKvData(SQLiteSingleVerRelationalStorageExecutor *&handle,
         const std::map<std::string, std::string> &alterTableNames);

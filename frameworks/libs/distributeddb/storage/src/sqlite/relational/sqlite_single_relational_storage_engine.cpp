@@ -733,7 +733,7 @@ int SQLiteSingleRelationalStorageEngine::UpgradeSharedTableInner(SQLiteSingleVer
         LOGE("[RelationalStorageEngine] alter shared table or distributed table failed. %d", errCode);
         return errCode;
     }
-    errCode = DoCreateSharedTable(handle, cloudSchema, schema);
+    errCode = DoCreateSharedTable(handle, cloudSchema, updateTableNames, alterTableNames, schema);
     if (errCode != E_OK) {
         LOGE("[RelationalStorageEngine] create shared table or distributed table failed. %d", errCode);
         return errCode;
@@ -816,7 +816,10 @@ int SQLiteSingleRelationalStorageEngine::DoAlterSharedTableName(SQLiteSingleVerR
         return errCode;
     }
     for (const auto &[oldTableName, newTableName] : alterTableNames) {
-        schema.GetTable(oldTableName).SetTableName(newTableName);
+        TableInfo tableInfo = schema.GetTable(oldTableName);
+        tableInfo.SetTableName(newTableName);
+        schema.AddRelationalTable(tableInfo);
+        schema.RemoveRelationalTable(oldTableName);
     }
     errCode = UpdateKvData(handle, alterTableNames);
     if (errCode != E_OK) {
@@ -826,22 +829,34 @@ int SQLiteSingleRelationalStorageEngine::DoAlterSharedTableName(SQLiteSingleVerR
 }
 
 int SQLiteSingleRelationalStorageEngine::DoCreateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
-    const DataBaseSchema &cloudSchema, RelationalSchemaObject &schema)
+    const DataBaseSchema &cloudSchema, const std::map<std::string, std::vector<Field>> &updateTableNames,
+    const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema)
 {
-    int errCode = handle->CreateSharedTable(cloudSchema);
-    if (errCode != E_OK) {
-        LOGE("[RelationalStorageEngine] create shared table failed. %d", errCode);
-        return errCode;
-    }
     for (auto const &tableSchema : cloudSchema.tables) {
+        if (updateTableNames.find(tableSchema.sharedTableName) != updateTableNames.end()) {
+            continue;
+        }
+        bool isUpdated = false;
+        for (const auto &alterTableName : alterTableNames) {
+            if (alterTableName.second == tableSchema.sharedTableName) {
+                isUpdated = true;
+                break;
+            }
+        }
+        if (isUpdated) {
+            continue;
+        }
+        int errCode = handle->CreateSharedTable(tableSchema);
+        if (errCode != E_OK) {
+            return errCode;
+        }
         errCode = CreateDistributedSharedTable(handle, tableSchema.name, tableSchema.sharedTableName,
             TableSyncType::CLOUD_COOPERATION, schema);
         if (errCode != E_OK) {
-            LOGE("[RelationalStorageEngine] create distributed shared table failed. %d", errCode);
             return errCode;
         }
     }
-    return errCode;
+    return E_OK;
 }
 
 int SQLiteSingleRelationalStorageEngine::UpdateKvData(SQLiteSingleVerRelationalStorageExecutor *&handle,

@@ -270,6 +270,8 @@ private:
         QuerySyncObject &querySyncObject);
 
     void FillQueryInKeys(const std::string &col, const std::vector<Type> &data, size_t valueType, Query &query);
+
+    int CreateTempSyncTriggerInner(SQLiteSingleVerRelationalStorageExecutor *handle, const std::string &tableName);
     // data
     std::shared_ptr<SQLiteSingleRelationalStorageEngine> storageEngine_ = nullptr;
     std::function<void()> onSchemaChanged_;

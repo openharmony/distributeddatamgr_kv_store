@@ -13,18 +13,29 @@
  * limitations under the License.
  */
 #include "cloud/cloud_sync_tag_assets.h"
+#include "cloud/asset_operation_utils.h"
 
 namespace DistributedDB {
 namespace {
 
 void TagSingleAsset(AssetOpType flag, AssetStatus status, Asset &asset, Assets &res, int &errCode)
 {
-    if (asset.status == static_cast<uint32_t>(AssetStatus::DELETE)) {
+    uint32_t newStatus = static_cast<uint32_t>(status);
+    if (flag == AssetOpType::DELETE && status == AssetStatus::DOWNLOADING &&
+        (AssetOperationUtils::EraseBitMask(asset.status) == AssetStatus::ABNORMAL ||
+        asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+        res.push_back(asset);
+        return;
+    }
+    if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+        if (status == AssetStatus::DOWNLOADING) {
+            newStatus = AssetStatus::DELETE;
+        }
         asset.flag = static_cast<uint32_t>(AssetOpType::DELETE);
     } else {
         asset.flag = static_cast<uint32_t>(flag);
     }
-    uint32_t newStatus = static_cast<uint32_t>(status);
     if (flag == AssetOpType::INSERT && status == AssetStatus::DOWNLOADING) {
         newStatus |= AssetStatus::DOWNLOAD_WITH_NULL;
     }
@@ -82,6 +93,16 @@ bool IsDataContainField(const std::string &assetFieldName, const VBucket &data)
     return true;
 }
 
+void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asset &coveredAsset, Assets &res,
+    int &errCode)
+{
+    TagAssetWithNormalStatus(isNormalStatus, (
+        AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::DELETE ||
+        AssetOperationUtils::EraseBitMask(beCoveredAsset.status) == AssetStatus::ABNORMAL ||
+        beCoveredAsset.status == (AssetStatus::DOWNLOADING | DOWNLOAD_WITH_NULL)) ?
+        AssetOpType::INSERT : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
+}
+
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 // use VBucket rather than Type because we need to check whether it is empty
 Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
@@ -119,8 +140,7 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
         if (beCoveredAsset.hash != coveredAsset.hash) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::UPDATE, coveredAsset, res, errCode);
         } else {
-            TagAssetWithNormalStatus(setNormalStatus, beCoveredAsset.status == AssetStatus::DELETE ?
-                AssetOpType::UPDATE : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
+            TagAssetWithSameHash(setNormalStatus, beCoveredAsset, coveredAsset, res, errCode);
         }
         // Erase element which has been handled, remaining element will be set to Insert
         coveredAssetsIndexMap.erase(it);

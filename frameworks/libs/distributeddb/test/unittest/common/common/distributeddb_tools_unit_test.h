@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "cloud/virtual_cloud_db.h"
 #include "db_types.h"
 #include "kv_store_changed_data.h"
 #include "kv_store_delegate_impl.h"
@@ -341,7 +342,12 @@ public:
     static int SelectData(sqlite3 *db, const DistributedDB::TableSchema &schema,
         std::vector<DistributedDB::VBucket> &data);
     static DistributedDB::Assets GetAssets(const DistributedDB::Type &value,
+        const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate, bool isAsset = false);
+    static DistributedDB::DBStatus InsertCloudRecord(int64_t begin, int64_t count, const std::string &tableName,
+        const std::shared_ptr<DistributedDB::VirtualCloudDb> &cloudDbPtr, int32_t assetCount = 1);
+    static std::vector<DistributedDB::Assets> GetAllAssets(sqlite3 *db, const DistributedDB::TableSchema &schema,
         const std::shared_ptr<DistributedDB::ICloudDataTranslate> &translate);
+    static int GetRecordLog(sqlite3 *db, const std::string &tableName, std::vector<DistributedDB::VBucket> &records);
 };
 } // namespace DistributedDBUnitTest
 

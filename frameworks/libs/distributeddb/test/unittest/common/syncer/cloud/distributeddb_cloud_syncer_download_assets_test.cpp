@@ -148,12 +148,11 @@ void GenerateDataRecords(
     }
 }
 
-void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName)
+void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::string &tableName, bool isAssetNull = true)
 {
     int errCode;
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
-    std::vector<uint8_t> assetsBlob;
     GenerateDataRecords(begin, count, 0, record, extend);
     const string sql = "insert or replace into " + tableName + " values (?,?,?,?,?,?);";
     for (VBucket vBucket : record) {
@@ -163,7 +162,12 @@ void InsertLocalData(sqlite3 *&db, int64_t begin, int64_t count, const std::stri
         ASSERT_EQ(SQLiteUtils::BindTextToStatement(stmt, 2, std::get<string>(vBucket[COL_NAME])), E_OK); // 2 is name
         ASSERT_EQ(SQLiteUtils::MapSQLiteErrno(
             sqlite3_bind_double(stmt, 3, std::get<double>(vBucket[COL_HEIGHT]))), E_OK); // 3 is height
-        ASSERT_EQ(sqlite3_bind_null(stmt, 4), SQLITE_OK); // 4 is asset
+        if (isAssetNull) {
+            ASSERT_EQ(sqlite3_bind_null(stmt, 4), SQLITE_OK); // 4 is asset
+        } else {
+            std::vector<uint8_t> assetBlob = g_virtualCloudDataTranslate->AssetToBlob(ASSET_COPY);
+            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 4, assetBlob, false), E_OK); // 4 is asset
+        }
         std::vector<uint8_t> assetsBlob = g_virtualCloudDataTranslate->AssetsToBlob(
             std::get<Assets>(vBucket[COL_ASSETS]));
         ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 5, assetsBlob, false), E_OK); // 5 is assets
@@ -280,6 +284,26 @@ void CheckDownloadFailedForTest002(sqlite3 *&db)
     SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 
+void UpdateAssetsForLocal(sqlite3 *&db, int id, uint32_t status)
+{
+    Assets assets;
+    Asset asset = ASSET_COPY;
+    asset.name = ASSET_COPY.name + std::to_string(id);
+    asset.status = status;
+    assets.emplace_back(asset);
+    asset.name = ASSET_COPY.name + std::to_string(id) + "_copy";
+    assets.emplace_back(asset);
+    int errCode;
+    std::vector<uint8_t> assetBlob;
+    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = " + std::to_string(id);
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
+    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
 void CloseDb()
 {
     delete g_observer;
@@ -301,6 +325,7 @@ class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
     void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
         const std::set<int> &failIndex);
     void CheckLocalAssetIsEmpty(const std::string &tableName);
+    void CheckCursorData(const std::string &tableName, int begin);
     sqlite3 *db = nullptr;
 };
 
@@ -386,6 +411,23 @@ void DistributedDBCloudSyncerDownloadAssetsTest::CheckLocalAssetIsEmpty(const st
     ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
     while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
         ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_NULL);
+    }
+    int errCode = E_OK;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
+}
+
+void DistributedDBCloudSyncerDownloadAssetsTest::CheckCursorData(const std::string &tableName, int begin)
+{
+    std::string logTableName = DBCommon::GetLogTableName(tableName);
+    std::string sql = "SELECT cursor FROM " + logTableName + ";";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) != SQLiteUtils::MapSQLiteErrno(SQLITE_DONE)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_INTEGER);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        EXPECT_EQ(std::get<int64_t>(cloudValue), begin);
+        begin++;
     }
     int errCode = E_OK;
     SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -965,6 +1007,32 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId016, TestSize.Le
 }
 
 /**
+ * @tc.name: FillAssetId017
+ * @tc.desc: Test cursor when download not change
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert data and sync,check cursor.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 20;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME, false);
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckCursorData(ASSETS_TABLE_NAME, 0);
+
+    /**
+     * @tc.steps:step2. sync again and optype is not change, check cursor.
+     * @tc.expected: step2. return OK.
+     */
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckCursorData(ASSETS_TABLE_NAME, localCount);
+}
+
+/**
  * @tc.name: DownloadAssetForDupDataTest002
  * @tc.desc: Test download failed
  * @tc.type: FUNC
@@ -1021,8 +1089,8 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
         .WillRepeatedly(
             [&](const std::string &, const std::string &gid, const Type &, std::map<std::string, Assets> &assets) {
                 LOGD("Download GID:%s, index:%d", gid.c_str(), ++index);
-                for (auto &[key, value] : assets) {
-                    for (auto &asset : value) {
+                for (auto &item : assets) {
+                    for (auto &asset : item.second) {
                         asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
                     }
                 }
@@ -1070,31 +1138,60 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest
      * @tc.steps:step2. insert local data, update assets status to delete, then insert cloud data
      * @tc.expected: step2. return OK
      */
-    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME);
-    Assets assets;
-    Asset asset = ASSET_COPY;
-    asset.name = ASSET_COPY.name + std::to_string(1);
-    asset.status = AssetStatus::DELETE;
-    assets.emplace_back(asset);
-    asset.name = ASSET_COPY.name + std::to_string(1) + "_copy";
-    assets.emplace_back(asset);
-    int errCode;
-    std::vector<uint8_t> assetBlob;
-    const string sql = "update " + ASSETS_TABLE_NAME + " set assets=? where id = 1;";
-    sqlite3_stmt *stmt = nullptr;
-    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
-    assetBlob = g_virtualCloudDataTranslate->AssetsToBlob(assets);
-    ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
-    EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
-    SQLiteUtils::ResetStatement(stmt, true, errCode);
-    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME);
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME); // 10 is num
+    UpdateAssetsForLocal(db, 1, AssetStatus::DELETE); // 1 is id
+    UpdateAssetsForLocal(db, 2, AssetStatus::DELETE | AssetStatus::UPLOADING); // 2 is id
+    InsertCloudDBData(0, 10, 0, ASSETS_TABLE_NAME); // 10 is num
 
     /**
      * @tc.steps:step3. sync, check download num
      * @tc.expected: step3. return OK
      */
     CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
-    EXPECT_GE(index, 2); // 2 is download num
+    EXPECT_GE(index, 4); // 4 is download num
+}
+
+/**
+ * @tc.name: DownloadAssetForDupDataTest005
+ * @tc.desc: test DOWNLOADING status of asset after uploading
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: bty
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, DownloadAssetForDupDataTest005, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. init data and sync
+     * @tc.expected: step1. return OK
+     */
+    InsertLocalData(db, 0, 10, ASSETS_TABLE_NAME); // 10 is num
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    UpdateAssetsForLocal(db, 6,  AssetStatus::DOWNLOADING); // 6 is id
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+
+    /**
+     * @tc.steps:step2. check asset status
+     * @tc.expected: step2. return OK
+     */
+    std::string sql = "SELECT assets from " + ASSETS_TABLE_NAME + " where id = 6;";
+    sqlite3_stmt *stmt = nullptr;
+    ASSERT_EQ(SQLiteUtils::GetStatement(db, sql, stmt), E_OK);
+    while (SQLiteUtils::StepWithRetry(stmt) == SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
+        ASSERT_EQ(sqlite3_column_type(stmt, 0), SQLITE_BLOB);
+        Type cloudValue;
+        ASSERT_EQ(SQLiteRelationalUtils::GetCloudValueByType(stmt, TYPE_INDEX<Assets>, 0, cloudValue), E_OK);
+        std::vector<uint8_t> assetsBlob;
+        Assets assets;
+        ASSERT_EQ(CloudStorageUtils::GetValueFromOneField(cloudValue, assetsBlob), E_OK);
+        ASSERT_EQ(RuntimeContext::GetInstance()->BlobToAssets(assetsBlob, assets), E_OK);
+        ASSERT_EQ(assets.size(), 2u); // 2 is asset num
+        for (size_t i = 0; i < assets.size(); ++i) {
+            EXPECT_EQ(assets[i].hash, ASSET_COPY.hash);
+            EXPECT_EQ(assets[i].status, AssetStatus::NORMAL);
+        }
+    }
+    int errCode;
+    SQLiteUtils::ResetStatement(stmt, true, errCode);
 }
 } // namespace
 #endif // RELATIONAL_STORE

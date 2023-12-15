@@ -218,7 +218,7 @@ int SQLiteUtils::GetStatement(sqlite3 *db, const std::string &sql, sqlite3_stmt 
     }
     int errCode = sqlite3_prepare_v2(db, sql.c_str(), NO_SIZE_LIMIT, &statement, nullptr);
     if (errCode != SQLITE_OK) {
-        LOGE("Prepare SQLite statement failed:%d", errCode);
+        LOGE("Prepare SQLite statement failed:%d, sys:%d", errCode, errno);
         errCode = SQLiteUtils::MapSQLiteErrno(errCode);
         SQLiteUtils::ResetStatement(statement, true, errCode);
         return errCode;

@@ -120,6 +120,7 @@ namespace {
         void CheckSharedTable(const std::vector<std::string> &expectedTableName);
         void CheckDistributedSharedTable(const std::vector<std::string> &expectedTableName);
         void InsertLocalSharedTableRecords(int64_t begin, int64_t count, const std::string &tableName);
+        void InsertCloudTableRecord(int64_t begin, int64_t count);
         void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK);
         void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
         void CloseDb();
@@ -230,6 +231,32 @@ namespace {
             int errCode;
             SQLiteUtils::ResetStatement(stmt, true, errCode);
         }
+    }
+
+    void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertCloudTableRecord(int64_t begin, int64_t count)
+    {
+        std::vector<uint8_t> photo(1, 'v');
+        std::vector<VBucket> record;
+        std::vector<VBucket> extend;
+        Timestamp now = TimeHelper::GetSysCurrentTime();
+        for (int64_t i = begin; i < begin + count; ++i) {
+            VBucket data;
+            data.insert_or_assign("cloud_owner", "ownerA");
+            data.insert_or_assign("cloud_privilege", "true");
+            data.insert_or_assign("id", i);
+            data.insert_or_assign("name", "Cloud" + std::to_string(i));
+            data.insert_or_assign("height", 166.0); // 166.0 is random double value
+            data.insert_or_assign("married", false);
+            data.insert_or_assign("photo", photo);
+            record.push_back(data);
+            VBucket log;
+            log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+            log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
+            log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+            extend.push_back(log);
+        }
+        ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_sharedTableName1, std::move(record), extend), DBStatus::OK);
+        std::this_thread::sleep_for(std::chrono::milliseconds(count));
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::BlockSync(const Query &query,
@@ -1165,5 +1192,84 @@ namespace {
         }
         int errCode;
         SQLiteUtils::ResetStatement(stmt, true, errCode);
+    }
+
+    /**
+     * @tc.name: SharedTableSync004
+     * @tc.desc: Test sharedtable sync when alter shared table name
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync004, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use set shared table
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName1});
+
+        /**
+         * @tc.steps:step2. insert local shared table records and alter shared table name then sync
+         * @tc.expected: step2. return OK
+         */
+        InsertLocalSharedTableRecords(0, 10, g_sharedTableName1);
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName5,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName5});
+        Query query = Query::Select().FromTable({ g_sharedTableName5 });
+        BlockSync(query, g_delegate);
+        CheckCloudTableCount(g_sharedTableName5, 10);
+    }
+
+    /**
+     * @tc.name: SharedTableSync005
+     * @tc.desc: Test sharedtable sync when version is empty
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync005, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use set shared table
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. insert cloud shared table records and version is empty
+         * @tc.expected: step2. return OK
+         */
+        g_virtualCloudDb->ForkUpload([](const std::string &tableName, VBucket &extend) {
+            if (extend.find(CloudDbConstant::VERSION_FIELD) != extend.end()) {
+                extend[CloudDbConstant::VERSION_FIELD] = "";
+            }
+        });
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount);
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
     }
 } // namespace

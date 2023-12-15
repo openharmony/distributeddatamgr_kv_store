@@ -16,6 +16,7 @@
 #include "cloud/cloud_storage_utils.h"
 #include <set>
 
+#include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "runtime_context.h"
@@ -434,11 +435,17 @@ Type CloudStorageUtils::GetAssetFromAssets(Type &value)
     return Nil();
 }
 
-void CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
+int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     AssetStatus status = static_cast<AssetStatus>(asset.status);
     switch (flag) {
+        case AssetOpType::DELETE: {
+            if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+                return -E_NOT_FOUND;
+            }
+            break;
+        }
         case AssetOpType::INSERT: {
             if (status != AssetStatus::NORMAL) {
                 asset.hash = std::string("");
@@ -448,6 +455,7 @@ void CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
         default:
             break;
     }
+    return E_OK;
 }
 
 int CloudStorageUtils::FillAssetAfterDownload(Asset &asset, Asset &dbAsset,
@@ -488,7 +496,8 @@ int CloudStorageUtils::FillAssetForUpload(Asset &asset, Asset &dbAsset, AssetOpe
     dbAsset = asset;
     switch (StatusToFlag(status)) {
         case AssetOpType::INSERT:
-        case AssetOpType::UPDATE: {
+        case AssetOpType::UPDATE:
+        case AssetOpType::NO_CHANGE: {
             dbAsset.status = static_cast<uint32_t>(AssetStatus::NORMAL);
             break;
         }
@@ -519,9 +528,9 @@ int CloudStorageUtils::FillAssetBeforeUpload(Asset &asset, Asset &dbAsset, Asset
         case AssetOpType::INSERT:
         case AssetOpType::UPDATE:
         case AssetOpType::DELETE:
+        case AssetOpType::NO_CHANGE:
             dbAsset.status |= static_cast<uint32_t>(AssetStatus::UPLOADING);
             break;
-        case AssetOpType::NO_CHANGE:
         default:
             break;
     }
@@ -535,7 +544,7 @@ void CloudStorageUtils::FillAssetsBeforeUpload(Assets &assets, Assets &dbAssets,
     MergeAssetWithFillFunc(assets, dbAssets, assetOpTypeMap, FillAssetBeforeUpload);
 }
 
-void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<void(Asset &)> fillAsset)
+void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::function<int(Asset &)> fillAsset)
 {
     for (auto &item: vBucket) {
         if (IsAsset(item.second)) {
@@ -546,8 +555,8 @@ void CloudStorageUtils::PrepareToFillAssetFromVBucket(VBucket &vBucket, std::fun
         } else if (IsAssets(item.second)) {
             Assets assets;
             GetValueFromType(item.second, assets);
-            for (auto &asset: assets) {
-                fillAsset(asset);
+            for (auto it = assets.begin(); it != assets.end();) {
+                fillAsset(*it) == -E_NOT_FOUND ? it = assets.erase(it) : ++it;
             }
             vBucket[item.first] = assets;
         }
