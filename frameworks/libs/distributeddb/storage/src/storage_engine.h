@@ -35,10 +35,10 @@ struct StorageEngineAttr {
     uint32_t maxReadNum = 1;
 };
 
-class StorageEngine {
+class StorageEngine : public RefObject {
 public:
     StorageEngine();
-    virtual ~StorageEngine();
+    ~StorageEngine() override;
 
     // Delete the copy and assign constructors
     DISABLE_COPY_ASSIGN_MOVE(StorageEngine);

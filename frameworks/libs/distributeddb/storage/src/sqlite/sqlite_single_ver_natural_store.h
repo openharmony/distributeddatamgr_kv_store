@@ -198,7 +198,7 @@ public:
     int TryHandle() const override;
 
 protected:
-    void AsyncDataMigration() const;
+    void AsyncDataMigration(SQLiteSingleVerStorageEngine *storageEngine) const;
 
     void ReleaseResources();
 
@@ -279,9 +279,6 @@ private:
     Timestamp currentMaxTimestamp_ = 0;
 
     mutable std::shared_mutex engineMutex_;
-    mutable std::mutex migrateMutex_;
-    mutable std::condition_variable migrateCv_;
-    mutable int migrateCount_;
     SQLiteSingleVerStorageEngine *storageEngine_;
 
     bool notificationEventsRegistered_;

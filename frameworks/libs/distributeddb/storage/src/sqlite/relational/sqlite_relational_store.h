@@ -171,6 +171,8 @@ private:
 
     int CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records);
 
+    int InitSQLiteStorageEngine(const RelationalDBProperties &properties);
+
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
     // use for sync Interactive

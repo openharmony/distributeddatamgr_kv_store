@@ -297,7 +297,7 @@ int StorageEngineManager::ReleaseEngine(StorageEngine *releaseEngine)
         return -E_INVALID_ARGS;
     }
 
-    delete releaseEngine;
+    RefObject::KillAndDecObjRef(releaseEngine);
     return E_OK;
 }
 
