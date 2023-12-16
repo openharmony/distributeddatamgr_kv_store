@@ -317,15 +317,16 @@ int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &ta
         }
         errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
         if (errCode != E_OK) {
-            return errCode;
+            break;
         }
         errCode = storageProxy_->UpdateRecordFlag(tableName, gid, recordConflict);
         if (errCode != E_OK) {
-            return errCode;
+            break;
         }
         successCount++;
     }
-    return storageProxy_->SetLogTriggerStatus(true);
+    int ret = storageProxy_->SetLogTriggerStatus(true);
+    return errCode == E_OK ? ret : errCode;
 }
 
 void CloudSyncer::GenerateCompensatedSync()
