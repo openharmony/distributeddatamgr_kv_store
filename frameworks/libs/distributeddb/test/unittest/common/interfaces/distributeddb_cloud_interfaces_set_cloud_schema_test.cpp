@@ -1297,7 +1297,7 @@ namespace {
          * @tc.steps:step2. check sharedTable not exist
          * @tc.expected: step2. return OK
          */
-         std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
+        std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
             "name LIKE 'worker%_shared';";
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);

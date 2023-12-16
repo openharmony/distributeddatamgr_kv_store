@@ -1050,7 +1050,7 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
     }
     // delete, update and create shared table and its distributed table
     DataBaseSchema sharedSchema;
-    for (auto const &tableSchema : schema.tables){
+    for (auto const &tableSchema : schema.tables) {
         if (!tableSchema.sharedTableName.empty()) {
             sharedSchema.tables.push_back(tableSchema);
         }
@@ -1442,7 +1442,8 @@ int SQLiteRelationalStore::CheckParamForUpsertData(RecordStatus status, const st
     return CheckSchemaForUpsertData(tableName, records);
 }
 
-static int ChkTable(const TableInfo table){
+static int ChkTable(const TableInfo table)
+{
     if (table.IsNoPkTable() || table.GetSharedTableMark()) {
         LOGE("[RelationalStore][ChkTable] not support table without pk or with tablemark");
         return -E_NOT_SUPPORT;

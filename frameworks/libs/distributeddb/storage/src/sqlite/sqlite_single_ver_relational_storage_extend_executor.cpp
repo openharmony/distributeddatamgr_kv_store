@@ -1576,7 +1576,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string
         LOGE("Get select assets statement failed, %d", errCode);
         return errCode;
     }
-    GetAssetsOnTableInner(selectStmt, assets);
+    errCode = GetAssetsOnTableInner(selectStmt, assets);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;

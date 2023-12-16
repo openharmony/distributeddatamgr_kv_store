@@ -727,7 +727,7 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
 
 bool CloudStorageUtils::IsSharedTable(const TableSchema &tableSchema)
 {
-    if(tableSchema.sharedTableName == tableSchema.name){
+    if (tableSchema.sharedTableName == tableSchema.name) {
         return true;
     }
     return false;
