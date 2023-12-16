@@ -477,9 +477,15 @@ int CloudSyncer::HandleDownloadResult(bool recordConflict, const std::string &ta
     }
     errCode = CommitDownloadAssets(recordConflict, tableName, commitList, successCount);
     if (errCode != E_OK) {
-        LOGE("[CloudSyncer] commit download assets failed %d", errCode);
         successCount = 0;
-        (void)storageProxy_->Rollback();
+        int ret = E_OK;
+        if (errCode == -E_REMOVE_ASSETS_FAILED) {
+            // remove assets failed no effect to asset status, just commit
+            ret = storageProxy_->Commit();
+        } else {
+            ret = storageProxy_->Rollback();
+        }
+        LOGE("[CloudSyncer] commit download assets failed %d commit/rollback ret %d", errCode, ret);
         return errCode;
     }
     errCode = storageProxy_->Commit();
