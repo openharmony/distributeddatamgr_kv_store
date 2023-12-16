@@ -262,12 +262,15 @@ int SQLiteRelationalStore::Open(const RelationalDBProperties &properties)
         LOGD("[RelationalStore][Open] relational db was already initialized.");
         return E_OK;
     }
-
-    sqliteStorageEngine_ = std::make_shared<SQLiteSingleRelationalStorageEngine>(properties);
-    if (sqliteStorageEngine_ == nullptr) {
+    auto engine = new(std::nothrow) SQLiteSingleRelationalStorageEngine(properties);
+    if (engine == nullptr) {
         LOGE("[RelationalStore][Open] Create storage engine failed");
         return -E_OUT_OF_MEMORY;
     }
+    sqliteStorageEngine_ = std::shared_ptr<SQLiteSingleRelationalStorageEngine>(engine,
+        [](SQLiteSingleRelationalStorageEngine *releaseEngine) {
+        RefObject::KillAndDecObjRef(releaseEngine);
+    });
 
     int errCode = E_OK;
     do {
