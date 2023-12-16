@@ -439,10 +439,12 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     AssetStatus status = static_cast<AssetStatus>(asset.status);
+    uint32_t lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
     switch (flag) {
         case AssetOpType::DELETE: {
-            if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE) ||
-                AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+            // these asset no need to download, just remove before download
+            if (lowStatus == static_cast<uint32_t>(AssetStatus::DELETE) ||
+                lowStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
                 (asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
                 return -E_NOT_FOUND;
             }
