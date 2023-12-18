@@ -93,9 +93,9 @@ namespace {
     "asserts BLOB," \
     "age INT);";
     const std::vector<Field> g_cloudFiled1 = {
-        {"Name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
-        {"MArried", TYPE_INDEX<bool>}, {"photo", TYPE_INDEX<Bytes>, false, false},
-        {"Assert", TYPE_INDEX<Asset>}, {"age", TYPE_INDEX<int64_t>}
+        {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
+        {"married", TYPE_INDEX<bool>}, {"photo", TYPE_INDEX<Bytes>, false, false},
+        {"assert", TYPE_INDEX<Asset>}, {"age", TYPE_INDEX<int64_t>}
     };
     const std::vector<Field> g_invalidCloudFiled1 = {
         {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<int>},

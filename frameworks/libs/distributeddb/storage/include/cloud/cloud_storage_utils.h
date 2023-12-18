@@ -141,8 +141,6 @@ public:
 
     static int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
         CollateType collateType, std::vector<uint8_t> &hashValue);
-
-    static void TransferSchemaFieldToLower(TableSchema &tableSchema);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H
