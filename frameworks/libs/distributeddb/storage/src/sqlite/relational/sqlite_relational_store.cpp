@@ -1442,7 +1442,7 @@ int SQLiteRelationalStore::CheckParamForUpsertData(RecordStatus status, const st
     return CheckSchemaForUpsertData(tableName, records);
 }
 
-static int ChkTable(const TableInfo table)
+static int ChkTable(const TableInfo &table)
 {
     if (table.IsNoPkTable() || table.GetSharedTableMark()) {
         LOGE("[RelationalStore][ChkTable] not support table without pk or with tablemark");
