@@ -17,9 +17,10 @@
 #define SQLITE_RELATIONAL_UTILS_H
 
 #include <vector>
-#include "sqlite_import.h"
-#include "data_value.h"
 #include "cloud/cloud_store_types.h"
+#include "data_value.h"
+#include "sqlite_import.h"
+#include "table_info.h"
 
 namespace DistributedDB {
 class SQLiteRelationalUtils {
@@ -41,6 +42,9 @@ public:
     static bool GetDbFileName(sqlite3 *db, std::string &fileName);
 
     static int SelectServerObserver(sqlite3 *db, const std::string &tableName, bool isChanged);
+
+    static void AddUpgradeSqlToList(const TableInfo &tableInfo,
+        const std::vector<std::pair<std::string, std::string>> &fieldList, std::vector<std::string> &sqlList);
 private:
     static int BindExtendStatementByType(sqlite3_stmt *statement, int cid, Type &typeVal);
 

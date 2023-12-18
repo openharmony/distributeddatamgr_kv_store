@@ -318,7 +318,7 @@ int RelationalSchemaObject::ParseFromTrackerSchemaString(const std::string &inSc
 
     errCode = ParseTrackerSchema(schemaObj);
     if (errCode != E_OK) {
-        LOGE("[RelationalSchema][Parse] Parse to relational schema failed: %d.", errCode);
+        LOGE("[RelationalSchema][Parse] Parse to tracker schema failed: %d.", errCode);
         return errCode;
     }
 

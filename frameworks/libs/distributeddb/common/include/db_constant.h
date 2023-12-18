@@ -161,6 +161,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_3 = "3.0";
     static constexpr const char *LOG_TABLE_VERSION_4 = "4.0";
     static constexpr const char *LOG_TABLE_VERSION_5 = "5.0";
+    static constexpr const char *LOG_TABLE_VERSION_5_1 = "5.01";
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;

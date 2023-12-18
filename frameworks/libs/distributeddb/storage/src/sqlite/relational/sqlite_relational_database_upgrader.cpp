@@ -15,10 +15,12 @@
 
 #include "sqlite_relational_database_upgrader.h"
 
+#include "db_common.h"
 #include "db_constant.h"
 #include "db_errno.h"
-#include "relational_schema_object.h"
 #include "log_table_manager_factory.h"
+#include "relational_schema_object.h"
+#include "sqlite_relational_utils.h"
 
 namespace DistributedDB {
 SqliteRelationalDatabaseUpgrader::SqliteRelationalDatabaseUpgrader(sqlite3 *db)
@@ -104,31 +106,25 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     RelationalSchemaObject schemaObject;
     errCode = schemaObject.ParseFromSchemaString(schemaDefine);
     if (errCode != E_OK) {
-        LOGE("[Relational][Upgrade] Parse to relational schema failed.", errCode);
+        LOGE("[Relational][Upgrade] Parse to relational schema failed. err:%d", errCode);
         return errCode;
     }
 
-    DistributedTableMode mode = schemaObject.GetTableMode();
-    for (const auto &[tableName, tableInfo] : schemaObject.GetTables()) {
-        std::string dropTriggerSql = "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
-            "_ON_UPDATE;";
-        dropTriggerSql += "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
-            "_ON_INSERT;";
-        dropTriggerSql += "DROP TRIGGER IF EXISTS " + DBConstant::SYSTEM_TABLE_PREFIX + tableName +
-            "_ON_DELETE;";
-        errCode = SQLiteUtils::ExecuteRawSQL(db_, dropTriggerSql);
+    std::string trackerSchemaDefine;
+    RelationalSchemaObject trackerSchemaObject;
+    errCode = SQLiteUtils::GetRelationalSchema(db_, trackerSchemaDefine, DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY);
+    if (errCode == E_OK) {
+        errCode = trackerSchemaObject.ParseFromTrackerSchemaString(trackerSchemaDefine);
         if (errCode != E_OK) {
-            LOGE("[Relational][Upgrade] drop trigger failed.", errCode);
+            LOGE("[Relational][Upgrade] Parse to tracker schema failed. err:%d", errCode);
             return errCode;
         }
-        auto manager = LogTableManagerFactory::GetTableManager(mode, tableInfo.GetTableSyncType());
-        errCode = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
-        if (errCode != E_OK) {
-            LOGE("[Relational][Upgrade] recreate trigger failed.", errCode);
-            return errCode;
-        }
+    } else if (errCode != -E_NOT_FOUND) {
+        LOGW("[Relational][Upgrade] Get tracker schema from meta return. err:%d", errCode);
+        return errCode;
     }
-    return E_OK;
+
+    return UpgradeTriggerBaseOnSchema(schemaObject, trackerSchemaObject);
 }
 
 static bool inline NeedUpdateLogTable(const std::string &logTableVersion)
@@ -154,33 +150,78 @@ int SqliteRelationalDatabaseUpgrader::UpgradeLogTable(const std::string &logTabl
     RelationalSchemaObject schemaObject;
     errCode = schemaObject.ParseFromSchemaString(schemaDefine);
     if (errCode != E_OK) {
-        LOGE("[Relational][UpgradeLogTable] Parse to relational schema failed.", errCode);
+        LOGE("[Relational][UpgradeLogTable] Parse to relational schema failed. %d", errCode);
         return errCode;
     }
 
     for (const auto &item : schemaObject.GetTables()) {
-        std::vector<std::string> addColSqlVec;
-        if (logTableVersion < DBConstant::LOG_TABLE_VERSION_3) {
-            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add cloud_gid text;");
+        std::string logName = DBCommon::GetLogTableName(item.first);
+        errCode = UpgradeLogBaseOnVersion(logTableVersion, logName);
+        if (errCode != E_OK) {
+            return errCode;
         }
-        if (logTableVersion < DBConstant::LOG_TABLE_VERSION_5) {
-            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add extend_field blob;");
-            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add cursor int;");
-            addColSqlVec.push_back("alter table " + DBConstant::RELATIONAL_PREFIX + item.first +
-                "_log add version int;");
+    }
+    LOGI("[Relational][UpgradeLogTable] success, ver:%s to ver:%s", logTableVersion.c_str(),
+        DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+    return E_OK;
+}
+
+int SqliteRelationalDatabaseUpgrader::UpgradeLogBaseOnVersion(const std::string &oldVersion,
+    const std::string &logName)
+{
+    TableInfo tableInfo;
+    int errCode = SQLiteUtils::AnalysisSchemaFieldDefine(db_, logName, tableInfo);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    tableInfo.SetTableName(logName);
+    std::vector<std::string> addColSqlVec;
+    if (oldVersion < DBConstant::LOG_TABLE_VERSION_3) {
+        SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "cloud_gid", "text" } }, addColSqlVec);
+    }
+    if (oldVersion < DBConstant::LOG_TABLE_VERSION_5_1) {
+        SQLiteRelationalUtils::AddUpgradeSqlToList(tableInfo, { { "extend_field", "blob" },
+            { "cursor", "int" }, { "version", "text" } }, addColSqlVec);
+    }
+    for (size_t i = 0; i < addColSqlVec.size(); ++i) {
+        errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);
+        if (errCode != E_OK) {
+            LOGE("[Relational][UpgradeLogTable] add column failed. err:%d, index:%zu, curVer:%s, maxVer:%s", errCode,
+                 i, oldVersion.c_str(), DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+            return errCode;
         }
-        for (size_t i = 0; i < addColSqlVec.size(); ++i) {
-            errCode = SQLiteUtils::ExecuteRawSQL(db_, addColSqlVec[i]);
+    }
+    return errCode;
+}
+
+int SqliteRelationalDatabaseUpgrader::UpgradeTriggerBaseOnSchema(const RelationalSchemaObject &relationalSchema,
+    const RelationalSchemaObject &trackerSchema)
+{
+    DistributedTableMode mode = relationalSchema.GetTableMode();
+    int errCode = E_OK;
+    for (const auto &table : relationalSchema.GetTables()) {
+        std::vector<std::string> dropSqlVec;
+        std::string prefixName = DBConstant::SYSTEM_TABLE_PREFIX + table.first;
+        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_UPDATE;");
+        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_INSERT;");
+        dropSqlVec.push_back("DROP TRIGGER IF EXISTS " + prefixName + "_ON_DELETE;");
+        for (size_t i = 0; i < dropSqlVec.size(); ++i) {
+            errCode = SQLiteUtils::ExecuteRawSQL(db_, dropSqlVec[i]);
             if (errCode != E_OK) {
-                LOGE("[Relational][UpgradeLogTable] add column failed. err:%d, index:%u, curVer:%s, maxVer:%s", errCode,
-                    i, logTableVersion.c_str(), DBConstant::LOG_TABLE_VERSION_CURRENT.c_str());
+                LOGE("[Relational][Upgrade] drop trigger failed. err:%d, index:%zu", errCode, i);
                 return errCode;
             }
         }
+        TableInfo tableInfo = table.second;
+        tableInfo.SetTrackerTable(trackerSchema.GetTrackerTable(table.first));
+        auto manager = LogTableManagerFactory::GetTableManager(mode, tableInfo.GetTableSyncType());
+        errCode = manager->AddRelationalLogTableTrigger(db_, tableInfo, "");
+        if (errCode != E_OK) {
+            LOGE("[Relational][Upgrade] recreate trigger failed. err:%d", errCode);
+            return errCode;
+        }
     }
+    LOGI("[Relational][Upgrade] recreate trigger finish.");
     return E_OK;
 }
 } // namespace DistributedDB
