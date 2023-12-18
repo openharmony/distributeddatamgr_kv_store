@@ -553,5 +553,107 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, SyncWithAssetConflict001, Te
         }
     }
 }
+
+/**
+ * @tc.name: UpsertDataInvalid001
+ * @tc.desc: Upsert invalid data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid001, TestSize.Level0)
+{
+    VBucket record;
+    record["id"] = std::to_string(0);
+    record["assets"] = Assets();
+    /**
+     * @tc.steps:step1. UpsertData to empty table.
+     * @tc.expected: step1. INVALID_ARGS.
+     */
+    EXPECT_EQ(delegate_->UpsertData("", { record }), INVALID_ARGS);
+    /**
+     * @tc.steps:step2. UpsertData to shared table.
+     * @tc.expected: step2. INVALID_ARGS.
+     */
+    EXPECT_EQ(delegate_->UpsertData(tableName_ + "_shared", { record }), NOT_SUPPORT);
+    /**
+     * @tc.steps:step3. UpsertData to not device table and shared table.
+     * @tc.expected: step3. NOT_FOUND.
+     */
+    const char *createSQL =
+        "CREATE TABLE IF NOT EXISTS testing(" \
+        "id TEXT PRIMARY KEY," \
+        "name TEXT," \
+        "height REAL ," \
+        "photo BLOB," \
+        "asset ASSET," \
+        "assets ASSETS," \
+        "age INT);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, createSQL), SQLITE_OK);
+    EXPECT_EQ(delegate_->UpsertData("testing", { record }), NOT_FOUND);
+    /**
+     * @tc.steps:step4. UpsertData to not exist table.
+     * @tc.expected: step4. NOT_FOUND.
+     */
+    EXPECT_EQ(delegate_->UpsertData("TABLE_NOT_EXIST", { record }), NOT_FOUND);
+}
+
+/**
+ * @tc.name: UpsertDataInvalid002
+ * @tc.desc: Upsert device data
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: wangxiangdong
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertDataInvalid002, TestSize.Level0)
+{
+    VBucket record;
+    record["id"] = std::to_string(0);
+    record["assets"] = Assets();
+    /**
+     * @tc.steps:step1. create user table.
+     * @tc.expected: step1. INVALID_ARGS.
+     */
+    const char *createSQL =
+        "CREATE TABLE IF NOT EXISTS devTable(" \
+        "id TEXT PRIMARY KEY," \
+        "name TEXT," \
+        "height REAL ," \
+        "photo BLOB," \
+        "asset ASSET," \
+        "assets ASSETS," \
+        "age INT);";
+    EXPECT_EQ(RelationalTestUtils::ExecSql(db_, createSQL), SQLITE_OK);
+    /**
+     * @tc.steps:step2. create device table.
+     * @tc.expected: step2. OK.
+     */
+    RelationalStoreDelegate *delegate1 = nullptr;
+    std::shared_ptr<RelationalStoreManager> mgr1 = std::make_shared<RelationalStoreManager>(APP_ID, USER_ID);
+    RelationalStoreDelegate::Option option;
+    ASSERT_EQ(mgr1->OpenStore(storePath_, STORE_ID_1, option, delegate1), DBStatus::OK);
+    ASSERT_NE(delegate1, nullptr);
+    std::string deviceTableName = "devTable";
+    ASSERT_EQ(delegate1->CreateDistributedTable(deviceTableName, DEVICE_COOPERATION), DBStatus::OK);
+    DataBaseSchema dataBaseSchema;
+    TableSchema tableSchema;
+    tableSchema.name = deviceTableName;
+    tableSchema.sharedTableName = deviceTableName + "_shared";
+    tableSchema.fields = {
+        {"id", TYPE_INDEX<std::string>, true}, {"name", TYPE_INDEX<std::string>}, {"height", TYPE_INDEX<double>},
+        {"photo", TYPE_INDEX<Bytes>}, {"asset", TYPE_INDEX<Asset>}, {"assets", TYPE_INDEX<Assets>},
+        {"age", TYPE_INDEX<int64_t>}
+    };
+    dataBaseSchema.tables.push_back(tableSchema);
+    ASSERT_EQ(delegate1->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+    /**
+     * @tc.steps:step3. UpsertData to device table.
+     * @tc.expected: step3. NOT_FOUND.
+     */
+    EXPECT_EQ(delegate1->UpsertData(deviceTableName, { record }), NOT_FOUND);
+    EXPECT_EQ(mgr1->CloseStore(delegate1), DBStatus::OK);
+    delegate1 = nullptr;
+    mgr1 = nullptr;
+}
 }
 #endif
