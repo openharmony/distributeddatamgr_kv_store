@@ -725,14 +725,6 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
     return true;
 }
 
-bool CloudStorageUtils::IsSharedTable(const TableSchema &tableSchema)
-{
-    if (tableSchema.sharedTableName == tableSchema.name) {
-        return true;
-    }
-    return false;
-}
-
 static bool IsViolationOfConstraints(const std::string &name, const std::vector<FieldInfo> &fieldInfos)
 {
     for (const auto &field : fieldInfos) {

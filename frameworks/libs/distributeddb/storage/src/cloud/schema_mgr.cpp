@@ -19,7 +19,6 @@
 
 #include "cloud/cloud_db_constant.h"
 #include "cloud/cloud_store_types.h"
-#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 namespace DistributedDB {
@@ -149,7 +148,7 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
     DataBaseSchema cloudSchema = schema;
     DataBaseSchema cloudSharedSchema;
     for (const auto &tableSchema : cloudSchema.tables) {
-        if (tableSchema.name.empty() || tableSchema.sharedTableName.empty()) {
+        if (tableSchema.name.empty()) {
             continue;
         }
         bool hasPrimaryKey = DBCommon::HasPrimaryKey(tableSchema.fields);
@@ -158,7 +157,7 @@ void SchemaMgr::SetCloudDbSchema(const DataBaseSchema &schema)
         Field privilegeField = { CloudDbConstant::CLOUD_PRIVILEGE, TYPE_INDEX<std::string>, false, true };
         sharedTableFields.push_back(ownerField);
         sharedTableFields.push_back(privilegeField);
-        TableSchema sharedTableSchema = { tableSchema.sharedTableName, tableSchema.sharedTableName, sharedTableFields };
+        TableSchema sharedTableSchema = { tableSchema.sharedTableName, "", sharedTableFields };
         cloudSharedSchema.tables.push_back(sharedTableSchema);
     }
     for (const auto &sharedTableSchema : cloudSharedSchema.tables) {
@@ -212,7 +211,7 @@ std::map<std::string, std::string> SchemaMgr::GetSharedTableOriginNames()
     }
     std::map<std::string, std::string> res;
     for (const auto &item : cloudSchema_->tables) {
-        if (item.sharedTableName.empty() || CloudStorageUtils::IsSharedTable(item)) {
+        if (item.sharedTableName.empty()) {
             continue;
         }
         res[item.name] = item.sharedTableName;

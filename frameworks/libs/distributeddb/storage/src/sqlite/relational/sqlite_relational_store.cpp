@@ -1049,18 +1049,10 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
         return -E_INVALID_DB;
     }
     // delete, update and create shared table and its distributed table
-    DataBaseSchema sharedSchema;
-    for (auto const &tableSchema : schema.tables) {
-        if (!tableSchema.sharedTableName.empty()) {
-            sharedSchema.tables.push_back(tableSchema);
-        }
-    }
-    if (!sharedSchema.tables.empty()) {
-        int errCode = ExecuteCreateSharedTable(sharedSchema);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
-            return errCode;
-        }
+    int errCode = ExecuteCreateSharedTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
+        return errCode;
     }
     return storageEngine_->SetCloudDbSchema(schema);
 }

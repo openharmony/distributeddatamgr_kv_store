@@ -162,7 +162,6 @@ DataBaseSchema DistributedDBCloudAssetsOperationSyncTest::GetSchema()
     DataBaseSchema schema;
     TableSchema tableSchema;
     tableSchema.name = tableName_;
-    tableSchema.sharedTableName = tableName_ + "_shared";
     tableSchema.fields = {
         {"id", TYPE_INDEX<std::string>, true}, {"name", TYPE_INDEX<std::string>}, {"height", TYPE_INDEX<double>},
         {"photo", TYPE_INDEX<Bytes>}, {"asset", TYPE_INDEX<Asset>}, {"assets", TYPE_INDEX<Assets>},

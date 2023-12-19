@@ -393,7 +393,6 @@ void DistributedDBRelationalCloudSyncableStorageTest::SetUpTestCase(void)
     LOGI("The test db is:%s", g_testDir.c_str());
     RuntimeConfig::SetCloudTranslate(std::make_shared<VirtualCloudDataTranslate>());
     g_tableSchema.name = g_tableName;
-    g_tableSchema.sharedTableName = g_tableName + "_shared";
     g_tableSchema.fields = g_cloudFiled;
 }
 
