@@ -647,7 +647,7 @@ int SQLiteSingleRelationalStorageEngine::SetReference(const std::vector<TableRef
     auto mode = static_cast<DistributedTableMode>(properties_.GetIntProp(
         RelationalDBProperties::DISTRIBUTED_TABLE_MODE, DistributedTableMode::SPLIT_BY_DEVICE));
     for (auto &table : schema.GetTables()) {
-        if (table.second.GetTableReference().empty()) {
+        if (table.second.GetTableSyncType() == TableSyncType::DEVICE_COOPERATION) {
             continue;
         }
         TableInfo tableInfo = table.second;
