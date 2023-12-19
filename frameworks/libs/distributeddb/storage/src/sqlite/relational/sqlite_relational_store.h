@@ -175,6 +175,8 @@ private:
 
     static int ReFillSyncInfoTable(const std::vector<std::string> &actualTable, CloudSyncer::CloudTaskInfo &info);
 
+    int CheckCloudSchema(const DataBaseSchema &schema);
+
     // use for sync Interactive
     std::shared_ptr<SyncAbleEngine> syncAbleEngine_ = nullptr; // For storage operate sync function
     // use ref obj same as kv

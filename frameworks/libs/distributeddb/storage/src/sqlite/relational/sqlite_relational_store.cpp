@@ -1025,6 +1025,8 @@ bool SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std
         std::vector<Field> addFields;
         if (tableNames.find(oldOriginTableName) == tableNames.end()) {
             deleteTableNames.push_back(oldSharedTableName);
+        } else if (sharedTableNamesMap[oldOriginTableName].empty()) {
+            deleteTableNames.push_back(oldSharedTableName);
         } else if (CheckFields(fieldsMap[oldOriginTableName], tableInfo.second, addFields)) {
             if (!addFields.empty()) {
                 updateTableNames[oldSharedTableName] = addFields;
@@ -1045,19 +1047,15 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
         LOGE("[RelationalStore][PrepareAndSetCloudDbSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
-    // delete, update and create shared table and its distributed table
-    DataBaseSchema sharedSchema;
-    for (auto const &tableSchema : schema.tables){
-        if (!tableSchema.sharedTableName.empty()) {
-            sharedSchema.tables.push_back(tableSchema);
-        }
+    int errCode = CheckCloudSchema(schema);
+    if (errCode != E_OK) {
+        return errCode;
     }
-    if (!sharedSchema.tables.empty()) {
-        int errCode = ExecuteCreateSharedTable(sharedSchema);
-        if (errCode != E_OK) {
-            LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
-            return errCode;
-        }
+    // delete, update and create shared table and its distributed table
+    errCode = ExecuteCreateSharedTable(schema);
+    if (errCode != E_OK) {
+        LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
+        return errCode;
     }
     return storageEngine_->SetCloudDbSchema(schema);
 }
@@ -1504,6 +1502,22 @@ int SQLiteRelationalStore::InitSQLiteStorageEngine(const RelationalDBProperties 
         [](SQLiteSingleRelationalStorageEngine *releaseEngine) {
         RefObject::KillAndDecObjRef(releaseEngine);
     });
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
+{
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    for (const auto &tableSchema : schema.tables) {
+        TableInfo tableInfo = localSchema.GetTable(tableSchema.name);
+        if (tableInfo.Empty()) {
+            continue;
+        }
+        if (tableInfo.GetSharedTableMark()) {
+            LOGE("[RelationalStore][CheckCloudSchema] Table name is existent shared table's name.");
+            return -E_INVALID_ARGS;
+        }
+    }
     return E_OK;
 }
 } //namespace DistributedDB

@@ -255,7 +255,7 @@ bool ParamCheckUtils::CheckSharedTableName(const DataBaseSchema &schema)
         if (tableSchema.sharedTableName.empty()) {
             continue;
         }
-        if (CloudStorageUtils::IsSharedTable(tableSchema)) {
+        if (tableSchema.sharedTableName == tableSchema.name) {
             LOGE("[CheckSharedTableName] Shared table name and table name are same.");
             return false;
         }

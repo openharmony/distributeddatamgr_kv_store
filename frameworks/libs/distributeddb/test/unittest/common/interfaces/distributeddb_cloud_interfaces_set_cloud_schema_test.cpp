@@ -743,7 +743,7 @@ namespace {
 
         /**
          * @tc.steps:step2. re-SetCloudDbSchema B-D
-         * @tc.expected: step2. return OK
+         * @tc.expected: step2. return INVALID_ARGS
          */
         dataBaseSchema.tables.clear();
         tableSchema = {
@@ -752,9 +752,9 @@ namespace {
             .fields = g_cloudField1
         };
         dataBaseSchema.tables.push_back(tableSchema);
-        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
-        CheckSharedTable({g_sharedTableName2});
-        CheckDistributedSharedTable({g_distributedSharedTableName2});
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
+        CheckSharedTable({g_sharedTableName1, g_sharedTableName2});
+        CheckDistributedSharedTable({g_distributedSharedTableName1, g_distributedSharedTableName2});
     }
 
     /**
@@ -1272,6 +1272,7 @@ namespace {
         Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
     }
+
     /**
      * @tc.name: SetCloudDbSchemaTest015
      * @tc.desc: Test SetCloudDbSchema sharedTableName is ""
@@ -1293,14 +1294,73 @@ namespace {
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
         /**
          * @tc.steps:step2. check sharedTable not exist
          * @tc.expected: step2. return OK
          */
-         std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
+        std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
             "name LIKE 'worker%_shared';";
         sqlite3_stmt *stmt = nullptr;
         ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
         ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+    }
+
+    /**
+     * @tc.name: SetCloudDbSchemaTest016
+     * @tc.desc: Test SetCloudDbSchema if it will delete sharedtable when set sharedtable is empty
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest016, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use SetCloudDbSchema to create g_sharedTableName1
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName1});
+        CheckDistributedSharedTable({g_distributedSharedTableName1});
+
+        /**
+         * @tc.steps:step2. re-SetCloudDbSchema and sharedtable name is empty
+         * @tc.expected: step2. return INVALID_ARS
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = "",
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        std::string sql = "SELECT name FROM sqlite_master WHERE type = 'table' AND " \
+            "name LIKE 'worker%_shared';";
+        sqlite3_stmt *stmt = nullptr;
+        ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
+        ASSERT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
+
+        /**
+         * @tc.steps:step3. re-SetCloudDbSchema and set sharedtable
+         * @tc.expected: step3. return INVALID_ARS
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField3
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        CheckSharedTable({g_sharedTableName1});
+        CheckDistributedSharedTable({g_distributedSharedTableName1});
     }
 } // namespace

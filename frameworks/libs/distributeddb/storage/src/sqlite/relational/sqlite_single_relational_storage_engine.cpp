@@ -835,6 +835,9 @@ int SQLiteSingleRelationalStorageEngine::DoCreateSharedTable(SQLiteSingleVerRela
     const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema)
 {
     for (auto const &tableSchema : cloudSchema.tables) {
+        if (tableSchema.sharedTableName.empty()) {
+            continue;
+        }
         if (updateTableNames.find(tableSchema.sharedTableName) != updateTableNames.end()) {
             continue;
         }
