@@ -1052,7 +1052,7 @@ void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)
 
 bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
 {
-    if (tableSchema.name == oldSchema.name) {
+    if (tableSchema.name != oldSchema.name) {
         return true;
     }
     for (const auto &oldField : oldSchema.fields) {
