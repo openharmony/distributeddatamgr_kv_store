@@ -1033,6 +1033,32 @@ HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId017, TestSize.Le
 }
 
 /**
+ * @tc.name: FillAssetId018
+ * @tc.desc: Test if assetId is filled when contains "#_error"
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhaoliang
+ */
+HWTEST_F(DistributedDBCloudSyncerDownloadAssetsTest, FillAssetId018, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. local insert assets and sync, check the local assetId.
+     * @tc.expected: step1. return OK.
+     */
+    int localCount = 30;
+    InsertLocalData(db, 0, localCount, ASSETS_TABLE_NAME);
+    std::atomic<int> count = 0;
+    g_virtualCloudDb->ForkUpload([&count](const std::string &tableName, VBucket &extend) {
+        if (extend.find("assets") != extend.end() && count == 0) {
+            extend["#_error"] = std::string("test");
+            count++;
+        }
+    });
+    CallSync({ASSETS_TABLE_NAME}, SYNC_MODE_CLOUD_MERGE, DBStatus::OK);
+    CheckLocaLAssets(ASSETS_TABLE_NAME, "10", {});
+}
+
+/**
  * @tc.name: DownloadAssetForDupDataTest002
  * @tc.desc: Test download failed
  * @tc.type: FUNC

@@ -501,6 +501,33 @@ HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, IgnoreRecord003, TestSize.Le
 }
 
 /**
+ * @tc.name: UpsertData001
+ * @tc.desc: Upsert data after delete it
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: zhangqiquan
+ */
+HWTEST_F(DistributedDBCloudAssetsOperationSyncTest, UpsertData001, TestSize.Level0)
+{
+    // insert id 0 to local
+    const int actualCount = 1;
+    InsertUserTableRecord(tableName_, 0, actualCount, 10, false); // 10 is phone size
+    std::vector<std::map<std::string, std::string>> conditions;
+    std::map<std::string, std::string> entries;
+    entries["id"] = "0";
+    conditions.push_back(entries);
+    // delete id 0 in local
+    RelationalTestUtils::DeleteRecord(db_, tableName_, conditions);
+    // upsert id 0 to local
+    VBucket record;
+    record["id"] = std::to_string(0);
+    record["assets"] = Assets();
+    EXPECT_EQ(delegate_->UpsertData(tableName_, { record }), OK);
+    // check id 0 exist
+    CheckAssetsCount({ 0 });
+}
+
+/**
  * @tc.name: SyncWithAssetConflict001
  * @tc.desc: Upload with asset no change
  * @tc.type: FUNC

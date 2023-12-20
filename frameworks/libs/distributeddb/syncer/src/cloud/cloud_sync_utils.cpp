@@ -434,7 +434,7 @@ void CloudSyncUtils::ClearWithoutData(ICloudSyncer::SyncParam &param)
     param.withoutRowIdData.assetInsertData.clear();
 }
 
-int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data)
+int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data, int errorCode)
 {
     if (data.extend.size() != data.assets.size()) {
         LOGE("[CloudSyncUtils][FillAssetIdToAssets] Extend size does not match the assets size.");
@@ -445,8 +445,7 @@ int CloudSyncUtils::FillAssetIdToAssets(CloudSyncBatch &data)
         if (data.assets[i].empty()) {
             continue;
         }
-        if (DBCommon::IsRecordError(data.extend[i])) {
-            errCode = -E_CLOUD_ERROR;
+        if (errorCode != E_OK && DBCommon::IsRecordError(data.extend[i])) {
             continue;
         }
         if (DBCommon::IsRecordIgnored(data.extend[i])) {

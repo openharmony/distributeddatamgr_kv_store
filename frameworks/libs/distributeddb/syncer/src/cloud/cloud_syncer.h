@@ -321,6 +321,8 @@ protected:
 
     void GenerateCompensatedSync();
 
+    void ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;

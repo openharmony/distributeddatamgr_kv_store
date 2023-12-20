@@ -74,7 +74,7 @@ namespace {
     const std::string DETACH_BACKUP_SQL = "DETACH 'backup'";
     const std::string UPDATE_META_SQL = "INSERT OR REPLACE INTO meta_data VALUES (?, ?);";
     const std::string CHECK_TABLE_CREATED = "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE " \
-        "type='table' AND tbl_name=?);";
+        "type='table' AND (tbl_name=? COLLATE NOCASE));";
 
     bool g_configLog = false;
     std::mutex g_serverChangedDataMutex;

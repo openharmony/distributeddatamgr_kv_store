@@ -90,6 +90,36 @@ void AssetOperationUtils::UpdateAssetsFlag(std::vector<VBucket> &from, std::vect
     }
 }
 
+void AssetOperationUtils::FilterDeleteAsset(VBucket &record)
+{
+    int filterCount = 0;
+    for (auto &item : record) {
+        if (item.second.index() == TYPE_INDEX<Asset>) {
+            auto &asset = std::get<Asset>(item.second);
+            if (EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+                item.second = Nil();
+                filterCount++;
+            }
+            continue;
+        }
+        if (item.second.index() != TYPE_INDEX<Assets>) {
+            continue;
+        }
+        auto &assets = std::get<Assets>(item.second);
+        auto it = assets.begin();
+        while (it != assets.end()) {
+            if (EraseBitMask(it->status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+                it = assets.erase(it);
+                filterCount++;
+            }
+            it++;
+        }
+    }
+    if (filterCount > 0) {
+        LOGW("[AssetOperationUtils] Filter %d asset", filterCount);
+    }
+}
+
 void AssetOperationUtils::Init()
 {
     g_reactions[CloudSyncAction::DEFAULT_ACTION] = DefaultOperation;

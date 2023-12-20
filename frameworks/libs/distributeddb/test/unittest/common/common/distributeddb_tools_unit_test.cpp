@@ -1417,4 +1417,31 @@ int RelationalTestUtils::GetRecordLog(sqlite3 *db, const std::string &tableName,
     schema.fields.push_back(field);
     return SelectData(db, schema, records);
 }
+
+int RelationalTestUtils::DeleteRecord(sqlite3 *db, const std::string &tableName,
+    const std::vector<std::map<std::string, std::string>> &conditions)
+{
+    if (db == nullptr || tableName.empty()) {
+        LOGE("[RelationalTestUtils] db is null or table is empty");
+        return -E_INVALID_ARGS;
+    }
+    int errCode = E_OK;
+    for (const auto &condition : conditions) {
+        std::string deleteSql = "DELETE FROM " + tableName + " WHERE ";
+        int count = 0;
+        for (const auto &[col, value] : condition) {
+            if (count > 0) {
+                deleteSql += " AND ";
+            }
+            deleteSql += col + "=" + value;
+            count++;
+        }
+        LOGD("[RelationalTestUtils] Sql is %s", deleteSql.c_str());
+        errCode = ExecSql(db, deleteSql);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+    }
+    return errCode;
+}
 } // namespace DistributedDBUnitTest

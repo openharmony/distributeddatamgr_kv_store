@@ -142,7 +142,7 @@ int CloudSyncer::BatchInsert(Info &insertInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.insData, errCode);
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::INSERT, uploadData);
@@ -176,7 +176,7 @@ int CloudSyncer::BatchUpdate(Info &updateInfo, CloudSyncData &uploadData, InnerP
         return ret;
     }
     if (!isSharedTable) {
-        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData);
+        ret = CloudSyncUtils::FillAssetIdToAssets(uploadData.updData, errCode);
     }
     if (errCode != E_OK) {
         storageProxy_->FillCloudGidIfSuccess(OpType::UPDATE, uploadData);
@@ -317,15 +317,16 @@ int CloudSyncer::CommitDownloadAssets(bool recordConflict, const std::string &ta
         }
         errCode = FillCloudAssets(tableName, normalAssets, failedAssets);
         if (errCode != E_OK) {
-            return errCode;
+            break;
         }
         errCode = storageProxy_->UpdateRecordFlag(tableName, gid, recordConflict);
         if (errCode != E_OK) {
-            return errCode;
+            break;
         }
         successCount++;
     }
-    return storageProxy_->SetLogTriggerStatus(true);
+    int ret = storageProxy_->SetLogTriggerStatus(true);
+    return errCode == E_OK ? ret : errCode;
 }
 
 void CloudSyncer::GenerateCompensatedSync()
@@ -352,5 +353,22 @@ void CloudSyncer::GenerateCompensatedSync()
     }
     Sync(taskInfo);
     LOGD("[CloudSyncer] Generate compensated sync finished");
+}
+
+void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam)
+{
+    if (uploadData.ignoredCount == 0) {
+        return;
+    }
+    info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
+    if (info.upLoadInfo.successCount + info.upLoadInfo.failCount != info.upLoadInfo.total) {
+        return;
+    }
+    if (!CloudSyncUtils::CheckCloudSyncDataEmpty(uploadData)) {
+        return;
+    }
+    info.tableStatus = ProcessStatus::FINISHED;
+    info.upLoadInfo.batchIndex++;
+    NotifyInBatchUpload(uploadParam, info, true);
 }
 }

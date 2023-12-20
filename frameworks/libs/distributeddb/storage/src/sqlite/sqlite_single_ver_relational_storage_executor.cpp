@@ -40,7 +40,8 @@ static constexpr const char *DEVICE_FIELD = "DEVICE";
 static constexpr const char *CLOUD_GID_FIELD = "CLOUD_GID";
 static constexpr const char *HASH_KEY = "HASH_KEY";
 static constexpr const char *FLAG_IS_CLOUD = "FLAG & 0x02 = 0"; // see if 1th bit of a flag is cloud
-static constexpr const char *SET_FLAG_LOCAL = "FLAG | 0x02";    // set 1th bit of flag to one which is local
+// set 1th bit of flag to one which is local, clean 5th bit of flag to one which is wait compensated sync
+static constexpr const char *SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC = "(FLAG | 0x02) & (~0x10)";
 static constexpr const char *FLAG_IS_LOGIC_DELETE = "FLAG & 0x08 != 0"; // see if 3th bit of a flag is logic delete
 static constexpr const char *DATA_IS_DELETE = "data_key = -1 AND FLAG & 0X08 = 0"; // see if data is delete
 static constexpr const int SET_FLAG_ZERO_MASK = 0x0B; // clear 2th bit of flag 1011 use with &
@@ -256,6 +257,9 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std:
         return -E_SCHEMA_MISMATCH;
     } else if (errCode == -E_RELATIONAL_TABLE_EQUAL) {
         LOGD("[UpgradeDistributedTable] schema has not changed.");
+        // update table if tableName changed
+        schema.RemoveRelationalTable(tableName);
+        schema.AddRelationalTable(newTableInfo);
         return E_OK;
     }
 
@@ -609,7 +613,7 @@ int IdentifyCloudType(CloudSyncData &cloudSyncData, VBucket &data, VBucket &log,
         if (IsAbnormalData(data)) {
             LOGW("This data is abnormal, ignore it when upload, isInsert:%d", isInsert);
             cloudSyncData.ignoredCount++;
-            return E_OK;
+            return -E_IGNORE_DATA;
         }
         CloudSyncBatch &opData = isInsert ? cloudSyncData.insData : cloudSyncData.updData;
         opData.record.push_back(data);
@@ -1651,7 +1655,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
         return errCode;
     }
     uint32_t totalSize = 0;
-    uint32_t stepNum = 0;
+    uint32_t stepNum = -1;
     do {
         if (isStepNext) {
             errCode = SQLiteRelationalUtils::StepNext(isMemDb_, queryStmt);
@@ -1661,7 +1665,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudData(CloudSyncData &cl
             }
         }
         isStepNext = true;
-        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, stepNum++, totalSize, maxSize);
+        errCode = GetCloudDataForSync(queryStmt, cloudDataResult, ++stepNum, totalSize, maxSize);
     } while (errCode == E_OK);
     LOGD("Get cloud sync data, insData:%u, upData:%u, delLog:%u", cloudDataResult.insData.record.size(),
         cloudDataResult.updData.record.size(), cloudDataResult.delData.extend.size());
@@ -1700,10 +1704,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetSyncCloudGid(QuerySyncObject &q
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *statement,
-    CloudSyncData &cloudDataResult, uint32_t stepNum, uint32_t &totalSize, const uint32_t &maxSize)
+    CloudSyncData &cloudDataResult, uint32_t &stepNum, uint32_t &totalSize, const uint32_t &maxSize)
 {
     VBucket log;
     VBucket extraLog;
+    uint32_t preSize = totalSize;
     GetCloudLog(statement, log, totalSize, cloudDataResult.isShared);
     GetCloudExtraLog(statement, extraLog);
 
@@ -1733,6 +1738,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetCloudDataForSync(sqlite3_stmt *
         errCode = IdentifyCloudType(cloudDataResult, data, log, extraLog);
     } else {
         errCode = -E_UNFINISHED;
+    }
+    if (errCode == -E_IGNORE_DATA) {
+        errCode = E_OK;
+        totalSize = preSize;
+        stepNum--;
     }
     return errCode;
 }
@@ -1909,35 +1919,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
         std::vector<uint8_t> value;
         DBCommon::StringToVector(std::to_string(rowid), value);
         errCode = DBCommon::CalcValueHash(value, hashValue);
-    } else if (pkMap.size() == 1) {
-        std::vector<Field> pkVec = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
-        FieldInfoMap fieldInfos = localTable.GetFields();
-        if (fieldInfos.find(pkMap.begin()->first) == fieldInfos.end()) {
-            LOGE("localSchema doesn't contain primary key.");
-            return -E_INTERNAL_ERROR;
-        }
-        CollateType collateType = fieldInfos.at(pkMap.begin()->first).GetCollateType();
-        errCode = CloudStorageUtils::CalculateHashKeyForOneField(
-            pkVec.at(0), vBucket, allowEmpty, collateType, hashValue);
     } else {
-        std::vector<uint8_t> tempRes;
-        for (const auto &item: pkMap) {
-            FieldInfoMap fieldInfos = localTable.GetFields();
-            if (fieldInfos.find(item.first) == fieldInfos.end()) {
-                LOGE("localSchema doesn't contain primary key in multi pks.");
-                return -E_INTERNAL_ERROR;
-            }
-            std::vector<uint8_t> temp;
-            CollateType collateType = fieldInfos.at(item.first).GetCollateType();
-            errCode = CloudStorageUtils::CalculateHashKeyForOneField(
-                item.second, vBucket, allowEmpty, collateType, temp);
-            if (errCode != E_OK) {
-                LOGE("calc hash fail when there is more than one primary key. errCode = %d", errCode);
-                return errCode;
-            }
-            tempRes.insert(tempRes.end(), temp.begin(), temp.end());
-        }
-        errCode = DBCommon::CalcValueHash(tempRes, hashValue);
+        std::tie(errCode, hashValue) = CloudStorageUtils::GetHashValueWithPrimaryKeyMap(vBucket,
+            tableSchema, localTable, pkMap, allowEmpty);
     }
     return errCode;
 }
@@ -2119,7 +2103,8 @@ int SQLiteSingleVerRelationalStorageExecutor::DoCleanLogs(const std::vector<std:
 
 int SQLiteSingleVerRelationalStorageExecutor::CleanCloudDataOnLogTable(const std::string &logTableName)
 {
-    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " + SET_FLAG_LOCAL + ", " +
+    std::string cleanLogSql = "UPDATE " + logTableName + " SET " + FLAG + " = " +
+        SET_FLAG_LOCAL_AND_CLEAN_WAIT_COMPENSATED_SYNC + ", " +
         DEVICE_FIELD + " = '', " + CLOUD_GID_FIELD + " = '' WHERE (" + FLAG_IS_LOGIC_DELETE + ") OR " +
         CLOUD_GID_FIELD + " IS NOT NULL AND " + CLOUD_GID_FIELD + " != '';";
     int errCode = SQLiteUtils::ExecuteRawSQL(dbHandle_, cleanLogSql);

@@ -439,9 +439,13 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
 {
     AssetOpType flag = static_cast<AssetOpType>(asset.flag);
     AssetStatus status = static_cast<AssetStatus>(asset.status);
+    uint32_t lowStatus = AssetOperationUtils::EraseBitMask(asset.status);
     switch (flag) {
         case AssetOpType::DELETE: {
-            if (AssetOperationUtils::EraseBitMask(asset.status) == static_cast<uint32_t>(AssetStatus::DELETE)) {
+            // these asset no need to download, just remove before download
+            if (lowStatus == static_cast<uint32_t>(AssetStatus::DELETE) ||
+                lowStatus == static_cast<uint32_t>(AssetStatus::ABNORMAL) ||
+                (asset.status == (AssetStatus::DOWNLOADING | AssetStatus::DOWNLOAD_WITH_NULL))) {
                 return -E_NOT_FOUND;
             }
             break;
@@ -949,5 +953,47 @@ void CloudStorageUtils::MergeAssetWithFillFunc(Assets &assets, Assets &dbAssets,
             dbAsset++;
         }
     }
+}
+
+std::pair<int, std::vector<uint8_t>> CloudStorageUtils::GetHashValueWithPrimaryKeyMap(const VBucket &vBucket,
+    const TableSchema &tableSchema, const TableInfo &localTable, const std::map<std::string, Field> &pkMap,
+    bool allowEmpty)
+{
+    int errCode = E_OK;
+    std::vector<uint8_t> hashValue;
+    if (pkMap.size() == 0) {
+        LOGE("do not support get hashValue when primaryKey map is empty.");
+        return { -E_INTERNAL_ERROR, {} };
+    } else if (pkMap.size() == 1) {
+        std::vector<Field> pkVec = CloudStorageUtils::GetCloudPrimaryKeyField(tableSchema);
+        FieldInfoMap fieldInfos = localTable.GetFields();
+        if (fieldInfos.find(pkMap.begin()->first) == fieldInfos.end()) {
+            LOGE("localSchema doesn't contain primary key.");
+            return { -E_INTERNAL_ERROR, {} };
+        }
+        CollateType collateType = fieldInfos.at(pkMap.begin()->first).GetCollateType();
+        errCode = CloudStorageUtils::CalculateHashKeyForOneField(
+            pkVec.at(0), vBucket, allowEmpty, collateType, hashValue);
+    } else {
+        std::vector<uint8_t> tempRes;
+        for (const auto &item: pkMap) {
+            FieldInfoMap fieldInfos = localTable.GetFields();
+            if (fieldInfos.find(item.first) == fieldInfos.end()) {
+                LOGE("localSchema doesn't contain primary key in multi pks.");
+                return { -E_INTERNAL_ERROR, {} };
+            }
+            std::vector<uint8_t> temp;
+            CollateType collateType = fieldInfos.at(item.first).GetCollateType();
+            errCode = CloudStorageUtils::CalculateHashKeyForOneField(
+                item.second, vBucket, allowEmpty, collateType, temp);
+            if (errCode != E_OK) {
+                LOGE("calc hash fail when there is more than one primary key. errCode = %d", errCode);
+                return { errCode, {} };
+            }
+            tempRes.insert(tempRes.end(), temp.begin(), temp.end());
+        }
+        errCode = DBCommon::CalcValueHash(tempRes, hashValue);
+    }
+    return { errCode, hashValue };
 }
 }

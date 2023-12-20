@@ -1431,17 +1431,38 @@ int SQLiteRelationalStore::CheckParamForUpsertData(RecordStatus status, const st
     return CheckSchemaForUpsertData(tableName, records);
 }
 
+static int ChkTable(const TableInfo &table)
+{
+    if (table.IsNoPkTable() || table.GetSharedTableMark()) {
+        LOGE("[RelationalStore][ChkTable] not support table without pk or with tablemark");
+        return -E_NOT_SUPPORT;
+    }
+    if (table.GetTableName().empty() || (table.GetTableSyncType() != TableSyncType::CLOUD_COOPERATION)) {
+        return -E_NOT_FOUND;
+    }
+    return E_OK;
+}
+
 int SQLiteRelationalStore::CheckSchemaForUpsertData(const std::string &tableName, const std::vector<VBucket> &records)
 {
-    int errCode = ChkSchema(tableName);
-    if (errCode != E_OK) {
-        return errCode;
+    if (tableName.empty()) {
+        return -E_INVALID_ARGS;
     }
     auto schema = storageEngine_->GetSchemaInfo();
     auto table = schema.GetTable(tableName);
-    if (table.IsNoPkTable()) {
-        LOGE("[RelationalStore][CheckSchemaForUpsertData] not support table without pk");
-        return -E_NOT_SUPPORT;
+    int errCode = ChkTable(table);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    TableSchema cloudTableSchema;
+    errCode = storageEngine_->GetCloudTableSchema(tableName, cloudTableSchema);
+    if (errCode != E_OK) {
+        LOGE("Get cloud schema failed when check upsert data, %d", errCode);
+        return errCode;
+    }
+    errCode = ChkSchema(tableName);
+    if (errCode != E_OK) {
+        return errCode;
     }
     std::set<std::string> dbPkFields;
     for (auto &field : table.GetIdentifyKey()) {

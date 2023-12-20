@@ -477,9 +477,15 @@ int CloudSyncer::HandleDownloadResult(bool recordConflict, const std::string &ta
     }
     errCode = CommitDownloadAssets(recordConflict, tableName, commitList, successCount);
     if (errCode != E_OK) {
-        LOGE("[CloudSyncer] commit download assets failed %d", errCode);
         successCount = 0;
-        (void)storageProxy_->Rollback();
+        int ret = E_OK;
+        if (errCode == -E_REMOVE_ASSETS_FAILED) {
+            // remove assets failed no effect to asset status, just commit
+            ret = storageProxy_->Commit();
+        } else {
+            ret = storageProxy_->Rollback();
+        }
+        LOGE("[CloudSyncer] commit download assets failed %d commit/rollback ret %d", errCode, ret);
         return errCode;
     }
     errCode = storageProxy_->Commit();
@@ -664,6 +670,7 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
         LOGE("[CloudSyncer] Invalid primary key type in TagStatus, it's Nil.");
         return -E_INTERNAL_ERROR;
     }
+    AssetOperationUtils::FilterDeleteAsset(param.downloadData.data[idx]);
     std::map<std::string, Assets> assetsMap = TagAssetsInSingleRecord(param.downloadData.data[idx], localAssetInfo,
         false, ret);
     if (ret != E_OK) {
@@ -1346,7 +1353,7 @@ int CloudSyncer::DoUploadInner(const std::string &tableName, UploadParam &upload
             LOGE("[CloudSyncer] Failed to get cloud data next when doing upload, %d.", ret);
             break;
         }
-        info.upLoadInfo.total -= static_cast<uint32_t>(uploadData.ignoredCount);
+        ChkIgnoredProcess(info, uploadData, uploadParam);
     }
     if (ret != -E_TASK_PAUSED) {
         // reset watermark to zero when task no paused

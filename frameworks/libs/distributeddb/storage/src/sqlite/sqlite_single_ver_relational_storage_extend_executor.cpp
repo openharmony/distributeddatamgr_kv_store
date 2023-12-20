@@ -285,12 +285,13 @@ int SQLiteSingleVerRelationalStorageExecutor::InitFillUploadAssetStatement(OpTyp
         CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
             CloudStorageUtils::FillAssetBeforeUpload, CloudStorageUtils::FillAssetsBeforeUpload);
     } else {
-        if (data.extend.at(index).find(CloudDbConstant::ERROR_FIELD) != data.extend.at(index).end()) {
+        if (DBCommon::IsRecordError(data.extend.at(index))) {
             CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
                 CloudStorageUtils::FillAssetForUploadFailed, CloudStorageUtils::FillAssetsForUploadFailed);
+        } else {
+            CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
+                CloudStorageUtils::FillAssetForUpload, CloudStorageUtils::FillAssetsForUpload);
         }
-        CloudStorageUtils::FillAssetFromVBucketFinish(assetOpType, vBucket, dbAssets,
-            CloudStorageUtils::FillAssetForUpload, CloudStorageUtils::FillAssetsForUpload);
     }
 
     errCode = GetAndBindFillUploadAssetStatement(tableSchema.name, dbAssets, statement);
@@ -912,11 +913,6 @@ int SQLiteSingleVerRelationalStorageExecutor::BindStmtWithCloudGid(const CloudSy
             break;
         }
         bool containError = DBCommon::IsRecordError(cloudDataResult.insData.extend[i]);
-        if (!ignoreEmptyGid && containError) {
-            LOGE("[RDBExecutor] Fill gid back but got error");
-            errCode = -E_CLOUD_ERROR;
-            break;
-        }
         if (ignoreEmptyGid && containError) {
             continue;
         }
@@ -1580,7 +1576,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetAssetsOnTable(const std::string
         LOGE("Get select assets statement failed, %d", errCode);
         return errCode;
     }
-    GetAssetsOnTableInner(selectStmt, assets);
+    errCode = GetAssetsOnTableInner(selectStmt, assets);
     int ret = E_OK;
     SQLiteUtils::ResetStatement(selectStmt, true, ret);
     return errCode != E_OK ? errCode : ret;

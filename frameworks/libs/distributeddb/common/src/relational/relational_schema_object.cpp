@@ -94,7 +94,8 @@ void RelationalSchemaObject::AddRelationalTable(const TableInfo &table)
 {
     tables_[table.GetTableName()] = table;
     isValid_ = true;
-    if (table.GetPrimaryKey().size() > 1) { // Table with composite primary keys
+    if (table.GetPrimaryKey().size() > 1 && table.GetTableSyncType() != CLOUD_COOPERATION) {
+        // Table with composite primary keys
         // Composite primary keys are supported since version 2.1
         schemaVersion_ = SchemaConstant::SCHEMA_CURRENT_VERSION;
     }
