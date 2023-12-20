@@ -1041,6 +1041,29 @@ bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, con
         return false;
     }
     data = it->second;
+}
+
+void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)
+{
+    for (auto &field : tableSchema.fields) {
+        std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
+    }
+}
+
+bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
+{
+    if (tableSchema.name == oldSchema.name) {
+        return true;
+    }
+    for (const auto &oldField : oldSchema.fields) {
+        auto it = std::find_if(tableSchema.fields.begin(), tableSchema.fields.end(),
+            [&oldField](const std::vector<Field>::value_type &field) {
+                return oldField == field;
+            });
+        if (it == tableSchema.fields.end()) {
+            return false;
+        }
+    }
     return true;
 }
 }

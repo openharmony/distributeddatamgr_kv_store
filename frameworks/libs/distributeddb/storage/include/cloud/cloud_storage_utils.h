@@ -146,6 +146,10 @@ public:
     static void TransferFieldToLower(VBucket &vBucket);
 
     static bool GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data);
+
+    static void TransferSchemaFieldToLower(TableSchema &tableSchema);
+
+    static bool CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H
