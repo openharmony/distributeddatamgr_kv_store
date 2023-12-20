@@ -41,4 +41,4 @@ public:
         int32_t tokenId);
 };
 }  // namespace OHOS
-#endif //DISTRIBUTED_DATA_MGR_H
+#endif // DISTRIBUTED_DATA_MGR_H
