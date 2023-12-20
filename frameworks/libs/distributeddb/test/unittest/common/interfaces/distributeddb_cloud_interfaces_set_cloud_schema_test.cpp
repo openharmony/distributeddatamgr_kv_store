@@ -119,7 +119,8 @@ namespace {
         void CreateUserDBAndTable();
         void CheckSharedTable(const std::vector<std::string> &expectedTableName);
         void CheckDistributedSharedTable(const std::vector<std::string> &expectedTableName);
-        void InsertLocalSharedTableRecords(int64_t begin, int64_t count, const std::string &tableName);
+        void InsertLocalSharedTableRecords(int64_t begin, int64_t count, const std::string &tableName,
+            bool isUpdate = false);
         void InsertCloudTableRecord(int64_t begin, int64_t count);
         void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK);
         void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
@@ -216,14 +217,22 @@ namespace {
     }
 
     void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertLocalSharedTableRecords(int64_t begin, int64_t count,
-        const std::string &tableName)
+        const std::string &tableName, bool isUpdate)
     {
         ASSERT_NE(db_, nullptr);
         std::vector<uint8_t> assetBlob = g_virtualCloudDataTranslate->AssetToBlob(g_localAsset);
         for (int64_t i = begin; i < count; ++i) {
-            string sql = "INSERT OR REPLACE INTO " + tableName +
-                " (cloud_owner, cloud_privilege, id, name, height, married, photo, asset) VALUES ('A', 'true', '" +
-                std::to_string(i) + "', 'Local" + std::to_string(i) + "', '155.10', 'false', 'text', ?);";
+            string sql = "";
+            if (isUpdate) {
+                sql = "INSERT OR REPLACE INTO " + tableName +
+                    " (cloud_owner, cloud_privilege, id, name, height, married, photo, age, asset) VALUES ('A', " +
+                    "'true', '" + std::to_string(i) + "', 'Local" + std::to_string(i) +
+                    "', '155.10', 'false', 'text', '18', ?);";
+            } else {
+                sql = "INSERT OR REPLACE INTO " + tableName +
+                    " (cloud_owner, cloud_privilege, id, name, height, married, photo, asset) VALUES ('A', 'true', '" +
+                    std::to_string(i) + "', 'Local" + std::to_string(i) + "', '155.10', 'false', 'text', ?);";
+            }
             sqlite3_stmt *stmt = nullptr;
             ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
             ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
@@ -1271,6 +1280,52 @@ namespace {
         InsertCloudTableRecord(0, cloudCount);
         Query query = Query::Select().FromTable({ g_sharedTableName1 });
         BlockSync(query, g_delegate, DBStatus::CLOUD_ERROR);
+    }
+
+    /**
+     * @tc.name: SharedTableSync006
+     * @tc.desc: Test sharedtable sync when sharedtable add column
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync006, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. set shared table and sync
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
+        int localCount = 10;
+        InsertLocalSharedTableRecords(0, localCount, g_sharedTableName1);
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
+        CheckCloudTableCount(g_sharedTableName1, localCount);
+
+        /**
+         * @tc.steps:step2. add shared table column and sync
+         * @tc.expected: step2. return OK
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField3
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+        int cloudCount = 20;
+        InsertLocalSharedTableRecords(localCount, cloudCount, g_sharedTableName1, true);
+        BlockSync(query, g_delegate, DBStatus::OK);
+        CheckCloudTableCount(g_sharedTableName1, cloudCount);
     }
 
     /**
