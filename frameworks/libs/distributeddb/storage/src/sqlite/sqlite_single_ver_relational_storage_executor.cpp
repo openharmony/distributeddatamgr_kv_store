@@ -259,7 +259,8 @@ int SQLiteSingleVerRelationalStorageExecutor::UpgradeDistributedTable(const std:
         LOGD("[UpgradeDistributedTable] schema has not changed.");
         // update table if tableName changed
         schema.RemoveRelationalTable(tableName);
-        schema.AddRelationalTable(newTableInfo);
+        tableInfo.SetTableName(tableName);
+        schema.AddRelationalTable(tableInfo);
         return E_OK;
     }
 
