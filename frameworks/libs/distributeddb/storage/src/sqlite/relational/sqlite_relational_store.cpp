@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_relational_store.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_dump_helper.h"
@@ -1507,6 +1508,12 @@ int SQLiteRelationalStore::InitSQLiteStorageEngine(const RelationalDBProperties 
 
 int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
 {
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][CheckCloudSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    (void) storageEngine_->GetCloudDbSchema(cloudSchema);
     RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
     for (const auto &tableSchema : schema.tables) {
         TableInfo tableInfo = localSchema.GetTable(tableSchema.name);
@@ -1516,6 +1523,17 @@ int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
         if (tableInfo.GetSharedTableMark()) {
             LOGE("[RelationalStore][CheckCloudSchema] Table name is existent shared table's name.");
             return -E_INVALID_ARGS;
+        }
+    }
+    for (const auto &tableSchema : schema.tables) {
+        if (cloudSchema == nullptr) {
+            continue;
+        }
+        for (const auto &oldSchema : cloudSchema->tables) {
+            if (!CloudStorageUtils::CheckCloudSchemaFields(tableSchema, oldSchema)) {
+                LOGE("[RelationalStore][CheckCloudSchema] Schema fields are invalid.");
+                return -E_INVALID_ARGS;
+            }
         }
     }
     return E_OK;

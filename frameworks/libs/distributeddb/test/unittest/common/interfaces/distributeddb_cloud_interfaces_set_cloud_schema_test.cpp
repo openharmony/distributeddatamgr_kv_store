@@ -1418,4 +1418,40 @@ namespace {
         CheckSharedTable({g_sharedTableName1});
         CheckDistributedSharedTable({g_distributedSharedTableName1});
     }
+
+    /**
+     * @tc.name: SetCloudDbSchemaTest017
+     * @tc.desc: Test SetCloudDbSchema if table fields are less than old table
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: chenchaohao
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SetCloudDbSchemaTest017, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use SetCloudDbSchema
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = "",
+            .fields = g_cloudField3
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. re-SetCloudDbSchema and fields are less than old
+         * @tc.expected: step2. return INVALID_ARS
+         */
+        dataBaseSchema.tables.clear();
+        tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = "",
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
+    }
 } // namespace
