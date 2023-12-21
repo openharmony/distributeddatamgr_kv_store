@@ -263,9 +263,10 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest005, TestSize.Level1
             g_loop->Run();
         });
 
-    int tryCounter = 0;
-    while (!running && ++tryCounter <= MAX_RETRY_TIMES) {
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        tryCounter++;
     }
     EXPECT_EQ(running, true);
 
@@ -322,9 +323,10 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest006, TestSize.Level1
             g_loop->Run();
         });
 
-    int tryCounter = 0;
-    while (!running && ++tryCounter <= MAX_RETRY_TIMES) {
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
         std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_10));
+        tryCounter++;
     }
     EXPECT_EQ(running, true);
 
@@ -378,9 +380,10 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest007, TestSize.Level2
             g_loop->Run();
         });
 
-    int tryCounter = 0;
-    while (!running && ++tryCounter <= MAX_RETRY_TIMES) {
+    int tryCounter = 1;
+    while (!running && tryCounter <= MAX_RETRY_TIMES) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        tryCounter++;
     }
     EXPECT_EQ(running, true);
 

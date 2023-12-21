@@ -188,6 +188,7 @@ void DistributedDBCloudAssetsOperationSyncTest::InsertUserTableRecord(const std:
     int errCode;
     std::vector<uint8_t> assetBlob;
     std::vector<uint8_t> assetsBlob;
+    const int64_t index2 = 2;
     for (int64_t i = begin; i < begin + count; ++i) {
         std::string name = g_localAsset.name + std::to_string(i);
         Asset asset = g_localAsset;
@@ -206,11 +207,11 @@ void DistributedDBCloudAssetsOperationSyncTest::InsertUserTableRecord(const std:
         ASSERT_EQ(SQLiteUtils::GetStatement(db_, sql, stmt), E_OK);
         RuntimeContext::GetInstance()->AssetsToBlob(assets, assetsBlob);
         if (assetIsNull) {
-            ASSERT_EQ(sqlite3_bind_null(stmt, 1), SQLITE_OK); // 1 is bind asset
-            ASSERT_EQ(sqlite3_bind_null(stmt, 2), SQLITE_OK); // 2 is bind assets
+            ASSERT_EQ(sqlite3_bind_null(stmt, 1), SQLITE_OK);
+            ASSERT_EQ(sqlite3_bind_null(stmt, index2), SQLITE_OK);
         } else {
-            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK); // 1 is bind asset
-            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 2, assetsBlob, false), E_OK); // 2 is bind assets
+            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, 1, assetBlob, false), E_OK);
+            ASSERT_EQ(SQLiteUtils::BindBlobToStatement(stmt, index2, assetsBlob, false), E_OK);
         }
         EXPECT_EQ(SQLiteUtils::StepWithRetry(stmt), SQLiteUtils::MapSQLiteErrno(SQLITE_DONE));
         SQLiteUtils::ResetStatement(stmt, true, errCode);
@@ -222,12 +223,13 @@ void DistributedDBCloudAssetsOperationSyncTest::UpdateCloudTableRecord(int64_t b
     std::vector<VBucket> record;
     std::vector<VBucket> extend;
     Timestamp now = TimeHelper::GetSysCurrentTime();
+    const int assetCount = 2;
     for (int64_t i = begin; i < (begin + count); ++i) {
         VBucket data;
         data.insert_or_assign("id", std::to_string(i));
         data.insert_or_assign("name", "Cloud" + std::to_string(i));
         Assets assets;
-        for (int j = 1; j <= 2; ++j) { // add 2 asset in assets col
+        for (int j = 1; j <= assetCount; ++j) {
             Asset asset;
             asset.name = "Phone_" + std::to_string(j);
             asset.assetId = std::to_string(j);

@@ -20,7 +20,8 @@ sqlite3 *NativeSqlite::CreateDataBase(const std::string &dbUri)
 {
     LOGD("Create database: %s", dbUri.c_str());
     sqlite3 *db = nullptr;
-    if (int r = sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr) != SQLITE_OK) {
+    int r = sqlite3_open_v2(dbUri.c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr);
+    if (r != SQLITE_OK) {
         LOGE("Open database [%s] failed. %d", dbUri.c_str(), r);
         if (db != nullptr) {
             (void)sqlite3_close_v2(db);
@@ -75,8 +76,11 @@ int NativeSqlite::ExecSql(sqlite3 *db, const std::string &sql, const std::functi
             } else if (ret != SQLITE_ROW) {
                 goto END; // step return error
             }
-
-            if (resultCallback != nullptr && (ret = resultCallback(stmt)) != E_OK) {
+            if (resultCallback == nullptr) {
+                continue;
+            }
+            ret = resultCallback(stmt);
+            if (ret != E_OK) {
                 goto END;
             }
             // continue step stmt while callback return E_OK

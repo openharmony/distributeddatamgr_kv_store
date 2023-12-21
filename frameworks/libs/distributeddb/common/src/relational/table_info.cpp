@@ -73,7 +73,7 @@ static StorageType AffinityType(const std::string &dataType)
     StorageType type = StorageType::STORAGE_TYPE_NULL;
     uint32_t hex = 0;
     for (uint32_t i = 0; i < dataType.length(); i++) {
-        hex = (hex << 8) + (std::tolower(dataType[i])); // 8: shift length
+        hex = (hex << 8) + static_cast<uint32_t>((std::tolower(dataType[i]))); // 8: shift length
         if (hex == affinityTable[AFFINITY_CHAR]) {
             type = StorageType::STORAGE_TYPE_TEXT;
         } else if (hex == affinityTable[AFFINITY_CLOB]) {

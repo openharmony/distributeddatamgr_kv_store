@@ -48,7 +48,7 @@ RelationalStoreDelegate *g_delegate = nullptr;
 IRelationalStore *g_store = nullptr;
 std::shared_ptr<StorageProxy> g_storageProxy = nullptr;
 
-class CloudMetaDataTest {
+class StorageFuzzer {
 public:
     void SetUp()
     {
@@ -182,34 +182,34 @@ private:
     }
 };
 
-CloudMetaDataTest *g_cloudMetaDataTest = nullptr;
+StorageFuzzer *g_storageFuzzerTest = nullptr;
 
 void Setup()
 {
     LOGI("Set up");
-    g_cloudMetaDataTest = new(std::nothrow) CloudMetaDataTest();
-    if (g_cloudMetaDataTest == nullptr) {
+    g_storageFuzzerTest = new(std::nothrow) StorageFuzzer();
+    if (g_storageFuzzerTest == nullptr) {
         return;
     }
-    g_cloudMetaDataTest->SetUp();
+    g_storageFuzzerTest->SetUp();
 }
 
 void TearDown()
 {
     LOGI("Tear down");
-    g_cloudMetaDataTest->TearDown();
-    if (g_cloudMetaDataTest != nullptr) {
-        delete g_cloudMetaDataTest;
-        g_cloudMetaDataTest = nullptr;
+    g_storageFuzzerTest->TearDown();
+    if (g_storageFuzzerTest != nullptr) {
+        delete g_storageFuzzerTest;
+        g_storageFuzzerTest = nullptr;
     }
 }
 
 void CombineTest(const uint8_t* data, size_t size)
 {
-    if (g_cloudMetaDataTest == nullptr) {
+    if (g_storageFuzzerTest == nullptr) {
         return;
     }
-    g_cloudMetaDataTest->FuzzTest(data, size);
+    g_storageFuzzerTest->FuzzTest(data, size);
 }
 }
 

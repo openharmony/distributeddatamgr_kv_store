@@ -25,7 +25,7 @@
 #include "platform_specific.h"
 #include "log_print.h"
 
-class KvStoreSyncFuzzer {
+class SyncFuzzer {
     /* Keep C++ file names the same as the class name. */
 };
 

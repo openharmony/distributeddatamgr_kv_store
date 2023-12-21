@@ -51,6 +51,7 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)
     : storageEngine_(std::move(engine)),
+      reusedHandle_(nullptr),
       isCachedOption_(false)
 {}
 

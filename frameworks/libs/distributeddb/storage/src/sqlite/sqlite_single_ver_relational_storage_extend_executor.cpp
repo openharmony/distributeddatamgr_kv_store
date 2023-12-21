@@ -1709,11 +1709,11 @@ int64_t SQLiteSingleVerRelationalStorageExecutor::GetDataFlag()
     if (putDataMode_ != PutDataMode::USER) {
         return static_cast<int64_t>(LogInfoFlag::FLAG_CLOUD);
     }
-    auto flag = static_cast<int64_t>(LogInfoFlag::FLAG_LOCAL);
+    uint32_t flag = static_cast<uint32_t>(LogInfoFlag::FLAG_LOCAL);
     if (markFlagOption_ == MarkFlagOption::SET_WAIT_COMPENSATED_SYNC) {
         flag |= static_cast<uint32_t>(LogInfoFlag::FLAG_WAIT_COMPENSATED_SYNC);
     }
-    return flag;
+    return static_cast<int64_t>(flag);
 }
 
 std::string SQLiteSingleVerRelationalStorageExecutor::GetUpdateDataFlagSql()

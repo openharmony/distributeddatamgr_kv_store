@@ -1111,7 +1111,11 @@ int RelationalTestUtils::ExecSql(sqlite3 *db, const std::string &sql,
             } else if (errCode != SQLiteUtils::MapSQLiteErrno(SQLITE_ROW)) {
                 goto END; // Step return error
             }
-            if (resultCallback != nullptr && ((errCode = resultCallback(stmt)) != E_OK)) {
+            if (resultCallback == nullptr) {
+                continue;
+            }
+            errCode = resultCallback(stmt);
+            if (errCode != E_OK) {
                 goto END;
             }
         }

@@ -321,13 +321,13 @@ void CloseDb()
 }
 
 class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
-  public:
+public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
 
-  protected:
+protected:
     void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
         const std::set<int> &failIndex);
     void CheckLocalAssetIsEmpty(const std::string &tableName);
