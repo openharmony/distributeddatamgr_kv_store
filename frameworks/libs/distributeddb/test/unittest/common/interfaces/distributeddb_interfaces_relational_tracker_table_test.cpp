@@ -1796,4 +1796,73 @@ HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, TrackerTableTest027,
     EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
     CloseStore();
 }
+
+/**
+  * @tc.name: SchemaStrTest001
+  * @tc.desc: Test open reOpen stroe when schemaStr is empty
+  * @tc.type: FUNC
+  * @tc.require:
+  * @tc.author: bty
+  */
+HWTEST_F(DistributedDBInterfacesRelationalTrackerTableTest, SchemaStrTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. set empty for relational schema str, reopen store
+     * @tc.expected: step1. Return OK.
+     */
+    std::string updMetaSql = "UPDATE naturalbase_rdb_aux_metadata SET value=? where key=?;";
+    CreateMultiTable();
+    OpenStore();
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    SqlCondition condition;
+    std::vector<VBucket> records;
+    condition.sql = updMetaSql;
+    Key relationKey;
+    DBCommon::StringToVector(DBConstant::RELATIONAL_SCHEMA_KEY, relationKey);
+    condition.bindArgs = { std::string(""), relationKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    CloseStore();
+    OpenStore();
+
+    /**
+     * @tc.steps:step2. set empty for relational schema str, reopen store to upgrade
+     * @tc.expected: step2. Return OK.
+     */
+    Value verVal;
+    DBCommon::StringToVector("5.0", verVal);
+    Key verKey;
+    DBCommon::StringToVector("log_table_version", verKey);
+    condition.bindArgs = { verVal, verKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    condition.bindArgs = { std::string(""), relationKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    CloseStore();
+    OpenStore();
+
+    /**
+     * @tc.steps:step3. set empty for tracker schema str, reopen store to upgrade
+     * @tc.expected: step3. Return OK.
+     */
+    TrackerSchema schema = g_normalSchema1;
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    condition.bindArgs = { verVal, verKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    condition.bindArgs = { std::string(""), relationKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    Key trackerKey;
+    DBCommon::StringToVector("relational_tracker_schema", trackerKey);
+    condition.bindArgs = { std::string(""), trackerKey };
+    EXPECT_EQ(g_delegate->ExecuteSql(condition, records), OK);
+    CloseStore();
+    OpenStore();
+
+    /**
+     * @tc.steps:step4. try to create distributed table and set tracker table again
+     * @tc.expected: step4. Return OK.
+     */
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME2, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->CreateDistributedTable(TABLE_NAME1, CLOUD_COOPERATION), DBStatus::OK);
+    EXPECT_EQ(g_delegate->SetTrackerTable(schema), OK);
+    CloseStore();
+}
 }
