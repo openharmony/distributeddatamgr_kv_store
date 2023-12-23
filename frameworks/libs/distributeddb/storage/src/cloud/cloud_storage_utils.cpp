@@ -168,6 +168,7 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             LOGE("can not get asset from vBucket when bind, %d", errCode);
             return errCode;
         }
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
         errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, val);
     } else if (field.type == TYPE_INDEX<Assets>) {
         Assets assets;
@@ -177,6 +178,9 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             return errCode;
         }
         if (!assets.empty()) {
+            for (auto &asset: assets) {
+                asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+            }
             errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
         }
     } else {
@@ -452,7 +456,8 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
             }
             break;
         }
-        case AssetOpType::INSERT: {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE: {
             if (status != AssetStatus::NORMAL) {
                 asset.hash = std::string("");
             }
