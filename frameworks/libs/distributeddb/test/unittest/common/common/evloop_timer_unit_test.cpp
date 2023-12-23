@@ -212,7 +212,11 @@ HWTEST_F(DistributedDBEventLoopTimerTest, EventLoopTimerTest004, TestSize.Level1
         });
 
     int tryCounter = 0;
-    while (!running && ++tryCounter < MAX_RETRY_TIMES) {
+    while (!running) {
+        tryCounter++;
+        if (tryCounter >= MAX_RETRY_TIMES) {
+            break;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(TIME_PIECE_1));
     }
     EXPECT_EQ(running, true);

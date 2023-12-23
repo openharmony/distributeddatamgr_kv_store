@@ -632,7 +632,7 @@ void RegOnDispatchWithDelayAck(bool &errCodeAck, bool &afterErrAck)
             return;
         }
         auto *packet = inMsg->GetObject<DataAckPacket>();
-        if (packet->GetRecvCode() == -E_BUSY) {
+        if (packet != nullptr && packet->GetRecvCode() == -E_BUSY) {
             errCodeAck = true;
             while (!afterErrAck) {
             }
@@ -650,7 +650,7 @@ void RegOnDispatchWithOffline(bool &offlineFlag, bool &invalid, condition_variab
                                                 const std::string &dev, Message *inMsg) {
         auto *packet = inMsg->GetObject<DataAckPacket>();
         if (dev != DEVICE_B) {
-            if (packet->GetRecvCode() == LOCAL_WATER_MARK_NOT_INIT) {
+            if (packet != nullptr && (packet->GetRecvCode() == LOCAL_WATER_MARK_NOT_INIT)) {
                 offlineFlag = true;
                 conditionOffline.notify_all();
                 LOGW("[Dispatch] NOTIFY OFFLINE");

@@ -781,7 +781,7 @@ HWTEST_F(DistributedDBCloudReferenceSyncTest, ComplexReferenceCheck002, TestSize
         const std::string actualTable = actualTables[expectIndex];
         const std::string actualSharedTable = actualTables[expectSharedIndex];
         bool equal = (actualTable == tableName[i]);
-        equal &= (actualSharedTable == (tableName[i] + "_shared"));
+        equal = equal && (actualSharedTable == (tableName[i] + "_shared"));
         LOGW("index %zu expectIndex %zu expectSharedIndex %zu actualTable %s actualSharedTable %s",
             i, expectIndex, expectSharedIndex, actualTable.c_str(), actualSharedTable.c_str());
         EXPECT_TRUE(equal);

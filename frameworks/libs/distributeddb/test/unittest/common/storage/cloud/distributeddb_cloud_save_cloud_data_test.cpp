@@ -1217,7 +1217,8 @@ namespace {
             EXPECT_EQ(getGid, gid);
             if (count == 1) {
                 int flag = sqlite3_column_int(stmt, 1);
-                EXPECT_EQ(flag & 0x04, 0); // 0x04 is binay num of b100, clear gid will clear 2th bit of flag
+                // 0x04 is binay num of b100, clear gid will clear 2th bit of flag
+                EXPECT_EQ(static_cast<uint16_t>(flag) & 0x04, 0);
             }
             count++;
             return OK;

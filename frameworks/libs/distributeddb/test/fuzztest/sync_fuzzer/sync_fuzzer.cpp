@@ -25,13 +25,13 @@
 #include "platform_specific.h"
 #include "log_print.h"
 
-class SyncFuzzer {
-    /* Keep C++ file names the same as the class name. */
-};
-
 namespace OHOS {
 using namespace DistributedDB;
 using namespace DistributedDBTest;
+
+/* Keep C++ file names the same as the class name. */
+class SyncFuzzer {
+};
 
 VirtualCommunicatorAggregator* g_communicatorAggregator = nullptr;
 KvVirtualDevice *g_deviceB = nullptr;
