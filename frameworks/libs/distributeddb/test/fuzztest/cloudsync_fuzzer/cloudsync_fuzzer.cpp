@@ -92,7 +92,7 @@ public:
         }
         int errCode = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
         if (errCode != SQLITE_OK) {
-            LOGE("Execute sql failed. %d err: %s", errCode);
+            LOGE("Execute sql failed. err: %d", errCode);
         }
     }
 
