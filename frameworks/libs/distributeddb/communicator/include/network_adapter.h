@@ -57,6 +57,7 @@ public:
 private:
     void OnDataReceiveHandler(const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length);
     void OnDeviceChangeHandler(const DeviceInfos &devInfo, bool isOnline);
+    void OnSendAbleHandler(const DeviceInfos &devInfo);
 
     void SearchOnlineRemoteDeviceAtStartup();
     void CheckDeviceOnlineAfterReception(const DeviceInfos &devInfo);

@@ -67,6 +67,8 @@ using OnDeviceChange = std::function<void(const DeviceInfos &devInfo, bool isOnl
 // In OnDataReceive, all field of srcDevInfo should be valid
 using OnDataReceive = std::function<void(const DeviceInfos &srcDevInfo, const uint8_t *data, uint32_t length)>;
 
+using OnSendAble = std::function<void(const DeviceInfos &deviceInfo)>;
+
 // For all functions with returnType DBStatus:
 // return DBStatus::OK if successful, otherwise DBStatus::DB_ERROR if anything wrong.
 // Additional information of reason why failed can be present in the log by the implementation.
@@ -162,6 +164,10 @@ public:
     {
         headLength = 0;
         return OK;
+    }
+
+    virtual void RegOnSendAble([[gnu::unused]] const OnSendAble &sendAbleCallback)
+    {
     }
 };
 } // namespace DistributedDB
