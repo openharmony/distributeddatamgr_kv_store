@@ -394,13 +394,12 @@ HWTEST_F(DocumentDBApiTest, OpenDBConfigMaxConnNumTest004, TestSize.Level1)
     std::string config = "{\"maxConnNum\":" + std::to_string(maxCnt) + "}";
 
     std::vector<GRD_DB *> dbList;
-    while (maxCnt > 0) {
+    while (maxCnt--) {
         GRD_DB *db = nullptr;
         int status = GRD_DBOpen(path.c_str(), config.c_str(), GRD_DB_OPEN_CREATE, &db);
         EXPECT_EQ(status, GRD_OK);
         EXPECT_NE(db, nullptr);
         dbList.push_back(db);
-        maxCnt--;
     }
 
     GRD_DB *db = nullptr;

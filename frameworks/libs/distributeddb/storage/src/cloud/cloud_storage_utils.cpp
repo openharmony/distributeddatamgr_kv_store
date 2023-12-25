@@ -738,10 +738,7 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
 
 bool CloudStorageUtils::IsSharedTable(const TableSchema &tableSchema)
 {
-    if(tableSchema.sharedTableName == tableSchema.name){
-        return true;
-    }
-    return false;
+    return tableSchema.sharedTableName == tableSchema.name;
 }
 
 static bool IsViolationOfConstraints(const std::string &name, const std::vector<FieldInfo> &fieldInfos)
@@ -1041,6 +1038,7 @@ bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, con
         return false;
     }
     data = it->second;
+    return true;
 }
 
 void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)

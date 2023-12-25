@@ -21,8 +21,6 @@
 namespace DistributedDB {
 
 RdSingleVerNaturalStore::RdSingleVerNaturalStore()
-    : storageEngine_(nullptr),
-      notificationEventsRegistered_(false)
 {
     LOGD("RdSingleVerNaturalStore Created");
 }
