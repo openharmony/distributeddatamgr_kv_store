@@ -110,8 +110,6 @@ ohos_shared_library("distributeddata_inner_mock") {
     "../../../frameworks/innerkitsimpl/kvdb/src/store_factory.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/store_manager.cpp",
     "../../../frameworks/innerkitsimpl/kvdb/src/store_util.cpp",
-    "../../../interfaces/mock/base/parcel.cpp",
-    "../../../interfaces/mock/base/refbase.cpp",
     "../../../interfaces/mock/log_print.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/blob.cpp",
     "//foundation/distributeddatamgr/kv_store/frameworks/innerkitsimpl/distributeddatafwk/src/change_notification.cpp",
