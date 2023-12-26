@@ -151,10 +151,9 @@ StorageEngineManager *StorageEngineManager::GetInstance()
 
     if (!isRegLockStatusListener_) {
         int errCode = (instance_.load())->RegisterLockStatusListener();
-        if (errCode != E_OK) {
-            LOGW("[StorageEngineManager] Failed to register lock status listener:%d", errCode);
-        } else {
+        if (errCode == E_OK) {
             isRegLockStatusListener_ = true;
+            LOGW("[StorageEngineManager] Register lock status listener.");
         }
     }
     return instance_;
@@ -179,9 +178,6 @@ int StorageEngineManager::RegisterLockStatusListener()
                 LOGE("[StorageEngineManager] LockStatusNotifier ScheduleTask failed : %d", taskErrCode);
             }
         }, errCode);
-    if (errCode != E_OK) {
-        LOGW("[StorageEngineManager] Failed to register lock status listener: %d.", errCode);
-    }
     return errCode;
 }
 

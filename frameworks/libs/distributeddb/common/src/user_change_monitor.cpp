@@ -71,7 +71,6 @@ NotificationChain::Listener *UserChangeMonitor::RegisterUserChangedListener(cons
         errCode = -E_NOT_INIT;
         return nullptr;
     }
-    LOGI("[UserChangeMonitor] RegisterUserChangedListener event=%d", event);
     return userNotifier_->RegisterListener(event, action, nullptr, errCode);
 }
 

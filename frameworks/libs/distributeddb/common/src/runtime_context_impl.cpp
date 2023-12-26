@@ -484,7 +484,6 @@ NotificationChain::Listener *RuntimeContextImpl::RegisterLockStatusLister(const 
                 lockStatusObserver_, std::placeholders::_1);
             errCode = systemApiAdapter_->RegOnAccessControlledEvent(callback);
             if (errCode != OK) {
-                LOGE("Register access control event change failed, err = %d", errCode);
                 delete lockStatusObserver_;
                 lockStatusObserver_ = nullptr;
                 return nullptr;

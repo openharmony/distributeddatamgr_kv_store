@@ -116,15 +116,18 @@ int SyncAbleEngine::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedAct
     }
 
     bool isSyncDualTupleMode = store_->GetDbProperties().GetBoolProp(DBProperties::SYNC_DUAL_TUPLE_MODE, false);
+    std::string label = store_->GetDbProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     if (isSyncDualTupleMode && isCheckSyncActive && !isNeedActive && (userChangeListener_ == nullptr)) {
         // active to non_active
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             std::bind(&SyncAbleEngine::ChangeUserListener, this), UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
+        LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener", label.c_str());
     } else if (isSyncDualTupleMode && (userChangeListener_ == nullptr)) {
         EventType event = isNeedActive ?
             UserChangeMonitor::USER_ACTIVE_EVENT : UserChangeMonitor::USER_NON_ACTIVE_EVENT;
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             std::bind(&SyncAbleEngine::UserChangeHandle, this), event);
+        LOGI("[StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener event=%d", label.c_str(), event);
     }
     return errCode;
 }
@@ -195,6 +198,8 @@ void SyncAbleEngine::ChangeUserListener()
     }
     userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
         std::bind(&SyncAbleEngine::UserChangeHandle, this), UserChangeMonitor::USER_NON_ACTIVE_EVENT);
+    std::string label = store_->GetDbProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
+    LOGI("[ChangeUserListener] [%.3s] After RegisterUserChangedListener", label.c_str());
 }
 
 void SyncAbleEngine::SetSyncModuleActive()
@@ -268,7 +273,7 @@ int SyncAbleEngine::RemoteQuery(const std::string &device, const RemoteCondition
 bool SyncAbleEngine::NeedStartSyncer() const
 {
     if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
-        LOGW("communicator not ready!");
+        LOGW("Engine communicator not ready!");
         return false;
     }
     // don't start when check callback got not active
