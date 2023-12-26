@@ -384,6 +384,9 @@ int SQLiteSingleVerRelationalStorageExecutor::GetOrInitTrackerSchemaFromMeta(Rel
     if (errCode != E_OK) {
         return errCode;
     }
+    if (schemaVal.empty()) {
+        return -E_NOT_FOUND;
+    }
     std::string schemaStr;
     DBCommon::VectorToString(schemaVal, schemaStr);
     errCode = schema.ParseFromTrackerSchemaString(schemaStr);
