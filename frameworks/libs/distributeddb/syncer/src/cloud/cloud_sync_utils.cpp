@@ -14,6 +14,7 @@
  */
 #include "cloud/asset_operation_utils.h"
 #include "cloud/cloud_db_constant.h"
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_errno.h"
 #include "log_print.h"
@@ -34,12 +35,13 @@ int CloudSyncUtils::GetCloudPkVals(const VBucket &datum, const std::vector<std::
             cloudPkVals.emplace_back(dataKey);
             continue;
         }
-        auto iter = datum.find(pkColName);
-        if (iter == datum.end()) {
+        Type type;
+        bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive(pkColName, datum, type);
+        if (!isExisted) {
             LOGE("[CloudSyncer] Cloud data do not contain expected primary field value");
             return -E_CLOUD_ERROR;
         }
-        cloudPkVals.push_back(iter->second);
+        cloudPkVals.push_back(type);
     }
     return E_OK;
 }

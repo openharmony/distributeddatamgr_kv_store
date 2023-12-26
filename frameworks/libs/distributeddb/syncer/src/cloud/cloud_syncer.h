@@ -251,8 +251,6 @@ protected:
 
     int CommitDownloadResult(bool recordConflict, InnerProcessInfo &info, DownloadCommitList &commitList, int errCode);
 
-    void ModifyFieldNameToLower(VBucket &data);
-
     int GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
         std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo);
 

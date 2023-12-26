@@ -871,7 +871,7 @@ static bool isChangedDataEq(DistributedDB::ChangedData &input, DistributedDB::Ch
         return false;
     }
     for (size_t i = 0; i < input.field.size(); i++) {
-        if (input.field[i] != expected.field[i]) {
+        if (!DBCommon::CaseInsensitiveCompare(input.field[i], expected.field[i])) {
             return false;
         }
     }
