@@ -471,8 +471,7 @@ END:
     return errCode;
 }
 
-int PackageFile::ExePackage(const string &sourcePath, const string &targetFile,
-    const FileInfo &fileInfo)
+int PackageFile::ExePackage(const string &sourcePath, const string &targetFile, const FileInfo &fileInfo)
 {
     list<FileContext> fileContexts;
     int errCode = GetFileContexts(sourcePath, fileContexts);

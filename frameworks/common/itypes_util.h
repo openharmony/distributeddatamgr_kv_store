@@ -355,7 +355,7 @@ bool ITypesUtil::Marshalling(const std::tuple<F, S, T> &result, MessageParcel &p
     if (!ITypesUtil::Marshalling(std::get<1>(result), parcel)) {
         return false;
     }
-    if (!ITypesUtil::Marshalling(std::get<2>(result), parcel)) {
+    if (!ITypesUtil::Marshalling(std::get<2>(result), parcel)) { // 2 is the last element in tuple
         return false;
     }
     return true;
