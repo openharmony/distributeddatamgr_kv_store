@@ -1846,208 +1846,189 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, FreqGet001, TestSize.Level2)
     ASSERT_NO_FATAL_FAILURE(FreqGet001());
 }
 
+void PutRangeDataIntoDB()
+{
+    for (int i = 0; i < 6; i++) { // 6 is the number of data inserted
+        std::vector<uint8_t> keyTemp;
+        std::vector<uint8_t> valTemp;
+        keyTemp.push_back('0' + i);
+        valTemp.push_back('0' + i);
+        Entry entryTmp;
+        entryTmp.key = keyTemp;
+        entryTmp.value = valTemp;
+        EXPECT_EQ(g_kvNbDelegatePtr->Put(entryTmp.key, entryTmp.value), OK);
+    }
+}
+
 /**
   * @tc.name: RdRangeQuery001
   * @tc.desc: Test GetEntries and the out of the parameter is entries.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery001, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Get the nb delegate.
-     * @tc.expected: step1. Get results OK and non-null delegate.
+     * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
+     * @tc.expected: step1. Get results OK and non-null delegate, put data into db successfully.
      */
     g_mgr.GetKvStore("RdRangeQuery001", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    PutRangeDataIntoDB();
 
     /**
-     * @tc.steps: step1.
-     * @tc.expected: step1.
-     */
-    Entry entry0 = {{'0'}, {'0'}};
-    Entry entry1 = {{'1'}, {'1'}};
-    Entry entry2 = {{'2'}, {'2'}};
-    Entry entry3 = {{'3'}, {'3'}};
-    Entry entry4 = {{'4'}, {'4'}};
-    Entry entry5 = {{'5'}, {'5'}};
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
-
-
-    /**
-     * @tc.steps: step2.
-     * @tc.expected: step2.
+     * @tc.steps: step2. Use range query conditions to obtain the dataset and check the dataset
+     * @tc.expected: step2. The expected data are 2, 3, 4.
      */
     Query query1 = Query::Select().Range({'2'}, {'4'});
     std::vector<Entry> entries;
     int ret = g_kvNbDelegatePtr->GetEntries(query1, entries);
     EXPECT_EQ(entries.size(), 3u);
-    int count1 = 2;
+    int targetKey = 2; // 2 is the initial key that is expected to be found
     for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
-        EXPECT_EQ(to_string(count1), keyStr);
-        count1++;
+        EXPECT_EQ(to_string(targetKey), keyStr);
+        targetKey++;
     }
 
     /**
-     * @tc.steps: step3.
-     * @tc.expected: step3.
+     * @tc.steps: step3. Use range query conditions to obtain the dataset and check the dataset
+     * @tc.expected: step3. The expected data are 0, 1, 2, 3, 4.
      */
     Query query2 = Query::Select().Range({}, {'4'});
     ret = g_kvNbDelegatePtr->GetEntries(query2, entries);
     EXPECT_EQ(entries.size(), 5u);
-    int count2 = 0;
+    targetKey = 0; // 0 is the initial key that is expected to be found
     for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
-        EXPECT_EQ(to_string(count2), keyStr);
-        count2++;
+        EXPECT_EQ(to_string(targetKey), keyStr);
+        targetKey++;
     }
 
     /**
-     * @tc.steps: step4.
-     * @tc.expected: step4.
+     * @tc.steps: step4. Use range query conditions to obtain the dataset and check the dataset
+     * @tc.expected: step4. The expected data are 2, 3, 4, 5.
      */
     Query query3 = Query::Select().Range({'2'}, {});
     ret = g_kvNbDelegatePtr->GetEntries(query3, entries);
     EXPECT_EQ(entries.size(), 4u);
-    int count3 = 2;
+    targetKey = 2; // 2 is the initial key that is expected to be found
     for(auto item : entries) {
         std::string keyStr(item.key.begin(), item.key.end());
-        EXPECT_EQ(to_string(count3), keyStr);
-        count3++;
+        EXPECT_EQ(to_string(targetKey), keyStr);
+        targetKey++;
     }
+
+    /**
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery001"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+void ChkRangeResultSet(KvStoreResultSet *resultSet, int beginNum, int EndNum)
+{
+    while (resultSet->MoveToNext()) {
+        Entry entryValue;
+        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+        EXPECT_EQ(to_string(beginNum), keyStr);
+        beginNum++;
+    }
+    EXPECT_EQ(beginNum, EndNum + 1);
+    EXPECT_EQ(resultSet->MoveToNext(), false);
 }
 
 /**
   * @tc.name: RdRangeQuery002
   * @tc.desc:Test GetEntries and the out of the parameter is resultSet.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery002, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Get the nb delegate.
+     * @tc.steps:step1. Get the nb delegate,  and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     g_mgr.GetKvStore("RdRangeQuery002", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+    PutRangeDataIntoDB();
 
     /**
-     * @tc.steps: step1.
-     * @tc.expected: step1.
-     */
-    Entry entry0 = {{'0'}, {'0'}};
-    Entry entry1 = {{'1'}, {'1'}};
-    Entry entry2 = {{'2'}, {'2'}};
-    Entry entry3 = {{'3'}, {'3'}};
-    Entry entry4 = {{'4'}, {'4'}};
-    Entry entry5 = {{'5'}, {'5'}};
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
-
-
-    /**
-     * @tc.steps: step2.
-     * @tc.expected: step2. 2, 3, 4
+     * @tc.steps: step2. Use range query conditions to obtain the resultset and check the resultset
+     * @tc.expected: step2. The expected data are 2, 3, 4.
      */
     Query fullQuery = Query::Select().Range({'2'}, {'4'});
     KvStoreResultSet *resultSet = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count1 = 1;
-    while (resultSet->MoveToNext()) {
-        count1++;
-        Entry entryValue;
-        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
-        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-        EXPECT_EQ(to_string(count1), keyStr);
-    }
-    EXPECT_EQ(count1, 4);
-    EXPECT_EQ(resultSet->MoveToNext(), false);
-    Entry entryValue;
-    EXPECT_EQ(resultSet->GetEntry(entryValue), NOT_FOUND);
-    std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+    int beginTargetKey = 2; // 2 is the initial key that is expected to be found
+    int endTargetKey = 4; // 4 is the end key that is expected to be found
+    ChkRangeResultSet(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step3.
-     * @tc.expected: step3. 0, 1 ,2 ,3 ,4
+     * @tc.steps: step3. Use range query conditions to obtain the resultset and check the resultset
+     * @tc.expected: step3. The expected data are 0, 1, 2, 3, 4.
      */
     Query fullQuery2 = Query::Select().Range({}, {'4'});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count2 = 0;
-    while (resultSet->MoveToNext()) {
-        Entry entryValue;
-        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
-        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-        EXPECT_EQ(to_string(count2), keyStr);
-        count2++;
-    }
-    EXPECT_EQ(count2, 5);
-    EXPECT_EQ(resultSet->MoveToNext(), false);
+    beginTargetKey = 0; // 0 is the initial key that is expected to be found
+    endTargetKey = 4; // 4 is the end key that is expected to be found
+    ChkRangeResultSet(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step4.
-     * @tc.expected: step4. 2, 3 ,4 ,5
+     * @tc.steps: step4. Use range query conditions to obtain the resultset and check the resultset
+     * @tc.expected: step4. The expected data are 2, 3, 4, 5.
      */
     Query fullQuery3 = Query::Select().Range({'2'}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count3 = 2;
-    while (resultSet->MoveToNext()) {
-        Entry entryValue;
-        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
-        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-        EXPECT_EQ(to_string(count3), keyStr);
-        count3++;
-    }
-    EXPECT_EQ(count3, 6);
-    EXPECT_EQ(resultSet->MoveToNext(), false);
-    if (resultSet != nullptr) {
-        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
-    }
+    beginTargetKey = 2; // 2 is the initial key that is expected to be found
+    endTargetKey = 5; // 5 is the end key that is expected to be found
+    ChkRangeResultSet(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step4.
-     * @tc.expected: step4. 0, 1, 2, 3 ,4 ,5
+     * @tc.steps: step5. Use range query conditions to obtain the resultset and check the resultset
+     * @tc.expected: step5. The expected data are 0, 1, 2, 3, 4, 5.
      */
     Query fullQuery4 = Query::Select().Range({}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery4, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count4 = 0;
-    while (resultSet->MoveToNext()) {
-        Entry entryValue;
-        EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
-        std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-        EXPECT_EQ(to_string(count4), keyStr);
-        count4++;
-    }
-    EXPECT_EQ(count4, 6);
-    EXPECT_EQ(resultSet->MoveToNext(), false);
-    if (resultSet != nullptr) {
-        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
-    }
+    beginTargetKey = 0; // 0 is the initial key that is expected to be found
+    endTargetKey = 5; // 5 is the end key that is expected to be found
+    ChkRangeResultSet(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
+
+    /**
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery002"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
   * @tc.name: RdRangeQuery003
   * @tc.desc: Test GetEntries and the in put paramter is invalid.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Level0)
@@ -2058,12 +2039,12 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Leve
      */
     std::vector<Entry> entries;
     g_mgr.GetKvStore("RdRangeQuery003", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
 
     /**
-     * @tc.steps: step2.
-     * @tc.expected: step2.
+     * @tc.steps: step2. Use invalid range query conditions to obtain the resultset.
+     * @tc.expected: step2. return INVALID_ARGS.
      */
     KvStoreResultSet *resultSet = nullptr;
     Query inValidQuery = Query::Select().Range({'2'}, {'4'}).Range({'1'}, {'6'});
@@ -2071,16 +2052,16 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Leve
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, entries), INVALID_ARGS);
 
     /**
-     * @tc.steps: step3.
-     * @tc.expected: step3.
+     * @tc.steps: step3. Use invalid range query conditions to obtain the resultset.
+     * @tc.expected: step3. return INVALID_ARGS.
      */
     Query inValidQuery2 = Query::Select().Range({'2'}, {'4'}).And();
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, resultSet), INVALID_ARGS);
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery2, entries), INVALID_ARGS);
 
     /**
-     * @tc.steps: step4.
-     * @tc.expected: step4.
+     * @tc.steps: step4. Use invalid range query key is longer than limit conditions to obtain the resultset.
+     * @tc.expected: step4. return INVALID_ARGS.
      */
     Key keyCan(1024, 'a');
     Query ValidQuery3 = Query::Select().Range(keyCan, {'4'});
@@ -2091,127 +2072,103 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery003, TestSize.Leve
     Query inValidQuery4 = Query::Select().Range(keyInvalid, {'4'});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery4, resultSet), INVALID_ARGS);
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery4, entries), INVALID_ARGS);
+
+    /**
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
+     */
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery003"), OK);
+    g_kvNbDelegatePtr = nullptr;
+}
+
+void ChkRangeResultSetMoveFuc(KvStoreResultSet *resultSet, int beginNum, int endNum)
+{
+    EXPECT_EQ(resultSet->MoveToLast(), true);
+    Entry entryValue;
+    EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
+    std::string keyStr(entryValue.value.begin(), entryValue.value.end());
+    EXPECT_EQ(to_string(endNum), keyStr);
+
+    while (resultSet->MoveToPrevious()) {
+        endNum--;
+        Entry entryValue2;
+        EXPECT_EQ(resultSet->GetEntry(entryValue2), OK);
+        std::string keyStr2(entryValue2.value.begin(), entryValue2.value.end());
+        EXPECT_EQ(to_string(endNum), keyStr2);
+    }
+    EXPECT_EQ(endNum, beginNum);
+    EXPECT_EQ(resultSet->MoveToPrevious(), false);
 }
 
 /**
   * @tc.name: RdRangeQuery004
   * @tc.desc: Test resultSet fuction.
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Get the nb delegate.
+     * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     g_mgr.GetKvStore("RdRangeQuery004", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
 
+    PutRangeDataIntoDB();
     /**
-     * @tc.steps: step1.
-     * @tc.expected: step1.
-     */
-    Entry entry0 = {{'0'}, {'0'}};
-    Entry entry1 = {{'1'}, {'1'}};
-    Entry entry2 = {{'2'}, {'2'}};
-    Entry entry3 = {{'3'}, {'3'}};
-    Entry entry4 = {{'4'}, {'4'}};
-    Entry entry5 = {{'5'}, {'5'}};
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
-
-
-    /**
-     * @tc.steps: step2.
-     * @tc.expected: step2.
+     * @tc.steps: step2. Use range query conditions to obtain the resultset and check the resultset move fuction.
+     * @tc.expected: step2. move founction is OK and the expected data are 2, 3, 4.
      */
     Query fullQuery = Query::Select().Range({'2'}, {'4'});
     KvStoreResultSet *resultSet = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-
-    resultSet->MoveToLast();
-    Entry entryValue;
-    EXPECT_EQ(resultSet->GetEntry(entryValue), OK);
-    std::string keyStr(entryValue.value.begin(), entryValue.value.end());
-    int count1 = 4;
-    EXPECT_EQ(to_string(count1), keyStr);
-    EXPECT_EQ(count1, 4);
-
-    int count2 = 3;
-    while (resultSet->MoveToPrevious()) {
-        Entry entryValue2;
-        EXPECT_EQ(resultSet->GetEntry(entryValue2), OK);
-        std::string keyStr2(entryValue2.value.begin(), entryValue2.value.end());
-        EXPECT_EQ(to_string(count2), keyStr2);
-        count2--;
-    }
-    EXPECT_EQ(count2, 1);
-    EXPECT_EQ(resultSet->MoveToPrevious(), false);
-
+    int beginTargetKey = 2; // 2 is the initial key that is expected to be found
+    int endTargetKey = 4;  // 4 is the end key that is expected to be found
+    ChkRangeResultSetMoveFuc(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step2. Getentries by query, query is full-set;
-     * @tc.expected: step2. Getentries return OK;
+     * @tc.steps: step3. Use range query conditions to obtain the resultset and check the resultset move fuction.
+     * @tc.expected: step3. move founction is OK and the expected data are 0, 1, 2, 3, 4.
      */
     Query fullQuery2 = Query::Select().Range({}, {'4'});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
 
-    resultSet->MoveToLast();
-    Entry entryValue3;
-    EXPECT_EQ(resultSet->GetEntry(entryValue3), OK);
-    std::string keyStr3(entryValue3.value.begin(), entryValue3.value.end());
-    int count3 = 4;
-    EXPECT_EQ(to_string(count3), keyStr3);
-
-    int count4 = 3;
-    while (resultSet->MoveToPrevious()) {
-        Entry entryValue4;
-        EXPECT_EQ(resultSet->GetEntry(entryValue4), OK);
-        std::string keyStr4(entryValue4.value.begin(), entryValue4.value.end());
-        EXPECT_EQ(to_string(count4), keyStr4);
-        count4--;
-    }
-    EXPECT_EQ(count4, -1);
-    EXPECT_EQ(resultSet->MoveToPrevious(), false);
+    beginTargetKey = 0; // 0 is the initial key that is expected to be found
+    endTargetKey = 4;  // 4 is the end key that is expected to be found
+    ChkRangeResultSetMoveFuc(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step2. Getentries by query, query is full-set;
-     * @tc.expected: step2. Getentries return OK;
+     * @tc.steps: step3. Use range query conditions to obtain the resultset and check the resultset move fuction.
+     * @tc.expected: step3. move founction is OK and the expected data are 2, 3, 4, 5.
      */
     Query fullQuery3 = Query::Select().Range({'2'}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery3, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
+    beginTargetKey = 2; // 2 is the initial key that is expected to be found
+    endTargetKey = 5;  // 5 is the end key that is expected to be found
+    ChkRangeResultSetMoveFuc(resultSet, beginTargetKey, endTargetKey);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
-    resultSet->MoveToLast();
-    Entry entryValue5;
-    EXPECT_EQ(resultSet->GetEntry(entryValue5), OK);
-    std::string keyStr5(entryValue5.value.begin(), entryValue5.value.end());
-    int count5 = 5;
-    EXPECT_EQ(to_string(count5), keyStr5);
-    EXPECT_EQ(count5, 5);
-    
-    int count6 = 4;
-    while (resultSet->MoveToPrevious()) {
-        Entry entryValue6;
-        EXPECT_EQ(resultSet->GetEntry(entryValue6), OK);
-        std::string keyStr6(entryValue6.value.begin(), entryValue6.value.end());
-        EXPECT_EQ(to_string(count6), keyStr6);
-        count6--;
-    }
-    EXPECT_EQ(count2, 1);
-    EXPECT_EQ(resultSet->MoveToPrevious(), false);
-    if (resultSet != nullptr) {
-        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
-    }
+    /**
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery004"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 
 /**
@@ -2224,62 +2181,55 @@ HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery004, TestSize.Leve
 HWTEST_F(DistributedDBInterfacesNBDelegateRdTest, RdRangeQuery005, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Get the nb delegate.
+     * @tc.steps:step1. Get the nb delegate, and put key {'0'}, {'1'}, {'2'}, {'3'}, {'4'}, {'5'} into db.
      * @tc.expected: step1. Get results OK and non-null delegate.
      */
     g_mgr.GetKvStore("RdRangeQuery005", g_option, g_kvNbDelegateCallback);
-    ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
-    EXPECT_TRUE(g_kvDelegateStatus == OK);
+    ASSERT_NE(g_kvNbDelegatePtr, nullptr);
+    EXPECT_EQ(g_kvDelegateStatus, OK);
+
+    PutRangeDataIntoDB();
 
     /**
-     * @tc.steps: step1.
-     * @tc.expected: step1.
-     */
-    Entry entry0 = {{'0'}, {'0'}};
-    Entry entry1 = {{'1'}, {'1'}};
-    Entry entry2 = {{'2'}, {'2'}};
-    Entry entry3 = {{'3'}, {'3'}};
-    Entry entry4 = {{'4'}, {'4'}};
-    Entry entry5 = {{'5'}, {'5'}};
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry0.key, entry0.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry1.key, entry1.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry2.key, entry2.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry3.key, entry3.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry4.key, entry4.value), OK);
-    EXPECT_EQ(g_kvNbDelegatePtr->Put(entry5.key, entry5.value), OK);
-
-
-    /**
-     * @tc.steps: step2.
-     * @tc.expected: step2. 2, 3, 4
+     * @tc.steps: step2. Use range query conditions that end key equal with data in db, then move to next.
+     * @tc.expected: step2. move to next four times successfully.
      */
     Query fullQuery = Query::Select().Range({'2'}, {'5'});
     KvStoreResultSet *resultSet = nullptr;
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count1 = 0;
+    int beginTargetKey = 0; // 0 is the initial key that is expected to be found
     while (resultSet->MoveToNext()) {
-        count1++;
+        beginTargetKey++;
     }
-    EXPECT_EQ(count1, 4);
+    EXPECT_EQ(beginTargetKey, 4); // 4 is the end key that is expected to be found
     EXPECT_EQ(resultSet->MoveToNext(), false);
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
 
     /**
-     * @tc.steps: step3.
-     * @tc.expected: step3. 0, 1 ,2 ,3 ,4
+     * @tc.steps: step2. Use range query conditions that end key equal with data in db, then move to next.
+     * @tc.expected: step2. move to next four times successfully.
      */
     Query fullQuery2 = Query::Select().Range({'2'}, {'8'});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(fullQuery2, resultSet), OK);
     EXPECT_NE(resultSet, nullptr);
-    int count2 = 0;
+    beginTargetKey = 0; // 0 is the initial key that is expected to be found
     while (resultSet->MoveToNext()) {
-        count2++;
+        beginTargetKey++;
     }
-    EXPECT_EQ(count2, 4);
+    EXPECT_EQ(beginTargetKey, 4); // 4 is the end key that is expected to be found
     EXPECT_EQ(resultSet->MoveToNext(), false);
-    if (resultSet != nullptr) {
-        EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
-    }
+    EXPECT_EQ(g_kvNbDelegatePtr->CloseResultSet(resultSet), OK);
+    EXPECT_EQ(resultSet, nullptr);
+
+    /**
+     * @tc.steps:step5. Close and delete KV store
+     * @tc.expected: step5. Returns OK.
+     */
+    g_mgr.CloseKvStore(g_kvNbDelegatePtr);
+    EXPECT_EQ(g_mgr.DeleteKvStore("RdRangeQuery005"), OK);
+    g_kvNbDelegatePtr = nullptr;
 }
 }
 #endif // USE_RD_KERNEL

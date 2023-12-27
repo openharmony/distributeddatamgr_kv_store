@@ -2861,7 +2861,7 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, MigrateDeadLockTest001, TestSize
   * @tc.name: RdRangeQueryInSqlite001
   * @tc.desc: Test GetEntries with range query filter by sqlite
   * @tc.type: FUNC
-  * @tc.require: AR000DPTTA
+  * @tc.require: AR.SR.IR20230714002092.017.001
   * @tc.author: mazhao
   */
 HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSize.Level1)
@@ -2876,10 +2876,10 @@ HWTEST_F(DistributedDBInterfacesNBDelegateTest, RdRangeQueryInSqlite001, TestSiz
     ASSERT_TRUE(g_kvNbDelegatePtr != nullptr);
     EXPECT_TRUE(g_kvDelegateStatus == OK);
 
-    // /**
-    //  * @tc.steps: step2.
-    //  * @tc.expected: step2.
-    //  */
+    /**
+     * @tc.steps: step2. Use range query conditions to obtain the resultset when use sqlite engine.
+     * @tc.expected: step2. return NOT_SUPPORT.
+     */
     KvStoreResultSet *resultSet = nullptr;
     Query inValidQuery = Query::Select().Range({}, {});
     EXPECT_EQ(g_kvNbDelegatePtr->GetEntries(inValidQuery, resultSet), NOT_SUPPORT);
