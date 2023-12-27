@@ -33,11 +33,17 @@ config("distrdb_config") {
     "storage/src/gaussdb_rd",
     "storage/src/sqlite",
     "storage/src/sqlite/relational",
+    "storage/src/sqlite/kv",
     "storage/src/upgrader",
     "storage/src/cloud",
+    "storage/src/kv",
+    "storage/src/relational",
     "syncer/include",
     "syncer/src",
     "syncer/src/cloud",
+    "syncer/src/device",
+    "syncer/src/device/multiver",
+    "syncer/src/device/singlever",
     "//third_party/openssl/include/",
   ]
 

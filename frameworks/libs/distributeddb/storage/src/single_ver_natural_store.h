@@ -30,7 +30,7 @@ public:
     virtual void AbortHandle();
 
     int RemoveKvDB(const KvDBProperties &properties) override;
-    
+
 protected:
     struct TransPair {
         int index;
