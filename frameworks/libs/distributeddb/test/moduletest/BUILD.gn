@@ -28,6 +28,17 @@ config("module_private_config") {
   visibility = [ ":*" ]
 
   include_dirs = [
+    "../../../common/include/cloud",
+    "../../../interfaces/include/cloud",
+    "../../../storage/src/cloud",
+    "../../../storage/src/kv",
+    "../../../storage/src/gaussdb_rd",
+    "../../../storage/src/relational",
+    "../../../syncer/src/cloud",
+    "../../../syncer/src/device",
+    "../../../storage/src/sqlite/kv",
+    "../../../syncer/src/device/multiver",
+    "../../../syncer/src/device/singlever",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/interfaces/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/include",
     "//foundation/distributeddatamgr/kv_store/frameworks/libs/distributeddb/storage/src",

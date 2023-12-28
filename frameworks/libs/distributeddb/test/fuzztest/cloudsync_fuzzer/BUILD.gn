@@ -35,10 +35,13 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "../../../storage/include",
     "../../../storage/src",
     "../../../storage/src/cloud",
+    "../../../storage/src/kv",
     "../../../storage/src/gaussdb_rd",
     "../../../storage/src/multiver",
     "../../../storage/src/operation",
+    "../../../storage/src/relational",
     "../../../storage/src/sqlite",
+    "../../../storage/src/sqlite/kv",
     "../../../storage/src/sqlite/relational",
     "../../../storage/src/upgrader",
     "../../../common/include",
@@ -51,6 +54,9 @@ ohos_fuzztest("CloudsyncFuzzTest") {
     "../../../syncer/include",
     "../../../syncer/src",
     "../../../syncer/src/cloud",
+    "../../../syncer/src/device",
+    "../../../syncer/src/device/multiver",
+    "../../../syncer/src/device/singlever",
   ]
 
   cflags = [
