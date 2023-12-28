@@ -120,10 +120,11 @@ public:
     template<typename T>
     static int GetValueFromVBucket(const std::string &fieldName, const VBucket &vBucket, T &outVal)
     {
-        if (vBucket.find(fieldName) == vBucket.end()) {
+        Type cloudValue;
+        bool isExisted = GetTypeCaseInsensitive(fieldName, vBucket, cloudValue);
+        if (!isExisted) {
             return -E_NOT_FOUND;
         }
-        Type cloudValue = vBucket.at(fieldName);
         return GetValueFromOneField(cloudValue, outVal);
     }
 
@@ -140,6 +141,10 @@ public:
 
     static int CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
         CollateType collateType, std::vector<uint8_t> &hashValue);
+
+    static void TransferFieldToLower(VBucket &vBucket);
+
+    static bool GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data);
 };
 }
 #endif // CLOUD_STORAGE_UTILS_H

@@ -150,8 +150,9 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
 {
     int errCode;
     Bytes val;
-    auto entry = vBucket.find(field.colName);
-    if (entry == vBucket.end() || entry->second.index() == TYPE_INDEX<Nil>) {
+    Type entry;
+    bool isExisted = GetTypeCaseInsensitive(field.colName, vBucket, entry);
+    if (!isExisted || entry.index() == TYPE_INDEX<Nil>) {
         if (!field.nullable) {
             LOGE("field value is not allowed to be null, %d", -E_CLOUD_ERROR);
             return -E_CLOUD_ERROR;
@@ -159,7 +160,7 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
         return SQLiteUtils::MapSQLiteErrno(sqlite3_bind_null(upsertStmt, index));
     }
 
-    Type type = entry->second;
+    Type type = entry;
     if (field.type == TYPE_INDEX<Asset>) {
         Asset asset;
         errCode = GetValueFromOneField(type, asset);
@@ -337,11 +338,12 @@ int CloudStorageUtils::GetAssetFieldsFromSchema(const TableSchema &tableSchema, 
     std::vector<Field> &fields)
 {
     for (const auto &field: tableSchema.fields) {
-        auto it = vBucket.find(field.colName);
-        if (it == vBucket.end()) {
+        Type type;
+        bool isExisted = GetTypeCaseInsensitive(field.colName, vBucket, type);
+        if (!isExisted) {
             continue;
         }
-        if (it->second.index() != TYPE_INDEX<Asset> && it->second.index() != TYPE_INDEX<Assets>) {
+        if (type.index() != TYPE_INDEX<Asset> && type.index() != TYPE_INDEX<Assets>) {
             continue;
         }
         fields.push_back(field);
@@ -625,7 +627,9 @@ bool CloudStorageUtils::IsAssets(const Type &type)
 int CloudStorageUtils::CalculateHashKeyForOneField(const Field &field, const VBucket &vBucket, bool allowEmpty,
     CollateType collateType, std::vector<uint8_t> &hashValue)
 {
-    if (allowEmpty && vBucket.find(field.colName) == vBucket.end()) {
+    Type type;
+    bool isExisted = GetTypeCaseInsensitive(field.colName, vBucket, type);
+    if (allowEmpty && !isExisted) {
         return E_OK; // if vBucket from cloud doesn't contain primary key and allowEmpty, no need to calculate hash
     }
     static std::map<int32_t, std::function<int(const VBucket &, const Field &, CollateType,
@@ -718,7 +722,9 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
         return false;
     }
     for (const auto &pk : pkSet) {
-        if (vBucket.find(pk) == vBucket.end()) {
+        Type type;
+        bool isExisted = GetTypeCaseInsensitive(pk, vBucket, type);
+        if (!isExisted) {
             return false;
         }
     }
@@ -856,11 +862,11 @@ void CloudStorageUtils::GetToBeRemoveAssets(const VBucket &vBucket,
     const AssetOperationUtils::RecordAssetOpType &assetOpType, std::vector<Asset> &removeAssets)
 {
     for (const auto &col: assetOpType) {
-        auto itCol = vBucket.find(col.first);
-        if (itCol == vBucket.end()) {
+        Type itItem;
+        bool isExisted = GetTypeCaseInsensitive(col.first, vBucket, itItem);
+        if (!isExisted) {
             continue;
         }
-        auto itItem = itCol->second;
         if (!CloudStorageUtils::IsAsset(itItem) && !CloudStorageUtils::IsAssets(itItem)) {
             continue;
         }
@@ -995,5 +1001,33 @@ std::pair<int, std::vector<uint8_t>> CloudStorageUtils::GetHashValueWithPrimaryK
         errCode = DBCommon::CalcValueHash(tempRes, hashValue);
     }
     return { errCode, hashValue };
+}
+
+void CloudStorageUtils::TransferFieldToLower(VBucket &vBucket)
+{
+    for (auto it = vBucket.begin(); it != vBucket.end();) {
+        std::string lowerField(it->first.length(), ' ');
+        std::transform(it->first.begin(), it->first.end(), lowerField.begin(), tolower);
+        if (lowerField != it->first) {
+            vBucket[lowerField] = std::move(vBucket[it->first]);
+            vBucket.erase(it++);
+        } else {
+            it++;
+        }
+    }
+}
+
+bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, const VBucket &vBucket, Type &data)
+{
+    auto tmpFieldName = fieldName;
+    auto tmpVBucket = vBucket;
+    std::transform(tmpFieldName.begin(), tmpFieldName.end(), tmpFieldName.begin(), tolower);
+    TransferFieldToLower(tmpVBucket);
+    auto it = tmpVBucket.find(tmpFieldName);
+    if (it == tmpVBucket.end()) {
+        return false;
+    }
+    data = it->second;
+    return true;
 }
 }

@@ -93,9 +93,9 @@ namespace {
     "asserts BLOB," \
     "age INT);";
     const std::vector<Field> g_cloudFiled1 = {
-        {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
-        {"married", TYPE_INDEX<bool>}, {"photo", TYPE_INDEX<Bytes>, false, false},
-        {"assert", TYPE_INDEX<Asset>}, {"age", TYPE_INDEX<int64_t>}
+        {"Name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<double>},
+        {"MArried", TYPE_INDEX<bool>}, {"photo", TYPE_INDEX<Bytes>, false, false},
+        {"Assert", TYPE_INDEX<Asset>}, {"age", TYPE_INDEX<int64_t>}
     };
     const std::vector<Field> g_invalidCloudFiled1 = {
         {"name", TYPE_INDEX<std::string>, true}, {"height", TYPE_INDEX<int>},
@@ -831,9 +831,10 @@ namespace {
         std::vector<VBucket> data1;
         g_virtualCloudDb->Query(g_tables[0], extend, data1);
         for (size_t j = 0; j < data1.size(); ++j) {
-            auto entry = data1[j].find("assert");
-            ASSERT_NE(entry, data1[j].end());
-            Asset asset = std::get<Asset>(entry->second);
+            Type entry;
+            bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive("assert", data1[j], entry);
+            ASSERT_TRUE(isExisted);
+            Asset asset = std::get<Asset>(entry);
             bool isLocal = j >= (size_t)(localCount / g_arrayHalfSub);
             Asset baseAsset = isLocal ? g_localAsset : g_cloudAsset;
             EXPECT_EQ(asset.version, baseAsset.version);
@@ -848,9 +849,10 @@ namespace {
         std::vector<VBucket> data2;
         g_virtualCloudDb->Query(g_tables[1], extend, data2);
         for (size_t j = 0; j < data2.size(); ++j) {
-            auto entry = data2[j].find("asserts");
-            ASSERT_NE(entry, data2[j].end());
-            Assets assets = std::get<Assets>(entry->second);
+            Type entry;
+            bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive("asserts", data2[j], entry);
+            ASSERT_TRUE(isExisted);
+            Assets assets = std::get<Assets>(entry);
             Asset baseAsset = j >= (size_t)(localCount / g_arrayHalfSub) ? g_localAsset : g_cloudAsset;
             int index = j;
             for (const auto &asset: assets) {

@@ -14,6 +14,7 @@
  */
 #include "cloud/cloud_sync_tag_assets.h"
 #include "cloud/asset_operation_utils.h"
+#include "db_common.h"
 
 namespace DistributedDB {
 namespace {
@@ -77,17 +78,18 @@ void TagAssetsWithNormalStatus(const bool isNormalStatus, AssetOpType flag,
 template<typename T>
 bool IsDataContainField(const std::string &assetFieldName, const VBucket &data)
 {
-    auto assetIter = data.find(assetFieldName);
-    if (assetIter == data.end()) {
+    Type type;
+    bool isExisted = CloudStorageUtils::GetTypeCaseInsensitive(assetFieldName, data, type);
+    if (!isExisted) {
         return false;
     }
     // When type of Assets is not Nil but a vector which size is 0, we think data is not contain this field.
-    if (assetIter->second.index() == TYPE_INDEX<Assets>) {
-        if (std::get<Assets>(assetIter->second).empty()) {
+    if (type.index() == TYPE_INDEX<Assets>) {
+        if (std::get<Assets>(type).empty()) {
             return false;
         }
     }
-    if (assetIter->second.index() != TYPE_INDEX<T>) {
+    if (type.index() != TYPE_INDEX<T>) {
         return false;
     }
     return true;
@@ -103,6 +105,16 @@ void TagAssetWithSameHash(const bool isNormalStatus, Asset &beCoveredAsset, Asse
         AssetOpType::INSERT : AssetOpType::NO_CHANGE, coveredAsset, res, errCode);
 }
 
+Type &GetAssetsCaseInsensitive(const std::string &assetFieldName, VBucket &vBucket)
+{
+    for (auto &item : vBucket) {
+        if (DBCommon::CaseInsensitiveCompare(item.first, assetFieldName)) {
+            return item.second;
+        }
+    }
+    return vBucket[assetFieldName];
+}
+
 // AssetOpType and AssetStatus will be tagged, assets to be changed will be returned
 // use VBucket rather than Type because we need to check whether it is empty
 Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucket &beCoveredData,
@@ -114,26 +126,26 @@ Assets TagAssets(const std::string &assetFieldName, VBucket &coveredData, VBucke
     if (!beCoveredHasAssets) {
         if (coveredHasAssets) {
             // all the element in assets will be set to INSERT
-            TagAssetsWithNormalStatus(setNormalStatus,
-                AssetOpType::INSERT, std::get<Assets>(coveredData[assetFieldName]), res, errCode);
+            TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::INSERT,
+                std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData)), res, errCode);
         }
         return res;
     }
     if (!coveredHasAssets) {
         // all the element in assets will be set to DELETE
-        TagAssetsWithNormalStatus(setNormalStatus,
-            AssetOpType::DELETE, std::get<Assets>(beCoveredData[assetFieldName]), res, errCode);
-        coveredData[assetFieldName] = res;
+        TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
+            std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+        GetAssetsCaseInsensitive(assetFieldName, coveredData) = res;
         return res;
     }
-    Assets &covered = std::get<Assets>(coveredData[assetFieldName]);
-    Assets &beCovered = std::get<Assets>(beCoveredData[assetFieldName]);
+    Assets &covered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, coveredData));
+    Assets &beCovered = std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
     std::map<std::string, size_t> coveredAssetsIndexMap = CloudStorageUtils::GenAssetsIndexMap(covered);
     for (Asset &beCoveredAsset : beCovered) {
         auto it = coveredAssetsIndexMap.find(beCoveredAsset.name);
         if (it == coveredAssetsIndexMap.end()) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE, beCoveredAsset, res, errCode);
-            std::get<Assets>(coveredData[assetFieldName]).push_back(beCoveredAsset);
+            covered.push_back(beCoveredAsset);
             continue;
         }
         Asset &coveredAsset = covered[it->second];
@@ -174,27 +186,27 @@ Assets TagAsset(const std::string &assetFieldName, VBucket &coveredData, VBucket
             return res;
         }
         TagAssetWithNormalStatus(setNormalStatus, AssetOpType::INSERT,
-            std::get<Asset>(coveredData[assetFieldName]), res, errCode);
+            std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, coveredData)), res, errCode);
         return res;
     }
     if (!coveredHasAsset) {
-        if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Asset>) {
+        if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
             TagAssetWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
-                std::get<Asset>(beCoveredData[assetFieldName]), res, errCode);
-        } else if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Assets>) {
+                std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
+        } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
             TagAssetsWithNormalStatus(setNormalStatus, AssetOpType::DELETE,
-                std::get<Assets>(beCoveredData[assetFieldName]), res, errCode);
+                std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)), res, errCode);
         }
         return res;
     }
-    Asset &covered = std::get<Asset>(coveredData[assetFieldName]);
+    Asset &covered = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, coveredData));
     Asset beCovered;
-    if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Asset>) {
+    if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Asset>) {
         // This indicates that asset in cloudData is stored as Asset
-        beCovered = std::get<Asset>(beCoveredData[assetFieldName]);
-    } else if (beCoveredData[assetFieldName].index() == TYPE_INDEX<Assets>) {
+        beCovered = std::get<Asset>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData));
+    } else if (GetAssetsCaseInsensitive(assetFieldName, beCoveredData).index() == TYPE_INDEX<Assets>) {
         // Stored as ASSETS, first element in assets will be the target asset
-        beCovered = (std::get<Assets>(beCoveredData[assetFieldName]))[0];
+        beCovered = (std::get<Assets>(GetAssetsCaseInsensitive(assetFieldName, beCoveredData)))[0];
     } else {
         LOGE("The type of data is neither Asset nor Assets");
         return res;

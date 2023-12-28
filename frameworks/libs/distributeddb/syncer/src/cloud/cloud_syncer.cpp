@@ -686,26 +686,6 @@ int CloudSyncer::HandleTagAssets(const Key &hashKey, const DataInfo &dataInfo, s
     return ret;
 }
 
-void CloudSyncer::ModifyFieldNameToLower(VBucket &data)
-{
-    for (auto it = data.begin(); it != data.end();) {
-        if (it->first == CloudDbConstant::GID_FIELD || it->first == CloudDbConstant::CREATE_FIELD ||
-            it->first == CloudDbConstant::MODIFY_FIELD || it->first == CloudDbConstant::DELETE_FIELD ||
-            it->first == CloudDbConstant::CURSOR_FIELD) {
-            it++;
-            continue;
-        }
-        std::string lowerField(it->first.length(), ' ');
-        std::transform(it->first.begin(), it->first.end(), lowerField.begin(), tolower);
-        if (lowerField != it->first) {
-            data[lowerField] = std::move(data[it->first]);
-            data.erase(it++);
-        } else {
-            it++;
-        }
-    }
-}
-
 int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<Key, size_t>> &deletedList,
     std::map<std::string, LogInfo> &localLogInfoCache)
 {
@@ -714,7 +694,6 @@ int CloudSyncer::SaveDatum(SyncParam &param, size_t idx, std::vector<std::pair<K
         LOGE("[CloudSyncer] Invalid download data:%d", ret);
         return ret;
     }
-    ModifyFieldNameToLower(param.downloadData.data[idx]);
     CloudSyncUtils::ModifyCloudDataTime(param.downloadData.data[idx]);
     DataInfo dataInfo;
     VBucket localAssetInfo;
