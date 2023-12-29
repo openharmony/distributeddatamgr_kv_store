@@ -39,6 +39,13 @@ void CloudSyncer::ReloadWaterMarkIfNeed(TaskId taskId, WaterMark &waterMark)
     RecordWaterMark(taskId, 0u);
 }
 
+void CloudSyncer::ReloadCloudWaterMarkIfNeed(const std::string tableName, std::string &cloudWaterMark)
+{
+    std::lock_guard<std::mutex> autoLock(dataLock_);
+    std::string cacheCloudWaterMark = currentContext_.cloudWaterMarks[tableName];
+    cloudWaterMark = cacheCloudWaterMark.empty() ? cloudWaterMark : cacheCloudWaterMark;
+}
+
 void CloudSyncer::ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info)
 {
     info.upLoadInfo.total = static_cast<uint32_t>(param.count);

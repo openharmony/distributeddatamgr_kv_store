@@ -435,7 +435,7 @@ namespace {
                 return;
             }
             ASSERT_LE(static_cast<size_t>(g_syncIndex), expectProcess.size());
-            for (size_t i = 0; i < g_tables.size(); ++i) {
+            for (size_t i = 0; i < g_tables.size() && static_cast<size_t>(g_syncIndex) < expectProcess.size(); ++i) {
                 SyncProcess head = expectProcess[g_syncIndex];
                 for (auto &expect : head.tableProcess) {
                     auto real = syncProcess.tableProcess.find(expect.first);

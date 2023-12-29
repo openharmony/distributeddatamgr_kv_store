@@ -114,11 +114,18 @@ protected:
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
+    int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
+
+    void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName, bool lastTable);
+
+    virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
+        bool isFirstDownload);
+
     void DoFinished(TaskId taskId, int errCode);
 
-    virtual int DoDownload(CloudSyncer::TaskId taskId);
+    virtual int DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload);
 
-    int DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param);
+    int DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload);
 
     void NotifyInEmptyDownload(CloudSyncer::TaskId taskId, InnerProcessInfo &info);
 
@@ -268,7 +275,7 @@ protected:
 
     void ClearContextAndNotify(TaskId taskId, int errCode);
 
-    int DownloadOneBatch(TaskId taskId, SyncParam &param);
+    int DownloadOneBatch(TaskId taskId, SyncParam &param, bool isFirstDownload);
 
     int DownloadOneAssetRecord(const std::set<Key> &dupHashKeySet, const DownloadList &downloadList,
         DownloadItem &downloadItem, InnerProcessInfo &info, ChangedData &changedAssets);
@@ -277,7 +284,7 @@ protected:
 
     bool IsCurrentTableResume(TaskId taskId, bool upload);
 
-    int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort);
+    int DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort, bool isFirstDownload);
 
     size_t GetDownloadAssetIndex(TaskId taskId);
 
@@ -290,6 +297,8 @@ protected:
     Timestamp GetResumeWaterMark(TaskId taskId);
 
     void ReloadWaterMarkIfNeed(TaskId taskId, WaterMark &waterMark);
+
+    void ReloadCloudWaterMarkIfNeed(const std::string tableName, std::string &cloudWaterMark);
 
     void ReloadUploadInfoIfNeed(TaskId taskId, const UploadParam &param, InnerProcessInfo &info);
 

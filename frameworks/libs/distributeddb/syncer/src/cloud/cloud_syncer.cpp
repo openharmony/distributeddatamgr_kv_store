@@ -200,14 +200,27 @@ int CloudSyncer::DoSync(TaskId taskId)
         taskInfo = cloudTaskInfos_[taskId];
     }
     storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
-    int errCode = LockCloudIfNeed(taskId);
-    if (errCode != E_OK) {
-        return errCode;
-    }
     bool needUpload = true;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         needUpload = currentContext_.strategy->JudgeUpload();
+    }
+    int errCode = E_OK;
+    // do first download
+    int64_t uploadCount = 0;
+    errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, true);
+    if (errCode != E_OK) {
+        return errCode;
+    }
+    if (uploadCount == 0) {
+        LOGI("[CloudSyncer] uploadCount is 0, no need upload!");
+        return E_OK;
+    }
+
+    // lock cloud and then do the second sync
+    errCode = LockCloudIfNeed(taskId);
+    if (errCode != E_OK) {
+        return errCode;
     }
     errCode = DoSyncInner(taskInfo, needUpload);
     UnlockIfNeed();
@@ -266,45 +279,10 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
 
 int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload)
 {
-    int errCode = E_OK;
-    for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
-        LOGD("[CloudSyncer] try download table, index: %zu", i);
-        std::string table;
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            currentContext_.tableName = taskInfo.table[i];
-            table = currentContext_.tableName;
-        }
-        errCode = SaveCursorIfNeed(table);
-        if (errCode != E_OK) {
-            return errCode;
-        }
-        bool isShared = false;
-        errCode = storageProxy_->IsSharedTable(table, isShared);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] check shared table failed %d", errCode);
-            return errCode;
-        }
-        // shared table not allow logic delete
-        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
-        errCode = CheckTaskIdValid(taskInfo.taskId);
-        if (errCode != E_OK) {
-            LOGW("[CloudSyncer] task is invalid, abort sync");
-            return errCode;
-        }
-        errCode = DoDownload(taskInfo.taskId);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] download failed %d", errCode);
-            return errCode;
-        }
-        if (needUpload) {
-            continue;
-        }
-        errCode = SaveCloudWaterMark(taskInfo.table[i]);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
-            return errCode;
-        }
+    int64_t uploadCount = 0;
+    int errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, false);
+    if (errCode != E_OK) {
+        return errCode;
     }
     return DoUploadInNeed(taskInfo, needUpload);
 }
@@ -972,7 +950,7 @@ void CloudSyncer::NotifyInBatchUpload(const UploadParam &uploadParam, const Inne
     }
 }
 
-int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
+int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
 {
     SyncParam param;
     int errCode = GetSyncParamForDownload(taskId, param);
@@ -981,7 +959,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
         return errCode;
     }
     (void)storageProxy_->CreateTempSyncTrigger(param.tableName);
-    errCode = DoDownloadInner(taskId, param);
+    errCode = DoDownloadInner(taskId, param, isFirstDownload);
     (void)storageProxy_->ClearAllTempSyncTrigger();
     if (errCode == -E_TASK_PAUSED) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -990,7 +968,7 @@ int CloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
     return errCode;
 }
 
-int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
+int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload)
 {
     // Query data by batch until reaching end and not more data need to be download
     int ret = PreCheck(taskId, param.info.tableName);
@@ -999,7 +977,7 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param)
     }
     param.isLastBatch = false;
     while (!param.isLastBatch) {
-        ret = DownloadOneBatch(taskId, param);
+        ret = DownloadOneBatch(taskId, param, isFirstDownload);
         if (ret != E_OK) {
             return ret;
         }
@@ -1145,19 +1123,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
         return ret;
     }
     if (count == 0) {
-        LOGI("[CloudSyncer] There is no need to doing upload, as the upload data count is zero.");
-        InnerProcessInfo innerProcessInfo;
-        innerProcessInfo.tableName = tableName;
-        innerProcessInfo.upLoadInfo.total = 0;  // count is zero
-        innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
-        {
-            std::lock_guard<std::mutex> autoLock(dataLock_);
-            if (lastTable) {
-                currentContext_.notifier->UpdateProcess(innerProcessInfo);
-            } else {
-                currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], innerProcessInfo);
-            }
-        }
+        UpdateProcessInfoWithoutUpload(taskId, tableName, lastTable);
         return E_OK;
     }
     UploadParam param;
@@ -1905,14 +1871,14 @@ void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
     }
 }
 
-int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param)
+int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param, bool isFirstDownload)
 {
     int ret = CheckTaskIdValid(taskId);
     if (ret != E_OK) {
         return ret;
     }
     bool abort = false;
-    ret = DownloadDataFromCloud(taskId, param, abort);
+    ret = DownloadDataFromCloud(taskId, param, abort, isFirstDownload);
     if (abort) {
         return ret;
     }
@@ -2001,6 +1967,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
             LOGE("[CloudSyncer] Cannot get cloud water level from cloud meta data: %d.", ret);
         }
     }
+    ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
     return ret;
 }
 
@@ -2016,7 +1983,8 @@ bool CloudSyncer::IsCurrentTableResume(TaskId taskId, bool upload)
     return upload == resumeTaskInfos_[taskId].upload;
 }
 
-int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort)
+int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &abort,
+    bool isFirstDownload)
 {
     if (IsCurrentTableResume(taskId, false)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
@@ -2045,7 +2013,9 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
             LOGD("[CloudSyncer] try to query cloud data use increment water mark");
             UpdateCloudWaterMark(taskId, param);
         }
-        NotifyInEmptyDownload(taskId, param.info);
+        if (isFirstDownload) {
+            NotifyInEmptyDownload(taskId, param.info);
+        }
         abort = true;
     }
     return E_OK;
@@ -2104,5 +2074,110 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     info.tableStatus = ProcessStatus::PROCESSING;
     ReloadUploadInfoIfNeed(uploadParam.taskId, uploadParam, info);
     return info;
+}
+
+int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count)
+{
+    std::string tableName;
+    int ret = GetCurrentTableName(tableName);
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] Invalid table name for get local water mark: %d", ret);
+        return ret;
+    }
+    Timestamp localMark = 0u;
+    if (!IsModeForcePush(taskId) && !IsPriorityTask(taskId)) {
+        ret = storageProxy_->GetLocalWaterMark(tableName, localMark);
+        if (ret != E_OK) {
+            LOGE("[CloudSyncer] Failed to get local water mark when upload, %d.", ret);
+            return ret;
+        }
+    }
+    ReloadWaterMarkIfNeed(taskId, localMark);
+
+    ret = storageProxy_->StartTransaction();
+    if (ret != E_OK) {
+        LOGE("[CloudSyncer] start transaction failed before getting upload count.");
+        return ret;
+    }
+
+    ret = storageProxy_->GetUploadCount(GetQuerySyncObject(tableName), localMark, IsModeForcePush(taskId), count);
+    if (ret != E_OK) {
+        // GetUploadCount will return E_OK when upload count is zero.
+        LOGE("[CloudSyncer] Failed to get Upload Data Count, %d.", ret);
+    }
+    // No need Rollback when GetUploadCount failed
+    storageProxy_->Commit();
+    return ret;
+}
+
+void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName,
+    bool lastTable)
+{
+    LOGI("[CloudSyncer] There is no need to doing upload, as the upload data count is zero.");
+    InnerProcessInfo innerProcessInfo;
+    innerProcessInfo.tableName = tableName;
+    innerProcessInfo.upLoadInfo.total = 0;  // count is zero
+    innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        if (lastTable) {
+            currentContext_.notifier->UpdateProcess(innerProcessInfo);
+        } else {
+            currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], innerProcessInfo);
+        }
+    }
+}
+
+int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
+    bool isFirstDownload)
+{
+    for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
+        LOGD("[CloudSyncer] try download table, index: %zu", i);
+        std::string table;
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            currentContext_.tableName = taskInfo.table[i];
+            table = currentContext_.tableName;
+        }
+        bool isShared = false;
+        int errCode = storageProxy_->IsSharedTable(table, isShared);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] check shared table failed %d", errCode);
+            return errCode;
+        }
+        // shared table not allow logic delete
+        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
+        errCode = CheckTaskIdValid(taskInfo.taskId);
+        if (errCode != E_OK) {
+            LOGW("[CloudSyncer] task is invalid, abort sync");
+            return errCode;
+        }
+        errCode = DoDownload(taskInfo.taskId, isFirstDownload);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] download failed %d", errCode);
+            return errCode;
+        }
+        // needUpload indicate that the syncMode need push
+        if (needUpload) {
+            int64_t count = 0;
+            errCode = GetUploadCountByTable(taskInfo.taskId, count);
+            if (errCode != E_OK) {
+                LOGE("[CloudSyncer] GetUploadCountByTable failed %d", errCode);
+                return errCode;
+            }
+            // count > 0 means current table need upload actually
+            if (count > 0) {
+                uploadCount += count;
+                continue;
+            }
+            UpdateProcessInfoWithoutUpload(taskInfo.taskId, table, i == (taskInfo.table.size() - 1u));
+        }
+        errCode = SaveCloudWaterMark(taskInfo.table[i]);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
+            return errCode;
+        }
+    }
+    return E_OK;
 }
 } // namespace DistributedDB

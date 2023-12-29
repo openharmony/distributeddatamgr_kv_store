@@ -21,7 +21,7 @@ VirtualCloudSyncer::VirtualCloudSyncer(std::shared_ptr<StorageProxy> storageProx
 {
 }
 
-int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
+int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownload)
 {
     if (!doDownload_) {
         LOGI("[VirtualCloudSyncer] download just return ok");
@@ -30,7 +30,20 @@ int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId)
     if (downloadFunc_) {
         return downloadFunc_();
     }
-    return CloudSyncer::DoDownload(taskId);
+    return CloudSyncer::DoDownload(taskId, isFirstDownload);
+}
+
+int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
+    bool isFirstDownload)
+{
+    if (!doDownload_) {
+        LOGI("[VirtualCloudSyncer] download just return ok");
+        return E_OK;
+    }
+    if (downloadInNeedFunc_) {
+        return downloadInNeedFunc_(uploadCount);
+    }
+    return CloudSyncer::DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
 }
 
 int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
@@ -38,6 +51,9 @@ int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
     if (!doUpload_) {
         LOGI("[VirtualCloudSyncer] upload just return ok");
         return E_OK;
+    }
+    if (uploadFunc_) {
+        return uploadFunc_();
     }
     return CloudSyncer::DoUpload(taskId, lastTable);
 }
@@ -51,6 +67,16 @@ void VirtualCloudSyncer::SetSyncAction(bool doDownload, bool doUpload)
 void VirtualCloudSyncer::SetDownloadFunc(const std::function<int()> &function)
 {
     downloadFunc_ = function;
+}
+
+void VirtualCloudSyncer::SetDownloadInNeedFunc(const std::function<int(int64_t &)> &function)
+{
+    downloadInNeedFunc_ = function;
+}
+
+void VirtualCloudSyncer::SetUploadFunc(const std::function<int()> &function)
+{
+    uploadFunc_ = function;
 }
 
 void VirtualCloudSyncer::Notify(bool notifyIfError)

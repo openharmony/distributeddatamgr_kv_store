@@ -132,7 +132,7 @@ public:
     {
         return currentContext_.currentTaskId;
     }
-    
+
     int CallDoUpload(TaskId taskId, bool lastTable = false)
     {
         storageProxy_->StartTransaction();
@@ -143,7 +143,7 @@ public:
 
     int CallDoDownload(TaskId taskId)
     {
-        return CloudSyncer::DoDownload(taskId);
+        return CloudSyncer::DoDownload(taskId, true);
     }
 
     std::string GetCurrentContextTableName()
@@ -180,7 +180,7 @@ public:
     {
         this->cloudDB_.SetCloudDB(icloudDB);
     }
-    
+
     CloudTaskInfo SetAndGetCloudTaskInfo(SyncMode mode, std::vector<std::string> table,
         SyncProcessCallback callback, int64_t timeout)
     {
@@ -207,7 +207,7 @@ public:
         uploadData.delData.record = std::vector<VBucket>(size, tmp);
         uploadData.delData.extend = std::vector<VBucket>(size, tmp);
     }
-    
+
     int CallTryToAddSyncTask(CloudTaskInfo &&taskInfo)
     {
         return TryToAddSyncTask(std::move(taskInfo));
