@@ -143,13 +143,17 @@ private:
 
     void ResetFrameRecordIfNeed(const uint32_t frameId, const uint32_t mtu);
 
-    void RetrySendTaskIfNeed(const std::string &target);
+    void RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId);
 
-    void RetrySendTask(const std::string &target);
+    void RetrySendTask(const std::string &target, uint64_t sendSequenceId);
 
     bool IsRetryOutOfLimit(const std::string &target);
 
     int32_t GetNextRetryInterval(const std::string &target, int32_t currentRetryCount);
+
+    uint64_t GetSendSequenceId(const std::string &target);
+
+    uint64_t IncreaseSendSequenceId(const std::string &target);
 
     DECLARE_OBJECT_TAG(CommunicatorAggregator);
 
@@ -206,6 +210,9 @@ private:
 
     std::mutex retryCountMutex_;
     std::map<std::string, int32_t> retryCount_;
+
+    std::mutex sendSequenceMutex_;
+    std::map<std::string, uint64_t> sendSequence_;
 };
 } // namespace DistributedDB
 

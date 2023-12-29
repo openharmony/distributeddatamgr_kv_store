@@ -81,6 +81,11 @@ int NetworkAdapter::StartAdapter()
         LOGI("[NAdapt][Start] ROLLBACK: Stop errCode=%d.", static_cast<int>(errCode));
         return -E_PERIPHERAL_INTERFACE_FAIL;
     }
+    processCommunicator_->RegOnSendAble([this](const DeviceInfos &devInfo) {
+        if (onSendableHandle_ != nullptr) {
+            onSendableHandle_(devInfo.identifier);
+        }
+    });
     // These code is compensation for the probable defect of IProcessCommunicator implementation.
     // As described in the agreement, for the missed online situation, we search for the online devices at beginning.
     // OnDeviceChangeHandler is reused to check the existence of peer process.
@@ -97,6 +102,7 @@ int NetworkAdapter::StartAdapter()
 void NetworkAdapter::StopAdapter()
 {
     LOGI("[NAdapt][Stop] Enter, ProcessLabel=%s.", processLabel_.c_str());
+    processCommunicator_->RegOnSendAble(nullptr);
     DBStatus errCode = processCommunicator_->RegOnDeviceChange(nullptr);
     if (errCode != DBStatus::OK) {
         LOGE("[NAdapt][Stop] UnRegOnDeviceChange Fail, errCode=%d.", static_cast<int>(errCode));

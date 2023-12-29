@@ -370,6 +370,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         std::lock_guard<std::mutex> autoLock(sendRecordMutex_);
         startIndex = sendRecord_[inTask.frameId].sendIndex;
     }
+    uint64_t currentSendSequenceId = IncreaseSendSequenceId(inTask.dstTarget);
     for (uint32_t index = startIndex; index < static_cast<uint32_t>(eachPacket.size()) && inTask.isValid; ++index) {
         auto &entry = eachPacket[index];
         LOGI("[CommAggr][SendPackets] DoSendBytes, dstTarget=%s{private}, extendHeadLength=%" PRIu32
@@ -393,7 +394,7 @@ void CommunicatorAggregator::SendPacketsAndDisposeTask(const SendTask &inTask, u
         }
     }
     if (errCode == -E_WAIT_RETRY) {
-        RetrySendTaskIfNeed(inTask.dstTarget);
+        RetrySendTaskIfNeed(inTask.dstTarget, currentSendSequenceId);
     }
     if (taskNeedFinalize) {
         TaskFinalizer(inTask, errCode);
@@ -743,8 +744,11 @@ int CommunicatorAggregator::RegCallbackToAdapter()
     }
 
     RefObject::IncObjRef(this); // Reference to be hold by adapter
-    errCode = adapterHandle_->RegSendableCallback(
-        std::bind(&CommunicatorAggregator::OnSendable, this, std::placeholders::_1),
+    errCode = adapterHandle_->RegSendableCallback([this](const std::string &target) {
+            LOGI("[CommAggr] Send able dev=%.3s", target.c_str());
+            (void)IncreaseSendSequenceId(target);
+            OnSendable(target);
+        },
         [this]() { RefObject::DecObjRef(this); });
     if (errCode != E_OK) {
         RefObject::DecObjRef(this); // Rollback in case reg failed
@@ -964,7 +968,7 @@ void CommunicatorAggregator::ResetFrameRecordIfNeed(const uint32_t frameId, cons
     }
 }
 
-void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target)
+void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target, uint64_t sendSequenceId)
 {
     if (IsRetryOutOfLimit(target)) {
         LOGD("[CommAggr] Retry send task is out of limit! target is %s{private}", target.c_str());
@@ -972,12 +976,16 @@ void CommunicatorAggregator::RetrySendTaskIfNeed(const std::string &target)
         std::lock_guard<std::mutex> autoLock(retryCountMutex_);
         retryCount_[target] = 0;
     } else {
+        if (sendSequenceId != GetSendSequenceId(target)) {
+            LOGD("[CommAggr] %.3s Send sequence id has changed", target.c_str());
+            return;
+        }
         scheduler_.DelayTaskByTarget(target);
-        RetrySendTask(target);
+        RetrySendTask(target, sendSequenceId);
     }
 }
 
-void CommunicatorAggregator::RetrySendTask(const std::string &target)
+void CommunicatorAggregator::RetrySendTask(const std::string &target, uint64_t sendSequenceId)
 {
     int32_t currentRetryCount = 0;
     {
@@ -989,8 +997,12 @@ void CommunicatorAggregator::RetrySendTask(const std::string &target)
     TimerId timerId = 0u;
     RefObject::IncObjRef(this);
     (void)RuntimeContext::GetInstance()->SetTimer(GetNextRetryInterval(target, currentRetryCount),
-        [this, target](TimerId id) {
-        OnSendable(target);
+        [this, target, sendSequenceId](TimerId id) {
+        if (sendSequenceId == GetSendSequenceId(target)) {
+            OnSendable(target);
+        } else {
+            LOGD("[CommAggr] %.3s Send sequence id has changed in timer", target.c_str());
+        }
         RefObject::DecObjRef(this);
         return -E_END_TIMER;
     }, nullptr, timerId);
@@ -1011,5 +1023,16 @@ int32_t CommunicatorAggregator::GetNextRetryInterval(const std::string &target, 
     return static_cast<int32_t>(timeout) * currentRetryCount / RETRY_TIME_SPLITS;
 }
 
+uint64_t CommunicatorAggregator::GetSendSequenceId(const std::string &target)
+{
+    std::lock_guard<std::mutex> autoLock(sendSequenceMutex_);
+    return sendSequence_[target];
+}
+
+uint64_t CommunicatorAggregator::IncreaseSendSequenceId(const std::string &target)
+{
+    std::lock_guard<std::mutex> autoLock(sendSequenceMutex_);
+    return ++sendSequence_[target];
+}
 DEFINE_OBJECT_TAG_FACILITIES(CommunicatorAggregator)
 } // namespace DistributedDB
