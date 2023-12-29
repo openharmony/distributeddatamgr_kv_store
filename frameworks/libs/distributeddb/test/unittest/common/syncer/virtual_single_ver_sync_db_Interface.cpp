@@ -280,7 +280,7 @@ int VirtualSingleVerSyncDBInterface::GetSyncData(Timestamp begin, Timestamp end,
     Timestamp currentWaterMark = 0;
     bool isFinished = GetDataInner(begin, end, currentWaterMark, dataSizeInfo, dataItems);
     if (!isFinished) {
-        VirtualContinueToken *token = new VirtualContinueToken();
+        VirtualContinueToken *token = new(std::nothrow) VirtualContinueToken();
         if (token == nullptr) {
             LOGD("virtual alloc token failed");
             dataItems.clear();

@@ -103,7 +103,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
         return E_OK;
     }
     if (errCode != E_OK) {
-        LOGW("[Relational][UpgradeTrigger] Get relational schema from meta return %d.", errCode);
+        LOGE("[Relational][UpgradeTrigger] Get relational schema from meta return %d.", errCode);
         return errCode;
     }
 
@@ -118,7 +118,7 @@ int SqliteRelationalDatabaseUpgrader::UpgradeTrigger(const std::string &logTable
     RelationalSchemaObject trackerSchemaObject;
     errCode = SQLiteUtils::GetRelationalSchema(db_, trackerSchemaDefine, DBConstant::RELATIONAL_TRACKER_SCHEMA_KEY);
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        LOGW("[Relational][UpgradeTrigger] Get tracker schema from meta return. err:%d", errCode);
+        LOGE("[Relational][UpgradeTrigger] Get tracker schema from meta return. err:%d", errCode);
         return errCode;
     }
     if (errCode == -E_NOT_FOUND || trackerSchemaDefine.empty()) {

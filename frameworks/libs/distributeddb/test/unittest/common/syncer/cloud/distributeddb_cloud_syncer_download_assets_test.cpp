@@ -41,8 +41,11 @@ namespace {
 const string STORE_ID = "Relational_Store_SYNC";
 const string DB_SUFFIX = ".db";
 const string ASSETS_TABLE_NAME = "student";
+const string ASSETS_TABLE_NAME_SHARED = "student_shared";
 const string NO_PRIMARY_TABLE = "teacher";
+const string NO_PRIMARY_TABLE_SHARED = "teacher_shared";
 const string COMPOUND_PRIMARY_TABLE = "worker1";
+const string COMPOUND_PRIMARY_TABLE_SHARED = "worker1_shared";
 const string DEVICE_CLOUD = "cloud_dev";
 const string COL_ID = "id";
 const string COL_NAME = "name";
@@ -112,11 +115,14 @@ void InitDatabase(sqlite3 *&db)
 
 void GetCloudDbSchema(DataBaseSchema &dataBaseSchema)
 {
-    TableSchema assetsTableSchema = {.name = ASSETS_TABLE_NAME, .sharedTableName = "", .fields = CLOUD_FIELDS};
+    TableSchema assetsTableSchema = {.name = ASSETS_TABLE_NAME, .sharedTableName = ASSETS_TABLE_NAME_SHARED,
+                                     .fields = CLOUD_FIELDS};
     dataBaseSchema.tables.push_back(assetsTableSchema);
-    assetsTableSchema = {.name = NO_PRIMARY_TABLE, .sharedTableName = "", .fields = NO_PRIMARY_FIELDS};
+    assetsTableSchema = {.name = NO_PRIMARY_TABLE, .sharedTableName = NO_PRIMARY_TABLE_SHARED,
+                         .fields = NO_PRIMARY_FIELDS};
     dataBaseSchema.tables.push_back(assetsTableSchema);
-    assetsTableSchema = {.name = COMPOUND_PRIMARY_TABLE, .sharedTableName = "", .fields = COMPOUND_PRIMARY_FIELDS};
+    assetsTableSchema = {.name = COMPOUND_PRIMARY_TABLE, .sharedTableName = COMPOUND_PRIMARY_TABLE_SHARED,
+                         .fields = COMPOUND_PRIMARY_FIELDS};
     dataBaseSchema.tables.push_back(assetsTableSchema);
 }
 
@@ -315,13 +321,13 @@ void CloseDb()
 }
 
 class DistributedDBCloudSyncerDownloadAssetsTest : public testing::Test {
-  public:
+public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
     void SetUp();
     void TearDown();
 
-  protected:
+protected:
     void CheckLocaLAssets(const std::string &tableName, const std::string &expectAssetId,
         const std::set<int> &failIndex);
     void CheckLocalAssetIsEmpty(const std::string &tableName);

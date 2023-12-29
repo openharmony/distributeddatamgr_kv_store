@@ -377,7 +377,7 @@ uint64_t CalculateXorSum(const uint8_t *bytes, uint32_t length)
     if (length % sizeof(uint64_t) != 0) {
         return 0;
     }
-    int count = length / sizeof(uint64_t);
+    int count = static_cast<int>(length / static_cast<uint32_t>(sizeof(uint64_t)));
     auto array = reinterpret_cast<const uint64_t *>(bytes);
     uint64_t outSum = 0;
     for (int i = 0; i < count; i++) {

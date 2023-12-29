@@ -1080,7 +1080,7 @@ HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest002, TestSize.Level3)
  * @tc.require: AR000CCPOM
  * @tc.author: zhangqiquan
  */
-HWTEST_F(DistributedDBMockSyncModuleTest, DISABLED_SyncLifeTest003, TestSize.Level3)
+HWTEST_F(DistributedDBMockSyncModuleTest, SyncLifeTest003, TestSize.Level3)
 {
     ASSERT_NO_FATAL_FAILURE(SyncLifeTest003());
 }

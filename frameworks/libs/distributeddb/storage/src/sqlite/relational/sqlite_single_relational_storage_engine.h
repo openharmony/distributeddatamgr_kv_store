@@ -105,7 +105,8 @@ private:
         const std::vector<std::string> &deleteTableNames, RelationalSchemaObject &schema);
 
     int DoUpdateSharedTable(SQLiteSingleVerRelationalStorageExecutor *&handle,
-        const std::map<std::string, std::vector<Field>> &updateTableNames);
+        const std::map<std::string, std::vector<Field>> &updateTableNames, const DataBaseSchema &cloudSchema,
+        RelationalSchemaObject &localSchema);
 
     int DoAlterSharedTableName(SQLiteSingleVerRelationalStorageExecutor *&handle,
         const std::map<std::string, std::string> &alterTableNames, RelationalSchemaObject &schema);

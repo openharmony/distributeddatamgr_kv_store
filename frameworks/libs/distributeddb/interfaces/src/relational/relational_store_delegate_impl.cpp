@@ -253,11 +253,6 @@ DBStatus RelationalStoreDelegateImpl::SetCloudDB(const std::shared_ptr<ICloudDb>
 DBStatus RelationalStoreDelegateImpl::SetCloudDbSchema(const DataBaseSchema &schema)
 {
     DataBaseSchema cloudSchema = schema;
-    for (auto &tableSchema : cloudSchema.tables) {
-        if (tableSchema.sharedTableName.empty()) {
-            tableSchema.sharedTableName = tableSchema.name + CloudDbConstant::SHARED;
-        }
-    }
     if (!ParamCheckUtils::CheckSharedTableName(cloudSchema)) {
         LOGE("[RelationalStore Delegate] SharedTableName check failed!");
         return INVALID_ARGS;

@@ -15,6 +15,7 @@
 #ifdef RELATIONAL_STORE
 #include "sqlite_relational_store.h"
 
+#include "cloud/cloud_storage_utils.h"
 #include "db_common.h"
 #include "db_constant.h"
 #include "db_dump_helper.h"
@@ -1025,6 +1026,8 @@ bool SQLiteRelationalStore::PrepareSharedTable(const DataBaseSchema &schema, std
         std::vector<Field> addFields;
         if (tableNames.find(oldOriginTableName) == tableNames.end()) {
             deleteTableNames.push_back(oldSharedTableName);
+        } else if (sharedTableNamesMap[oldOriginTableName].empty()) {
+            deleteTableNames.push_back(oldSharedTableName);
         } else if (CheckFields(fieldsMap[oldOriginTableName], tableInfo.second, addFields)) {
             if (!addFields.empty()) {
                 updateTableNames[oldSharedTableName] = addFields;
@@ -1045,8 +1048,12 @@ int SQLiteRelationalStore::PrepareAndSetCloudDbSchema(const DataBaseSchema &sche
         LOGE("[RelationalStore][PrepareAndSetCloudDbSchema] storageEngine was not initialized");
         return -E_INVALID_DB;
     }
+    int errCode = CheckCloudSchema(schema);
+    if (errCode != E_OK) {
+        return errCode;
+    }
     // delete, update and create shared table and its distributed table
-    int errCode = ExecuteCreateSharedTable(schema);
+    errCode = ExecuteCreateSharedTable(schema);
     if (errCode != E_OK) {
         LOGE("[RelationalStore] prepare shared table failed:%d", errCode);
         return errCode;
@@ -1496,6 +1503,39 @@ int SQLiteRelationalStore::InitSQLiteStorageEngine(const RelationalDBProperties 
         [](SQLiteSingleRelationalStorageEngine *releaseEngine) {
         RefObject::KillAndDecObjRef(releaseEngine);
     });
+    return E_OK;
+}
+
+int SQLiteRelationalStore::CheckCloudSchema(const DataBaseSchema &schema)
+{
+    if (storageEngine_ == nullptr) {
+        LOGE("[RelationalStore][CheckCloudSchema] storageEngine was not initialized");
+        return -E_INVALID_DB;
+    }
+    std::shared_ptr<DataBaseSchema> cloudSchema;
+    (void) storageEngine_->GetCloudDbSchema(cloudSchema);
+    RelationalSchemaObject localSchema = sqliteStorageEngine_->GetSchema();
+    for (const auto &tableSchema : schema.tables) {
+        TableInfo tableInfo = localSchema.GetTable(tableSchema.name);
+        if (tableInfo.Empty()) {
+            continue;
+        }
+        if (tableInfo.GetSharedTableMark()) {
+            LOGE("[RelationalStore][CheckCloudSchema] Table name is existent shared table's name.");
+            return -E_INVALID_ARGS;
+        }
+    }
+    for (const auto &tableSchema : schema.tables) {
+        if (cloudSchema == nullptr) {
+            continue;
+        }
+        for (const auto &oldSchema : cloudSchema->tables) {
+            if (!CloudStorageUtils::CheckCloudSchemaFields(tableSchema, oldSchema)) {
+                LOGE("[RelationalStore][CheckCloudSchema] Schema fields are invalid.");
+                return -E_INVALID_ARGS;
+            }
+        }
+    }
     return E_OK;
 }
 } //namespace DistributedDB

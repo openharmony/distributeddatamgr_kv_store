@@ -51,6 +51,7 @@ void TriggerCloseAutoLaunchConn(const RelationalDBProperties &properties)
 
 RelationalSyncAbleStorage::RelationalSyncAbleStorage(std::shared_ptr<SQLiteSingleRelationalStorageEngine> engine)
     : storageEngine_(std::move(engine)),
+      reusedHandle_(nullptr),
       isCachedOption_(false)
 {}
 
@@ -1557,7 +1558,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSourceTableName(const 
         return { "", -E_INTERNAL_ERROR };
     }
     for (const auto &table : cloudSchema->tables) {
-        if (table.sharedTableName.empty()) {
+        if (CloudStorageUtils::IsSharedTable(table)) {
             continue;
         }
         if (DBCommon::CaseInsensitiveCompare(table.name, tableName) ||
@@ -1583,7 +1584,7 @@ std::pair<std::string, int> RelationalSyncAbleStorage::GetSharedTargetTableName(
         return { "", -E_INTERNAL_ERROR };
     }
     for (const auto &table : cloudSchema->tables) {
-        if (table.sharedTableName.empty()) {
+        if (CloudStorageUtils::IsSharedTable(table)) {
             continue;
         }
         if (DBCommon::CaseInsensitiveCompare(table.name, tableName)) {

@@ -168,6 +168,7 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             LOGE("can not get asset from vBucket when bind, %d", errCode);
             return errCode;
         }
+        asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
         errCode = RuntimeContext::GetInstance()->AssetToBlob(asset, val);
     } else if (field.type == TYPE_INDEX<Assets>) {
         Assets assets;
@@ -177,6 +178,9 @@ int CloudStorageUtils::BindAsset(int index, const VBucket &vBucket, const Field 
             return errCode;
         }
         if (!assets.empty()) {
+            for (auto &asset: assets) {
+                asset.flag = static_cast<uint32_t>(AssetOpType::NO_CHANGE);
+            }
             errCode = RuntimeContext::GetInstance()->AssetsToBlob(assets, val);
         }
     } else {
@@ -452,7 +456,8 @@ int CloudStorageUtils::FillAssetBeforeDownload(Asset &asset)
             }
             break;
         }
-        case AssetOpType::INSERT: {
+        case AssetOpType::INSERT:
+        case AssetOpType::UPDATE: {
             if (status != AssetStatus::NORMAL) {
                 asset.hash = std::string("");
             }
@@ -729,6 +734,11 @@ bool CloudStorageUtils::IsVbucketContainsAllPK(const VBucket &vBucket, const std
         }
     }
     return true;
+}
+
+bool CloudStorageUtils::IsSharedTable(const TableSchema &tableSchema)
+{
+    return tableSchema.sharedTableName == tableSchema.name;
 }
 
 static bool IsViolationOfConstraints(const std::string &name, const std::vector<FieldInfo> &fieldInfos)
@@ -1028,6 +1038,30 @@ bool CloudStorageUtils::GetTypeCaseInsensitive(const std::string &fieldName, con
         return false;
     }
     data = it->second;
+    return true;
+}
+
+void CloudStorageUtils::TransferSchemaFieldToLower(TableSchema &tableSchema)
+{
+    for (auto &field : tableSchema.fields) {
+        std::transform(field.colName.begin(), field.colName.end(), field.colName.begin(), tolower);
+    }
+}
+
+bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, const TableSchema &oldSchema)
+{
+    if (tableSchema.name != oldSchema.name) {
+        return true;
+    }
+    for (const auto &oldField : oldSchema.fields) {
+        auto it = std::find_if(tableSchema.fields.begin(), tableSchema.fields.end(),
+            [&oldField](const std::vector<Field>::value_type &field) {
+                return oldField == field;
+            });
+        if (it == tableSchema.fields.end()) {
+            return false;
+        }
+    }
     return true;
 }
 }

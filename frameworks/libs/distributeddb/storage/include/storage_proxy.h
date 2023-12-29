@@ -134,4 +134,4 @@ private:
 };
 }
 
-#endif //STORAGE_PROXY_H
+#endif // STORAGE_PROXY_H

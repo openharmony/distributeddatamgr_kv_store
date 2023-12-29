@@ -257,22 +257,22 @@ namespace {
     {
         TableSchema tableSchema1 = {
             .name = g_tableName1,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName1 + "_shared",
             .fields = g_cloudFiled1
         };
         TableSchema tableSchema2 = {
             .name = g_tableName2,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName2 + "_shared",
             .fields = g_cloudFiled2
         };
         TableSchema tableSchemaWithOutPrimaryKey = {
             .name = g_tableName3,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName3 + "_shared",
             .fields = g_cloudFiledWithOutPrimaryKey3
         };
         TableSchema tableSchema4 = {
             .name = g_tableName4,
-            .sharedTableName = "",
+            .sharedTableName = g_tableName4 + "_shared",
             .fields = g_cloudFiled2
         };
         dataBaseSchema.tables.push_back(tableSchema1);
@@ -778,7 +778,7 @@ HWTEST_F(DistributedDBCloudInterfacesRelationalRemoveDeviceDataTest, CleanCloudD
     DataBaseSchema dataBaseSchema;
     TableSchema tableSchema1 = {
         .name = "table_not_existed",
-        .sharedTableName = "",
+        .sharedTableName = "table_not_existed_shared",
         .fields = g_cloudFiled1
     };
     dataBaseSchema.tables.push_back(tableSchema1);
