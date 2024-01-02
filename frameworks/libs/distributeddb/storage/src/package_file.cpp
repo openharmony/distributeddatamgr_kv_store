@@ -471,8 +471,7 @@ END:
     return errCode;
 }
 
-int PackageFile::ExePackage(const string &sourcePath, const string &targetFile,
-    const FileInfo &fileInfo)
+int PackageFile::ExePackage(const string &sourcePath, const string &targetFile, const FileInfo &fileInfo)
 {
     list<FileContext> fileContexts;
     int errCode = GetFileContexts(sourcePath, fileContexts);
@@ -490,13 +489,10 @@ int PackageFile::ExePackage(const string &sourcePath, const string &targetFile,
         return -E_INVALID_PATH;
     }
 
-    if (!targetExists) {
-        errCode = CopyFilePermissions(sourcePath + FILE_SEPARATOR + string(fileContexts.front().fileName), targetFile);
-        if (errCode != E_OK) {
-            LOGE("Copy file fail when execute pack files! errCode = [%d]", errCode);
-            Clear(targetHandle, targetFile);
-            return errCode;
-        }
+    std::string fileName = string(fileContexts.front().fileName);
+    errCode = CopyFilePermissionsIfNeed(targetExists, sourcePath, fileName, targetFile, targetHandle);
+    if (errCode != E_OK) {
+        return errCode;
     }
 
     errCode = PackFileHeader(targetHandle, fileInfo, static_cast<uint32_t>(fileContexts.size()));
@@ -569,5 +565,19 @@ int PackageFile::UnpackFile(const string &sourceFile, const string &targetPath, 
         }
     }
     return E_OK;
+}
+
+int PackageFile::CopyFilePermissionsIfNeed(bool targetExists, const std::string &sourcePath,
+    const std::string &fileName, const std::string &targetFile, std::ofstream &targetHandle)
+{
+    if (targetExists) {
+        return E_OK;
+    }
+    int errCode = CopyFilePermissions(sourcePath + FILE_SEPARATOR + fileName, targetFile);
+    if (errCode != E_OK) {
+        LOGE("Copy file fail when execute pack files! errCode = [%d]", errCode);
+        Clear(targetHandle, targetFile);
+    }
+    return errCode;
 }
 }

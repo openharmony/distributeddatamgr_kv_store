@@ -32,6 +32,8 @@ public:
     static int GetPackageVersion(const std::string &sourceFile, uint32_t &version);
 private:
     static int ExePackage(const std::string &sourcePath, const std::string &targetFile, const FileInfo &fileInfo);
+    static int CopyFilePermissionsIfNeed(bool targetExists, const std::string &sourcePath, const std::string &fileName,
+        const std::string &targetFile, std::ofstream &targetHandle);
 };
 }
 

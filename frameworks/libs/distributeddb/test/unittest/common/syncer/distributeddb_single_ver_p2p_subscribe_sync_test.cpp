@@ -93,7 +93,6 @@ namespace {
     "\"field_name8\":100,"
     "\"field_name9\":100,"
     "\"field_name10\":100}";
-}
 
 class DistributedDBSingleVerP2PSubscribeSyncTest : public testing::Test {
 public:
@@ -1238,3 +1237,4 @@ HWTEST_F(DistributedDBSingleVerP2PSubscribeSyncTest, subscribeSync015, TestSize.
     EXPECT_EQ(g_schemaKvDelegatePtr->SubscribeRemoteQuery(devices, nullptr, query, true), NOT_SUPPORT);
     EXPECT_EQ(g_schemaKvDelegatePtr->UnSubscribeRemoteQuery(devices, nullptr, query, true), NOT_SUPPORT);
 }
+} // namespace
