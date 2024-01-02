@@ -600,7 +600,6 @@ IKvDB *KvDBManager::OpenNewDatabase(const KvDBProperties &property, int &errCode
     LOGI("Database identifier:%.6s, dir:%.6s", identifier.c_str(), dbDir.c_str());
     // Register the callback function when the database is closed, triggered when kvdb free
     kvDB->OnClose([kvDB, this]() {
-        LOGI("Remove from the cache");
         this->RemoveKvDBFromCache(kvDB);
     });
 

@@ -866,7 +866,8 @@ int SQLiteSingleVerStorageEngine::CreateNewExecutor(bool isWrite, StorageExecuto
 int SQLiteSingleVerStorageEngine::Upgrade(sqlite3 *db)
 {
     if (isUpdated_ || GetEngineState() == EngineState::CACHEDB) {
-        LOGI("Storage engine is in cache status or has been upgraded[%d]!", isUpdated_);
+        LOGI("Storage engine [%.6s] is in cache status or has been upgraded[%d]!",
+            DBCommon::TransferStringToHex(identifier_).c_str(), isUpdated_);
         return E_OK;
     }
 

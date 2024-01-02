@@ -30,7 +30,9 @@ int SingleVerDatabaseUpgrader::Upgrade()
         LOGE("[SingleUp][Upgrade] DbVersion=%d is newer.", dbVersion_);
         return -E_VERSION_NOT_SUPPORT;
     }
-    LOGI("[SingleUp][Upgrade] from %d to %d.", dbVersion_, SINGLE_VER_STORE_VERSION_CURRENT);
+    if (dbVersion_ != SINGLE_VER_STORE_VERSION_CURRENT) {
+        LOGI("[SingleUp][Upgrade] from %d to %d.", dbVersion_, SINGLE_VER_STORE_VERSION_CURRENT);
+    }
     errCode = BeginUpgrade();
     if (errCode != E_OK) {
         LOGE("[SingleUp][Upgrade] Begin error:%d.", errCode);

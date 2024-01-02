@@ -432,7 +432,7 @@ DBStatus KvStoreNbDelegateImpl::UnRegisterObserver(const KvStoreObserver *observ
     std::lock_guard<std::mutex> lockGuard(observerMapLock_);
     auto iter = observerMap_.find(observer);
     if (iter == observerMap_.end()) {
-        LOGE("[KvStoreNbDelegate] Observer has not been registered!");
+        LOGE("[KvStoreNbDelegate] [%s] Observer has not been registered!", storeId_.c_str());
         return NOT_FOUND;
     }
 
@@ -732,8 +732,6 @@ DBStatus KvStoreNbDelegateImpl::Close()
             LOGI("[KvStoreNbDelegate] Busy for close");
             return BUSY;
         }
-
-        LOGI("[KvStoreNbDelegateImpl] Database connection Close");
         conn_ = nullptr;
     }
     return OK;
@@ -784,7 +782,7 @@ DBStatus KvStoreNbDelegateImpl::GetInner(const IOption &option, const Key &key, 
     if (errCode == E_OK) {
         return OK;
     }
-    LOGW("[KvStoreNbDelegate] Get the data failed:%d", errCode);
+    LOGW("[KvStoreNbDelegate] [%s] Get the data failed:%d", storeId_.c_str(), errCode);
     return TransferDBErrno(errCode);
 }
 

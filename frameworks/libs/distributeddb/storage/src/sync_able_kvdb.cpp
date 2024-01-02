@@ -180,15 +180,18 @@ int SyncAbleKvDB::StartSyncerWithNoLock(bool isCheckSyncActive, bool isNeedActiv
     }
     bool isSyncDualTupleMode = syncInterface->GetDbProperties().GetBoolProp(KvDBProperties::SYNC_DUAL_TUPLE_MODE,
         false);
+    std::string label = syncInterface->GetDbProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
     if (isSyncDualTupleMode && isCheckSyncActive && !isNeedActive && (userChangeListener_ == nullptr)) {
         // active to non_active
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             std::bind(&SyncAbleKvDB::ChangeUserListener, this), UserChangeMonitor::USER_ACTIVE_TO_NON_ACTIVE_EVENT);
+        LOGI("[KVDB] [StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener", label.c_str());
     } else if (isSyncDualTupleMode && (userChangeListener_ == nullptr)) {
         EventType event = isNeedActive ?
             UserChangeMonitor::USER_ACTIVE_EVENT : UserChangeMonitor::USER_NON_ACTIVE_EVENT;
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             std::bind(&SyncAbleKvDB::UserChangeHandle, this), event);
+        LOGI("[KVDB] [StartSyncerWithNoLock] [%.3s] After RegisterUserChangedListener event=%d", label.c_str(), event);
     }
     return errCode;
 }
@@ -264,6 +267,9 @@ void SyncAbleKvDB::ChangeUserListener()
     if (userChangeListener_ == nullptr) {
         userChangeListener_ = RuntimeContext::GetInstance()->RegisterUserChangedListener(
             std::bind(&SyncAbleKvDB::UserChangeHandle, this), UserChangeMonitor::USER_NON_ACTIVE_EVENT);
+        IKvDBSyncInterface *syncInterface = GetSyncInterface();
+        std::string label = syncInterface->GetDbProperties().GetStringProp(DBProperties::IDENTIFIER_DATA, "");
+        LOGI("[KVDB] [ChangeUserListener] [%.3s] After RegisterUserChangedListener", label.c_str());
     }
 }
 
@@ -429,7 +435,7 @@ int SyncAbleKvDB::GetSyncDataSize(const std::string &device, size_t &size) const
 bool SyncAbleKvDB::NeedStartSyncer() const
 {
     if (!RuntimeContext::GetInstance()->IsCommunicatorAggregatorValid()) {
-        LOGW("communicator not ready!");
+        LOGW("KvDB communicator not ready!");
         return false;
     }
     // don't start when check callback got not active
