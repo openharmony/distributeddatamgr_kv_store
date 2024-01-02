@@ -146,7 +146,7 @@ public:
 
     // Start Ability Sync
     int SyncStart(uint32_t sessionId, uint32_t sequenceId, uint16_t remoteCommunicatorVersion,
-        const CommErrHandler &handler = nullptr);
+        const CommErrHandler &handler = nullptr, const ISyncTaskContext *context = nullptr);
 
     int Initialize(ICommunicator *inCommunicator, ISyncInterface *inStorage,
         const std::shared_ptr<Metadata> &inMetadata, const std::string &deviceId);
@@ -205,11 +205,13 @@ private:
         AbilitySyncAckPacket &sendPacket, ISyncTaskContext *context, bool sendOpinion,
         std::pair<bool, bool> &schemaSyncStatus) const;
 
-    void GetPacketSecOption(SecurityOption &option) const;
+    void GetPacketSecOption(const ISyncTaskContext *context, SecurityOption &option) const;
 
-    int SetAbilityRequestBodyInfo(AbilitySyncRequestPacket &packet, uint16_t remoteCommunicatorVersion) const;
+    int SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, const ISyncTaskContext *context,
+        AbilitySyncRequestPacket &packet) const;
 
-    int SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackCode, bool isAckNotify) const;
+    int SetAbilityAckBodyInfo(const ISyncTaskContext *context, int ackCode, bool isAckNotify,
+        AbilitySyncAckPacket &ackPacket) const;
 
     static void SetAbilityAckSchemaInfo(AbilitySyncAckPacket &ackPacket, const ISchema &schemaObj);
 
@@ -223,9 +225,10 @@ private:
 
     bool IsSingleRelationalVer() const;
 
-    int SendAck(const Message *message, int ackCode, bool isAckNotify, AbilitySyncAckPacket &ackPacket);
+    int SendAck(const ISyncTaskContext *context, const Message *message, int ackCode, bool isAckNotify,
+        AbilitySyncAckPacket &ackPacket);
 
-    int SendAckWithEmptySchema(const Message *message, int ackCode, bool isAckNotify);
+    int SendAckWithEmptySchema(const ISyncTaskContext *context, const Message *message, int ackCode, bool isAckNotify);
 
     int SendAck(const Message *inMsg, const AbilitySyncAckPacket &ackPacket, bool isAckNotify);
 
@@ -237,6 +240,8 @@ private:
         const std::string &remoteSchema) const;
 
     int AckRecvWithHighVersion(const Message *message, ISyncTaskContext *context, const AbilitySyncAckPacket *packet);
+
+    static int32_t TransformRemoteSecLabelIfNeed(int32_t remoteSecLabel, int localSecLabel);
 
     ICommunicator *communicator_;
     ISyncInterface *storageInterface_;

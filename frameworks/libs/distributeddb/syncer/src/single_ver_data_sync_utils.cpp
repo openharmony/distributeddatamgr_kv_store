@@ -230,6 +230,12 @@ bool SingleVerDataSyncUtils::CheckPermitReceiveData(const SingleVerSyncTaskConte
         return true;
     }
     communicator->GetLocalIdentity(localDeviceId);
+    SecurityOption localOption;
+    (void)storage->GetSecurityOption(localOption);
+    if (remoteSecOption.securityLabel == SecurityLabel::S0 && localOption.securityLabel == SecurityLabel::S1) {
+        remoteSecOption.securityLabel = SecurityLabel::S1;
+        LOGI("[DataSync] Transform Remote SecLabel From S0 To S1 When Receive Data");
+    }
     bool isPermitSync = SingleVerDataSyncUtils::IsPermitLocalDeviceRecvData(localDeviceId, remoteSecOption);
     if (isPermitSync) {
         return isPermitSync;

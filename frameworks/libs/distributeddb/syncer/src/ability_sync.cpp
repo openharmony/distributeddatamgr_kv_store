@@ -354,10 +354,10 @@ int AbilitySync::Initialize(ICommunicator *inCommunicator, ISyncInterface *inSto
 }
 
 int AbilitySync::SyncStart(uint32_t sessionId, uint32_t sequenceId, uint16_t remoteCommunicatorVersion,
-    const CommErrHandler &handler)
+    const CommErrHandler &handler, const ISyncTaskContext *context)
 {
     AbilitySyncRequestPacket packet;
-    int errCode = SetAbilityRequestBodyInfo(packet, remoteCommunicatorVersion);
+    int errCode = SetAbilityRequestBodyInfo(remoteCommunicatorVersion, context, packet);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -427,7 +427,7 @@ int AbilitySync::RequestRecv(const Message *message, ISyncTaskContext *context)
     }
     if (packet->GetSendCode() == -E_VERSION_NOT_SUPPORT) {
         AbilitySyncAckPacket ackPacket;
-        (void)SendAck(message, -E_VERSION_NOT_SUPPORT, false, ackPacket);
+        (void)SendAck(context, message, -E_VERSION_NOT_SUPPORT, false, ackPacket);
         LOGI("[AbilitySync][RequestRecv] version can not support, remote version is %u", packet->GetProtocolVersion());
         return -E_VERSION_NOT_SUPPORT;
     }
@@ -473,7 +473,7 @@ int AbilitySync::AckNotifyRecv(const Message *message, ISyncTaskContext *context
     if (errCode == E_OK) {
         ackCode = AbilitySync::LAST_NOTIFY;
     }
-    (void)SendAckWithEmptySchema(message, ackCode, true);
+    (void)SendAckWithEmptySchema(context, message, ackCode, true);
     return errCode;
 }
 
@@ -489,10 +489,10 @@ void AbilitySync::SetAbilitySyncFinishedStatus(bool syncFinished)
 
 bool AbilitySync::SecLabelCheck(const AbilitySyncRequestPacket *packet) const
 {
-    int32_t remoteSecLabel = packet->GetSecLabel();
-    int32_t remoteSecFlag = packet->GetSecFlag();
     SecurityOption option;
     int errCode = (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
+    int32_t remoteSecLabel = TransformRemoteSecLabelIfNeed(packet->GetSecLabel(), option.securityLabel);
+    int32_t remoteSecFlag = packet->GetSecFlag();
     LOGI("[AbilitySync][RequestRecv] remote label:%d local l:%d, f:%d, errCode:%d", remoteSecLabel,
         option.securityLabel, option.securityFlag, errCode);
     if (remoteSecLabel == NOT_SURPPORT_SEC_CLASSIFICATION && errCode == -E_NOT_SUPPORT) {
@@ -559,7 +559,7 @@ int AbilitySync::HandleVersionV3AckSchemaParam(const AbilitySyncAckPacket *recvP
     return E_OK;
 }
 
-void AbilitySync::GetPacketSecOption(SecurityOption &option) const
+void AbilitySync::GetPacketSecOption(const ISyncTaskContext *context, SecurityOption &option) const
 {
     int errCode =
         (static_cast<SyncGenericInterface *>(storageInterface_))->GetSecurityOption(option);
@@ -569,6 +569,14 @@ void AbilitySync::GetPacketSecOption(SecurityOption &option) const
     } else if (errCode != E_OK) {
         LOGE("[AbilitySync][SyncStart] GetSecOpt errCode:%d", errCode);
         option.securityLabel = FAILED_GET_SEC_CLASSIFICATION;
+    }
+    if (context == nullptr) {
+        return;
+    }
+    auto remoteSecOption = (static_cast<const SingleVerSyncTaskContext *>(context))->GetRemoteSeccurityOption();
+    if (remoteSecOption.securityLabel == SecurityLabel::S0 && option.securityLabel == SecurityLabel::S1) {
+        option.securityLabel = SecurityLabel::S0;
+        LOGI("[AbilitySync] Transform SecLabel From S1 To S0");
     }
 }
 
@@ -892,7 +900,8 @@ ERROR_OUT:
     return errCode;
 }
 
-int AbilitySync::SetAbilityRequestBodyInfo(AbilitySyncRequestPacket &packet, uint16_t remoteCommunicatorVersion) const
+int AbilitySync::SetAbilityRequestBodyInfo(uint16_t remoteCommunicatorVersion, const ISyncTaskContext *context,
+    AbilitySyncRequestPacket &packet) const
 {
     uint64_t dbCreateTime;
     int errCode =
@@ -902,7 +911,7 @@ int AbilitySync::SetAbilityRequestBodyInfo(AbilitySyncRequestPacket &packet, uin
         return errCode;
     }
     SecurityOption option;
-    GetPacketSecOption(option);
+    GetPacketSecOption(context, option);
     std::string schemaStr;
     uint32_t schemaType = 0;
     if (IsSingleKvVer()) {
@@ -940,13 +949,14 @@ int AbilitySync::SetAbilityRequestBodyInfo(AbilitySyncRequestPacket &packet, uin
     return E_OK;
 }
 
-int AbilitySync::SetAbilityAckBodyInfo(AbilitySyncAckPacket &ackPacket, int ackCode, bool isAckNotify) const
+int AbilitySync::SetAbilityAckBodyInfo(const ISyncTaskContext *context, int ackCode, bool isAckNotify,
+    AbilitySyncAckPacket &ackPacket) const
 {
     ackPacket.SetProtocolVersion(ABILITY_SYNC_VERSION_V1);
     ackPacket.SetSoftwareVersion(SOFTWARE_VERSION_CURRENT);
     if (!isAckNotify) {
         SecurityOption option;
-        GetPacketSecOption(option);
+        GetPacketSecOption(context, option);
         ackPacket.SetSecLabel(option.securityLabel);
         ackPacket.SetSecFlag(option.securityFlag);
         uint64_t dbCreateTime = 0;
@@ -1047,7 +1057,7 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     if (remoteSoftwareVersion <= SOFTWARE_VERSION_RELEASE_2_0) {
         LOGI("[AbilitySync][RequestRecv] remote version = %u, CheckSchemaCompatible = %d",
             remoteSoftwareVersion, isCompatible);
-        return SendAckWithEmptySchema(message, E_OK, false);
+        return SendAckWithEmptySchema(context, message, E_OK, false);
     }
     HandleVersionV3RequestParam(packet, context);
     if (SecLabelCheck(packet)) {
@@ -1066,13 +1076,14 @@ int AbilitySync::HandleRequestRecv(const Message *message, ISyncTaskContext *con
     }
     LOGI("[AbilitySync][RequestRecv] remote dev=%s,ver=%u,schemaCompatible=%d", STR_MASK(deviceId_),
         remoteSoftwareVersion, isCompatible);
-    int errCode = SendAck(message, ackCode, false, ackPacket);
+    int errCode = SendAck(context, message, ackCode, false, ackPacket);
     return ackCode != E_OK ? ackCode : errCode;
 }
 
-int AbilitySync::SendAck(const Message *message, int ackCode, bool isAckNotify, AbilitySyncAckPacket &ackPacket)
+int AbilitySync::SendAck(const ISyncTaskContext *context, const Message *message, int ackCode, bool isAckNotify,
+    AbilitySyncAckPacket &ackPacket)
 {
-    int errCode = SetAbilityAckBodyInfo(ackPacket, ackCode, isAckNotify);
+    int errCode = SetAbilityAckBodyInfo(context, ackCode, isAckNotify, ackPacket);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1086,11 +1097,11 @@ int AbilitySync::SendAck(const Message *message, int ackCode, bool isAckNotify, 
     return SendAck(message, ackPacket, isAckNotify);
 }
 
-int AbilitySync::SendAckWithEmptySchema(const Message *message, int ackCode,
+int AbilitySync::SendAckWithEmptySchema(const ISyncTaskContext *context, const Message *message, int ackCode,
     bool isAckNotify)
 {
     AbilitySyncAckPacket ackPacket;
-    int errCode = SetAbilityAckBodyInfo(ackPacket, ackCode, isAckNotify);
+    int errCode = SetAbilityAckBodyInfo(context, ackCode, isAckNotify, ackPacket);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1229,7 +1240,16 @@ int AbilitySync::AckRecvWithHighVersion(const Message *message, ISyncTaskContext
     }
     DbAbility remoteDbAbility = packet->GetDbAbility();
     singleVerContext->SetDbAbility(remoteDbAbility);
-    (void)SendAck(message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
+    (void)SendAck(context, message, AbilitySync::CHECK_SUCCESS, true, ackPacket);
     return E_OK;
+}
+
+int32_t AbilitySync::TransformRemoteSecLabelIfNeed(int32_t remoteSecLabel, int localSecLabel)
+{
+    if (remoteSecLabel == SecurityLabel::S0 && localSecLabel == SecurityLabel::S1) {
+        LOGI("[AbilitySync] Accept SecLabel From S0 To S1");
+        return SecurityLabel::S1;
+    }
+    return remoteSecLabel;
 }
 } // namespace DistributedDB
