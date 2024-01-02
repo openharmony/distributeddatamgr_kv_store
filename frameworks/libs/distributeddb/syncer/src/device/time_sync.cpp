@@ -511,8 +511,9 @@ int TimeSync::GetTimeOffset(TimeOffset &outOffset, uint32_t timeout, uint32_t se
         LOGD("TimeSync::GetTimeOffset start, current time = %" PRIu64 ", errCode = %d, timeout = %" PRIu32 " ms",
             TimeHelper::GetSysCurrentTime(), errCode, timeout);
         std::unique_lock<std::mutex> lock(cvLock_);
-        if (errCode != E_OK || !conditionVar_.wait_for(lock, std::chrono::milliseconds(timeout),
-            [this](){ return this->isAckReceived_ || this->closed_; })) {
+        if (errCode != E_OK || !conditionVar_.wait_for(lock, std::chrono::milliseconds(timeout), [this]() {
+            return this->isAckReceived_ || this->closed_;
+            })) {
             LOGD("TimeSync::GetTimeOffset, retryTime_ = %d", retryTime_);
             retryTime_++;
             if (retryTime_ < MAX_RETRY_TIME) {
