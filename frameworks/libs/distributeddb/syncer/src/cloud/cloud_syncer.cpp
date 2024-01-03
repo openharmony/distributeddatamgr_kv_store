@@ -206,15 +206,19 @@ int CloudSyncer::DoSync(TaskId taskId)
         needUpload = currentContext_.strategy->JudgeUpload();
     }
     int errCode = E_OK;
-    // do first download
-    int64_t uploadCount = 0;
-    errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, true);
-    if (errCode != E_OK) {
-        return errCode;
-    }
-    if (uploadCount == 0) {
-        LOGI("[CloudSyncer] uploadCount is 0, no need upload!");
-        return E_OK;
+    bool isFirstDownload = true;
+    if (currentContext_.locker == nullptr) {
+        // do first download
+        int64_t uploadCount = 0;
+        errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
+        if (errCode != E_OK) {
+            return errCode;
+        }
+        if (uploadCount == 0) {
+            LOGI("[CloudSyncer] uploadCount is 0, no need upload!");
+            return E_OK;
+        }
+        isFirstDownload = false;
     }
 
     // lock cloud and then do the second sync
@@ -222,7 +226,7 @@ int CloudSyncer::DoSync(TaskId taskId)
     if (errCode != E_OK) {
         return errCode;
     }
-    errCode = DoSyncInner(taskInfo, needUpload);
+    errCode = DoSyncInner(taskInfo, needUpload, isFirstDownload);
     UnlockIfNeed();
     return errCode;
 }
@@ -277,10 +281,10 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
     return errCode;
 }
 
-int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload)
+int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     int64_t uploadCount = 0;
-    int errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, false);
+    int errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -1669,14 +1673,7 @@ int CloudSyncer::CleanWaterMarkInMemory(const std::set<std::string> &tableNameLi
 
 void CloudSyncer::UpdateCloudWaterMark(TaskId taskId, const SyncParam &param)
 {
-    bool isUpdateCloudCursor = true;
     {
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
-    }
-    isUpdateCloudCursor = isUpdateCloudCursor && !IsPriorityTask(taskId);
-    // use the cursor of the last datum in data set to update cloud water mark
-    if (isUpdateCloudCursor) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         currentContext_.cloudWaterMarks[param.info.tableName] = param.cloudWaterMark;
     }

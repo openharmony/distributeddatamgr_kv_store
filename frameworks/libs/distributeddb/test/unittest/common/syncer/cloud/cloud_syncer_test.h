@@ -120,7 +120,7 @@ public:
 
     int CallDoSyncInner(const CloudTaskInfo &taskInfo, const bool &needUpload)
     {
-        return DoSyncInner(taskInfo, needUpload);
+        return DoSyncInner(taskInfo, needUpload, true);
     }
 
     SyncProcessCallback getCallback(TaskId taskId)

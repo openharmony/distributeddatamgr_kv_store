@@ -110,7 +110,7 @@ protected:
 
     int DoSync(TaskId taskId);
 
-    int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload);
+    int DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
