@@ -253,7 +253,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
             LOGE("[CloudSyncer] upload failed %d", errCode);
             break;
         }
-        errCode = SaveCloudWaterMark(taskInfo.table[i]);
+        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
         if (errCode != E_OK) {
             LOGE("[CloudSyncer] Can not save cloud water mark after uploading %d", errCode);
             break;
@@ -823,8 +823,12 @@ int CloudSyncer::NotifyChangedData(ChangedData &&changedData)
     return ret;
 }
 
-void CloudSyncer::NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param)
+void CloudSyncer::NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload)
 {
+    if (!isFirstDownload && param.downloadData.data.empty()) {
+        // if the second download and there is no download data, do not notify
+        return;
+    }
     std::lock_guard<std::mutex> autoLock(dataLock_);
     if (currentContext_.strategy->JudgeUpload()) {
         currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], param.info);
@@ -1218,9 +1222,10 @@ int CloudSyncer::PreProcessBatchUpload(TaskId taskId, const InnerProcessInfo &in
     return ret;
 }
 
-int CloudSyncer::SaveCloudWaterMark(const TableName &tableName)
+int CloudSyncer::SaveCloudWaterMark(const TableName &tableName, const TaskId taskId)
 {
     std::string cloudWaterMark;
+    bool isUpdateCloudCursor = true;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (currentContext_.cloudWaterMarks.find(tableName) == currentContext_.cloudWaterMarks.end()) {
@@ -1228,12 +1233,17 @@ int CloudSyncer::SaveCloudWaterMark(const TableName &tableName)
             return E_OK;
         }
         cloudWaterMark = currentContext_.cloudWaterMarks[tableName];
+        isUpdateCloudCursor = currentContext_.strategy->JudgeUpdateCursor();
     }
-    int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
-    if (errCode != E_OK) {
-        LOGE("[CloudSyncer] Cannot set cloud water mark while Uploading, %d.", errCode);
+    isUpdateCloudCursor = isUpdateCloudCursor && !IsPriorityTask(taskId);
+    if (isUpdateCloudCursor) {
+        int errCode = storageProxy_->SetCloudWaterMark(tableName, cloudWaterMark);
+        if (errCode != E_OK) {
+            LOGE("[CloudSyncer] Cannot set cloud water mark while Uploading, %d.", errCode);
+        }
+        return errCode;
     }
-    return errCode;
+    return E_OK;
 }
 
 void CloudSyncer::SetUploadDataFlag(const TaskId taskId, CloudSyncData& uploadData)
@@ -1893,7 +1903,7 @@ int CloudSyncer::DownloadOneBatch(TaskId taskId, SyncParam &param, bool isFirstD
         currentContext_.notifier->UpdateProcess(param.info);
         return ret;
     }
-    (void)NotifyInDownload(taskId, param);
+    (void)NotifyInDownload(taskId, param, isFirstDownload);
     return ret;
 }
 
@@ -2172,7 +2182,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             }
             UpdateProcessInfoWithoutUpload(taskInfo.taskId, table, i == (taskInfo.table.size() - 1u));
         }
-        errCode = SaveCloudWaterMark(taskInfo.table[i]);
+        errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
         if (errCode != E_OK) {
             LOGE("[CloudSyncer] Can not save cloud water mark after downloading %d", errCode);
             return errCode;

@@ -191,7 +191,7 @@ protected:
 
     int SaveData(SyncParam &param);
 
-    void NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param);
+    void NotifyInDownload(CloudSyncer::TaskId taskId, SyncParam &param, bool isFirstDownload);
 
     int SaveDataInTransaction(CloudSyncer::TaskId taskId,  SyncParam &param);
 
@@ -244,7 +244,7 @@ protected:
 
     bool IsDataContainAssets();
 
-    int SaveCloudWaterMark(const TableName &tableName);
+    int SaveCloudWaterMark(const TableName &tableName, const TaskId taskId);
 
     bool IsDataContainDuplicateAsset(const std::vector<Field> &assetFields, VBucket &data);
 
