@@ -983,13 +983,12 @@ int CloudSyncer::DoDownloadInner(CloudSyncer::TaskId taskId, SyncParam &param, b
     if (ret != E_OK) {
         return ret;
     }
-    param.isLastBatch = false;
-    while (!param.isLastBatch) {
+    do {
         ret = DownloadOneBatch(taskId, param, isFirstDownload);
         if (ret != E_OK) {
             return ret;
         }
-    }
+    } while (!param.isLastBatch);
     return E_OK;
 }
 
@@ -1946,6 +1945,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (resumeTaskInfos_[taskId].syncParam.tableName == currentContext_.tableName) {
             param = resumeTaskInfos_[taskId].syncParam;
+            resumeTaskInfos_[taskId].syncParam = {};
             LOGD("[CloudSyncer] Get sync param from cache");
             return E_OK;
         }
@@ -1996,7 +1996,6 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
     if (IsCurrentTableResume(taskId, false)) {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         if (resumeTaskInfos_[taskId].skipQuery) {
-            param.isLastBatch = resumeTaskInfos_[taskId].syncParam.isLastBatch;
             LOGD("[CloudSyncer] skip query");
             return E_OK;
         }
