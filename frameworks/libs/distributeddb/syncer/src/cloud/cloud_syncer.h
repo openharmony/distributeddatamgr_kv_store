@@ -114,6 +114,8 @@ protected:
 
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
+    void DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables);
+
     int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
 
     void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName, bool lastTable);

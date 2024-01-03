@@ -742,10 +742,10 @@ namespace {
         });
 
         infos.push_back(TableProcessInfo{
-            FINISHED, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
         infos.push_back(TableProcessInfo{
-            PREPARED, {0, 0, 0, 0}, {0, 0, 0, 0}
+            PROCESSING, {index, cloudCount, cloudCount, 0}, {0, 0, 0, 0}
         });
 
         infos.push_back(TableProcessInfo{

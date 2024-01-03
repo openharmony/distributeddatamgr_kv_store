@@ -2086,6 +2086,13 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     return info;
 }
 
+void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables)
+{
+    for (size_t i = 0; i < needNotifyTables.size(); ++i) {
+        UpdateProcessInfoWithoutUpload(taskId, needNotifyTables[i], i == (needNotifyTables.size() - 1u));
+    }
+}
+
 int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count)
 {
     std::string tableName;
@@ -2141,6 +2148,7 @@ void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, con
 int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
     bool isFirstDownload)
 {
+    std::vector<std::string> needNotifyTables;
     for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
         LOGD("[CloudSyncer] try download table, index: %zu", i);
         std::string table;
@@ -2180,7 +2188,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
                 uploadCount += count;
                 continue;
             }
-            UpdateProcessInfoWithoutUpload(taskInfo.taskId, table, i == (taskInfo.table.size() - 1u));
+            needNotifyTables.emplace_back(table);
         }
         errCode = SaveCloudWaterMark(taskInfo.table[i], taskInfo.taskId);
         if (errCode != E_OK) {
@@ -2188,6 +2196,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             return errCode;
         }
     }
+    DoNotifyInNeed(taskInfo.taskId, needNotifyTables);
     return E_OK;
 }
 } // namespace DistributedDB
