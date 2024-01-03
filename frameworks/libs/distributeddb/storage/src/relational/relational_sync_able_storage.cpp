@@ -751,21 +751,39 @@ int RelationalSyncAbleStorage::UnRegisterObserverAction(uint64_t connectionId, c
     TaskHandle handle = ConcurrentAdapter::ScheduleTaskH([this, connectionId, observer, &errCode] () mutable {
         ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
         auto it = dataChangeCallbackMap_.find(connectionId);
-        if (it != dataChangeCallbackMap_.end()) {
-            auto action = it->second.find(observer);
-            if (action != it->second.end()) {
-                it->second.erase(action);
-                LOGI("unregister relational observer.");
-                if (it->second.empty()) {
-                    dataChangeCallbackMap_.erase(it);
-                    LOGI("observer for this delegate is zero now");
-                }
-                errCode = E_OK;
+        if (it == dataChangeCallbackMap_.end()) {
+            return;
+        }
+        auto action = it->second.find(observer);
+        if (action != it->second.end()) {
+            it->second.erase(action);
+            LOGI("unregister relational observer.");
+            if (it->second.empty()) {
+                dataChangeCallbackMap_.erase(it);
+                LOGI("observer for this delegate is zero now");
             }
+            errCode = E_OK;
         }
     }, nullptr, &dataChangeCallbackMap_);
     ADAPTER_WAIT(handle);
     return errCode;
+}
+
+void RelationalSyncAbleStorage::ExecuteDataChangeCallback(
+    const std::pair<uint64_t, std::map<const StoreObserver *, RelationalObserverAction>> &item, int &observerCnt,
+    const std::string &deviceName, const ChangedData &changedData, bool isChangedData)
+{
+    for (auto &action : item.second) {
+        if (action.second == nullptr) {
+            continue;
+        }
+        observerCnt++;
+        ChangedData observerChangeData = changedData;
+        if (action.first != nullptr) {
+            FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
+        }
+        action.second(deviceName, std::move(observerChangeData), isChangedData);
+    }
 }
 
 void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceName,
@@ -778,17 +796,7 @@ void RelationalSyncAbleStorage::TriggerObserverAction(const std::string &deviceN
             int observerCnt = 0;
             ADAPTER_AUTO_LOCK(lock, dataChangeDeviceMutex_);
             for (const auto &item : dataChangeCallbackMap_) {
-                for (auto &action : item.second) {
-                    if (action.second == nullptr) {
-                        continue;
-                    }
-                    observerCnt++;
-                    ChangedData observerChangeData = changedData;
-                    if (action.first != nullptr) {
-                        FilterChangeDataByDetailsType(observerChangeData, action.first->GetCallbackDetailsType());
-                    }
-                    action.second(deviceName, std::move(observerChangeData), isChangedData);
-                }
+                ExecuteDataChangeCallback(item, observerCnt, deviceName, changedData, isChangedData);
             }
             LOGD("relational observer size = %d", observerCnt);
             DecObjRef(this);
