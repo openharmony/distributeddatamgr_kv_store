@@ -208,6 +208,7 @@ void DistributedDBCloudCheckSyncTest::SetUp()
 void DistributedDBCloudCheckSyncTest::TearDown()
 {
     virtualCloudDb_->ForkQuery(nullptr);
+    virtualCloudDb_->SetCloudError(false);
     CloseDb();
     EXPECT_EQ(sqlite3_close_v2(db_), SQLITE_OK);
     if (DistributedDBToolsUnitTest::RemoveTestDbFiles(testDir_) != E_OK) {
@@ -1518,6 +1519,114 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, T
      */
     DBStatus createStatus = delegate_->CreateDistributedTable(lowerTableName_, CLOUD_COOPERATION);
     ASSERT_EQ(createStatus, DBStatus::OK);
+}
+
+/**
+ * @tc.name: SaveCursorTest001
+ * @tc.desc: test whether cloud cursor is saved when first sync
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert cloud records
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    InsertCloudTableRecord(0, actualCount, 0, false);
+
+    /**
+     * @tc.steps:step2. Check cursor when first sync
+     * @tc.expected: step2. OK
+     */
+    virtualCloudDb_->ForkQuery([this](const std::string &tableName, VBucket &extend) {
+        EXPECT_EQ(tableName_, tableName);
+        auto cursor = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
+        EXPECT_EQ(cursor, "0");
+    });
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockSync(query, delegate_);
+    CheckLocalCount(actualCount);
+}
+
+/**
+ * @tc.name: SaveCursorTest002
+ * @tc.desc: test whether cloud cursor is saved when first download failed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert cloud records
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    InsertCloudTableRecord(0, actualCount, 0, false);
+
+    /**
+     * @tc.steps:step2. set download failed
+     * @tc.expected: step2. OK
+     */
+    virtualCloudDb_->SetCloudError(true);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockPrioritySync(query, delegate_, false, OK);
+    CheckLocalCount(0);
+
+    /**
+     * @tc.steps:step3. check cursor when query
+     * @tc.expected: step3. OK
+     */
+    virtualCloudDb_->SetCloudError(false);
+    virtualCloudDb_->ForkQuery([this](const std::string &tableName, VBucket &extend) {
+        EXPECT_EQ(tableName_, tableName);
+        auto cursor = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
+        EXPECT_EQ(cursor, "0");
+    });
+    BlockSync(query, delegate_);
+    CheckLocalCount(actualCount);
+}
+
+/**
+ * @tc.name: SaveCursorTest003
+ * @tc.desc: test whether cloud cursor is saved when first upload failed
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: chenchaohao
+ */
+HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
+{
+    /**
+     * @tc.steps:step1. Insert local records
+     * @tc.expected: step1. OK
+     */
+    const int actualCount = 10;
+    InsertUserTableRecord(tableName_, actualCount);
+
+    /**
+     * @tc.steps:step2. set upload failed
+     * @tc.expected: step2. OK
+     */
+    virtualCloudDb_->SetCloudError(true);
+    Query query = Query::Select().FromTable({ tableName_ });
+    BlockPrioritySync(query, delegate_, false, OK);
+    CheckCloudTableCount(tableName_, 0);
+
+    /**
+     * @tc.steps:step3. check cursor when query
+     * @tc.expected: step3. OK
+     */
+    virtualCloudDb_->SetCloudError(false);
+    virtualCloudDb_->ForkQuery([this](const std::string &tableName, VBucket &extend) {
+        EXPECT_EQ(tableName_, tableName);
+        auto cursor = std::get<std::string>(extend[CloudDbConstant::CURSOR_FIELD]);
+        EXPECT_EQ(cursor, "0");
+    });
+    BlockSync(query, delegate_);
+    CheckCloudTableCount(tableName_, actualCount);
 }
 }
 #endif

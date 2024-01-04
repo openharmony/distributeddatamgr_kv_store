@@ -43,6 +43,8 @@ public:
 
     int Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data);
 
+    std::pair<int, std::string> GetEmptyCursor(const std::string &tableName);
+
     std::pair<int, uint64_t> Lock();
 
     int UnLock();
@@ -78,6 +80,10 @@ protected:
 
         void MoveOutLockStatus(std::pair<int, uint64_t> &lockStatus);
 
+        void MoveInCursorStatus(std::pair<int, std::string> &cursorStatus);
+
+        void MoveOutCursorStatus(std::pair<int, std::string> &cursorStatus);
+
         bool WaitForRes(int64_t timeout);
 
         void SetActionRes(int res);
@@ -108,12 +114,14 @@ protected:
         VBucket queryExtend_;
         std::vector<VBucket> data_;
         std::pair<int, uint64_t> lockStatus_;
+        std::pair<int, std::string> cursorStatus_;
     };
     enum InnerActionCode : uint8_t {
         INSERT = 0,
         UPDATE,
         DELETE,
         QUERY,
+        GET_EMPTY_CURSOR,
         LOCK,
         UNLOCK,
         HEARTBEAT,
@@ -130,6 +138,9 @@ protected:
         const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action);
 
     static DBStatus InnerActionLock(const std::shared_ptr<CloudActionContext> &context,
+        const std::shared_ptr<ICloudDb> &cloudDb);
+
+    static DBStatus InnerActionGetEmptyCursor(const std::shared_ptr<CloudActionContext> &context,
         const std::shared_ptr<ICloudDb> &cloudDb);
 
     static int GetInnerErrorCode(DBStatus status);

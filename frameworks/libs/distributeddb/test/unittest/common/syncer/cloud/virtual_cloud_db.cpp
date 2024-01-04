@@ -224,6 +224,11 @@ DBStatus VirtualCloudDb::Close()
     return OK;
 }
 
+std::pair<DBStatus, std::string> VirtualCloudDb::GetEmptyCursor(const std::string &tableName)
+{
+    return { OK, "0" };
+}
+
 DBStatus VirtualCloudDb::DeleteByGid(const std::string &tableName, VBucket &extend)
 {
     for (auto &tableData : cloudData_[tableName]) {

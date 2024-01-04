@@ -39,6 +39,8 @@ public:
 
     DBStatus DeleteByGid(const std::string &tableName, VBucket &extend);
 
+    std::pair<DBStatus, std::string> GetEmptyCursor(const std::string &tableName) override;
+
     std::pair<DBStatus, uint32_t> Lock() override;
 
     DBStatus UnLock() override;
