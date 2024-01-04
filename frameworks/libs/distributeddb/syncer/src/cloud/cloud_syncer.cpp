@@ -1130,7 +1130,7 @@ int CloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
         return ret;
     }
     if (count == 0) {
-        UpdateProcessInfoWithoutUpload(taskId, tableName, lastTable);
+        UpdateProcessInfoWithoutUpload(taskId, tableName, !lastTable);
         return E_OK;
     }
     UploadParam param;
@@ -2082,10 +2082,14 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
     return info;
 }
 
-void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables)
+void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
+    const bool isFirstDownload, const int uploadCount)
 {
+    if (!isFirstDownload || uploadCount > 0) {
+        return;
+    }
     for (size_t i = 0; i < needNotifyTables.size(); ++i) {
-        UpdateProcessInfoWithoutUpload(taskId, needNotifyTables[i], i == (needNotifyTables.size() - 1u));
+        UpdateProcessInfoWithoutUpload(taskId, needNotifyTables[i], i != (needNotifyTables.size() - 1u));
     }
 }
 
@@ -2124,7 +2128,7 @@ int CloudSyncer::GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &coun
 }
 
 void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName,
-    bool lastTable)
+    bool needNotify)
 {
     LOGI("[CloudSyncer] There is no need to doing upload, as the upload data count is zero.");
     InnerProcessInfo innerProcessInfo;
@@ -2133,7 +2137,7 @@ void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, con
     innerProcessInfo.tableStatus = ProcessStatus::FINISHED;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
-        if (lastTable) {
+        if (!needNotify) {
             currentContext_.notifier->UpdateProcess(innerProcessInfo);
         } else {
             currentContext_.notifier->NotifyProcess(cloudTaskInfos_[taskId], innerProcessInfo);
@@ -2192,7 +2196,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             return errCode;
         }
     }
-    DoNotifyInNeed(taskInfo.taskId, needNotifyTables);
+    DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload, uploadCount);
     return E_OK;
 }
 } // namespace DistributedDB
