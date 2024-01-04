@@ -648,7 +648,7 @@ namespace {
     void GenerateSecurityData(std::vector<SecurityLabel> &labelList, std::vector<SecurityFlag> &flagList)
     {
         labelList = {
-            SecurityLabel::NOT_SET, SecurityLabel::S0,
+            SecurityLabel::NOT_SET,
             SecurityLabel::S1, SecurityLabel::S2,
             SecurityLabel::S3, SecurityLabel::S4
         };
