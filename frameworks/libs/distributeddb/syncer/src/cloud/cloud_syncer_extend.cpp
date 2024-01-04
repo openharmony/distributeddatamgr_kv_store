@@ -405,4 +405,31 @@ int CloudSyncer::SaveCursorIfNeed(const std::string &tableName)
     }
     return errCode;
 }
+
+int CloudSyncer::PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload)
+{
+    int errCode = SaveCursorIfNeed(table);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] save cursor failed %d", errCode);
+        return errCode;
+    }
+    bool isShared = false;
+    errCode = storageProxy_->IsSharedTable(table, isShared);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] check shared table failed %d", errCode);
+        return errCode;
+    }
+    // shared table not allow logic delete
+    storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
+    errCode = CheckTaskIdValid(taskInfo.taskId);
+    if (errCode != E_OK) {
+        LOGW("[CloudSyncer] task is invalid, abort sync");
+        return errCode;
+    }
+    errCode = DoDownload(taskInfo.taskId, isFirstDownload);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] download failed %d", errCode);
+    }
+    return errCode;
+}
 }

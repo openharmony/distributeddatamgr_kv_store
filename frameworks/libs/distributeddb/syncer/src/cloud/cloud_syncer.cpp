@@ -2179,22 +2179,8 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
         }
-        bool isShared = false;
-        int errCode = storageProxy_->IsSharedTable(table, isShared);
+        int errCode = PrepareAndDowload(table, taskInfo, isFirstDownload);
         if (errCode != E_OK) {
-            LOGE("[CloudSyncer] check shared table failed %d", errCode);
-            return errCode;
-        }
-        // shared table not allow logic delete
-        storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask && !isShared });
-        errCode = CheckTaskIdValid(taskInfo.taskId);
-        if (errCode != E_OK) {
-            LOGW("[CloudSyncer] task is invalid, abort sync");
-            return errCode;
-        }
-        errCode = DoDownload(taskInfo.taskId, isFirstDownload);
-        if (errCode != E_OK) {
-            LOGE("[CloudSyncer] download failed %d", errCode);
             return errCode;
         }
         // needUpload indicate that the syncMode need push

@@ -335,6 +335,8 @@ protected:
 
     int SaveCursorIfNeed(const std::string &tableName);
 
+    int PrepareAndDowload(const std::string &table, const CloudTaskInfo &taskInfo, bool isFirstDownload);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
