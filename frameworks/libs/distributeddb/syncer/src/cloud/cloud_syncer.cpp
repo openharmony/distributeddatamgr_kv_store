@@ -2016,7 +2016,7 @@ int CloudSyncer::DownloadDataFromCloud(TaskId taskId, SyncParam &param, bool &ab
         return ret;
     }
     if (param.downloadData.data.empty()) {
-        if (ret == E_OK) {
+        if (ret == E_OK || isFirstDownload) {
             LOGD("[CloudSyncer] try to query cloud data use increment water mark");
             UpdateCloudWaterMark(taskId, param);
         }
