@@ -1975,6 +1975,7 @@ int CloudSyncer::GetSyncParamForDownload(TaskId taskId, SyncParam &param)
         }
     }
     ReloadCloudWaterMarkIfNeed(param.tableName, param.cloudWaterMark);
+    currentContext_.notifier->GetDownloadInfoByTableName(param.info);
     return ret;
 }
 

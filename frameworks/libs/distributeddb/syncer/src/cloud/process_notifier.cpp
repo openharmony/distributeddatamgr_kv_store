@@ -132,4 +132,15 @@ uint32_t ProcessNotifier::GetLastUploadSuccessCount(const std::string &tableName
     }
     return syncProcess_.tableProcess.at(tableName).upLoadInfo.successCount;
 }
+
+void ProcessNotifier::GetDownloadInfoByTableName(ICloudSyncer::InnerProcessInfo &process)
+{
+    if (process.tableName.empty()) {
+        return;
+    }
+    std::lock_guard<std::mutex> autoLock(processMutex_);
+    if (syncProcess_.tableProcess.find(process.tableName) == syncProcess_.tableProcess.end()) {
+        process.downLoadInfo = syncProcess_.tableProcess[process.tableName].downLoadInfo;
+    }
+}
 }
