@@ -24,8 +24,7 @@ public:
 
     int DoDownload(TaskId taskId, bool isFirstDownload) override;
 
-    int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
-        bool isFirstDownload) override;
+    int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload) override;
 
     int DoUpload(TaskId taskId, bool lastTable) override;
 
@@ -33,7 +32,9 @@ public:
 
     void SetDownloadFunc(const std::function<int (void)> &);
 
-    void SetDownloadInNeedFunc(const std::function<int (int64_t &)> &);
+    void SetDownloadInNeedFunc(const std::function<int ()> &);
+
+    void SetTaskNeedUpload();
 
     void SetUploadFunc(const std::function<int (void)> &);
 
@@ -47,7 +48,7 @@ public:
         OpType &strategyOpResult);
 private:
     std::function<int (void)> downloadFunc_;
-    std::function<int (int64_t &)> downloadInNeedFunc_;
+    std::function<int (void)> downloadInNeedFunc_;
     std::function<int (void)> uploadFunc_;
     std::atomic<bool> doDownload_;
     std::atomic<bool> doUpload_;

@@ -201,21 +201,29 @@ int CloudSyncer::DoSync(TaskId taskId)
     }
     storageProxy_->SetCloudTaskConfig({ !taskInfo.priorityTask });
     bool needUpload = true;
+    bool isNeedFirstDownload = false;
     {
         std::lock_guard<std::mutex> autoLock(dataLock_);
         needUpload = currentContext_.strategy->JudgeUpload();
+        // 1. if the locker is already exist, directly reuse the lock, no need do the first download
+        // 2. if the task(resume task) is already be tagged need upload data, no need do the first download
+        isNeedFirstDownload = (currentContext_.locker == nullptr) && (!currentContext_.isNeedUpload);
     }
     int errCode = E_OK;
     bool isFirstDownload = true;
-    if (currentContext_.locker == nullptr) {
+    if (isNeedFirstDownload) {
         // do first download
-        int64_t uploadCount = 0;
-        errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
+        errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
         if (errCode != E_OK) {
             return errCode;
         }
-        if (uploadCount == 0) {
-            LOGI("[CloudSyncer] uploadCount is 0, no need upload!");
+        bool isActuallyNeedUpload = false;  // whether the task actually has data to upload
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            isActuallyNeedUpload = currentContext_.isNeedUpload;
+        }
+        if (!isActuallyNeedUpload) {
+            LOGI("[CloudSyncer] no table need upload!");
             return E_OK;
         }
         isFirstDownload = false;
@@ -283,8 +291,7 @@ int CloudSyncer::DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUp
 
 int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
-    int64_t uploadCount = 0;
-    int errCode = DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
+    int errCode = DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
     if (errCode != E_OK) {
         return errCode;
     }
@@ -295,9 +302,14 @@ void CloudSyncer::DoFinished(TaskId taskId, int errCode)
 {
     if (errCode == -E_TASK_PAUSED) {
         LOGD("[CloudSyncer] taskId %" PRIu64 " was paused, it won't be finished now", taskId);
-        std::lock_guard<std::mutex> autoLock(dataLock_);
-        resumeTaskInfos_[taskId].context = std::move(currentContext_);
-        ClearCurrentContextWithoutLock();
+        {
+            std::lock_guard<std::mutex> autoLock(dataLock_);
+            resumeTaskInfos_[taskId].context = std::move(currentContext_);
+            currentContext_.locker = resumeTaskInfos_[taskId].context.locker;
+            resumeTaskInfos_[taskId].context.locker = nullptr;
+            ClearCurrentContextWithoutLock();
+        }
+        contextCv_.notify_one();
         return;
     }
     {
@@ -1473,7 +1485,9 @@ int CloudSyncer::PrepareSync(TaskId taskId)
     cloudTaskInfos_[taskId].pause = false;
     cloudTaskInfos_[taskId].status = ProcessStatus::PROCESSING;
     if (cloudTaskInfos_[taskId].resume) {
+        auto tempLocker = currentContext_.locker;
         currentContext_ = resumeTaskInfos_[taskId].context;
+        currentContext_.locker = tempLocker;
     } else {
         currentContext_.notifier = std::make_shared<ProcessNotifier>(this);
         currentContext_.strategy = StrategyFactory::BuildSyncStrategy(cloudTaskInfos_[taskId].mode);
@@ -1842,6 +1856,7 @@ void CloudSyncer::ClearCurrentContextWithoutLock()
     currentContext_.assetFields.clear();
     currentContext_.assetsInfo.clear();
     currentContext_.cloudWaterMarks.clear();
+    currentContext_.isNeedUpload = false;
 }
 
 void CloudSyncer::ClearContextAndNotify(TaskId taskId, int errCode)
@@ -2084,9 +2099,16 @@ CloudSyncer::InnerProcessInfo CloudSyncer::GetInnerProcessInfo(const std::string
 }
 
 void CloudSyncer::DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
-    const bool isFirstDownload, const int uploadCount)
+    const bool isFirstDownload)
 {
-    if (!isFirstDownload || uploadCount > 0) {
+    bool isNeedNotify = false;
+    {
+        std::lock_guard<std::mutex> autoLock(dataLock_);
+        // only when the first download and the task no need upload actually, notify the process, otherwise,
+        // the process will notify in the upload procedure, which can guarantee the notify order of the tables
+        isNeedNotify = isFirstDownload && !currentContext_.isNeedUpload;
+    }
+    if (!isNeedNotify) {
         return;
     }
     for (size_t i = 0; i < needNotifyTables.size(); ++i) {
@@ -2146,8 +2168,7 @@ void CloudSyncer::UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, con
     }
 }
 
-int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
-    bool isFirstDownload)
+int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     std::vector<std::string> needNotifyTables;
     for (size_t i = GetStartTableIndex(taskInfo.taskId, false); i < taskInfo.table.size(); ++i) {
@@ -2186,7 +2207,10 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             }
             // count > 0 means current table need upload actually
             if (count > 0) {
-                uploadCount += count;
+                {
+                    std::lock_guard<std::mutex> autoLock(dataLock_);
+                    currentContext_.isNeedUpload = true;
+                }
                 continue;
             }
             needNotifyTables.emplace_back(table);
@@ -2197,7 +2221,7 @@ int CloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool need
             return errCode;
         }
     }
-    DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload, uploadCount);
+    DoNotifyInNeed(taskInfo.taskId, needNotifyTables, isFirstDownload);
     return E_OK;
 }
 } // namespace DistributedDB

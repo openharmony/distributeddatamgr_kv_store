@@ -78,6 +78,7 @@ protected:
         std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
         std::map<TableName, std::string> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
+        bool isNeedUpload;  // whether the current task need do upload
     };
     struct UploadParam {
         int64_t count = 0;
@@ -115,14 +116,13 @@ protected:
     int DoUploadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload);
 
     void DoNotifyInNeed(CloudSyncer::TaskId taskId, const std::vector<std::string> &needNotifyTables,
-        const bool isFirstDownload, const int uploadCount);
+        const bool isFirstDownload);
 
     int GetUploadCountByTable(CloudSyncer::TaskId taskId, int64_t &count);
 
     void UpdateProcessInfoWithoutUpload(CloudSyncer::TaskId taskId, const std::string tableName, bool needNotify);
 
-    virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
-        bool isFirstDownload);
+    virtual int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload);
 
     void DoFinished(TaskId taskId, int errCode);
 

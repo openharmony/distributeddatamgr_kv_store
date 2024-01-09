@@ -296,8 +296,8 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level3)
     ASSERT_NE(cloudSyncer, nullptr);
     cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, true);
-    cloudSyncer->SetDownloadInNeedFunc([](int64_t &uploadCount) {
-        uploadCount = 1;
+    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer]() {
+        cloudSyncer->SetTaskNeedUpload();
         return E_OK;
     });
     cloudSyncer->SetUploadFunc([]() {
@@ -407,13 +407,13 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
     int downloadCount = 0;
-    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer, &downloadCount](int64_t &uploadCount) {
+    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer, &downloadCount]() {
         downloadCount++;
         if (downloadCount == 1) {
-            uploadCount = 1;
+            cloudSyncer->SetTaskNeedUpload();
             return E_OK;
         } else {
-            uploadCount = 1;
+            cloudSyncer->SetTaskNeedUpload();
             std::this_thread::sleep_for(std::chrono::seconds(6)); // sleep 6s
             cloudSyncer->Notify(false);
             return E_OK;

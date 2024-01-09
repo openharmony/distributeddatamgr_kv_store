@@ -33,17 +33,16 @@ int VirtualCloudSyncer::DoDownload(CloudSyncer::TaskId taskId, bool isFirstDownl
     return CloudSyncer::DoDownload(taskId, isFirstDownload);
 }
 
-int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, int64_t &uploadCount,
-    bool isFirstDownload)
+int VirtualCloudSyncer::DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload)
 {
     if (!doDownload_) {
         LOGI("[VirtualCloudSyncer] download just return ok");
         return E_OK;
     }
     if (downloadInNeedFunc_) {
-        return downloadInNeedFunc_(uploadCount);
+        return downloadInNeedFunc_();
     }
-    return CloudSyncer::DoDownloadInNeed(taskInfo, needUpload, uploadCount, isFirstDownload);
+    return CloudSyncer::DoDownloadInNeed(taskInfo, needUpload, isFirstDownload);
 }
 
 int VirtualCloudSyncer::DoUpload(CloudSyncer::TaskId taskId, bool lastTable)
@@ -69,9 +68,14 @@ void VirtualCloudSyncer::SetDownloadFunc(const std::function<int()> &function)
     downloadFunc_ = function;
 }
 
-void VirtualCloudSyncer::SetDownloadInNeedFunc(const std::function<int(int64_t &)> &function)
+void VirtualCloudSyncer::SetDownloadInNeedFunc(const std::function<int()> &function)
 {
     downloadInNeedFunc_ = function;
+}
+
+void VirtualCloudSyncer::SetTaskNeedUpload()
+{
+    currentContext_.isNeedUpload = true;
 }
 
 void VirtualCloudSyncer::SetUploadFunc(const std::function<int()> &function)
