@@ -220,7 +220,7 @@ private:
     static std::vector<StateSwitchTable> stateSwitchTables_;
     SingleVerSyncTaskContext *context_;
     SingleVerKvDBSyncInterface *syncInterface_;
-    std::unique_ptr<TimeSync> timeSync_;
+    std::shared_ptr<TimeSync> timeSync_;
     std::unique_ptr<AbilitySync> abilitySync_;
     std::shared_ptr<SingleVerDataSync> dataSync_;
     uint64_t currentRemoteVersionId_;

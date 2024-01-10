@@ -218,8 +218,7 @@ int TimeSync::SyncStart(const CommErrHandler &handler,  uint32_t sessionId)
         message = nullptr;
         return errCode;
     }
-
-    errCode = SendPacket(deviceId_, message, handler);
+    errCode = SendMessageWithSendEnd(message, handler);
     if (errCode != E_OK) {
         delete message;
         message = nullptr;
@@ -339,6 +338,7 @@ int TimeSync::AckRecv(const Message *message, uint32_t targetSessionId)
 
     TimeSyncPacket packetData = TimeSyncPacket(*packet);
     Timestamp sourceTimeEnd = timeHelper_->GetTime();
+    packetData.SetSourceTimeBegin(GetSourceBeginTime(packetData.GetSourceTimeBegin(), targetSessionId));
     packetData.SetSourceTimeEnd(sourceTimeEnd);
     if (packetData.GetSourceTimeBegin() > packetData.GetSourceTimeEnd() ||
         packetData.GetTargetTimeBegin() > packetData.GetTargetTimeEnd() ||
@@ -598,5 +598,38 @@ bool TimeSync::IsClosed() const
 {
     std::lock_guard<std::mutex> lock(cvLock_);
     return closed_ ;
+}
+
+int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler)
+{
+    std::shared_ptr<TimeSync> timeSyncPtr = shared_from_this();
+    auto sessionId = message->GetSessionId();
+    return SendPacket(deviceId_, message, [handler, timeSyncPtr, sessionId, this](int errCode) {
+        if (closed_) {
+            LOGI("[TimeSync] DB closed, ignore send end");
+            return;
+        }
+        {
+            std::lock_guard<std::mutex> autoLock(timeSyncSetLock_);
+            sessionBeginTime_.clear();
+            sessionBeginTime_[sessionId] = timeHelper_->GetTime();
+        }
+        LOGI("[TimeSync] Record send end");
+        if (handler != nullptr) {
+            handler(errCode);
+        }
+    });
+}
+
+Timestamp TimeSync::GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId)
+{
+    std::lock_guard<std::mutex> autoLock(timeSyncSetLock_);
+    if (sessionBeginTime_.find(sessionId) == sessionBeginTime_.end()) {
+        LOGD("[TimeSync] Current cache not exist packet send time");
+        return packetBeginTime;
+    }
+    auto sendTime = sessionBeginTime_[sessionId];
+    LOGD("[TimeSync] Use packet send time %" PRIu64 " rather than %" PRIu64, sendTime, packetBeginTime);
+    return sendTime;
 }
 } // namespace DistributedDB
