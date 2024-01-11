@@ -39,10 +39,12 @@ public:
     };
     API_EXPORT static std::shared_ptr<DataShare::ResultSetBridge> ToResultSetBridge(
         std::shared_ptr<KvStoreResultSet> resultSet);
-    API_EXPORT static Status ToQuery(const DataShare::DataShareAbsPredicates &predicates, DataQuery &query);
+    API_EXPORT static Status ToQuery(const DataShare::DataShareAbsPredicates &predicates, DataQuery &query)
+        __attribute__((no_sanitize("cfi")));
     API_EXPORT static Entry ToEntry(const DataShare::DataShareValuesBucket &valueBucket);
     API_EXPORT static std::vector<Entry> ToEntries(const std::vector<DataShare::DataShareValuesBucket> &valueBuckets);
-    API_EXPORT static Status GetKeys(const DataShare::DataShareAbsPredicates &predicates, std::vector<Key> &keys);
+    API_EXPORT static Status GetKeys(const DataShare::DataShareAbsPredicates &predicates, std::vector<Key> &keys)
+        __attribute__((no_sanitize("cfi")));
 private:
     static void NoSupport(const DataShare::OperationItem &oper, DataQuery &query);
     static void EqualTo(const DataShare::OperationItem &oper, DataQuery &query);

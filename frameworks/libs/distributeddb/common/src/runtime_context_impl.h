@@ -156,14 +156,14 @@ private:
     int PrepareTaskPool();
     int AllocTimerId(IEvent *evTimer, TimerId &timerId);
 
-    int ScheduleTaskByThreadPool(const TaskAction &task) const;
+    int ScheduleTaskByThreadPool(const TaskAction &task) const __attribute__((no_sanitize("cfi")));
 
     int SetTimerByThreadPool(int milliSeconds, const TimerAction &action,
-        const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId);
+        const TimerFinalizer &finalizer, bool allocTimerId, TimerId &timerId) __attribute__((no_sanitize("cfi")));
 
     int ModifyTimerByThreadPool(TimerId timerId, int milliSeconds);
 
-    void RemoveTimerByThreadPool(TimerId timerId, bool wait);
+    void RemoveTimerByThreadPool(TimerId timerId, bool wait) __attribute__((no_sanitize("cfi")));
 
     void ThreadPoolTimerAction(int milliSeconds, const TimerAction &action, TimerId timerId);
 
