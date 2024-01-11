@@ -78,7 +78,7 @@ protected:
         std::map<TableName, std::map<std::string, std::map<std::string, Assets>>> assetsInfo;
         std::map<TableName, std::string> cloudWaterMarks;
         std::shared_ptr<CloudLocker> locker;
-        bool isNeedUpload;  // whether the current task need do upload
+        bool isNeedUpload = false;  // whether the current task need do upload
     };
     struct UploadParam {
         int64_t count = 0;
