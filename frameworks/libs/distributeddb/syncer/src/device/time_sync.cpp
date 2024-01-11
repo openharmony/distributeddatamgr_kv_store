@@ -606,7 +606,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
     auto sessionId = message->GetSessionId();
     return SendPacket(deviceId_, message, [handler, timeSyncPtr, sessionId, this](int errCode) {
         if (closed_) {
-            LOGI("[TimeSync] DB closed, ignore send end");
+            LOGW("[TimeSync] DB closed, ignore send end");
             return;
         }
         {
@@ -614,7 +614,6 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
             sessionBeginTime_.clear();
             sessionBeginTime_[sessionId] = timeHelper_->GetTime();
         }
-        LOGI("[TimeSync] Record send end");
         if (handler != nullptr) {
             handler(errCode);
         }
