@@ -610,7 +610,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
             return;
         }
         {
-            std::lock_guard<std::mutex> autoLock(timeSyncSetLock_);
+            std::lock_guard<std::mutex> autoLock(beginTimeMutex_);
             sessionBeginTime_.clear();
             sessionBeginTime_[sessionId] = timeHelper_->GetTime();
         }
@@ -622,7 +622,7 @@ int TimeSync::SendMessageWithSendEnd(const Message *message, const CommErrHandle
 
 Timestamp TimeSync::GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId)
 {
-    std::lock_guard<std::mutex> autoLock(timeSyncSetLock_);
+    std::lock_guard<std::mutex> autoLock(beginTimeMutex_);
     if (sessionBeginTime_.find(sessionId) == sessionBeginTime_.end()) {
         LOGD("[TimeSync] Current cache not exist packet send time");
         return packetBeginTime;
