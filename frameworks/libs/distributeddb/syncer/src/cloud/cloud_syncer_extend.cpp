@@ -371,4 +371,31 @@ void CloudSyncer::ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData 
     info.upLoadInfo.batchIndex++;
     NotifyInBatchUpload(uploadParam, info, true);
 }
+
+int CloudSyncer::SaveCursorIfNeed(const std::string &tableName)
+{
+    std::string cursor = "";
+    int errCode = storageProxy_->GetCloudWaterMark(tableName, cursor);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] get cloud water mark before download failed %d", errCode);
+        return errCode;
+    }
+    if (!cursor.empty()) {
+        return E_OK;
+    }
+    auto res = cloudDB_.GetEmptyCursor(tableName);
+    if (res.first != E_OK) {
+        LOGE("[CloudSyncer] get empty cursor failed %d", res.first);
+        return res.first;
+    }
+    if (res.second.empty()) {
+        LOGE("[CloudSyncer] get cursor is empty %d", -E_CLOUD_ERROR);
+        return -E_CLOUD_ERROR;
+    }
+    errCode = storageProxy_->SetCloudWaterMark(tableName, res.second);
+    if (errCode != E_OK) {
+        LOGE("[CloudSyncer] set cloud water mark before download failed %d", errCode);
+    }
+    return errCode;
+}
 }

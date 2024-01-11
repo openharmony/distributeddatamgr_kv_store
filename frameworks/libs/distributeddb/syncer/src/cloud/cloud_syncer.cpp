@@ -275,6 +275,10 @@ int CloudSyncer::DoSyncInner(const CloudTaskInfo &taskInfo, const bool needUploa
             currentContext_.tableName = taskInfo.table[i];
             table = currentContext_.tableName;
         }
+        errCode = SaveCursorIfNeed(table);
+        if (errCode != E_OK) {
+            return errCode;
+        }
         bool isShared = false;
         errCode = storageProxy_->IsSharedTable(table, isShared);
         if (errCode != E_OK) {

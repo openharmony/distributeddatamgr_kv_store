@@ -203,6 +203,22 @@ int CloudDBProxy::RemoveLocalAssets(const std::vector<Asset> &assets)
     return E_OK;
 }
 
+std::pair<int, std::string> CloudDBProxy::GetEmptyCursor(const std::string &tableName)
+{
+    std::shared_lock<std::shared_mutex> readLock(cloudMutex_);
+    if (iCloudDb_ == nullptr) {
+        return { -E_CLOUD_ERROR, "" };
+    }
+    std::shared_ptr<ICloudDb> cloudDb = iCloudDb_;
+    std::shared_ptr<CloudActionContext> context = std::make_shared<CloudActionContext>();
+    context->SetTableName(tableName);
+    int errCode = InnerAction(context, cloudDb, GET_EMPTY_CURSOR);
+    std::pair<int, std::string> cursorStatus;
+    context->MoveOutCursorStatus(cursorStatus);
+    cursorStatus.first = errCode;
+    return cursorStatus;
+}
+
 int CloudDBProxy::InnerAction(const std::shared_ptr<CloudActionContext> &context,
     const std::shared_ptr<ICloudDb> &cloudDb, InnerActionCode action)
 {
@@ -291,6 +307,9 @@ void CloudDBProxy::InnerActionTask(const std::shared_ptr<CloudActionContext> &co
             }
             break;
         }
+        case GET_EMPTY_CURSOR:
+            status = InnerActionGetEmptyCursor(context, cloudDb);
+            break;
         case LOCK:
             status = InnerActionLock(context, cloudDb);
             break;
@@ -327,6 +346,22 @@ DBStatus CloudDBProxy::InnerActionLock(const std::shared_ptr<CloudActionContext>
     lockRet.second = lockStatus.second;
     lockRet.first = GetInnerErrorCode(status);
     context->MoveInLockStatus(lockRet);
+    return status;
+}
+
+DBStatus CloudDBProxy::InnerActionGetEmptyCursor(const std::shared_ptr<CloudActionContext> &context,
+    const std::shared_ptr<ICloudDb> &cloudDb)
+{
+    std::string tableName = context->GetTableName();
+    std::pair<DBStatus, std::string> cursorStatus = cloudDb->GetEmptyCursor(tableName);
+    DBStatus status = OK;
+    if (cursorStatus.first != OK) {
+        status = cursorStatus.first;
+    }
+    std::pair<int, std::string> cursorRet;
+    cursorRet.second = cursorStatus.second;
+    cursorRet.first = GetInnerErrorCode(status);
+    context->MoveInCursorStatus(cursorRet);
     return status;
 }
 
@@ -432,6 +467,18 @@ void CloudDBProxy::CloudActionContext::MoveOutLockStatus(std::pair<int, uint64_t
 {
     std::lock_guard<std::mutex> autoLock(actionMutex_);
     lockStatus = std::move(lockStatus_);
+}
+
+void CloudDBProxy::CloudActionContext::MoveInCursorStatus(std::pair<int, std::string> &cursorStatus)
+{
+    std::lock_guard<std::mutex> autoLock(actionMutex_);
+    cursorStatus_ = std::move(cursorStatus);
+}
+
+void CloudDBProxy::CloudActionContext::MoveOutCursorStatus(std::pair<int, std::string> &cursorStatus)
+{
+    std::lock_guard<std::mutex> autoLock(actionMutex_);
+    cursorStatus = std::move(cursorStatus_);
 }
 
 bool CloudDBProxy::CloudActionContext::WaitForRes(int64_t timeout)

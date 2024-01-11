@@ -39,6 +39,7 @@ public:
      ** param[out] data: query data
     **/
     virtual DBStatus Query(const std::string &tableName, VBucket &extend, std::vector<VBucket> &data) = 0;
+    virtual std::pair<DBStatus, std::string> GetEmptyCursor(const std::string &tableName) = 0;
     virtual std::pair<DBStatus, uint32_t> Lock() = 0;
     virtual DBStatus UnLock() = 0;
     virtual DBStatus HeartBeat() = 0;

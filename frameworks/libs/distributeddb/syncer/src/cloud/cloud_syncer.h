@@ -321,6 +321,8 @@ protected:
 
     void ChkIgnoredProcess(InnerProcessInfo &info, const CloudSyncData &uploadData, UploadParam &uploadParam);
 
+    int SaveCursorIfNeed(const std::string &tableName);
+
     std::mutex dataLock_;
     TaskId lastTaskId_;
     std::list<TaskId> taskQueue_;
