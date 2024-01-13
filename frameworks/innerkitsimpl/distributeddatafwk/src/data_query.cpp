@@ -771,20 +771,14 @@ void DataQuery::EscapeSpace(std::string &input)
         input = EMPTY_STRING;
     }
     size_t index = 0; // search from the beginning of the string
-    while (true) {
+    while (!(index == std::string::npos)) {
         index = input.find(DataQuery::SPECIAL, index);
-        if (index == std::string::npos) {
-            break;
-        }
         input.replace(index, 1, DataQuery::SPECIAL_ESCAPE); // 1 char to be replaced
         index += 3; // replaced with 3 chars, keep searching the remaining string
     }
     index = 0; // search from the beginning of the string
-    while (true) {
+    while (!(index == std::string::npos)) {
         index = input.find(DataQuery::SPACE, index);
-        if (index == std::string::npos) {
-            break;
-        }
         input.replace(index, 1, DataQuery::SPACE_ESCAPE); // 1 char to be replaced
         index += 2; // replaced with 2 chars, keep searching the remaining string
     }

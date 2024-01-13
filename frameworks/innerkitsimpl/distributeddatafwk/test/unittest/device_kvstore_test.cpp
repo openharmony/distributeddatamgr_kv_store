@@ -41,7 +41,7 @@ public:
     static Status status_;
     static std::string deviceId_;
     static Options options_;
-    static const int MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.;
+    static const int maxValueSize = 4 * 1024 * 1024; // max value size is 4M.;
 };
 
 const std::string VALID_SCHEMA = "{\"SCHEMA_VERSION\":\"1.0\","
@@ -798,8 +798,8 @@ HWTEST_F(DeviceKvStoreTest, DdmPutBatch006, TestSize.Level2)
 {
     EXPECT_NE(nullptr, kvStore_) << "kvStore is nullptr";
 
-    std::vector<uint8_t> val(MAX_VALUE_SIZE);
-    for (int i = 0; i < MAX_VALUE_SIZE; i++) {
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
         val[i] = static_cast<uint8_t>(i);
     }
     Value value = val;

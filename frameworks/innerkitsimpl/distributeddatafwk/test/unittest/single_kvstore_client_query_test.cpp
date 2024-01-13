@@ -827,7 +827,6 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, T
     singleKvStore->Put("test_key_1", "{\"name\":1}");
     singleKvStore->Put("test_key_2", "{\"name\":2}");
     singleKvStore->Put("test_key_3", "{\"name\":3}");
-
     DataQuery query;
     query.NotEqualTo("$.name", 3);
     query.And();
@@ -840,7 +839,6 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, T
     Status status2 = singleKvStore->GetEntries(query, results2);
     ASSERT_EQ(status2, Status::SUCCESS);
     EXPECT_TRUE(results2.size() == 1);
-
     std::shared_ptr<KvStoreResultSet> resultSet;
     Status status3 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status3, Status::SUCCESS);
@@ -850,10 +848,8 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, T
     Status status4 = singleKvStore->GetResultSet(query, resultSet);
     ASSERT_EQ(status4, Status::SUCCESS);
     EXPECT_TRUE(resultSet->GetCount() == 1);
-
     closeResultSetStatus = singleKvStore->CloseResultSet(resultSet);
     ASSERT_EQ(closeResultSetStatus, Status::SUCCESS);
-
     int resultSize1;
     Status status5 = singleKvStore->GetCount(query, resultSize1);
     ASSERT_EQ(status5, Status::SUCCESS);
@@ -862,7 +858,6 @@ HWTEST_F(SingleKvStoreClientQueryTest, SingleKvStoreQueryNotEqualToAndEqualTo, T
     Status status6 = singleKvStore->GetCount(query, resultSize2);
     ASSERT_EQ(status6, Status::SUCCESS);
     EXPECT_TRUE(resultSize2 == 1);
-
     singleKvStore->Delete("test_key_1");
     singleKvStore->Delete("test_key_2");
     singleKvStore->Delete("test_key_3");

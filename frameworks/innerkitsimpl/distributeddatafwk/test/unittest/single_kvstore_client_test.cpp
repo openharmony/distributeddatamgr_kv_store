@@ -37,7 +37,7 @@ public:
 
     static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status status_;
-    static int MAX_VALUE_SIZE;
+    static int maxValueSize;
 };
 
 const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
@@ -50,7 +50,7 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
 
 std::shared_ptr<SingleKvStore> SingleKvStoreClientTest::singleKvStore = nullptr;
 Status SingleKvStoreClientTest::status_ = Status::ERROR;
-int SingleKvStoreClientTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
+int SingleKvStoreClientTest::maxValueSize = 4 * 1024 * 1024; // max value size is 4M.
 
 void SingleKvStoreClientTest::SetUpTestCase(void)
 {
@@ -688,8 +688,8 @@ HWTEST_F(SingleKvStoreClientTest, DdmPutBatch006, TestSize.Level2)
 {
     EXPECT_NE(nullptr, singleKvStore) << "singleKvStore is nullptr";
 
-    std::vector<uint8_t> val(MAX_VALUE_SIZE);
-    for (int i = 0; i < MAX_VALUE_SIZE; i++) {
+    std::vector<uint8_t> val(maxValueSize);
+    for (int i = 0; i < maxValueSize; i++) {
         val[i] = static_cast<uint8_t>(i);
     }
     Value value = val;

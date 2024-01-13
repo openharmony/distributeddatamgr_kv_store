@@ -94,7 +94,9 @@ void SyncPolicyFuzz(uint32_t base)
 
 void ChangeNotificationFuzz(const std::string &strBase, bool boolBase)
 {
-    Entry insert, update, del;
+    Entry insert;
+    Entry update;
+    Entry del;
     insert.key = strBase;
     update.key = strBase;
     del.key = strBase;
