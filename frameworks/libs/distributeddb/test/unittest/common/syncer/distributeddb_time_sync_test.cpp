@@ -32,8 +32,8 @@ namespace {
     const std::string DEVICE_A = "deviceA";
     const std::string DEVICE_B = "deviceB";
     VirtualTimeSyncCommunicator *g_virtualCommunicator = nullptr;
-    TimeSync *g_timeSyncA = nullptr;
-    TimeSync *g_timeSyncB = nullptr;
+    std::shared_ptr<TimeSync> g_timeSyncA = nullptr;
+    std::shared_ptr<TimeSync> g_timeSyncB = nullptr;
     VirtualSingleVerSyncDBInterface *g_syncInterfaceA = nullptr;
     VirtualSingleVerSyncDBInterface *g_syncInterfaceB = nullptr;
     std::shared_ptr<Metadata> g_metadataA = nullptr;
@@ -83,10 +83,10 @@ void DistributedDBTimeSyncTest::SetUp(void)
 
     g_metadataB = std::make_shared<Metadata>();
 
-    g_timeSyncA = new (std::nothrow) TimeSync();
+    g_timeSyncA = std::make_shared<TimeSync>();
     ASSERT_TRUE(g_timeSyncA != nullptr);
 
-    g_timeSyncB = new (std::nothrow) TimeSync();
+    g_timeSyncB = std::make_shared<TimeSync>();
     ASSERT_TRUE(g_timeSyncB != nullptr);
 
     g_syncTaskContext = new (std::nothrow) SingleVerKvSyncTaskContext();
@@ -114,11 +114,9 @@ void DistributedDBTimeSyncTest::TearDown(void)
     g_metadataA = nullptr;
     g_metadataB = nullptr;
     if (g_timeSyncA != nullptr) {
-        delete g_timeSyncA;
         g_timeSyncA = nullptr;
     }
     if (g_timeSyncB != nullptr) {
-        delete g_timeSyncB;
         g_timeSyncB = nullptr;
     }
     if (g_virtualCommunicator != nullptr) {
@@ -165,7 +163,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync001, TestSize.Level0)
      * @tc.steps: step3. Register the OnMessageCallback to virtual communicator
      */
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
 
     /**
      * @tc.steps: step4. Fetch timeOffset value
@@ -205,7 +203,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync002, TestSize.Level0)
      * @tc.steps: step2. Register the OnMessageCallback to virtual communicator
      */
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step3. Fetch timeOffset value
      * @tc.expected: step3. (offsetB - offsetA ) - timeOffset < 100ms.
@@ -255,7 +253,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NormalSync003, TestSize.Level0)
      * @tc.steps: step3. Register the OnMessageCallback to virtual communicator
      */
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step4. Fetch timeOffset value
      * @tc.expected: step4. (offsetB - offsetA ) - timeOffset < 100ms.
@@ -292,7 +290,7 @@ HWTEST_F(DistributedDBTimeSyncTest, NetDisconnetSyncTest001, TestSize.Level0)
     EXPECT_TRUE(errCode == E_OK);
 
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
     /**
      * @tc.steps: step2. Disable the virtual communicator
      */
@@ -329,7 +327,7 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest001, TestSize.Level0)
     errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
     EXPECT_TRUE(errCode == E_OK);
 
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
 
     Message *msg = new (std::nothrow) Message();
     ASSERT_TRUE(msg != nullptr);
@@ -397,7 +395,7 @@ HWTEST_F(DistributedDBTimeSyncTest, InvalidMessgeTest002, TestSize.Level0)
     errCode = g_timeSyncB->Initialize(g_virtualCommunicator, g_metadataB, g_syncInterfaceB, DEVICE_A);
     EXPECT_TRUE(errCode == E_OK);
     g_syncTaskContext->Initialize(DEVICE_B, g_syncInterfaceA, g_metadataA, g_virtualCommunicator);
-    g_virtualCommunicator->SetTimeSync(g_timeSyncA, g_timeSyncB, DEVICE_A, g_syncTaskContext);
+    g_virtualCommunicator->SetTimeSync(g_timeSyncA.get(), g_timeSyncB.get(), DEVICE_A, g_syncTaskContext);
 
     Message *msg = new (std::nothrow) Message();
     ASSERT_TRUE(msg != nullptr);

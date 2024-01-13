@@ -56,7 +56,7 @@ private:
     uint32_t version_;
 };
 
-class TimeSync {
+class TimeSync : public std::enable_shared_from_this<TimeSync> {
 public:
     TimeSync();
     virtual ~TimeSync();
@@ -111,6 +111,10 @@ protected:
 
     bool IsClosed() const;
 
+    int SendMessageWithSendEnd(const Message *message, const CommErrHandler &handler);
+
+    Timestamp GetSourceBeginTime(Timestamp packetBeginTime, uint32_t sessionId);
+
     ICommunicator *communicateHandle_;
     std::shared_ptr<Metadata> metadata_;
     std::unique_ptr<TimeHelper> timeHelper_;
@@ -128,6 +132,8 @@ protected:
     int timeDriverLockCount_;
     bool isOnline_;
     bool closed_;
+    std::mutex beginTimeMutex_;
+    std::map<uint32_t, Timestamp> sessionBeginTime_;
     static std::mutex timeSyncSetLock_;
     static std::set<TimeSync *> timeSyncSet_;
 };

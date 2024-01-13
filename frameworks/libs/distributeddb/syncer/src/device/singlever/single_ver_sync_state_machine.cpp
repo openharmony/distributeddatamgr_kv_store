@@ -126,7 +126,7 @@ int SingleVerSyncStateMachine::Initialize(ISyncTaskContext *context, ISyncInterf
         return errCode;
     }
 
-    timeSync_ = std::make_unique<TimeSync>();
+    timeSync_ = std::make_shared<TimeSync>();
     dataSync_ = std::make_shared<SingleVerDataSync>();
     abilitySync_ = std::make_unique<AbilitySync>();
     if ((timeSync_ == nullptr) || (dataSync_ == nullptr) || (abilitySync_ == nullptr)) {
