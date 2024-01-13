@@ -966,7 +966,7 @@ static int UpdateKV(DBHandle db, const KeyItem* item, const void* value, unsigne
         return DBM_ERROR;
     }
 
-    (void)memset_s(valueContent, len +KV_SUM_BLOCK_SIZE, 0, len + KV_SUM_BLOCK_SIZE);
+    (void)memset_s(valueContent, len + KV_SUM_BLOCK_SIZE, 0, len + KV_SUM_BLOCK_SIZE);
 
     int contentLen = InitValue(item->index, value, len, valueContent, len + KV_SUM_BLOCK_SIZE);
     if (contentLen < 0) {

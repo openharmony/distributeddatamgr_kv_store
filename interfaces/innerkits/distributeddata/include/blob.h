@@ -37,7 +37,7 @@ public:
 
     /**
      * @brief Copy constructor for Blob.
-     */ 
+     */
     API_EXPORT Blob(const Blob &blob);
 
     /**
@@ -156,7 +156,7 @@ public:
     API_EXPORT int Compare(const Blob &blob) const;
 
     /**
-     * @brief Whether the input blob is a prefix of "*this" or not. 
+     * @brief Whether the input blob is a prefix of "*this" or not.
      * @param blob The input blob value.
      * @return True if "blob" is a prefix of "*this", otherwise false.
     */

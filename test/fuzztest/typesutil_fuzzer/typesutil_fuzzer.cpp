@@ -101,7 +101,9 @@ void ChangeNotificationFuzz(const std::string &strBase, bool boolBase)
     insert.value = strBase;
     update.value = strBase;
     del.value = strBase;
-    std::vector<Entry> inserts, updates, deleteds;
+    std::vector<Entry> inserts;
+    std::vector<Entry> updates;
+    std::vector<Entry> deleteds;
     inserts.push_back(insert);
     updates.push_back(update);
     deleteds.push_back(del);

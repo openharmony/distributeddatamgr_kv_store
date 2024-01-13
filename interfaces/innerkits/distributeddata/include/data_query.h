@@ -514,7 +514,7 @@ private:
 
     /**
      * @brief order by asc
-    */ 
+    */
     static const char * const ORDER_BY_ASC;
 
     /**

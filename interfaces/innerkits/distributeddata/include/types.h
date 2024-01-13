@@ -171,7 +171,6 @@ enum SubscribeType : uint32_t {
      * Both local changes and synced data changes.
     */
     SUBSCRIBE_TYPE_ALL = 3,
-
 };
 
 /**

@@ -167,7 +167,7 @@ HWTEST_F(SingleStoreImplGetTopTest, GetEntriesOrderByWriteTimeNoPrefix, TestSize
     singleKvStore->Put("test_key_1", "{\"name\":1}");
     DataQuery query;
     query.OrderByWriteTime(true);
-    query.EqualTo("$.name",1);
+    query.EqualTo("$.name", 1);
     std::vector<Entry> output;
     auto status = singleKvStore->GetEntries(query, output);
     ASSERT_EQ(status, NOT_SUPPORT);
