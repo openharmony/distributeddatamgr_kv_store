@@ -202,7 +202,7 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
 
     // prepare 10
     size_t sum = 10;
-    int sum_1 = 10;
+    int sum1 = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
         singleKvStore->Put({prefix + std::to_string(i)}, {std::to_string(i)});
@@ -215,7 +215,7 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesAndResultSet001, TestSize.Level1)
     std::shared_ptr<KvStoreResultSet> resultSet;
     Status status = singleKvStore->GetResultSet({prefix}, resultSet);
     EXPECT_EQ(status, Status::SUCCESS);
-    EXPECT_EQ(resultSet->GetCount(), sum_1) << "resultSet size is not equal 10.";
+    EXPECT_EQ(resultSet->GetCount(), sum1) << "resultSet size is not equal 10.";
     resultSet->IsFirst();
     resultSet->IsAfterLast();
     resultSet->IsBeforeFirst();
@@ -250,7 +250,7 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesByDataQuery, TestSize.Level1)
 
     // prepare 10
     size_t sum = 10;
-    int sum_1 = 10;
+    int sum1 = 10;
     std::string prefix = "prefix_";
     for (size_t i = 0; i < sum; i++) {
         singleKvStore->Put({prefix + std::to_string(i)}, {std::to_string(i)});
@@ -265,7 +265,7 @@ HWTEST_F(SingleKvStoreClientTest, GetEntriesByDataQuery, TestSize.Level1)
     std::shared_ptr<KvStoreResultSet> resultSet;
     Status status = singleKvStore->GetResultSet(dataQuery, resultSet);
     EXPECT_EQ(status, Status::SUCCESS);
-    EXPECT_EQ(resultSet->GetCount(), sum_1) << "resultSet size is not equal 10.";
+    EXPECT_EQ(resultSet->GetCount(), sum1) << "resultSet size is not equal 10.";
     resultSet->IsFirst();
     resultSet->IsAfterLast();
     resultSet->IsBeforeFirst();
