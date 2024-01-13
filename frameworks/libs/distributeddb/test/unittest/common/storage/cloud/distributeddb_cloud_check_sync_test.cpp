@@ -253,8 +253,10 @@ DataBaseSchema DistributedDBCloudCheckSyncTest::GetSchema()
 void DistributedDBCloudCheckSyncTest::CloseDb()
 {
     virtualCloudDb_ = nullptr;
-    EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
-    delegate_ = nullptr;
+    if (delegate_ != nullptr) {
+        EXPECT_EQ(mgr_->CloseStore(delegate_), DBStatus::OK);
+        delegate_ = nullptr;
+    }
     mgr_ = nullptr;
 }
 

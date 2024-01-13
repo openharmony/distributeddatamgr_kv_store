@@ -141,6 +141,8 @@ private:
     // called by destruction
     void Finalize();
 
+    static std::string GetFinishDetailMsg(const std::map<std::string, int> &finishStatus);
+
     // The device list
     const std::vector<std::string> devices_;
 

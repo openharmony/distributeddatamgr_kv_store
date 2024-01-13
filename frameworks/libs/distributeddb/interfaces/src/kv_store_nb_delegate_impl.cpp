@@ -404,7 +404,9 @@ DBStatus KvStoreNbDelegateImpl::RegisterObserver(const Key &key, unsigned int mo
         mode, key,
         [observer](const KvDBCommitNotifyData &notifyData) {
             KvStoreChangedDataImpl data(&notifyData);
+            LOGI("[KvStoreNbDelegate] Begin trigger on change");
             observer->OnChange(data);
+            LOGI("[KvStoreNbDelegate] End trigger on change");
         },
         errCode);
 
