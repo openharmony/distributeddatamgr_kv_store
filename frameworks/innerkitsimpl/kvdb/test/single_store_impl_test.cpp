@@ -39,7 +39,7 @@ public:
     public:
         TestObserver()
         {
-            //The time interval parameter is 5.
+            // The time interval parameter is 5.
             data_ = std::make_shared<OHOS::BlockData<bool>>(5, false);
         }
         void OnChange(const ChangeNotification &notification) override
