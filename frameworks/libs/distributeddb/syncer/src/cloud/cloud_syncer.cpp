@@ -1745,13 +1745,14 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
 {
     int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index],
         logInfo, localAssetInfo);
-    if (errCode != E_OK) {
+    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         return errCode;
     }
     param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
-        LOGD("[CloudSyncer] exist same record in one batch, override from cache record!");
+        LOGD("[CloudSyncer] exist same record in one batch, override from cache record! hash=%.3s",
+            DBCommon::TransferStringToHex(hashKey).c_str());
         logInfo.logInfo.flag = localLogInfoCache[hashKey].flag;
         logInfo.logInfo.wTimestamp = localLogInfoCache[hashKey].wTimestamp;
         logInfo.logInfo.timestamp = localLogInfoCache[hashKey].timestamp;
@@ -1761,6 +1762,7 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
         if ((localLogInfoCache[hashKey].flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
             localAssetInfo.clear();
         }
+        errCode = E_OK;
     }
     return errCode;
 }

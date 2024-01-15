@@ -200,7 +200,7 @@ int CloudSyncUtils::SaveChangedDataByType(const VBucket &datum, ChangedData &cha
     if (ret != E_OK) {
         return ret;
     }
-    changedData.primaryData[type].emplace_back(std::move(cloudPkVals));
+    InsertOrReplaceChangedDataByType(type, cloudPkVals, changedData);
     return E_OK;
 }
 
@@ -348,30 +348,37 @@ int CloudSyncUtils::UpdateExtendTime(CloudSyncData &uploadData, const int64_t &c
 void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, const LogInfo &localInfo,
     std::map<std::string, LogInfo> &localLogInfoCache)
 {
-    // only cloud delete data need records
-    if ((cloudInfo.flag & 0x01) != 1) {
-        return;
-    }
     LogInfo updateLogInfo;
     std::string hashKey(localInfo.hashKey.begin(), localInfo.hashKey.end());
+    bool updateCache = false;
     switch (opType) {
+        case OpType::INSERT :
+        case OpType::UPDATE :
         case OpType::DELETE: {
-            updateLogInfo.flag |= 0x01;
             updateLogInfo.timestamp = cloudInfo.timestamp;
             updateLogInfo.wTimestamp = cloudInfo.wTimestamp;
-            updateLogInfo.device = "cloud";
-            localLogInfoCache[hashKey] = updateLogInfo;
+            updateLogInfo.device = CloudDbConstant::DEFAULT_CLOUD_DEV;
+            updateLogInfo.hashKey = Key(hashKey.begin(), hashKey.end());
+            if (opType == OpType::DELETE) {
+                updateLogInfo.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+            } else if (opType == OpType::INSERT) {
+                updateLogInfo.originDev = CloudDbConstant::DEFAULT_CLOUD_DEV;
+            }
+            updateCache = true;
             break;
         }
         case OpType::CLEAR_GID:
         case OpType::UPDATE_TIMESTAMP: {
             updateLogInfo = localInfo;
             updateLogInfo.cloudGid.clear();
-            localLogInfoCache[hashKey] = updateLogInfo;
+            updateCache = true;
             break;
         }
         default:
             break;
+    }
+    if (updateCache) {
+        localLogInfoCache[hashKey] = updateLogInfo;
     }
 }
 
@@ -551,5 +558,19 @@ void CloudSyncUtils::UpdateAssetsFlag(CloudSyncData &uploadData)
     AssetOperationUtils::UpdateAssetsFlag(uploadData.insData.record, uploadData.insData.assets);
     AssetOperationUtils::UpdateAssetsFlag(uploadData.updData.record, uploadData.updData.assets);
     AssetOperationUtils::UpdateAssetsFlag(uploadData.delData.record, uploadData.delData.assets);
+}
+
+void CloudSyncUtils::InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
+    ChangedData &changedData)
+{
+    // erase old changedData if exist
+    for (auto &changePkValList : changedData.primaryData) {
+        changePkValList.erase(std::remove_if(changePkValList.begin(), changePkValList.end(),
+            [&pkVal](const std::vector<Type> &existPkVal) {
+            return existPkVal == pkVal;
+            }), changePkValList.end());
+    }
+    // insert new changeData
+    changedData.primaryData[type].emplace_back(std::move(pkVal));
 }
 }

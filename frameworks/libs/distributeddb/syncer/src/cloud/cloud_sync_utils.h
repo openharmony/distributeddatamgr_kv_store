@@ -95,6 +95,9 @@ public:
     static bool CheckIfContainsInsertAssets(const Type &assetData);
 
     static void UpdateAssetsFlag(CloudSyncData &uploadData);
+private:
+    static void InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
+        ChangedData &changedData);
 };
 }
 #endif // CLOUD_SYNC_UTILS_H
