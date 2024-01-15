@@ -18,6 +18,7 @@
 #include "hap_module_info.h"
 #include "napi_base_context.h"
 #include "js_schema.h"
+#include "js_proxy.h"
 #include "kv_utils.h"
 #include "log_print.h"
 #include "napi_queue.h"
@@ -1193,12 +1194,12 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, std::vector<Blob
     napi_valuetype type = napi_undefined;
     JSUtil::StatusMsg statusMsg = napi_typeof(env, in, &type);
     ASSERT((statusMsg.status == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
+    JSProxy::JSProxy<DataShare::DataShareAbsPredicates> *jsProxy = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
+    ASSERT((jsProxy != nullptr && jsProxy->GetInstance() != nullptr), "invalid type", napi_invalid_arg);
     std::vector<OHOS::DistributedKv::Key> keys;
     statusMsg.status = napi_invalid_arg;
-    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(jsProxy->predicates_), keys);
+    Status status = OHOS::DistributedKv::KvUtils::GetKeys(*(jsProxy->GetInstance()), keys);
     if (status == Status::SUCCESS) {
         ZLOGD("napi_value —> GetValue Blob ok");
         out = keys;
@@ -1214,10 +1215,10 @@ JSUtil::StatusMsg JSUtil::GetValue(napi_env env, napi_value in, DataQuery &query
     napi_valuetype type = napi_undefined;
     napi_status nstatus = napi_typeof(env, in, &type);
     ASSERT((nstatus == napi_ok) && (type == napi_object), "invalid type", napi_invalid_arg);
-    OHOS::DataShare::DataShareAbsPredicates::JsProxy *jsProxy = nullptr;
+    JSProxy::JSProxy<DataShare::DataShareAbsPredicates> *jsProxy = nullptr;
     napi_unwrap(env, in, reinterpret_cast<void **>(&jsProxy));
-    ASSERT((jsProxy != nullptr && jsProxy->predicates_ != nullptr), "invalid type", napi_invalid_arg);
-    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(jsProxy->predicates_), query);
+    ASSERT((jsProxy != nullptr && jsProxy->GetInstance() != nullptr), "invalid type", napi_invalid_arg);
+    Status status = OHOS::DistributedKv::KvUtils::ToQuery(*(jsProxy->GetInstance()), query);
     if (status != Status::SUCCESS) {
         ZLOGD("napi_value -> GetValue DataQuery failed ");
     }
