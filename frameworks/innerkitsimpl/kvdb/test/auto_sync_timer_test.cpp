@@ -369,6 +369,9 @@ HWTEST_F(AutoSyncTimerTest, DoubleWrite, TestSize.Level1)
                                                            { "ut_test_store5" },
                                                            { "ut_test_store6" },
                                                            { "ut_test_store7" },
+                                                           { "ut_test_store8" },
+                                                           { "ut_test_store9" },
+                                                           { "ut_test_store10" },
                                                        });
     AutoSyncTimer::GetInstance().DoAutoSync("ut_test", {
                                                            { "ut_test_store-0" },
@@ -379,10 +382,11 @@ HWTEST_F(AutoSyncTimerTest, DoubleWrite, TestSize.Level1)
                                                            { "ut_test_store-5" },
                                                            { "ut_test_store-6" },
                                                            { "ut_test_store-7" },
+                                                           { "ut_test_store-8" },
                                                        });
     EXPECT_EQ(static_cast<int>(instance->GetCallCount(1)), 1);
     ASSERT_LT(instance->endTime - instance->startTime, 100);
-    EXPECT_EQ(static_cast<int>(instance->GetCallCount(16)), 16);
+    EXPECT_EQ(static_cast<int>(instance->GetCallCount(20)), 20);
     auto it = instance->values_.find("ut_test");
     ASSERT_EQ(it->second.count("ut_test_store0"), 1);
     ASSERT_EQ(it->second.count("ut_test_store1"), 1);
@@ -392,6 +396,9 @@ HWTEST_F(AutoSyncTimerTest, DoubleWrite, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store5"), 1);
     ASSERT_EQ(it->second.count("ut_test_store6"), 1);
     ASSERT_EQ(it->second.count("ut_test_store7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store8"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store9"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store10"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-0"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-1"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-2"), 1);
@@ -400,5 +407,6 @@ HWTEST_F(AutoSyncTimerTest, DoubleWrite, TestSize.Level1)
     ASSERT_EQ(it->second.count("ut_test_store-5"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-6"), 1);
     ASSERT_EQ(it->second.count("ut_test_store-7"), 1);
+    ASSERT_EQ(it->second.count("ut_test_store-8"), 1);
 }
 } // namespace OHOS::Test
