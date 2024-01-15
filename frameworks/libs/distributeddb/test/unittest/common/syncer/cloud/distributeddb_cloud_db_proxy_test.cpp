@@ -295,8 +295,12 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest004, TestSize.Level3)
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
     cloudSyncer->SetCloudDB(virtualCloudDb_);
-    cloudSyncer->SetSyncAction(true, false);
-    cloudSyncer->SetDownloadFunc([]() {
+    cloudSyncer->SetSyncAction(true, true);
+    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer]() {
+        cloudSyncer->SetTaskNeedUpload();
+        return E_OK;
+    });
+    cloudSyncer->SetUploadFunc([]() {
         std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
         return E_OK;
     });
@@ -362,7 +366,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest005, TestSize.Level0)
     EXPECT_CALL(*iCloud, Commit).WillRepeatedly(testing::Return(E_OK));
     ASSERT_NE(cloudSyncer, nullptr);
     cloudSyncer->SetCloudDB(virtualCloudDb_);
-    cloudSyncer->SetSyncAction(false, false);
+    cloudSyncer->SetSyncAction(true, false);
     virtualCloudDb_->SetCloudError(true);
     /**
      * @tc.steps: step2. call sync and wait sync finish
@@ -391,7 +395,7 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest005, TestSize.Level0)
 HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
 {
     /**
-     * @tc.steps: step1. set cloud db to proxy and sleep 5s when download
+     * @tc.steps: step1. set cloud db to proxy and sleep 6s when the second download
      * @tc.expected: step1. E_OK
      */
     auto iCloud = std::make_shared<MockICloudSyncStorageInterface>();
@@ -402,13 +406,21 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     ASSERT_NE(cloudSyncer, nullptr);
     cloudSyncer->SetCloudDB(virtualCloudDb_);
     cloudSyncer->SetSyncAction(true, false);
-    cloudSyncer->SetDownloadFunc([cloudSyncer]() {
-        std::this_thread::sleep_for(std::chrono::seconds(5)); // sleep 5s
-        cloudSyncer->Notify(false);
-        return E_OK;
+    int downloadCount = 0;
+    cloudSyncer->SetDownloadInNeedFunc([cloudSyncer, &downloadCount]() {
+        downloadCount++;
+        if (downloadCount == 1) {
+            cloudSyncer->SetTaskNeedUpload();
+            return E_OK;
+        } else {
+            cloudSyncer->SetTaskNeedUpload();
+            std::this_thread::sleep_for(std::chrono::seconds(6)); // sleep 6s
+            cloudSyncer->Notify(false);
+            return E_OK;
+        }
     });
     virtualCloudDb_->SetHeartbeatError(true);
-    virtualCloudDb_->SetHeartbeatBlockTime(10 * 1000); // 10s * 1000ms
+    virtualCloudDb_->SetHeartbeatBlockTime(2 * 1000); // 2 * 1000ms
     /**
      * @tc.steps: step2. call sync and wait sync finish
      * @tc.expected: step2. sync failed by heartbeat error
@@ -416,13 +428,13 @@ HWTEST_F(DistributedDBCloudDBProxyTest, CloudDBProxyTest006, TestSize.Level3)
     int callCount = 0;
     EXPECT_EQ(Sync(cloudSyncer, callCount), CLOUD_ERROR);
     RuntimeContext::GetInstance()->StopTaskPool();
-    EXPECT_EQ(callCount, 2);
+    EXPECT_EQ(callCount, 1);
     /**
      * @tc.steps: step3. get cloud lock status and heartbeat count
-     * @tc.expected: step3. cloud is unlock and twice heartbeat
+     * @tc.expected: step3. cloud is unlock and 3 times heartbeat
      */
     EXPECT_FALSE(virtualCloudDb_->GetLockStatus());
-    EXPECT_EQ(virtualCloudDb_->GetHeartbeatCount(), 2);
+    EXPECT_EQ(virtualCloudDb_->GetHeartbeatCount(), 3);
     virtualCloudDb_->ClearHeartbeatCount();
     cloudSyncer->Close();
     RefObject::KillAndDecObjRef(cloudSyncer);

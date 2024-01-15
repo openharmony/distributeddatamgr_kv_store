@@ -399,13 +399,13 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest007(st
         if (count == 1) { // taskid1
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        if (count == 2) { // 2 means taskid3 because CheckCloudTableCount will query then count++
+        if (count == 3) { // 3 means taskid3 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 4) { // 4 means taskid2 because CheckCloudTableCount will query then count++
+        if (count == 6) { // 6 means taskid2 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 2); // 2 is count of cloud records after last sync
         }
-        if (count == 6) { // 6 means taskid4 because CheckCloudTableCount will query then count++
+        if (count == 9) { // 9 means taskid4 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after last sync
         }
     });
@@ -418,13 +418,13 @@ void DistributedDBCloudCheckSyncTest::SetForkQueryForCloudPrioritySyncTest008(st
         if (count == 1) { // taskid1
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        if (count == 2) { // 2 means taskid3 because CheckCloudTableCount will query then count++
+        if (count == 3) { // 3 means taskid3 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 4) { // 4 means taskid2 because CheckCloudTableCount will query then count++
+        if (count == 6) { // 6 means taskid2 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 1); // 1 is count of cloud records after last sync
         }
-        if (count == 6) { // 6 means taskid4 because CheckCloudTableCount will query then count++
+        if (count == 9) { // 9 means taskid4 because CheckCloudTableCount will query then count++
             CheckCloudTableCount(tableName_, 10); // 10 is count of cloud records after last sync
         }
     });
@@ -1531,14 +1531,14 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, LogicCreateRepeatedTableNameTest001, T
 HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Insert cloud records
+     * @tc.steps:step1. insert cloud records
      * @tc.expected: step1. OK
      */
     const int actualCount = 10;
     InsertCloudTableRecord(0, actualCount, 0, false);
 
     /**
-     * @tc.steps:step2. Check cursor when first sync
+     * @tc.steps:step2. check cursor when first sync
      * @tc.expected: step2. OK
      */
     virtualCloudDb_->ForkQuery([this](const std::string &tableName, VBucket &extend) {
@@ -1561,7 +1561,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest001, TestSize.Level0)
 HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Insert cloud records
+     * @tc.steps:step1. insert cloud records
      * @tc.expected: step1. OK
      */
     const int actualCount = 10;
@@ -1600,7 +1600,7 @@ HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest002, TestSize.Level0)
 HWTEST_F(DistributedDBCloudCheckSyncTest, SaveCursorTest003, TestSize.Level0)
 {
     /**
-     * @tc.steps:step1. Insert local records
+     * @tc.steps:step1. insert local records
      * @tc.expected: step1. OK
      */
     const int actualCount = 10;

@@ -22,13 +22,21 @@ public:
     explicit VirtualCloudSyncer(std::shared_ptr<StorageProxy> storageProxy);
     ~VirtualCloudSyncer() override = default;
 
-    int DoDownload(TaskId taskId) override;
+    int DoDownload(TaskId taskId, bool isFirstDownload) override;
+
+    int DoDownloadInNeed(const CloudTaskInfo &taskInfo, const bool needUpload, bool isFirstDownload) override;
 
     int DoUpload(TaskId taskId, bool lastTable) override;
 
     void SetSyncAction(bool doDownload, bool doUpload);
 
     void SetDownloadFunc(const std::function<int (void)> &);
+
+    void SetDownloadInNeedFunc(const std::function<int ()> &);
+
+    void SetTaskNeedUpload();
+
+    void SetUploadFunc(const std::function<int (void)> &);
 
     void Notify(bool notifyIfError = false);
 
@@ -40,6 +48,8 @@ public:
         OpType &strategyOpResult);
 private:
     std::function<int (void)> downloadFunc_;
+    std::function<int (void)> downloadInNeedFunc_;
+    std::function<int (void)> uploadFunc_;
     std::atomic<bool> doDownload_;
     std::atomic<bool> doUpload_;
 };
