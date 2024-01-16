@@ -181,7 +181,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.isEncryptedDb = options.encrypt;
     if (options.isNeedCompress) {
         dbOption.isNeedCompressOnSync = true;
-        dbOption.compressionRate = 10;
+        dbOption.compressionRate = COMPTRESS_RATE;
     }
     if (options.encrypt) {
         dbOption.cipher = DistributedDB::CipherType::AES_256_GCM;
