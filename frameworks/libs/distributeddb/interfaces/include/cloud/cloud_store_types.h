@@ -73,6 +73,10 @@ struct Asset {
     int64_t timestamp = 0;
     bool operator==(const Asset& asset) const
     {
+        if (this == &asset) {
+            return true;
+        }
+        // force check all field
         return (version == asset.version) && (name == asset.name) && (assetId == asset.assetId) &&
             (subpath == asset.subpath) && (uri == asset.uri) && (modifyTime == asset.modifyTime) &&
             (createTime == asset.createTime) && (size == asset.size) && (hash == asset.hash) && (flag == asset.flag) &&
