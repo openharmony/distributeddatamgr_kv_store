@@ -100,7 +100,9 @@ void PutBatchFuzz(const uint8_t *data, size_t size)
     std::string svalue(data, data + size);
     std::vector<Entry> entries;
     std::vector<Key> keys;
-    Entry entry1, entry2, entry3;
+    Entry entry1;
+    Entry entry2;
+    Entry entry3;
     entry1.key = { skey + "test_key1" };
     entry1.value = { svalue + "test_val1" };
     entry2.key = { skey + "test_key2" };

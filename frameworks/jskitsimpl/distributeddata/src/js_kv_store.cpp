@@ -160,7 +160,7 @@ napi_value JsKVStore::Delete(napi_env env, napi_callback_info info)
 
     ctxt->GetCbInfo(env, info, [env, ctxt](size_t argc, napi_value* argv) {
         // required 1 arguments :: <key>
-        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");        
+        CHECK_ARGS_RETURN_VOID(ctxt, argc == 1, "invalid arguments!");
         ctxt->status = JSUtil::GetValue(env, argv[0], ctxt->key);
         ZLOGD("kvStore->Delete %{public}.6s  status:%{public}d", ctxt->key.c_str(), ctxt->status);
         CHECK_STATUS_RETURN_VOID(ctxt, "invalid arg[0], i.e. invalid key!");

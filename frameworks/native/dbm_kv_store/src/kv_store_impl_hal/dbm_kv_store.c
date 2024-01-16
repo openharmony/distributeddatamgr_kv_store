@@ -246,14 +246,14 @@ static boolean IsStrSame(const char* value, int len, const char* str)
 static boolean IsHeaderValid(const char* header)
 {
     char magic[KV_MAGIC_SIZE + 1] = {0};
-    if (memcpy_s(magic, KV_MAGIC_SIZE, header + KV_SUM_INDEX, KV_MAGIC_SIZE) != EOK &&
+    if (memcpy_s(magic, sizeof(magic), header + KV_SUM_INDEX, KV_MAGIC_SIZE) != EOK &&
         !IsStrSame(magic, KV_MAGIC_SIZE + 1, KV_MAGIC)) {
         return FALSE;
     }
 
     // after 1st magic is block size flag
     // magic is after 4 block
-    if (memcpy_s(magic, KV_MAGIC_SIZE, header + 4 * KV_SUM_BLOCK_SIZE, KV_MAGIC_SIZE) != EOK &&
+    if (memcpy_s(magic, sizeof(magic), header + 4 * KV_SUM_BLOCK_SIZE, KV_MAGIC_SIZE) != EOK &&
         !IsStrSame(magic, KV_MAGIC_SIZE + 1, KV_MAGIC)) {
         return FALSE;
     }
@@ -265,7 +265,7 @@ static int GetSumFilePath(DBHandle db, char* sumFilePath, unsigned int len)
     if (!db) {
         return DBM_ERROR;
     }
-    
+
     if (strlen(db->dirPath) == 0) {
         if (strcpy_s(sumFilePath, sizeof(KV_SUM_FILE), KV_SUM_FILE) != EOK) {
             return DBM_OK;
@@ -608,12 +608,12 @@ static int LoadSumFileHeader(DBHandle db)
     }
 
     char sumIndex[KV_SUM_INDEX + 1] = {0};
-    if (memcpy_s(sumIndex, KV_SUM_INDEX, header, KV_SUM_INDEX) != EOK) {
+    if (memcpy_s(sumIndex, sizeof(sumIndex), header, KV_SUM_INDEX) != EOK) {
         return DBM_ERROR;
     }
 
     char headerFlag[KV_SUM_BLOCK_SIZE + 1] = {0};
-    if (memcpy_s(headerFlag, KV_SUM_INDEX, header + KV_MAGIC_SIZE + KV_SUM_INDEX, KV_SUM_INDEX) != EOK) {
+    if (memcpy_s(headerFlag, sizeof(headerFlag), header + KV_MAGIC_SIZE + KV_SUM_INDEX, KV_SUM_INDEX) != EOK) {
         return DBM_ERROR;
     }
 
@@ -966,7 +966,7 @@ static int UpdateKV(DBHandle db, const KeyItem* item, const void* value, unsigne
         return DBM_ERROR;
     }
 
-    (void)memset_s(valueContent, len +KV_SUM_BLOCK_SIZE, 0, len + KV_SUM_BLOCK_SIZE);
+    (void)memset_s(valueContent, len + KV_SUM_BLOCK_SIZE, 0, len + KV_SUM_BLOCK_SIZE);
 
     int contentLen = InitValue(item->index, value, len, valueContent, len + KV_SUM_BLOCK_SIZE);
     if (contentLen < 0) {
@@ -1326,7 +1326,9 @@ static int DelSumFile(DBHandle db)
 static int RemoveKVStoreFile(DBHandle db, int sumFileLen)
 {
     char flag[KV_SUM_BLOCK_SIZE + 1] = {0};
-    (void)memset_s(flag, KV_SUM_BLOCK_SIZE, 1, KV_SUM_BLOCK_SIZE);
+    if (memset_s(flag, sizeof(flag), 1, KV_SUM_BLOCK_SIZE) != EOK) {
+        MST_LOG("RemoveKVStoreFile: flag info set 1 failed!");
+    }
     int ret = FileWriteCursor(db->sumFileFd, KV_SUM_INDEX + KV_SUM_BLOCK_SIZE, SEEK_SET_FS, flag, KV_SUM_BLOCK_SIZE);
     if (ret < 0) { // ret is fd offset
         DBM_INFO("RemoveKVStoreFile: write sum file delete all flag fail.");

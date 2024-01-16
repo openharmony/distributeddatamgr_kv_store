@@ -141,9 +141,8 @@ void KvstoreDatashareBridgeTest::SetUpTestCase(void)
 
 void KvstoreDatashareBridgeTest::TearDownTestCase(void)
 {
-    manager.DeleteKvStore(
-            {"KvstoreDatashareBridgeTest"}, {"test_single"},
-            "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
+    manager.DeleteKvStore({"KvstoreDatashareBridgeTest"}, {"test_single"},
+        "/data/service/el1/public/database/KvstoreDatashareBridgeTest");
     (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/key");
     (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest/kvdb");
     (void) remove("/data/service/el1/public/database/KvstoreDatashareBridgeTest");
