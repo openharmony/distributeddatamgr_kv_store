@@ -350,7 +350,7 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
 {
     LogInfo updateLogInfo;
     std::string hashKey(localInfo.hashKey.begin(), localInfo.hashKey.end());
-    bool updateCache = false;
+    bool updateCache = true;
     switch (opType) {
         case OpType::INSERT :
         case OpType::UPDATE :
@@ -364,17 +364,16 @@ void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, c
             } else if (opType == OpType::INSERT) {
                 updateLogInfo.originDev = CloudDbConstant::DEFAULT_CLOUD_DEV;
             }
-            updateCache = true;
             break;
         }
         case OpType::CLEAR_GID:
         case OpType::UPDATE_TIMESTAMP: {
             updateLogInfo = localInfo;
             updateLogInfo.cloudGid.clear();
-            updateCache = true;
             break;
         }
         default:
+            updateCache = false;
             break;
     }
     if (updateCache) {

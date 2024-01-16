@@ -1797,10 +1797,10 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
     }
     if (!pkSet.empty()) {
         errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, dataInfoWithLog.logInfo.hashKey, true);
-    }
-    if (errCode != E_OK) {
-        LOGE("calc hash fail when get query log statement, errCode = %d", errCode);
-        return errCode;
+        if (errCode != E_OK) {
+            LOGE("calc hash fail when get query log statement, errCode = %d", errCode);
+            return errCode;
+        }
     }
     sqlite3_stmt *selectStmt = nullptr;
     errCode = GetQueryLogStatement(tableSchema, vBucket, querySql, dataInfoWithLog.logInfo.hashKey, selectStmt);
