@@ -27,6 +27,7 @@ using namespace OHOS::DistributedKv;
 
 class SingleKvStoreClientTest : public testing::Test {
 public:
+    static constexpr uint64_t MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
     static void SetUpTestCase(void);
 
     static void TearDownTestCase(void);
@@ -37,7 +38,6 @@ public:
 
     static std::shared_ptr<SingleKvStore> singleKvStore; // declare kvstore instance.
     static Status status_;
-    static const int MAX_VALUE_SIZE;
 };
 
 const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
@@ -50,7 +50,6 @@ const std::string VALID_SCHEMA_STRICT_DEFINE = "{\"SCHEMA_VERSION\":\"1.0\","
 
 std::shared_ptr<SingleKvStore> SingleKvStoreClientTest::singleKvStore = nullptr;
 Status SingleKvStoreClientTest::status_ = Status::ERROR;
-int SingleKvStoreClientTest::MAX_VALUE_SIZE = 4 * 1024 * 1024; // max value size is 4M.
 
 void SingleKvStoreClientTest::SetUpTestCase(void)
 {
