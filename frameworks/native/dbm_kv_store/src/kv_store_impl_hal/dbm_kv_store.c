@@ -1326,7 +1326,7 @@ static int DelSumFile(DBHandle db)
 static int RemoveKVStoreFile(DBHandle db, int sumFileLen)
 {
     char flag[KV_SUM_BLOCK_SIZE + 1] = {0};
-    (void)memset_s(flag, sizeof(flag), 1, KV_SUM_BLOCK_SIZE);
+    (void)memset_s(flag, sizeof(flag), 1, sizeof(flag));
     int ret = FileWriteCursor(db->sumFileFd, KV_SUM_INDEX + KV_SUM_BLOCK_SIZE, SEEK_SET_FS, flag, KV_SUM_BLOCK_SIZE);
     if (ret < 0) { // ret is fd offset
         DBM_INFO("RemoveKVStoreFile: write sum file delete all flag fail.");
