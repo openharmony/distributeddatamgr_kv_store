@@ -208,7 +208,7 @@ static boolean NewItem(const char* dataPath, const char* key)
     return TRUE;
 }
 
-static int UtilsGetValue(const char* key, char* value, unsigned int len)
+int UtilsGetValue(const char* key, char* value, unsigned int len)
 {
     if (!IsValidKey(key) || (value == NULL) || (len > MAX_GET_VALUE_LEN)) {
         return EC_INVALID;
@@ -237,7 +237,7 @@ static int UtilsGetValue(const char* key, char* value, unsigned int len)
     return ret;
 }
 
-static int UtilsSetValue(const char* key, const char* value)
+int UtilsSetValue(const char* key, const char* value)
 {
     if (!IsValidKey(key) || !IsValidValue(value, MAX_VALUE_LEN)) {
         return EC_INVALID;
@@ -276,7 +276,7 @@ static int UtilsSetValue(const char* key, const char* value)
     return ret;
 }
 
-static int UtilsDeleteValue(const char* key)
+int UtilsDeleteValue(const char* key)
 {
     if (!IsValidKey(key)) {
         return EC_INVALID;

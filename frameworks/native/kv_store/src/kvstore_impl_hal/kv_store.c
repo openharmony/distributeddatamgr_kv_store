@@ -101,7 +101,7 @@ static boolean NewItem(const char* key)
     return FALSE;
 }
 
-static int UtilsGetValue(const char* key, char* value, unsigned int len)
+int UtilsGetValue(const char* key, char* value, unsigned int len)
 {
     if (!IsValidKey(key) || (value == NULL) || (len > MAX_GET_VALUE_LEN)) {
         return EC_INVALID;
@@ -121,7 +121,7 @@ static int UtilsGetValue(const char* key, char* value, unsigned int len)
     return ret;
 }
 
-static int UtilsSetValue(const char* key, const char* value)
+int UtilsSetValue(const char* key, const char* value)
 {
     if (!IsValidKey(key) || !IsValidValue(value, MAX_VALUE_LEN)) {
         return EC_INVALID;
@@ -144,7 +144,7 @@ static int UtilsSetValue(const char* key, const char* value)
     return SetCurrentItem(currentNum);
 }
 
-static int UtilsDeleteValue(const char* key)
+int UtilsDeleteValue(const char* key)
 {
     if (!IsValidKey(key)) {
         return EC_INVALID;
@@ -166,7 +166,7 @@ int ClearKVCache(void)
 }
 #endif
 
-static int UtilsSetEnv(const char* path)
+int UtilsSetEnv(const char* path)
 {
     (void)path;
     return EC_SUCCESS;
