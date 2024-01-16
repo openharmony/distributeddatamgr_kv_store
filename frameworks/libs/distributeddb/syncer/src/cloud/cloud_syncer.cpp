@@ -1748,8 +1748,11 @@ int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &l
     if (errCode != E_OK && errCode != -E_NOT_FOUND) {
         return errCode;
     }
-    param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
+    if (hashKey.empty()) {
+        return errCode;
+    }
+    param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
     if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
         LOGD("[CloudSyncer] exist same record in one batch, override from cache record! hash=%.3s",
             DBCommon::TransferStringToHex(hashKey).c_str());
