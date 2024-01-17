@@ -162,8 +162,7 @@ namespace {
 }
 
 SQLiteSingleVerNaturalStore::SQLiteSingleVerNaturalStore()
-    : currentMaxTimestamp_(0),
-      storageEngine_(nullptr),
+    : storageEngine_(nullptr),
       notificationEventsRegistered_(false),
       notificationConflictEventsRegistered_(false),
       isInitialized_(false),
@@ -204,7 +203,6 @@ int SQLiteSingleVerNaturalStore::InitDatabaseContext(const KvDBProperties &kvDBP
     if (errCode != E_OK) {
         return errCode;
     }
-    InitCurrentMaxStamp();
     return errCode;
 }
 
@@ -889,16 +887,7 @@ int SQLiteSingleVerNaturalStore::PutSyncDataWithQuery(const QueryObject &query,
 
 void SQLiteSingleVerNaturalStore::GetMaxTimestamp(Timestamp &stamp) const
 {
-    std::lock_guard<std::mutex> lock(maxTimestampMutex_);
-    stamp = currentMaxTimestamp_;
-}
-
-void SQLiteSingleVerNaturalStore::SetMaxTimestamp(Timestamp timestamp)
-{
-    std::lock_guard<std::mutex> lock(maxTimestampMutex_);
-    if (timestamp > currentMaxTimestamp_) {
-        currentMaxTimestamp_ = timestamp;
-    }
+    stamp = GetCurrentMaxStamp();
 }
 
 // In sync procedure, call this function
@@ -1138,20 +1127,21 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
     isInitialized_ = false;
 }
 
-void SQLiteSingleVerNaturalStore::InitCurrentMaxStamp()
+Timestamp SQLiteSingleVerNaturalStore::GetCurrentMaxStamp() const
 {
     if (storageEngine_ == nullptr) {
-        return;
+        return 0u;
     }
     int errCode = E_OK;
     SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
     if (handle == nullptr) {
-        return;
+        return 0u;
     }
-
-    handle->InitCurrentMaxStamp(currentMaxTimestamp_);
-    LOGD("Init max timestamp:%" PRIu64, currentMaxTimestamp_);
+    Timestamp timestamp = 0u;
+    handle->InitCurrentMaxStamp(timestamp);
+    LOGD("Get max timestamp from db:%" PRIu64, timestamp);
     ReleaseHandle(handle);
+    return timestamp;
 }
 
 void SQLiteSingleVerNaturalStore::InitConflictNotifiedFlag(SingleVerNaturalStoreCommitNotifyData *committedData)
@@ -1216,7 +1206,6 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToMain(const QueryObject &query, st
     int errCode = SaveSyncItems(query, dataItems, deviceInfo, maxTimestamp, committedData);
     if (errCode == E_OK) {
         isNeedCommit = true;
-        SetMaxTimestamp(maxTimestamp);
     }
 
     CommitAndReleaseNotifyData(committedData, isNeedCommit,
@@ -1293,8 +1282,6 @@ int SQLiteSingleVerNaturalStore::SaveSyncDataToCacheDB(const QueryObject &query,
     errCode = SaveSyncItemsInCacheMode(handle, query, dataItems, deviceInfo, maxTimestamp);
     if (errCode != E_OK) {
         LOGE("[SingleVerNStore] Failed to save sync data in cache mode, err : %d", errCode);
-    } else {
-        SetMaxTimestamp(maxTimestamp);
     }
     DBDfxAdapter::FinishTracing();
     ReleaseHandle(handle);
@@ -1479,8 +1466,6 @@ int SQLiteSingleVerNaturalStore::Import(const std::string &filePath, const Ciphe
     // Save create db time.
     storageEngine_->Enable(OperatePerm::IMPORT_MONOPOLIZE_PERM);
 
-    // Get current max timestamp after import and before start syncer, reflash local time offset
-    InitCurrentMaxStamp();
     errCode = SaveCreateDBTime(); // This step will start syncer
 
 END:
