@@ -40,7 +40,7 @@ public:
 
     int OnProcessMsg(const std::string &msg, int len, std::string &ret, int retLen) override;
     int OnProcessCmd(const std::string &command, int len, const std::string &args,
-        int argsLen, const std::string &expectValue) override;
+        int argsLen, const std::string &expectValue, int expectValueLen) override;
 
     int Get(const std::string &msg, std::string &ret);
 
@@ -161,7 +161,7 @@ int DistributedTestAgent::OnProcessMsg(const std::string &msg, int len, std::str
 }
 
 int DistributedTestAgent::OnProcessCmd(const std::string &command, int len,
-    const std::string &args, int argsLen, const std::string &expectValue)
+    const std::string &args, int argsLen, const std::string &expectValue, int expectValueLen)
 {
     if (command == "CommandTest") {
         return SUCCESS;
@@ -170,7 +170,7 @@ int DistributedTestAgent::OnProcessCmd(const std::string &command, int len,
     if (iter != commandFunctionMap_.end()) {
         return (this->*commandFunctionMap_[command])(args);
     }
-    return DistributedAgent::OnProcessCmd(command, len, args, argsLen, expectValue);
+    return DistributedAgent::OnProcessCmd(command, len, args, argsLen, expectValue, expectValueLen);
 }
 
 int DistributedTestAgent::Get(const std::string &msg, std::string &ret)
