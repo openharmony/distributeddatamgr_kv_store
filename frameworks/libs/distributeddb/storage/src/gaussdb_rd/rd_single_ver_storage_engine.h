@@ -54,8 +54,6 @@ private:
 
     int IndexPreLoad(GRD_DB *&db, const char *collectionName);
 
-    int CrcCheckIfNeed(const OpenDbProperties &option);
-
     std::atomic<bool> crcCheck_ = false;
 };
 } // namespace DistributedDB

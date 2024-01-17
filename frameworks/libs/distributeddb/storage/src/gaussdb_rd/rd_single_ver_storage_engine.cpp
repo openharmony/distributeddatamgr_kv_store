@@ -199,26 +199,4 @@ int RdSingleVerStorageEngine::IndexPreLoad(GRD_DB *&db, const char *collectionNa
 {
     return RdIndexPreload(db, collectionName);
 }
-
-int RdSingleVerStorageEngine::CrcCheckIfNeed(const OpenDbProperties &option)
-{
-    if (!option.isNeedIntegrityCheck || crcCheck_) {
-        return E_OK;
-    }
-    int errCode = RdCrcCheck(option.uri.c_str());
-    if (errCode != E_OK && errCode != -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        return errCode;
-    }
-    if (option.readOnly && errCode == -E_INVALID_PASSWD_OR_CORRUPTED_DB) {
-        LOGE("crc check failed [%d], read process can not open", errCode);
-        return errCode;
-    }
-    if (errCode != E_OK && !option.readOnly && !option.isNeedRmCorruptedDb) {
-        LOGE("crc check failed [%d], write process can not open", errCode);
-        return errCode;
-    }
-    crcCheck_ = true;
-    return E_OK;
-}
-
 } // namespace DistributedDB

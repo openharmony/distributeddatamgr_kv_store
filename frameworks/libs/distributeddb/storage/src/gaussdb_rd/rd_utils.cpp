@@ -292,9 +292,4 @@ bool CheckRdOption(const KvStoreNbDelegate::Option &option,
     }
     return true;
 }
-
-int RdCrcCheck(const char *dbFile)
-{
-    return TransferGrdErrno(GRD_CrcCheck(dbFile));
-}
 } // namespace DistributedDB
