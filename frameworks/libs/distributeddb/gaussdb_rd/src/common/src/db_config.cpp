@@ -127,6 +127,14 @@ bool CheckCrcCheckEnableConfig(const JsonObject &config, uint32_t &crcCheckEnabl
     return CheckAndGetDBConfig(config, DB_CONFIG_CRC_CHECK_ENABLE, checkFunction, crcCheckEnable);
 }
 
+bool CheckShareModeConfig(const JsonObject &config, uint32_t &shareModeCheckEnable)
+{
+    std::function<bool(uint32_t)> checkFunction = [](uint32_t val) {
+        return val == 0;
+    };
+    return CheckAndGetDBConfig(config, DB_CONFIG_SHARED_MODE, checkFunction, shareModeCheckEnable);
+}
+
 int IsDbconfigValid(const JsonObject &config)
 {
     JsonObject child = config.GetChild();
@@ -202,8 +210,13 @@ DBConfig DBConfig::GetDBConfigFromJsonStr(const std::string &confStr, int &errCo
         return {};
     }
 
+    if (!CheckShareModeConfig(dbConfig, conf.shareModeEnable_)) {
+        GLOGE("Check DB config 'shareModeEnable' failed.");
+        errCode = -E_INVALID_CONFIG_VALUE;
+        return {};
+    }
+
     conf.configStr_ = confStr;
-    errCode = E_OK;
     return conf;
 }
 

@@ -45,6 +45,7 @@ private:
     int32_t maxConnNum_ = 100;       // 100: default max conn
     uint32_t bufferPoolSize_ = 1024; // 100: default 1024k pool size
     uint32_t crcCheckEnable_ = 1;
+    uint32_t shareModeEnable_ = 0;
 };
 } // namespace DocumentDB
 #endif // DB_CONFIG_H

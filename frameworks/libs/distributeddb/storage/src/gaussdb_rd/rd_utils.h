@@ -74,7 +74,5 @@ int RdIndexPreload(GRD_DB *&db, const char *collectionName);
 
 bool CheckRdOption(const KvStoreNbDelegate::Option &option,
     const std::function<void(DBStatus, KvStoreNbDelegate *)> &callback);
-
-int RdCrcCheck(const char *dbFile);
 } // namespace DistributedDB
 #endif // RD_UTILS_H

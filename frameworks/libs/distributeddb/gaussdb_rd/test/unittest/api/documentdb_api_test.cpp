@@ -612,6 +612,26 @@ HWTEST_F(DocumentDBApiTest, OpenDBConfigPubBuffTest001, TestSize.Level0)
 }
 
 /**
+ * @tc.name: OpenDBConfigShareModeTest001
+ * @tc.desc: Test open document db with invalid config item shareMode
+ * @tc.type: FUNC
+ * @tc.require:
+ * @tc.author: mazhao
+ */
+HWTEST_F(DocumentDBApiTest, OpenDBConfigShareModeTest001, TestSize.Level0)
+{
+    GRD_DB *db = nullptr;
+    std::string path = "./document.db";
+
+    int status = GRD_DBOpen(path.c_str(), R""({"sharedmodeenable":0})"", GRD_DB_OPEN_CREATE, &db);
+    EXPECT_EQ(status, GRD_OK);
+    EXPECT_EQ(GRD_DBClose(db, 0), GRD_OK);
+
+    status = GRD_DBOpen(path.c_str(), R""({"sharedmodeenable":1})"", GRD_DB_OPEN_CREATE, &db);
+    EXPECT_EQ(status, GRD_INVALID_ARGS);
+}
+
+/**
  * @tc.name: OpenDBFlagTest001
  * @tc.desc: Test open document db with invalid flag
  * @tc.type: FUNC
