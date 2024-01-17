@@ -925,6 +925,9 @@ static int InitValue(int index, const void* value, unsigned int len, char* value
 
 static int InsertKV(DBHandle db, const KeyItem* item, const void* value, unsigned int len)
 {
+    if (len == NULL) {
+        return DBM_ERROR;
+    }
     char* valueContent = (char *)malloc(len + KV_SUM_BLOCK_SIZE); // Avoid stack overflows
     if (valueContent == NULL) {
         return DBM_ERROR;
@@ -961,6 +964,9 @@ static int UpdateKV(DBHandle db, const KeyItem* item, const void* value, unsigne
         return DBM_ERROR;
     }
 
+    if (len == NULL) {
+        return DBM_ERROR;
+    }
     char* valueContent = (char *)malloc(len + KV_SUM_BLOCK_SIZE);
     if (valueContent == NULL) {
         return DBM_ERROR;
