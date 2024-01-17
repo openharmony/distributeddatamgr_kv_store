@@ -388,14 +388,6 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
     Key hashKey = dataInfo.localInfo.logInfo.hashKey;
     if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
         if (opType == OpType::INSERT) {
-            size_t delIdx;
-            int errCode = CloudSyncUtils::FindDeletedListIndex(deletedList, hashKey, delIdx);
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncer] FindDeletedListIndex could not find delete item.");
-                return errCode;
-            }
-            param.changedData.primaryData[ChangeType::OP_DELETE].erase(
-                param.changedData.primaryData[ChangeType::OP_DELETE].begin() + delIdx);
             (void)param.dupHashKeySet.insert(hashKey);
             opType = OpType::UPDATE;
             // only composite primary key needs to be processed.
@@ -403,10 +395,6 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
                 param.withoutRowIdData.updateData.emplace_back(dataIndex,
                     param.changedData.primaryData[ChangeType::OP_UPDATE].size());
             }
-        } else if (opType == OpType::DELETE) {
-            std::pair<Key, size_t> pair{hashKey, static_cast<size_t>(
-                param.changedData.primaryData[ChangeType::OP_DELETE].size())};
-            deletedList.emplace_back(pair);
         } else {
             LOGW("[CloudSyncer] deletePrimaryKeySet ignore opType %d.", opType);
         }
