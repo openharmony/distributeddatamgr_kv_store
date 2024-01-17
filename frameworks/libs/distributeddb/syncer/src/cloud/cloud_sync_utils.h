@@ -61,9 +61,6 @@ public:
     static int SaveChangedDataByType(const VBucket &datum, ChangedData &changedData, const DataInfoWithLog &localInfo,
         ChangeType type);
 
-    static int FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
-        size_t &delIdx);
-
     static int CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
         const int64_t &count, uint64_t &taskId);
 

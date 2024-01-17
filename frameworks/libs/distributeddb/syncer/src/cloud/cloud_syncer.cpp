@@ -1740,36 +1740,6 @@ int CloudSyncer::TagStatusByStrategy(bool isExist, SyncParam &param, DataInfo &d
     return E_OK;
 }
 
-int CloudSyncer::GetLocalInfo(size_t index, SyncParam &param, DataInfoWithLog &logInfo,
-    std::map<std::string, LogInfo> &localLogInfoCache, VBucket &localAssetInfo)
-{
-    int errCode = storageProxy_->GetInfoByPrimaryKeyOrGid(param.tableName, param.downloadData.data[index],
-        logInfo, localAssetInfo);
-    if (errCode != E_OK && errCode != -E_NOT_FOUND) {
-        return errCode;
-    }
-    std::string hashKey(logInfo.logInfo.hashKey.begin(), logInfo.logInfo.hashKey.end());
-    if (hashKey.empty()) {
-        return errCode;
-    }
-    param.downloadData.existDataKey[index] = logInfo.logInfo.dataKey;
-    if (localLogInfoCache.find(hashKey) != localLogInfoCache.end()) {
-        LOGD("[CloudSyncer] exist same record in one batch, override from cache record! hash=%.3s",
-            DBCommon::TransferStringToHex(hashKey).c_str());
-        logInfo.logInfo.flag = localLogInfoCache[hashKey].flag;
-        logInfo.logInfo.wTimestamp = localLogInfoCache[hashKey].wTimestamp;
-        logInfo.logInfo.timestamp = localLogInfoCache[hashKey].timestamp;
-        logInfo.logInfo.cloudGid = localLogInfoCache[hashKey].cloudGid;
-        logInfo.logInfo.device = localLogInfoCache[hashKey].device;
-        // delete record should remove local asset info
-        if ((localLogInfoCache[hashKey].flag & DataItem::DELETE_FLAG) == DataItem::DELETE_FLAG) {
-            localAssetInfo.clear();
-        }
-        errCode = E_OK;
-    }
-    return errCode;
-}
-
 TaskId CloudSyncer::GetNextTaskId()
 {
     std::lock_guard<std::mutex> autoLock(dataLock_);

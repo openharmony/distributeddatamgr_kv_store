@@ -204,18 +204,6 @@ int CloudSyncUtils::SaveChangedDataByType(const VBucket &datum, ChangedData &cha
     return E_OK;
 }
 
-int CloudSyncUtils::FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
-    size_t &delIdx)
-{
-    for (std::pair<Key, size_t> pair : deletedList) {
-        if (pair.first == hashKey) {
-            delIdx = pair.second;
-            return E_OK;
-        }
-    }
-    return -E_INTERNAL_ERROR;
-}
-
 int CloudSyncUtils::CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
     const int64_t &count, uint64_t &taskId)
 {
