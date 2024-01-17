@@ -648,6 +648,7 @@ static std::string SingleGenerate1025KeyLen()
     }
     return str;
 }
+
 /**
 * @tc.name: DdmPutBatch005
 * @tc.desc: Batch put data that contains invalid data.

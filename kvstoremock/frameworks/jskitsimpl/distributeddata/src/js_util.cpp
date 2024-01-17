@@ -221,7 +221,6 @@ DistributedKv::Blob JSUtil::VariantValue2Blob(const JSUtil::KvStoreVariant& valu
     std::vector<uint8_t> data;
     auto strValue = std::get_if<std::string>(&value);
     if (strValue != nullptr) {
-        
         data.push_back(JSUtil::STRING);
         data.insert(data.end(), (*strValue).begin(), (*strValue).end());
     }
