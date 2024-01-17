@@ -887,7 +887,17 @@ int SQLiteSingleVerNaturalStore::PutSyncDataWithQuery(const QueryObject &query,
 
 void SQLiteSingleVerNaturalStore::GetMaxTimestamp(Timestamp &stamp) const
 {
-    stamp = GetCurrentMaxStamp();
+    if (storageEngine_ == nullptr) {
+        return;
+    }
+    int errCode = E_OK;
+    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
+    if (handle == nullptr) {
+        return;
+    }
+    handle->InitCurrentMaxStamp(stamp);
+    LOGD("Get max timestamp from db:%" PRIu64, stamp);
+    ReleaseHandle(handle);
 }
 
 // In sync procedure, call this function
@@ -1125,23 +1135,6 @@ void SQLiteSingleVerNaturalStore::ReleaseResources()
     }
 
     isInitialized_ = false;
-}
-
-Timestamp SQLiteSingleVerNaturalStore::GetCurrentMaxStamp() const
-{
-    if (storageEngine_ == nullptr) {
-        return 0u;
-    }
-    int errCode = E_OK;
-    SQLiteSingleVerStorageExecutor *handle = GetHandle(true, errCode);
-    if (handle == nullptr) {
-        return 0u;
-    }
-    Timestamp timestamp = 0u;
-    handle->InitCurrentMaxStamp(timestamp);
-    LOGD("Get max timestamp from db:%" PRIu64, timestamp);
-    ReleaseHandle(handle);
-    return timestamp;
 }
 
 void SQLiteSingleVerNaturalStore::InitConflictNotifiedFlag(SingleVerNaturalStoreCommitNotifyData *committedData)

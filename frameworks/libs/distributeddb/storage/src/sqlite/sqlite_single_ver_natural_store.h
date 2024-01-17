@@ -270,8 +270,6 @@ private:
 
     void GetAndResizeLocalIdentity(std::string &outTarget) const;
 
-    Timestamp GetCurrentMaxStamp() const;
-
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
     mutable std::shared_mutex engineMutex_;
