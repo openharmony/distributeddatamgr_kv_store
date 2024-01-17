@@ -179,10 +179,7 @@ StoreFactory::DBOption StoreFactory::GetDBOption(const Options &options, const D
     dbOption.rdconfig.readOnly = (options.role == VISITOR ? true : false);
     dbOption.isMemoryDb = (!options.persistent);
     dbOption.isEncryptedDb = options.encrypt;
-    if (options.isNeedCompress) {
-        dbOption.isNeedCompressOnSync = true;
-        dbOption.compressionRate = COMPRESS_RATE;
-    }
+    dbOption.isNeedCompressOnSync = options.isNeedCompress;
     if (options.encrypt) {
         dbOption.cipher = DistributedDB::CipherType::AES_256_GCM;
         dbOption.passwd = dbPassword.password;
