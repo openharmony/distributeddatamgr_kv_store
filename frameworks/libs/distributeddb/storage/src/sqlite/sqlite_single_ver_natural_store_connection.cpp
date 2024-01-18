@@ -1324,7 +1324,6 @@ int SQLiteSingleVerNaturalStoreConnection::CommitInner()
     if (naturalStore == nullptr) {
         return -E_INVALID_DB;
     }
-    naturalStore->SetMaxTimestamp(currentMaxTimestamp_);
 
     if (isCacheOrMigrating) {
         naturalStore->IncreaseCacheRecordVersion();

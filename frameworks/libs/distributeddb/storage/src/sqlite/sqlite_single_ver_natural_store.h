@@ -94,8 +94,6 @@ public:
 
     void GetMaxTimestamp(Timestamp &stamp) const override;
 
-    void SetMaxTimestamp(Timestamp timestamp);
-
     int Rekey(const CipherPassword &passwd) override;
 
     int Export(const std::string &filePath, const CipherPassword &passwd) override;
@@ -208,8 +206,6 @@ private:
 
     int RegisterNotification();
 
-    void InitCurrentMaxStamp();
-
     int SaveSyncDataItems(const QueryObject &query, std::vector<DataItem> &dataItems, const DeviceInfo &deviceInfo,
         bool checkValueContent);
 
@@ -276,8 +272,6 @@ private:
 
     DECLARE_OBJECT_TAG(SQLiteSingleVerNaturalStore);
 
-    Timestamp currentMaxTimestamp_ = 0;
-
     mutable std::shared_mutex engineMutex_;
     SQLiteSingleVerStorageEngine *storageEngine_;
 
@@ -286,7 +280,6 @@ private:
     bool isInitialized_;
     bool isReadOnly_;
     mutable std::mutex initialMutex_;
-    mutable std::mutex maxTimestampMutex_;
     mutable std::mutex lifeCycleMutex_;
     mutable DatabaseLifeCycleNotifier lifeCycleNotifier_;
     mutable TimerId lifeTimerId_;

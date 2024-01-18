@@ -179,12 +179,6 @@ int SQLiteSingleVerStorageEngine::MigrateSyncDataByVersion(SQLiteSingleVerStorag
         return errCode;
     }
 
-    Timestamp timestamp = 0;
-    errCode = handle->GetMaxTimestampDuringMigrating(timestamp);
-    if (errCode == E_OK) {
-        SetMaxTimestamp(timestamp);
-    }
-
     errCode = ReleaseHandleTransiently(handle, 2ULL, syncData); // temporary release handle 2ms
     if (errCode != E_OK) {
         return errCode;
@@ -1027,24 +1021,6 @@ void SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag(SingleVerNaturalStor
     RefObject::DecObjRef(kvdb);
     LOGD("[SQLiteSingleVerStorageEngine::InitConflictNotifiedFlag] conflictFlag Flag: %u", conflictFlag);
     committedData->SetConflictedNotifiedFlag(static_cast<int>(conflictFlag));
-}
-
-void SQLiteSingleVerStorageEngine::SetMaxTimestamp(Timestamp maxTimestamp) const
-{
-    auto kvdbManager = KvDBManager::GetInstance();
-    if (kvdbManager == nullptr) {
-        return;
-    }
-    auto identifier = GetIdentifier();
-    auto kvdb = kvdbManager->FindKvDB(identifier);
-    if (kvdb == nullptr) {
-        LOGE("[SQLiteSingleVerStorageEngine::SetMaxTimestamp] kvdb is null.");
-        return;
-    }
-
-    auto kvStore = static_cast<SQLiteSingleVerNaturalStore *>(kvdb);
-    kvStore->SetMaxTimestamp(maxTimestamp);
-    RefObject::DecObjRef(kvdb);
 }
 
 void SQLiteSingleVerStorageEngine::CommitNotifyForMigrateCache(NotifyMigrateSyncData &syncData) const

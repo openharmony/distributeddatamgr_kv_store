@@ -88,7 +88,6 @@ private:
     void EndMigrate(SQLiteSingleVerStorageExecutor *&handle, EngineState stateBeforeMigrate, int errCode,
         bool isNeedTriggerSync);
     void ResetCacheRecordVersion();
-    void SetMaxTimestamp(Timestamp maxTimestamp) const;
     int EraseDeviceWaterMark(SQLiteSingleVerStorageExecutor *&handle, const std::vector<DataItem> &dataItems);
     int EraseDeviceWaterMark(const std::set<std::string> &removeDevices, bool isNeedHash);
     int GetRemoveDataDevices(SQLiteSingleVerStorageExecutor *handle, const DataItem &item,
