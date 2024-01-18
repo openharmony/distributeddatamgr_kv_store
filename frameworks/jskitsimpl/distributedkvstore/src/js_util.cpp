@@ -215,7 +215,7 @@ JSUtil::KvStoreVariant JSUtil::Blob2VariantValue(const DistributedKv::Blob& blob
     } else if (data[0] == JSUtil::DOUBLE) {
         uint64_t tmp4dbl = be64toh(*reinterpret_cast<uint64_t*>(&(real[0])));
         return JSUtil::KvStoreVariant(*reinterpret_cast<double*>((void*)(&tmp4dbl)));
-    } else if (data[0] == JSUtil::STRING){
+    } else if (data[0] == JSUtil::STRING) {
         return JSUtil::KvStoreVariant(std::string(real.begin(), real.end()));
     } else {
         // for schema-db, if (data[0] == JSUtil::STRING), no beginning byte!
