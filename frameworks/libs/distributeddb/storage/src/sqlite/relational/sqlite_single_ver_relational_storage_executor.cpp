@@ -1795,9 +1795,15 @@ int SQLiteSingleVerRelationalStorageExecutor::GetInfoByPrimaryKeyOrGid(const Tab
         LOGE("Get query log sql fail, %d", errCode);
         return errCode;
     }
-
+    if (!pkSet.empty()) {
+        errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, dataInfoWithLog.logInfo.hashKey, true);
+        if (errCode != E_OK) {
+            LOGE("calc hash fail when get query log statement, errCode = %d", errCode);
+            return errCode;
+        }
+    }
     sqlite3_stmt *selectStmt = nullptr;
-    errCode = GetQueryLogStatement(tableSchema, vBucket, querySql, pkSet, selectStmt);
+    errCode = GetQueryLogStatement(tableSchema, vBucket, querySql, dataInfoWithLog.logInfo.hashKey, selectStmt);
     if (errCode != E_OK) {
         LOGE("Get query log statement fail, %d", errCode);
         return errCode;
@@ -1928,7 +1934,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GetPrimaryKeyHashValue(const VBuck
 }
 
 int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSchema &tableSchema,
-    const VBucket &vBucket, const std::string &querySql, std::set<std::string> &pkSet, sqlite3_stmt *&selectStmt)
+    const VBucket &vBucket, const std::string &querySql, const Key &hashKey, sqlite3_stmt *&selectStmt)
 {
     int errCode = SQLiteUtils::GetStatement(dbHandle_, querySql, selectStmt);
     if (errCode != E_OK) {
@@ -1956,18 +1962,8 @@ int SQLiteSingleVerRelationalStorageExecutor::GetQueryLogStatement(const TableSc
         }
     }
 
-    std::vector<uint8_t> hashValue;
-    if (!pkSet.empty()) {
-        errCode = GetPrimaryKeyHashValue(vBucket, tableSchema, hashValue, true);
-    }
-    if (errCode != E_OK) {
-        LOGE("calc hash fail when get query log statement, errCode = %d", errCode);
-        SQLiteUtils::ResetStatement(selectStmt, true, errCode);
-        return errCode;
-    }
-
     index++;
-    errCode = SQLiteUtils::BindBlobToStatement(selectStmt, index, hashValue, true);
+    errCode = SQLiteUtils::BindBlobToStatement(selectStmt, index, hashKey, true);
     if (errCode != E_OK) {
         LOGE("Bind hash key to query log statement failed. %d", errCode);
         SQLiteUtils::ResetStatement(selectStmt, true, ret);

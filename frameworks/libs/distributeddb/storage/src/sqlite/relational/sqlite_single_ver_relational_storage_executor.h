@@ -251,7 +251,7 @@ private:
         bool allowEmpty = false);
 
     int GetQueryLogStatement(const TableSchema &tableSchema, const VBucket &vBucket, const std::string &querySql,
-        std::set<std::string> &pkSet, sqlite3_stmt *&selectStmt);
+        const Key &hashKey, sqlite3_stmt *&selectStmt);
 
     int GetQueryLogSql(const std::string &tableName, const VBucket &vBucket, std::set<std::string> &pkSet,
         std::string &querySql);

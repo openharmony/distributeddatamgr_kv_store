@@ -200,20 +200,8 @@ int CloudSyncUtils::SaveChangedDataByType(const VBucket &datum, ChangedData &cha
     if (ret != E_OK) {
         return ret;
     }
-    changedData.primaryData[type].emplace_back(std::move(cloudPkVals));
+    InsertOrReplaceChangedDataByType(type, cloudPkVals, changedData);
     return E_OK;
-}
-
-int CloudSyncUtils::FindDeletedListIndex(const std::vector<std::pair<Key, size_t>> &deletedList, const Key &hashKey,
-    size_t &delIdx)
-{
-    for (std::pair<Key, size_t> pair : deletedList) {
-        if (pair.first == hashKey) {
-            delIdx = pair.second;
-            return E_OK;
-        }
-    }
-    return -E_INTERNAL_ERROR;
 }
 
 int CloudSyncUtils::CheckCloudSyncDataValid(const CloudSyncData &uploadData, const std::string &tableName,
@@ -348,30 +336,36 @@ int CloudSyncUtils::UpdateExtendTime(CloudSyncData &uploadData, const int64_t &c
 void CloudSyncUtils::UpdateLocalCache(OpType opType, const LogInfo &cloudInfo, const LogInfo &localInfo,
     std::map<std::string, LogInfo> &localLogInfoCache)
 {
-    // only cloud delete data need records
-    if ((cloudInfo.flag & 0x01) != 1) {
-        return;
-    }
     LogInfo updateLogInfo;
     std::string hashKey(localInfo.hashKey.begin(), localInfo.hashKey.end());
+    bool updateCache = true;
     switch (opType) {
+        case OpType::INSERT :
+        case OpType::UPDATE :
         case OpType::DELETE: {
-            updateLogInfo.flag |= 0x01;
             updateLogInfo.timestamp = cloudInfo.timestamp;
             updateLogInfo.wTimestamp = cloudInfo.wTimestamp;
-            updateLogInfo.device = "cloud";
-            localLogInfoCache[hashKey] = updateLogInfo;
+            updateLogInfo.device = CloudDbConstant::DEFAULT_CLOUD_DEV;
+            updateLogInfo.hashKey = Key(hashKey.begin(), hashKey.end());
+            if (opType == OpType::DELETE) {
+                updateLogInfo.flag |= static_cast<uint64_t>(LogInfoFlag::FLAG_DELETE);
+            } else if (opType == OpType::INSERT) {
+                updateLogInfo.originDev = CloudDbConstant::DEFAULT_CLOUD_DEV;
+            }
             break;
         }
         case OpType::CLEAR_GID:
         case OpType::UPDATE_TIMESTAMP: {
             updateLogInfo = localInfo;
             updateLogInfo.cloudGid.clear();
-            localLogInfoCache[hashKey] = updateLogInfo;
             break;
         }
         default:
+            updateCache = false;
             break;
+    }
+    if (updateCache) {
+        localLogInfoCache[hashKey] = updateLogInfo;
     }
 }
 
@@ -382,14 +376,6 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
     Key hashKey = dataInfo.localInfo.logInfo.hashKey;
     if (param.deletePrimaryKeySet.find(hashKey) != param.deletePrimaryKeySet.end()) {
         if (opType == OpType::INSERT) {
-            size_t delIdx;
-            int errCode = CloudSyncUtils::FindDeletedListIndex(deletedList, hashKey, delIdx);
-            if (errCode != E_OK) {
-                LOGE("[CloudSyncer] FindDeletedListIndex could not find delete item.");
-                return errCode;
-            }
-            param.changedData.primaryData[ChangeType::OP_DELETE].erase(
-                param.changedData.primaryData[ChangeType::OP_DELETE].begin() + delIdx);
             (void)param.dupHashKeySet.insert(hashKey);
             opType = OpType::UPDATE;
             // only composite primary key needs to be processed.
@@ -397,10 +383,6 @@ int CloudSyncUtils::SaveChangedData(ICloudSyncer::SyncParam &param, size_t dataI
                 param.withoutRowIdData.updateData.emplace_back(dataIndex,
                     param.changedData.primaryData[ChangeType::OP_UPDATE].size());
             }
-        } else if (opType == OpType::DELETE) {
-            std::pair<Key, size_t> pair{hashKey, static_cast<size_t>(
-                param.changedData.primaryData[ChangeType::OP_DELETE].size())};
-            deletedList.emplace_back(pair);
         } else {
             LOGW("[CloudSyncer] deletePrimaryKeySet ignore opType %d.", opType);
         }
@@ -551,5 +533,19 @@ void CloudSyncUtils::UpdateAssetsFlag(CloudSyncData &uploadData)
     AssetOperationUtils::UpdateAssetsFlag(uploadData.insData.record, uploadData.insData.assets);
     AssetOperationUtils::UpdateAssetsFlag(uploadData.updData.record, uploadData.updData.assets);
     AssetOperationUtils::UpdateAssetsFlag(uploadData.delData.record, uploadData.delData.assets);
+}
+
+void CloudSyncUtils::InsertOrReplaceChangedDataByType(ChangeType type, std::vector<Type> &pkVal,
+    ChangedData &changedData)
+{
+    // erase old changedData if exist
+    for (auto &changePkValList : changedData.primaryData) {
+        changePkValList.erase(std::remove_if(changePkValList.begin(), changePkValList.end(),
+            [&pkVal](const std::vector<Type> &existPkVal) {
+            return existPkVal == pkVal;
+            }), changePkValList.end());
+    }
+    // insert new changeData
+    changedData.primaryData[type].emplace_back(std::move(pkVal));
 }
 }
