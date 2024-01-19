@@ -282,6 +282,9 @@ private:
     int BindHashKeyAndGidToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 
+    int BindShareValueToInsertLogStatement(const VBucket &vBucket, const TableSchema &tableSchema,
+        sqlite3_stmt *insertLogStmt);
+
     int BindValueToInsertLogStatement(VBucket &vBucket, const TableSchema &tableSchema,
         const TrackerTable &trackerTable, sqlite3_stmt *insertLogStmt);
 

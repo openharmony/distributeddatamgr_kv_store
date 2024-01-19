@@ -172,7 +172,7 @@ int SQLiteSingleVerRelationalStorageExecutor::GeneLogInfoForExistedData(sqlite3 
             std::string(DBConstant::SQLITE_INNER_ROWID) +
             ") ELSE " + std::string(DBConstant::SQLITE_INNER_ROWID) + " end";
     }
-    sql += ", ''";
+    sql += ", '', ''";
     sql += " FROM '" + tableName + "' AS a WHERE 1=1;";
     return SQLiteUtils::ExecuteRawSQL(db, sql);
 }
@@ -1875,10 +1875,11 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "flag = flag | " + std::to_string(SET_FLAG_ONE_MASK); // set 2th bit of flag
     }  else if (opType == OpType::UPDATE_TIMESTAMP) {
         updateLogSql += "device = 'cloud', flag = flag & " + std::to_string(SET_CLOUD_FLAG) +
-            ", timestamp = ?, cloud_gid = '', version = ''";
+            ", timestamp = ?, cloud_gid = '', version = '', sharing_resource = ''";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     } else if (opType == OpType::CLEAR_GID) {
-        updateLogSql += "cloud_gid = '', version = '', flag = flag & " + std::to_string(SET_FLAG_ZERO_MASK);
+        updateLogSql += "cloud_gid = '', version = '', sharing_resource = '', flag = flag & " +
+            std::to_string(SET_FLAG_ZERO_MASK);
     } else {
         if (opType == OpType::DELETE) {
             updateLogSql += GetCloudDeleteSql(DBCommon::GetLogTableName(tableSchema.name));
@@ -1889,11 +1890,14 @@ int SQLiteSingleVerRelationalStorageExecutor::GetUpdateLogRecordStatement(const 
         updateLogSql += "device = 'cloud', timestamp = ?";
         updateColName.push_back(CloudDbConstant::MODIFY_FIELD);
     }
-    // only share table need to set version
-    if (CloudStorageUtils::IsSharedTable(tableSchema) && opType != OpType::DELETE &&
-        opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
-        updateLogSql += ", version = ?";
-        updateColName.push_back(CloudDbConstant::VERSION_FIELD);
+    if (opType != OpType::DELETE && opType != OpType::CLEAR_GID && opType != OpType::UPDATE_TIMESTAMP) {
+        // only share table need to set version
+        if (CloudStorageUtils::IsSharedTable(tableSchema)) {
+            updateLogSql += ", version = ?";
+            updateColName.push_back(CloudDbConstant::VERSION_FIELD);
+        }
+        updateLogSql += ", sharing_resource = ?";
+        updateColName.push_back(CloudDbConstant::SHARING_RESOURCE_FIELD);
     }
 
     int errCode = AppendUpdateLogRecordWhereSqlCondition(tableSchema, vBucket, updateLogSql);

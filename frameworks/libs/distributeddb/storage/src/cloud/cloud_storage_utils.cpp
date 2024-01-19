@@ -20,6 +20,7 @@
 #include "cloud/cloud_db_types.h"
 #include "db_common.h"
 #include "runtime_context.h"
+#include "cloud_db_constant.h"
 
 namespace DistributedDB {
 int CloudStorageUtils::BindInt64(int index, const VBucket &vBucket, const Field &field,
@@ -1063,5 +1064,51 @@ bool CloudStorageUtils::CheckCloudSchemaFields(const TableSchema &tableSchema, c
         }
     }
     return true;
+}
+
+int CloudStorageUtils::BindUpdateLogStmtFromVBucket(const VBucket &vBucket, const TableSchema &tableSchema,
+    const std::vector<std::string> &colNames, sqlite3_stmt *updateLogStmt)
+{
+    int index = 0;
+    int errCode = E_OK;
+    for (const auto &colName : colNames) {
+        index++;
+        if (colName == CloudDbConstant::GID_FIELD) {
+            if (vBucket.find(colName) == vBucket.end()) {
+                LOGE("cloud data doesn't contain gid field when bind update log stmt.");
+                return -E_CLOUD_ERROR;
+            }
+            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
+                std::get<std::string>(vBucket.at(colName)));
+        } else if (colName == CloudDbConstant::MODIFY_FIELD) {
+            if (vBucket.find(colName) == vBucket.end()) {
+                LOGE("cloud data doesn't contain modify field when bind update log stmt.");
+                return -E_CLOUD_ERROR;
+            }
+            errCode = SQLiteUtils::BindInt64ToStatement(updateLogStmt, index, std::get<int64_t>(vBucket.at(colName)));
+        } else if (colName == CloudDbConstant::VERSION_FIELD) {
+            if (vBucket.find(colName) == vBucket.end()) {
+                LOGE("cloud data doesn't contain version field when bind update log stmt.");
+                return -E_CLOUD_ERROR;
+            }
+            errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
+                std::get<std::string>(vBucket.at(colName)));
+        } else if (colName == CloudDbConstant::SHARING_RESOURCE_FIELD) {
+            if (vBucket.find(colName) == vBucket.end()) {
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index, "");
+            } else {
+                errCode = SQLiteUtils::BindTextToStatement(updateLogStmt, index,
+                    std::get<std::string>(vBucket.at(colName)));
+            }
+        } else {
+            LOGE("invalid col name when bind value to update log statement.");
+            return -E_INTERNAL_ERROR;
+        }
+        if (errCode != E_OK) {
+            LOGE("fail to bind value to update log statement.");
+            return errCode;
+        }
+    }
+    return E_OK;
 }
 }

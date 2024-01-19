@@ -121,7 +121,7 @@ namespace {
         void CheckDistributedSharedTable(const std::vector<std::string> &expectedTableName);
         void InsertLocalSharedTableRecords(int64_t begin, int64_t count, const std::string &tableName,
             bool isUpdate = false);
-        void InsertCloudTableRecord(int64_t begin, int64_t count);
+        void InsertCloudTableRecord(int64_t begin, int64_t count, bool useShareUri = false);
         void BlockSync(const Query &query, RelationalStoreDelegate *delegate, DBStatus errCode = OK);
         void CheckCloudTableCount(const std::string &tableName, int64_t expectCount);
         void CloseDb();
@@ -242,7 +242,8 @@ namespace {
         }
     }
 
-    void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertCloudTableRecord(int64_t begin, int64_t count)
+    void DistributedDBCloudInterfacesSetCloudSchemaTest::InsertCloudTableRecord(int64_t begin, int64_t count,
+        bool useShareUri)
     {
         std::vector<uint8_t> photo(1, 'v');
         std::vector<VBucket> record;
@@ -262,6 +263,9 @@ namespace {
             log.insert_or_assign(CloudDbConstant::CREATE_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::MODIFY_FIELD, (int64_t)now / CloudDbConstant::TEN_THOUSAND + i);
             log.insert_or_assign(CloudDbConstant::DELETE_FIELD, false);
+            if (useShareUri) {
+                log.insert_or_assign(CloudDbConstant::SHARING_RESOURCE_FIELD, "uri:" + std::to_string(i));
+            }
             extend.push_back(log);
         }
         ASSERT_EQ(g_virtualCloudDb->BatchInsert(g_sharedTableName1, std::move(record), extend), DBStatus::OK);
@@ -1453,5 +1457,37 @@ namespace {
         };
         dataBaseSchema.tables.push_back(tableSchema);
         ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::INVALID_ARGS);
+    }
+
+    /**
+     * @tc.name: SharedTableSync007
+     * @tc.desc:
+     * @tc.type: FUNC
+     * @tc.require:
+     * @tc.author: bty
+    */
+    HWTEST_F(DistributedDBCloudInterfacesSetCloudSchemaTest, SharedTableSync007, TestSize.Level0)
+    {
+        /**
+         * @tc.steps:step1. use set shared table
+         * @tc.expected: step1. return OK
+         */
+        DataBaseSchema dataBaseSchema;
+        TableSchema tableSchema = {
+            .name = g_tableName1,
+            .sharedTableName = g_sharedTableName1,
+            .fields = g_cloudField1
+        };
+        dataBaseSchema.tables.push_back(tableSchema);
+        ASSERT_EQ(g_delegate->SetCloudDbSchema(dataBaseSchema), DBStatus::OK);
+
+        /**
+         * @tc.steps:step2. insert cloud shared table records and version is empty
+         * @tc.expected: step2. return OK
+         */
+        int cloudCount = 10;
+        InsertCloudTableRecord(0, cloudCount, true);
+        Query query = Query::Select().FromTable({ g_sharedTableName1 });
+        BlockSync(query, g_delegate, DBStatus::OK);
     }
 } // namespace

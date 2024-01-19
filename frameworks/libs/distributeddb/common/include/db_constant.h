@@ -163,6 +163,7 @@ public:
     static constexpr const char *LOG_TABLE_VERSION_5 = "5.0";
     static constexpr const char *LOG_TABLE_VERSION_5_1 = "5.01";
     static constexpr const char *LOG_TABLE_VERSION_5_2 = "5.02"; // fix failure caused by comparing NULL using <>
+    static constexpr const char *LOG_TABLE_VERSION_5_3 = "5.03"; // add sharing_resource field
     static const std::string LOG_TABLE_VERSION_CURRENT;
 
     static const std::string LOG_TABLE_VERSION_KEY;
