@@ -461,7 +461,7 @@ struct Options {
    /**
      * Whether the sync need compress.
     */
-    bool isNeedCompress = false;
+    bool isNeedCompress = true;
 };
 
 /**
