@@ -58,6 +58,16 @@ FrameType GetFrameType(uint8_t inPacketType)
     }
     return static_cast<FrameType>(frameType);
 }
+bool IsSendLabelExchange(uint8_t inPacketType)
+{
+    return ((inPacketType & 0x08) >> 3) == 0; // Use 0x08 and remove low 3 bit, it is Communication negotiation mark
+}
+void SetSendLabelExchange(uint8_t &inPacketType, bool sendLabelExchange)
+{
+    if (!sendLabelExchange) {
+        inPacketType |= 0x08; // mark 0x08 when not support communication
+    }
+}
 }
 
 std::map<uint32_t, TransformFunc> ProtocolProto::msgIdMapFunc_;
@@ -446,6 +456,7 @@ int ProtocolProto::SetPhyHeader(SerialBuffer *inBuff, const PhyHeaderInfo &inInf
     } else {
         return -E_INVALID_ARGS;
     }
+    SetSendLabelExchange(packetType, inInfo.sendLabelExchange);
 
     CommPhyHeader phyHeader;
     phyHeader.magic = MAGIC_CODE;
@@ -791,6 +802,7 @@ int ProtocolProto::ParseCommPhyHeader(const std::string &srcTarget, const uint8_
         return -E_FRAME_TYPE_NOT_SUPPORT;
     }
     inResult.SetFrameTypeInfo(frameType);
+    inResult.SetSendLabelExchange(IsSendLabelExchange(phyHeader.packetType));
     return E_OK;
 }
 

@@ -32,6 +32,7 @@ struct PhyHeaderInfo {
     uint64_t sourceId = 0u;
     uint32_t frameId = 0u;
     FrameType frameType = FrameType::EMPTY;
+    bool sendLabelExchange = true;
 };
 
 struct FrameFragmentInfo {

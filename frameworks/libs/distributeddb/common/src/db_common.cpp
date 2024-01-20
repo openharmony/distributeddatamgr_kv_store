@@ -620,4 +620,12 @@ bool DBCommon::IsRecordIgnored(const VBucket &record)
     auto status = std::get<int64_t>(record.at(CloudDbConstant::ERROR_FIELD));
     return status == static_cast<int64_t>(DBStatus::CLOUD_RECORD_EXIST_CONFLICT);
 }
+
+std::string DBCommon::GenerateHashLabel(const DBInfo &dbInfo)
+{
+    if (dbInfo.syncDualTupleMode) {
+        return DBCommon::TransferHashString(dbInfo.appId + "-" + dbInfo.storeId);
+    }
+    return DBCommon::TransferHashString(dbInfo.userId + "-" + dbInfo.appId + "-" + dbInfo.storeId);
+}
 } // namespace DistributedDB

@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include "communicator_type_define.h"
+#include "db_status_adapter.h"
 #include "iadapter.h"
 #include "ref_object.h"
 
@@ -32,7 +33,7 @@ public:
     // The caller is the owner of inAdapter and responsible for manage its lifecycle.
     // The ICommunicatorAggregator is only the user of inAdapter
     // If Initialize fail, the ICommunicatorAggregator will rollback what had done to inAdapter so it can be reuse.
-    virtual int Initialize(IAdapter *inAdapter) = 0;
+    virtual int Initialize(IAdapter *inAdapter, const std::shared_ptr<DBStatusAdapter> &statusAdapter) = 0;
 
     // Call this method after Initialize successfully and before destroy the ICommunicatorAggregator
     // Emphasize again : DO NOT CALL Finalize IF Initialize FAIL.

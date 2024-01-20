@@ -40,10 +40,16 @@ public:
 protected:
     int SyncConditionCheck(const SyncParma &param, const ISyncEngine *engine, ISyncInterface *storage) const override;
 
+    // Init the Sync engine
+    int InitSyncEngine(ISyncInterface *syncInterface) override;
+
+    void TriggerAddSubscribeAsync(ISyncInterface *syncInterface);
 private:
     // if trigger full sync, no need to trigger query sync again
     bool TryFullSync(const std::vector<std::string> &devices);
+
     void TriggerSubQuerySync(const std::vector<std::string> &devices);
+
     bool autoSyncEnable_;
     std::atomic<bool> triggerSyncTask_;
 };
